@@ -47,6 +47,20 @@ class JobStatus(str, Enum):
     IN_PRODUCTION = "in_production"
     INSTALLED = "installed"
     COMPLETE = "complete"
+    ARCHIVED = "archived"
+
+class JobActivityType(str, Enum):
+    CREATED = "created"
+    STATUS_CHANGED = "status_changed"
+    QUOTE_CONVERTED = "quote_converted"
+    INVOICE_CREATED = "invoice_created"
+    ITEM_ADDED = "item_added"
+    ITEM_UPDATED = "item_updated"
+    ITEM_DELETED = "item_deleted"
+    NOTE_ADDED = "note_added"
+    COMPLETED = "completed"
+    ARCHIVED = "archived"
+    UNARCHIVED = "unarchived"
 
 class JobItemStatus(str, Enum):
     PENDING = "pending"
