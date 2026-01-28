@@ -1,0 +1,353 @@
+import { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+const AppContext = createContext(null);
+
+export const useApp = () => {
+  const context = useContext(AppContext);
+  if (!context) throw new Error('useApp must be used within AppProvider');
+  return context;
+};
+
+export const AppProvider = ({ children }) => {
+  const [customers, setCustomers] = useState([]);
+  const [quotes, setQuotes] = useState([]);
+  const [jobs, setJobs] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [dashboardStats, setDashboardStats] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // Customers
+  const fetchCustomers = async (params = {}) => {
+    try {
+      const res = await axios.get(`${API}/customers`, { params });
+      setCustomers(res.data);
+      return res.data;
+    } catch (err) {
+      console.error('Error fetching customers:', err);
+      return [];
+    }
+  };
+
+  const createCustomer = async (data) => {
+    const res = await axios.post(`${API}/customers`, data);
+    await fetchCustomers();
+    return res.data;
+  };
+
+  const updateCustomer = async (id, data) => {
+    const res = await axios.put(`${API}/customers/${id}`, data);
+    await fetchCustomers();
+    return res.data;
+  };
+
+  const deleteCustomer = async (id) => {
+    await axios.delete(`${API}/customers/${id}`);
+    await fetchCustomers();
+  };
+
+  // Quotes
+  const fetchQuotes = async (params = {}) => {
+    try {
+      const res = await axios.get(`${API}/quotes`, { params });
+      setQuotes(res.data);
+      return res.data;
+    } catch (err) {
+      console.error('Error fetching quotes:', err);
+      return [];
+    }
+  };
+
+  const createQuote = async (data) => {
+    const res = await axios.post(`${API}/quotes`, data);
+    await fetchQuotes();
+    return res.data;
+  };
+
+  const updateQuote = async (id, data) => {
+    const res = await axios.put(`${API}/quotes/${id}`, data);
+    await fetchQuotes();
+    return res.data;
+  };
+
+  const convertQuoteToJob = async (quoteId) => {
+    const res = await axios.post(`${API}/quotes/${quoteId}/convert-to-job`);
+    await fetchQuotes();
+    await fetchJobs();
+    return res.data;
+  };
+
+  // Jobs
+  const fetchJobs = async (params = {}) => {
+    try {
+      const res = await axios.get(`${API}/jobs`, { params });
+      setJobs(res.data);
+      return res.data;
+    } catch (err) {
+      console.error('Error fetching jobs:', err);
+      return [];
+    }
+  };
+
+  const createJob = async (data) => {
+    const res = await axios.post(`${API}/jobs`, data);
+    await fetchJobs();
+    return res.data;
+  };
+
+  const updateJob = async (id, data) => {
+    const res = await axios.put(`${API}/jobs/${id}`, data);
+    await fetchJobs();
+    return res.data;
+  };
+
+  const deleteJob = async (id) => {
+    await axios.delete(`${API}/jobs/${id}`);
+    await fetchJobs();
+  };
+
+  // Invoices
+  const fetchInvoices = async (params = {}) => {
+    try {
+      const res = await axios.get(`${API}/invoices`, { params });
+      setInvoices(res.data);
+      return res.data;
+    } catch (err) {
+      console.error('Error fetching invoices:', err);
+      return [];
+    }
+  };
+
+  const createInvoice = async (data) => {
+    const res = await axios.post(`${API}/invoices`, data);
+    await fetchInvoices();
+    return res.data;
+  };
+
+  const createInvoiceFromJob = async (jobId) => {
+    const res = await axios.post(`${API}/invoices/from-job/${jobId}`);
+    await fetchInvoices();
+    await fetchJobs();
+    return res.data;
+  };
+
+  const updateInvoice = async (id, data) => {
+    const res = await axios.put(`${API}/invoices/${id}`, data);
+    await fetchInvoices();
+    return res.data;
+  };
+
+  // Employees
+  const fetchEmployees = async (params = {}) => {
+    try {
+      const res = await axios.get(`${API}/employees`, { params });
+      setEmployees(res.data);
+      return res.data;
+    } catch (err) {
+      console.error('Error fetching employees:', err);
+      return [];
+    }
+  };
+
+  const createEmployee = async (data) => {
+    const res = await axios.post(`${API}/employees`, data);
+    await fetchEmployees();
+    return res.data;
+  };
+
+  const updateEmployee = async (id, data) => {
+    const res = await axios.put(`${API}/employees/${id}`, data);
+    await fetchEmployees();
+    return res.data;
+  };
+
+  // Tasks
+  const fetchTasks = async (params = {}) => {
+    try {
+      const res = await axios.get(`${API}/tasks`, { params });
+      setTasks(res.data);
+      return res.data;
+    } catch (err) {
+      console.error('Error fetching tasks:', err);
+      return [];
+    }
+  };
+
+  const createTask = async (data) => {
+    const res = await axios.post(`${API}/tasks`, data);
+    await fetchTasks();
+    return res.data;
+  };
+
+  const updateTask = async (id, data) => {
+    const res = await axios.put(`${API}/tasks/${id}`, data);
+    await fetchTasks();
+    return res.data;
+  };
+
+  const deleteTask = async (id) => {
+    await axios.delete(`${API}/tasks/${id}`);
+    await fetchTasks();
+  };
+
+  // Dashboard
+  const fetchDashboardStats = async () => {
+    try {
+      const res = await axios.get(`${API}/dashboard/stats`);
+      setDashboardStats(res.data);
+      return res.data;
+    } catch (err) {
+      console.error('Error fetching dashboard stats:', err);
+      return null;
+    }
+  };
+
+  // AI Tools
+  const generateAIContent = async (tool, inputData) => {
+    const res = await axios.post(`${API}/ai/generate`, { tool, input_data: inputData });
+    return res.data;
+  };
+
+  const fetchAIHistory = async (params = {}) => {
+    const res = await axios.get(`${API}/ai/history`, { params });
+    return res.data;
+  };
+
+  // Time Clock
+  const clockAction = async (employeeId, action) => {
+    const res = await axios.post(`${API}/timeclock`, { employee_id: employeeId, action });
+    return res.data;
+  };
+
+  const getClockStatus = async (employeeId) => {
+    const res = await axios.get(`${API}/timeclock/${employeeId}/status`);
+    return res.data;
+  };
+
+  const getTodayLogs = async (employeeId) => {
+    const res = await axios.get(`${API}/timeclock/${employeeId}/today`);
+    return res.data;
+  };
+
+  const getShiftSummary = async (employeeId, date) => {
+    const params = date ? { date } : {};
+    const res = await axios.get(`${API}/timeclock/${employeeId}/summary`, { params });
+    return res.data;
+  };
+
+  // Payroll
+  const createPayrollTransaction = async (data) => {
+    const res = await axios.post(`${API}/payroll/transactions`, data);
+    return res.data;
+  };
+
+  const getPayrollTransactions = async (params = {}) => {
+    const res = await axios.get(`${API}/payroll/transactions`, { params });
+    return res.data;
+  };
+
+  const getPayrollBalance = async (employeeId) => {
+    const res = await axios.get(`${API}/payroll/balance/${employeeId}`);
+    return res.data;
+  };
+
+  const getPayrollReport = async (startDate, endDate) => {
+    const res = await axios.get(`${API}/payroll/report`, { params: { start_date: startDate, end_date: endDate } });
+    return res.data;
+  };
+
+  // Financials
+  const createSalesEntry = async (data) => {
+    const res = await axios.post(`${API}/financials/sales`, data);
+    return res.data;
+  };
+
+  const getSalesEntries = async (params = {}) => {
+    const res = await axios.get(`${API}/financials/sales`, { params });
+    return res.data;
+  };
+
+  const createExpenseEntry = async (data) => {
+    const res = await axios.post(`${API}/financials/expenses`, data);
+    return res.data;
+  };
+
+  const getExpenseEntries = async (params = {}) => {
+    const res = await axios.get(`${API}/financials/expenses`, { params });
+    return res.data;
+  };
+
+  const getFinancialSummary = async (startDate, endDate) => {
+    const res = await axios.get(`${API}/financials/summary`, { params: { start_date: startDate, end_date: endDate } });
+    return res.data;
+  };
+
+  // Webstores
+  const createFundraiser = async (data) => {
+    const res = await axios.post(`${API}/webstores/fundraiser`, data);
+    return res.data;
+  };
+
+  const getFundraisers = async (params = {}) => {
+    const res = await axios.get(`${API}/webstores/fundraiser`, { params });
+    return res.data;
+  };
+
+  const createB2BStore = async (data) => {
+    const res = await axios.post(`${API}/webstores/b2b`, data);
+    return res.data;
+  };
+
+  const getB2BStores = async (params = {}) => {
+    const res = await axios.get(`${API}/webstores/b2b`, { params });
+    return res.data;
+  };
+
+  const createWebstoreOrder = async (data) => {
+    const res = await axios.post(`${API}/webstores/orders`, data);
+    return res.data;
+  };
+
+  const getWebstoreOrders = async (params = {}) => {
+    const res = await axios.get(`${API}/webstores/orders`, { params });
+    return res.data;
+  };
+
+  const value = {
+    // State
+    customers, quotes, jobs, invoices, employees, tasks, dashboardStats, loading,
+    setLoading,
+    // Customer actions
+    fetchCustomers, createCustomer, updateCustomer, deleteCustomer,
+    // Quote actions
+    fetchQuotes, createQuote, updateQuote, convertQuoteToJob,
+    // Job actions
+    fetchJobs, createJob, updateJob, deleteJob,
+    // Invoice actions
+    fetchInvoices, createInvoice, createInvoiceFromJob, updateInvoice,
+    // Employee actions
+    fetchEmployees, createEmployee, updateEmployee,
+    // Task actions
+    fetchTasks, createTask, updateTask, deleteTask,
+    // Dashboard
+    fetchDashboardStats,
+    // AI
+    generateAIContent, fetchAIHistory,
+    // Time Clock
+    clockAction, getClockStatus, getTodayLogs, getShiftSummary,
+    // Payroll
+    createPayrollTransaction, getPayrollTransactions, getPayrollBalance, getPayrollReport,
+    // Financials
+    createSalesEntry, getSalesEntries, createExpenseEntry, getExpenseEntries, getFinancialSummary,
+    // Webstores
+    createFundraiser, getFundraisers, createB2BStore, getB2BStores, createWebstoreOrder, getWebstoreOrders
+  };
+
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+};
+
+export default AppContext;
