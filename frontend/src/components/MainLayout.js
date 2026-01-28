@@ -40,17 +40,20 @@ export const Sidebar = ({ collapsed, onToggle }) => {
         <div className="flex h-16 items-center justify-between px-4 border-b border-border/50">
           {!collapsed && (
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-md bg-primary/20 flex items-center justify-center">
-                <span className="text-primary font-bold text-lg font-heading">S</span>
-              </div>
-              <span className="text-lg font-bold font-heading tracking-wide text-foreground">
-                SIGNTISTS LAB
-              </span>
+              <img 
+                src="https://customer-assets.emergentagent.com/job_signtists-lab/artifacts/d92ouvnp_teal2Asset%202%402x.png" 
+                alt="Sign Guy AI" 
+                className="h-10 w-auto"
+              />
             </div>
           )}
           {collapsed && (
-            <div className="w-8 h-8 mx-auto rounded-md bg-primary/20 flex items-center justify-center">
-              <span className="text-primary font-bold text-lg font-heading">S</span>
+            <div className="w-8 h-8 mx-auto rounded-md bg-primary/20 flex items-center justify-center overflow-hidden">
+              <img 
+                src="https://customer-assets.emergentagent.com/job_signtists-lab/artifacts/d92ouvnp_teal2Asset%202%402x.png" 
+                alt="SG" 
+                className="h-8 w-auto object-contain"
+              />
             </div>
           )}
         </div>
