@@ -647,7 +647,27 @@ async def convert_quote_to_job(quote_id: str):
         {"$set": {"job_id": job.id, "status": QuoteStatus.APPROVED.value}}
     )
     
+    # Log activity for quote conversion
+    activity = JobActivity(
+        job_id=job.id,
+        activity_type=JobActivityType.QUOTE_CONVERTED,
+        description=f"Job created from Quote #{quote_id[:8]}",
+        new_value=quote_id
+    )
+    await db.job_activities.insert_one(activity.model_dump())
+    
     return job
+
+# Helper function to log job activity
+async def log_job_activity(job_id: str, activity_type: JobActivityType, description: str, old_value: str = None, new_value: str = None):
+    activity = JobActivity(
+        job_id=job_id,
+        activity_type=activity_type,
+        description=description,
+        old_value=old_value,
+        new_value=new_value
+    )
+    await db.job_activities.insert_one(activity.model_dump())
 
 # -------------- JOBS --------------
 @api_router.post("/jobs", response_model=Job)
@@ -655,19 +675,35 @@ async def create_job(input: JobCreate):
     job = Job(**input.model_dump())
     doc = job.model_dump()
     await db.jobs.insert_one(doc)
+    
+    # Log creation
+    await log_job_activity(job.id, JobActivityType.CREATED, f"Job '{job.name}' created")
+    
     return job
 
 @api_router.get("/jobs", response_model=List[Job])
 async def get_jobs(
     customer_id: Optional[str] = None,
-    status: Optional[JobStatus] = None
+    status: Optional[JobStatus] = None,
+    filter_type: Optional[str] = None
 ):
     query = {}
     if customer_id:
         query["customer_id"] = customer_id
-    if status:
+    
+    # Handle filter types
+    if filter_type == "active":
+        query["status"] = {"$nin": [JobStatus.COMPLETE.value, JobStatus.ARCHIVED.value]}
+        query["is_archived"] = {"$ne": True}
+    elif filter_type == "completed":
+        query["status"] = JobStatus.COMPLETE.value
+        query["is_archived"] = {"$ne": True}
+    elif filter_type == "archived":
+        query["$or"] = [{"is_archived": True}, {"status": JobStatus.ARCHIVED.value}]
+    elif status:
         query["status"] = status.value
-    jobs = await db.jobs.find(query, {"_id": 0}).to_list(1000)
+    
+    jobs = await db.jobs.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
     return jobs
 
 @api_router.get("/jobs/{job_id}", response_model=Job)
@@ -677,24 +713,162 @@ async def get_job(job_id: str):
         raise HTTPException(status_code=404, detail="Job not found")
     return job
 
+@api_router.get("/jobs/{job_id}/details")
+async def get_job_details(job_id: str):
+    """Get comprehensive job details including related data"""
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    # Get customer
+    customer = await db.customers.find_one({"id": job["customer_id"]}, {"_id": 0})
+    
+    # Get quote if exists
+    quote = None
+    if job.get("quote_id"):
+        quote = await db.quotes.find_one({"id": job["quote_id"]}, {"_id": 0})
+    
+    # Get invoice if exists
+    invoice = None
+    if job.get("invoice_id"):
+        invoice = await db.invoices.find_one({"id": job["invoice_id"]}, {"_id": 0})
+    
+    # Get job items
+    job_items = await db.job_items.find({"job_id": job_id}, {"_id": 0}).to_list(1000)
+    
+    # Get job notes
+    notes = await db.job_notes.find({"job_id": job_id}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    # Get activity log
+    activities = await db.job_activities.find({"job_id": job_id}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    # Calculate financial snapshot
+    quote_total = quote.get("total", 0) if quote else 0
+    invoice_total = invoice.get("total", 0) if invoice else 0
+    amount_paid = invoice.get("amount_paid", 0) if invoice else 0
+    balance_due = invoice_total - amount_paid if invoice else 0
+    
+    return {
+        "job": job,
+        "customer": customer,
+        "quote": quote,
+        "invoice": invoice,
+        "job_items": job_items,
+        "notes": notes,
+        "activities": activities,
+        "financial_snapshot": {
+            "quote_total": quote_total,
+            "invoice_total": invoice_total,
+            "invoice_status": invoice.get("status") if invoice else None,
+            "amount_paid": amount_paid,
+            "balance_due": balance_due
+        }
+    }
+
 @api_router.put("/jobs/{job_id}", response_model=Job)
 async def update_job(job_id: str, input: JobUpdate):
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
     update_data = {k: v for k, v in input.model_dump().items() if v is not None}
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
-    result = await db.jobs.update_one({"id": job_id}, {"$set": update_data})
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Job not found")
+    
+    # Log status change
+    if input.status and input.status.value != job.get("status"):
+        old_status = job.get("status")
+        new_status = input.status.value
+        
+        if new_status == JobStatus.COMPLETE.value:
+            await log_job_activity(job_id, JobActivityType.COMPLETED, f"Job marked as complete", old_status, new_status)
+        elif new_status == JobStatus.ARCHIVED.value:
+            await log_job_activity(job_id, JobActivityType.ARCHIVED, f"Job archived", old_status, new_status)
+        else:
+            await log_job_activity(job_id, JobActivityType.STATUS_CHANGED, f"Status changed from {old_status} to {new_status}", old_status, new_status)
+    
+    await db.jobs.update_one({"id": job_id}, {"$set": update_data})
+    updated_job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    return updated_job
+
+@api_router.post("/jobs/{job_id}/archive")
+async def archive_job(job_id: str):
     job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
-    return job
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    await db.jobs.update_one({"id": job_id}, {"$set": {"is_archived": True, "status": JobStatus.ARCHIVED.value, "updated_at": datetime.now(timezone.utc).isoformat()}})
+    await log_job_activity(job_id, JobActivityType.ARCHIVED, "Job archived", job.get("status"), JobStatus.ARCHIVED.value)
+    
+    return {"message": "Job archived"}
+
+@api_router.post("/jobs/{job_id}/unarchive")
+async def unarchive_job(job_id: str):
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    await db.jobs.update_one({"id": job_id}, {"$set": {"is_archived": False, "status": JobStatus.COMPLETE.value, "updated_at": datetime.now(timezone.utc).isoformat()}})
+    await log_job_activity(job_id, JobActivityType.UNARCHIVED, "Job unarchived", JobStatus.ARCHIVED.value, JobStatus.COMPLETE.value)
+    
+    return {"message": "Job unarchived"}
+
+@api_router.post("/jobs/{job_id}/complete")
+async def complete_job(job_id: str):
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    old_status = job.get("status")
+    await db.jobs.update_one({"id": job_id}, {"$set": {"status": JobStatus.COMPLETE.value, "updated_at": datetime.now(timezone.utc).isoformat()}})
+    await log_job_activity(job_id, JobActivityType.COMPLETED, "Job marked as complete", old_status, JobStatus.COMPLETE.value)
+    
+    return {"message": "Job marked as complete"}
 
 @api_router.delete("/jobs/{job_id}")
 async def delete_job(job_id: str):
-    # Also delete related job items
+    # Also delete related job items, notes, and activities
     await db.job_items.delete_many({"job_id": job_id})
+    await db.job_notes.delete_many({"job_id": job_id})
+    await db.job_activities.delete_many({"job_id": job_id})
     result = await db.jobs.delete_one({"id": job_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Job not found")
     return {"message": "Job deleted"}
+
+# -------------- JOB NOTES --------------
+@api_router.post("/jobs/{job_id}/notes", response_model=JobNote)
+async def create_job_note(job_id: str, input: JobNoteCreate):
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    note = JobNote(
+        job_id=job_id,
+        content=input.content,
+        author=input.author
+    )
+    await db.job_notes.insert_one(note.model_dump())
+    await log_job_activity(job_id, JobActivityType.NOTE_ADDED, f"Note added{' by ' + input.author if input.author else ''}")
+    
+    return note
+
+@api_router.get("/jobs/{job_id}/notes", response_model=List[JobNote])
+async def get_job_notes(job_id: str):
+    notes = await db.job_notes.find({"job_id": job_id}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return notes
+
+@api_router.delete("/job-notes/{note_id}")
+async def delete_job_note(note_id: str):
+    result = await db.job_notes.delete_one({"id": note_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Note not found")
+    return {"message": "Note deleted"}
+
+# -------------- JOB ACTIVITIES --------------
+@api_router.get("/jobs/{job_id}/activities", response_model=List[JobActivity])
+async def get_job_activities(job_id: str):
+    activities = await db.job_activities.find({"job_id": job_id}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return activities
 
 # Helper function to recalculate job subtotal
 async def recalculate_job_subtotal(job_id: str):
