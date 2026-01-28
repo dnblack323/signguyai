@@ -164,8 +164,36 @@ class Job(JobBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     quote_id: Optional[str] = None
     invoice_id: Optional[str] = None
+    subtotal: float = 0
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+# JobItem Models (Line Items for Jobs)
+class JobItemBase(BaseModel):
+    job_id: str
+    item_type: JobItemType = JobItemType.OTHER
+    description: str
+    quantity: float = 1
+    unit_price: float = 0
+    status: JobItemStatus = JobItemStatus.PENDING
+    notes: Optional[str] = None
+
+class JobItemCreate(JobItemBase):
+    pass
+
+class JobItemUpdate(BaseModel):
+    item_type: Optional[JobItemType] = None
+    description: Optional[str] = None
+    quantity: Optional[float] = None
+    unit_price: Optional[float] = None
+    status: Optional[JobItemStatus] = None
+    notes: Optional[str] = None
+
+class JobItem(JobItemBase):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    line_total: float = 0
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 # Invoice Models
 class InvoiceBase(BaseModel):
