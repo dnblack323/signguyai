@@ -904,6 +904,9 @@ async def create_job_item(job_id: str, input: JobItemCreate):
     # Recalculate job subtotal
     await recalculate_job_subtotal(job_id)
     
+    # Log activity
+    await log_job_activity(job_id, JobActivityType.ITEM_ADDED, f"Added item: {input.description}")
+    
     return job_item
 
 @api_router.get("/jobs/{job_id}/items", response_model=List[JobItem])
