@@ -1,0 +1,137 @@
+{
+  "identity": {
+    "name": "Signtists Lab AI",
+    "persona": "The Industrial Futurist",
+    "vibe": "Precision, High-Voltage, Professional, Dark-Mode First",
+    "principles": [
+      "Data Density over Fluff: Sign shops manage thousands of details. Show them clearly.",
+      "High Contrast, Low Strain: Dark backgrounds with electric accents for visibility in dim workshops.",
+      "Workflow is King: Every click must save time. No decorative clicks.",
+      "Industrial Aesthetics: Use textures and fonts that remind users of the physical craft of sign making."
+    ]
+  },
+  "typography": {
+    "primary_font": "Manrope",
+    "secondary_font": "Barlow Condensed",
+    "mono_font": "JetBrains Mono",
+    "usage": {
+      "headings": "Barlow Condensed, sans-serif",
+      "body": "Manrope, sans-serif",
+      "code": "JetBrains Mono, monospace"
+    },
+    "scale": {
+      "h1": "text-4xl md:text-5xl font-bold tracking-tight uppercase",
+      "h2": "text-3xl md:text-4xl font-semibold tracking-tight uppercase",
+      "h3": "text-2xl font-semibold tracking-normal",
+      "body": "text-base leading-relaxed",
+      "small": "text-sm font-medium text-muted-foreground",
+      "tiny": "text-xs font-bold tracking-wider uppercase"
+    },
+    "imports": [
+      "https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap"
+    ]
+  },
+  "colors": {
+    "mode": "dark",
+    "palette": {
+      "background": "#0A0B0D",
+      "foreground": "#F8FAFC",
+      "card": "#13151A",
+      "card_foreground": "#F8FAFC",
+      "popover": "#13151A",
+      "popover_foreground": "#F8FAFC",
+      "primary": "#00E0D0",
+      "primary_foreground": "#000000",
+      "secondary": "#2979FF",
+      "secondary_foreground": "#FFFFFF",
+      "muted": "#1F2937",
+      "muted_foreground": "#9CA3AF",
+      "accent": "#00FFFF",
+      "accent_foreground": "#000000",
+      "destructive": "#FF3B30",
+      "destructive_foreground": "#FFFFFF",
+      "border": "#27272A",
+      "input": "#27272A",
+      "ring": "#00E0D0"
+    },
+    "gradients": {
+      "primary_glow": "linear-gradient(135deg, #00E0D0 0%, #2979FF 100%)",
+      "dark_surface": "linear-gradient(180deg, #13151A 0%, #0A0B0D 100%)"
+    },
+    "status": {
+      "success": "#10B981",
+      "warning": "#F59E0B",
+      "error": "#EF4444",
+      "info": "#3B82F6"
+    }
+  },
+  "layout": {
+    "spacing_scale": "generous",
+    "container_padding": "p-6 md:p-8 lg:p-10",
+    "grid_system": {
+      "dashboard": "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6",
+      "form": "grid grid-cols-1 md:grid-cols-2 gap-8",
+      "card_grid": "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+    },
+    "sidebar": {
+      "width": "w-64",
+      "collapsed_width": "w-16",
+      "bg": "bg-[#0F1115] border-r border-border"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_15px_rgba(0,224,208,0.3)] font-bold uppercase tracking-wide rounded-md transition-all duration-200",
+      "secondary": "bg-secondary text-secondary-foreground hover:bg-secondary/90 rounded-md font-medium",
+      "outline": "border-2 border-primary/50 text-primary hover:bg-primary/10 hover:border-primary rounded-md font-bold uppercase",
+      "ghost": "hover:bg-accent/10 hover:text-accent rounded-md"
+    },
+    "cards": {
+      "base": "bg-card border border-border/50 rounded-lg shadow-sm hover:border-primary/30 transition-colors duration-300",
+      "interactive": "cursor-pointer hover:shadow-[0_0_20px_rgba(0,0,0,0.5)] hover:-translate-y-1 transition-all duration-300"
+    },
+    "inputs": {
+      "base": "bg-input/50 border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-md h-10 px-3 text-sm placeholder:text-muted-foreground/70"
+    },
+    "badges": {
+      "base": "rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+      "outline": "border border-primary/50 text-primary bg-primary/5"
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": "backdrop-blur-md bg-black/40 border border-white/10",
+    "neon_glow": "shadow-[0_0_10px_rgba(0,224,208,0.5)]",
+    "grid_background": "bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20",
+    "borders": "border border-white/5"
+  },
+  "assets": {
+    "images": {
+      "login_bg": "https://images.unsplash.com/photo-1623307019152-1ee797183f1d?q=80&w=2070&auto=format&fit=crop",
+      "dashboard_texture": "https://images.unsplash.com/photo-1750054976309-9164e39cdc8d?q=80&w=2070&auto=format&fit=crop",
+      "production_context": "https://images.unsplash.com/photo-1738071341556-5e584cdb3266?q=80&w=2070&auto=format&fit=crop",
+      "placeholder_logo": "https://placehold.co/400x100/0A0B0D/00E0D0?text=SIGNTISTS+LAB+AI&font=oswald"
+    },
+    "icons": "lucide-react"
+  },
+  "instructions_to_main_agent": [
+    "1. THEME SETUP: Immediately configure `tailwind.config.js` with the colors provided in this JSON. Ensure 'dark' mode is the default class applied to the html/body.",
+    "2. FONT INSTALLATION: Add the Google Fonts import link to `index.css` at the very top.",
+    "3. LAYOUT STRATEGY: Use a persistent Sidebar Layout for the app. The Sidebar should be collapsible.",
+    "4. DASHBOARD: Implement a 'Bento Grid' style dashboard. Use the 'dashboard_texture' image as a subtle overlay or background for the 'Welcome' card.",
+    "5. DATA DISPLAY: For lists (Customers, Jobs), use Shadcn Tables. Customize them to have 'zebra striping' using `even:bg-muted/50` for better readability in dark mode.",
+    "6. FORMS: Use `react-hook-form` with `zod` validation. Style inputs with the 'inputs.base' classes defined above.",
+    "7. AI TOOLS: When building the AI tools section, use the 'neon_glow' effect on the 'Generate' buttons to make them feel powerful.",
+    "8. LOGO: Use the placeholder logo URL provided in assets until the real logo is available. Place it prominently in the Sidebar header.",
+    "9. CRITICAL: Do not use 'Inter' for headings. Use 'Barlow Condensed' class `font-secondary` (you need to define this in tailwind config).",
+    "10. TESTING: Add `data-testid` to all interactive elements (buttons, inputs, links)."
+  ],
+  "universal_guidelines": [
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts. Use grids.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur) for modals and sticky headers.",
+    "Every interaction needs micro-animations - hover states, transitions.",
+    "Use 2-3x more spacing than feels comfortable.",
+    "Subtle grain textures and noise overlays separate good from extraordinary."
+  ]
+}
