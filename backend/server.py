@@ -786,16 +786,36 @@ async def create_invoice_from_job(job_id: str):
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     
-    # Get quote total if quote exists
+    # Get job items and create invoice line items
+    job_items = await db.job_items.find({"job_id": job_id}, {"_id": 0}).to_list(1000)
+    
+    invoice_line_items = []
     total = 0
-    if job.get("quote_id"):
-        quote = await db.quotes.find_one({"id": job["quote_id"]}, {"_id": 0})
-        if quote:
-            total = quote.get("total", 0)
+    
+    if job_items:
+        # Create line items from job items
+        for item in job_items:
+            line_item = InvoiceLineItem(
+                description=item.get("description", ""),
+                quantity=item.get("quantity", 1),
+                unit_price=item.get("unit_price", 0),
+                total=item.get("line_total", 0),
+                job_item_id=item.get("id")
+            )
+            invoice_line_items.append(line_item)
+            total += item.get("line_total", 0)
+    else:
+        # Fallback to job subtotal or quote total
+        total = job.get("subtotal", 0)
+        if total == 0 and job.get("quote_id"):
+            quote = await db.quotes.find_one({"id": job["quote_id"]}, {"_id": 0})
+            if quote:
+                total = quote.get("total", 0)
     
     invoice = Invoice(
         customer_id=job["customer_id"],
         job_id=job_id,
+        line_items=invoice_line_items,
         total=total,
         status=InvoiceStatus.DRAFT
     )
