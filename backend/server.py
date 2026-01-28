@@ -939,6 +939,9 @@ async def update_job_item(item_id: str, input: JobItemUpdate):
     # Recalculate job subtotal
     await recalculate_job_subtotal(job_item["job_id"])
     
+    # Log activity
+    await log_job_activity(job_item["job_id"], JobActivityType.ITEM_UPDATED, f"Updated item: {job_item.get('description', 'Unknown')}")
+    
     updated_item = await db.job_items.find_one({"id": item_id}, {"_id": 0})
     return updated_item
 
