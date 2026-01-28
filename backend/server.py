@@ -770,6 +770,19 @@ async def update_invoice(invoice_id: str, input: InvoiceUpdate):
     update_data = {k: v for k, v in input.model_dump().items() if v is not None}
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     
+    # Recalculate total if line items changed
+    if "line_items" in update_data:
+        total = 0
+        processed_items = []
+        for item in update_data["line_items"]:
+            item_dict = item.model_dump() if hasattr(item, 'model_dump') else item
+            item_total = item_dict.get("quantity", 1) * item_dict.get("unit_price", 0)
+            item_dict["total"] = item_total
+            processed_items.append(item_dict)
+            total += item_total
+        update_data["line_items"] = processed_items
+        update_data["total"] = total
+    
     # If marking as paid, set paid_date
     if input.status == InvoiceStatus.PAID:
         update_data["paid_date"] = datetime.now(timezone.utc).isoformat()
