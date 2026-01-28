@@ -179,8 +179,35 @@ class Job(JobBase):
     quote_id: Optional[str] = None
     invoice_id: Optional[str] = None
     subtotal: float = 0
+    is_archived: bool = False
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+# JobNote Models (Internal Notes)
+class JobNoteBase(BaseModel):
+    job_id: str
+    content: str
+    author: Optional[str] = None
+
+class JobNoteCreate(BaseModel):
+    content: str
+    author: Optional[str] = None
+
+class JobNote(JobNoteBase):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+# JobActivity Models (Activity Log)
+class JobActivity(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    job_id: str
+    activity_type: JobActivityType
+    description: str
+    old_value: Optional[str] = None
+    new_value: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 # JobItem Models (Line Items for Jobs)
 class JobItemBase(BaseModel):
