@@ -7,7 +7,7 @@ import { Toaster } from "./components/ui/sonner";
 import Dashboard from "./pages/Dashboard";
 import Customers from "./pages/Customers";
 import Quotes from "./pages/Quotes";
-import Jobs from "./pages/Jobs";
+import Jobs, { JobDetails } from "./pages/Jobs";
 import Invoices from "./pages/Invoices";
 import TimeClock from "./pages/TimeClock";
 import Payroll from "./pages/Payroll";
@@ -28,6 +28,7 @@ function App() {
             <Route path="/customers" element={<Customers />} />
             <Route path="/quotes" element={<Quotes />} />
             <Route path="/jobs" element={<Jobs />} />
+            <Route path="/jobs/:id" element={<JobDetails />} />
             <Route path="/invoices" element={<Invoices />} />
             <Route path="/timeclock" element={<TimeClock />} />
             <Route path="/payroll" element={<Payroll />} />
