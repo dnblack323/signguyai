@@ -347,6 +347,8 @@ export const AppProvider = ({ children }) => {
     fetchQuotes, createQuote, updateQuote, convertQuoteToJob,
     // Job actions
     fetchJobs, createJob, updateJob, deleteJob,
+    // Job Item actions
+    fetchJobItems, createJobItem, updateJobItem, deleteJobItem,
     // Invoice actions
     fetchInvoices, createInvoice, createInvoiceFromJob, updateInvoice,
     // Employee actions
