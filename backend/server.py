@@ -642,10 +642,95 @@ async def update_job(job_id: str, input: JobUpdate):
 
 @api_router.delete("/jobs/{job_id}")
 async def delete_job(job_id: str):
+    # Also delete related job items
+    await db.job_items.delete_many({"job_id": job_id})
     result = await db.jobs.delete_one({"id": job_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Job not found")
     return {"message": "Job deleted"}
+
+# Helper function to recalculate job subtotal
+async def recalculate_job_subtotal(job_id: str):
+    job_items = await db.job_items.find({"job_id": job_id}, {"_id": 0}).to_list(1000)
+    subtotal = sum(item.get("line_total", 0) for item in job_items)
+    await db.jobs.update_one({"id": job_id}, {"$set": {"subtotal": subtotal, "updated_at": datetime.now(timezone.utc).isoformat()}})
+    return subtotal
+
+# -------------- JOB ITEMS --------------
+@api_router.post("/jobs/{job_id}/items", response_model=JobItem)
+async def create_job_item(job_id: str, input: JobItemCreate):
+    # Verify job exists
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    # Calculate line total
+    line_total = input.quantity * input.unit_price
+    
+    job_item = JobItem(
+        job_id=job_id,
+        item_type=input.item_type,
+        description=input.description,
+        quantity=input.quantity,
+        unit_price=input.unit_price,
+        line_total=line_total,
+        status=input.status,
+        notes=input.notes
+    )
+    doc = job_item.model_dump()
+    await db.job_items.insert_one(doc)
+    
+    # Recalculate job subtotal
+    await recalculate_job_subtotal(job_id)
+    
+    return job_item
+
+@api_router.get("/jobs/{job_id}/items", response_model=List[JobItem])
+async def get_job_items(job_id: str):
+    job_items = await db.job_items.find({"job_id": job_id}, {"_id": 0}).to_list(1000)
+    return job_items
+
+@api_router.get("/job-items/{item_id}", response_model=JobItem)
+async def get_job_item(item_id: str):
+    job_item = await db.job_items.find_one({"id": item_id}, {"_id": 0})
+    if not job_item:
+        raise HTTPException(status_code=404, detail="Job item not found")
+    return job_item
+
+@api_router.put("/job-items/{item_id}", response_model=JobItem)
+async def update_job_item(item_id: str, input: JobItemUpdate):
+    job_item = await db.job_items.find_one({"id": item_id}, {"_id": 0})
+    if not job_item:
+        raise HTTPException(status_code=404, detail="Job item not found")
+    
+    update_data = {k: v for k, v in input.model_dump().items() if v is not None}
+    
+    # Recalculate line total if quantity or unit_price changed
+    quantity = update_data.get("quantity", job_item.get("quantity", 1))
+    unit_price = update_data.get("unit_price", job_item.get("unit_price", 0))
+    update_data["line_total"] = quantity * unit_price
+    
+    await db.job_items.update_one({"id": item_id}, {"$set": update_data})
+    
+    # Recalculate job subtotal
+    await recalculate_job_subtotal(job_item["job_id"])
+    
+    updated_item = await db.job_items.find_one({"id": item_id}, {"_id": 0})
+    return updated_item
+
+@api_router.delete("/job-items/{item_id}")
+async def delete_job_item(item_id: str):
+    job_item = await db.job_items.find_one({"id": item_id}, {"_id": 0})
+    if not job_item:
+        raise HTTPException(status_code=404, detail="Job item not found")
+    
+    job_id = job_item["job_id"]
+    result = await db.job_items.delete_one({"id": item_id})
+    
+    # Recalculate job subtotal
+    await recalculate_job_subtotal(job_id)
+    
+    return {"message": "Job item deleted"}
 
 # -------------- INVOICES --------------
 @api_router.post("/invoices", response_model=Invoice)
