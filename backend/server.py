@@ -575,10 +575,24 @@ async def convert_quote_to_job(quote_id: str):
         name=f"Job from Quote #{quote_id[:8]}",
         description=quote.get("notes", ""),
         status=JobStatus.APPROVED,
-        quote_id=quote_id
+        quote_id=quote_id,
+        subtotal=quote.get("total", 0)
     )
     job_doc = job.model_dump()
     await db.jobs.insert_one(job_doc)
+    
+    # Create JobItems from Quote line items
+    for item in quote.get("line_items", []):
+        job_item = JobItem(
+            job_id=job.id,
+            item_type=JobItemType.OTHER,
+            description=item.get("description", ""),
+            quantity=item.get("quantity", 1),
+            unit_price=item.get("unit_price", 0),
+            line_total=item.get("total", item.get("quantity", 1) * item.get("unit_price", 0)),
+            status=JobItemStatus.PENDING
+        )
+        await db.job_items.insert_one(job_item.model_dump())
     
     # Update quote with job_id
     await db.quotes.update_one(
