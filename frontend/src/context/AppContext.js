@@ -110,6 +110,26 @@ export const AppProvider = ({ children }) => {
     await fetchJobs();
   };
 
+  // Job Items
+  const fetchJobItems = async (jobId) => {
+    const res = await axios.get(`${API}/jobs/${jobId}/items`);
+    return res.data;
+  };
+
+  const createJobItem = async (jobId, data) => {
+    const res = await axios.post(`${API}/jobs/${jobId}/items`, { ...data, job_id: jobId });
+    return res.data;
+  };
+
+  const updateJobItem = async (itemId, data) => {
+    const res = await axios.put(`${API}/job-items/${itemId}`, data);
+    return res.data;
+  };
+
+  const deleteJobItem = async (itemId) => {
+    await axios.delete(`${API}/job-items/${itemId}`);
+  };
+
   // Invoices
   const fetchInvoices = async (params = {}) => {
     try {
