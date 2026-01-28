@@ -178,8 +178,13 @@ class JobItemBase(BaseModel):
     status: JobItemStatus = JobItemStatus.PENDING
     notes: Optional[str] = None
 
-class JobItemCreate(JobItemBase):
-    pass
+class JobItemCreate(BaseModel):
+    item_type: JobItemType = JobItemType.OTHER
+    description: str
+    quantity: float = 1
+    unit_price: float = 0
+    status: JobItemStatus = JobItemStatus.PENDING
+    notes: Optional[str] = None
 
 class JobItemUpdate(BaseModel):
     item_type: Optional[JobItemType] = None
