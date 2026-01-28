@@ -957,6 +957,9 @@ async def delete_job_item(item_id: str):
     # Recalculate job subtotal
     await recalculate_job_subtotal(job_id)
     
+    # Log activity
+    await log_job_activity(job_id, JobActivityType.ITEM_DELETED, f"Deleted item: {job_item.get('description', 'Unknown')}")
+    
     return {"message": "Job item deleted"}
 
 # -------------- INVOICES --------------
