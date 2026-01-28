@@ -48,6 +48,24 @@ class JobStatus(str, Enum):
     INSTALLED = "installed"
     COMPLETE = "complete"
 
+class JobItemStatus(str, Enum):
+    PENDING = "pending"
+    IN_PRODUCTION = "in_production"
+    DONE = "done"
+
+class JobItemType(str, Enum):
+    BANNER = "banner"
+    YARD_SIGN = "yard_sign"
+    DECAL = "decal"
+    WRAP = "wrap"
+    INSTALL = "install"
+    DESIGN = "design"
+    VEHICLE_GRAPHICS = "vehicle_graphics"
+    WINDOW_GRAPHICS = "window_graphics"
+    DIMENSIONAL_LETTERS = "dimensional_letters"
+    MONUMENT_SIGN = "monument_sign"
+    OTHER = "other"
+
 class InvoiceStatus(str, Enum):
     DRAFT = "draft"
     SENT = "sent"
