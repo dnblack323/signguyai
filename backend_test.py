@@ -11,6 +11,7 @@ class SignGuyAPITester:
         self.tests_run = 0
         self.tests_passed = 0
         self.test_data = {}  # Store created entities for cleanup and reference
+        self.job_line_items_results = []  # Store job line items test results
 
     def run_test(self, name, method, endpoint, expected_status, data=None, params=None):
         """Run a single API test"""
