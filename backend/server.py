@@ -1068,6 +1068,9 @@ async def create_invoice_from_job(job_id: str):
     # Update job with invoice_id
     await db.jobs.update_one({"id": job_id}, {"$set": {"invoice_id": invoice.id}})
     
+    # Log activity
+    await log_job_activity(job_id, JobActivityType.INVOICE_CREATED, f"Invoice created for {total}", new_value=invoice.id)
+    
     return invoice
 
 # -------------- EMPLOYEES --------------
