@@ -729,6 +729,7 @@ def main():
         tester.test_customers_crud()
         tester.test_quotes_crud()
         tester.test_jobs_crud()
+        tester.test_job_line_items()  # Add comprehensive job line items testing
         tester.test_invoices_crud()
         tester.test_employees_and_timeclock()
         tester.test_payroll()
