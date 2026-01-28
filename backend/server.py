@@ -196,9 +196,17 @@ class JobItem(JobItemBase):
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 # Invoice Models
+class InvoiceLineItem(BaseModel):
+    description: str
+    quantity: float = 1
+    unit_price: float = 0
+    total: float = 0
+    job_item_id: Optional[str] = None
+
 class InvoiceBase(BaseModel):
     customer_id: str
     job_id: Optional[str] = None
+    line_items: List[InvoiceLineItem] = []
     total: float = 0
     status: InvoiceStatus = InvoiceStatus.DRAFT
     due_date: Optional[str] = None
@@ -208,6 +216,7 @@ class InvoiceCreate(InvoiceBase):
     pass
 
 class InvoiceUpdate(BaseModel):
+    line_items: Optional[List[InvoiceLineItem]] = None
     total: Optional[float] = None
     status: Optional[InvoiceStatus] = None
     due_date: Optional[str] = None
