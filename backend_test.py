@@ -459,6 +459,239 @@ class SignGuyAPITester:
         
         return True
 
+    def test_job_line_items(self):
+        """Test Job Line Items functionality comprehensively"""
+        print("\n" + "="*50)
+        print("TESTING JOB LINE ITEMS")
+        print("="*50)
+        
+        # Ensure we have a customer and job
+        if 'customer_id' not in self.test_data or 'job_id' not in self.test_data:
+            print("❌ Missing customer or job for line items testing")
+            return False
+        
+        job_id = self.test_data['job_id']
+        job_item_ids = []
+        
+        # Test 1: Create multiple line items with different types, quantities, prices
+        print("\n🔍 Test 1: Creating multiple line items...")
+        line_items = [
+            {
+                "item_type": "banner",
+                "description": "4x8 Vinyl Banner with grommets",
+                "quantity": 2,
+                "unit_price": 150.00,
+                "status": "pending",
+                "notes": "Full color print"
+            },
+            {
+                "item_type": "yard_sign", 
+                "description": "18x24 Corrugated Yard Signs",
+                "quantity": 10,
+                "unit_price": 25.00,
+                "status": "pending",
+                "notes": "Double sided"
+            },
+            {
+                "item_type": "install",
+                "description": "Installation service",
+                "quantity": 1,
+                "unit_price": 200.00,
+                "status": "pending",
+                "notes": "On-site installation"
+            }
+        ]
+        
+        for i, item in enumerate(line_items):
+            success, item_data = self.run_test(
+                f"Create line item {i+1} ({item['item_type']})",
+                "POST", f"jobs/{job_id}/items", 200, item
+            )
+            if success and item_data:
+                job_item_ids.append(item_data['id'])
+                # Verify line_total calculation
+                expected_total = item['quantity'] * item['unit_price']
+                actual_total = item_data.get('line_total', 0)
+                if abs(expected_total - actual_total) < 0.01:
+                    print(f"   ✅ Line total calculated correctly: {actual_total}")
+                    self.job_line_items_results.append(f"Line total calculation: PASS")
+                else:
+                    print(f"   ❌ Line total incorrect: expected {expected_total}, got {actual_total}")
+                    self.job_line_items_results.append(f"Line total calculation: FAIL")
+        
+        self.test_data['job_item_ids'] = job_item_ids
+        
+        # Test 2: Verify job subtotal is calculated correctly
+        print("\n🔍 Test 2: Verifying job subtotal calculation...")
+        success, job_data = self.run_test("Get job with subtotal", "GET", f"jobs/{job_id}", 200)
+        if success:
+            # Expected: (2*150) + (10*25) + (1*200) = 300 + 250 + 200 = 750
+            expected_subtotal = 750.00
+            actual_subtotal = job_data.get('subtotal', 0)
+            if abs(expected_subtotal - actual_subtotal) < 0.01:
+                print(f"   ✅ Job subtotal correct: {actual_subtotal}")
+                self.job_line_items_results.append(f"Job subtotal calculation: PASS")
+            else:
+                print(f"   ❌ Job subtotal incorrect: expected {expected_subtotal}, got {actual_subtotal}")
+                self.job_line_items_results.append(f"Job subtotal calculation: FAIL")
+        
+        # Test 3: Get job items and verify structure
+        print("\n🔍 Test 3: Getting and verifying job items...")
+        success, items_data = self.run_test("Get job items", "GET", f"jobs/{job_id}/items", 200)
+        if success:
+            if len(items_data) == 3:
+                print(f"   ✅ Correct number of items: {len(items_data)}")
+                self.job_line_items_results.append(f"Job items count: PASS")
+                
+                # Verify required fields
+                required_fields = ['id', 'job_id', 'item_type', 'description', 'quantity', 'unit_price', 'line_total', 'status']
+                all_fields_ok = True
+                for item in items_data:
+                    for field in required_fields:
+                        if field not in item:
+                            print(f"   ❌ Missing field '{field}' in item")
+                            all_fields_ok = False
+                
+                if all_fields_ok:
+                    print("   ✅ All required fields present")
+                    self.job_line_items_results.append(f"Required fields: PASS")
+                else:
+                    self.job_line_items_results.append(f"Required fields: FAIL")
+            else:
+                print(f"   ❌ Expected 3 items, got {len(items_data)}")
+                self.job_line_items_results.append(f"Job items count: FAIL")
+        
+        # Test 4: Update item quantity/price and verify totals recalculate
+        if job_item_ids:
+            print("\n🔍 Test 4: Updating item quantity and price...")
+            item_id = job_item_ids[0]
+            success, updated_item = self.run_test(
+                "Update item quantity and price",
+                "PUT", f"job-items/{item_id}", 200,
+                {"quantity": 3, "unit_price": 175.00}
+            )
+            if success:
+                # Verify line_total: 3 * 175 = 525
+                expected_line_total = 525.00
+                actual_line_total = updated_item.get('line_total', 0)
+                if abs(expected_line_total - actual_line_total) < 0.01:
+                    print(f"   ✅ Line total recalculated: {actual_line_total}")
+                    self.job_line_items_results.append(f"Line total recalculation: PASS")
+                else:
+                    print(f"   ❌ Line total not recalculated correctly")
+                    self.job_line_items_results.append(f"Line total recalculation: FAIL")
+                
+                # Verify job subtotal updated: (3*175) + (10*25) + (1*200) = 975
+                success, job_data = self.run_test("Get updated job subtotal", "GET", f"jobs/{job_id}", 200)
+                if success:
+                    expected_subtotal = 975.00
+                    actual_subtotal = job_data.get('subtotal', 0)
+                    if abs(expected_subtotal - actual_subtotal) < 0.01:
+                        print(f"   ✅ Job subtotal updated: {actual_subtotal}")
+                        self.job_line_items_results.append(f"Job subtotal update: PASS")
+                    else:
+                        print(f"   ❌ Job subtotal not updated correctly")
+                        self.job_line_items_results.append(f"Job subtotal update: FAIL")
+        
+        # Test 5: Update job item status
+        if len(job_item_ids) > 1:
+            print("\n🔍 Test 5: Updating job item status...")
+            item_id = job_item_ids[1]
+            success, updated_item = self.run_test(
+                "Update item status",
+                "PUT", f"job-items/{item_id}", 200,
+                {"status": "in_production"}
+            )
+            if success:
+                actual_status = updated_item.get('status')
+                if actual_status == "in_production":
+                    print(f"   ✅ Item status updated: {actual_status}")
+                    self.job_line_items_results.append(f"Item status update: PASS")
+                else:
+                    print(f"   ❌ Item status not updated correctly")
+                    self.job_line_items_results.append(f"Item status update: FAIL")
+        
+        # Test 6: Delete job item and verify subtotal updates
+        if len(job_item_ids) > 2:
+            print("\n🔍 Test 6: Deleting job item and verifying subtotal...")
+            item_id = job_item_ids[2]  # Delete install service (1 * 200 = 200)
+            success, _ = self.run_test("Delete job item", "DELETE", f"job-items/{item_id}", 200)
+            if success:
+                # Verify job subtotal: (3*175) + (10*25) = 775
+                success, job_data = self.run_test("Get job subtotal after delete", "GET", f"jobs/{job_id}", 200)
+                if success:
+                    expected_subtotal = 775.00
+                    actual_subtotal = job_data.get('subtotal', 0)
+                    if abs(expected_subtotal - actual_subtotal) < 0.01:
+                        print(f"   ✅ Job subtotal updated after delete: {actual_subtotal}")
+                        self.job_line_items_results.append(f"Subtotal after delete: PASS")
+                    else:
+                        print(f"   ❌ Job subtotal not updated after delete")
+                        self.job_line_items_results.append(f"Subtotal after delete: FAIL")
+        
+        # Test 7: Quote to Job conversion with line items
+        print("\n🔍 Test 7: Testing Quote to Job conversion...")
+        quote_data = {
+            "customer_id": self.test_data['customer_id'],
+            "line_items": [
+                {"description": "Quote Item 1", "quantity": 2, "unit_price": 100.00},
+                {"description": "Quote Item 2", "quantity": 5, "unit_price": 50.00}
+            ],
+            "notes": "Test quote for conversion"
+        }
+        success, quote_result = self.run_test("Create quote with line items", "POST", "quotes", 200, quote_data)
+        if success:
+            quote_id = quote_result.get('id')
+            success, job_result = self.run_test("Convert quote to job", "POST", f"quotes/{quote_id}/convert-to-job", 200)
+            if success:
+                converted_job_id = job_result.get('id')
+                success, job_items = self.run_test("Get converted job items", "GET", f"jobs/{converted_job_id}/items", 200)
+                if success and len(job_items) == 2:
+                    print(f"   ✅ Quote converted with {len(job_items)} job items")
+                    self.job_line_items_results.append(f"Quote to Job conversion: PASS")
+                else:
+                    print(f"   ❌ Quote conversion failed or incorrect items")
+                    self.job_line_items_results.append(f"Quote to Job conversion: FAIL")
+        
+        # Test 8: Create Invoice from Job with line items
+        print("\n🔍 Test 8: Creating Invoice from Job...")
+        success, invoice_result = self.run_test("Create invoice from job", "POST", f"invoices/from-job/{job_id}", 200)
+        if success:
+            invoice_line_items = invoice_result.get('line_items', [])
+            if len(invoice_line_items) >= 2:  # Should have remaining items
+                print(f"   ✅ Invoice created with {len(invoice_line_items)} line items")
+                
+                # Check if line items have job_item_id references
+                has_job_refs = any(item.get('job_item_id') for item in invoice_line_items)
+                if has_job_refs:
+                    print("   ✅ Invoice line items reference job items")
+                    self.job_line_items_results.append(f"Job to Invoice conversion: PASS")
+                else:
+                    print("   ❌ Invoice line items missing job references")
+                    self.job_line_items_results.append(f"Job to Invoice conversion: FAIL")
+            else:
+                print(f"   ❌ Invoice has insufficient line items")
+                self.job_line_items_results.append(f"Job to Invoice conversion: FAIL")
+        
+        # Test 9: Error handling
+        print("\n🔍 Test 9: Testing error handling...")
+        # Test creating item for non-existent job
+        success, _ = self.run_test("Create item for non-existent job", "POST", "jobs/fake-id/items", 404, 
+                                 {"item_type": "banner", "description": "Test", "quantity": 1, "unit_price": 100})
+        if success:
+            self.job_line_items_results.append(f"Error handling (404): PASS")
+        
+        # Test updating non-existent item
+        success, _ = self.run_test("Update non-existent item", "PUT", "job-items/fake-id", 404, {"quantity": 2})
+        if success:
+            self.job_line_items_results.append(f"Error handling (update): PASS")
+        
+        print(f"\n📊 Job Line Items Test Results:")
+        for result in self.job_line_items_results:
+            print(f"   {result}")
+        
+        return True
+
     def test_dashboard_stats(self):
         """Test dashboard statistics"""
         print("\n" + "="*50)
