@@ -117,7 +117,7 @@ export const AppProvider = ({ children }) => {
   };
 
   const createJobItem = async (jobId, data) => {
-    const res = await axios.post(`${API}/jobs/${jobId}/items`, { ...data, job_id: jobId });
+    const res = await axios.post(`${API}/jobs/${jobId}/items`, data);
     return res.data;
   };
 
