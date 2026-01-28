@@ -22,25 +22,61 @@ Build a web-based sign-shop operating system called "Sign Guy AI" - a single dai
 - Payroll balance tracking (Earnings - Advances - Payments)
 - AI outputs must be saved to database
 
-## What's Been Implemented (December 2025)
+## Data Model
+
+### JobItem (Line Items for Jobs)
+- **job_id**: Reference to parent Job
+- **item_type**: banner, yard_sign, decal, wrap, install, design, vehicle_graphics, window_graphics, dimensional_letters, monument_sign, other
+- **description**: Text description of the item
+- **quantity**: Number (default 1)
+- **unit_price**: Number (default 0)
+- **line_total**: Calculated (qty × unit_price)
+- **status**: pending, in_production, done
+- **notes**: Optional text/file references
+
+### Workflow Rules
+- Converting Quote → Job automatically creates JobItems from Quote line items
+- Invoice created from Job pulls JobItems into Invoice line_items array
+- Job subtotal auto-recalculates when items are added/edited/deleted
+- Job description serves as "overall job notes" - actual work lives in JobItems
+
+## What's Been Implemented (January 2026)
 
 ### Phase 1 MVP - COMPLETE
 - [x] Dashboard with real-time stats
 - [x] Customer Management (CRUD, search, filters, status)
 - [x] Quotes Module (line items, totals, convert to job)
 - [x] Jobs Module (List view, Kanban board, status changes)
-- [x] Invoice Management (create from job, mark paid, status filters)
+- [x] **Job Line Items** (NEW) - Multiple line items per job with types, pricing, status
+- [x] Invoice Management (create from job with line items, mark paid)
 - [x] Time Clock (start/end work, breaks, sequence validation, shift summary)
 - [x] Payroll (earnings/advances/payments, balance calculation, reports)
 - [x] Productivity (tasks, calendar, job kanban)
 - [x] Financial Tracking (sales, expenses, tax tracking, summaries)
-- [x] AI Tools Suite (Layout Generator, Print Checklist, Brand Kit, Document Creator, Overdue Assistant, Design Intake)
+- [x] AI Tools Suite (6 GPT-5.2 powered tools)
 - [x] Webstores (Fundraiser campaigns, B2B custom stores)
 
-### Testing Results
-- Backend: 98.3% tests passing (57/58)
-- Frontend: 95% functionality verified
-- All core workflows operational
+### Testing Results (January 28, 2026)
+- Backend: 95-98% tests passing
+- Frontend: 100% functionality verified
+- Integration: 100% workflows operational
+
+## API Endpoints Reference
+```
+/api/customers - Customer CRUD
+/api/quotes - Quote CRUD + /convert-to-job
+/api/jobs - Job CRUD
+/api/jobs/{job_id}/items - Job Items CRUD (POST, GET)
+/api/job-items/{item_id} - Job Item Update/Delete (PUT, DELETE)
+/api/invoices - Invoice CRUD + /from-job
+/api/employees - Employee CRUD
+/api/timeclock - Clock actions + /status + /summary
+/api/payroll - Transactions + /balance + /report
+/api/financials - Sales + Expenses + /summary
+/api/tasks - Task CRUD
+/api/ai/generate - AI tool generation
+/api/webstores/* - Fundraiser and B2B stores
+```
 
 ## Prioritized Backlog
 
@@ -66,23 +102,6 @@ Build a web-based sign-shop operating system called "Sign Guy AI" - a single dai
 - [ ] Integrations (QuickBooks, Stripe payments)
 - [ ] Advanced scheduling calendar
 - [ ] Real-time collaboration features
-
-## API Endpoints Reference
-```
-/api/customers - Customer CRUD
-/api/quotes - Quote CRUD + /convert-to-job
-/api/jobs - Job CRUD
-/api/invoices - Invoice CRUD + /from-job
-/api/employees - Employee CRUD
-/api/timeclock - Clock actions + /status + /summary
-/api/payroll - Transactions + /balance + /report
-/api/financials - Sales + Expenses + /summary
-/api/tasks - Task CRUD
-/api/ai/generate - AI tool generation
-/api/webstores/fundraiser - Fundraiser campaigns
-/api/webstores/b2b - B2B stores
-/api/webstores/orders - Webstore orders
-```
 
 ## Next Tasks
 1. Add user authentication
