@@ -1,53 +1,45 @@
-import { useEffect } from "react";
-import "@/App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import { AppProvider } from "./context/AppContext";
+import { MainLayout } from "./components/MainLayout";
+import { Toaster } from "./components/ui/sonner";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+// Pages
+import Dashboard from "./pages/Dashboard";
+import Customers from "./pages/Customers";
+import Quotes from "./pages/Quotes";
+import Jobs from "./pages/Jobs";
+import Invoices from "./pages/Invoices";
+import TimeClock from "./pages/TimeClock";
+import Payroll from "./pages/Payroll";
+import Productivity from "./pages/Productivity";
+import Financials from "./pages/Financials";
+import AITools from "./pages/AITools";
+import Webstores from "./pages/Webstores";
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
-
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
-
-  return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
-};
+import "./App.css";
 
 function App() {
   return (
-    <div className="App">
+    <AppProvider>
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
+        <MainLayout>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/customers" element={<Customers />} />
+            <Route path="/quotes" element={<Quotes />} />
+            <Route path="/jobs" element={<Jobs />} />
+            <Route path="/invoices" element={<Invoices />} />
+            <Route path="/timeclock" element={<TimeClock />} />
+            <Route path="/payroll" element={<Payroll />} />
+            <Route path="/productivity" element={<Productivity />} />
+            <Route path="/financials" element={<Financials />} />
+            <Route path="/ai-tools" element={<AITools />} />
+            <Route path="/webstores" element={<Webstores />} />
+          </Routes>
+        </MainLayout>
+        <Toaster position="top-right" richColors />
       </BrowserRouter>
-    </div>
+    </AppProvider>
   );
 }
 
