@@ -110,6 +110,51 @@ export const AppProvider = ({ children }) => {
     await fetchJobs();
   };
 
+  // Job Details
+  const getJobDetails = async (jobId) => {
+    const res = await axios.get(`${API}/jobs/${jobId}/details`);
+    return res.data;
+  };
+
+  const archiveJob = async (jobId) => {
+    const res = await axios.post(`${API}/jobs/${jobId}/archive`);
+    await fetchJobs();
+    return res.data;
+  };
+
+  const unarchiveJob = async (jobId) => {
+    const res = await axios.post(`${API}/jobs/${jobId}/unarchive`);
+    await fetchJobs();
+    return res.data;
+  };
+
+  const completeJob = async (jobId) => {
+    const res = await axios.post(`${API}/jobs/${jobId}/complete`);
+    await fetchJobs();
+    return res.data;
+  };
+
+  // Job Notes
+  const createJobNote = async (jobId, data) => {
+    const res = await axios.post(`${API}/jobs/${jobId}/notes`, data);
+    return res.data;
+  };
+
+  const getJobNotes = async (jobId) => {
+    const res = await axios.get(`${API}/jobs/${jobId}/notes`);
+    return res.data;
+  };
+
+  const deleteJobNote = async (noteId) => {
+    await axios.delete(`${API}/job-notes/${noteId}`);
+  };
+
+  // Job Activities
+  const getJobActivities = async (jobId) => {
+    const res = await axios.get(`${API}/jobs/${jobId}/activities`);
+    return res.data;
+  };
+
   // Job Items
   const fetchJobItems = async (jobId) => {
     const res = await axios.get(`${API}/jobs/${jobId}/items`);
