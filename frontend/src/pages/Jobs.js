@@ -47,6 +47,7 @@ import {
   ChevronRight, Send
 } from 'lucide-react';
 import { toast } from 'sonner';
+import InvoicePreviewModal from '../components/InvoicePreviewModal';
 
 const statusOptions = ['quoted', 'approved', 'in_production', 'installed', 'complete', 'archived'];
 const activeStatuses = ['quoted', 'approved', 'in_production', 'installed'];
@@ -461,6 +462,10 @@ export function JobDetails() {
     due_date: ''
   });
   
+  // Invoice preview modal state
+  const [previewInvoiceId, setPreviewInvoiceId] = useState(null);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  
   const [itemFormData, setItemFormData] = useState({
     item_type: 'other',
     description: '',
@@ -745,11 +750,17 @@ export function JobDetails() {
                 </Button>
               )}
               {invoice && (
-                <Link to="/invoices">
-                  <Button variant="outline" className="w-full">
-                    <Receipt className="h-4 w-4 mr-2" /> View Invoice
-                  </Button>
-                </Link>
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => {
+                    setPreviewInvoiceId(invoice.id);
+                    setIsInvoiceModalOpen(true);
+                  }}
+                  data-testid="view-invoice-btn"
+                >
+                  <Receipt className="h-4 w-4 mr-2" /> View Invoice
+                </Button>
               )}
               {job.status !== 'complete' && !isArchived && (
                 <Button variant="outline" onClick={handleComplete}>
@@ -1091,6 +1102,16 @@ export function JobDetails() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Invoice Preview Modal */}
+      <InvoicePreviewModal
+        invoiceId={previewInvoiceId}
+        isOpen={isInvoiceModalOpen}
+        onClose={() => {
+          setIsInvoiceModalOpen(false);
+          setPreviewInvoiceId(null);
+        }}
+      />
 
       {/* Edit Job Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
