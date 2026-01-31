@@ -129,6 +129,15 @@ export default function Dashboard() {
     dashboardStats, customers, jobs, invoices 
   } = useApp();
   const [loading, setLoading] = useState(true);
+  
+  // Invoice preview modal state
+  const [previewInvoiceId, setPreviewInvoiceId] = useState(null);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  
+  const handleInvoiceClick = (invoiceId) => {
+    setPreviewInvoiceId(invoiceId);
+    setIsInvoiceModalOpen(true);
+  };
 
   useEffect(() => {
     const loadData = async () => {
