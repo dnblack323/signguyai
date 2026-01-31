@@ -9,6 +9,7 @@ import {
   AlertTriangle, Plus, ArrowRight, Clock 
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import InvoicePreviewModal from '../components/InvoicePreviewModal';
 
 const StatCard = ({ title, value, icon: Icon, subtitle, trend, href }) => (
   <Card className="bg-card border-border/50 hover:border-primary/30 transition-all duration-300">
@@ -36,7 +37,7 @@ const StatCard = ({ title, value, icon: Icon, subtitle, trend, href }) => (
   </Card>
 );
 
-const RecentActivity = ({ jobs, invoices }) => {
+const RecentActivity = ({ jobs, invoices, onInvoiceClick }) => {
   const recentJobs = jobs?.slice(0, 5) || [];
   const overdueInvoices = invoices?.filter(i => i.status === 'overdue') || [];
 
@@ -69,18 +70,21 @@ const RecentActivity = ({ jobs, invoices }) => {
               </Link>
             ))}
             {overdueInvoices.map(inv => (
-              <Link key={inv.id} to={`/invoices`} data-testid={`recent-invoice-${inv.id}`}>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-destructive/10 border border-destructive/30 hover:bg-destructive/20 transition-colors cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <AlertTriangle className="h-4 w-4 text-destructive" />
-                    <div>
-                      <p className="font-medium text-sm">Invoice Overdue</p>
-                      <p className="text-xs text-muted-foreground">{formatCurrency(inv.total)}</p>
-                    </div>
+              <div 
+                key={inv.id} 
+                onClick={() => onInvoiceClick(inv.id)}
+                data-testid={`recent-invoice-${inv.id}`}
+                className="flex items-center justify-between p-3 rounded-lg bg-destructive/10 border border-destructive/30 hover:bg-destructive/20 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                  <div>
+                    <p className="font-medium text-sm">Invoice Overdue</p>
+                    <p className="text-xs text-muted-foreground">{formatCurrency(inv.total)}</p>
                   </div>
-                  <Badge className={getStatusColor('overdue')}>Overdue</Badge>
                 </div>
-              </Link>
+                <Badge className={getStatusColor('overdue')}>Overdue</Badge>
+              </div>
             ))}
           </>
         )}
