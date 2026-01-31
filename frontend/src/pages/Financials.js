@@ -462,31 +462,42 @@ export default function Financials() {
             <CardContent className="p-0">
               {sales.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  No sales recorded for this period
+                  No daily sales recorded for this period
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
-                      <TableHead>Description</TableHead>
+                      <TableHead>Payment Method</TableHead>
+                      <TableHead>Notes</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
                       <TableHead className="text-right">Tax</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sales.map((sale, idx) => (
-                      <TableRow key={sale.id} className={idx % 2 === 0 ? '' : 'bg-muted/30'}>
-                        <TableCell>{formatDate(sale.date)}</TableCell>
-                        <TableCell className="text-muted-foreground">{sale.description || '-'}</TableCell>
-                        <TableCell className="text-right font-bold text-green-400">
-                          {formatCurrency(sale.amount)}
-                        </TableCell>
-                        <TableCell className="text-right text-yellow-400">
-                          {formatCurrency(sale.tax_amount)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {sales.map((sale, idx) => {
+                      const methodInfo = paymentMethods.find(m => m.value === sale.payment_method) || paymentMethods[3];
+                      const Icon = methodInfo.icon;
+                      return (
+                        <TableRow key={sale.id} className={idx % 2 === 0 ? '' : 'bg-muted/30'}>
+                          <TableCell>{formatDate(sale.date)}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Icon className="h-4 w-4 text-muted-foreground" />
+                              <span className="capitalize">{methodInfo.label}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{sale.description || '-'}</TableCell>
+                          <TableCell className="text-right font-bold text-green-400">
+                            {formatCurrency(sale.amount)}
+                          </TableCell>
+                          <TableCell className="text-right text-yellow-400">
+                            {formatCurrency(sale.tax_amount)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               )}
