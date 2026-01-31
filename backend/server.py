@@ -341,10 +341,17 @@ class PayrollBalance(BaseModel):
     balance: float = 0  # Positive = employer owes employee
 
 # Financial Models
+class PaymentMethod(str, Enum):
+    CASH = "cash"
+    CREDIT = "credit"
+    CHECK = "check"
+    OTHER = "other"
+
 class SalesEntryBase(BaseModel):
     date: str
     amount: float
     tax_amount: float = 0
+    payment_method: PaymentMethod = PaymentMethod.CASH
     description: Optional[str] = None
 
 class SalesEntryCreate(SalesEntryBase):
