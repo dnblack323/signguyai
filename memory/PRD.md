@@ -56,6 +56,13 @@ Build a web-based sign-shop operating system called "Sign Guy AI" - a single dai
 - [x] AI Tools Suite (6 GPT-5.2 powered tools)
 - [x] Webstores (Fundraiser campaigns, B2B custom stores)
 
+### Recent Updates (January 31, 2026)
+- [x] **Invoice Preview Modal** - Click "View Invoice" from any location opens a popup modal with print-preview style invoice instead of navigating to invoice list
+  - Available on: Invoices page, Job Details page, Dashboard overdue invoices
+  - Features: Print button, line items table, balance due calculation, customer/job info display
+- [x] Dashboard Recent Activity - Clicking jobs navigates to job details
+- [x] Bubble.io migration documentation (13 files) created for evaluation
+
 ### Testing Results (January 28, 2026)
 - Backend: 95-98% tests passing
 - Frontend: 100% functionality verified
