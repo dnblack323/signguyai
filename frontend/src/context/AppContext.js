@@ -206,6 +206,11 @@ export const AppProvider = ({ children }) => {
     return res.data;
   };
 
+  const getInvoiceById = async (invoiceId) => {
+    const res = await axios.get(`${API}/invoices/${invoiceId}`);
+    return res.data;
+  };
+
   // Employees
   const fetchEmployees = async (params = {}) => {
     try {
@@ -398,7 +403,7 @@ export const AppProvider = ({ children }) => {
     // Job Item actions
     fetchJobItems, createJobItem, updateJobItem, deleteJobItem,
     // Invoice actions
-    fetchInvoices, createInvoice, createInvoiceFromJob, updateInvoice,
+    fetchInvoices, createInvoice, createInvoiceFromJob, updateInvoice, getInvoiceById,
     // Employee actions
     fetchEmployees, createEmployee, updateEmployee,
     // Task actions
