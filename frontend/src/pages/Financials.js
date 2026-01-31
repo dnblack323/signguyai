@@ -430,26 +430,37 @@ export default function Financials() {
                   {[...sales.map(s => ({ ...s, type: 'sale' })), ...expenses.map(e => ({ ...e, type: 'expense' }))]
                     .sort((a, b) => new Date(b.date) - new Date(a.date))
                     .slice(0, 10)
-                    .map((item, idx) => (
-                      <div 
-                        key={`${item.type}-${item.id}`} 
-                        className={`flex items-center justify-between p-3 rounded-lg ${
-                          item.type === 'sale' ? 'bg-green-500/10' : 'bg-red-500/10'
-                        }`}
-                      >
-                        <div>
-                          <p className="text-sm font-medium">
-                            {item.type === 'sale' ? 'Sale' : item.category}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDate(item.date)}
-                          </p>
+                    .map((item, idx) => {
+                      const methodInfo = item.type === 'sale' 
+                        ? (paymentMethods.find(m => m.value === item.payment_method) || paymentMethods[3])
+                        : null;
+                      const Icon = methodInfo?.icon;
+                      return (
+                        <div 
+                          key={`${item.type}-${item.id}`} 
+                          className={`flex items-center justify-between p-3 rounded-lg ${
+                            item.type === 'sale' ? 'bg-green-500/10' : 'bg-red-500/10'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            {item.type === 'sale' && Icon && (
+                              <Icon className="h-4 w-4 text-green-400" />
+                            )}
+                            <div>
+                              <p className="text-sm font-medium">
+                                {item.type === 'sale' ? methodInfo?.label || 'Daily Sales' : item.category}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatDate(item.date)}
+                              </p>
+                            </div>
+                          </div>
+                          <span className={`font-bold ${item.type === 'sale' ? 'text-green-400' : 'text-red-400'}`}>
+                            {item.type === 'sale' ? '+' : '-'}{formatCurrency(item.amount)}
+                          </span>
                         </div>
-                        <span className={`font-bold ${item.type === 'sale' ? 'text-green-400' : 'text-red-400'}`}>
-                          {item.type === 'sale' ? '+' : '-'}{formatCurrency(item.amount)}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                 </div>
               </CardContent>
             </Card>
