@@ -413,6 +413,16 @@ export default function Invoices() {
           )}
         </CardContent>
       </Card>
+
+      {/* Invoice Preview Modal */}
+      <InvoicePreviewModal
+        invoiceId={previewInvoiceId}
+        isOpen={isInvoiceModalOpen}
+        onClose={() => {
+          setIsInvoiceModalOpen(false);
+          setPreviewInvoiceId(null);
+        }}
+      />
     </div>
   );
 }
