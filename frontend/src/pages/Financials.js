@@ -29,10 +29,16 @@ import {
 } from '../components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { formatCurrency, formatDate } from '../lib/utils';
-import { Plus, TrendingUp, TrendingDown, Receipt, DollarSign } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Receipt, DollarSign, Wallet, CreditCard, Mail, Banknote } from 'lucide-react';
 import { toast } from 'sonner';
 
 const expenseCategories = ['materials', 'labor', 'equipment', 'utilities', 'rent', 'other'];
+const paymentMethods = [
+  { value: 'cash', label: 'Cash', icon: Banknote },
+  { value: 'credit', label: 'Credit/Debit Card', icon: CreditCard },
+  { value: 'check', label: 'Check', icon: Mail },
+  { value: 'other', label: 'Other', icon: Wallet }
+];
 
 export default function Financials() {
   const { 
@@ -55,6 +61,7 @@ export default function Financials() {
     date: new Date().toISOString().split('T')[0],
     amount: 0,
     tax_amount: 0,
+    payment_method: 'cash',
     description: ''
   });
   const [expenseForm, setExpenseForm] = useState({
@@ -99,6 +106,7 @@ export default function Financials() {
         date: new Date().toISOString().split('T')[0],
         amount: 0,
         tax_amount: 0,
+        payment_method: 'cash',
         description: ''
       });
       await loadData();
@@ -147,13 +155,16 @@ export default function Financials() {
           <Dialog open={isSalesDialogOpen} onOpenChange={setIsSalesDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-green-600 hover:bg-green-700" data-testid="add-sales-btn">
-                <TrendingUp className="h-4 w-4 mr-2" /> Add Sale
+                <DollarSign className="h-4 w-4 mr-2" /> Enter Daily Sales
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[400px]">
+            <DialogContent className="sm:max-w-[450px]">
               <DialogHeader>
-                <DialogTitle className="font-heading uppercase">Record Sale</DialogTitle>
+                <DialogTitle className="font-heading uppercase">Daily Sales Entry</DialogTitle>
               </DialogHeader>
+              <p className="text-sm text-muted-foreground -mt-2 mb-4">
+                Record actual money received today (cash, credit, checks)
+              </p>
               <form onSubmit={handleSalesSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label>Date</Label>
@@ -164,43 +175,72 @@ export default function Financials() {
                     data-testid="sales-date-input"
                   />
                 </div>
+                
+                {/* Payment Method Selection */}
+                <div className="space-y-2">
+                  <Label>Payment Method *</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {paymentMethods.map((method) => {
+                      const Icon = method.icon;
+                      return (
+                        <button
+                          key={method.value}
+                          type="button"
+                          onClick={() => setSalesForm({ ...salesForm, payment_method: method.value })}
+                          className={`flex items-center gap-2 p-3 rounded-lg border transition-all ${
+                            salesForm.payment_method === method.value
+                              ? 'border-primary bg-primary/10 text-primary'
+                              : 'border-border hover:border-primary/50'
+                          }`}
+                          data-testid={`payment-method-${method.value}`}
+                        >
+                          <Icon className="h-4 w-4" />
+                          <span className="text-sm font-medium">{method.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Amount *</Label>
+                    <Label>Amount Received *</Label>
                     <Input
                       type="number"
                       step="0.01"
                       value={salesForm.amount}
                       onChange={(e) => setSalesForm({ ...salesForm, amount: parseFloat(e.target.value) || 0 })}
+                      placeholder="0.00"
                       data-testid="sales-amount-input"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Tax Amount</Label>
+                    <Label>Tax Collected</Label>
                     <Input
                       type="number"
                       step="0.01"
                       value={salesForm.tax_amount}
                       onChange={(e) => setSalesForm({ ...salesForm, tax_amount: parseFloat(e.target.value) || 0 })}
+                      placeholder="0.00"
                       data-testid="sales-tax-input"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Description</Label>
+                  <Label>Notes</Label>
                   <Input
                     value={salesForm.description}
                     onChange={(e) => setSalesForm({ ...salesForm, description: e.target.value })}
-                    placeholder="Optional notes"
+                    placeholder="e.g., Morning deposit, Check from ABC Corp"
                     data-testid="sales-description-input"
                   />
                 </div>
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-end gap-2 pt-2">
                   <Button type="button" variant="outline" onClick={() => setIsSalesDialogOpen(false)}>
                     Cancel
                   </Button>
                   <Button type="submit" className="bg-green-600 hover:bg-green-700" data-testid="sales-submit-btn">
-                    Record
+                    Record Sales
                   </Button>
                 </div>
               </form>
