@@ -29,8 +29,9 @@ import {
   TableRow,
 } from '../components/ui/table';
 import { formatCurrency, formatDate, getStatusColor } from '../lib/utils';
-import { Plus, Edit2, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Plus, Edit2, CheckCircle, AlertTriangle, Eye } from 'lucide-react';
 import { toast } from 'sonner';
+import InvoicePreviewModal from '../components/InvoicePreviewModal';
 
 const statusOptions = ['draft', 'sent', 'paid', 'overdue'];
 
@@ -51,6 +52,10 @@ export default function Invoices() {
     due_date: '',
     notes: ''
   });
+  
+  // Invoice preview modal state
+  const [previewInvoiceId, setPreviewInvoiceId] = useState(null);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -369,6 +374,17 @@ export default function Invoices() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setPreviewInvoiceId(invoice.id);
+                            setIsInvoiceModalOpen(true);
+                          }}
+                          data-testid={`view-invoice-${invoice.id}`}
+                        >
+                          <Eye className="h-4 w-4 mr-1" /> View
+                        </Button>
                         {invoice.status !== 'paid' && (
                           <Button
                             variant="outline"
