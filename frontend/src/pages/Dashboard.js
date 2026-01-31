@@ -224,12 +224,22 @@ export default function Dashboard() {
       {/* Recent Activity & Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <RecentActivity jobs={jobs} invoices={invoices} />
+          <RecentActivity jobs={jobs} invoices={invoices} onInvoiceClick={handleInvoiceClick} />
         </div>
         <div>
           <QuickActions />
         </div>
       </div>
+
+      {/* Invoice Preview Modal */}
+      <InvoicePreviewModal
+        invoiceId={previewInvoiceId}
+        isOpen={isInvoiceModalOpen}
+        onClose={() => {
+          setIsInvoiceModalOpen(false);
+          setPreviewInvoiceId(null);
+        }}
+      />
     </div>
   );
 }
