@@ -51,32 +51,36 @@ const RecentActivity = ({ jobs, invoices }) => {
         ) : (
           <>
             {recentJobs.map(job => (
-              <div key={job.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <Briefcase className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium text-sm">{job.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Due: {formatDate(job.due_date)}
-                    </p>
+              <Link key={job.id} to={`/jobs/${job.id}`} data-testid={`recent-job-${job.id}`}>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 hover:border-primary/30 border border-transparent transition-colors cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <Briefcase className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium text-sm">{job.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Due: {formatDate(job.due_date)}
+                      </p>
+                    </div>
                   </div>
+                  <Badge className={getStatusColor(job.status)}>
+                    {job.status.replace('_', ' ')}
+                  </Badge>
                 </div>
-                <Badge className={getStatusColor(job.status)}>
-                  {job.status.replace('_', ' ')}
-                </Badge>
-              </div>
+              </Link>
             ))}
             {overdueInvoices.map(inv => (
-              <div key={inv.id} className="flex items-center justify-between p-3 rounded-lg bg-destructive/10 border border-destructive/30">
-                <div className="flex items-center gap-3">
-                  <AlertTriangle className="h-4 w-4 text-destructive" />
-                  <div>
-                    <p className="font-medium text-sm">Invoice Overdue</p>
-                    <p className="text-xs text-muted-foreground">{formatCurrency(inv.total)}</p>
+              <Link key={inv.id} to={`/invoices`} data-testid={`recent-invoice-${inv.id}`}>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-destructive/10 border border-destructive/30 hover:bg-destructive/20 transition-colors cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                    <div>
+                      <p className="font-medium text-sm">Invoice Overdue</p>
+                      <p className="text-xs text-muted-foreground">{formatCurrency(inv.total)}</p>
+                    </div>
                   </div>
+                  <Badge className={getStatusColor('overdue')}>Overdue</Badge>
                 </div>
-                <Badge className={getStatusColor('overdue')}>Overdue</Badge>
-              </div>
+              </Link>
             ))}
           </>
         )}
