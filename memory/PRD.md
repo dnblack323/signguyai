@@ -60,6 +60,10 @@ Build a web-based sign-shop operating system called "Sign Guy AI" - a single dai
 - [x] **Invoice Preview Modal** - Click "View Invoice" from any location opens a popup modal with print-preview style invoice instead of navigating to invoice list
   - Available on: Invoices page, Job Details page, Dashboard overdue invoices
   - Features: Print button, line items table, balance due calculation, customer/job info display
+- [x] **Daily Sales Entry Enhancement** - Renamed "Add Sale" to "Enter Daily Sales" with payment method tracking
+  - Payment methods: Cash, Credit/Debit Card, Check, Other
+  - Tracks actual money received at the business daily
+  - Shows payment method icons in Sales table and Recent Activity
 - [x] Dashboard Recent Activity - Clicking jobs navigates to job details
 - [x] Bubble.io migration documentation (13 files) created for evaluation
 
