@@ -57,6 +57,12 @@ Build a web-based sign-shop operating system called "Sign Guy AI" - a single dai
 - [x] Webstores (Fundraiser campaigns, B2B custom stores)
 
 ### Recent Updates (January 31, 2026)
+- [x] **Dark/Light Mode Toggle** - Full theme switching capability
+  - Toggle button in sidebar (bottom, above Collapse)
+  - Persists selection to localStorage
+  - Light theme based on BUBBLE_DESIGN_SYSTEM_LIGHT.md design specs
+  - Sidebar adapts background color per theme
+  - All components respect theme variables
 - [x] **Invoice Preview Modal** - Click "View Invoice" from any location opens a popup modal with print-preview style invoice instead of navigating to invoice list
   - Available on: Invoices page, Job Details page, Dashboard overdue invoices
   - Features: Print button, line items table, balance due calculation, customer/job info display
