@@ -4,11 +4,13 @@ import { cn } from '../lib/utils';
 import {
   LayoutDashboard, Users, FileText, Briefcase, Receipt, 
   Clock, DollarSign, CalendarDays, Sparkles, Store,
-  ChevronLeft, ChevronRight, Settings, Menu
+  ChevronLeft, ChevronRight, Menu
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
+import ThemeToggle from './ThemeToggle';
+import { useTheme } from '../context/ThemeContext';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -27,10 +29,13 @@ const navigation = [
 ];
 
 export const Sidebar = ({ collapsed, onToggle }) => {
+  const { theme } = useTheme();
+  
   return (
     <aside 
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen bg-[#0F1115] border-r border-border/50 transition-all duration-300",
+        "fixed left-0 top-0 z-40 h-screen border-r border-border/50 transition-all duration-300",
+        theme === 'dark' ? "bg-[#0F1115]" : "bg-white",
         collapsed ? "w-16" : "w-64"
       )}
       data-testid="sidebar"
@@ -99,8 +104,9 @@ export const Sidebar = ({ collapsed, onToggle }) => {
           </nav>
         </ScrollArea>
 
-        {/* Collapse Toggle */}
-        <div className="border-t border-border/50 p-3">
+        {/* Theme Toggle & Collapse */}
+        <div className="border-t border-border/50 p-3 space-y-2">
+          <ThemeToggle collapsed={collapsed} />
           <Button
             variant="ghost"
             size="sm"
@@ -121,6 +127,7 @@ export const MainLayout = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  const { theme } = useTheme();
 
   // Get current page title
   const currentNav = navigation.find(n => n.href === location.pathname);
@@ -134,7 +141,10 @@ export const MainLayout = ({ children }) => {
       </div>
 
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-card border-b border-border z-50 flex items-center px-4">
+      <div className={cn(
+        "lg:hidden fixed top-0 left-0 right-0 h-16 border-b border-border z-50 flex items-center px-4",
+        theme === 'dark' ? "bg-card" : "bg-white"
+      )}>
         <Button
           variant="ghost"
           size="icon"
@@ -156,7 +166,8 @@ export const MainLayout = ({ children }) => {
 
       {/* Mobile Sidebar */}
       <div className={cn(
-        "lg:hidden fixed left-0 top-0 z-50 h-full w-64 bg-[#0F1115] border-r border-border/50 transition-transform duration-300",
+        "lg:hidden fixed left-0 top-0 z-50 h-full w-64 border-r border-border/50 transition-transform duration-300",
+        theme === 'dark' ? "bg-[#0F1115]" : "bg-white",
         mobileOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <Sidebar collapsed={false} onToggle={() => setMobileOpen(false)} />
