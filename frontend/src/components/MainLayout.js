@@ -46,8 +46,8 @@ export const Sidebar = ({ collapsed, onToggle }) => {
           {!collapsed && (
             <div className="flex items-center gap-2">
               <img 
-                src="https://customer-assets.emergentagent.com/job_signtists-lab/artifacts/d92ouvnp_teal2Asset%202%402x.png" 
-                alt="Sign Guy AI" 
+                src="https://customer-assets.emergentagent.com/job_cc25406f-f7f9-4d81-8429-039b5b2a7159/artifacts/dmeif3yx_1766814558812.png" 
+                alt="The Sign Guy PA" 
                 className="h-10 w-auto"
               />
             </div>
@@ -55,7 +55,7 @@ export const Sidebar = ({ collapsed, onToggle }) => {
           {collapsed && (
             <div className="w-8 h-8 mx-auto rounded-md bg-primary/20 flex items-center justify-center overflow-hidden">
               <img 
-                src="https://customer-assets.emergentagent.com/job_signtists-lab/artifacts/d92ouvnp_teal2Asset%202%402x.png" 
+                src="https://customer-assets.emergentagent.com/job_cc25406f-f7f9-4d81-8429-039b5b2a7159/artifacts/dmeif3yx_1766814558812.png" 
                 alt="SG" 
                 className="h-8 w-auto object-contain"
               />
