@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppProvider } from "./context/AppContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import { MainLayout } from "./components/MainLayout";
 import { Toaster } from "./components/ui/sonner";
 
@@ -20,27 +21,29 @@ import "./App.css";
 
 function App() {
   return (
-    <AppProvider>
-      <BrowserRouter>
-        <MainLayout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/customers" element={<Customers />} />
-            <Route path="/quotes" element={<Quotes />} />
-            <Route path="/jobs" element={<Jobs />} />
-            <Route path="/jobs/:id" element={<JobDetails />} />
-            <Route path="/invoices" element={<Invoices />} />
-            <Route path="/timeclock" element={<TimeClock />} />
-            <Route path="/payroll" element={<Payroll />} />
-            <Route path="/productivity" element={<Productivity />} />
-            <Route path="/financials" element={<Financials />} />
-            <Route path="/ai-tools" element={<AITools />} />
-            <Route path="/webstores" element={<Webstores />} />
-          </Routes>
-        </MainLayout>
-        <Toaster position="top-right" richColors />
-      </BrowserRouter>
-    </AppProvider>
+    <ThemeProvider>
+      <AppProvider>
+        <BrowserRouter>
+          <MainLayout>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/customers" element={<Customers />} />
+              <Route path="/quotes" element={<Quotes />} />
+              <Route path="/jobs" element={<Jobs />} />
+              <Route path="/jobs/:id" element={<JobDetails />} />
+              <Route path="/invoices" element={<Invoices />} />
+              <Route path="/timeclock" element={<TimeClock />} />
+              <Route path="/payroll" element={<Payroll />} />
+              <Route path="/productivity" element={<Productivity />} />
+              <Route path="/financials" element={<Financials />} />
+              <Route path="/ai-tools" element={<AITools />} />
+              <Route path="/webstores" element={<Webstores />} />
+            </Routes>
+          </MainLayout>
+          <Toaster position="top-right" richColors />
+        </BrowserRouter>
+      </AppProvider>
+    </ThemeProvider>
   );
 }
 
