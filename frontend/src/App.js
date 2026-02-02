@@ -16,6 +16,7 @@ import Productivity from "./pages/Productivity";
 import Financials from "./pages/Financials";
 import AITools from "./pages/AITools";
 import Webstores from "./pages/Webstores";
+import Products from "./pages/Products";
 
 import "./App.css";
 
