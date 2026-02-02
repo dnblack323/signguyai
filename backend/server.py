@@ -479,6 +479,203 @@ class WebstoreOrderCreate(BaseModel):
     items: List[Dict[str, Any]]
     total: float
 
+# ============== NEW WEBSTORE SYSTEM ==============
+
+class WebstoreType(str, Enum):
+    BUSINESS = "business"
+    FUNDRAISER = "fundraiser"
+    CREATOR = "creator"
+
+class WebstoreStatus(str, Enum):
+    ACTIVE = "active"
+    DISABLED = "disabled"
+    PENDING = "pending"
+
+class ProductCategory(str, Enum):
+    APPAREL = "apparel"
+    SIGNS = "signs"
+    DECALS = "decals"
+    PROMOTIONAL = "promotional"
+    OTHER = "other"
+
+# Master Product Catalog - owned by sign shop
+class ProductVariant(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str  # e.g., "Small / Red"
+    size: Optional[str] = None
+    color: Optional[str] = None
+    sku: Optional[str] = None
+    additional_cost: float = 0  # Added to base cost for this variant
+    is_available: bool = True
+
+class Product(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    description: Optional[str] = None
+    category: ProductCategory = ProductCategory.OTHER
+    base_cost: float  # What it costs the shop
+    retail_price: float  # Default selling price
+    image_url: Optional[str] = None
+    has_variants: bool = False
+    variants: List[ProductVariant] = []
+    is_active: bool = True
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class ProductCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    category: ProductCategory = ProductCategory.OTHER
+    base_cost: float
+    retail_price: float
+    image_url: Optional[str] = None
+    has_variants: bool = False
+    variants: List[Dict[str, Any]] = []
+
+class ProductUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[ProductCategory] = None
+    base_cost: Optional[float] = None
+    retail_price: Optional[float] = None
+    image_url: Optional[str] = None
+    has_variants: Optional[bool] = None
+    variants: Optional[List[Dict[str, Any]]] = None
+    is_active: Optional[bool] = None
+
+# Webstore - child of sign shop
+class WebstoreBranding(BaseModel):
+    logo_url: Optional[str] = None
+    primary_color: str = "#0D9488"  # Default teal
+    banner_url: Optional[str] = None
+
+class Webstore(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    store_type: WebstoreType
+    owner_name: str  # Business name, organization, or individual
+    owner_email: Optional[str] = None
+    owner_phone: Optional[str] = None
+    description: Optional[str] = None
+    status: WebstoreStatus = WebstoreStatus.ACTIVE
+    is_public: bool = True
+    branding: WebstoreBranding = Field(default_factory=WebstoreBranding)
+    # Fundraiser-specific fields
+    fundraiser_goal: Optional[float] = None
+    fundraiser_start_date: Optional[str] = None
+    fundraiser_end_date: Optional[str] = None
+    fundraiser_profit_percent: float = 0  # % of profit going to fundraiser
+    # Creator-specific fields
+    creator_commission_type: str = "percentage"  # "percentage" or "fixed"
+    creator_commission_value: float = 0  # % or $ amount
+    # Tracking
+    total_sales: float = 0
+    total_orders: int = 0
+    total_profit: float = 0
+    payout_owed: float = 0  # Amount owed to fundraiser/creator
+    payout_paid: float = 0  # Amount already paid out
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class WebstoreCreate(BaseModel):
+    name: str
+    store_type: WebstoreType
+    owner_name: str
+    owner_email: Optional[str] = None
+    owner_phone: Optional[str] = None
+    description: Optional[str] = None
+    is_public: bool = True
+    branding: Optional[Dict[str, Any]] = None
+    # Fundraiser fields
+    fundraiser_goal: Optional[float] = None
+    fundraiser_start_date: Optional[str] = None
+    fundraiser_end_date: Optional[str] = None
+    fundraiser_profit_percent: float = 0
+    # Creator fields
+    creator_commission_type: str = "percentage"
+    creator_commission_value: float = 0
+
+class WebstoreUpdate(BaseModel):
+    name: Optional[str] = None
+    owner_name: Optional[str] = None
+    owner_email: Optional[str] = None
+    owner_phone: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[WebstoreStatus] = None
+    is_public: Optional[bool] = None
+    branding: Optional[Dict[str, Any]] = None
+    fundraiser_goal: Optional[float] = None
+    fundraiser_start_date: Optional[str] = None
+    fundraiser_end_date: Optional[str] = None
+    fundraiser_profit_percent: Optional[float] = None
+    creator_commission_type: Optional[str] = None
+    creator_commission_value: Optional[float] = None
+
+# Product assignment to webstore (with optional price override)
+class WebstoreProduct(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    webstore_id: str
+    product_id: str
+    is_enabled: bool = True
+    price_override: Optional[float] = None  # If set, overrides retail_price
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class WebstoreProductCreate(BaseModel):
+    webstore_id: str
+    product_id: str
+    is_enabled: bool = True
+    price_override: Optional[float] = None
+
+# Enhanced order for new system
+class WebstoreOrderItem(BaseModel):
+    product_id: str
+    product_name: str
+    variant_id: Optional[str] = None
+    variant_name: Optional[str] = None
+    quantity: int
+    unit_price: float  # Price charged
+    base_cost: float  # Cost to shop
+    total: float
+    profit: float
+
+class WebstoreOrderV2(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    webstore_id: str
+    webstore_name: str
+    store_type: WebstoreType
+    customer_name: str
+    customer_email: str
+    customer_phone: Optional[str] = None
+    shipping_address: Optional[str] = None
+    items: List[WebstoreOrderItem] = []
+    subtotal: float = 0
+    tax: float = 0
+    shipping: float = 0
+    total: float = 0
+    total_cost: float = 0  # Total base cost
+    total_profit: float = 0
+    shop_profit: float = 0  # Profit kept by shop
+    payout_amount: float = 0  # Amount owed to fundraiser/creator
+    status: str = "pending"  # pending, processing, production, shipped, completed, cancelled
+    job_id: Optional[str] = None
+    payment_status: str = "unpaid"  # unpaid, paid, refunded
+    notes: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class WebstoreOrderV2Create(BaseModel):
+    webstore_id: str
+    customer_name: str
+    customer_email: str
+    customer_phone: Optional[str] = None
+    shipping_address: Optional[str] = None
+    items: List[Dict[str, Any]]
+    tax: float = 0
+    shipping: float = 0
+    notes: Optional[str] = None
+
 # ============== ROUTES ==============
 
 # Root
