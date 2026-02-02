@@ -6,6 +6,8 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Textarea } from '../components/ui/textarea';
+import { Switch } from '../components/ui/switch';
+import { Separator } from '../components/ui/separator';
 import {
   Dialog,
   DialogContent,
@@ -13,6 +15,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 import {
   Table,
   TableBody,
@@ -23,39 +32,81 @@ import {
 } from '../components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { formatCurrency, formatDate, getStatusColor } from '../lib/utils';
-import { Store, Heart, Building2, Plus, ShoppingCart } from 'lucide-react';
+import { 
+  Store, Heart, Building2, User, Plus, ShoppingCart, 
+  Eye, Edit2, Trash2, Package, DollarSign, TrendingUp,
+  ExternalLink, Check, X, Settings
+} from 'lucide-react';
 import { toast } from 'sonner';
+
+const storeTypes = [
+  { value: 'business', label: 'Business (B2B)', icon: Building2, description: 'Employee apparel & company stores' },
+  { value: 'fundraiser', label: 'Fundraiser', icon: Heart, description: 'Campaigns with profit sharing' },
+  { value: 'creator', label: 'Creator', icon: User, description: 'Individual merch with commission' },
+];
+
+const getStoreTypeIcon = (type) => {
+  const st = storeTypes.find(s => s.value === type);
+  return st ? st.icon : Store;
+};
+
+const getStoreTypeColor = (type) => {
+  const colors = {
+    business: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    fundraiser: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
+    creator: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+  };
+  return colors[type] || 'bg-gray-500/20 text-gray-400';
+};
+
+const getStatusBadge = (status) => {
+  const colors = {
+    active: 'bg-green-500/20 text-green-400 border-green-500/30',
+    disabled: 'bg-red-500/20 text-red-400 border-red-500/30',
+    pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+  };
+  return colors[status] || colors.pending;
+};
 
 export default function Webstores() {
   const { 
-    createFundraiser, getFundraisers,
-    createB2BStore, getB2BStores,
-    getWebstoreOrders
+    getWebstores, createWebstore, updateWebstore, deleteWebstore,
+    getWebstoreOrdersV2, getProducts, getWebstoreProducts,
+    assignProductToWebstore, removeProductFromWebstore,
+    createJobFromOrder, recordPayout, getWebstorePayouts
   } = useApp();
+  
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('fundraiser');
-  const [fundraisers, setFundraisers] = useState([]);
-  const [b2bStores, setB2bStores] = useState([]);
+  const [webstores, setWebstores] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [isFundraiserDialogOpen, setIsFundraiserDialogOpen] = useState(false);
-  const [isB2BDialogOpen, setIsB2BDialogOpen] = useState(false);
-
-  const [fundraiserForm, setFundraiserForm] = useState({
+  const [products, setProducts] = useState([]);
+  const [selectedType, setSelectedType] = useState('all');
+  const [activeTab, setActiveTab] = useState('stores');
+  
+  // Dialog states
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [selectedStore, setSelectedStore] = useState(null);
+  const [storeProducts, setStoreProducts] = useState([]);
+  const [storePayouts, setStorePayouts] = useState([]);
+  const [detailTab, setDetailTab] = useState('overview');
+  
+  // Form state
+  const [formData, setFormData] = useState({
     name: '',
-    goal: 0,
-    start_date: new Date().toISOString().split('T')[0],
-    end_date: '',
-    organizer: '',
-    payout_rules: '',
-    products: []
-  });
-
-  const [b2bForm, setB2bForm] = useState({
-    company_name: '',
-    contact_email: '',
-    login_password: '',
-    discount_percent: 0,
-    allowed_products: []
+    store_type: 'business',
+    owner_name: '',
+    owner_email: '',
+    owner_phone: '',
+    description: '',
+    is_public: true,
+    branding: { primary_color: '#0D9488' },
+    fundraiser_goal: 0,
+    fundraiser_start_date: '',
+    fundraiser_end_date: '',
+    fundraiser_profit_percent: 40,
+    creator_commission_type: 'percentage',
+    creator_commission_value: 20,
   });
 
   useEffect(() => {
@@ -65,177 +116,413 @@ export default function Webstores() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [fundraiserData, b2bData, ordersData] = await Promise.all([
-        getFundraisers(),
-        getB2BStores(),
-        getWebstoreOrders()
+      const [storesData, ordersData, productsData] = await Promise.all([
+        getWebstores(),
+        getWebstoreOrdersV2(),
+        getProducts()
       ]);
-      setFundraisers(fundraiserData);
-      setB2bStores(b2bData);
+      setWebstores(storesData);
       setOrders(ordersData);
+      setProducts(productsData);
     } catch (err) {
-      console.error('Error loading webstore data:', err);
+      console.error('Error loading data:', err);
     }
     setLoading(false);
   };
 
-  const handleFundraiserSubmit = async (e) => {
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      store_type: 'business',
+      owner_name: '',
+      owner_email: '',
+      owner_phone: '',
+      description: '',
+      is_public: true,
+      branding: { primary_color: '#0D9488' },
+      fundraiser_goal: 0,
+      fundraiser_start_date: '',
+      fundraiser_end_date: '',
+      fundraiser_profit_percent: 40,
+      creator_commission_type: 'percentage',
+      creator_commission_value: 20,
+    });
+  };
+
+  const handleCreateStore = async (e) => {
     e.preventDefault();
-    if (!fundraiserForm.name.trim() || !fundraiserForm.organizer.trim()) {
-      toast.error('Please fill in required fields');
+    if (!formData.name.trim() || !formData.owner_name.trim()) {
+      toast.error('Store name and owner are required');
       return;
     }
     try {
-      await createFundraiser(fundraiserForm);
-      toast.success('Fundraiser created');
-      setIsFundraiserDialogOpen(false);
-      setFundraiserForm({
-        name: '',
-        goal: 0,
-        start_date: new Date().toISOString().split('T')[0],
-        end_date: '',
-        organizer: '',
-        payout_rules: '',
-        products: []
-      });
+      await createWebstore(formData);
+      toast.success('Webstore created');
+      setIsCreateDialogOpen(false);
+      resetForm();
       await loadData();
     } catch (err) {
-      toast.error('Failed to create fundraiser');
+      toast.error('Failed to create webstore');
     }
   };
 
-  const handleB2BSubmit = async (e) => {
-    e.preventDefault();
-    if (!b2bForm.company_name.trim() || !b2bForm.contact_email.trim() || !b2bForm.login_password.trim()) {
-      toast.error('Please fill in required fields');
-      return;
-    }
+  const handleViewStore = async (store) => {
+    setSelectedStore(store);
+    setDetailTab('overview');
     try {
-      await createB2BStore(b2bForm);
-      toast.success('B2B store created');
-      setIsB2BDialogOpen(false);
-      setB2bForm({
-        company_name: '',
-        contact_email: '',
-        login_password: '',
-        discount_percent: 0,
-        allowed_products: []
-      });
-      await loadData();
+      const [prods, payouts] = await Promise.all([
+        getWebstoreProducts(store.id, true),
+        getWebstorePayouts(store.id)
+      ]);
+      setStoreProducts(prods);
+      setStorePayouts(payouts);
     } catch (err) {
-      toast.error('Failed to create B2B store');
+      console.error('Error loading store details:', err);
+    }
+    setIsDetailDialogOpen(true);
+  };
+
+  const handleToggleProduct = async (productId, currentlyEnabled) => {
+    if (!selectedStore) return;
+    try {
+      if (currentlyEnabled) {
+        await removeProductFromWebstore(selectedStore.id, productId);
+      } else {
+        await assignProductToWebstore(selectedStore.id, { 
+          webstore_id: selectedStore.id,
+          product_id: productId, 
+          is_enabled: true 
+        });
+      }
+      const prods = await getWebstoreProducts(selectedStore.id, true);
+      setStoreProducts(prods);
+      toast.success(currentlyEnabled ? 'Product disabled' : 'Product enabled');
+    } catch (err) {
+      toast.error('Failed to update product');
     }
   };
 
-  const fundraiserOrders = orders.filter(o => o.store_type === 'fundraiser');
-  const b2bOrders = orders.filter(o => o.store_type === 'b2b');
+  const handleDeleteStore = async (storeId) => {
+    if (!confirm('Are you sure you want to delete this webstore?')) return;
+    try {
+      await deleteWebstore(storeId);
+      toast.success('Webstore deleted');
+      setIsDetailDialogOpen(false);
+      await loadData();
+    } catch (err) {
+      toast.error('Failed to delete webstore');
+    }
+  };
+
+  const handleCreateJobFromOrder = async (orderId) => {
+    try {
+      const result = await createJobFromOrder(orderId);
+      toast.success('Job created from order');
+      await loadData();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to create job');
+    }
+  };
+
+  const filteredStores = selectedType === 'all' 
+    ? webstores 
+    : webstores.filter(s => s.store_type === selectedType);
+
+  // Calculate stats
+  const totalSales = webstores.reduce((sum, s) => sum + (s.total_sales || 0), 0);
+  const totalProfit = webstores.reduce((sum, s) => sum + (s.total_profit || 0), 0);
+  const totalOwed = webstores.reduce((sum, s) => sum + (s.payout_owed || 0), 0);
+  const pendingOrders = orders.filter(o => o.status === 'pending').length;
 
   return (
     <div className="space-y-6 animate-fade-in" data-testid="webstores-page">
       {/* Header */}
-      <div>
-        <h1 className="text-4xl font-bold font-heading uppercase tracking-tight">Webstores</h1>
-        <p className="text-muted-foreground mt-1">Manage fundraiser campaigns and B2B stores</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight">Webstore Manager</h1>
+          <p className="text-muted-foreground mt-1">Manage all your webstores from one place</p>
+        </div>
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="neon-glow" data-testid="create-store-btn" onClick={() => resetForm()}>
+              <Plus className="h-4 w-4 mr-2" /> Create Webstore
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="font-heading uppercase">Create New Webstore</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateStore} className="space-y-4">
+              {/* Store Type Selection */}
+              <div className="space-y-2">
+                <Label>Store Type *</Label>
+                <div className="grid grid-cols-3 gap-3">
+                  {storeTypes.map(type => {
+                    const Icon = type.icon;
+                    return (
+                      <button
+                        key={type.value}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, store_type: type.value })}
+                        className={`p-4 rounded-lg border-2 transition-all text-left ${
+                          formData.store_type === type.value
+                            ? 'border-primary bg-primary/10'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        <Icon className="h-6 w-6 mb-2" />
+                        <p className="font-medium text-sm">{type.label}</p>
+                        <p className="text-xs text-muted-foreground">{type.description}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Basic Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2 col-span-2">
+                  <Label>Store Name *</Label>
+                  <Input
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g., ABC Company Store"
+                    data-testid="store-name-input"
+                  />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label>Owner/Organization Name *</Label>
+                  <Input
+                    value={formData.owner_name}
+                    onChange={(e) => setFormData({ ...formData, owner_name: e.target.value })}
+                    placeholder="Company or individual name"
+                    data-testid="store-owner-input"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Contact Email</Label>
+                  <Input
+                    type="email"
+                    value={formData.owner_email}
+                    onChange={(e) => setFormData({ ...formData, owner_email: e.target.value })}
+                    placeholder="email@example.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Contact Phone</Label>
+                  <Input
+                    value={formData.owner_phone}
+                    onChange={(e) => setFormData({ ...formData, owner_phone: e.target.value })}
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label>Description</Label>
+                  <Textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Store description..."
+                    rows={2}
+                  />
+                </div>
+              </div>
+
+              {/* Type-specific fields */}
+              {formData.store_type === 'fundraiser' && (
+                <>
+                  <Separator />
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Fundraiser Settings</h4>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Goal Amount</Label>
+                        <Input
+                          type="number"
+                          value={formData.fundraiser_goal}
+                          onChange={(e) => setFormData({ ...formData, fundraiser_goal: parseFloat(e.target.value) || 0 })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Start Date</Label>
+                        <Input
+                          type="date"
+                          value={formData.fundraiser_start_date}
+                          onChange={(e) => setFormData({ ...formData, fundraiser_start_date: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>End Date</Label>
+                        <Input
+                          type="date"
+                          value={formData.fundraiser_end_date}
+                          onChange={(e) => setFormData({ ...formData, fundraiser_end_date: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Fundraiser Profit Share (%)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={formData.fundraiser_profit_percent}
+                        onChange={(e) => setFormData({ ...formData, fundraiser_profit_percent: parseFloat(e.target.value) || 0 })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Percentage of profit that goes to the fundraiser (you keep the rest)
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {formData.store_type === 'creator' && (
+                <>
+                  <Separator />
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Creator Commission Settings</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Commission Type</Label>
+                        <Select
+                          value={formData.creator_commission_type}
+                          onValueChange={(val) => setFormData({ ...formData, creator_commission_type: val })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="percentage">Percentage of Profit</SelectItem>
+                            <SelectItem value="fixed">Fixed Amount per Item</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>
+                          {formData.creator_commission_type === 'percentage' ? 'Commission %' : 'Amount per Item ($)'}
+                        </Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={formData.creator_commission_value}
+                          onChange={(e) => setFormData({ ...formData, creator_commission_value: parseFloat(e.target.value) || 0 })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Visibility */}
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Public Store</Label>
+                  <p className="text-xs text-muted-foreground">Allow anyone to view and order</p>
+                </div>
+                <Switch
+                  checked={formData.is_public}
+                  onCheckedChange={(checked) => setFormData({ ...formData, is_public: checked })}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" data-testid="store-submit-btn">Create Store</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Tabs */}
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <Store className="h-8 w-8 text-primary" />
+              <div>
+                <p className="text-sm text-muted-foreground">Total Stores</p>
+                <p className="text-2xl font-bold">{webstores.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <DollarSign className="h-8 w-8 text-green-400" />
+              <div>
+                <p className="text-sm text-muted-foreground">Total Sales</p>
+                <p className="text-2xl font-bold text-green-400">{formatCurrency(totalSales)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <TrendingUp className="h-8 w-8 text-primary" />
+              <div>
+                <p className="text-sm text-muted-foreground">Total Profit</p>
+                <p className="text-2xl font-bold text-primary">{formatCurrency(totalProfit)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <ShoppingCart className="h-8 w-8 text-yellow-400" />
+              <div>
+                <p className="text-sm text-muted-foreground">Pending Orders</p>
+                <p className="text-2xl font-bold text-yellow-400">{pendingOrders}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="fundraiser" data-testid="tab-fundraiser">
-            <Heart className="h-4 w-4 mr-2" /> Fundraisers
-          </TabsTrigger>
-          <TabsTrigger value="b2b" data-testid="tab-b2b">
-            <Building2 className="h-4 w-4 mr-2" /> B2B Stores
+          <TabsTrigger value="stores" data-testid="tab-stores">
+            <Store className="h-4 w-4 mr-2" /> All Stores ({webstores.length})
           </TabsTrigger>
           <TabsTrigger value="orders" data-testid="tab-orders">
             <ShoppingCart className="h-4 w-4 mr-2" /> Orders ({orders.length})
           </TabsTrigger>
         </TabsList>
 
-        {/* Fundraiser Tab */}
-        <TabsContent value="fundraiser" className="mt-4 space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold font-heading uppercase">Fundraiser Campaigns</h2>
-            <Dialog open={isFundraiserDialogOpen} onOpenChange={setIsFundraiserDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="neon-glow" data-testid="add-fundraiser-btn">
-                  <Plus className="h-4 w-4 mr-2" /> New Campaign
+        {/* Stores Tab */}
+        <TabsContent value="stores" className="mt-4 space-y-4">
+          {/* Type Filter */}
+          <div className="flex gap-2">
+            <Button
+              variant={selectedType === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSelectedType('all')}
+            >
+              All
+            </Button>
+            {storeTypes.map(type => {
+              const Icon = type.icon;
+              const count = webstores.filter(s => s.store_type === type.value).length;
+              return (
+                <Button
+                  key={type.value}
+                  variant={selectedType === type.value ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedType(type.value)}
+                >
+                  <Icon className="h-4 w-4 mr-1" /> {type.label} ({count})
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                  <DialogTitle className="font-heading uppercase">New Fundraiser</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleFundraiserSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Campaign Name *</Label>
-                    <Input
-                      value={fundraiserForm.name}
-                      onChange={(e) => setFundraiserForm({ ...fundraiserForm, name: e.target.value })}
-                      placeholder="e.g., Spring Sports Fundraiser"
-                      data-testid="fundraiser-name-input"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Goal Amount</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={fundraiserForm.goal}
-                        onChange={(e) => setFundraiserForm({ ...fundraiserForm, goal: parseFloat(e.target.value) || 0 })}
-                        data-testid="fundraiser-goal-input"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Organizer *</Label>
-                      <Input
-                        value={fundraiserForm.organizer}
-                        onChange={(e) => setFundraiserForm({ ...fundraiserForm, organizer: e.target.value })}
-                        placeholder="Organization name"
-                        data-testid="fundraiser-organizer-input"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Start Date</Label>
-                      <Input
-                        type="date"
-                        value={fundraiserForm.start_date}
-                        onChange={(e) => setFundraiserForm({ ...fundraiserForm, start_date: e.target.value })}
-                        data-testid="fundraiser-start-input"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>End Date</Label>
-                      <Input
-                        type="date"
-                        value={fundraiserForm.end_date}
-                        onChange={(e) => setFundraiserForm({ ...fundraiserForm, end_date: e.target.value })}
-                        data-testid="fundraiser-end-input"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Payout Rules</Label>
-                    <Textarea
-                      value={fundraiserForm.payout_rules}
-                      onChange={(e) => setFundraiserForm({ ...fundraiserForm, payout_rules: e.target.value })}
-                      placeholder="Describe how proceeds will be distributed"
-                      rows={3}
-                      data-testid="fundraiser-payout-input"
-                    />
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => setIsFundraiserDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button type="submit" data-testid="fundraiser-submit-btn">Create</Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
+              );
+            })}
           </div>
 
           <Card className="bg-card border-border/50">
@@ -244,163 +531,91 @@ export default function Webstores() {
                 <div className="flex items-center justify-center h-32">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                 </div>
-              ) : fundraisers.length === 0 ? (
+              ) : filteredStores.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  <Heart className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No fundraiser campaigns yet</p>
+                  <Store className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No webstores yet</p>
+                  <p className="text-sm mt-1">Create your first webstore to get started</p>
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Campaign</TableHead>
-                      <TableHead>Organizer</TableHead>
-                      <TableHead>Goal</TableHead>
-                      <TableHead>Raised</TableHead>
+                      <TableHead>Store</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Owner</TableHead>
+                      <TableHead className="text-right">Sales</TableHead>
+                      <TableHead className="text-right">Profit</TableHead>
+                      <TableHead className="text-right">Owed</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Dates</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {fundraisers.map((campaign, idx) => (
-                      <TableRow 
-                        key={campaign.id} 
-                        className={idx % 2 === 0 ? '' : 'bg-muted/30'}
-                        data-testid={`fundraiser-row-${campaign.id}`}
-                      >
-                        <TableCell className="font-medium">{campaign.name}</TableCell>
-                        <TableCell>{campaign.organizer}</TableCell>
-                        <TableCell>{formatCurrency(campaign.goal)}</TableCell>
-                        <TableCell className="text-primary font-bold">
-                          {formatCurrency(campaign.total_raised)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(campaign.status)}>
-                            {campaign.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {formatDate(campaign.start_date)} - {formatDate(campaign.end_date)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* B2B Tab */}
-        <TabsContent value="b2b" className="mt-4 space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold font-heading uppercase">B2B Custom Stores</h2>
-            <Dialog open={isB2BDialogOpen} onOpenChange={setIsB2BDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="neon-glow" data-testid="add-b2b-btn">
-                  <Plus className="h-4 w-4 mr-2" /> New B2B Store
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                  <DialogTitle className="font-heading uppercase">New B2B Store</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleB2BSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Company Name *</Label>
-                    <Input
-                      value={b2bForm.company_name}
-                      onChange={(e) => setB2bForm({ ...b2bForm, company_name: e.target.value })}
-                      placeholder="Client's company name"
-                      data-testid="b2b-company-input"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Contact Email *</Label>
-                    <Input
-                      type="email"
-                      value={b2bForm.contact_email}
-                      onChange={(e) => setB2bForm({ ...b2bForm, contact_email: e.target.value })}
-                      placeholder="email@company.com"
-                      data-testid="b2b-email-input"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Login Password *</Label>
-                      <Input
-                        type="password"
-                        value={b2bForm.login_password}
-                        onChange={(e) => setB2bForm({ ...b2bForm, login_password: e.target.value })}
-                        placeholder="Store access password"
-                        data-testid="b2b-password-input"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Discount %</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={b2bForm.discount_percent}
-                        onChange={(e) => setB2bForm({ ...b2bForm, discount_percent: parseFloat(e.target.value) || 0 })}
-                        data-testid="b2b-discount-input"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => setIsB2BDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button type="submit" data-testid="b2b-submit-btn">Create</Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          <Card className="bg-card border-border/50">
-            <CardContent className="p-0">
-              {loading ? (
-                <div className="flex items-center justify-center h-32">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                </div>
-              ) : b2bStores.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No B2B stores yet</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Company</TableHead>
-                      <TableHead>Contact</TableHead>
-                      <TableHead>Discount</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Created</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {b2bStores.map((store, idx) => (
-                      <TableRow 
-                        key={store.id} 
-                        className={idx % 2 === 0 ? '' : 'bg-muted/30'}
-                        data-testid={`b2b-row-${store.id}`}
-                      >
-                        <TableCell className="font-medium">{store.company_name}</TableCell>
-                        <TableCell>{store.contact_email}</TableCell>
-                        <TableCell>{store.discount_percent}%</TableCell>
-                        <TableCell>
-                          <Badge className={store.is_active ? getStatusColor('active') : getStatusColor('inactive')}>
-                            {store.is_active ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {formatDate(store.created_at)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {filteredStores.map((store, idx) => {
+                      const Icon = getStoreTypeIcon(store.store_type);
+                      return (
+                        <TableRow 
+                          key={store.id} 
+                          className={idx % 2 === 0 ? '' : 'bg-muted/30'}
+                          data-testid={`store-row-${store.id}`}
+                        >
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center">
+                                <Icon className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <p className="font-medium">{store.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {store.total_orders || 0} orders
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getStoreTypeColor(store.store_type)}>
+                              {store.store_type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{store.owner_name}</TableCell>
+                          <TableCell className="text-right font-medium">
+                            {formatCurrency(store.total_sales || 0)}
+                          </TableCell>
+                          <TableCell className="text-right text-green-400">
+                            {formatCurrency(store.total_profit || 0)}
+                          </TableCell>
+                          <TableCell className="text-right text-yellow-400">
+                            {formatCurrency(store.payout_owed || 0)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getStatusBadge(store.status)}>
+                              {store.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleViewStore(store)}
+                                data-testid={`view-store-${store.id}`}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteStore(store.id)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               )}
@@ -409,9 +624,7 @@ export default function Webstores() {
         </TabsContent>
 
         {/* Orders Tab */}
-        <TabsContent value="orders" className="mt-4 space-y-4">
-          <h2 className="text-xl font-bold font-heading uppercase">All Orders</h2>
-          
+        <TabsContent value="orders" className="mt-4">
           <Card className="bg-card border-border/50">
             <CardContent className="p-0">
               {orders.length === 0 ? (
@@ -424,38 +637,58 @@ export default function Webstores() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Order #</TableHead>
-                      <TableHead>Type</TableHead>
+                      <TableHead>Store</TableHead>
+                      <TableHead>Customer</TableHead>
                       <TableHead>Items</TableHead>
-                      <TableHead>Total</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="text-right">Profit</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Job</TableHead>
-                      <TableHead>Date</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {orders.map((order, idx) => (
-                      <TableRow 
-                        key={order.id} 
-                        className={idx % 2 === 0 ? '' : 'bg-muted/30'}
-                      >
+                      <TableRow key={order.id} className={idx % 2 === 0 ? '' : 'bg-muted/30'}>
                         <TableCell className="font-mono text-sm">#{order.id.slice(0, 8)}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="capitalize">
-                            {order.store_type}
+                          <Badge className={getStoreTypeColor(order.store_type)}>
+                            {order.webstore_name || order.store_type}
                           </Badge>
                         </TableCell>
-                        <TableCell>{order.items.length} items</TableCell>
-                        <TableCell className="font-bold">{formatCurrency(order.total)}</TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{order.customer_name}</p>
+                            <p className="text-xs text-muted-foreground">{order.customer_email}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>{order.items?.length || 0} items</TableCell>
+                        <TableCell className="text-right font-bold">{formatCurrency(order.total)}</TableCell>
+                        <TableCell className="text-right text-green-400">
+                          {formatCurrency(order.total_profit || 0)}
+                        </TableCell>
                         <TableCell>
                           <Badge className={getStatusColor(order.status)}>
                             {order.status}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {order.job_id ? `#${order.job_id.slice(0, 8)}` : '-'}
+                        <TableCell>
+                          {order.job_id ? (
+                            <Badge variant="outline">#{order.job_id.slice(0, 8)}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {formatDate(order.created_at)}
+                        <TableCell className="text-right">
+                          {!order.job_id && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleCreateJobFromOrder(order.id)}
+                            >
+                              Create Job
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -466,6 +699,177 @@ export default function Webstores() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Store Detail Dialog */}
+      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+          {selectedStore && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {(() => {
+                      const Icon = getStoreTypeIcon(selectedStore.store_type);
+                      return <Icon className="h-6 w-6" />;
+                    })()}
+                    <div>
+                      <DialogTitle className="font-heading uppercase">{selectedStore.name}</DialogTitle>
+                      <p className="text-sm text-muted-foreground">{selectedStore.owner_name}</p>
+                    </div>
+                  </div>
+                  <Badge className={getStoreTypeColor(selectedStore.store_type)}>
+                    {selectedStore.store_type}
+                  </Badge>
+                </div>
+              </DialogHeader>
+
+              <Tabs value={detailTab} onValueChange={setDetailTab}>
+                <TabsList className="grid grid-cols-3 w-full">
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="products">Products</TabsTrigger>
+                  <TabsTrigger value="payouts">Payouts</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="overview" className="space-y-4">
+                  {/* Stats */}
+                  <div className="grid grid-cols-4 gap-3">
+                    <div className="p-3 bg-muted/30 rounded-lg text-center">
+                      <p className="text-xs text-muted-foreground">Total Sales</p>
+                      <p className="text-lg font-bold">{formatCurrency(selectedStore.total_sales || 0)}</p>
+                    </div>
+                    <div className="p-3 bg-muted/30 rounded-lg text-center">
+                      <p className="text-xs text-muted-foreground">Orders</p>
+                      <p className="text-lg font-bold">{selectedStore.total_orders || 0}</p>
+                    </div>
+                    <div className="p-3 bg-green-500/10 rounded-lg text-center">
+                      <p className="text-xs text-muted-foreground">Your Profit</p>
+                      <p className="text-lg font-bold text-green-400">
+                        {formatCurrency((selectedStore.total_profit || 0) - (selectedStore.payout_owed || 0))}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-yellow-500/10 rounded-lg text-center">
+                      <p className="text-xs text-muted-foreground">Payout Owed</p>
+                      <p className="text-lg font-bold text-yellow-400">
+                        {formatCurrency(selectedStore.payout_owed || 0)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Fundraiser Progress */}
+                  {selectedStore.store_type === 'fundraiser' && selectedStore.fundraiser_goal > 0 && (
+                    <div className="p-4 bg-muted/30 rounded-lg">
+                      <div className="flex justify-between mb-2">
+                        <span className="text-sm">Fundraiser Progress</span>
+                        <span className="text-sm font-medium">
+                          {formatCurrency(selectedStore.total_sales || 0)} / {formatCurrency(selectedStore.fundraiser_goal)}
+                        </span>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-3">
+                        <div 
+                          className="bg-primary h-3 rounded-full transition-all"
+                          style={{ 
+                            width: `${Math.min(100, ((selectedStore.total_sales || 0) / selectedStore.fundraiser_goal) * 100)}%` 
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Store Info */}
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Store Details</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Contact Email</p>
+                        <p>{selectedStore.owner_email || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Contact Phone</p>
+                        <p>{selectedStore.owner_phone || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Status</p>
+                        <Badge className={getStatusBadge(selectedStore.status)}>{selectedStore.status}</Badge>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Visibility</p>
+                        <p>{selectedStore.is_public ? 'Public' : 'Private'}</p>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="products" className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Enable products from your catalog for this store
+                  </p>
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                    {products.map(product => {
+                      const assigned = storeProducts.find(sp => sp.product_id === product.id);
+                      const isEnabled = assigned?.is_enabled;
+                      return (
+                        <div 
+                          key={product.id}
+                          className={`flex items-center justify-between p-3 rounded-lg border ${
+                            isEnabled ? 'border-primary/30 bg-primary/5' : 'border-border'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Package className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                              <p className="font-medium">{product.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatCurrency(product.retail_price)} • {product.category}
+                              </p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={isEnabled}
+                            onCheckedChange={() => handleToggleProduct(product.id, isEnabled)}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="payouts" className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium">Outstanding Balance</p>
+                      <p className="text-2xl font-bold text-yellow-400">
+                        {formatCurrency(selectedStore.payout_owed || 0)}
+                      </p>
+                    </div>
+                    <Button disabled={!selectedStore.payout_owed}>
+                      Record Payout
+                    </Button>
+                  </div>
+                  <Separator />
+                  <div>
+                    <h4 className="font-medium mb-2">Payout History</h4>
+                    {storePayouts.length === 0 ? (
+                      <p className="text-muted-foreground text-sm">No payouts recorded</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {storePayouts.map(payout => (
+                          <div key={payout.id} className="flex justify-between p-3 bg-muted/30 rounded-lg">
+                            <div>
+                              <p className="font-medium">{formatCurrency(payout.amount)}</p>
+                              <p className="text-xs text-muted-foreground">{payout.notes || 'No notes'}</p>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{formatDate(payout.created_at)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
