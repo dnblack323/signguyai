@@ -356,7 +356,7 @@ export const AppProvider = ({ children }) => {
     return res.data;
   };
 
-  // Webstores
+  // Webstores (Legacy - keeping for compatibility)
   const createFundraiser = async (data) => {
     const res = await axios.post(`${API}/webstores/fundraiser`, data);
     return res.data;
@@ -384,6 +384,119 @@ export const AppProvider = ({ children }) => {
 
   const getWebstoreOrders = async (params = {}) => {
     const res = await axios.get(`${API}/webstores/orders`, { params });
+    return res.data;
+  };
+
+  // ============== NEW WEBSTORE SYSTEM ==============
+  
+  // Products (Master Catalog)
+  const createProduct = async (data) => {
+    const res = await axios.post(`${API}/products`, data);
+    return res.data;
+  };
+
+  const getProducts = async (params = {}) => {
+    const res = await axios.get(`${API}/products`, { params });
+    return res.data;
+  };
+
+  const getProduct = async (productId) => {
+    const res = await axios.get(`${API}/products/${productId}`);
+    return res.data;
+  };
+
+  const updateProduct = async (productId, data) => {
+    const res = await axios.put(`${API}/products/${productId}`, data);
+    return res.data;
+  };
+
+  const deleteProduct = async (productId) => {
+    const res = await axios.delete(`${API}/products/${productId}`);
+    return res.data;
+  };
+
+  // Webstores V2
+  const createWebstore = async (data) => {
+    const res = await axios.post(`${API}/webstores/v2`, data);
+    return res.data;
+  };
+
+  const getWebstores = async (params = {}) => {
+    const res = await axios.get(`${API}/webstores/v2`, { params });
+    return res.data;
+  };
+
+  const getWebstore = async (webstoreId) => {
+    const res = await axios.get(`${API}/webstores/v2/${webstoreId}`);
+    return res.data;
+  };
+
+  const updateWebstore = async (webstoreId, data) => {
+    const res = await axios.put(`${API}/webstores/v2/${webstoreId}`, data);
+    return res.data;
+  };
+
+  const deleteWebstore = async (webstoreId) => {
+    const res = await axios.delete(`${API}/webstores/v2/${webstoreId}`);
+    return res.data;
+  };
+
+  // Webstore Products
+  const assignProductToWebstore = async (webstoreId, data) => {
+    const res = await axios.post(`${API}/webstores/v2/${webstoreId}/products`, data);
+    return res.data;
+  };
+
+  const getWebstoreProducts = async (webstoreId, includeDisabled = false) => {
+    const res = await axios.get(`${API}/webstores/v2/${webstoreId}/products`, { 
+      params: { include_disabled: includeDisabled } 
+    });
+    return res.data;
+  };
+
+  const removeProductFromWebstore = async (webstoreId, productId) => {
+    const res = await axios.delete(`${API}/webstores/v2/${webstoreId}/products/${productId}`);
+    return res.data;
+  };
+
+  // Webstore Orders V2
+  const createWebstoreOrderV2 = async (data) => {
+    const res = await axios.post(`${API}/webstores/v2/orders`, data);
+    return res.data;
+  };
+
+  const getWebstoreOrdersV2 = async (params = {}) => {
+    const res = await axios.get(`${API}/webstores/v2/orders`, { params });
+    return res.data;
+  };
+
+  const getWebstoreOrderV2 = async (orderId) => {
+    const res = await axios.get(`${API}/webstores/v2/orders/${orderId}`);
+    return res.data;
+  };
+
+  const updateOrderStatus = async (orderId, status, jobId = null) => {
+    const res = await axios.put(`${API}/webstores/v2/orders/${orderId}/status`, null, {
+      params: { status, job_id: jobId }
+    });
+    return res.data;
+  };
+
+  const createJobFromOrder = async (orderId) => {
+    const res = await axios.post(`${API}/webstores/v2/orders/${orderId}/create-job`);
+    return res.data;
+  };
+
+  // Payouts
+  const recordPayout = async (webstoreId, amount, notes = null) => {
+    const res = await axios.post(`${API}/webstores/v2/${webstoreId}/record-payout`, null, {
+      params: { amount, notes }
+    });
+    return res.data;
+  };
+
+  const getWebstorePayouts = async (webstoreId) => {
+    const res = await axios.get(`${API}/webstores/v2/${webstoreId}/payouts`);
     return res.data;
   };
 
@@ -418,8 +531,18 @@ export const AppProvider = ({ children }) => {
     createPayrollTransaction, getPayrollTransactions, getPayrollBalance, getPayrollReport,
     // Financials
     createSalesEntry, getSalesEntries, createExpenseEntry, getExpenseEntries, getFinancialSummary,
-    // Webstores
-    createFundraiser, getFundraisers, createB2BStore, getB2BStores, createWebstoreOrder, getWebstoreOrders
+    // Webstores (Legacy)
+    createFundraiser, getFundraisers, createB2BStore, getB2BStores, createWebstoreOrder, getWebstoreOrders,
+    // Products (Master Catalog)
+    createProduct, getProducts, getProduct, updateProduct, deleteProduct,
+    // Webstores V2
+    createWebstore, getWebstores, getWebstore, updateWebstore, deleteWebstore,
+    // Webstore Products
+    assignProductToWebstore, getWebstoreProducts, removeProductFromWebstore,
+    // Webstore Orders V2
+    createWebstoreOrderV2, getWebstoreOrdersV2, getWebstoreOrderV2, updateOrderStatus, createJobFromOrder,
+    // Payouts
+    recordPayout, getWebstorePayouts
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
