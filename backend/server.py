@@ -1829,6 +1829,464 @@ async def get_webstore_orders(
     orders = await db.webstore_orders.find(query, {"_id": 0}).to_list(1000)
     return orders
 
+# ============== NEW WEBSTORE SYSTEM APIs ==============
+
+# -------------- MASTER PRODUCT CATALOG --------------
+
+@api_router.post("/products", response_model=Product)
+async def create_product(input: ProductCreate):
+    variants = []
+    if input.has_variants and input.variants:
+        for v in input.variants:
+            variant = ProductVariant(
+                name=v.get("name", ""),
+                size=v.get("size"),
+                color=v.get("color"),
+                sku=v.get("sku"),
+                additional_cost=v.get("additional_cost", 0),
+                is_available=v.get("is_available", True)
+            )
+            variants.append(variant.model_dump())
+    
+    product = Product(
+        name=input.name,
+        description=input.description,
+        category=input.category,
+        base_cost=input.base_cost,
+        retail_price=input.retail_price,
+        image_url=input.image_url,
+        has_variants=input.has_variants,
+        variants=variants
+    )
+    doc = product.model_dump()
+    await db.products.insert_one(doc)
+    return product
+
+@api_router.get("/products", response_model=List[Product])
+async def get_products(
+    category: Optional[str] = None,
+    is_active: Optional[bool] = None
+):
+    query = {}
+    if category:
+        query["category"] = category
+    if is_active is not None:
+        query["is_active"] = is_active
+    products = await db.products.find(query, {"_id": 0}).to_list(500)
+    return products
+
+@api_router.get("/products/{product_id}", response_model=Product)
+async def get_product(product_id: str):
+    product = await db.products.find_one({"id": product_id}, {"_id": 0})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return product
+
+@api_router.put("/products/{product_id}", response_model=Product)
+async def update_product(product_id: str, input: ProductUpdate):
+    update_data = {k: v for k, v in input.model_dump().items() if v is not None}
+    if "variants" in update_data and update_data["variants"]:
+        variants = []
+        for v in update_data["variants"]:
+            if "id" not in v:
+                v["id"] = str(uuid.uuid4())
+            variants.append(v)
+        update_data["variants"] = variants
+    
+    if update_data:
+        await db.products.update_one({"id": product_id}, {"$set": update_data})
+    product = await db.products.find_one({"id": product_id}, {"_id": 0})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return product
+
+@api_router.delete("/products/{product_id}")
+async def delete_product(product_id: str):
+    result = await db.products.delete_one({"id": product_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Product not found")
+    # Also remove from all webstore assignments
+    await db.webstore_products.delete_many({"product_id": product_id})
+    return {"message": "Product deleted"}
+
+# -------------- WEBSTORES (NEW SYSTEM) --------------
+
+@api_router.post("/webstores/v2", response_model=Webstore)
+async def create_webstore(input: WebstoreCreate):
+    branding = WebstoreBranding(**(input.branding or {}))
+    webstore = Webstore(
+        name=input.name,
+        store_type=input.store_type,
+        owner_name=input.owner_name,
+        owner_email=input.owner_email,
+        owner_phone=input.owner_phone,
+        description=input.description,
+        is_public=input.is_public,
+        branding=branding,
+        fundraiser_goal=input.fundraiser_goal,
+        fundraiser_start_date=input.fundraiser_start_date,
+        fundraiser_end_date=input.fundraiser_end_date,
+        fundraiser_profit_percent=input.fundraiser_profit_percent,
+        creator_commission_type=input.creator_commission_type,
+        creator_commission_value=input.creator_commission_value
+    )
+    doc = webstore.model_dump()
+    await db.webstores_v2.insert_one(doc)
+    return webstore
+
+@api_router.get("/webstores/v2", response_model=List[Webstore])
+async def get_webstores(
+    store_type: Optional[str] = None,
+    status: Optional[str] = None,
+    is_public: Optional[bool] = None
+):
+    query = {}
+    if store_type:
+        query["store_type"] = store_type
+    if status:
+        query["status"] = status
+    if is_public is not None:
+        query["is_public"] = is_public
+    webstores = await db.webstores_v2.find(query, {"_id": 0}).to_list(500)
+    return webstores
+
+@api_router.get("/webstores/v2/{webstore_id}", response_model=Webstore)
+async def get_webstore(webstore_id: str):
+    webstore = await db.webstores_v2.find_one({"id": webstore_id}, {"_id": 0})
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+    return webstore
+
+@api_router.put("/webstores/v2/{webstore_id}", response_model=Webstore)
+async def update_webstore(webstore_id: str, input: WebstoreUpdate):
+    update_data = {k: v for k, v in input.model_dump().items() if v is not None}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    if update_data:
+        await db.webstores_v2.update_one({"id": webstore_id}, {"$set": update_data})
+    webstore = await db.webstores_v2.find_one({"id": webstore_id}, {"_id": 0})
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+    return webstore
+
+@api_router.delete("/webstores/v2/{webstore_id}")
+async def delete_webstore(webstore_id: str):
+    result = await db.webstores_v2.delete_one({"id": webstore_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+    # Also remove product assignments
+    await db.webstore_products.delete_many({"webstore_id": webstore_id})
+    return {"message": "Webstore deleted"}
+
+# -------------- WEBSTORE PRODUCT ASSIGNMENTS --------------
+
+@api_router.post("/webstores/v2/{webstore_id}/products")
+async def assign_product_to_webstore(webstore_id: str, input: WebstoreProductCreate):
+    # Verify webstore exists
+    webstore = await db.webstores_v2.find_one({"id": webstore_id})
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+    
+    # Verify product exists
+    product = await db.products.find_one({"id": input.product_id})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Check if already assigned
+    existing = await db.webstore_products.find_one({
+        "webstore_id": webstore_id,
+        "product_id": input.product_id
+    })
+    if existing:
+        # Update existing assignment
+        await db.webstore_products.update_one(
+            {"id": existing["id"]},
+            {"$set": {"is_enabled": input.is_enabled, "price_override": input.price_override}}
+        )
+        updated = await db.webstore_products.find_one({"id": existing["id"]}, {"_id": 0})
+        return updated
+    
+    # Create new assignment
+    assignment = WebstoreProduct(
+        webstore_id=webstore_id,
+        product_id=input.product_id,
+        is_enabled=input.is_enabled,
+        price_override=input.price_override
+    )
+    doc = assignment.model_dump()
+    await db.webstore_products.insert_one(doc)
+    return assignment
+
+@api_router.get("/webstores/v2/{webstore_id}/products")
+async def get_webstore_products(webstore_id: str, include_disabled: bool = False):
+    query = {"webstore_id": webstore_id}
+    if not include_disabled:
+        query["is_enabled"] = True
+    
+    assignments = await db.webstore_products.find(query, {"_id": 0}).to_list(500)
+    
+    # Enrich with product details
+    result = []
+    for a in assignments:
+        product = await db.products.find_one({"id": a["product_id"]}, {"_id": 0})
+        if product:
+            result.append({
+                **a,
+                "product": product,
+                "effective_price": a.get("price_override") or product.get("retail_price", 0)
+            })
+    return result
+
+@api_router.delete("/webstores/v2/{webstore_id}/products/{product_id}")
+async def remove_product_from_webstore(webstore_id: str, product_id: str):
+    result = await db.webstore_products.delete_one({
+        "webstore_id": webstore_id,
+        "product_id": product_id
+    })
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Product assignment not found")
+    return {"message": "Product removed from webstore"}
+
+# -------------- WEBSTORE ORDERS V2 --------------
+
+@api_router.post("/webstores/v2/orders", response_model=WebstoreOrderV2)
+async def create_webstore_order_v2(input: WebstoreOrderV2Create):
+    # Get webstore
+    webstore = await db.webstores_v2.find_one({"id": input.webstore_id}, {"_id": 0})
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+    
+    # Process items and calculate totals
+    order_items = []
+    subtotal = 0
+    total_cost = 0
+    total_profit = 0
+    
+    for item in input.items:
+        product = await db.products.find_one({"id": item["product_id"]}, {"_id": 0})
+        if not product:
+            continue
+        
+        # Check for price override
+        assignment = await db.webstore_products.find_one({
+            "webstore_id": input.webstore_id,
+            "product_id": item["product_id"]
+        }, {"_id": 0})
+        
+        unit_price = (assignment.get("price_override") if assignment and assignment.get("price_override") 
+                      else product["retail_price"])
+        base_cost = product["base_cost"]
+        
+        # Handle variant additional cost
+        variant_name = None
+        if item.get("variant_id") and product.get("variants"):
+            for v in product["variants"]:
+                if v["id"] == item["variant_id"]:
+                    variant_name = v.get("name")
+                    base_cost += v.get("additional_cost", 0)
+                    break
+        
+        quantity = item.get("quantity", 1)
+        item_total = unit_price * quantity
+        item_cost = base_cost * quantity
+        item_profit = item_total - item_cost
+        
+        order_items.append(WebstoreOrderItem(
+            product_id=item["product_id"],
+            product_name=product["name"],
+            variant_id=item.get("variant_id"),
+            variant_name=variant_name,
+            quantity=quantity,
+            unit_price=unit_price,
+            base_cost=base_cost,
+            total=item_total,
+            profit=item_profit
+        ).model_dump())
+        
+        subtotal += item_total
+        total_cost += item_cost
+        total_profit += item_profit
+    
+    # Calculate payout based on store type
+    payout_amount = 0
+    shop_profit = total_profit
+    
+    if webstore["store_type"] == "fundraiser":
+        payout_percent = webstore.get("fundraiser_profit_percent", 0) / 100
+        payout_amount = total_profit * payout_percent
+        shop_profit = total_profit - payout_amount
+    elif webstore["store_type"] == "creator":
+        if webstore.get("creator_commission_type") == "percentage":
+            commission_percent = webstore.get("creator_commission_value", 0) / 100
+            payout_amount = total_profit * commission_percent
+        else:  # fixed
+            payout_amount = webstore.get("creator_commission_value", 0) * len(order_items)
+        shop_profit = total_profit - payout_amount
+    
+    total = subtotal + input.tax + input.shipping
+    
+    # Create order
+    order = WebstoreOrderV2(
+        webstore_id=input.webstore_id,
+        webstore_name=webstore["name"],
+        store_type=webstore["store_type"],
+        customer_name=input.customer_name,
+        customer_email=input.customer_email,
+        customer_phone=input.customer_phone,
+        shipping_address=input.shipping_address,
+        items=order_items,
+        subtotal=subtotal,
+        tax=input.tax,
+        shipping=input.shipping,
+        total=total,
+        total_cost=total_cost,
+        total_profit=total_profit,
+        shop_profit=shop_profit,
+        payout_amount=payout_amount,
+        notes=input.notes
+    )
+    
+    doc = order.model_dump()
+    await db.webstore_orders_v2.insert_one(doc)
+    
+    # Update webstore totals
+    await db.webstores_v2.update_one(
+        {"id": input.webstore_id},
+        {
+            "$inc": {
+                "total_sales": total,
+                "total_orders": 1,
+                "total_profit": total_profit,
+                "payout_owed": payout_amount
+            }
+        }
+    )
+    
+    return order
+
+@api_router.get("/webstores/v2/orders", response_model=List[WebstoreOrderV2])
+async def get_webstore_orders_v2(
+    webstore_id: Optional[str] = None,
+    store_type: Optional[str] = None,
+    status: Optional[str] = None
+):
+    query = {}
+    if webstore_id:
+        query["webstore_id"] = webstore_id
+    if store_type:
+        query["store_type"] = store_type
+    if status:
+        query["status"] = status
+    orders = await db.webstore_orders_v2.find(query, {"_id": 0}).to_list(1000)
+    return orders
+
+@api_router.get("/webstores/v2/orders/{order_id}", response_model=WebstoreOrderV2)
+async def get_webstore_order_v2(order_id: str):
+    order = await db.webstore_orders_v2.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
+
+@api_router.put("/webstores/v2/orders/{order_id}/status")
+async def update_order_status(order_id: str, status: str, job_id: Optional[str] = None):
+    update_data = {"status": status}
+    if job_id:
+        update_data["job_id"] = job_id
+    
+    result = await db.webstore_orders_v2.update_one({"id": order_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    order = await db.webstore_orders_v2.find_one({"id": order_id}, {"_id": 0})
+    return order
+
+@api_router.post("/webstores/v2/orders/{order_id}/create-job")
+async def create_job_from_order(order_id: str):
+    order = await db.webstore_orders_v2.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    if order.get("job_id"):
+        raise HTTPException(status_code=400, detail="Job already created for this order")
+    
+    # Create job
+    job = Job(
+        name=f"Webstore Order #{order_id[:8]}",
+        description=f"Order from {order['webstore_name']} - {order['customer_name']}",
+        status="approved",
+        customer_id=None,  # Webstore orders may not have existing customer
+        subtotal=order["total"]
+    )
+    job_doc = job.model_dump()
+    await db.jobs.insert_one(job_doc)
+    
+    # Create job items from order items
+    for item in order["items"]:
+        job_item = JobItem(
+            job_id=job.id,
+            item_type="webstore_product",
+            description=f"{item['product_name']}" + (f" - {item['variant_name']}" if item.get('variant_name') else ""),
+            quantity=item["quantity"],
+            unit_price=item["unit_price"],
+            total=item["total"],
+            status="pending"
+        )
+        await db.job_items.insert_one(job_item.model_dump())
+    
+    # Update order with job_id
+    await db.webstore_orders_v2.update_one(
+        {"id": order_id},
+        {"$set": {"job_id": job.id, "status": "processing"}}
+    )
+    
+    # Log activity
+    activity = JobActivity(
+        job_id=job.id,
+        type=JobActivityType.CREATED,
+        description=f"Job created from webstore order #{order_id[:8]}"
+    )
+    await db.job_activities.insert_one(activity.model_dump())
+    
+    return {"job_id": job.id, "message": "Job created successfully"}
+
+# -------------- WEBSTORE PAYOUTS --------------
+
+@api_router.post("/webstores/v2/{webstore_id}/record-payout")
+async def record_payout(webstore_id: str, amount: float, notes: Optional[str] = None):
+    webstore = await db.webstores_v2.find_one({"id": webstore_id}, {"_id": 0})
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+    
+    if amount > webstore.get("payout_owed", 0):
+        raise HTTPException(status_code=400, detail="Payout amount exceeds owed amount")
+    
+    await db.webstores_v2.update_one(
+        {"id": webstore_id},
+        {
+            "$inc": {
+                "payout_owed": -amount,
+                "payout_paid": amount
+            }
+        }
+    )
+    
+    # Record payout transaction
+    payout_record = {
+        "id": str(uuid.uuid4()),
+        "webstore_id": webstore_id,
+        "amount": amount,
+        "notes": notes,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.webstore_payouts.insert_one(payout_record)
+    
+    return {"message": "Payout recorded", "payout": payout_record}
+
+@api_router.get("/webstores/v2/{webstore_id}/payouts")
+async def get_webstore_payouts(webstore_id: str):
+    payouts = await db.webstore_payouts.find({"webstore_id": webstore_id}, {"_id": 0}).to_list(500)
+    return payouts
+
 # -------------- DASHBOARD STATS --------------
 @api_router.get("/dashboard/stats")
 async def get_dashboard_stats():
