@@ -39,6 +39,7 @@ function App() {
               <Route path="/financials" element={<Financials />} />
               <Route path="/ai-tools" element={<AITools />} />
               <Route path="/webstores" element={<Webstores />} />
+              <Route path="/products" element={<Products />} />
             </Routes>
           </MainLayout>
           <Toaster position="top-right" richColors />
