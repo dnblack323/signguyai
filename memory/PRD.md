@@ -56,6 +56,15 @@ Build a web-based sign-shop operating system called "Sign Guy AI" - a single dai
 - [x] AI Tools Suite (6 GPT-5.2 powered tools)
 - [x] Webstores (Fundraiser campaigns, B2B custom stores)
 
+### Recent Updates (February 2, 2026)
+- [x] **Webstore System v2 - Phase 1 Complete**
+  - New data models: Webstore, Product, ProductVariant, WebstoreProduct, WebstoreOrderV2
+  - **Master Product Catalog** - Products with variants (size/color), base cost, retail price, profit calculation
+  - **Webstore Manager** - Create/list/manage Business, Fundraiser, Creator stores
+  - **Product Assignment** - Enable/disable products per store with price overrides
+  - **Order System** - Orders link to webstore + sign shop, profit/payout calculation
+  - Backend APIs for all CRUD operations, product assignment, orders, payouts
+
 ### Recent Updates (January 31, 2026)
 - [x] **Dark/Light Mode Toggle** - Full theme switching capability
   - Toggle button in sidebar (bottom, above Collapse)
