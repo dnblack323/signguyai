@@ -4,7 +4,7 @@ import { cn } from '../lib/utils';
 import {
   LayoutDashboard, Users, FileText, Briefcase, Receipt, 
   Clock, DollarSign, CalendarDays, Sparkles, Store,
-  ChevronLeft, ChevronRight, Menu
+  ChevronLeft, ChevronRight, Menu, Package
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
@@ -23,9 +23,11 @@ const navigation = [
   { name: 'Payroll', href: '/payroll', icon: DollarSign },
   { name: 'Productivity', href: '/productivity', icon: CalendarDays },
   { name: 'Financials', href: '/financials', icon: DollarSign },
+  { type: 'separator', label: 'Webstores' },
+  { name: 'Webstores', href: '/webstores', icon: Store },
+  { name: 'Products', href: '/products', icon: Package },
   { type: 'separator', label: 'Tools' },
   { name: 'AI Tools', href: '/ai-tools', icon: Sparkles },
-  { name: 'Webstores', href: '/webstores', icon: Store },
 ];
 
 export const Sidebar = ({ collapsed, onToggle }) => {
