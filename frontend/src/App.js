@@ -41,6 +41,7 @@ function App() {
               <Route path="/ai-tools" element={<AITools />} />
               <Route path="/webstores" element={<Webstores />} />
               <Route path="/products" element={<Products />} />
+              <Route path="/store/:storeId" element={<Storefront />} />
             </Routes>
           </MainLayout>
           <Toaster position="top-right" richColors />
