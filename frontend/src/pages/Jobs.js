@@ -1156,6 +1156,64 @@ export function JobDetails() {
         }}
       />
 
+      {/* Schedule Task Dialog */}
+      <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="font-heading uppercase flex items-center gap-2">
+              <CalendarPlus className="h-5 w-5" />
+              Schedule Task
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground -mt-2">
+            Add this job to your calendar/to-do list
+          </p>
+          <form onSubmit={handleScheduleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Task Title *</Label>
+              <Input
+                value={scheduleFormData.title}
+                onChange={(e) => setScheduleFormData({ ...scheduleFormData, title: e.target.value })}
+                placeholder="e.g., Work on banner design"
+                data-testid="schedule-title-input"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Due Date</Label>
+              <Input
+                type="date"
+                value={scheduleFormData.due_date}
+                onChange={(e) => setScheduleFormData({ ...scheduleFormData, due_date: e.target.value })}
+                data-testid="schedule-date-input"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={scheduleFormData.description}
+                onChange={(e) => setScheduleFormData({ ...scheduleFormData, description: e.target.value })}
+                placeholder="Task details..."
+                rows={3}
+                data-testid="schedule-description-input"
+              />
+            </div>
+            <div className="p-3 bg-muted/30 rounded-lg text-sm">
+              <p className="text-muted-foreground">
+                This task will be linked to: <span className="font-medium text-foreground">{job?.name}</span>
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setIsScheduleDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" data-testid="schedule-submit-btn">
+                <CalendarPlus className="h-4 w-4 mr-2" /> Add to Calendar
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Edit Job Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
