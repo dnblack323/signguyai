@@ -240,6 +240,46 @@ export default function Webstores() {
     }
   };
 
+  const handleUpdateBranding = async (field, value) => {
+    if (!selectedStore) return;
+    try {
+      const updatedBranding = {
+        ...selectedStore.branding,
+        [field]: value
+      };
+      await updateWebstore(selectedStore.id, { branding: updatedBranding });
+      setSelectedStore({ ...selectedStore, branding: updatedBranding });
+      toast.success('Branding updated');
+      await loadData();
+    } catch (err) {
+      toast.error('Failed to update branding');
+    }
+  };
+
+  const handleUpdateStatus = async (newStatus) => {
+    if (!selectedStore) return;
+    try {
+      await updateWebstore(selectedStore.id, { status: newStatus });
+      setSelectedStore({ ...selectedStore, status: newStatus });
+      toast.success(`Store ${newStatus === 'active' ? 'activated' : 'disabled'}`);
+      await loadData();
+    } catch (err) {
+      toast.error('Failed to update status');
+    }
+  };
+
+  const handleUpdatePublic = async (isPublic) => {
+    if (!selectedStore) return;
+    try {
+      await updateWebstore(selectedStore.id, { is_public: isPublic });
+      setSelectedStore({ ...selectedStore, is_public: isPublic });
+      toast.success(`Store is now ${isPublic ? 'public' : 'private'}`);
+      await loadData();
+    } catch (err) {
+      toast.error('Failed to update visibility');
+    }
+  };
+
   const filteredStores = selectedType === 'all' 
     ? webstores 
     : webstores.filter(s => s.store_type === selectedType);
