@@ -330,8 +330,9 @@ export default function Customers() {
                 {filteredCustomers.map((customer, idx) => (
                   <TableRow 
                     key={customer.id} 
-                    className={idx % 2 === 0 ? 'bg-transparent' : 'bg-muted/30'}
+                    className={`cursor-pointer transition-colors ${idx % 2 === 0 ? 'bg-transparent' : 'bg-muted/30'} hover:bg-muted/50`}
                     data-testid={`customer-row-${customer.id}`}
+                    onClick={() => handleViewCustomer(customer)}
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -373,7 +374,7 @@ export default function Customers() {
                       {formatDate(customer.created_at)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                         <Button
                           variant="ghost"
                           size="icon"
