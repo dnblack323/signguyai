@@ -1629,55 +1629,603 @@ async def generate_ai_content(request: AIRequest):
     
     # Build prompt based on tool type
     tool_prompts = {
-        "layout_generator": """You are a sign design layout expert. Create multiple layout concepts based on the input.
+        # Design Tools
+        "photo_enhancer": """You are a photo enhancement specialist for sign shops.
 Input: {input}
-Provide:
-1. 3 different layout concepts with text hierarchy, spacing guidance, and design rationale
-2. Color recommendations based on provided colors
-3. Font pairing suggestions
-4. Key design principles for this type of sign""",
-        
-        "print_checklist": """You are a print production expert. Review this design for print-readiness.
+
+Analyze the image and provide:
+1. **Quality Assessment**: Current resolution, noise level, lighting issues
+2. **Enhancement Recommendations**:
+   - Brightness/contrast adjustments needed
+   - Noise reduction suggestions
+   - Sharpening requirements
+   - Color correction needs
+3. **Print Readiness**:
+   - Minimum recommended print size at 150 DPI
+   - Maximum recommended print size at 300 DPI
+   - Warning if resolution is too low for large-format
+4. **Two Enhancement Profiles**:
+   - Standard Enhanced: For digital/web use
+   - Print Optimized: Higher contrast, sharpened for vinyl/banner printing
+5. **Processing Notes**: Any artifacts or details that cannot be improved
+
+Note: Provide realistic expectations - do not claim to add details not present in the original.""",
+
+        "image_vectorizer": """You are a vector graphics specialist for sign production.
 Input: {input}
-Check and report on:
-1. Bleed margins (recommended 0.125" or 3mm)
-2. Color contrast and accessibility
-3. Text sizing and hierarchy
-4. Image resolution requirements
-5. File format recommendations
-Provide a checklist with pass/fail status for each item.""",
-        
-        "brand_kit": """You are a branding expert. Create a brand kit based on this input.
+
+Provide vectorization guidance:
+1. **Image Analysis**:
+   - Complexity assessment (simple/moderate/complex)
+   - Number of distinct colors/shapes
+   - Edge quality evaluation
+2. **Vectorization Strategy** based on complexity level:
+   - Path simplification recommendations
+   - Anchor point optimization
+   - Curve smoothing suggestions
+3. **Output Specifications**:
+   - Recommended SVG settings
+   - EPS compatibility notes
+   - Color mode (CMYK for print, RGB for digital)
+4. **Potential Issues**:
+   - Areas that may not vectorize cleanly
+   - Gradients or effects that need attention
+   - Transparency handling
+5. **File Preparation Checklist**:
+   - Pre-processing steps needed
+   - Post-vectorization cleanup tips""",
+
+        "font_identifier": """You are a typography expert for sign shops.
 Input: {input}
-Generate:
-1. Color palette (primary, secondary, accent colors with hex codes)
-2. Font pairings (heading and body fonts)
-3. 5 tagline options
-4. Brand voice guidelines
-5. Logo usage recommendations""",
-        
-        "document_creator": """You are a business document specialist for sign shops.
+
+Based on the description, provide:
+1. **Top 3 Font Matches** with confidence percentages:
+   - Font name, foundry, style
+   - Confidence level (high/medium/low)
+   - Key identifying characteristics
+2. **Alternative Fonts** (similar and free options):
+   - Google Fonts alternatives
+   - Open source alternatives
+   - Premium alternatives
+3. **Font Classification**:
+   - Category (serif, sans-serif, display, script, etc.)
+   - Weight and style
+   - Era/style period
+4. **Usage Recommendations**:
+   - Best applications for this font style
+   - Pairing suggestions
+   - Size recommendations for signage
+5. **Licensing Notes**:
+   - If font appears custom/proprietary, note this
+   - Flag any potential trademark concerns
+
+Note: If the font appears hand-drawn or custom, clearly indicate this is an approximation.""",
+
+        "ai_sign_designer": """You are an expert sign designer for professional sign shops.
 Input: {input}
-Create a professional {document_type} document including all relevant sections.""",
-        
-        "overdue_assistant": """You are a collections specialist for sign shops. Analyze this overdue invoice.
+
+Create comprehensive sign design concepts:
+
+1. **Design Analysis**:
+   - Optimal viewing distance calculation
+   - Recommended letter heights for readability
+   - Color contrast evaluation (WCAG guidelines for signage)
+
+2. **Layout Concepts** (provide 3-4 variations):
+   For each concept include:
+   - Text hierarchy (primary, secondary, tertiary)
+   - Element positioning and spacing
+   - Visual weight distribution
+   - Design rationale
+
+3. **Typography Recommendations**:
+   - Primary font suggestions (with alternatives)
+   - Secondary font pairings
+   - Size ratios between elements
+
+4. **Color Specifications**:
+   - Exact color values (HEX, RGB, CMYK, Pantone)
+   - Day and night visibility considerations
+   - Material-specific color adjustments
+
+5. **Technical Notes**:
+   - Recommended materials
+   - Installation considerations
+   - Illumination suggestions if applicable
+
+6. **Compliance Reminders**:
+   - ADA considerations if applicable
+   - Local signage code factors to verify
+
+Prioritize readability over decoration. Warn if too much text is provided.""",
+
+        "ai_banner_designer": """You are a banner design specialist for promotions and events.
 Input: {input}
-Provide:
-1. A professional reminder message (email format)
-2. Suggested follow-up actions
-3. Timeline recommendations""",
-        
-        "design_intake": """You are a design intake specialist for sign shops. Based on this conversation:
+
+Create optimized banner designs:
+
+1. **Layout Recommendations** (2-3 variations):
+   For each layout:
+   - Headline placement and sizing
+   - Supporting text hierarchy
+   - Call-to-action positioning
+   - Image/graphic zones
+
+2. **Typography Specifications**:
+   - Minimum font sizes for viewing distance:
+     * 2x4ft: 2" minimum for body, 4"+ for headlines
+     * 3x6ft: 3" minimum for body, 6"+ for headlines
+     * 4x8ft: 4" minimum for body, 8"+ for headlines
+   - Recommended fonts for impact
+   - Letter spacing adjustments
+
+3. **Color Strategy**:
+   - High-contrast color combinations
+   - Background recommendations
+   - Event-appropriate color psychology
+
+4. **Print Specifications**:
+   - Bleed requirements (typically 0.5")
+   - Safe area margins
+   - Resolution requirements (100-150 DPI for large format)
+
+5. **Content Optimization**:
+   - Message prioritization
+   - What to include vs. omit
+   - Readability at distance check
+
+Warn if message will be unreadable at typical viewing distance.""",
+
+        "mockup_creator": """You are a mockup specialist for sign shop presentations.
 Input: {input}
-Extract and structure:
-1. Product type
-2. Dimensions
-3. Text content
-4. Color preferences
-5. Logo requirements
-6. Special requests
-7. Deadline
-Format as a structured job ticket."""
+
+Provide mockup creation guidance:
+
+1. **Scene Selection**:
+   - Recommended mockup environment
+   - Angle and perspective suggestions
+   - Lighting conditions (day/night/both)
+
+2. **Artwork Placement Guide**:
+   - Scale calculations for realistic sizing
+   - Perspective transformation notes
+   - Shadow and reflection requirements
+
+3. **Multiple View Recommendations**:
+   - Primary view (most impactful angle)
+   - Secondary views (different perspectives)
+   - Detail views if applicable
+
+4. **Realism Checklist**:
+   - Lighting direction consistency
+   - Shadow softness and direction
+   - Environmental reflections
+   - Material texture simulation
+
+5. **Presentation Tips**:
+   - Before/after comparison layout
+   - Context elements to include
+   - Customer approval workflow
+
+6. **Technical Specifications**:
+   - Output resolution for presentations
+   - File format recommendations
+   - Color profile considerations
+
+Label all mockups clearly as previews, not final product representations.""",
+
+        # Branding Tools
+        "logo_creator": """You are a logo design consultant for sign shops and their clients.
+Input: {input}
+
+Generate comprehensive logo concepts:
+
+1. **Creative Directions** (provide 4-5 distinct concepts):
+   For each concept:
+   - Concept name and description
+   - Design approach (wordmark, symbol, combination, etc.)
+   - Key visual elements
+   - Design rationale linking to brand values
+
+2. **Typography Suggestions**:
+   - Font recommendations for each concept
+   - Custom lettering considerations
+   - Legibility at various sizes
+
+3. **Color Palette Options**:
+   - Primary color recommendations (with HEX codes)
+   - Secondary and accent colors
+   - Color psychology alignment with brand
+
+4. **Scalability Notes**:
+   - Minimum size recommendations
+   - Variations needed (horizontal, stacked, icon only)
+   - One-color version considerations
+
+5. **Industry Appropriateness**:
+   - Alignment with industry conventions
+   - Differentiation from competitors
+   - Target audience appeal
+
+6. **Usage Guidelines Preview**:
+   - Clear space requirements
+   - Background variations
+   - Do's and don'ts summary
+
+Note: These are concept directions, not final designs. Avoid any trademarked or copyrighted design elements.""",
+
+        "branding_kit_generator": """You are a brand identity specialist.
+Input: {input}
+
+Create a comprehensive brand system:
+
+1. **Brand Foundation**:
+   - Brand essence summary
+   - Core values alignment
+   - Personality traits
+   - Voice and tone guidelines
+
+2. **Color System**:
+   - Primary colors (HEX, RGB, CMYK, Pantone)
+   - Secondary palette
+   - Accent colors
+   - Color usage ratios (60-30-10 rule)
+
+3. **Typography System**:
+   - Primary typeface (headings)
+   - Secondary typeface (body)
+   - Size scale hierarchy
+   - Web-safe alternatives
+
+4. **Logo Usage Rules**:
+   - Minimum clear space
+   - Minimum sizes
+   - Acceptable color variations
+   - Placement guidelines
+
+5. **Brand Applications**:
+   - Signage specifications
+   - Vehicle graphics guidelines
+   - Print material standards
+   - Digital presence guidelines
+
+6. **Brand Assets Checklist**:
+   - Required file formats
+   - Resolution requirements
+   - Naming conventions
+
+Confirm before overwriting any existing brand materials.""",
+
+        # Business Tools
+        "business_copywriter": """You are a professional copywriter for sign shops and their clients.
+Input: {input}
+
+Generate polished copy:
+
+1. **Primary Copy** (3 versions: short, medium, long):
+   - Short: Tweet/tagline length (under 280 characters)
+   - Medium: Paragraph length (2-3 sentences)
+   - Long: Full description (4-6 sentences)
+
+2. **Headlines/Taglines** (5 options):
+   - Benefit-focused option
+   - Action-oriented option
+   - Emotional appeal option
+   - Straightforward/clear option
+   - Creative/memorable option
+
+3. **Key Messages**:
+   - Primary value proposition
+   - Supporting benefits
+   - Call-to-action variations
+
+4. **Tone Calibration**:
+   - Adjustments based on selected tone
+   - Industry-appropriate language
+   - Audience-specific vocabulary
+
+5. **SEO Considerations** (if applicable):
+   - Keyword suggestions
+   - Meta description version
+   - Header tag recommendations
+
+6. **Compliance Notes**:
+   - Avoid unsubstantiated claims
+   - Remove any guarantees without basis
+   - Legal disclaimer suggestions if needed
+
+All copy is editable - treat as starting points for refinement.""",
+
+        "document_composer": """You are a business document specialist for sign shops.
+Input: {input}
+
+Create a professional {document_type} document:
+
+1. **Document Structure**:
+   - Professional header/letterhead placeholder
+   - Date and reference numbers
+   - Recipient information
+   - Subject line
+
+2. **Main Content Sections** (based on document type):
+   For Proposals: Executive summary, scope, pricing, timeline, terms
+   For Scope of Work: Deliverables, specifications, exclusions, schedule
+   For Installation Notes: Site prep, installation steps, safety, sign-off
+   For Project Brief: Objectives, requirements, constraints, success criteria
+   For Thank You Letters: Appreciation, project recap, future opportunities
+   For Warranty Info: Coverage, exclusions, claims process, maintenance tips
+   For Maintenance Guide: Cleaning instructions, inspection schedule, repairs
+
+3. **Tone and Style**:
+   - Adjusted for selected formality level
+   - Industry-appropriate terminology
+   - Clear and professional language
+
+4. **Legal Considerations**:
+   - Standard terms and conditions notes
+   - Liability disclaimers where appropriate
+   - Signature/acceptance blocks
+
+5. **Formatting Guidelines**:
+   - Section headers
+   - Bullet points for clarity
+   - Professional spacing
+
+6. **Document Metadata**:
+   - Suggested filename
+   - Version tracking note
+   - Last updated date
+
+Document can be stored in job history for reference.""",
+
+        "pricing_intelligence": """You are a pricing analyst for sign shops.
+Input: {input}
+
+Provide comprehensive pricing analysis:
+
+1. **Cost Breakdown**:
+   - Material costs analysis
+   - Labor cost calculation (hours × rate)
+   - Equipment/overhead allocation
+   - Subcontractor costs if applicable
+   - Total direct costs
+
+2. **Market Comparison**:
+   - Typical market range for this service type
+   - Premium vs. budget positioning
+   - Geographic considerations
+   - Competitor pricing insights
+
+3. **Profit Analysis**:
+   - Gross margin calculation
+   - Markup percentage
+   - Industry standard comparison
+   - Profit per hour metric
+
+4. **Pricing Recommendations**:
+   - Suggested price range (low/mid/high)
+   - Value-based pricing considerations
+   - Volume discount opportunities
+   - Rush pricing guidelines
+
+5. **Red Flags**:
+   - Underpricing warnings
+   - Margin concerns
+   - Market positioning risks
+   - Hidden cost alerts
+
+6. **Optimization Suggestions**:
+   - Ways to improve margin
+   - Upsell opportunities
+   - Package pricing ideas
+   - Payment terms recommendations
+
+Present data with clear charts/tables format for easy review.""",
+
+        # Marketing Tools
+        "social_job_post": """You are a social media specialist for sign shops.
+Input: {input}
+
+Create engaging job showcase posts:
+
+1. **Platform-Specific Captions**:
+   
+   **Facebook** (optimal 40-80 characters for engagement):
+   - Headline hook
+   - Brief description
+   - Call-to-action
+   - Relevant emojis (2-3 max)
+   
+   **Instagram** (up to 2200 characters):
+   - Engaging opening line
+   - Project story/details
+   - Behind-the-scenes element
+   - Call-to-action
+   - Hashtag set (20-30 relevant tags)
+   
+   **LinkedIn** (professional tone):
+   - Industry insight angle
+   - Business value highlight
+   - Professional achievement framing
+   - Minimal hashtags (3-5 strategic)
+
+2. **Hashtag Strategy**:
+   - Industry hashtags (#signshop, #customsigns, etc.)
+   - Location hashtags
+   - Project-type hashtags
+   - Trending relevant hashtags
+
+3. **Content Variations**:
+   - Before/after version
+   - Process highlight version
+   - Client success story version
+   - Team spotlight version
+
+4. **Engagement Boosters**:
+   - Question to ask audience
+   - Poll ideas
+   - User interaction prompts
+
+5. **Best Practices**:
+   - Optimal posting times
+   - Image/video recommendations
+   - Tagging suggestions (with permission)
+
+Avoid false claims. Location tagging optional and with client permission only.""",
+
+        "social_pack_generator": """You are a content strategist for sign shop social media.
+Input: {input}
+
+Generate a comprehensive content pack:
+
+1. **Content Mix** (based on pack size):
+   - Educational posts (how-to, tips): 30%
+   - Promotional posts (services, offers): 25%
+   - Behind-the-scenes (process, team): 20%
+   - Engagement posts (questions, polls): 15%
+   - Testimonial/case study: 10%
+
+2. **Post Templates** (for each post in pack):
+   - Post type and objective
+   - Caption (platform-optimized)
+   - Visual/image direction
+   - Hashtag set
+   - Best day/time to post
+   - Engagement prompt
+
+3. **Content Calendar Suggestions**:
+   - Recommended posting schedule
+   - Themed content days
+   - Special occasion tie-ins
+
+4. **Visual Guidelines**:
+   - Image style recommendations
+   - Branding consistency tips
+   - Photo vs. graphic balance
+
+5. **Performance Tracking**:
+   - Key metrics to monitor
+   - A/B testing suggestions
+   - Engagement benchmarks
+
+6. **Repurposing Ideas**:
+   - How to extend content lifespan
+   - Cross-platform adaptations
+   - Story/Reel variations
+
+Content is editable - customize for your brand voice.""",
+
+        "content_calendar": """You are a content planning strategist for sign shops.
+Input: {input}
+
+Create a detailed content calendar:
+
+1. **Calendar Overview**:
+   - Time period coverage
+   - Total posts planned
+   - Platform distribution
+   - Content type breakdown
+
+2. **Weekly Themes**:
+   - Suggested theme for each week
+   - Tie-ins to business goals
+   - Seasonal/holiday considerations
+
+3. **Daily Schedule** (for each date):
+   - Day and date
+   - Platform(s)
+   - Content type
+   - Topic/prompt
+   - Post objective
+   - Notes/reminders
+
+4. **Content Pillars**:
+   - Educational content themes
+   - Promotional content themes
+   - Engagement content themes
+   - Brand story themes
+
+5. **Key Dates to Remember**:
+   - Industry events
+   - Local events
+   - Holidays relevant to audience
+   - Business milestones
+
+6. **Flexibility Built-In**:
+   - Open slots for timely content
+   - Backup content ideas
+   - Weather-related alternatives
+
+7. **Resource Planning**:
+   - Photos/videos needed
+   - Design assets required
+   - Preparation time notes
+
+Calendar format: visual grid view with drag/drop notes.""",
+
+        "campaign_builder": """You are a marketing campaign strategist for sign shops.
+Input: {input}
+
+Design a complete marketing campaign:
+
+1. **Campaign Overview**:
+   - Campaign name and theme
+   - Primary objective (SMART goal)
+   - Target audience profile
+   - Duration and key dates
+   - Budget allocation breakdown
+
+2. **Messaging Framework**:
+   - Campaign tagline
+   - Key messages (3-5)
+   - Value proposition
+   - Call-to-action variations
+
+3. **Channel Strategy**:
+   For each selected channel:
+   - Specific tactics
+   - Content types
+   - Frequency
+   - Budget allocation
+   - KPIs to track
+
+4. **Content Sequence**:
+   - Launch phase content
+   - Momentum phase content
+   - Conversion phase content
+   - Follow-up phase content
+
+5. **Creative Assets Needed**:
+   - Social media graphics
+   - Email templates
+   - Print materials
+   - Signage/displays
+   - Landing page requirements
+
+6. **Offer Structure** (if applicable):
+   - Primary offer details
+   - Urgency elements
+   - Terms and conditions
+   - Redemption process
+
+7. **Timeline**:
+   - Pre-launch activities
+   - Launch day checklist
+   - Weekly milestones
+   - Campaign wrap-up tasks
+
+8. **Success Metrics**:
+   - Primary KPIs
+   - Secondary metrics
+   - Tracking methods
+   - Reporting schedule
+
+9. **Contingency Plans**:
+   - If underperforming: adjustment tactics
+   - If overperforming: scale-up options
+   - Risk mitigation strategies
+
+Campaign elements are customizable - adjust based on actual resources and results."""
     }
     
     prompt_template = tool_prompts.get(request.tool)
