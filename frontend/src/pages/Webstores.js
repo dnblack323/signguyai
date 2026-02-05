@@ -919,6 +919,37 @@ export default function Webstores() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Branding Preview */}
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Store Branding</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-muted/30 rounded-lg">
+                        <p className="text-xs text-muted-foreground mb-2">Logo</p>
+                        {selectedStore.branding?.logo_url ? (
+                          <img 
+                            src={selectedStore.branding.logo_url} 
+                            alt="Store logo" 
+                            className="h-12 w-auto object-contain"
+                          />
+                        ) : (
+                          <p className="text-sm text-muted-foreground italic">No logo set</p>
+                        )}
+                      </div>
+                      <div className="p-4 bg-muted/30 rounded-lg">
+                        <p className="text-xs text-muted-foreground mb-2">Accent Color</p>
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="w-10 h-10 rounded-lg border border-border"
+                            style={{ backgroundColor: selectedStore.branding?.primary_color || '#0D9488' }}
+                          />
+                          <span className="font-mono text-sm">
+                            {selectedStore.branding?.primary_color || '#0D9488'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="products" className="space-y-4">
