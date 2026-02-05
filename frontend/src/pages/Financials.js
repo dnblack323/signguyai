@@ -439,7 +439,7 @@ export default function Financials() {
                   <div className="space-y-3">
                     {Object.entries(expensesByCategory).map(([category, amount]) => (
                       <div key={category} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                        <span className="capitalize font-medium">{category}</span>
+                        <span className="font-medium">{getCategoryLabel(category)}</span>
                         <span className="text-red-400 font-bold">{formatCurrency(amount)}</span>
                       </div>
                     ))}
