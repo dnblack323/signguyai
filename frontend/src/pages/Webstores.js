@@ -826,6 +826,33 @@ export default function Webstores() {
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-4">
+                  {/* Store Link Section */}
+                  <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-sm">Public Store Link</p>
+                        <p className="text-xs text-muted-foreground font-mono truncate max-w-[400px]">
+                          {getStoreUrl(selectedStore.id)}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleCopyLink(selectedStore.id)}
+                        >
+                          <Copy className="h-4 w-4 mr-2" /> Copy Link
+                        </Button>
+                        <Button 
+                          size="sm"
+                          onClick={() => handleOpenStore(selectedStore.id)}
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" /> Open Store
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Stats */}
                   <div className="grid grid-cols-4 gap-3">
                     <div className="p-3 bg-muted/30 rounded-lg text-center">
