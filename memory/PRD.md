@@ -34,20 +34,25 @@ Build a web-based sign-shop operating system called "Sign Guy AI" - a single dai
 - **status**: pending, in_production, done
 - **notes**: Optional text/file references
 
+### Webstore Branding Model (NEW)
+- **logo_url**: URL to customer's logo image
+- **primary_color**: Hex color code for accent color (#0D9488 default)
+- **banner_url**: Optional banner image URL
+
 ### Workflow Rules
 - Converting Quote → Job automatically creates JobItems from Quote line items
 - Invoice created from Job pulls JobItems into Invoice line_items array
 - Job subtotal auto-recalculates when items are added/edited/deleted
 - Job description serves as "overall job notes" - actual work lives in JobItems
 
-## What's Been Implemented (January 2026)
+## What's Been Implemented
 
 ### Phase 1 MVP - COMPLETE
 - [x] Dashboard with real-time stats
 - [x] Customer Management (CRUD, search, filters, status)
 - [x] Quotes Module (line items, totals, convert to job)
 - [x] Jobs Module (List view, Kanban board, status changes)
-- [x] **Job Line Items** (NEW) - Multiple line items per job with types, pricing, status
+- [x] **Job Line Items** - Multiple line items per job with types, pricing, status
 - [x] Invoice Management (create from job with line items, mark paid)
 - [x] Time Clock (start/end work, breaks, sequence validation, shift summary)
 - [x] Payroll (earnings/advances/payments, balance calculation, reports)
@@ -55,6 +60,17 @@ Build a web-based sign-shop operating system called "Sign Guy AI" - a single dai
 - [x] Financial Tracking (sales, expenses, tax tracking, summaries)
 - [x] AI Tools Suite (6 GPT-5.2 powered tools)
 - [x] Webstores (Fundraiser campaigns, B2B custom stores)
+
+### Recent Updates (February 5, 2026) - COMPLETED
+- [x] **Public Storefronts with Custom Branding** ✨
+  - Logo URL field for each webstore (customer's company logo)
+  - Accent color picker for customizing storefront appearance
+  - Live preview of color selection in admin UI
+  - Settings tab in store detail dialog for editing branding
+  - Copy Link & Open Store buttons in store manager
+  - Public storefront displays custom logo and uses accent color
+  - Fully functional shopping cart and checkout flow
+  - Order creation with profit/payout calculations
 
 ### Recent Updates (February 2, 2026)
 - [x] **Webstore System v2 - Phase 1 Complete**
@@ -67,23 +83,12 @@ Build a web-based sign-shop operating system called "Sign Guy AI" - a single dai
 
 ### Recent Updates (January 31, 2026)
 - [x] **Dark/Light Mode Toggle** - Full theme switching capability
-  - Toggle button in sidebar (bottom, above Collapse)
-  - Persists selection to localStorage
-  - Light theme based on BUBBLE_DESIGN_SYSTEM_LIGHT.md design specs
-  - Sidebar adapts background color per theme
-  - All components respect theme variables
-- [x] **Invoice Preview Modal** - Click "View Invoice" from any location opens a popup modal with print-preview style invoice instead of navigating to invoice list
-  - Available on: Invoices page, Job Details page, Dashboard overdue invoices
-  - Features: Print button, line items table, balance due calculation, customer/job info display
-- [x] **Daily Sales Entry Enhancement** - Renamed "Add Sale" to "Enter Daily Sales" with payment method tracking
-  - Payment methods: Cash, Credit/Debit Card, Check, Other
-  - Tracks actual money received at the business daily
-  - Shows payment method icons in Sales table and Recent Activity
+- [x] **Invoice Preview Modal** - Click "View Invoice" opens popup modal
+- [x] **Daily Sales Entry Enhancement** - Payment method tracking
 - [x] Dashboard Recent Activity - Clicking jobs navigates to job details
-- [x] Bubble.io migration documentation (13 files) created for evaluation
 
-### Testing Results (January 28, 2026)
-- Backend: 95-98% tests passing
+### Testing Results (February 5, 2026)
+- Backend: 100% tests passing
 - Frontend: 100% functionality verified
 - Integration: 100% workflows operational
 
@@ -101,36 +106,44 @@ Build a web-based sign-shop operating system called "Sign Guy AI" - a single dai
 /api/financials - Sales + Expenses + /summary
 /api/tasks - Task CRUD
 /api/ai/generate - AI tool generation
-/api/webstores/* - Fundraiser and B2B stores
+/api/products - Master product catalog CRUD
+/api/webstores/v2 - Webstore CRUD with branding
+/api/webstores/v2/{id}/products - Product assignment
+/api/webstores/v2/orders - Order management
+/store/{storeId} - Public storefront URL
 ```
 
 ## Prioritized Backlog
 
 ### P0 - Critical (Next Sprint)
+- [ ] Webstores Phase 2: Store owner dashboards (sales, orders, payouts)
 - [ ] User Authentication (JWT + optional Google OAuth)
 - [ ] Role-based access control (Owner, Admin, Staff)
-- [ ] Data export functionality (CSV/PDF)
 
 ### P1 - High Priority
 - [ ] Artwork Approval System (upload proof, customer approve/reject)
 - [ ] Email notifications for overdue invoices
 - [ ] Print-ready file generation
 - [ ] Mobile-responsive time clock interface
+- [ ] Productivity Module enhancements (Kanban, Calendar)
 
 ### P2 - Medium Priority
+- [ ] Financial Tracking summary views and reports (Cash vs Credit vs Check breakdown)
 - [ ] Report generation and analytics
 - [ ] Bulk operations (multi-select delete, status update)
 - [ ] Search across all modules
 - [ ] Customer portal for viewing quotes/invoices
+- [ ] Data export functionality (CSV/PDF)
 
 ### P3 - Low Priority / Future
-- [ ] Light mode theme toggle
 - [ ] Integrations (QuickBooks, Stripe payments)
 - [ ] Advanced scheduling calendar
 - [ ] Real-time collaboration features
+- [ ] AI Tools Suite enhancements
 
 ## Next Tasks
-1. Add user authentication
-2. Implement artwork approval workflow
-3. Add email notifications
-4. Create customer-facing portal
+1. Webstores Phase 2: Store owner dashboards
+2. Productivity Module enhancements
+3. Financial Tracking summary reports
+4. Add user authentication
+5. Implement artwork approval workflow
