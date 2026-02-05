@@ -58,7 +58,11 @@ Build a web-based sign-shop operating system called "Sign Guy AI" - a single dai
 - [x] Payroll (earnings/advances/payments, balance calculation, reports)
 - [x] Productivity (tasks, calendar, job kanban)
 - [x] Financial Tracking (sales, expenses, tax tracking, summaries)
-- [x] AI Tools Suite (6 GPT-5.2 powered tools)
+- [x] AI Tools Suite (15 GPT-5.2 powered tools - NEW)
+  - Design Tools: Photo Enhancer, Image Vectorizer, Font Identifier, AI Sign Designer, AI Banner Designer, Mockup Creator
+  - Branding Tools: Logo Creator, Branding Kit Generator
+  - Business Tools: Business Copywriter, Document Composer, Pricing Intelligence Assistant
+  - Marketing Tools: Social Media Job Post Creator, Social Media Pack Generator, Content Calendar Creator, Campaign Builder
 - [x] Webstores (Fundraiser campaigns, B2B custom stores)
 
 ### Recent Updates (February 5, 2026) - COMPLETED
