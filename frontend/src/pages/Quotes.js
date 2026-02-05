@@ -6,6 +6,7 @@ import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
+import { Separator } from '../components/ui/separator';
 import {
   Select,
   SelectContent,
@@ -29,7 +30,11 @@ import {
   TableRow,
 } from '../components/ui/table';
 import { formatCurrency, formatDate, getStatusColor } from '../lib/utils';
-import { Plus, Search, Edit2, ArrowRightCircle, Trash2 } from 'lucide-react';
+import { 
+  Plus, Search, Edit2, ArrowRightCircle, Trash2, Eye,
+  Printer, Mail, Building2, Phone, Calendar, FileText,
+  CheckCircle, XCircle
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 const statusOptions = ['draft', 'sent', 'approved', 'declined'];
