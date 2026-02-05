@@ -374,8 +374,9 @@ export default function Quotes() {
                 {quotes.map((quote, idx) => (
                   <TableRow 
                     key={quote.id} 
-                    className={idx % 2 === 0 ? 'bg-transparent' : 'bg-muted/30'}
+                    className={`cursor-pointer transition-colors ${idx % 2 === 0 ? 'bg-transparent' : 'bg-muted/30'} hover:bg-muted/50`}
                     data-testid={`quote-row-${quote.id}`}
+                    onClick={() => handleViewQuote(quote)}
                   >
                     <TableCell className="font-mono text-sm">
                       #{quote.id.slice(0, 8)}
@@ -394,7 +395,15 @@ export default function Quotes() {
                       {formatDate(quote.created_at)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleViewQuote(quote)}
+                          data-testid={`view-quote-${quote.id}`}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                         {!quote.job_id && quote.status === 'approved' && (
                           <Button
                             variant="outline"
