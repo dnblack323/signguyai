@@ -44,7 +44,7 @@ import {
   Plus, Edit2, Trash2, Receipt, Calendar, ArrowLeft, Package, Eye, 
   MoreHorizontal, CheckCircle, Archive, ArchiveRestore, Clock,
   FileText, MessageSquare, Activity, DollarSign, User, ExternalLink,
-  ChevronRight, Send
+  ChevronRight, Send, CalendarPlus
 } from 'lucide-react';
 import { toast } from 'sonner';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
