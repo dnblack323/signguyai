@@ -784,6 +784,9 @@ export function JobDetails() {
 
             {/* Quick Actions */}
             <div className="flex flex-col gap-2">
+              <Button variant="outline" onClick={handleOpenSchedule} data-testid="schedule-job-btn">
+                <CalendarPlus className="h-4 w-4 mr-2" /> Schedule
+              </Button>
               {!invoice && (
                 <Button onClick={handleCreateInvoice} data-testid="create-invoice-btn">
                   <Receipt className="h-4 w-4 mr-2" /> Create Invoice
