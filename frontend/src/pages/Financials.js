@@ -476,7 +476,7 @@ export default function Financials() {
                             )}
                             <div>
                               <p className="text-sm font-medium">
-                                {item.type === 'sale' ? methodInfo?.label || 'Daily Sales' : item.category}
+                                {item.type === 'sale' ? methodInfo?.label || 'Daily Sales' : getCategoryLabel(item.category)}
                               </p>
                               <p className="text-xs text-muted-foreground">
                                 {formatDate(item.date)}
