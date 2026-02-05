@@ -17,6 +17,7 @@ import Financials from "./pages/Financials";
 import AITools from "./pages/AITools";
 import Webstores from "./pages/Webstores";
 import Products from "./pages/Products";
+import Storefront from "./pages/Storefront";
 
 import "./App.css";
 
