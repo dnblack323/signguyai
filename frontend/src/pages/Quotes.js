@@ -55,6 +55,10 @@ export default function Quotes() {
     line_items: [{ description: '', quantity: 1, unit_price: 0 }]
   });
 
+  // Quote preview modal state
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [selectedQuote, setSelectedQuote] = useState(null);
+
   useEffect(() => {
     loadData();
   }, [statusFilter]);
