@@ -35,7 +35,7 @@ import { formatCurrency, formatDate, getStatusColor } from '../lib/utils';
 import { 
   Store, Heart, Building2, User, Plus, ShoppingCart, 
   Eye, Edit2, Trash2, Package, DollarSign, TrendingUp,
-  ExternalLink, Check, X, Settings
+  ExternalLink, Check, X, Settings, Copy, Link2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
