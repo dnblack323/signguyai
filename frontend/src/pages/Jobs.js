@@ -572,6 +572,37 @@ export function JobDetails() {
     }
   };
 
+  const handleOpenSchedule = () => {
+    const job = jobData?.job;
+    setScheduleFormData({
+      title: `Work on: ${job?.name || ''}`,
+      description: job?.description || '',
+      due_date: job?.due_date || new Date().toISOString().split('T')[0]
+    });
+    setIsScheduleDialogOpen(true);
+  };
+
+  const handleScheduleSubmit = async (e) => {
+    e.preventDefault();
+    if (!scheduleFormData.title.trim()) {
+      toast.error('Task title is required');
+      return;
+    }
+    try {
+      await createTask({
+        title: scheduleFormData.title,
+        description: scheduleFormData.description,
+        job_id: id,
+        due_date: scheduleFormData.due_date,
+        status: 'pending'
+      });
+      setIsScheduleDialogOpen(false);
+      toast.success('Task added to calendar!');
+    } catch (err) {
+      toast.error('Failed to schedule task');
+    }
+  };
+
   // Item handlers
   const handleItemSubmit = async (e) => {
     e.preventDefault();
