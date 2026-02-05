@@ -987,6 +987,76 @@ export default function Webstores() {
                   </div>
                 </TabsContent>
 
+                <TabsContent value="settings" className="space-y-4">
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Store Branding</h4>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Company Logo URL</Label>
+                        <Input
+                          value={selectedStore.branding?.logo_url || ''}
+                          onChange={(e) => handleUpdateBranding('logo_url', e.target.value)}
+                          placeholder="https://example.com/logo.png"
+                          data-testid="edit-logo-input"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Enter a URL to the customer's logo
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Accent Color</Label>
+                        <div className="flex gap-2 items-center">
+                          <input
+                            type="color"
+                            value={selectedStore.branding?.primary_color || '#0D9488'}
+                            onChange={(e) => handleUpdateBranding('primary_color', e.target.value)}
+                            className="w-12 h-10 rounded border border-border cursor-pointer"
+                            data-testid="edit-color-input"
+                          />
+                          <Input
+                            value={selectedStore.branding?.primary_color || '#0D9488'}
+                            onChange={(e) => handleUpdateBranding('primary_color', e.target.value)}
+                            placeholder="#0D9488"
+                            className="w-28 font-mono"
+                          />
+                          <div 
+                            className="flex-1 h-10 rounded-lg flex items-center justify-center text-white text-sm font-medium"
+                            style={{ backgroundColor: selectedStore.branding?.primary_color || '#0D9488' }}
+                          >
+                            Button Preview
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <h4 className="font-medium">Store Status</h4>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label>Store Active</Label>
+                          <p className="text-xs text-muted-foreground">Enable or disable this storefront</p>
+                        </div>
+                        <Switch
+                          checked={selectedStore.status === 'active'}
+                          onCheckedChange={(checked) => handleUpdateStatus(checked ? 'active' : 'disabled')}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label>Public Access</Label>
+                          <p className="text-xs text-muted-foreground">Allow anyone to view and order</p>
+                        </div>
+                        <Switch
+                          checked={selectedStore.is_public}
+                          onCheckedChange={(checked) => handleUpdatePublic(checked)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
                 <TabsContent value="payouts" className="space-y-4">
                   <div className="flex justify-between items-center">
                     <div>
