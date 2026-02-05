@@ -6,6 +6,8 @@ import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
+import { Separator } from '../components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -28,9 +30,14 @@ import {
   TableHeader,
   TableRow,
 } from '../components/ui/table';
-import { formatDate, getStatusColor, getInitials } from '../lib/utils';
-import { Plus, Search, Edit2, Trash2, Mail, Phone, Building } from 'lucide-react';
+import { formatDate, formatCurrency, getStatusColor, getInitials } from '../lib/utils';
+import { 
+  Plus, Search, Edit2, Trash2, Mail, Phone, Building, 
+  User, Briefcase, Receipt, FileText, Calendar, Eye,
+  DollarSign, Clock
+} from 'lucide-react';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
 
 const statusOptions = ['lead', 'active', 'inactive'];
 
