@@ -164,14 +164,14 @@ export default function Productivity() {
                 <div className="space-y-2">
                   <Label>Linked Job</Label>
                   <Select
-                    value={formData.job_id}
-                    onValueChange={(val) => setFormData({ ...formData, job_id: val })}
+                    value={formData.job_id || "none"}
+                    onValueChange={(val) => setFormData({ ...formData, job_id: val === "none" ? "" : val })}
                   >
                     <SelectTrigger data-testid="task-job-select">
                       <SelectValue placeholder="Select job" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {jobs.map((j) => (
                         <SelectItem key={j.id} value={j.id}>
                           {j.name}
