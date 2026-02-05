@@ -439,6 +439,223 @@ export default function Quotes() {
           )}
         </CardContent>
       </Card>
+
+      {/* Quote Preview Modal */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto print:max-w-full print:max-h-full print:overflow-visible" data-testid="quote-preview-modal">
+          <DialogHeader className="print:hidden">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="font-heading uppercase flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Quote Preview
+              </DialogTitle>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleEmail} data-testid="email-quote-btn">
+                  <Mail className="h-4 w-4 mr-2" /> Email
+                </Button>
+                <Button variant="outline" size="sm" onClick={handlePrint} data-testid="print-quote-btn">
+                  <Printer className="h-4 w-4 mr-2" /> Print
+                </Button>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {selectedQuote && (() => {
+            const customer = getCustomer(selectedQuote.customer_id);
+            const statusIcon = selectedQuote.status === 'approved' ? (
+              <CheckCircle className="h-5 w-5 text-green-400" />
+            ) : selectedQuote.status === 'declined' ? (
+              <XCircle className="h-5 w-5 text-red-400" />
+            ) : null;
+
+            return (
+              <div className="quote-preview space-y-6 p-4 bg-background rounded-lg border print:border-none print:p-0">
+                {/* Quote Header */}
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h2 className="text-2xl font-bold font-heading uppercase tracking-tight text-primary">
+                      QUOTE
+                    </h2>
+                    <p className="text-muted-foreground font-mono text-sm mt-1">
+                      #{selectedQuote.id.slice(0, 8).toUpperCase()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center gap-2 justify-end mb-2">
+                      {statusIcon}
+                      <Badge className={getStatusColor(selectedQuote.status)} data-testid="quote-status-badge">
+                        {selectedQuote.status.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      <Calendar className="h-3 w-3 inline mr-1" />
+                      Created: {formatDate(selectedQuote.created_at)}
+                    </p>
+                    {selectedQuote.job_id && (
+                      <p className="text-sm text-green-400 mt-1">
+                        Converted to Job
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Customer Info */}
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                      Prepared For
+                    </h3>
+                    {customer ? (
+                      <div className="space-y-1">
+                        <p className="font-bold text-lg">{customer.name}</p>
+                        {customer.company && (
+                          <p className="text-muted-foreground flex items-center gap-1">
+                            <Building2 className="h-3 w-3" /> {customer.company}
+                          </p>
+                        )}
+                        {customer.email && (
+                          <p className="text-muted-foreground flex items-center gap-1">
+                            <Mail className="h-3 w-3" /> {customer.email}
+                          </p>
+                        )}
+                        {customer.phone && (
+                          <p className="text-muted-foreground flex items-center gap-1">
+                            <Phone className="h-3 w-3" /> {customer.phone}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground">Customer not found</p>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                      From
+                    </h3>
+                    <div className="space-y-1">
+                      <p className="font-bold text-lg">The Sign Guy PA</p>
+                      <p className="text-muted-foreground">Your Professional Sign Shop</p>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Line Items Table */}
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
+                    Quote Details
+                  </h3>
+                  <div className="border rounded-lg overflow-hidden">
+                    <table className="w-full">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="text-left p-3 text-sm font-semibold">Description</th>
+                          <th className="text-center p-3 text-sm font-semibold w-20">Qty</th>
+                          <th className="text-right p-3 text-sm font-semibold w-28">Unit Price</th>
+                          <th className="text-right p-3 text-sm font-semibold w-28">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedQuote.line_items && selectedQuote.line_items.length > 0 ? (
+                          selectedQuote.line_items.map((item, idx) => (
+                            <tr key={idx} className={idx % 2 === 1 ? 'bg-muted/20' : ''}>
+                              <td className="p-3 text-sm">{item.description}</td>
+                              <td className="p-3 text-sm text-center">{item.quantity}</td>
+                              <td className="p-3 text-sm text-right">{formatCurrency(item.unit_price)}</td>
+                              <td className="p-3 text-sm text-right font-medium">
+                                {formatCurrency(item.quantity * item.unit_price)}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="4" className="p-3 text-sm text-center text-muted-foreground">
+                              No line items
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Totals */}
+                <div className="flex justify-end">
+                  <div className="w-64 space-y-2">
+                    <Separator />
+                    <div className="flex justify-between font-bold text-lg">
+                      <span>Total:</span>
+                      <span className="text-primary">
+                        {formatCurrency(selectedQuote.total)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Notes */}
+                {selectedQuote.notes && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h3 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                        Notes
+                      </h3>
+                      <p className="text-sm p-3 bg-muted/30 rounded-lg whitespace-pre-wrap">
+                        {selectedQuote.notes}
+                      </p>
+                    </div>
+                  </>
+                )}
+
+                {/* Terms / Footer */}
+                <Separator />
+                <div className="text-sm text-muted-foreground space-y-2">
+                  <p className="font-medium">Terms & Conditions:</p>
+                  <ul className="list-disc list-inside space-y-1 text-xs">
+                    <li>This quote is valid for 30 days from the date issued</li>
+                    <li>50% deposit required upon approval to begin production</li>
+                    <li>Balance due upon completion</li>
+                    <li>Prices subject to change if specifications are modified</li>
+                  </ul>
+                </div>
+
+                {/* Footer */}
+                <div className="text-center text-xs text-muted-foreground print:mt-8">
+                  <p>Thank you for your business!</p>
+                  <p className="mt-1">The Sign Guy PA - Your Professional Sign Shop</p>
+                </div>
+
+                {/* Actions (hidden in print) */}
+                <div className="flex justify-between print:hidden">
+                  {!selectedQuote.job_id && selectedQuote.status !== 'approved' && (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => { setIsPreviewOpen(false); handleEdit(selectedQuote); }}
+                    >
+                      <Edit2 className="h-4 w-4 mr-2" /> Edit Quote
+                    </Button>
+                  )}
+                  {!selectedQuote.job_id && selectedQuote.status === 'approved' && (
+                    <Button 
+                      onClick={() => { handleConvert(selectedQuote.id); setIsPreviewOpen(false); }}
+                      className="bg-primary"
+                    >
+                      <ArrowRightCircle className="h-4 w-4 mr-2" /> Convert to Job
+                    </Button>
+                  )}
+                  {selectedQuote.job_id && <div />}
+                  <Button variant="outline" onClick={() => setIsPreviewOpen(false)}>
+                    Close
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
