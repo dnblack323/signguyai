@@ -819,9 +819,10 @@ export default function Webstores() {
               </DialogHeader>
 
               <Tabs value={detailTab} onValueChange={setDetailTab}>
-                <TabsList className="grid grid-cols-3 w-full">
+                <TabsList className="grid grid-cols-4 w-full">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="products">Products</TabsTrigger>
+                  <TabsTrigger value="settings">Settings</TabsTrigger>
                   <TabsTrigger value="payouts">Payouts</TabsTrigger>
                 </TabsList>
 
