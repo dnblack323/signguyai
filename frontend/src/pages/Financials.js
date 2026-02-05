@@ -566,7 +566,7 @@ export default function Financials() {
                     {expenses.map((expense, idx) => (
                       <TableRow key={expense.id} className={idx % 2 === 0 ? '' : 'bg-muted/30'}>
                         <TableCell>{formatDate(expense.date)}</TableCell>
-                        <TableCell className="capitalize">{expense.category}</TableCell>
+                        <TableCell>{getCategoryLabel(expense.category)}</TableCell>
                         <TableCell className="text-muted-foreground">{expense.description || '-'}</TableCell>
                         <TableCell className="text-right font-bold text-red-400">
                           {formatCurrency(expense.amount)}
