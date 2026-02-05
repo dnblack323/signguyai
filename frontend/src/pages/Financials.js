@@ -301,8 +301,8 @@ export default function Financials() {
                       </SelectTrigger>
                       <SelectContent>
                         {expenseCategories.map((c) => (
-                          <SelectItem key={c} value={c}>
-                            {c.charAt(0).toUpperCase() + c.slice(1)}
+                          <SelectItem key={c.value} value={c.value}>
+                            {c.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
