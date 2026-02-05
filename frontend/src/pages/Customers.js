@@ -42,7 +42,10 @@ import { Link } from 'react-router-dom';
 const statusOptions = ['lead', 'active', 'inactive'];
 
 export default function Customers() {
-  const { customers, fetchCustomers, createCustomer, updateCustomer, deleteCustomer } = useApp();
+  const { 
+    customers, fetchCustomers, createCustomer, updateCustomer, deleteCustomer,
+    jobs, fetchJobs, invoices, fetchInvoices, quotes, fetchQuotes
+  } = useApp();
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -56,10 +59,22 @@ export default function Customers() {
     status: 'lead',
     notes: ''
   });
+  
+  // Customer detail modal state
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [detailTab, setDetailTab] = useState('overview');
 
   useEffect(() => {
     loadCustomers();
   }, [statusFilter, search]);
+
+  useEffect(() => {
+    // Load related data for customer details
+    fetchJobs();
+    fetchInvoices();
+    fetchQuotes();
+  }, []);
 
   const loadCustomers = async () => {
     setLoading(true);
@@ -68,6 +83,39 @@ export default function Customers() {
     if (search) params.search = search;
     await fetchCustomers(params);
     setLoading(false);
+  };
+
+  const handleViewCustomer = (customer) => {
+    setSelectedCustomer(customer);
+    setDetailTab('overview');
+    setIsDetailOpen(true);
+  };
+
+  // Get customer-related data
+  const getCustomerJobs = (customerId) => {
+    return jobs.filter(j => j.customer_id === customerId);
+  };
+
+  const getCustomerInvoices = (customerId) => {
+    return invoices.filter(i => i.customer_id === customerId);
+  };
+
+  const getCustomerQuotes = (customerId) => {
+    return quotes.filter(q => q.customer_id === customerId);
+  };
+
+  const getCustomerStats = (customerId) => {
+    const customerJobs = getCustomerJobs(customerId);
+    const customerInvoices = getCustomerInvoices(customerId);
+    
+    const activeJobs = customerJobs.filter(j => !['complete', 'archived'].includes(j.status));
+    const completedJobs = customerJobs.filter(j => j.status === 'complete');
+    const totalRevenue = customerInvoices.reduce((sum, i) => sum + (i.total || 0), 0);
+    const outstandingBalance = customerInvoices
+      .filter(i => i.status !== 'paid')
+      .reduce((sum, i) => sum + ((i.total || 0) - (i.amount_paid || 0)), 0);
+    
+    return { activeJobs, completedJobs, totalRevenue, outstandingBalance, customerJobs, customerInvoices };
   };
 
   const handleSubmit = async (e) => {
