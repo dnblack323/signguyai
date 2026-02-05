@@ -1040,7 +1040,7 @@ export default function Webstores() {
                           data-testid="edit-logo-input"
                         />
                         <p className="text-xs text-muted-foreground">
-                          Enter a URL to the customer's logo
+                          Enter a URL to the customer&apos;s logo
                         </p>
                       </div>
                       <div className="space-y-2">
