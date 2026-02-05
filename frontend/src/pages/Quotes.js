@@ -161,6 +161,30 @@ export default function Quotes() {
     return customer?.name || 'Unknown';
   };
 
+  const getCustomer = (customerId) => {
+    return customers.find(c => c.id === customerId);
+  };
+
+  const handleViewQuote = (quote) => {
+    setSelectedQuote(quote);
+    setIsPreviewOpen(true);
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleEmail = async () => {
+    const customer = getCustomer(selectedQuote?.customer_id);
+    if (!customer?.email) {
+      toast.error('Customer has no email address');
+      return;
+    }
+    // For now, show a toast with instructions
+    // In production, this would integrate with an email service
+    toast.success(`Quote ready to email to ${customer.email}. Email integration coming soon!`);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in" data-testid="quotes-page">
       {/* Header */}
