@@ -62,6 +62,12 @@ const paymentMethods = [
   { value: 'other', label: 'Other', icon: Wallet }
 ];
 
+// Helper to get category label
+const getCategoryLabel = (value) => {
+  const cat = expenseCategories.find(c => c.value === value);
+  return cat ? cat.label : value;
+};
+
 export default function Financials() {
   const { 
     createSalesEntry, getSalesEntries, 
