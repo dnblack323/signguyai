@@ -109,10 +109,6 @@ export default function Webstores() {
     creator_commission_value: 20,
   });
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
   const loadData = async () => {
     setLoading(true);
     try {
@@ -129,6 +125,10 @@ export default function Webstores() {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const resetForm = () => {
     setFormData({
