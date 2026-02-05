@@ -673,15 +673,35 @@ export default function Webstores() {
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                onClick={() => handleCopyLink(store.id)}
+                                title="Copy store link"
+                                data-testid={`copy-link-${store.id}`}
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleOpenStore(store.id)}
+                                title="Open storefront"
+                                data-testid={`open-store-${store.id}`}
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 onClick={() => handleViewStore(store)}
+                                title="Manage store"
                                 data-testid={`view-store-${store.id}`}
                               >
-                                <Eye className="h-4 w-4" />
+                                <Settings className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => handleDeleteStore(store.id)}
+                                title="Delete store"
                                 className="text-destructive hover:text-destructive"
                               >
                                 <Trash2 className="h-4 w-4" />
