@@ -431,6 +431,65 @@ export default function Webstores() {
                 </>
               )}
 
+              {/* Branding / Customization */}
+              <Separator />
+              <div className="space-y-4">
+                <h4 className="font-medium">Store Branding</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2 col-span-2">
+                    <Label>Company Logo URL</Label>
+                    <Input
+                      value={formData.branding?.logo_url || ''}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        branding: { ...formData.branding, logo_url: e.target.value } 
+                      })}
+                      placeholder="https://example.com/logo.png"
+                      data-testid="store-logo-input"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Enter a URL to the customer's logo (appears on their storefront)
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Accent Color</Label>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="color"
+                        value={formData.branding?.primary_color || '#0D9488'}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          branding: { ...formData.branding, primary_color: e.target.value } 
+                        })}
+                        className="w-12 h-10 rounded border border-border cursor-pointer"
+                        data-testid="store-color-input"
+                      />
+                      <Input
+                        value={formData.branding?.primary_color || '#0D9488'}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          branding: { ...formData.branding, primary_color: e.target.value } 
+                        })}
+                        placeholder="#0D9488"
+                        className="w-28 font-mono"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Customize the storefront theme color
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Preview</Label>
+                    <div 
+                      className="w-full h-10 rounded-lg flex items-center justify-center text-white text-sm font-medium"
+                      style={{ backgroundColor: formData.branding?.primary_color || '#0D9488' }}
+                    >
+                      Button Preview
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Visibility */}
               <Separator />
               <div className="flex items-center justify-between">
