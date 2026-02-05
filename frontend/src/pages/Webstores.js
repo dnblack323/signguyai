@@ -182,6 +182,22 @@ export default function Webstores() {
     setIsDetailDialogOpen(true);
   };
 
+  const getStoreUrl = (storeId) => {
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/store/${storeId}`;
+  };
+
+  const handleCopyLink = (storeId) => {
+    const url = getStoreUrl(storeId);
+    navigator.clipboard.writeText(url);
+    toast.success('Store link copied to clipboard!');
+  };
+
+  const handleOpenStore = (storeId) => {
+    const url = getStoreUrl(storeId);
+    window.open(url, '_blank');
+  };
+
   const handleToggleProduct = async (productId, currentlyEnabled) => {
     if (!selectedStore) return;
     try {
