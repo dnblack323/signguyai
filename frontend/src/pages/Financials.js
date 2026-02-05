@@ -32,7 +32,29 @@ import { formatCurrency, formatDate } from '../lib/utils';
 import { Plus, TrendingUp, TrendingDown, Receipt, DollarSign, Wallet, CreditCard, Mail, Banknote } from 'lucide-react';
 import { toast } from 'sonner';
 
-const expenseCategories = ['materials', 'labor', 'equipment', 'utilities', 'rent', 'other'];
+const expenseCategories = [
+  { value: 'materials', label: 'Materials' },
+  { value: 'labor', label: 'Labor' },
+  { value: 'equipment', label: 'Equipment' },
+  { value: 'utilities', label: 'Utilities' },
+  { value: 'rent', label: 'Rent' },
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'cell_phone', label: 'Cell Phone' },
+  { value: 'garbage', label: 'Garbage' },
+  { value: 'printing_supplies', label: 'Printing Supplies' },
+  { value: 'meals', label: 'Meals' },
+  { value: 'entertainment', label: 'Entertainment' },
+  { value: 'donations', label: 'Donations' },
+  { value: 'office_supplies', label: 'Office Supplies' },
+  { value: 'apparel', label: 'Apparel' },
+  { value: 'vehicle', label: 'Vehicle' },
+  { value: 'advertising', label: 'Advertising' },
+  { value: 'legal', label: 'Legal' },
+  { value: 'repairs', label: 'Repairs' },
+  { value: 'taxes', label: 'Taxes' },
+  { value: 'travel', label: 'Travel' },
+  { value: 'other', label: 'Other' },
+];
 const paymentMethods = [
   { value: 'cash', label: 'Cash', icon: Banknote },
   { value: 'credit', label: 'Credit/Debit Card', icon: CreditCard },
