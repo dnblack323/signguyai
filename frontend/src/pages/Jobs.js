@@ -444,13 +444,15 @@ export function JobDetails() {
     getJobDetails, updateJob, completeJob, archiveJob, unarchiveJob,
     createInvoiceFromJob, fetchJobs,
     fetchJobItems, createJobItem, updateJobItem, deleteJobItem,
-    createJobNote, deleteJobNote
+    createJobNote, deleteJobNote,
+    createTask
   } = useApp();
   
   const [loading, setLoading] = useState(true);
   const [jobData, setJobData] = useState(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
+  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [newNote, setNewNote] = useState('');
   const [activeTab, setActiveTab] = useState('items');
@@ -465,6 +467,13 @@ export function JobDetails() {
   // Invoice preview modal state
   const [previewInvoiceId, setPreviewInvoiceId] = useState(null);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  
+  // Schedule task form
+  const [scheduleFormData, setScheduleFormData] = useState({
+    title: '',
+    description: '',
+    due_date: ''
+  });
   
   const [itemFormData, setItemFormData] = useState({
     item_type: 'other',
