@@ -1,4 +1,4 @@
-# Sign Guy AI - Complete Feature List & Roadmap
+# Sign Guy AI - Complete Feature List & Roadmap v2
 
 ## 🚀 CURRENT FEATURES (MVP - Available Now)
 
@@ -63,14 +63,7 @@
 
 ### 📈 Financial Tracking
 - **Daily sales entry** with payment method (Cash, Credit, Check)
-- Expense tracking with 15+ categories:
-  - Materials & Supplies
-  - Equipment & Tools
-  - Vehicle & Fuel
-  - Rent & Utilities
-  - Insurance
-  - Marketing & Advertising
-  - And more...
+- Expense tracking with 15+ categories
 - Tax collected tracking
 - Financial summaries
 
@@ -82,256 +75,763 @@
 - Link tasks to specific jobs
 
 ### 🤖 AI Tools Suite (15 Tools)
-
-**Design Tools:**
-1. **Photo Enhancer** - Improve low-quality photos for marketing
-2. **Image Vectorizer** - Convert raster to vector for cutting/printing
-3. **Font Identifier** - Identify fonts from images + alternatives
-4. **AI Sign Designer** - Generate sign layout concepts
-5. **AI Banner Designer** - Design banners for promotions/events
-6. **Mockup Creator** - Create realistic previews for approval
-
-**Branding Tools:**
-7. **Logo Creator** - Generate logo concepts and direction
-8. **Branding Kit Generator** - Create consistent brand systems
-
-**Business Tools:**
-9. **Business Copywriter** - Generate professional copy on demand
-10. **Document Composer** - Create proposals, scope of work, etc.
-11. **Pricing Intelligence** - Analyze pricing and profit margins
-
-**Marketing Tools:**
-12. **Social Media Job Post Creator** - Create posts from completed jobs
-13. **Social Media Pack Generator** - Generate batches of content
-14. **Content Calendar Creator** - Plan consistent posting
-15. **Campaign Builder** - Design full marketing campaigns
+- Design Tools: Photo Enhancer, Image Vectorizer, Font Identifier, AI Sign Designer, AI Banner Designer, Mockup Creator
+- Branding Tools: Logo Creator, Branding Kit Generator
+- Business Tools: Business Copywriter, Document Composer, Pricing Intelligence Assistant
+- Marketing Tools: Social Media Job Post Creator, Social Media Pack Generator, Content Calendar Creator, Campaign Builder
 
 ### 🏪 Webstores (Fundraiser & B2B)
-- **Three store types:** Business (B2B), Fundraiser, Creator
-- **Master Product Catalog** with variants (size, color)
-- Base cost and retail price with automatic profit calculation
-- **Custom branding per store:**
-  - Company logo upload
-  - Custom accent colors
-  - Branded storefront appearance
-- **Public shareable storefronts** with unique URLs
+- Three store types: Business (B2B), Fundraiser, Creator
+- Master Product Catalog with variants (size, color)
+- Custom branding per store (logo, colors)
+- Public shareable storefronts
 - Shopping cart and checkout
-- Order management with status tracking
-- Payout tracking for store owners
-- Copy store link for easy sharing
-
-### 🎨 User Interface
-- **Dark/Light mode toggle**
-- Modern, clean design
-- Responsive layout
-- Fast navigation between modules
+- Order management and payout tracking
 
 ---
 
 ## 🗓️ FUTURE UPDATES ROADMAP
 
-### 📦 UPDATE 1.1 - "Security & Access" (Next Release)
-*Focus: Multi-user support and security*
+---
 
-- **User Authentication**
-  - Secure login system
-  - Password protection
-  - Session management
+### 📦 UPDATE 1.1 - "Smart Pricing Engine" ⭐ NEW
+*Focus: Automated pricing with profit visibility*
 
-- **Role-Based Access Control**
-  - Owner role (full access)
-  - Admin role (most features, no settings)
-  - Staff role (time clock, assigned jobs only)
-  - Custom permission sets
+**Category-Specific Pricing Calculators**
 
-- **Webstore Owner Dashboards**
-  - Store owners can log in to see their sales
-  - Order history and status
-  - Payout reports and history
+When adding a line item to a quote or job, selecting a category opens a detailed pricing configurator:
+
+#### 👕 APPAREL PRICING
+- **Garment Selection**
+  - Type: T-Shirt, Long Sleeve, Hoodie, Sweatshirt, Polo, Tank Top, Hat, etc.
+  - Brand/Quality tier (budget, standard, premium)
+  - Colors available
+- **Size Breakdown**
+  - Quantity per size (XS, S, M, L, XL, 2XL, 3XL, 4XL, 5XL)
+  - Automatic upcharge for 2XL+ sizes
+- **Decoration Method**
+  - Screen Print (number of colors, number of locations)
+  - DTG (Direct to Garment)
+  - Heat Transfer Vinyl
+  - Embroidery (stitch count estimate)
+  - Sublimation
+- **Design Details**
+  - Design locations (front, back, left chest, right chest, sleeve, neck)
+  - Design size per location (small/medium/large/oversized)
+  - Number of ink colors per location
+- **Extras**
+  - Artwork fee (new design vs. repeat)
+  - Setup fees
+  - Individual name/number printing
+  - Folding/bagging
+- **💰 Live Profit Display**
+  - Total garment cost
+  - Total decoration cost
+  - Suggested retail price
+  - **Your profit margin %**
+  - Profit per piece breakdown
+
+#### 🏳️ BANNER PRICING
+- **Material**
+  - Thickness (13oz, 15oz, 18oz scrim vinyl)
+  - Mesh banner
+  - Fabric/Polyester
+  - Retractable banner material
+- **Size**
+  - Width x Height (custom dimensions)
+  - Square footage auto-calculation
+- **Print Method**
+  - Full color digital print
+  - Cut vinyl lettering
+  - Cut vinyl graphics
+  - Combination (print + cut vinyl)
+- **Design Complexity**
+  - Simple (text only)
+  - Standard (text + logo)
+  - Complex (full graphics, photos)
+- **Finishing Options**
+  - Grommets (corners only, every 2ft, custom spacing)
+  - Pole pockets (top, bottom, both)
+  - Hemmed edges
+  - Wind slits
+  - Rope/bungee reinforcement
+- **Extras**
+  - Lamination (gloss, matte)
+  - Double-sided printing
+  - Artwork/design fee
+  - Rush fee
+- **💰 Live Profit Display**
+
+#### 🚗 VEHICLE WRAP PRICING
+- **Vehicle Type**
+  - Car (sedan, coupe, hatchback)
+  - SUV/Crossover
+  - Truck (pickup, box truck, semi)
+  - Van (cargo, passenger, sprinter)
+  - Trailer
+  - Boat
+  - Motorcycle
+  - Other
+- **Coverage Level**
+  - Full wrap
+  - Partial wrap (specify %)
+  - Accent wrap (hood, roof, mirrors)
+  - Lettering & graphics only
+  - Spot graphics
+- **Material**
+  - Cast vinyl (premium, 7+ year)
+  - Calendered vinyl (economy, 3-5 year)
+  - Specialty (chrome, color shift, carbon fiber)
+- **Lamination**
+  - Gloss
+  - Matte
+  - Satin
+- **Design Complexity**
+  - Template/simple design
+  - Custom full design
+  - Color change only
+- **Installation**
+  - Shop install included
+  - Mobile install (add travel fee)
+  - Customer self-install
+- **Extras**
+  - Design fee
+  - Removal of old wrap
+  - Paint prep/correction
+  - Ceramic coating
+  - Warranty upgrade
+- **💰 Live Profit Display**
+
+#### 🪧 YARD SIGN PRICING
+- **Material**
+  - 4mm Coroplast (standard)
+  - 6mm Coroplast (premium)
+  - Aluminum
+  - MDO/Plywood
+- **Size**
+  - 12x18, 18x24, 24x36, 24x48, custom
+- **Printing**
+  - Single-sided
+  - Double-sided
+  - Number of colors
+- **Stakes/Hardware**
+  - Wire stakes (H-stakes)
+  - Step stakes
+  - Frame included
+  - No hardware
+- **Quantity Breaks**
+  - 1-10, 11-25, 26-50, 51-100, 100+
+- **Extras**
+  - Round corners
+  - Reflective material
+  - Rush production
+- **💰 Live Profit Display**
+
+#### 🏷️ DECALS & STICKERS PRICING
+- **Material**
+  - Vinyl (outdoor durable)
+  - Paper (indoor)
+  - Static cling
+  - Clear/transparent
+  - Reflective
+  - Floor graphics (slip-resistant)
+- **Cut Type**
+  - Die cut (cut to shape)
+  - Kiss cut (on backing)
+  - Square/rectangle cut
+- **Size**
+  - Custom dimensions
+  - Standard sizes
+- **Finish**
+  - Gloss
+  - Matte
+  - Laminated
+- **Quantity**
+  - Quantity breaks pricing
+  - Sheet layout for multiples
+- **💰 Live Profit Display**
+
+#### 🪟 WINDOW GRAPHICS PRICING
+- **Type**
+  - Perforated vinyl (see-through)
+  - Solid vinyl (opaque)
+  - Frosted/etched vinyl
+  - Clear with print
+  - First surface vs. second surface
+- **Coverage**
+  - Full window
+  - Partial coverage (specify %)
+  - Lettering only
+  - Cut graphics
+- **Size**
+  - Square footage calculation
+  - Multiple windows
+- **Installation**
+  - Included
+  - Additional fee
+  - Customer install
+- **Extras**
+  - Optically clear laminate
+  - Anti-graffiti laminate
+  - UV protection
+- **💰 Live Profit Display**
+
+#### 🔤 DIMENSIONAL LETTERS PRICING
+- **Material**
+  - Acrylic
+  - Aluminum (flat, formed)
+  - Foam (HDU, EPS)
+  - PVC/Sintra
+  - Stainless steel
+  - Wood
+  - Combination (acrylic face, aluminum returns)
+- **Letter Specifications**
+  - Height (per letter)
+  - Depth/thickness
+  - Font style
+  - Number of letters/characters
+- **Finish**
+  - Painted (single color, multiple)
+  - Brushed metal
+  - Polished
+  - Oxidized/patina
+- **Lighting**
+  - Non-illuminated
+  - Front-lit (face-lit)
+  - Back-lit (halo)
+  - Front + halo combination
+  - Open face neon/LED
+- **Mounting**
+  - Flush mount
+  - Stud mount with standoffs
+  - Raceway mounted
+- **Installation**
+  - Included
+  - Additional fee
+  - Pattern only (customer install)
+- **💰 Live Profit Display**
+
+#### 🏛️ MONUMENT SIGN PRICING
+- **Base/Structure**
+  - Brick/stone
+  - Stucco/EIFS
+  - Aluminum cabinet
+  - Foam/HDU carved
+  - Wood
+- **Sign Panel**
+  - Aluminum panel
+  - Acrylic
+  - HDU (carved/sandblasted)
+  - Dimensional letters on panel
+- **Size**
+  - Width x Height
+  - Single or double-sided
+- **Lighting**
+  - Non-illuminated
+  - External ground lights
+  - Internal cabinet lighting
+  - Illuminated letters
+- **Foundation**
+  - Included in price
+  - Customer responsible
+  - Engineering required
+- **Installation**
+  - Full installation
+  - Delivery only
+- **Permits**
+  - Permit assistance included
+  - Customer handles permits
+- **💰 Live Profit Display**
+
+#### 🎨 DESIGN SERVICES PRICING
+- **Service Type**
+  - Logo design
+  - Layout/mockup
+  - File preparation
+  - Vectorization
+  - Photo editing
+- **Complexity**
+  - Simple (text-based)
+  - Standard (text + graphics)
+  - Complex (custom illustration)
+- **Revisions**
+  - Number included
+  - Additional revision rate
+- **Deliverables**
+  - Print-ready files
+  - Source files included
+  - Multiple formats
+- **💰 Live Profit Display**
+
+#### 🔧 INSTALLATION PRICING
+- **Type**
+  - Local (within X miles)
+  - Travel required (mileage rate)
+  - Height/equipment needed
+  - Permit required
+- **Complexity**
+  - Standard
+  - Complex (electrical, structural)
+- **Equipment**
+  - Ladder
+  - Lift rental
+  - Scaffolding
+- **Crew Size**
+  - Single installer
+  - Two-person crew
+  - Full crew
+- **💰 Live Profit Display**
 
 ---
 
-### 📦 UPDATE 1.2 - "Approvals & Proofs" 
+**Global Pricing Features:**
+- **Default Markup Settings** - Set your standard markup percentages per category
+- **Material Cost Database** - Pre-loaded costs you can customize
+- **Labor Rate Settings** - Set hourly rates for different task types
+- **Quantity Break Rules** - Automatic discounts at quantity thresholds
+- **Customer-Specific Pricing** - Adjust markup per customer tier
+- **Price Lock** - Override calculated price with custom amount
+- **Profit Alerts** - Warning if margin falls below your minimum
+
+---
+
+### 📦 UPDATE 1.2 - "Security & Access"
+*Focus: Multi-user support and security*
+
+- **User Authentication**
+  - Secure login system (email/password)
+  - Password requirements and reset
+  - Session management
+  - Two-factor authentication (optional)
+
+- **Role-Based Access Control**
+  - **Owner** - Full access to everything
+  - **Manager** - All features except settings/billing
+  - **Sales** - Customers, quotes, jobs (no financials)
+  - **Production** - Jobs, time clock (no pricing visible)
+  - **Installer** - Assigned jobs only, time clock
+  - Custom permission builder
+
+- **Audit Trail**
+  - Track who changed what and when
+  - Quote/invoice edit history
+  - Login history
+
+- **Webstore Owner Dashboards**
+  - Separate login for store owners
+  - View their sales and orders
+  - Payout history and balance
+  - Basic analytics
+
+---
+
+### 📦 UPDATE 1.3 - "Enhanced Quotes & Jobs"
+*Focus: Better quote and job management*
+
+- **Quote Enhancements**
+  - **Quote templates** - Save common quote configurations
+  - **Quote expiration dates** - Auto-expire old quotes
+  - **Digital signatures** - Customer e-sign approval
+  - **Multiple versions** - Track quote revisions
+  - **Deposit requests** - Require upfront payment
+  - **Terms & conditions** - Attach standard terms
+  - **Quote comparison** - Show good/better/best options
+
+- **Job Enhancements**
+  - **Production time tracking** - Track actual time per job item
+  - **Job costing analysis** - Compare estimated vs. actual
+  - **Photo attachments** - Before/during/after photos
+  - **Checklist templates** - Standard checklists per job type
+  - **Job dependencies** - Link related jobs
+  - **Repeat job** - Duplicate past jobs for reorders
+  - **Priority levels** - Rush, standard, when-time-permits
+  - **Assigned employees** - Assign jobs to specific staff
+
+- **Production Board**
+  - Visual production schedule
+  - Drag-and-drop scheduling
+  - Capacity planning
+  - Bottleneck identification
+
+---
+
+### 📦 UPDATE 1.4 - "Approvals & Customer Portal"
 *Focus: Customer collaboration*
 
 - **Artwork Approval System**
   - Upload design proofs to jobs
-  - Send approval requests to customers
-  - Customer approve/reject with comments
-  - Revision tracking
-  - Approval history log
+  - Multiple proof versions
+  - Send approval requests via email/SMS
+  - Customer approve with digital signature
+  - Customer reject with comments
+  - Revision tracking and history
+  - Approval deadline reminders
+  - Auto-lock job after approval
 
 - **Customer Portal**
-  - Customers can view their quotes online
-  - Review and approve quotes digitally
+  - Branded login page
+  - View pending quotes
+  - Approve/reject quotes online
+  - View job status and progress
+  - Review and approve proofs
   - View invoice history
-  - Check job status
+  - Make payments online
+  - Request reorders
+  - Upload files/artwork
 
-- **Email Notifications**
-  - Automatic overdue invoice reminders
-  - Quote sent notifications
-  - Job completion alerts
-  - Approval request emails
+- **Automated Email Notifications**
+  - Quote sent notification
+  - Quote reminder (before expiration)
+  - Job started notification
+  - Proof ready for review
+  - Approval reminder
+  - Job completed notification
+  - Invoice sent
+  - Payment reminder (before due)
+  - Overdue invoice alerts (1, 7, 14, 30 days)
+  - Payment received confirmation
 
 ---
 
-### 📦 UPDATE 1.3 - "Reports & Insights"
+### 📦 UPDATE 1.5 - "Reports & Analytics"
 *Focus: Business intelligence*
 
-- **Advanced Financial Reports**
-  - Revenue by payment method (Cash vs Credit vs Check)
+- **Financial Reports**
+  - Revenue by payment method breakdown
+  - Revenue by category/service type
   - Monthly/quarterly/yearly comparisons
-  - Profit margin analysis
-  - Top customers report
-  - Product performance reports
+  - Profit margin analysis by category
+  - Accounts receivable aging
+  - Cash flow summary
+  - Tax liability report
+  - Expense breakdown by category
 
-- **Job Analytics**
-  - Average job completion time
-  - Revenue by job type
-  - Busiest days/weeks analysis
-  - Employee productivity reports
+- **Sales Reports**
+  - Top customers by revenue
+  - Quote conversion rate
+  - Average job value
+  - Sales by employee
+  - New vs. repeat customers
+  - Lost quotes analysis
 
-- **Export & Printing**
-  - Export reports to PDF
-  - Export data to CSV/Excel
-  - Print-ready invoices
-  - Print job tickets
+- **Production Reports**
+  - Jobs completed per day/week/month
+  - Average production time by type
+  - Employee productivity metrics
+  - On-time delivery rate
+  - Revision/remake rate
+
+- **Custom Report Builder**
+  - Select data fields
+  - Filter and date ranges
+  - Save report templates
+  - Schedule automatic reports
+
+- **Export Options**
+  - PDF reports
+  - CSV/Excel export
+  - Print-optimized formats
+  - Email reports automatically
 
 ---
 
-### 📦 UPDATE 1.4 - "Mobile & Field"
+### 📦 UPDATE 1.6 - "Time Clock & Payroll Pro"
+*Focus: Better workforce management*
+
+- **Time Clock Enhancements**
+  - **Job-specific time tracking** - Clock time to specific jobs
+  - **Task-based tracking** - Design, production, install time
+  - **GPS location** (optional) - Verify field work locations
+  - **Photo clock-in** (optional) - Prevent buddy punching
+  - **Overtime calculations** - Auto-calculate OT rates
+  - **PTO tracking** - Vacation, sick, personal time
+  - **Schedule vs. actual** - Compare planned vs. worked hours
+  - **Late/early alerts** - Notifications for schedule variances
+
+- **Payroll Enhancements**
+  - **Pay periods** - Weekly, bi-weekly, semi-monthly, monthly
+  - **Tax withholding** - Federal, state, local calculations
+  - **Direct deposit info** - Store banking details
+  - **Pay stubs** - Generate detailed pay stubs
+  - **Payroll reports** - By employee, by period
+  - **Commission calculations** - Sales-based commissions
+  - **Bonus tracking** - One-time bonuses
+  - **Deductions** - Insurance, 401k, garnishments
+  - **Year-end reports** - W-2 preparation data
+
+- **Scheduling**
+  - Employee availability
+  - Shift scheduling
+  - Time-off requests
+  - Schedule conflicts alerts
+  - Coverage gaps warnings
+
+---
+
+### 📦 UPDATE 1.7 - "Mobile & Field App"
 *Focus: On-the-go access*
 
-- **Mobile-Optimized Time Clock**
-  - Clock in/out from phone
-  - GPS location tracking (optional)
-  - Photo verification (optional)
+- **Mobile Time Clock**
+  - Clock in/out from smartphone
+  - GPS location verification
+  - Photo verification
+  - View schedule
+  - Request time off
 
-- **Mobile Job Viewer**
-  - View job details on-site
-  - Update job status from field
-  - Add photos to jobs
-  - Quick notes and updates
+- **Field Job App**
+  - View assigned jobs
+  - Update job status
+  - Add notes and photos
+  - Mark items complete
+  - View job details and specs
+  - Customer contact info
+  - Get directions to site
 
-- **Installer App Features**
+- **Installer Features**
   - Installation checklists
   - Before/after photo capture
+  - Site condition documentation
   - Customer sign-off on device
+  - Report issues/problems
+  - Request materials
+
+- **Offline Mode**
+  - Work without internet
+  - Sync when connected
+  - Queue updates
 
 ---
 
-### 📦 UPDATE 1.5 - "Payments & Integrations"
+### 📦 UPDATE 1.8 - "Payments & Accounting"
 *Focus: Get paid faster*
 
 - **Online Payments (Stripe)**
-  - Accept credit cards on invoices
-  - Payment links for customers
+  - Accept credit/debit cards
+  - Payment links on invoices
   - Automatic payment recording
-  - Partial payment support
+  - Partial payments support
+  - Payment plans/installments
+  - Automatic receipts
+  - Refund processing
+
+- **Invoice Enhancements**
+  - **Recurring invoices** - Auto-generate for repeat services
+  - **Late fees** - Automatic late fee calculation
+  - **Early payment discounts** - 2/10 net 30 terms
+  - **Deposits** - Require upfront deposits
+  - **Progress billing** - Bill in stages
 
 - **QuickBooks Integration**
   - Sync customers
   - Sync invoices
   - Sync payments
-  - Financial data export
+  - Sync expenses
+  - Automatic reconciliation
 
-- **Calendar Integrations**
-  - Google Calendar sync
-  - Outlook Calendar sync
-  - Automatic job scheduling
+- **Other Integrations**
+  - Xero accounting
+  - FreshBooks
+  - Wave accounting
 
 ---
 
 ### 📦 UPDATE 2.0 - "AI Powerhouse"
-*Focus: Advanced automation*
+*Focus: Intelligent automation*
 
 - **AI Job Estimator**
-  - Automatic pricing suggestions
-  - Material quantity calculations
-  - Time estimates based on history
+  - Analyze job description
+  - Suggest pricing based on history
+  - Material quantity estimates
+  - Time estimates from past jobs
+  - Confidence score on estimates
 
 - **Smart Scheduling**
   - AI-suggested job scheduling
-  - Workload balancing
+  - Workload balancing across team
   - Deadline optimization
+  - Resource allocation
+  - Conflict prevention
 
 - **Predictive Analytics**
   - Revenue forecasting
   - Busy period predictions
-  - Inventory suggestions
+  - Customer reorder predictions
+  - Cash flow projections
+  - Seasonal trend analysis
+
+- **Intelligent Recommendations**
+  - Upsell suggestions
+  - Similar jobs reference
+  - Material alternatives
+  - Pricing optimization
+  - Customer insights
 
 - **Voice Commands**
-  - Create jobs by voice
+  - Create quotes by voice
   - Quick status updates
   - Hands-free time clock
+  - Voice notes on jobs
 
 ---
 
-### 📦 UPDATE 2.1 - "Team Collaboration"
+### 📦 UPDATE 2.1 - "Webstores Advanced"
+*Focus: E-commerce features*
+
+- **Store Enhancements**
+  - Discount codes and coupons
+  - Bulk/volume pricing
+  - Minimum order requirements
+  - Product bundles
+  - Featured products
+  - Category organization
+  - Search functionality
+  - Related products
+
+- **Customization**
+  - Custom domain support
+  - Multiple pages (About, Contact, FAQ)
+  - Banner images and sliders
+  - Custom CSS options
+  - Social media links
+
+- **Marketing**
+  - Abandoned cart recovery
+  - Email marketing integration
+  - Social sharing buttons
+  - SEO optimization
+  - Google Analytics
+
+- **Fulfillment**
+  - Shipping calculations
+  - Order tracking
+  - Packing slips
+  - Shipping labels
+
+---
+
+### 📦 UPDATE 2.2 - "Team Collaboration"
 *Focus: Better teamwork*
 
 - **Real-Time Updates**
-  - Live job status changes
+  - Live status changes
   - Instant notifications
-  - Team activity feed
+  - Activity feed
 
-- **Internal Messaging**
-  - Job-specific comments
-  - Team chat
-  - @mentions and notifications
+- **Communication**
+  - Job comments/discussion
+  - @mentions
+  - Team announcements
+  - Read receipts
 
-- **File Sharing**
+- **File Management**
   - Attach files to jobs
   - Design file storage
   - Version history
+  - File sharing links
+
+- **Team Features**
+  - Team calendar
+  - Resource scheduling
+  - Workload visibility
+  - Performance dashboards
 
 ---
 
-### 📦 UPDATE 2.2 - "Inventory & Materials"
-*Focus: Stock management*
+### 📦 UPDATE 2.3 - "Inventory & Purchasing"
+*Focus: Stock and materials*
 
-- **Inventory Tracking**
-  - Material stock levels
+- **Inventory Management**
+  - Track material stock levels
+  - Multiple locations/bins
   - Low stock alerts
   - Reorder points
+  - Stock adjustments
+  - Inventory counts
 
 - **Material Usage**
-  - Track materials per job
-  - Cost tracking
+  - Assign materials to jobs
+  - Track actual usage
   - Waste monitoring
+  - Cost per job tracking
 
-- **Vendor Management**
-  - Supplier database
+- **Purchasing**
+  - Vendor database
   - Purchase orders
-  - Price comparisons
+  - Receiving
+  - Price history
+  - Vendor comparison
+
+- **Automation**
+  - Auto-reorder at threshold
+  - Suggested orders
+  - Order optimization
 
 ---
 
-## 💎 PREMIUM ADD-ONS (Future Consideration)
+### 📦 UPDATE 2.4 - "Advanced Integrations"
+*Focus: Connect everything*
 
-- **White-Label Webstores** - Remove Sign Guy AI branding
-- **Custom Domain Support** - yourstore.com instead of app link
-- **Advanced API Access** - Build custom integrations
+- **Calendar Sync**
+  - Google Calendar
+  - Outlook Calendar
+  - Apple Calendar
+  - Two-way sync
+
+- **Communication**
+  - Twilio SMS notifications
+  - Email service providers
+  - Slack notifications
+
+- **CRM Integrations**
+  - HubSpot
+  - Salesforce
+  - Pipedrive
+
+- **Other Tools**
+  - Zapier (1000+ apps)
+  - Google Drive
+  - Dropbox
+  - Trello/Asana
+
+- **API Access**
+  - Public API
+  - Webhooks
+  - Custom integrations
+
+---
+
+## 💎 PREMIUM ADD-ONS (Future)
+
+- **White-Label Option** - Your branding, not Sign Guy AI
+- **Custom Domains** - yourcompany.signshop.com
+- **Multi-Location** - Manage multiple shop locations
+- **Franchise Mode** - Central management of multiple shops
 - **Priority Support** - Dedicated support line
-- **Custom Training** - Personalized onboarding sessions
-- **Multi-Location Support** - Manage multiple shop locations
+- **Custom Development** - Feature requests prioritized
+- **Training Package** - Video training library + live sessions
+- **Data Migration** - Move from other systems
 
 ---
 
-## 📋 SUMMARY
+## 📋 RELEASE SUMMARY
 
-| Version | Name | Key Features | 
-|---------|------|--------------|
-| **1.0** | MVP (Current) | Full shop management, AI tools, Webstores |
-| **1.1** | Security & Access | Login, roles, store owner dashboards |
-| **1.2** | Approvals & Proofs | Artwork approval, customer portal, emails |
-| **1.3** | Reports & Insights | Advanced reports, exports, analytics |
-| **1.4** | Mobile & Field | Mobile time clock, field app, installer tools |
-| **1.5** | Payments & Integrations | Stripe, QuickBooks, calendar sync |
-| **2.0** | AI Powerhouse | Smart estimating, scheduling, predictions |
-| **2.1** | Team Collaboration | Real-time updates, messaging, file sharing |
-| **2.2** | Inventory & Materials | Stock tracking, materials, vendors |
+| Version | Name | Focus Area | Key Features |
+|---------|------|------------|--------------|
+| **1.0** | MVP | Core Operations | Full shop management, AI tools, Webstores |
+| **1.1** | Smart Pricing | Pricing Engine | Category calculators, live profit margins |
+| **1.2** | Security | Access Control | Login, roles, permissions, audit trail |
+| **1.3** | Enhanced Quoting | Sales Tools | Templates, versions, production tracking |
+| **1.4** | Customer Portal | Collaboration | Approvals, portal, notifications |
+| **1.5** | Reports | Analytics | Reports, dashboards, exports |
+| **1.6** | Payroll Pro | Workforce | Time tracking, payroll, scheduling |
+| **1.7** | Mobile | Field Access | Mobile apps, offline mode |
+| **1.8** | Payments | Accounting | Stripe, QuickBooks, invoicing |
+| **2.0** | AI Powerhouse | Intelligence | Smart estimating, predictions |
+| **2.1** | Webstores+ | E-commerce | Advanced store features |
+| **2.2** | Collaboration | Teamwork | Real-time, messaging, files |
+| **2.3** | Inventory | Materials | Stock, purchasing, vendors |
+| **2.4** | Integrations | Connectivity | APIs, calendars, CRM |
 
 ---
 
-*Sign Guy AI - Built for sign shops, by sign shop experts.*
+*Sign Guy AI - The complete operating system for sign shops.*
