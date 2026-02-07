@@ -29,6 +29,8 @@ const navigation = [
   { name: 'Products', href: '/products', icon: Package },
   { type: 'separator', label: 'Tools' },
   { name: 'AI Tools', href: '/ai-tools', icon: Sparkles },
+  { type: 'separator', label: 'Admin' },
+  { name: 'Users', href: '/users', icon: Shield },
 ];
 
 export const Sidebar = ({ collapsed, onToggle }) => {
