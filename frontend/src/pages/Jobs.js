@@ -1176,18 +1176,29 @@ export function JobDetails() {
               <Input
                 value={scheduleFormData.title}
                 onChange={(e) => setScheduleFormData({ ...scheduleFormData, title: e.target.value })}
-                placeholder="e.g., Work on banner design"
+                placeholder="e.g., Banner design for Smith Co."
                 data-testid="schedule-title-input"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Due Date</Label>
-              <Input
-                type="date"
-                value={scheduleFormData.due_date}
-                onChange={(e) => setScheduleFormData({ ...scheduleFormData, due_date: e.target.value })}
-                data-testid="schedule-date-input"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Due Date</Label>
+                <Input
+                  type="date"
+                  value={scheduleFormData.due_date}
+                  onChange={(e) => setScheduleFormData({ ...scheduleFormData, due_date: e.target.value })}
+                  data-testid="schedule-date-input"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Time</Label>
+                <Input
+                  type="time"
+                  value={scheduleFormData.due_time}
+                  onChange={(e) => setScheduleFormData({ ...scheduleFormData, due_time: e.target.value })}
+                  data-testid="schedule-time-input"
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
