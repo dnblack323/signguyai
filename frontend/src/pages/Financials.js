@@ -330,8 +330,14 @@ export default function Financials() {
                   <Input
                     type="number"
                     step="0.01"
-                    value={expenseForm.amount}
-                    onChange={(e) => setExpenseForm({ ...expenseForm, amount: parseFloat(e.target.value) || 0 })}
+                    value={expenseForm.amount === 0 ? '' : expenseForm.amount}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+                    onBlur={(e) => {
+                      if (e.target.value === '') {
+                        setExpenseForm({ ...expenseForm, amount: 0 });
+                      }
+                    }}
+                    placeholder="Enter amount"
                     data-testid="expense-amount-input"
                   />
                 </div>
