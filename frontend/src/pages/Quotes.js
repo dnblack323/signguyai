@@ -33,9 +33,10 @@ import { formatCurrency, formatDate, getStatusColor } from '../lib/utils';
 import { 
   Plus, Search, Edit2, ArrowRightCircle, Trash2, Eye,
   Printer, Mail, Building2, Phone, Calendar, FileText,
-  CheckCircle, XCircle
+  CheckCircle, XCircle, Link, Copy, Check
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '../context/AuthContext';
 
 const statusOptions = ['draft', 'sent', 'approved', 'declined'];
 
