@@ -6,7 +6,9 @@ export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
     // Check localStorage first
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) return savedTheme;
+    if (savedTheme && ['dark', 'light', 'contrast'].includes(savedTheme)) {
+      return savedTheme;
+    }
     // Default to dark
     return 'dark';
   });
@@ -14,24 +16,34 @@ export function ThemeProvider({ children }) {
   useEffect(() => {
     const root = window.document.documentElement;
     
-    // Remove both classes first
-    root.classList.remove('light', 'dark');
+    // Remove all theme classes first
+    root.classList.remove('light', 'dark', 'contrast');
     
-    // Add the current theme class (only 'light' needs to be added, dark is default)
+    // Add the current theme class (dark is default in :root, others need class)
     if (theme === 'light') {
       root.classList.add('light');
+    } else if (theme === 'contrast') {
+      root.classList.add('contrast');
     }
     
     // Save to localStorage
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  // Cycle through themes: dark -> light -> contrast -> dark
+  const cycleTheme = () => {
+    setTheme(prev => {
+      if (prev === 'dark') return 'light';
+      if (prev === 'light') return 'contrast';
+      return 'dark';
+    });
   };
 
+  // Legacy toggle for backwards compatibility
+  const toggleTheme = cycleTheme;
+
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme, cycleTheme }}>
       {children}
     </ThemeContext.Provider>
   );
