@@ -502,6 +502,16 @@ export default function Quotes() {
                 Quote Preview
               </DialogTitle>
               <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleGenerateShareLink}
+                  disabled={generatingLink}
+                  data-testid="share-quote-btn"
+                >
+                  <Link className="h-4 w-4 mr-2" /> 
+                  {generatingLink ? 'Creating...' : 'Share Link'}
+                </Button>
                 <Button variant="outline" size="sm" onClick={handleEmail} data-testid="email-quote-btn">
                   <Mail className="h-4 w-4 mr-2" /> Email
                 </Button>
@@ -510,6 +520,26 @@ export default function Quotes() {
                 </Button>
               </div>
             </div>
+            {/* Share Link Display */}
+            {portalLink && (
+              <div className="mt-3 p-3 bg-teal-500/10 border border-teal-500/30 rounded-lg">
+                <p className="text-sm text-[var(--text-secondary)] mb-2">Customer portal link (expires in 7 days):</p>
+                <div className="flex items-center gap-2">
+                  <Input 
+                    value={portalLink} 
+                    readOnly 
+                    className="text-xs bg-[var(--input-bg)] border-[var(--input-border)]"
+                  />
+                  <Button 
+                    size="sm" 
+                    onClick={handleCopyLink}
+                    className="bg-teal-500 hover:bg-teal-600"
+                  >
+                    {linkCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            )}
           </DialogHeader>
 
           {selectedQuote && (() => {
