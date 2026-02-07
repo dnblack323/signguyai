@@ -65,24 +65,7 @@ export function AuthProvider({ children }) {
         }),
       });
 
-      // Clone response to avoid body stream already read issues
-      const responseClone = response.clone();
-      
-      let data;
-      try {
-        data = await responseClone.json();
-      } catch (parseError) {
-        console.error('Error parsing response:', parseError);
-        // Try reading from original response as fallback
-        try {
-          const text = await response.text();
-          data = JSON.parse(text);
-        } catch (fallbackError) {
-          const errorMsg = 'Server error. Please try again.';
-          setError(errorMsg);
-          return { success: false, error: errorMsg };
-        }
-      }
+      const data = await response.json();
 
       if (response.ok) {
         localStorage.setItem('auth_token', data.access_token);
@@ -90,12 +73,10 @@ export function AuthProvider({ children }) {
         await fetchUserProfile(data.access_token);
         return { success: true };
       } else {
-        const errorMsg = data.detail || 'Registration failed';
-        setError(errorMsg);
-        return { success: false, error: errorMsg };
+        setError(data.detail || 'Registration failed');
+        return { success: false, error: data.detail || 'Registration failed' };
       }
     } catch (err) {
-      console.error('Registration error:', err);
       const errorMsg = 'Network error. Please try again.';
       setError(errorMsg);
       return { success: false, error: errorMsg };
@@ -114,24 +95,7 @@ export function AuthProvider({ children }) {
         body: JSON.stringify({ email, password }),
       });
 
-      // Clone response to avoid body stream already read issues
-      const responseClone = response.clone();
-      
-      let data;
-      try {
-        data = await responseClone.json();
-      } catch (parseError) {
-        console.error('Error parsing response:', parseError);
-        // Try reading from original response as fallback
-        try {
-          const text = await response.text();
-          data = JSON.parse(text);
-        } catch (fallbackError) {
-          const errorMsg = 'Server error. Please try again.';
-          setError(errorMsg);
-          return { success: false, error: errorMsg };
-        }
-      }
+      const data = await response.json();
 
       if (response.ok) {
         localStorage.setItem('auth_token', data.access_token);
@@ -139,12 +103,10 @@ export function AuthProvider({ children }) {
         await fetchUserProfile(data.access_token);
         return { success: true };
       } else {
-        const errorMsg = data.detail || 'Invalid email or password';
-        setError(errorMsg);
-        return { success: false, error: errorMsg };
+        setError(data.detail || 'Login failed');
+        return { success: false, error: data.detail || 'Login failed' };
       }
     } catch (err) {
-      console.error('Login error:', err);
       const errorMsg = 'Network error. Please try again.';
       setError(errorMsg);
       return { success: false, error: errorMsg };
