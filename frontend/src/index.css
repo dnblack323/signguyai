@@ -59,23 +59,23 @@
 
     /* Contrast Theme - Dark background with light content areas */
     .contrast {
-        --background: 180 25% 20%;
+        --background: 180 20% 18%;
         --foreground: 210 40% 98%;
-        --card: 0 0% 96%;
-        --card-foreground: 222 47% 11%;
-        --popover: 0 0% 96%;
-        --popover-foreground: 222 47% 11%;
+        --card: 0 0% 98%;
+        --card-foreground: 222 47% 15%;
+        --popover: 0 0% 98%;
+        --popover-foreground: 222 47% 15%;
         --primary: 174 100% 35%;
         --primary-foreground: 0 0% 100%;
-        --secondary: 217 100% 58%;
+        --secondary: 217 100% 50%;
         --secondary-foreground: 0 0% 100%;
-        --muted: 180 20% 25%;
-        --muted-foreground: 210 20% 80%;
-        --accent: 174 100% 40%;
-        --accent-foreground: 0 0% 0%;
-        --destructive: 4 90% 58%;
+        --muted: 180 15% 90%;
+        --muted-foreground: 222 30% 35%;
+        --accent: 174 100% 35%;
+        --accent-foreground: 0 0% 100%;
+        --destructive: 4 90% 50%;
         --destructive-foreground: 0 0% 100%;
-        --border: 180 15% 30%;
+        --border: 220 15% 80%;
         --input: 0 0% 100%;
         --ring: 174 100% 35%;
     }
