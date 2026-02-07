@@ -65,6 +65,34 @@ Build a web-based sign-shop operating system called "Sign Guy AI" - a single dai
   - Marketing Tools: Social Media Job Post Creator, Social Media Pack Generator, Content Calendar Creator, Campaign Builder
 - [x] Webstores (Fundraiser campaigns, B2B custom stores)
 
+### Recent Updates (February 7, 2026) - COMPLETED
+- [x] **AI Tools Image Generation** ✨
+  - Logo Creator, Banner Designer, Sign Designer, Mockup Creator now generate actual images
+  - 2-3 design options generated per request with selection capability
+  - Ability to request modifications and regenerate specific options
+  - "Generates Images" badge on tools that produce visual output
+
+- [x] **Font Identifier Upgrade**
+  - Now accepts image upload instead of text description
+  - Upload any image containing text to identify fonts
+  - Provides font matches with confidence percentages
+
+- [x] **Document Composer Expansion**
+  - Added Late Payment Reminder template
+  - Added Final Payment Notice template
+  - Added Collections Letter template
+  - Added "Other/Custom" option with description field
+
+- [x] **Job Scheduling Improvements**
+  - Task title auto-fills with job name (editable)
+  - Added time input alongside date selection
+  - Default time set to 9:00 AM
+
+- [x] **Number Input UX Fix**
+  - Fixed 0 placeholder issue across all forms
+  - Fields now show empty with placeholder text when value is 0
+  - Clicking no longer interferes with number entry
+
 ### Recent Updates (February 5, 2026) - COMPLETED
 - [x] **AI Tools Suite Revamp** ✨
   - Replaced old 6 tools with comprehensive 15-tool suite
