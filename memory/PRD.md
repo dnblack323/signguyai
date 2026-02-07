@@ -70,7 +70,7 @@ Build a web-based sign-shop operating system called "Sign Guy AI" - a single dai
   - Logo Creator, Banner Designer, Sign Designer, Mockup Creator, Photo Enhancer, Image Vectorizer now generate ACTUAL IMAGES
   - Uses OpenAI gpt-image-1 via Emergent LLM key
   - Returns 2-3 design options per request with base64 images
-  - User can select, download, and request modifications to regenerate
+  - **Design Notes shown alongside images** so users understand the design rationale
 
 - [x] **Photo Enhancer Updated**
   - Now has image upload field (not text URL)
@@ -86,13 +86,19 @@ Build a web-based sign-shop operating system called "Sign Guy AI" - a single dai
   - Removed unnecessary "what will you use font for" field
   - Just needs image + optional text sample
 
+- [x] **NEW: Contrast Theme** ✨
+  - Third theme option: Dark background with light content cards
+  - Teal/green sidebar and page background
+  - White/light cards for content areas
+  - Better text readability with dark text on light backgrounds
+  - Theme cycles: Dark → Light → Contrast → Dark
+
 - [x] **Job Scheduling Fixed**
   - Task title auto-fills with job name (editable)
   - Added time input alongside date
 
 - [x] **Number Input UX Fixed**
   - Fields show empty with placeholder when value is 0
-  - No more 0 interfering with entry
 
 ### Recent Updates (February 5, 2026) - COMPLETED
 - [x] **AI Tools Suite Revamp** ✨
