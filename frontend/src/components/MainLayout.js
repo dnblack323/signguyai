@@ -108,8 +108,47 @@ export const Sidebar = ({ collapsed, onToggle }) => {
           </nav>
         </ScrollArea>
 
-        {/* Theme Toggle & Collapse */}
+        {/* User Info & Theme Toggle & Collapse */}
         <div className="border-t border-border/50 p-3 space-y-2">
+          {/* User Info */}
+          {user && (
+            <div className={cn(
+              "flex items-center gap-3 px-2 py-2 rounded-md bg-muted/50",
+              collapsed && "justify-center"
+            )}>
+              <div className="w-8 h-8 rounded-full bg-teal-500/20 border border-teal-500/30 flex items-center justify-center flex-shrink-0">
+                <User className="w-4 h-4 text-teal-400" />
+              </div>
+              {!collapsed && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate" data-testid="user-name">
+                    {user.full_name}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {user.company_name || user.email}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Logout Button */}
+          {user && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={logout}
+              data-testid="logout-btn"
+              className={cn(
+                "w-full text-red-400 hover:text-red-300 hover:bg-red-500/10",
+                collapsed && "px-2"
+              )}
+            >
+              <LogOut className="h-4 w-4" />
+              {!collapsed && <span className="ml-2">Sign Out</span>}
+            </Button>
+          )}
+          
           <ThemeToggle collapsed={collapsed} />
           <Button
             variant="ghost"
