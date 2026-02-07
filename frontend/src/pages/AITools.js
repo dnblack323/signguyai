@@ -738,12 +738,38 @@ export default function AITools() {
                     </Button>
                   </div>
                 )}
+
+                {/* Design Notes shown with images */}
+                {result && selectedTool.generatesImages && (
+                  <div className="mt-4 border-t border-border pt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-heading uppercase text-sm text-primary flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        Design Notes & Rationale
+                      </h4>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => copyToClipboard(result.output)}
+                      >
+                        <Copy className="h-4 w-4 mr-2" /> Copy
+                      </Button>
+                    </div>
+                    <ScrollArea className="h-[300px]">
+                      <div className="prose prose-invert max-w-none">
+                        <pre className="whitespace-pre-wrap text-sm font-sans bg-muted/30 p-4 rounded-lg">
+                          {result.output}
+                        </pre>
+                      </div>
+                    </ScrollArea>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
 
-          {/* Text Result */}
-          {result && (
+          {/* Text Result - Only show for non-image tools */}
+          {result && !selectedTool.generatesImages && (
             <Card className="bg-card border-border/50 border-primary/30">
               <CardHeader>
                 <div className="flex items-center justify-between">
