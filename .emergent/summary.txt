@@ -1,52 +1,40 @@
 <analysis>**original_problem_statement:**
-The user wants to build the MVP of a web-based sign-shop operating system called Sign Guy AI (originally Signtists Lab AI).
+The user wants to build the MVP of a web-based sign-shop operating system called Sign Guy AI. The application should be a single platform for sign shops to manage Customers, Jobs, Invoices, Productivity, Financials, and Employee Time/Payroll, replacing disconnected systems like spreadsheets and emails. The user now intends to market this as a SaaS product for other sign companies.
 
 **PRODUCT REQUIREMENTS:**
-The application should be a single platform for sign shops to manage Customers, Jobs, Invoices, Productivity, Financials, and Employee Time/Payroll. It must replace disconnected systems like spreadsheets and emails.
-
-**Core Modules (MVP):**
-1.  **Customer Management:** CRUD for customers (name, company, contact, status, notes).
-2.  **Quotes/Estimates:** Create quotes tied to a customer, with line items, status, and one-click conversion to a Job.
-3.  **Job/Order Tickets:** Create jobs tied to customers, with a name, description, status, and due date.
-4.  **Invoicing (MVP):** Create invoices from jobs, track status, and allow manual payment marking.
-5.  **Productivity & Scheduling:** Task list, calendar view, and Kanban board for jobs.
-6.  **Financial Tracking (Basic):** Simple entry for daily sales and expenses.
-7.  **Time Clock & Payroll (MVP):** A critical module for employees to clock in/out.
-8.  **AI Tools Suite (MVP):** A suite of AI tools for design, branding, and business tasks.
-9.  **Webstores (Fundraiser & B2B):** A comprehensive module for creating B2B, Fundraiser, and Creator webstores with a master product catalog, public-facing storefronts, and order management integrated into the main job system.
+- **Core Modules:** Customer Management, Quotes/Estimates, Job/Order Tickets, Invoicing, Productivity & Scheduling, Financial Tracking, Time Clock & Payroll.
+- **AI Tools Suite:** A comprehensive suite of 15 AI tools for design, branding, and business tasks, including image-generating tools.
+- **Webstores:** A module for creating B2B, Fundraiser, and Creator webstores with a master product catalog, public-facing storefronts with custom branding (logo/color), and integrated order management.
+- **SaaS Architecture:** The system needs to be adapted for a multi-tenant SaaS model, allowing other companies to sign up, use the software with their own branding, and access features based on subscription tiers.
+- **User Authentication:** A critical component for the SaaS model, allowing users to register, log in, and access their company's data securely.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A full-stack application with a FastAPI backend, React frontend, and MongoDB database. Most core modules have a functional UI and backend logic. The last session saw a flurry of activity, completing numerous features and bug fixes across the application. Key completions include an invoice preview modal, enhanced financial tracking, dark/light mode toggle, a major refactor of the Webstores module (Phase 1), a new master product catalog, and various UI/UX improvements like customer/quote detail popups and a job scheduling shortcut.
+A full-stack application with a FastAPI backend, React frontend, and MongoDB database. Most core modules are functional. The last session included the completion of public-facing webstores with custom branding, a major revamp of the AI Tools suite to include 15 tools with actual image generation, the addition of a new Contrast theme based on user-provided designs, and several UI/UX fixes. A detailed feature roadmap was also created. The system is currently a single-tenant application.
 
 **Last working item**:
-- Last item agent was working: The agent started implementing the public-facing storefronts for the Webstores module. This involves creating a shareable, customer-facing page for each webstore where products can be viewed and ordered. The agent created the  page and route and was in the process of modifying  to add the UI for product assignment and a Copy Store Link feature.
+- Last item agent was working: The user approved starting work on the user authentication system, which is the first step toward the SaaS model. The agent retrieved an integration playbook for JWT-based authentication and began modifying  by adding the necessary imports, models, and helper functions.
 - Status: IN PROGRESS
 - Agent Testing Done: N
-- Which testing method agent to use? frontend testing agent
+- Which testing method agent to use? both
 - User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1:** Complete the implementation of public-facing storefronts. (P0)
--   **Issue 2:** Address minor frontend accessibility warnings from a previous test report. (P2)
+-   **Issue 1:** The AI image generation tools (e.g., Banner Designer) should return the design notes (text generation) alongside the generated images so the user understands the rationale behind the design. The agent has implemented the UI to display both, but it needs to be verified in an end-to-end flow. (P1)
+-   **Issue 2:** Address minor frontend accessibility warnings from a previous test report (). (P2)
 
 **Issues Detail:**
 -   **Issue 1:**
-    -   **Attempted fixes:**
-        -   Created .
-        -   Added a public route  in .
-        -   Started modifying  to add a detail modal for product assignment and a store link button. The agent added the  components but had not yet added the handler functions (, etc.) or wired up the UI triggers completely.
+    -   **Attempted fixes:** The agent refactored  to create a layout where text results (design notes) would appear alongside or below image results.
     -   **Next debug checklist:**
-        1.  Resume editing  to add the  function and a UI for assigning products from the master catalog to a specific webstore (likely in the store detail modal).
-        2.  Implement the  component to fetch and display the webstore's branding (logo, colors) and its assigned products.
-        3.  Add shopping cart functionality to the  page.
-        4.  Create a checkout flow for customers to place orders, which should trigger the  endpoint.
-        5.  Test the full user journey: Copy link from admin -> View public storefront -> Add products to cart -> Place order -> Verify the new order appears in the Orders tab of the Webstore Manager.
-    -   **Why fix this issue and what will be achieved with the fix?** This is a critical feature that makes the Webstores module functional for end-users, enabling the sign shop to provide B2B/Fundraiser stores to its clients.
+        1.  Trigger an AI tool that generates both images and text (e.g., AI Banner Designer).
+        2.  Verify that the frontend correctly displays both the generated images and the accompanying text notes in the results section.
+        3.  Ensure the layout is clean and user-friendly.
+    -   **Why fix this issue and what will be achieved with the fix?** This provides valuable context to the user, explaining the why behind an AI-generated design, making the tool more useful.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** both
+    -   **Should Test frontend/backend/both after fix?** frontend
     -   **Blocked on other issue:** None.
 -   **Issue 2:**
     -   **Attempted fixes:** None.
@@ -58,37 +46,36 @@ A full-stack application with a FastAPI backend, React frontend, and MongoDB dat
     -   **Blocked on other issue:** None.
 
 **In progress Task List**:
--   **Task 1:** Complete the Webstores Public Storefront implementation.
-    -   **Where to resume:** Continue modifying . The agent added the JSX for the detail modal and product assignment UI but needs to implement the state management and handler functions (, , etc.).
-    -   **What will be achieved with this?** A public-facing storefront for each webstore, allowing customers to browse products and place orders.
+-   **Task 1:** Complete the User Authentication system. (P0)
+    -   **Where to resume:** Continue modifying . The models (, ) and helper functions (, ) have been added. The next step is to implement the API routes for , , and a protected route like  for token verification. After the backend is complete, create the frontend components for login and registration.
+    -   **What will be achieved with this?** Users will be able to create accounts and log in, a foundational requirement for the SaaS product.
     -   **Status:** IN PROGRESS
     -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on something:** None.
 
 **Upcoming and Future Tasks**
 **Upcoming Tasks (P1):**
--   **Webstores Phase 2:** Build dashboards for store owners to view their sales, orders, and payout totals.
--   **Productivity Module:** Enhance the Kanban board and Calendar views.
--   **Financial Tracking:** Implement summary views and reports (e.g., Cash vs. Credit vs. Check breakdown).
+-   **SaaS Architecture - Phase 1:** Implement tenancy. Adapt the database schema and API logic to ensure data is isolated between different companies (tenants).
+-   **Smart Pricing Engine:** Build category-specific pricing calculators (Apparel, Banners, etc.) with real-time profit margin calculation within the Quotes/Jobs modules.
+-   **Artwork Approval System:** Create a workflow for customers to view and approve designs. This will likely involve a simple customer-facing portal.
 
 **Future Tasks (P2):**
--   Implement AI Tools Suite.
--   Integrate Stripe for online invoice payments.
--   Build a Proof Approval System for designs.
--   Add File Attachment capabilities to Job Items.
--   Implement User Authentication (login/roles for employees).
+-   **SaaS Subscription Tiers:** Build the logic to restrict/grant access to features based on a company's subscription plan.
+-   **Enhanced Reports & Analytics:** Create detailed reports with PDF/CSV export functionality.
+-   **Stripe Integration:** Allow end-customers to pay invoices online.
+-   **Inventory Management:** Track material stock levels and usage.
+-   **Mobile/Field Features:** Implement a mobile-friendly time clock and allow job updates from the field.
 
 **Completed work in this session**
-- **Webstore System v2 - Phase 1:** Implemented new backend models (, , etc.), new v2 APIs, a master Product Catalog page, and a redesigned Webstore Manager page.
-- **Invoice Preview Modal:** Created a modal to view invoice details without navigating away from the current page, accessible from Jobs, Invoices, and the Dashboard.
-- **Daily Sales Entry Enhancement:** Updated the Financials page to track sales by payment method (Cash, Credit, Check).
-- **Dark/Light Mode Toggle:** Implemented a site-wide theme toggle with a new light mode design.
-- **New Expense Categories:** Added 14 new expense categories (e.g., Insurance, Vehicle, Travel) to the Financials module.
-- **Customer & Quote Detail Modals:** Created popups on the Customers and Quotes pages to show detailed information for a selected item.
-- **Job Scheduling Shortcut:** Added a Schedule button on the Job Details page to quickly create a linked task in the Productivity calendar.
-- **Bug Fix:** Resolved an error preventing the New Task dialog from opening on the Productivity page.
-- **UI Update:** Replaced the logo in the sidebar.
-- **Module Verification:** Confirmed the Add Note feature in Jobs and the full Time Clock & Payroll module are working as expected.
+- **Public Storefronts:** Completed the implementation of public-facing webstores with custom branding (logo and accent color), product assignment, and a full shopping cart/checkout flow.
+- **AI Tools Suite Revamp:** Replaced the old AI tools with a new suite of 15 tools based on user requirements.
+- **AI Image Generation (FIXED):** Successfully implemented image generation for tools like Logo Designer, Banner Designer, etc., using the  library. This was a re-implementation to fix a previous failed attempt.
+- **AI Tools UI Enhancements:** Added image upload fields to Photo Enhancer & Image Vectorizer and improved forms for other tools based on user feedback.
+- **New Contrast Theme:** Created a third theme option (dark background, light content cards) based on user-provided images and fixed all associated text readability issues.
+- **UI/UX Improvements:**
+    - Fixed an issue where number inputs retained a 0 placeholder, interfering with user input.
+    - Modified the Schedule Task dialog to auto-fill the job name and include a time input.
+- **Roadmap Creation:** Generated a comprehensive feature and update roadmap in  and had a strategic discussion with the user about transitioning to a SaaS model.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1:** Minor accessibility warnings from .
@@ -104,77 +91,160 @@ A full-stack application with a FastAPI backend, React frontend, and MongoDB dat
 
 
 **Key Technical Concepts**
--   **Backend:** FastAPI
+-   **Backend:** FastAPI, Pydantic, Motor (async MongoDB driver)
 -   **Frontend:** React, React Router, Tailwind CSS
 -   **Database:** MongoDB
--   **UI Components:** Shadcn/UI
--   **State Management:** React Context API (, )
--   **Theming:** CSS variables controlled by React Context for dark/light mode.
+-   **Authentication:** JWT (JSON Web Tokens) - **(In Progress)**
+-   **Theming:** 3-mode (light, dark, contrast) theming using CSS variables and React Context.
+-   **AI Integration:**  library for image generation (Nano Banana model) and usage: openai [-h] [-v] [-b API_BASE] [-k API_KEY] [-p PROXY [PROXY ...]]
+              [-o ORGANIZATION] [-t {openai,azure}]
+              [--api-version API_VERSION] [--azure-endpoint AZURE_ENDPOINT]
+              [--azure-ad-token AZURE_AD_TOKEN] [-V]
+              {api,tools,migrate,grit} ...
+
+positional arguments:
+  {api,tools,migrate,grit}
+    api                 Direct API calls
+    tools               Client side tools for convenience
+
+options:
+  -h, --help            show this help message and exit
+  -v, --verbose         Set verbosity.
+  -b API_BASE, --api-base API_BASE
+                        What API base url to use.
+  -k API_KEY, --api-key API_KEY
+                        What API key to use.
+  -p PROXY [PROXY ...], --proxy PROXY [PROXY ...]
+                        What proxy to use.
+  -o ORGANIZATION, --organization ORGANIZATION
+                        Which organization to run as (will use your default
+                        organization if not specified)
+  -t {openai,azure}, --api-type {openai,azure}
+                        The backend API to call, must be `openai` or `azure`
+  --api-version API_VERSION
+                        The Azure API version, e.g.
+                        'https://learn.microsoft.com/en-us/azure/ai-
+                        services/openai/reference#rest-api-versioning'
+  --azure-endpoint AZURE_ENDPOINT
+                        The Azure endpoint, e.g.
+                        'https://endpoint.openai.azure.com'
+  --azure-ad-token AZURE_AD_TOKEN
+                        A token from Azure Active Directory,
+                        https://www.microsoft.com/en-
+                        us/security/business/identity-access/microsoft-entra-
+                        id
+  -V, --version         show program's version number and exit library for text generation.
 
 **key DB schema**
+-   **User:**  **(New, for Auth)**
 -   **Webstore:** 
--   **Product:** 
--   **ProductVariant:** 
--   **WebstoreProduct:** 
 -   **WebstoreOrder:** 
--   **ExpenseEntry:** 
+-   **Product:** 
 
 **changes in tech stack**
 - None.
 
 **All files of reference**
--   : Heavily modified to add Webstore v2 models/APIs, new expense categories, and fix a FastAPI route ordering bug.
--   : Overwritten with a new Webstore Manager UI and was being modified again for product assignment/store links.
--   : New page for the master product catalog.
--   : New, empty page for public-facing webstores.
--   : Modified to add  and routes for  and .
--   : Modified with CSS variables for dark/light themes.
--   , , , , : All were modified to add features or fix bugs.
+-   : Heavily modified to add the new AI tools suite (text prompts), fix image generation logic, and begin adding JWT authentication code.
+-   : Completely rewritten to house 15 new tools, add image generation/display capabilities, and fix forms based on user feedback.
+-   : Modified to add UI for custom branding (logo URL, color picker) and store links.
+-   : Modified to add CSS variables for the new Contrast theme and fix visibility issues.
+-   : Updated to handle three themes (light, dark, contrast).
+-   : Updated to cycle through the three themes.
+-   : Modified to improve the Schedule Task dialog.
+-   : Modified to fix number input placeholder behavior.
+-   : New document created to outline the product's future direction.
+-   : Updated to reflect all completed work and new requirements.
 
 **Areas that need refactoring**:
-- The backend in  is becoming very large and difficult to manage. It should be broken down into a modular structure (e.g., , , ).
+- The monolithic backend at  is becoming increasingly unsustainable. With authentication logic now being added, it is critical to prioritize breaking it into a modular structure (e.g., , , , ).
 
 **key api endpoints**
--    (POST, GET)
--    (GET, PUT, DELETE)
--    (POST, GET)
--    (PUT, DELETE)
--    (POST, GET)
--    (POST, GET) **(Route order fixed)**
--    (POST)
--    (GET)
--    (POST)
+-    (POST): For text-based AI tools.
+-    (POST): For image-based AI tools. Returns base64 encoded images.
+-    (POST): **(To be implemented)**
+-    (POST): **(To be implemented)**
+-   : All endpoints for the webstore module.
 
 **Critical Info for New Agent**
--   The immediate priority is to complete the **public-facing storefronts**. This is an  task. The starting point is to finish the UI modifications in  for assigning products and copying the store link, then building out the  page.
--   The new **Webstore V2** system is the source of truth. All new webstore development must use the  endpoints and the corresponding data models (, , etc.). The old webstore logic is deprecated.
--   Be mindful of **FastAPI route ordering**. When adding new routes to , ensure specific, static paths (e.g., ) are defined *before* dynamic paths (e.g., ) to prevent incorrect matching.
+-   The immediate priority is to **complete the user authentication system**. The user has given the green light for this task. You must continue the work started in .
+-   The user is considering the broader implications of turning the app into a SaaS product but has deferred decisions on pricing/tiers. Focus solely on building the core authentication functionality for now.
+-   The previous agent had a failed attempt at implementing AI image generation. The second attempt, using  and returning base64 images, was successful. Be mindful of this when working with AI features.
+-   The Contrast theme was a major user request. Pay attention to text visibility and color contrast if making any further UI changes.
 
 **documents and test reports created in this job**
-- PRD.md was updated multiple times.
+-   
+-   
+-   
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Can you add the following options to the expense categories... - **Completed**.
-2.  **User:** in customers page id like to see a popup with all related info for that customer... - **Completed**.
-3.  **User:** on quotes page id like a popup of the quote to show when click on the quote... - **Completed**.
-4.  **User:** need a shortcut somewhere when viewing a job to add that job to the calendar/ to do list and schedule it - **Completed**.
-5.  **User:** The products in the web need to be assigned to specific web stores Also there needs to be like a storefront for each of the web so they are and like a business could give out the link to their employees to buy uniforms or things like that... - **In Progress**. This is the active task.
+1.  **User:** Fixed AI image generation, UI/UX issues, and requested a new Contrast theme based on uploaded images.
+2.  **Agent:** Implemented the fixes and the new theme.
+3.  **User:** Noticed text was barely visible in the new Contrast theme. - **Resolved**.
+4.  **Agent:** Fixed the CSS for the Contrast theme to improve text readability.
+5.  **User:** Asked for guidance on turning the app into a SaaS product with multi-tenancy, custom branding for tenants, and pricing tiers.
+6.  **Agent:** Asked clarifying questions about the SaaS model (tenancy, billing, customization).
+7.  **User:** Admitted to being new to SaaS and asked for suggestions on pricing/tiers and a roadmap with credit estimates.
+8.  **Agent:** Provided a detailed breakdown of a potential SaaS model, including pricing tiers and a phased implementation plan.
+9.  **User:** Decided to think about the SaaS pricing/tiers later and instructed the agent to **proceed with building user authentication**.
+10. **Agent:** Acknowledged the request and began implementing the user authentication system.
 
 **Project Health Check:**
--   **Broken:** The backend architecture is monolithic and becoming unwieldy.
+-   **Broken:** The backend architecture is monolithic. This is a growing technical debt that will make future development and maintenance difficult, especially for a multi-tenant SaaS application.
 -   **Mocked:** None.
 
 **3rd Party Integrations**
--   **OpenAI GPT-5.2:** Planned for the AI tools suite. To be implemented via the  library, which uses the Emergent LLM Key.
+-   **OpenAI GPT-5.2:** Used for text generation in the AI Tools Suite (via usage: openai [-h] [-v] [-b API_BASE] [-k API_KEY] [-p PROXY [PROXY ...]]
+              [-o ORGANIZATION] [-t {openai,azure}]
+              [--api-version API_VERSION] [--azure-endpoint AZURE_ENDPOINT]
+              [--azure-ad-token AZURE_AD_TOKEN] [-V]
+              {api,tools,migrate,grit} ...
+
+positional arguments:
+  {api,tools,migrate,grit}
+    api                 Direct API calls
+    tools               Client side tools for convenience
+
+options:
+  -h, --help            show this help message and exit
+  -v, --verbose         Set verbosity.
+  -b API_BASE, --api-base API_BASE
+                        What API base url to use.
+  -k API_KEY, --api-key API_KEY
+                        What API key to use.
+  -p PROXY [PROXY ...], --proxy PROXY [PROXY ...]
+                        What proxy to use.
+  -o ORGANIZATION, --organization ORGANIZATION
+                        Which organization to run as (will use your default
+                        organization if not specified)
+  -t {openai,azure}, --api-type {openai,azure}
+                        The backend API to call, must be `openai` or `azure`
+  --api-version API_VERSION
+                        The Azure API version, e.g.
+                        'https://learn.microsoft.com/en-us/azure/ai-
+                        services/openai/reference#rest-api-versioning'
+  --azure-endpoint AZURE_ENDPOINT
+                        The Azure endpoint, e.g.
+                        'https://endpoint.openai.azure.com'
+  --azure-ad-token AZURE_AD_TOKEN
+                        A token from Azure Active Directory,
+                        https://www.microsoft.com/en-
+                        us/security/business/identity-access/microsoft-entra-
+                        id
+  -V, --version         show program's version number and exit library).
+-   **Emergent Integrations (Nano Banana):** Used for AI image generation (via  library). Uses the Emergent LLM Key.
+-   **JWT-based Custom Auth:** **(In Progress)**.
 
 **Testing status**
--   **Testing agent used after significant changes:** NO
+-   **Testing agent used after significant changes:** YES. The agent used the testing agent successfully after implementing the public storefront, revamping the AI tools, and fixing the subsequent UI/UX issues.
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:** None.
 -   **Known regressions:** None.
 
 **Credentials to test flow:**
-- None required.
+-   None currently required. The agent will need to create a test user (e.g., test@example.com) to validate the authentication flow once it's implemented.
 
 **What agent forgot to execute**
-- The agent successfully addressed a high volume of user requests without any significant omissions. The pending accessibility warnings are a known low-priority item that can be addressed later.</analysis>
+- The agent successfully completed all user requests from the session. The only outstanding items are pre-existing, low-priority issues or the new task that is currently in progress.</analysis>
