@@ -66,6 +66,18 @@ Build a web-based sign-shop operating system called "Sign Guy AI" - a single dai
 - [x] Webstores (Fundraiser campaigns, B2B custom stores)
 
 ### Recent Updates (February 7, 2026) - COMPLETED
+- [x] **User Authentication System** ✅ COMPLETE
+  - JWT-based authentication with 24-hour token expiry
+  - Backend endpoints: `/api/auth/register`, `/api/auth/login`, `/api/users/me`
+  - Password hashing with bcrypt
+  - Protected routes redirect to login when not authenticated
+  - User profile display in sidebar (name & company)
+  - Logout functionality clears token and redirects to login
+  - Public storefront (`/store/:storeId`) remains accessible without auth
+  - 100% backend tests passing (22/22)
+  - Test suite created at `/app/backend/tests/test_auth.py`
+
+### Recent Updates (February 7, 2026) - COMPLETED
 - [x] **AI Tools Image Generation FIXED** ✨
   - Logo Creator, Banner Designer, Sign Designer, Mockup Creator, Photo Enhancer, Image Vectorizer now generate ACTUAL IMAGES
   - Uses OpenAI gpt-image-1 via Emergent LLM key
