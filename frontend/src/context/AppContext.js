@@ -282,6 +282,11 @@ export const AppProvider = ({ children }) => {
     return res.data;
   };
 
+  const generateAIImages = async (tool, inputData, count = 3) => {
+    const res = await axios.post(`${API}/ai/generate-images`, { tool, input_data: inputData, image_count: count });
+    return res.data;
+  };
+
   const fetchAIHistory = async (params = {}) => {
     const res = await axios.get(`${API}/ai/history`, { params });
     return res.data;
