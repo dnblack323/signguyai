@@ -912,6 +912,171 @@ async def update_current_user_profile(
     updated_user = await db.users.find_one({"id": current_user.id}, {"_id": 0})
     return User(**{k: v for k, v in updated_user.items() if k != "hashed_password"})
 
+# -------------- ADMIN USER MANAGEMENT --------------
+@api_router.get("/admin/users", response_model=List[User])
+async def list_all_users(current_user: UserInDB = Depends(get_current_active_user)):
+    """List all users (admin only - for now any authenticated user can access)"""
+    users = await db.users.find({}, {"_id": 0, "hashed_password": 0}).to_list(1000)
+    return [User(**u) for u in users]
+
+@api_router.post("/admin/users/{user_id}/reset-password")
+async def admin_reset_password(
+    user_id: str,
+    input: PasswordReset,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Admin resets a user's password"""
+    # Find target user
+    target_user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Validate new password
+    if len(input.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    
+    # Hash and update password
+    hashed_password = get_password_hash(input.new_password)
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"hashed_password": hashed_password, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": f"Password reset successfully for {target_user['email']}"}
+
+@api_router.put("/admin/users/{user_id}/status")
+async def admin_toggle_user_status(
+    user_id: str,
+    is_active: bool,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Admin enables/disables a user account"""
+    # Prevent disabling own account
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot modify your own account status")
+    
+    target_user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"is_active": is_active, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    status_text = "enabled" if is_active else "disabled"
+    return {"message": f"User {target_user['email']} has been {status_text}"}
+
+# -------------- MAGIC LINKS (CUSTOMER PORTAL) --------------
+@api_router.post("/magic-links", response_model=MagicLink)
+async def create_magic_link(
+    input: MagicLinkCreate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Create a magic link for customer portal access"""
+    # Verify the resource exists
+    if input.resource_type == MagicLinkType.QUOTE:
+        resource = await db.quotes.find_one({"id": input.resource_id}, {"_id": 0})
+    elif input.resource_type == MagicLinkType.JOB:
+        resource = await db.jobs.find_one({"id": input.resource_id}, {"_id": 0})
+    elif input.resource_type == MagicLinkType.INVOICE:
+        resource = await db.invoices.find_one({"id": input.resource_id}, {"_id": 0})
+    else:
+        raise HTTPException(status_code=400, detail="Invalid resource type")
+    
+    if not resource:
+        raise HTTPException(status_code=404, detail=f"{input.resource_type.value.capitalize()} not found")
+    
+    # Calculate expiry
+    expires_at = datetime.now(timezone.utc) + timedelta(days=input.expires_in_days)
+    
+    # Create magic link
+    magic_link = MagicLink(
+        resource_type=input.resource_type,
+        resource_id=input.resource_id,
+        customer_email=input.customer_email,
+        expires_at=expires_at.isoformat()
+    )
+    
+    await db.magic_links.insert_one(magic_link.model_dump())
+    
+    return magic_link
+
+@api_router.get("/magic-links")
+async def list_magic_links(
+    resource_type: Optional[MagicLinkType] = None,
+    resource_id: Optional[str] = None,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """List magic links (optionally filtered)"""
+    query = {}
+    if resource_type:
+        query["resource_type"] = resource_type.value
+    if resource_id:
+        query["resource_id"] = resource_id
+    
+    links = await db.magic_links.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return links
+
+@api_router.delete("/magic-links/{link_id}")
+async def revoke_magic_link(
+    link_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Revoke/delete a magic link"""
+    result = await db.magic_links.delete_one({"id": link_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Magic link not found")
+    return {"message": "Magic link revoked"}
+
+# Public endpoint - no auth required
+@api_router.get("/portal/{token}")
+async def access_portal_via_magic_link(token: str):
+    """Access customer portal via magic link (public endpoint)"""
+    # Find the magic link
+    magic_link = await db.magic_links.find_one({"token": token}, {"_id": 0})
+    
+    if not magic_link:
+        raise HTTPException(status_code=404, detail="Invalid or expired link")
+    
+    # Check expiry
+    expires_at = datetime.fromisoformat(magic_link["expires_at"].replace("Z", "+00:00"))
+    if datetime.now(timezone.utc) > expires_at:
+        raise HTTPException(status_code=410, detail="This link has expired")
+    
+    # Get the resource
+    resource_type = magic_link["resource_type"]
+    resource_id = magic_link["resource_id"]
+    
+    if resource_type == "quote":
+        resource = await db.quotes.find_one({"id": resource_id}, {"_id": 0})
+        # Get customer info
+        if resource:
+            customer = await db.customers.find_one({"id": resource.get("customer_id")}, {"_id": 0})
+    elif resource_type == "job":
+        resource = await db.jobs.find_one({"id": resource_id}, {"_id": 0})
+        if resource:
+            customer = await db.customers.find_one({"id": resource.get("customer_id")}, {"_id": 0})
+            # Get job items
+            job_items = await db.job_items.find({"job_id": resource_id}, {"_id": 0}).to_list(100)
+            resource["items"] = job_items
+    elif resource_type == "invoice":
+        resource = await db.invoices.find_one({"id": resource_id}, {"_id": 0})
+        if resource:
+            customer = await db.customers.find_one({"id": resource.get("customer_id")}, {"_id": 0})
+    else:
+        raise HTTPException(status_code=400, detail="Invalid resource type")
+    
+    if not resource:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    
+    return {
+        "resource_type": resource_type,
+        "resource": resource,
+        "customer": customer,
+        "link_expires_at": magic_link["expires_at"]
+    }
+
 # -------------- CUSTOMERS --------------
 @api_router.post("/customers", response_model=Customer)
 async def create_customer(input: CustomerCreate):
