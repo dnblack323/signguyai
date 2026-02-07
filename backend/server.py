@@ -1955,6 +1955,32 @@ Create a professional {document_type} document:
    For Thank You Letters: Appreciation, project recap, future opportunities
    For Warranty Info: Coverage, exclusions, claims process, maintenance tips
    For Maintenance Guide: Cleaning instructions, inspection schedule, repairs
+   
+   For Late Payment Reminder (first notice):
+   - Friendly tone reminding of outstanding balance
+   - Invoice number, amount, and original due date
+   - Request for payment within 7-14 days
+   - Payment methods available
+   - Contact info for questions
+   
+   For Final Payment Notice (second/third notice):
+   - Firmer tone emphasizing urgency
+   - Outstanding balance with any late fees
+   - Warning of service suspension or collections
+   - Final deadline for payment
+   - Consequences of non-payment
+   
+   For Collections Letter (final notice):
+   - Formal demand for payment
+   - Full amount owed including all fees
+   - Statement that account will be sent to collections
+   - Final opportunity to resolve before legal action
+   - Clear deadline (typically 10 days)
+   
+   For Other/Custom Documents:
+   - Follow the custom_document_type description provided
+   - Adapt structure to match the document purpose
+   - Maintain professional formatting
 
 3. **Tone and Style**:
    - Adjusted for selected formality level
