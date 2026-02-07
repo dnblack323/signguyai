@@ -5,6 +5,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { Alert, AlertDescription } from '../components/ui/alert';
+import { Checkbox } from '../components/ui/checkbox';
 import { Loader2, Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
 
 export default function Login() {
@@ -20,6 +21,7 @@ export default function Login() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -55,7 +57,7 @@ export default function Login() {
         setLocalError(result.error);
       }
     } else {
-      const result = await login(email, password);
+      const result = await login(email, password, rememberMe);
       if (!result.success) {
         setLocalError(result.error);
       }
