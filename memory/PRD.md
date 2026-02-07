@@ -66,32 +66,33 @@ Build a web-based sign-shop operating system called "Sign Guy AI" - a single dai
 - [x] Webstores (Fundraiser campaigns, B2B custom stores)
 
 ### Recent Updates (February 7, 2026) - COMPLETED
-- [x] **AI Tools Image Generation** ✨
-  - Logo Creator, Banner Designer, Sign Designer, Mockup Creator now generate actual images
-  - 2-3 design options generated per request with selection capability
-  - Ability to request modifications and regenerate specific options
-  - "Generates Images" badge on tools that produce visual output
+- [x] **AI Tools Image Generation FIXED** ✨
+  - Logo Creator, Banner Designer, Sign Designer, Mockup Creator, Photo Enhancer, Image Vectorizer now generate ACTUAL IMAGES
+  - Uses OpenAI gpt-image-1 via Emergent LLM key
+  - Returns 2-3 design options per request with base64 images
+  - User can select, download, and request modifications to regenerate
 
-- [x] **Font Identifier Upgrade**
-  - Now accepts image upload instead of text description
-  - Upload any image containing text to identify fonts
-  - Provides font matches with confidence percentages
+- [x] **Photo Enhancer Updated**
+  - Now has image upload field (not text URL)
+  - Generates 2 enhanced image options
 
-- [x] **Document Composer Expansion**
-  - Added Late Payment Reminder template
-  - Added Final Payment Notice template
-  - Added Collections Letter template
-  - Added "Other/Custom" option with description field
+- [x] **Image Vectorizer Updated**
+  - Now has image upload field
+  - Added "Number of Colors" dropdown (2, 3, 4, 6, 8, full color)
+  - Added "Source Image Type" dropdown (crisp line art, blurry edges, hand drawn, etc.)
 
-- [x] **Job Scheduling Improvements**
+- [x] **Font Identifier Fixed**
+  - Has image upload field
+  - Removed unnecessary "what will you use font for" field
+  - Just needs image + optional text sample
+
+- [x] **Job Scheduling Fixed**
   - Task title auto-fills with job name (editable)
-  - Added time input alongside date selection
-  - Default time set to 9:00 AM
+  - Added time input alongside date
 
-- [x] **Number Input UX Fix**
-  - Fixed 0 placeholder issue across all forms
-  - Fields now show empty with placeholder text when value is 0
-  - Clicking no longer interferes with number entry
+- [x] **Number Input UX Fixed**
+  - Fields show empty with placeholder when value is 0
+  - No more 0 interfering with entry
 
 ### Recent Updates (February 5, 2026) - COMPLETED
 - [x] **AI Tools Suite Revamp** ✨
