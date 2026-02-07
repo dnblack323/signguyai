@@ -184,6 +184,24 @@ export default function Login() {
                   />
                 </div>
               )}
+
+              {/* Remember Me - Only show for login */}
+              {!isRegister && (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="rememberMe"
+                    data-testid="remember-me-checkbox"
+                    checked={rememberMe}
+                    onCheckedChange={setRememberMe}
+                  />
+                  <Label 
+                    htmlFor="rememberMe" 
+                    className="text-sm text-[var(--text-secondary)] cursor-pointer"
+                  >
+                    Remember me for 30 days
+                  </Label>
+                </div>
+              )}
             </CardContent>
 
             <CardFooter className="flex flex-col space-y-4">
