@@ -472,7 +472,8 @@ export function JobDetails() {
   const [scheduleFormData, setScheduleFormData] = useState({
     title: '',
     description: '',
-    due_date: ''
+    due_date: '',
+    due_time: '09:00'
   });
   
   const [itemFormData, setItemFormData] = useState({
