@@ -65,7 +65,15 @@ export function AuthProvider({ children }) {
         }),
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('Error parsing response:', parseError);
+        const errorMsg = 'Server error. Please try again.';
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
+      }
 
       if (response.ok) {
         localStorage.setItem('auth_token', data.access_token);
@@ -73,10 +81,12 @@ export function AuthProvider({ children }) {
         await fetchUserProfile(data.access_token);
         return { success: true };
       } else {
-        setError(data.detail || 'Registration failed');
-        return { success: false, error: data.detail || 'Registration failed' };
+        const errorMsg = data.detail || 'Registration failed';
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
       }
     } catch (err) {
+      console.error('Registration error:', err);
       const errorMsg = 'Network error. Please try again.';
       setError(errorMsg);
       return { success: false, error: errorMsg };
