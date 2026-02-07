@@ -236,9 +236,14 @@ export default function Financials() {
                     <Input
                       type="number"
                       step="0.01"
-                      value={salesForm.amount}
-                      onChange={(e) => setSalesForm({ ...salesForm, amount: parseFloat(e.target.value) || 0 })}
-                      placeholder="0.00"
+                      value={salesForm.amount === 0 ? '' : salesForm.amount}
+                      onChange={(e) => setSalesForm({ ...salesForm, amount: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+                      onBlur={(e) => {
+                        if (e.target.value === '') {
+                          setSalesForm({ ...salesForm, amount: 0 });
+                        }
+                      }}
+                      placeholder="Enter amount"
                       data-testid="sales-amount-input"
                     />
                   </div>
@@ -247,9 +252,14 @@ export default function Financials() {
                     <Input
                       type="number"
                       step="0.01"
-                      value={salesForm.tax_amount}
-                      onChange={(e) => setSalesForm({ ...salesForm, tax_amount: parseFloat(e.target.value) || 0 })}
-                      placeholder="0.00"
+                      value={salesForm.tax_amount === 0 ? '' : salesForm.tax_amount}
+                      onChange={(e) => setSalesForm({ ...salesForm, tax_amount: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+                      onBlur={(e) => {
+                        if (e.target.value === '') {
+                          setSalesForm({ ...salesForm, tax_amount: 0 });
+                        }
+                      }}
+                      placeholder="Enter tax"
                       data-testid="sales-tax-input"
                     />
                   </div>
