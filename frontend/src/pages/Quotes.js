@@ -173,7 +173,53 @@ export default function Quotes() {
 
   const handleViewQuote = (quote) => {
     setSelectedQuote(quote);
+    setPortalLink(null);
+    setLinkCopied(false);
     setIsPreviewOpen(true);
+  };
+
+  const handleGenerateShareLink = async () => {
+    if (!selectedQuote) return;
+    
+    setGeneratingLink(true);
+    try {
+      const customer = getCustomer(selectedQuote.customer_id);
+      const response = await fetch(`${API_URL}/api/magic-links`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          resource_type: 'quote',
+          resource_id: selectedQuote.id,
+          customer_email: customer?.email || null,
+          expires_in_days: 7
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const link = `${window.location.origin}/portal/${data.token}`;
+        setPortalLink(link);
+        toast.success('Share link created (expires in 7 days)');
+      } else {
+        toast.error('Failed to generate share link');
+      }
+    } catch (err) {
+      toast.error('Failed to generate share link');
+    } finally {
+      setGeneratingLink(false);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (portalLink) {
+      await navigator.clipboard.writeText(portalLink);
+      setLinkCopied(true);
+      toast.success('Link copied to clipboard');
+      setTimeout(() => setLinkCopied(false), 2000);
+    }
   };
 
   const handlePrint = () => {
