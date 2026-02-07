@@ -4,7 +4,7 @@ import { cn } from '../lib/utils';
 import {
   LayoutDashboard, Users, FileText, Briefcase, Receipt, 
   Clock, DollarSign, CalendarDays, Sparkles, Store,
-  ChevronLeft, ChevronRight, Menu, Package, LogOut, User
+  ChevronLeft, ChevronRight, Menu, Package, LogOut, User, Shield
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
