@@ -77,6 +77,23 @@ Build a web-based sign-shop operating system called "Sign Guy AI" - a single dai
   - 100% backend tests passing (22/22)
   - Test suite created at `/app/backend/tests/test_auth.py`
 
+- [x] **Remember Me Feature** ✅ COMPLETE
+  - Checkbox on login form
+  - Extended token expiry: 30 days when checked (vs 24 hours default)
+
+- [x] **Admin Password Reset** ✅ COMPLETE
+  - User Management page (`/users`) with search functionality
+  - Admin can reset any user's password
+  - Admin can enable/disable user accounts
+  - Cannot modify own account status (safety)
+
+- [x] **Magic Links for Customer Portal** ✅ COMPLETE
+  - Generate shareable links for quotes, jobs, invoices
+  - Links expire after 7 days (configurable)
+  - Customer portal page (`/portal/:token`) - no login required
+  - "Share Link" button in quote preview modal
+  - Copy link functionality with visual feedback
+
 ### Recent Updates (February 7, 2026) - COMPLETED
 - [x] **AI Tools Image Generation FIXED** ✨
   - Logo Creator, Banner Designer, Sign Designer, Mockup Creator, Photo Enhancer, Image Vectorizer now generate ACTUAL IMAGES
