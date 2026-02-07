@@ -160,13 +160,16 @@ Build a web-based sign-shop operating system called "Sign Guy AI" - a single dai
 /api/webstores/v2/{id}/products - Product assignment
 /api/webstores/v2/orders - Order management
 /store/{storeId} - Public storefront URL
+/api/auth/register - User registration (returns JWT)
+/api/auth/login - User login (returns JWT)
+/api/users/me - Get/Update current user profile (protected)
 ```
 
 ## Prioritized Backlog
 
 ### P0 - Critical (Next Sprint)
 - [ ] Webstores Phase 2: Store owner dashboards (sales, orders, payouts)
-- [ ] User Authentication (JWT + optional Google OAuth)
+- [x] User Authentication (JWT) ✅ COMPLETED Feb 7, 2026
 - [ ] Role-based access control (Owner, Admin, Staff)
 
 ### P1 - High Priority
@@ -188,10 +191,12 @@ Build a web-based sign-shop operating system called "Sign Guy AI" - a single dai
 - [ ] Integrations (QuickBooks, Stripe payments)
 - [ ] Advanced scheduling calendar
 - [ ] Real-time collaboration features
+- [ ] Google OAuth integration (optional addition to existing JWT auth)
 
 ## Next Tasks
-1. Webstores Phase 2: Store owner dashboards
-2. Productivity Module enhancements
-3. Financial Tracking summary reports
-4. Add user authentication
+1. Role-based access control (Owner, Admin, Staff)
+2. Webstores Phase 2: Store owner dashboards
+3. Productivity Module enhancements
+4. Financial Tracking summary reports
 5. Implement artwork approval workflow
+
