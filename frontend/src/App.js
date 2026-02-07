@@ -21,6 +21,8 @@ import Webstores from "./pages/Webstores";
 import Products from "./pages/Products";
 import Storefront from "./pages/Storefront";
 import Login from "./pages/Login";
+import UserManagement from "./pages/UserManagement";
+import CustomerPortal from "./pages/CustomerPortal";
 
 import "./App.css";
 
@@ -64,6 +66,7 @@ function ProtectedRoutes() {
         <Route path="/ai-tools" element={<AITools />} />
         <Route path="/webstores" element={<Webstores />} />
         <Route path="/products" element={<Products />} />
+        <Route path="/users" element={<UserManagement />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </MainLayout>
@@ -79,6 +82,9 @@ function App() {
             <Routes>
               {/* Public Storefront - No Auth Required */}
               <Route path="/store/:storeId" element={<Storefront />} />
+              
+              {/* Public Customer Portal - No Auth Required */}
+              <Route path="/portal/:token" element={<CustomerPortal />} />
               
               {/* Protected Admin Routes */}
               <Route path="/*" element={<ProtectedRoutes />} />
