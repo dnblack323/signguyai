@@ -224,8 +224,8 @@ Build a web-based sign-shop operating system called "Sign Guy AI" - a single dai
 
 ## Next Tasks
 1. Role-based access control (Owner, Admin, Staff)
-2. Webstores Phase 2: Store owner dashboards
-3. Productivity Module enhancements
-4. Financial Tracking summary reports
+2. Add magic link sharing to Jobs and Invoices pages
+3. Webstores Phase 2: Store owner dashboards
+4. Full customer account registration (future enhancement to magic links)
 5. Implement artwork approval workflow
 
