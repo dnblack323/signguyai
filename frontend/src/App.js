@@ -1,8 +1,10 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppProvider } from "./context/AppContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import { MainLayout } from "./components/MainLayout";
 import { Toaster } from "./components/ui/sonner";
+import { Loader2 } from "lucide-react";
 
 // Pages
 import Dashboard from "./pages/Dashboard";
@@ -18,42 +20,73 @@ import AITools from "./pages/AITools";
 import Webstores from "./pages/Webstores";
 import Products from "./pages/Products";
 import Storefront from "./pages/Storefront";
+import Login from "./pages/Login";
 
 import "./App.css";
+
+// Loading Screen Component
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)]">
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
+        <p className="text-[var(--text-secondary)]">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
+// Protected Route Wrapper
+function ProtectedRoutes() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
+  if (!isAuthenticated) {
+    return <Login />;
+  }
+
+  return (
+    <MainLayout>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/customers" element={<Customers />} />
+        <Route path="/quotes" element={<Quotes />} />
+        <Route path="/jobs" element={<Jobs />} />
+        <Route path="/jobs/:id" element={<JobDetails />} />
+        <Route path="/invoices" element={<Invoices />} />
+        <Route path="/timeclock" element={<TimeClock />} />
+        <Route path="/payroll" element={<Payroll />} />
+        <Route path="/productivity" element={<Productivity />} />
+        <Route path="/financials" element={<Financials />} />
+        <Route path="/ai-tools" element={<AITools />} />
+        <Route path="/webstores" element={<Webstores />} />
+        <Route path="/products" element={<Products />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </MainLayout>
+  );
+}
 
 function App() {
   return (
     <ThemeProvider>
-      <AppProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* Public Storefront - No MainLayout */}
-            <Route path="/store/:storeId" element={<Storefront />} />
-            
-            {/* Admin Routes - With MainLayout */}
-            <Route path="/*" element={
-              <MainLayout>
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/customers" element={<Customers />} />
-                  <Route path="/quotes" element={<Quotes />} />
-                  <Route path="/jobs" element={<Jobs />} />
-                  <Route path="/jobs/:id" element={<JobDetails />} />
-                  <Route path="/invoices" element={<Invoices />} />
-                  <Route path="/timeclock" element={<TimeClock />} />
-                  <Route path="/payroll" element={<Payroll />} />
-                  <Route path="/productivity" element={<Productivity />} />
-                  <Route path="/financials" element={<Financials />} />
-                  <Route path="/ai-tools" element={<AITools />} />
-                  <Route path="/webstores" element={<Webstores />} />
-                  <Route path="/products" element={<Products />} />
-                </Routes>
-              </MainLayout>
-            } />
-          </Routes>
-          <Toaster position="top-right" richColors />
-        </BrowserRouter>
-      </AppProvider>
+      <AuthProvider>
+        <AppProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* Public Storefront - No Auth Required */}
+              <Route path="/store/:storeId" element={<Storefront />} />
+              
+              {/* Protected Admin Routes */}
+              <Route path="/*" element={<ProtectedRoutes />} />
+            </Routes>
+            <Toaster position="top-right" richColors />
+          </BrowserRouter>
+        </AppProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }
