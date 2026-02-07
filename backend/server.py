@@ -868,10 +868,17 @@ async def login(input: UserLogin):
     if not user.get("is_active", True):
         raise HTTPException(status_code=400, detail="Account is disabled")
     
-    # Create access token
-    access_token = create_access_token(data={"sub": user["id"]})
+    # Create access token - extended expiry if "remember me" is checked
+    if input.remember_me:
+        expires_delta = timedelta(days=30)  # 30 days for "remember me"
+        expires_in = 30 * 24 * 60 * 60  # 30 days in seconds
+    else:
+        expires_delta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expires_in = ACCESS_TOKEN_EXPIRE_MINUTES * 60
     
-    return Token(access_token=access_token)
+    access_token = create_access_token(data={"sub": user["id"]}, expires_delta=expires_delta)
+    
+    return Token(access_token=access_token, expires_in=expires_in)
 
 @api_router.get("/users/me", response_model=User)
 async def get_current_user_profile(current_user: UserInDB = Depends(get_current_active_user)):
