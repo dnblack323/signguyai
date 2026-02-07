@@ -39,12 +39,14 @@ import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
 
 const statusOptions = ['draft', 'sent', 'approved', 'declined'];
+const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 export default function Quotes() {
   const { 
     quotes, customers, fetchQuotes, fetchCustomers, 
     createQuote, updateQuote, convertQuoteToJob 
   } = useApp();
+  const { token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -59,6 +61,9 @@ export default function Quotes() {
   // Quote preview modal state
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [selectedQuote, setSelectedQuote] = useState(null);
+  const [generatingLink, setGeneratingLink] = useState(false);
+  const [portalLink, setPortalLink] = useState(null);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
     loadData();
