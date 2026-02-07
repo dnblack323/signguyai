@@ -2315,7 +2315,8 @@ class AIImageResponse(BaseModel):
 @api_router.post("/ai/generate-images")
 async def generate_ai_images(request: AIImageRequest):
     """Generate images using AI for design tools like logo creator, banner designer, etc."""
-    from emergentintegrations.llm.image import generate_image
+    import base64
+    from emergentintegrations.llm.openai.image_generation import OpenAIImageGeneration
     
     api_key = os.environ.get("EMERGENT_LLM_KEY")
     if not api_key:
@@ -2326,27 +2327,37 @@ async def generate_ai_images(request: AIImageRequest):
         "logo_creator": """Professional logo design for "{business_name}" in the {industry} industry. 
 Style: {style_preferences}. Colors: {color_preferences}. 
 Logo type: {logo_type}. {tagline}
-Clean, vector-style logo suitable for signage and print. High contrast, professional design.""",
+Clean, vector-style logo suitable for signage and print. High contrast, professional design. White or transparent background.""",
         
         "ai_banner_designer": """Professional promotional banner design, {banner_size} format.
-Headline: "{headline}"
+Headline text: "{headline}"
 Supporting text: {subtext}
 Event type: {event_type}
 Style: {style}
 Colors: {brand_colors}
-Clean, readable design optimized for outdoor viewing. Bold typography, clear hierarchy.""",
+Clean, readable banner design optimized for outdoor viewing. Bold typography, clear text hierarchy, eye-catching layout.""",
         
         "ai_sign_designer": """Professional {sign_type} sign design for "{business_name}" ({business_type}).
 Size: {size}
 Colors: {colors}
 Style: {style_preference}
 Additional text: {additional_text}
-High-quality signage design with excellent readability and visual impact.""",
+High-quality business signage design with excellent readability and visual impact. Professional typography.""",
         
-        "mockup_creator": """Realistic mockup of {product_type} in {environment} environment.
-Design: {design_description}
-Time: {time_of_day}
-Professional presentation mockup for client approval. Photorealistic rendering."""
+        "mockup_creator": """Realistic photographic mockup showing {product_type} installed in {environment} environment.
+Design shown: {design_description}
+Time of day: {time_of_day}
+Professional presentation mockup for client approval. Photorealistic scene with proper lighting and perspective.""",
+        
+        "photo_enhancer": """Enhanced, high-quality version of the described image: {image_description}
+Enhancement requirements: {enhancement_notes}
+Output optimized for: {output_type}
+Professional quality suitable for print and marketing materials.""",
+        
+        "image_vectorizer": """Clean vector-style illustration based on: {image_description}
+Number of colors: {num_colors}
+Image type: {image_type}
+Clean lines, simplified shapes, suitable for cutting machines and print production."""
     }
     
     prompt_template = image_prompts.get(request.tool)
@@ -2378,7 +2389,12 @@ Professional presentation mockup for client approval. Photorealistic rendering."
         'product_type': 'sign',
         'environment': 'outdoor',
         'design_description': 'professional design',
-        'time_of_day': 'daytime'
+        'time_of_day': 'daytime',
+        'image_description': 'image',
+        'enhancement_notes': 'enhance quality',
+        'output_type': 'print optimized',
+        'num_colors': '4-6',
+        'image_type': 'standard'
     }
     for key, default in defaults.items():
         if key not in prompt_data or not prompt_data[key]:
@@ -2394,24 +2410,27 @@ Professional presentation mockup for client approval. Photorealistic rendering."
         prompt += f"\n\nModifications requested: {request.input_data['modification_notes']}"
     
     try:
+        image_gen = OpenAIImageGeneration(api_key=api_key)
         images = []
+        
         for i in range(request.image_count):
             # Add variation to each prompt
-            variation_prompt = f"{prompt}\n\nVariation {i+1} of {request.image_count}. Create a unique design variation."
+            variation_prompt = f"{prompt}\n\nCreate unique design variation {i+1} of {request.image_count}."
             
-            result = await generate_image(
-                api_key=api_key,
+            # Generate image
+            result = await image_gen.generate_images(
                 prompt=variation_prompt,
                 model="gpt-image-1",
-                size="1024x1024",
-                quality="high"
+                number_of_images=1
             )
             
-            if result and result.get('url'):
+            if result and len(result) > 0:
+                # Convert bytes to base64
+                image_base64 = base64.b64encode(result[0]).decode('utf-8')
                 images.append({
-                    'url': result['url'],
+                    'url': f"data:image/png;base64,{image_base64}",
                     'index': i,
-                    'prompt': variation_prompt[:200]  # Store truncated prompt
+                    'prompt': variation_prompt[:200]
                 })
         
         return AIImageResponse(images=images, tool=request.tool)
