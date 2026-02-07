@@ -944,8 +944,14 @@ export function JobDetails() {
                           <Input
                             type="number"
                             min="1"
-                            value={itemFormData.quantity}
-                            onChange={(e) => setItemFormData({ ...itemFormData, quantity: parseFloat(e.target.value) || 1 })}
+                            value={itemFormData.quantity || ''}
+                            onChange={(e) => setItemFormData({ ...itemFormData, quantity: e.target.value === '' ? '' : parseFloat(e.target.value) || 1 })}
+                            onBlur={(e) => {
+                              if (e.target.value === '' || parseFloat(e.target.value) < 1) {
+                                setItemFormData({ ...itemFormData, quantity: 1 });
+                              }
+                            }}
+                            placeholder="1"
                           />
                         </div>
                         <div className="space-y-2">
@@ -953,8 +959,14 @@ export function JobDetails() {
                           <Input
                             type="number"
                             step="0.01"
-                            value={itemFormData.unit_price}
-                            onChange={(e) => setItemFormData({ ...itemFormData, unit_price: parseFloat(e.target.value) || 0 })}
+                            value={itemFormData.unit_price === 0 ? '' : itemFormData.unit_price}
+                            onChange={(e) => setItemFormData({ ...itemFormData, unit_price: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+                            onBlur={(e) => {
+                              if (e.target.value === '') {
+                                setItemFormData({ ...itemFormData, unit_price: 0 });
+                              }
+                            }}
+                            placeholder="0.00"
                           />
                         </div>
                       </div>
