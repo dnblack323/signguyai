@@ -463,6 +463,7 @@ class UserCreate(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+    remember_me: bool = False
 
 class User(UserBase):
     model_config = ConfigDict(extra="ignore")
@@ -476,10 +477,38 @@ class UserInDB(User):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    expires_in: int = 86400  # seconds
 
 class TokenData(BaseModel):
     user_id: Optional[str] = None
     email: Optional[str] = None
+
+class PasswordReset(BaseModel):
+    new_password: str
+
+# ============== MAGIC LINK MODELS ==============
+
+class MagicLinkType(str, Enum):
+    QUOTE = "quote"
+    JOB = "job"
+    INVOICE = "invoice"
+
+class MagicLink(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    token: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
+    resource_type: MagicLinkType
+    resource_id: str
+    customer_email: Optional[str] = None
+    expires_at: str  # ISO datetime
+    is_used: bool = False
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class MagicLinkCreate(BaseModel):
+    resource_type: MagicLinkType
+    resource_id: str
+    customer_email: Optional[str] = None
+    expires_in_days: int = 7  # Default 7 days
 
 # Webstore Models
 class FundraiserCampaign(BaseModel):
