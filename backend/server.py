@@ -749,6 +749,133 @@ async def root():
 async def health():
     return {"status": "healthy"}
 
+# ============== AUTH HELPER FUNCTIONS ==============
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> UserInDB:
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    if credentials is None:
+        raise credentials_exception
+    
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+        token_data = TokenData(user_id=user_id)
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except jwt.PyJWTError:
+        raise credentials_exception
+    
+    user = await db.users.find_one({"id": token_data.user_id}, {"_id": 0})
+    if user is None:
+        raise credentials_exception
+    
+    return UserInDB(**user)
+
+async def get_current_active_user(current_user: UserInDB = Depends(get_current_user)) -> UserInDB:
+    if not current_user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user
+
+# -------------- AUTH ROUTES --------------
+@api_router.post("/auth/register", response_model=Token)
+async def register(input: UserCreate):
+    # Check if user already exists
+    existing_user = await db.users.find_one({"email": input.email.lower()})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Create new user
+    hashed_password = get_password_hash(input.password)
+    user = UserInDB(
+        email=input.email.lower(),
+        full_name=input.full_name,
+        company_name=input.company_name,
+        hashed_password=hashed_password
+    )
+    doc = user.model_dump()
+    await db.users.insert_one(doc)
+    
+    # Create access token
+    access_token = create_access_token(data={"sub": user.id})
+    
+    return Token(access_token=access_token)
+
+@api_router.post("/auth/login", response_model=Token)
+async def login(input: UserLogin):
+    # Find user by email
+    user = await db.users.find_one({"email": input.email.lower()}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    # Verify password
+    if not verify_password(input.password, user["hashed_password"]):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    # Check if user is active
+    if not user.get("is_active", True):
+        raise HTTPException(status_code=400, detail="Account is disabled")
+    
+    # Create access token
+    access_token = create_access_token(data={"sub": user["id"]})
+    
+    return Token(access_token=access_token)
+
+@api_router.get("/users/me", response_model=User)
+async def get_current_user_profile(current_user: UserInDB = Depends(get_current_active_user)):
+    # Return user without hashed_password
+    return User(
+        id=current_user.id,
+        email=current_user.email,
+        full_name=current_user.full_name,
+        company_name=current_user.company_name,
+        is_active=current_user.is_active,
+        created_at=current_user.created_at,
+        updated_at=current_user.updated_at
+    )
+
+@api_router.put("/users/me", response_model=User)
+async def update_current_user_profile(
+    full_name: Optional[str] = None,
+    company_name: Optional[str] = None,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    update_data = {}
+    if full_name is not None:
+        update_data["full_name"] = full_name
+    if company_name is not None:
+        update_data["company_name"] = company_name
+    
+    if update_data:
+        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        await db.users.update_one({"id": current_user.id}, {"$set": update_data})
+    
+    updated_user = await db.users.find_one({"id": current_user.id}, {"_id": 0})
+    return User(**{k: v for k, v in updated_user.items() if k != "hashed_password"})
+
 # -------------- CUSTOMERS --------------
 @api_router.post("/customers", response_model=Customer)
 async def create_customer(input: CustomerCreate):
