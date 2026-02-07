@@ -2638,13 +2638,39 @@ Campaign elements are customizable - adjust based on actual resources and result
     prompt = prompt_template.format(input=str(request.input_data), **request.input_data)
     
     try:
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=str(uuid.uuid4()),
-            system_message="You are a helpful AI assistant for Sign Guy AI, a sign shop management system."
-        ).with_model("openai", "gpt-5.2")
+        # Determine if this tool needs vision (image analysis)
+        needs_vision = request.tool in vision_tools
+        has_image = request.input_data.get('image_upload')
         
-        user_message = UserMessage(text=prompt)
+        # Use Gemini for vision tasks (better image analysis)
+        if needs_vision and has_image:
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=str(uuid.uuid4()),
+                system_message="You are a helpful AI assistant for Sign Guy AI, a sign shop management system. You are an expert at analyzing images for sign production and design purposes."
+            ).with_model("gemini", "gemini-2.5-flash")
+            
+            # Extract base64 image data (remove data URL prefix if present)
+            image_data = request.input_data.get('image_upload', '')
+            if ',' in image_data:
+                image_data = image_data.split(',')[1]
+            
+            # Create message with image attachment
+            image_content = ImageContent(image_base64=image_data)
+            user_message = UserMessage(
+                text=prompt,
+                file_contents=[image_content]
+            )
+        else:
+            # Use GPT for text-only tasks
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=str(uuid.uuid4()),
+                system_message="You are a helpful AI assistant for Sign Guy AI, a sign shop management system."
+            ).with_model("openai", "gpt-5.2")
+            
+            user_message = UserMessage(text=prompt)
+        
         response = await chat.send_message(user_message)
         
         # Save AI response
