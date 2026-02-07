@@ -1995,11 +1995,14 @@ async def delete_task(task_id: str):
 # -------------- AI TOOLS --------------
 @api_router.post("/ai/generate", response_model=AIResponse)
 async def generate_ai_content(request: AIRequest):
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
     
     api_key = os.environ.get("EMERGENT_LLM_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="AI service not configured")
+    
+    # Tools that require image analysis (vision)
+    vision_tools = ['font_identifier', 'photo_enhancer', 'image_vectorizer']
     
     # Build prompt based on tool type
     tool_prompts = {
