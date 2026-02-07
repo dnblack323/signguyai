@@ -65,14 +65,23 @@ export function AuthProvider({ children }) {
         }),
       });
 
+      // Clone response to avoid body stream already read issues
+      const responseClone = response.clone();
+      
       let data;
       try {
-        data = await response.json();
+        data = await responseClone.json();
       } catch (parseError) {
         console.error('Error parsing response:', parseError);
-        const errorMsg = 'Server error. Please try again.';
-        setError(errorMsg);
-        return { success: false, error: errorMsg };
+        // Try reading from original response as fallback
+        try {
+          const text = await response.text();
+          data = JSON.parse(text);
+        } catch (fallbackError) {
+          const errorMsg = 'Server error. Please try again.';
+          setError(errorMsg);
+          return { success: false, error: errorMsg };
+        }
       }
 
       if (response.ok) {
