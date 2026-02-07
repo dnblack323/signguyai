@@ -575,9 +575,10 @@ export function JobDetails() {
   const handleOpenSchedule = () => {
     const job = jobData?.job;
     setScheduleFormData({
-      title: `Work on: ${job?.name || ''}`,
+      title: job?.name || '',
       description: job?.description || '',
-      due_date: job?.due_date || new Date().toISOString().split('T')[0]
+      due_date: job?.due_date || new Date().toISOString().split('T')[0],
+      due_time: '09:00'
     });
     setIsScheduleDialogOpen(true);
   };
