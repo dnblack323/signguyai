@@ -84,7 +84,7 @@ export function AuthProvider({ children }) {
   };
 
   // Login user
-  const login = async (email, password) => {
+  const login = async (email, password, rememberMe = false) => {
     setError(null);
     try {
       const response = await fetch(`${API_URL}/api/auth/login`, {
@@ -92,7 +92,7 @@ export function AuthProvider({ children }) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, remember_me: rememberMe }),
       });
 
       const data = await response.json();
