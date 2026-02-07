@@ -446,6 +446,41 @@ class AIResponse(BaseModel):
     customer_id: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
+# ============== USER AUTH MODELS ==============
+
+class UserBase(BaseModel):
+    email: EmailStr
+    full_name: str
+    company_name: Optional[str] = None
+    is_active: bool = True
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
+    full_name: str
+    company_name: Optional[str] = None
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class User(UserBase):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class UserInDB(User):
+    hashed_password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+class TokenData(BaseModel):
+    user_id: Optional[str] = None
+    email: Optional[str] = None
+
 # Webstore Models
 class FundraiserCampaign(BaseModel):
     model_config = ConfigDict(extra="ignore")
