@@ -33,6 +33,7 @@ const navigation = [
 
 export const Sidebar = ({ collapsed, onToggle }) => {
   const { theme } = useTheme();
+  const { user, logout } = useAuth();
   
   return (
     <aside 
