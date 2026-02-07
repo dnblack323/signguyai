@@ -529,7 +529,7 @@ export const AppProvider = ({ children }) => {
     // Dashboard
     fetchDashboardStats,
     // AI
-    generateAIContent, fetchAIHistory,
+    generateAIContent, generateAIImages, fetchAIHistory,
     // Time Clock
     clockAction, getClockStatus, getTodayLogs, getShiftSummary,
     // Payroll
