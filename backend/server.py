@@ -2277,6 +2277,122 @@ async def get_ai_history(
     responses = await db.ai_responses.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
     return responses
 
+class AIImageRequest(BaseModel):
+    tool: str
+    input_data: dict
+    image_count: int = 3
+
+class AIImageResponse(BaseModel):
+    images: List[dict]
+    tool: str
+
+@api_router.post("/ai/generate-images")
+async def generate_ai_images(request: AIImageRequest):
+    """Generate images using AI for design tools like logo creator, banner designer, etc."""
+    from emergentintegrations.llm.image import generate_image
+    
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="AI service not configured")
+    
+    # Build image prompt based on tool type
+    image_prompts = {
+        "logo_creator": """Professional logo design for "{business_name}" in the {industry} industry. 
+Style: {style_preferences}. Colors: {color_preferences}. 
+Logo type: {logo_type}. {tagline}
+Clean, vector-style logo suitable for signage and print. High contrast, professional design.""",
+        
+        "ai_banner_designer": """Professional promotional banner design, {banner_size} format.
+Headline: "{headline}"
+Supporting text: {subtext}
+Event type: {event_type}
+Style: {style}
+Colors: {brand_colors}
+Clean, readable design optimized for outdoor viewing. Bold typography, clear hierarchy.""",
+        
+        "ai_sign_designer": """Professional {sign_type} sign design for "{business_name}" ({business_type}).
+Size: {size}
+Colors: {colors}
+Style: {style_preference}
+Additional text: {additional_text}
+High-quality signage design with excellent readability and visual impact.""",
+        
+        "mockup_creator": """Realistic mockup of {product_type} in {environment} environment.
+Design: {design_description}
+Time: {time_of_day}
+Professional presentation mockup for client approval. Photorealistic rendering."""
+    }
+    
+    prompt_template = image_prompts.get(request.tool)
+    if not prompt_template:
+        raise HTTPException(status_code=400, detail=f"Image generation not supported for tool: {request.tool}")
+    
+    # Build the prompt with available data
+    prompt_data = {k: v if v else '' for k, v in request.input_data.items()}
+    # Set defaults for missing fields
+    defaults = {
+        'business_name': 'Business',
+        'industry': 'general',
+        'style_preferences': 'modern',
+        'color_preferences': 'professional colors',
+        'logo_type': 'combination mark',
+        'tagline': '',
+        'banner_size': '4x8ft',
+        'headline': 'HEADLINE',
+        'subtext': '',
+        'event_type': 'promotion',
+        'style': 'modern',
+        'brand_colors': 'brand colors',
+        'sign_type': 'wall sign',
+        'business_type': 'business',
+        'size': '4ft x 8ft',
+        'colors': 'professional colors',
+        'style_preference': 'modern',
+        'additional_text': '',
+        'product_type': 'sign',
+        'environment': 'outdoor',
+        'design_description': 'professional design',
+        'time_of_day': 'daytime'
+    }
+    for key, default in defaults.items():
+        if key not in prompt_data or not prompt_data[key]:
+            prompt_data[key] = default
+    
+    try:
+        prompt = prompt_template.format(**prompt_data)
+    except KeyError as e:
+        prompt = prompt_template
+    
+    # Add modification notes if present
+    if request.input_data.get('modification_notes'):
+        prompt += f"\n\nModifications requested: {request.input_data['modification_notes']}"
+    
+    try:
+        images = []
+        for i in range(request.image_count):
+            # Add variation to each prompt
+            variation_prompt = f"{prompt}\n\nVariation {i+1} of {request.image_count}. Create a unique design variation."
+            
+            result = await generate_image(
+                api_key=api_key,
+                prompt=variation_prompt,
+                model="gpt-image-1",
+                size="1024x1024",
+                quality="high"
+            )
+            
+            if result and result.get('url'):
+                images.append({
+                    'url': result['url'],
+                    'index': i,
+                    'prompt': variation_prompt[:200]  # Store truncated prompt
+                })
+        
+        return AIImageResponse(images=images, tool=request.tool)
+    except Exception as e:
+        logger.error(f"AI image generation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Image generation failed: {str(e)}")
+
 # -------------- WEBSTORES: FUNDRAISER --------------
 @api_router.post("/webstores/fundraiser", response_model=FundraiserCampaign)
 async def create_fundraiser(input: FundraiserCampaignCreate):
