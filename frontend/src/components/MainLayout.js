@@ -4,13 +4,14 @@ import { cn } from '../lib/utils';
 import {
   LayoutDashboard, Users, FileText, Briefcase, Receipt, 
   Clock, DollarSign, CalendarDays, Sparkles, Store,
-  ChevronLeft, ChevronRight, Menu, Package
+  ChevronLeft, ChevronRight, Menu, Package, LogOut, User
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
