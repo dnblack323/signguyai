@@ -27,29 +27,27 @@ const aiTools = [
   // Design Tools
   {
     id: 'photo_enhancer',
-    name: 'Photo Enhancer',
-    description: 'Upload and enhance low-quality photos for marketing, mockups, or customer artwork.',
+    name: 'Photo Enhancer Analyzer',
+    description: 'Upload a photo to get professional enhancement recommendations and print-readiness assessment.',
     icon: Image,
     category: 'design',
-    generatesImages: true,
-    imageCount: 2,
+    generatesImages: false,
     fields: [
-      { name: 'image_upload', label: 'Upload Image to Enhance', type: 'image_upload', required: true },
-      { name: 'enhancement_notes', label: 'Enhancement Instructions', type: 'textarea', placeholder: 'e.g., increase brightness, remove background noise, sharpen text, fix colors' },
-      { name: 'output_type', label: 'Optimize For', type: 'select', options: ['print_large_format', 'print_standard', 'web_digital', 'social_media'] }
+      { name: 'image_upload', label: 'Upload Image to Analyze', type: 'image_upload', required: true },
+      { name: 'enhancement_notes', label: 'Enhancement Goals', type: 'textarea', placeholder: 'e.g., make it brighter, need for large banner print, fix colors' },
+      { name: 'output_type', label: 'Intended Use', type: 'select', options: ['print_large_format', 'print_standard', 'web_digital', 'social_media'] }
     ]
   },
   {
     id: 'image_vectorizer',
-    name: 'Image Vectorizer',
-    description: 'Upload an image to convert into clean vector artwork for cutting or printing.',
+    name: 'Vectorization Analyzer',
+    description: 'Upload an image to get vectorization guidance, complexity assessment, and production tips.',
     icon: Wand2,
     category: 'design',
-    generatesImages: true,
-    imageCount: 2,
+    generatesImages: false,
     fields: [
-      { name: 'image_upload', label: 'Upload Image to Vectorize', type: 'image_upload', required: true },
-      { name: 'num_colors', label: 'Number of Colors in Output', type: 'select', options: ['2_colors', '3_colors', '4_colors', '6_colors', '8_colors', 'full_color'] },
+      { name: 'image_upload', label: 'Upload Image to Analyze', type: 'image_upload', required: true },
+      { name: 'num_colors', label: 'Target Color Count', type: 'select', options: ['2_colors', '3_colors', '4_colors', '6_colors', '8_colors', 'full_color'] },
       { name: 'image_type', label: 'Source Image Type', type: 'select', options: ['crisp_line_art', 'logo_clean_edges', 'photo_simple', 'photo_complex', 'hand_drawn', 'blurry_edges'] }
     ]
   },
