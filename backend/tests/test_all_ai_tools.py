@@ -23,8 +23,15 @@ def get_test_image_base64():
     if Path(TEST_IMAGE_PATH).exists():
         with open(TEST_IMAGE_PATH, "rb") as f:
             return f"data:image/png;base64,{base64.b64encode(f.read()).decode('utf-8')}"
-    # Fallback: minimal valid PNG
-    return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mNk+M9QzwAEjDAGNzYAAIoaB/lnvJMAAAAASUVORK5CYII="
+    # Fallback: Create a simple test image with text
+    from PIL import Image, ImageDraw, ImageFont
+    img = Image.new('RGB', (400, 200), color='white')
+    draw = ImageDraw.Draw(img)
+    draw.text((50, 80), "GRAND OPENING", fill='black')
+    import io
+    buffer = io.BytesIO()
+    img.save(buffer, format='PNG')
+    return f"data:image/png;base64,{base64.b64encode(buffer.getvalue()).decode('utf-8')}"
 
 
 class TestHealthAndSetup:
