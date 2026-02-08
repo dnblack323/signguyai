@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
-import { formatCurrency, formatDate, getStatusColor } from '../lib/utils';
+import { formatCurrency, formatDate } from '../lib/utils';
 import { 
   Users, FileText, Briefcase, Receipt, TrendingUp, 
   AlertTriangle, Plus, ArrowRight, Clock 
@@ -11,61 +9,86 @@ import {
 import { Link } from 'react-router-dom';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
 
-const StatCard = ({ title, value, icon: Icon, subtitle, trend, href }) => (
-  <Card className="bg-card border-border/50 hover:border-primary/30 transition-all duration-300">
-    <CardContent className="p-6">
-      <div className="flex items-start justify-between">
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-3xl font-bold font-heading tracking-tight">{value}</p>
-          {subtitle && (
-            <p className="text-xs text-muted-foreground">{subtitle}</p>
-          )}
-        </div>
-        <div className="p-3 rounded-lg bg-primary/10">
-          <Icon className="h-6 w-6 text-primary" />
-        </div>
+const StatCard = ({ title, value, icon: Icon, subtitle, href }) => (
+  <div 
+    className="rounded-xl p-6 transition-all duration-200 hover:shadow-md"
+    style={{ backgroundColor: '#FFFFFF', border: '1px solid #D7DCE2' }}
+  >
+    <div className="flex items-start justify-between">
+      <div className="space-y-2">
+        <p className="text-sm font-medium" style={{ color: '#5A5A5A' }}>{title}</p>
+        <p className="text-3xl font-bold font-heading tracking-tight" style={{ color: '#1A1A1A' }}>{value}</p>
+        {subtitle && (
+          <p className="text-xs" style={{ color: '#5A5A5A' }}>{subtitle}</p>
+        )}
       </div>
-      {href && (
-        <Link to={href}>
-          <Button variant="ghost" size="sm" className="mt-4 p-0 h-auto text-primary hover:text-primary/80">
-            View all <ArrowRight className="ml-1 h-4 w-4" />
-          </Button>
-        </Link>
-      )}
-    </CardContent>
-  </Card>
+      <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(47, 139, 251, 0.1)' }}>
+        <Icon className="h-6 w-6" style={{ color: '#2F8BFB' }} />
+      </div>
+    </div>
+    {href && (
+      <Link to={href}>
+        <button className="mt-4 flex items-center text-sm font-medium hover:opacity-80 transition-opacity" style={{ color: '#2F8BFB' }}>
+          View all <ArrowRight className="ml-1 h-4 w-4" />
+        </button>
+      </Link>
+    )}
+  </div>
 );
+
+const getStatusBadgeStyles = (status) => {
+  const styles = {
+    quoted: { backgroundColor: 'rgba(47, 139, 251, 0.15)', color: '#2F8BFB' },
+    in_production: { backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#d97706' },
+    complete: { backgroundColor: 'rgba(34, 197, 94, 0.15)', color: '#16a34a' },
+    delivered: { backgroundColor: 'rgba(34, 197, 94, 0.15)', color: '#16a34a' },
+    overdue: { backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#dc2626' },
+    paid: { backgroundColor: 'rgba(34, 197, 94, 0.15)', color: '#16a34a' },
+    sent: { backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#d97706' },
+    draft: { backgroundColor: '#F5F7FA', color: '#5A5A5A' },
+  };
+  return styles[status] || styles.draft;
+};
 
 const RecentActivity = ({ jobs, invoices, onInvoiceClick }) => {
   const recentJobs = jobs?.slice(0, 5) || [];
   const overdueInvoices = invoices?.filter(i => i.status === 'overdue') || [];
 
   return (
-    <Card className="bg-card border-border/50">
-      <CardHeader>
-        <CardTitle className="font-heading text-xl uppercase tracking-wide">Recent Activity</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="rounded-xl" style={{ backgroundColor: '#FFFFFF', border: '1px solid #D7DCE2' }}>
+      <div className="px-6 py-4" style={{ borderBottom: '1px solid #D7DCE2' }}>
+        <h2 className="font-heading text-lg font-semibold uppercase tracking-wide" style={{ color: '#1A1A1A' }}>
+          Recent Activity
+        </h2>
+      </div>
+      <div className="p-4 space-y-3">
         {recentJobs.length === 0 && overdueInvoices.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No recent activity</p>
+          <p className="text-sm py-4 text-center" style={{ color: '#5A5A5A' }}>No recent activity</p>
         ) : (
           <>
             {recentJobs.map(job => (
               <Link key={job.id} to={`/jobs/${job.id}`} data-testid={`recent-job-${job.id}`}>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 hover:border-primary/30 border border-transparent transition-colors cursor-pointer">
+                <div 
+                  className="flex items-center justify-between p-3 rounded-lg transition-all duration-150 hover:shadow-sm"
+                  style={{ backgroundColor: '#F5F7FA', border: '1px solid transparent' }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(47, 139, 251, 0.3)'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
+                >
                   <div className="flex items-center gap-3">
-                    <Briefcase className="h-4 w-4 text-muted-foreground" />
+                    <Briefcase className="h-4 w-4" style={{ color: '#5A5A5A' }} />
                     <div>
-                      <p className="font-medium text-sm">{job.name}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="font-medium text-sm" style={{ color: '#1A1A1A' }}>{job.name}</p>
+                      <p className="text-xs" style={{ color: '#5A5A5A' }}>
                         Due: {formatDate(job.due_date)}
                       </p>
                     </div>
                   </div>
-                  <Badge className={getStatusColor(job.status)}>
+                  <span 
+                    className="px-2.5 py-0.5 rounded-full text-xs font-medium"
+                    style={getStatusBadgeStyles(job.status)}
+                  >
                     {job.status.replace('_', ' ')}
-                  </Badge>
+                  </span>
                 </div>
               </Link>
             ))}
@@ -74,53 +97,77 @@ const RecentActivity = ({ jobs, invoices, onInvoiceClick }) => {
                 key={inv.id} 
                 onClick={() => onInvoiceClick(inv.id)}
                 data-testid={`recent-invoice-${inv.id}`}
-                className="flex items-center justify-between p-3 rounded-lg bg-destructive/10 border border-destructive/30 hover:bg-destructive/20 transition-colors cursor-pointer"
+                className="flex items-center justify-between p-3 rounded-lg transition-colors cursor-pointer"
+                style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)' }}
               >
                 <div className="flex items-center gap-3">
-                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
                   <div>
-                    <p className="font-medium text-sm">Invoice Overdue</p>
-                    <p className="text-xs text-muted-foreground">{formatCurrency(inv.total)}</p>
+                    <p className="font-medium text-sm" style={{ color: '#1A1A1A' }}>Invoice Overdue</p>
+                    <p className="text-xs" style={{ color: '#5A5A5A' }}>{formatCurrency(inv.total)}</p>
                   </div>
                 </div>
-                <Badge className={getStatusColor('overdue')}>Overdue</Badge>
+                <span 
+                  className="px-2.5 py-0.5 rounded-full text-xs font-medium"
+                  style={getStatusBadgeStyles('overdue')}
+                >
+                  Overdue
+                </span>
               </div>
             ))}
           </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 
 const QuickActions = () => (
-  <Card className="bg-card border-border/50">
-    <CardHeader>
-      <CardTitle className="font-heading text-xl uppercase tracking-wide">Quick Actions</CardTitle>
-    </CardHeader>
-    <CardContent className="grid grid-cols-2 gap-3">
+  <div className="rounded-xl" style={{ backgroundColor: '#FFFFFF', border: '1px solid #D7DCE2' }}>
+    <div className="px-6 py-4" style={{ borderBottom: '1px solid #D7DCE2' }}>
+      <h2 className="font-heading text-lg font-semibold uppercase tracking-wide" style={{ color: '#1A1A1A' }}>
+        Quick Actions
+      </h2>
+    </div>
+    <div className="p-4 grid grid-cols-2 gap-3">
       <Link to="/customers">
-        <Button variant="outline" className="w-full justify-start gap-2" data-testid="quick-add-customer">
-          <Plus className="h-4 w-4" /> New Customer
-        </Button>
+        <button 
+          className="w-full flex items-center justify-start gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150"
+          style={{ backgroundColor: '#F5F7FA', color: '#1A1A1A', border: '1px solid #D7DCE2' }}
+          data-testid="quick-add-customer"
+        >
+          <Plus className="h-4 w-4" style={{ color: '#2F8BFB' }} /> New Customer
+        </button>
       </Link>
       <Link to="/quotes">
-        <Button variant="outline" className="w-full justify-start gap-2" data-testid="quick-add-quote">
-          <Plus className="h-4 w-4" /> New Quote
-        </Button>
+        <button 
+          className="w-full flex items-center justify-start gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150"
+          style={{ backgroundColor: '#F5F7FA', color: '#1A1A1A', border: '1px solid #D7DCE2' }}
+          data-testid="quick-add-quote"
+        >
+          <Plus className="h-4 w-4" style={{ color: '#2F8BFB' }} /> New Quote
+        </button>
       </Link>
       <Link to="/jobs">
-        <Button variant="outline" className="w-full justify-start gap-2" data-testid="quick-add-job">
-          <Plus className="h-4 w-4" /> New Job
-        </Button>
+        <button 
+          className="w-full flex items-center justify-start gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150"
+          style={{ backgroundColor: '#F5F7FA', color: '#1A1A1A', border: '1px solid #D7DCE2' }}
+          data-testid="quick-add-job"
+        >
+          <Plus className="h-4 w-4" style={{ color: '#2F8BFB' }} /> New Job
+        </button>
       </Link>
       <Link to="/timeclock">
-        <Button variant="outline" className="w-full justify-start gap-2" data-testid="quick-clock-in">
-          <Clock className="h-4 w-4" /> Time Clock
-        </Button>
+        <button 
+          className="w-full flex items-center justify-start gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150"
+          style={{ backgroundColor: '#F5F7FA', color: '#1A1A1A', border: '1px solid #D7DCE2' }}
+          data-testid="quick-clock-in"
+        >
+          <Clock className="h-4 w-4" style={{ color: '#2F8BFB' }} /> Time Clock
+        </button>
       </Link>
-    </CardContent>
-  </Card>
+    </div>
+  </div>
 );
 
 export default function Dashboard() {
@@ -156,7 +203,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#2F8BFB' }}></div>
       </div>
     );
   }
@@ -165,8 +212,10 @@ export default function Dashboard() {
     <div className="space-y-8 animate-fade-in" data-testid="dashboard">
       {/* Header */}
       <div>
-        <h1 className="text-4xl font-bold font-heading uppercase tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Welcome back to Sign Guy AI</p>
+        <h1 className="text-4xl font-bold font-heading uppercase tracking-tight" style={{ color: '#1A1A1A' }}>
+          Dashboard
+        </h1>
+        <p className="mt-1" style={{ color: '#5A5A5A' }}>Welcome back to Sign Guy AI</p>
       </div>
 
       {/* Stats Grid */}
@@ -199,26 +248,32 @@ export default function Dashboard() {
 
       {/* Overdue Alert */}
       {dashboardStats?.overdue_count > 0 && (
-        <Card className="bg-destructive/10 border-destructive/30">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              <div>
-                <p className="font-medium">
-                  {dashboardStats.overdue_count} Overdue Invoice{dashboardStats.overdue_count > 1 ? 's' : ''}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Total: {formatCurrency(dashboardStats.overdue_total)}
-                </p>
-              </div>
+        <div 
+          className="rounded-xl p-4 flex items-center justify-between"
+          style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)' }}
+        >
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-red-500" />
+            <div>
+              <p className="font-medium" style={{ color: '#1A1A1A' }}>
+                {dashboardStats.overdue_count} Overdue Invoice{dashboardStats.overdue_count > 1 ? 's' : ''}
+              </p>
+              <p className="text-sm" style={{ color: '#5A5A5A' }}>
+                Total: {formatCurrency(dashboardStats.overdue_total)}
+              </p>
             </div>
-            <Link to="/invoices?status=overdue">
-              <Button variant="destructive" size="sm" data-testid="view-overdue">
-                View Overdue
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+          </div>
+          <Link to="/invoices?status=overdue">
+            <Button 
+              size="sm" 
+              data-testid="view-overdue"
+              className="text-white"
+              style={{ backgroundColor: '#dc2626' }}
+            >
+              View Overdue
+            </Button>
+          </Link>
+        </div>
       )}
 
       {/* Recent Activity & Quick Actions */}
