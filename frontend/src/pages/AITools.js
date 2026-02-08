@@ -349,14 +349,12 @@ export default function AITools() {
           toast.error('No images were generated. Please try again.');
         }
         
-        // Also get text guidance if not a pure image tool
-        if (!['photo_enhancer', 'image_vectorizer'].includes(selectedTool.id)) {
-          try {
-            const textResponse = await generateAIContent(selectedTool.id, formData);
-            setResult(textResponse);
-          } catch (e) {
-            // Text is optional for image tools
-          }
+        // Also get text guidance for image-generating tools (design notes)
+        try {
+          const textResponse = await generateAIContent(selectedTool.id, formData);
+          setResult(textResponse);
+        } catch (e) {
+          // Text is optional for pure image generation tools
         }
       } else {
         // Text-only generation
