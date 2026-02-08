@@ -77,23 +77,27 @@ export default function Login() {
   const displayError = localError || error;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)] p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#2E2E2E' }}>
       <div className="w-full max-w-md">
         {/* Logo / Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-500/20 border border-teal-500/30 mb-4">
-            <span className="text-2xl font-bold text-teal-400">SG</span>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 overflow-hidden" style={{ backgroundColor: 'rgba(47, 139, 251, 0.2)' }}>
+            <img 
+              src="https://customer-assets.emergentagent.com/job_cc25406f-f7f9-4d81-8429-039b5b2a7159/artifacts/dmeif3yx_1766814558812.png" 
+              alt="Sign Guy AI" 
+              className="h-12 w-auto"
+            />
           </div>
-          <h1 className="text-3xl font-bold text-[var(--text-primary)]">Sign Guy AI</h1>
-          <p className="text-[var(--text-secondary)] mt-2">Sign Shop Operating System</p>
+          <h1 className="text-3xl font-bold font-heading" style={{ color: '#F2F2F2' }}>Sign Guy AI</h1>
+          <p style={{ color: '#BDBDBD' }} className="mt-2">Sign Shop Operating System</p>
         </div>
 
-        <Card className="bg-[var(--card-bg)] border-[var(--card-border)]">
+        <Card className="border shadow-xl" style={{ backgroundColor: '#FFFFFF', borderColor: '#D7DCE2' }}>
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center text-[var(--text-primary)]">
+            <CardTitle className="text-2xl text-center font-heading" style={{ color: '#1A1A1A' }}>
               {isRegister ? 'Create an account' : 'Welcome back'}
             </CardTitle>
-            <CardDescription className="text-center text-[var(--text-secondary)]">
+            <CardDescription className="text-center" style={{ color: '#5A5A5A' }}>
               {isRegister
                 ? 'Enter your details to get started'
                 : 'Enter your credentials to access your account'}
@@ -103,40 +107,42 @@ export default function Login() {
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               {displayError && (
-                <Alert variant="destructive" className="bg-red-500/10 border-red-500/50 text-red-400">
-                  <AlertDescription>{displayError}</AlertDescription>
+                <Alert variant="destructive" className="border-red-300" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
+                  <AlertDescription className="text-red-600">{displayError}</AlertDescription>
                 </Alert>
               )}
 
               {isRegister && (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="fullName" className="text-[var(--text-primary)]">Full Name</Label>
+                    <Label htmlFor="fullName" style={{ color: '#1A1A1A' }}>Full Name</Label>
                     <Input
                       id="fullName"
                       data-testid="register-fullname-input"
                       placeholder="John Smith"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      className="bg-[var(--input-bg)] border-[var(--input-border)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]"
+                      style={{ backgroundColor: '#FFFFFF', borderColor: '#D7DCE2', color: '#1A1A1A' }}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="companyName" className="text-[var(--text-primary)]">Company Name <span className="text-[var(--text-secondary)]">(optional)</span></Label>
+                    <Label htmlFor="companyName" style={{ color: '#1A1A1A' }}>
+                      Company Name <span style={{ color: '#5A5A5A' }}>(optional)</span>
+                    </Label>
                     <Input
                       id="companyName"
                       data-testid="register-company-input"
                       placeholder="Your Sign Company"
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
-                      className="bg-[var(--input-bg)] border-[var(--input-border)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]"
+                      style={{ backgroundColor: '#FFFFFF', borderColor: '#D7DCE2', color: '#1A1A1A' }}
                     />
                   </div>
                 </>
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-[var(--text-primary)]">Email</Label>
+                <Label htmlFor="email" style={{ color: '#1A1A1A' }}>Email</Label>
                 <Input
                   id="email"
                   data-testid="auth-email-input"
@@ -144,12 +150,12 @@ export default function Login() {
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="bg-[var(--input-bg)] border-[var(--input-border)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]"
+                  style={{ backgroundColor: '#FFFFFF', borderColor: '#D7DCE2', color: '#1A1A1A' }}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-[var(--text-primary)]">Password</Label>
+                <Label htmlFor="password" style={{ color: '#1A1A1A' }}>Password</Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -158,12 +164,14 @@ export default function Login() {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="bg-[var(--input-bg)] border-[var(--input-border)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] pr-10"
+                    className="pr-10"
+                    style={{ backgroundColor: '#FFFFFF', borderColor: '#D7DCE2', color: '#1A1A1A' }}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 hover:opacity-70"
+                    style={{ color: '#5A5A5A' }}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -172,7 +180,7 @@ export default function Login() {
 
               {isRegister && (
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-[var(--text-primary)]">Confirm Password</Label>
+                  <Label htmlFor="confirmPassword" style={{ color: '#1A1A1A' }}>Confirm Password</Label>
                   <Input
                     id="confirmPassword"
                     data-testid="register-confirm-password-input"
@@ -180,7 +188,7 @@ export default function Login() {
                     placeholder="••••••••"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="bg-[var(--input-bg)] border-[var(--input-border)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]"
+                    style={{ backgroundColor: '#FFFFFF', borderColor: '#D7DCE2', color: '#1A1A1A' }}
                   />
                 </div>
               )}
@@ -196,7 +204,8 @@ export default function Login() {
                   />
                   <Label 
                     htmlFor="rememberMe" 
-                    className="text-sm text-[var(--text-secondary)] cursor-pointer"
+                    className="text-sm cursor-pointer"
+                    style={{ color: '#5A5A5A' }}
                   >
                     Remember me for 30 days
                   </Label>
@@ -208,7 +217,8 @@ export default function Login() {
               <Button
                 type="submit"
                 data-testid={isRegister ? 'register-submit-btn' : 'login-submit-btn'}
-                className="w-full bg-teal-500 hover:bg-teal-600 text-white"
+                className="w-full text-white font-medium"
+                style={{ backgroundColor: '#2F8BFB' }}
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -226,7 +236,8 @@ export default function Login() {
                   type="button"
                   onClick={toggleMode}
                   data-testid="toggle-auth-mode-btn"
-                  className="text-sm text-teal-400 hover:text-teal-300 hover:underline"
+                  className="text-sm hover:underline"
+                  style={{ color: '#2F8BFB' }}
                 >
                   {isRegister
                     ? 'Already have an account? Sign in'
@@ -237,7 +248,7 @@ export default function Login() {
           </form>
         </Card>
 
-        <p className="text-center text-xs text-[var(--text-secondary)] mt-6">
+        <p className="text-center text-xs mt-6" style={{ color: '#BDBDBD' }}>
           &copy; {new Date().getFullYear()} Sign Guy AI. All rights reserved.
         </p>
       </div>
