@@ -84,7 +84,7 @@ export default function Login() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 overflow-hidden" style={{ backgroundColor: 'rgba(47, 139, 251, 0.2)' }}>
             <img 
               src="https://customer-assets.emergentagent.com/job_cc25406f-f7f9-4d81-8429-039b5b2a7159/artifacts/dmeif3yx_1766814558812.png" 
-              alt="Sign Guy AI" 
+              alt="SignGuy AI" 
               className="h-12 w-auto"
             />
           </div>
@@ -249,7 +249,7 @@ export default function Login() {
         </Card>
 
         <p className="text-center text-xs mt-6" style={{ color: '#BDBDBD' }}>
-          &copy; {new Date().getFullYear()} Sign Guy AI. All rights reserved.
+          &copy; {new Date().getFullYear()} SignGuy AI. All rights reserved.
         </p>
       </div>
     </div>

@@ -240,7 +240,7 @@ export default function CustomerPortal() {
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-gray-500">
           <p>Questions? Contact us at your convenience.</p>
-          <p className="mt-2">Powered by Sign Guy AI</p>
+          <p className="mt-2">Powered by SignGuy AI</p>
         </div>
       </div>
     </div>

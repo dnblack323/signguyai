@@ -215,7 +215,7 @@ export default function Dashboard() {
         <h1 className="text-4xl font-bold font-heading uppercase tracking-tight" style={{ color: '#1A1A1A' }}>
           Dashboard
         </h1>
-        <p className="mt-1" style={{ color: '#5A5A5A' }}>Welcome back to Sign Guy AI</p>
+        <p className="mt-1" style={{ color: '#5A5A5A' }}>Welcome back to SignGuy AI</p>
       </div>
 
       {/* Stats Grid */}
