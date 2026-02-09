@@ -31,7 +31,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer(auto_error=False)
 
 # Create the main app
-app = FastAPI(title="Sign Guy AI API")
+app = FastAPI(title="SignGuy AI API")
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -771,7 +771,7 @@ class WebstoreOrderV2Create(BaseModel):
 # Root
 @api_router.get("/")
 async def root():
-    return {"message": "Sign Guy AI API", "version": "1.0.0"}
+    return {"message": "SignGuy AI API", "version": "1.0.0"}
 
 # Health Check
 @api_router.get("/health")
@@ -2647,7 +2647,7 @@ Campaign elements are customizable - adjust based on actual resources and result
             chat = LlmChat(
                 api_key=api_key,
                 session_id=str(uuid.uuid4()),
-                system_message="You are a helpful AI assistant for Sign Guy AI, a sign shop management system. You are an expert at analyzing images for sign production and design purposes."
+                system_message="You are a helpful AI assistant for SignGuy AI, a sign shop management system. You are an expert at analyzing images for sign production and design purposes."
             ).with_model("gemini", "gemini-2.5-flash")
             
             # Extract base64 image data (remove data URL prefix if present)
@@ -2666,7 +2666,7 @@ Campaign elements are customizable - adjust based on actual resources and result
             chat = LlmChat(
                 api_key=api_key,
                 session_id=str(uuid.uuid4()),
-                system_message="You are a helpful AI assistant for Sign Guy AI, a sign shop management system."
+                system_message="You are a helpful AI assistant for SignGuy AI, a sign shop management system."
             ).with_model("openai", "gpt-5.2")
             
             user_message = UserMessage(text=prompt)

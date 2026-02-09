@@ -617,7 +617,7 @@ export default function Quotes() {
                       From
                     </h3>
                     <div className="space-y-1">
-                      <p className="font-bold text-lg">The Sign Guy PA</p>
+                      <p className="font-bold text-lg">SignGuy AI</p>
                       <p className="text-muted-foreground">Your Professional Sign Shop</p>
                     </div>
                   </div>
@@ -707,7 +707,7 @@ export default function Quotes() {
                 {/* Footer */}
                 <div className="text-center text-xs text-muted-foreground print:mt-8">
                   <p>Thank you for your business!</p>
-                  <p className="mt-1">The Sign Guy PA - Your Professional Sign Shop</p>
+                  <p className="mt-1">SignGuy AI - Your Professional Sign Shop</p>
                 </div>
 
                 {/* Actions (hidden in print) */}
