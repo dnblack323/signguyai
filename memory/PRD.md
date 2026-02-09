@@ -1,7 +1,7 @@
-# Sign Guy AI - Product Requirements Document
+# SignGuy AI - Product Requirements Document
 
 ## Original Problem Statement
-Build a web-based sign-shop operating system called "Sign Guy AI" - a single daily-use platform for sign and design shops replacing spreadsheets, notebooks, emails with a structured system for Customers, Quotes, Jobs, Invoices, Productivity, Financial tracking, Time clock & payroll, AI-assisted tools, and Fundraiser/B2B webstores.
+Build a web-based sign-shop operating system called "SignGuy AI" - a single daily-use platform for sign and design shops replacing spreadsheets, notebooks, emails with a structured system for Customers, Quotes, Jobs, Invoices, Productivity, Financial tracking, Time clock & payroll, AI-assisted tools, and Fundraiser/B2B webstores.
 
 ## Architecture & Tech Stack
 - **Frontend**: React 19 + Tailwind CSS + Shadcn/UI components
