@@ -160,7 +160,7 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
                   From
                 </h3>
                 <div className="space-y-1">
-                  <p className="font-bold text-lg">Sign Guy AI</p>
+                  <p className="font-bold text-lg">SignGuy AI</p>
                   <p className="text-muted-foreground">Your Sign Shop</p>
                 </div>
               </div>
@@ -257,7 +257,7 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
             <Separator />
             <div className="text-center text-xs text-muted-foreground print:mt-8">
               <p>Thank you for your business!</p>
-              <p className="mt-1">Sign Guy AI - Your Professional Sign Shop</p>
+              <p className="mt-1">SignGuy AI - Your Professional Sign Shop</p>
             </div>
           </div>
         ) : (

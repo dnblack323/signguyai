@@ -88,7 +88,7 @@ export default function Login() {
               className="h-12 w-auto"
             />
           </div>
-          <h1 className="text-3xl font-bold font-heading" style={{ color: '#F2F2F2' }}>Sign Guy AI</h1>
+          <h1 className="text-3xl font-bold font-heading" style={{ color: '#F2F2F2' }}>SignGuy AI</h1>
           <p style={{ color: '#BDBDBD' }} className="mt-2">Sign Shop Operating System</p>
         </div>
 

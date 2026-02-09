@@ -196,7 +196,7 @@ export const Sidebar = () => {
             </div>
             {isExpanded && (
               <span className="text-[#F2F2F2] font-semibold text-lg font-heading animate-fade-in whitespace-nowrap">
-                Sign Guy AI
+                SignGuy AI
               </span>
             )}
           </div>
@@ -365,7 +365,7 @@ export const MobileNav = ({ isOpen, onClose }) => {
                 />
               </div>
               <span className="text-[#F2F2F2] font-semibold text-lg font-heading">
-                Sign Guy AI
+                SignGuy AI
               </span>
             </div>
             <button
