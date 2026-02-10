@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useAuth, Permission } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -36,10 +37,25 @@ import InvoicePreviewModal from '../components/InvoicePreviewModal';
 const statusOptions = ['draft', 'sent', 'paid', 'overdue'];
 
 export default function Invoices() {
+  const { hasPermission } = useAuth();
+  const canViewInvoices = hasPermission(Permission.INVOICES_VIEW);
+  const canEditInvoices = hasPermission(Permission.INVOICES_CREATE);
+  
   const { 
     invoices, customers, jobs, fetchInvoices, fetchCustomers, fetchJobs,
     createInvoice, updateInvoice 
   } = useApp();
+  
+  // Permission denied view
+  if (!canViewInvoices) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center">
+        <AlertTriangle className="h-12 w-12 mb-4" style={{ color: '#d97706' }} />
+        <h2 className="text-xl font-semibold mb-2" style={{ color: '#1A1A1A' }}>Access Denied</h2>
+        <p style={{ color: '#5A5A5A' }}>You don't have permission to view invoices.</p>
+      </div>
+    );
+  }
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);

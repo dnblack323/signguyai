@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useAuth, Permission } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -27,17 +28,32 @@ import {
   TableRow,
 } from '../components/ui/table';
 import { formatCurrency, formatDate } from '../lib/utils';
-import { DollarSign, Plus, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { DollarSign, Plus, TrendingUp, TrendingDown, Minus, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const transactionTypes = ['earnings', 'advance', 'payment'];
 
 export default function Payroll() {
+  const { hasPermission } = useAuth();
+  const canViewPayroll = hasPermission(Permission.PAYROLL_VIEW);
+  const canEditPayroll = hasPermission(Permission.PAYROLL_EDIT);
+  
   const { 
     employees, fetchEmployees,
     createPayrollTransaction, getPayrollTransactions, 
     getPayrollBalance, getPayrollReport 
   } = useApp();
+  
+  // Permission denied view
+  if (!canViewPayroll) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center">
+        <AlertTriangle className="h-12 w-12 mb-4" style={{ color: '#d97706' }} />
+        <h2 className="text-xl font-semibold mb-2" style={{ color: '#1A1A1A' }}>Access Denied</h2>
+        <p style={{ color: '#5A5A5A' }}>You don't have permission to view payroll.</p>
+      </div>
+    );
+  }
   const [loading, setLoading] = useState(true);
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [transactions, setTransactions] = useState([]);
