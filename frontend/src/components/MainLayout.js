@@ -84,7 +84,7 @@ const Tooltip = ({ children, content, show }) => {
 };
 
 export const Sidebar = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
   const location = useLocation();
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeCategory, setActiveCategory] = useState(null);
@@ -93,9 +93,23 @@ export const Sidebar = () => {
   const navRef = useRef(null);
   const categoryRefs = useRef({});
 
+  // Filter navigation based on permissions
+  const filteredNavigation = useMemo(() => {
+    return navigationCategories.map(category => {
+      const filteredItems = category.items.filter(item => {
+        // If no permission required, show the item
+        if (!item.permission) return true;
+        // Check if user has the permission
+        return hasPermission(item.permission);
+      });
+      
+      return { ...category, items: filteredItems };
+    }).filter(category => category.items.length > 0); // Remove empty categories
+  }, [hasPermission]);
+
   // Find active category based on current path
   const findActiveCategory = () => {
-    for (const category of navigationCategories) {
+    for (const category of filteredNavigation) {
       if (category.items.some(item => item.href === location.pathname)) {
         return category.id;
       }
