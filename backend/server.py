@@ -1300,19 +1300,65 @@ async def admin_create_user(
     if input.role == UserRole.OWNER and current_user.role != UserRole.OWNER:
         raise HTTPException(status_code=403, detail="Only owners can create owner accounts")
     
-    # Create new user
+    # Create new user with same tenant as current user
     hashed_password = get_password_hash(input.password)
     user = UserInDB(
         email=input.email.lower(),
         full_name=input.full_name,
         company_name=input.company_name,
         role=input.role or UserRole.STAFF,
+        tenant_id=current_user.tenant_id,  # Same tenant as creator
         hashed_password=hashed_password
     )
     doc = user.model_dump()
     await db.users.insert_one(doc)
     
     return User(**{k: v for k, v in doc.items() if k != "hashed_password"})
+
+# -------------- TENANT ROUTES --------------
+@api_router.get("/tenant/current")
+async def get_current_tenant_info(
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Get the current user's tenant information"""
+    if not current_user.tenant_id:
+        raise HTTPException(status_code=404, detail="No tenant associated with this user")
+    
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0})
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    return tenant
+
+@api_router.put("/tenant/settings")
+async def update_tenant_settings(
+    input: TenantUpdate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Update tenant settings - requires SETTINGS_EDIT permission or Owner role"""
+    if not has_permission(current_user, Permission.SETTINGS_EDIT):
+        raise HTTPException(status_code=403, detail="Permission denied: Cannot edit settings")
+    
+    if not current_user.tenant_id:
+        raise HTTPException(status_code=404, detail="No tenant associated with this user")
+    
+    # Build update dict
+    update_data = {k: v for k, v in input.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    result = await db.tenants.update_one(
+        {"id": current_user.tenant_id},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0})
+    return tenant
 
 # -------------- MAGIC LINKS (CUSTOMER PORTAL) --------------
 @api_router.post("/magic-links", response_model=MagicLink)
