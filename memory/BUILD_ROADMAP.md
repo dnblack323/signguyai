@@ -295,9 +295,21 @@
 | Order History | Past orders from webstores | P2 |
 | Profile Management | Update contact info | P2 |
 
-### Sprint 10: Artwork Approval System
-**Timeline:** After Customer Portal
-**Goal:** Streamline design approval workflow
+---
+
+## 🐛 KNOWN ISSUES
+
+### P1 - High Priority
+| Issue | Description | Status |
+|-------|-------------|--------|
+| Customer Portal Empty Descriptions | Quote line item descriptions not showing in portal | 🔲 Todo |
+
+### P2 - Medium Priority
+| Issue | Description | Status |
+|-------|-------------|--------|
+| Accessibility Warnings | Minor ARIA/contrast issues from old test reports | 🔲 Todo |
+
+---
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
