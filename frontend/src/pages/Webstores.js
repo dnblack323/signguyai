@@ -169,7 +169,7 @@ export default function Webstores() {
 
   const handleViewStore = async (store) => {
     setSelectedStore(store);
-    setDetailTab('overview');
+    setDetailTab('dashboard');
     try {
       const [prods, payouts] = await Promise.all([
         getWebstoreProducts(store.id, true),
