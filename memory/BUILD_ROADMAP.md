@@ -255,15 +255,14 @@
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
-| Tenant Model | Company/organization entity | P0 |
-| Tenant ID on All Records | Data isolation | P0 |
-| Tenant-Scoped Queries | Automatic filtering | P0 |
-| Tenant Settings | Company branding, defaults | P1 |
-| Tenant Onboarding | New company signup flow | P1 |
-| Tenant Admin Dashboard | Manage your company | P1 |
+| Design Upload | Upload proofs/mockups | P0 |
+| Approval Workflow | Request → Review → Approve/Reject | P0 |
+| Customer Comments | Feedback on designs | P1 |
+| Revision Tracking | Version history | P1 |
+| Email Notifications | Alert customer on new proofs | P2 |
 
-### Sprint 8: Subscription & Billing
-**Timeline:** After Multi-Tenant
+### Sprint 10: Subscription & Billing
+**Timeline:** After Artwork Approval
 **Goal:** Monetize with Stripe subscriptions
 
 | Feature | Description | Priority |
