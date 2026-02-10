@@ -25,6 +25,15 @@ import UserManagement from "./pages/UserManagement";
 import CustomerPortal from "./pages/CustomerPortal";
 import CompanySettings from "./pages/CompanySettings";
 
+// Customer Portal Pages
+import PortalLogin from "./pages/PortalLogin";
+import PortalDashboard from "./pages/PortalDashboard";
+import { PortalOrders, PortalOrderDetail } from "./pages/PortalOrders";
+import { PortalProofs, PortalProofDetail } from "./pages/PortalProofs";
+import { PortalMessages, PortalConversation } from "./pages/PortalMessages";
+import PortalProfile from "./pages/PortalProfile";
+import { PortalQuotes, PortalInvoices, PortalAppointments } from "./pages/PortalPages";
+
 import "./App.css";
 
 // Loading Screen Component
