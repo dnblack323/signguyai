@@ -349,9 +349,9 @@ Build a web-based sign-shop operating system called "SignGuy AI" - a single dail
 - [ ] Google OAuth integration (optional addition to existing JWT auth)
 
 ## Next Tasks
-1. Sprint 8: Smart Pricing Engine (materials cost tracking, labor calculation, real-time profit display)
-2. Fix Customer Portal empty line item descriptions (P1 bug)
-3. Sprint 9: Artwork Approval System
+1. Integrate Buy Now, Pay Later (BNPL) - Affirm & Klarna for customer payments
+2. Sprint 8: Smart Pricing Engine (materials cost tracking, labor calculation, real-time profit display)
+3. Webstores Phase 2: External Dashboard for fundraiser organizers
 4. Sprint 10: Stripe Subscription & Billing
-5. Webstores Phase 2: Store owner dashboards
+5. Backend Refactoring: Break down monolithic server.py into /routes, /models, /services
 
