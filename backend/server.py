@@ -843,6 +843,7 @@ class WebstoreBranding(BaseModel):
 class Webstore(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: Optional[str] = None  # Multi-tenancy support
     name: str
     store_type: WebstoreType
     owner_name: str  # Business name, organization, or individual
