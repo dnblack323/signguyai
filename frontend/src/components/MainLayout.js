@@ -499,7 +499,15 @@ export const MobileNav = ({ isOpen, onClose }) => {
 
 export const MainLayout = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewTier, setPreviewTier] = useState(() => localStorage.getItem('preview_tier') || 'tier3');
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // Save preview tier to localStorage
+  useEffect(() => {
+    localStorage.setItem('preview_tier', previewTier);
+  }, [previewTier]);
 
   // Get current page title
   const getCurrentPageTitle = () => {
@@ -511,6 +519,12 @@ export const MainLayout = ({ children }) => {
   };
 
   const pageTitle = getCurrentPageTitle();
+
+  const tierLabels = {
+    tier1: { name: 'Starter (Free)', color: 'bg-slate-500' },
+    tier2: { name: 'Pro', color: 'bg-blue-500' },
+    tier3: { name: 'Business', color: 'bg-amber-500' }
+  };
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--panel-bg)' }}>
@@ -544,6 +558,92 @@ export const MainLayout = ({ children }) => {
           {children}
         </div>
       </main>
+
+      {/* Preview Mode Panel - Fixed Bottom Right */}
+      <div className="fixed bottom-4 right-4 z-50">
+        {previewOpen ? (
+          <div className="bg-[#1E1E1E] border border-white/20 rounded-xl shadow-2xl w-72 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between p-3 border-b border-white/10 bg-[#2F8BFB]/20">
+              <div className="flex items-center gap-2">
+                <Eye className="h-4 w-4 text-[#2F8BFB]" />
+                <span className="text-sm font-semibold text-white">Preview Mode</span>
+              </div>
+              <button 
+                onClick={() => setPreviewOpen(false)}
+                className="text-white/60 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Tier Selection */}
+            <div className="p-3 space-y-3">
+              <div>
+                <label className="text-xs font-medium text-white/60 uppercase tracking-wide">Subscription Tier</label>
+                <div className="mt-2 space-y-1">
+                  {Object.entries(tierLabels).map(([tier, { name, color }]) => (
+                    <button
+                      key={tier}
+                      onClick={() => setPreviewTier(tier)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all",
+                        previewTier === tier 
+                          ? "bg-white/10 ring-1 ring-[#2F8BFB]" 
+                          : "hover:bg-white/5"
+                      )}
+                    >
+                      <div className={cn("w-3 h-3 rounded-full", color)} />
+                      <span className="text-sm text-white">{name}</span>
+                      {previewTier === tier && (
+                        <span className="ml-auto text-xs text-[#2F8BFB]">Active</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Quick Links */}
+              <div className="pt-2 border-t border-white/10">
+                <label className="text-xs font-medium text-white/60 uppercase tracking-wide">Quick Access</label>
+                <div className="mt-2 space-y-1">
+                  <button
+                    onClick={() => window.open('/customer-portal/login', '_blank')}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-white/5 transition-all"
+                  >
+                    <User className="h-4 w-4 text-teal-400" />
+                    <span className="text-sm text-white">Customer Portal</span>
+                    <ExternalLink className="h-3 w-3 ml-auto text-white/40" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Current Tier Info */}
+              <div className="pt-2 border-t border-white/10">
+                <div className="flex items-center gap-2 px-3 py-2 bg-white/5 rounded-lg">
+                  <div className={cn("w-2 h-2 rounded-full", tierLabels[previewTier].color)} />
+                  <span className="text-xs text-white/60">
+                    Viewing as: <span className="text-white font-medium">{tierLabels[previewTier].name}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setPreviewOpen(true)}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-full shadow-lg transition-all hover:scale-105",
+              tierLabels[previewTier].color
+            )}
+            data-testid="preview-mode-toggle"
+          >
+            <Eye className="h-4 w-4 text-white" />
+            <span className="text-sm font-medium text-white">{tierLabels[previewTier].name}</span>
+            <ChevronDown className="h-3 w-3 text-white/80" />
+          </button>
+        )}
+      </div>
     </div>
   );
 };
