@@ -43,7 +43,7 @@ export const AppProvider = ({ children }) => {
   // Customers
   const fetchCustomers = async (params = {}) => {
     try {
-      const res = await apiInstance.get(`/customers`, { params });
+      const res = await api.get(`/customers`, { params });
       setCustomers(res.data);
       return res.data;
     } catch (err) {
