@@ -3905,6 +3905,234 @@ async def get_webstore_payouts(webstore_id: str):
     payouts = await db.webstore_payouts.find({"webstore_id": webstore_id}, {"_id": 0}).to_list(500)
     return payouts
 
+# -------------- WEBSTORE ANALYTICS --------------
+@api_router.get("/webstores/v2/{webstore_id}/analytics")
+async def get_webstore_analytics(webstore_id: str):
+    """Get comprehensive analytics for a webstore"""
+    # Get the webstore
+    store = await db.webstores_v2.find_one({"id": webstore_id}, {"_id": 0})
+    if not store:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+    
+    # Get all orders for this store
+    orders = await db.webstore_orders_v2.find({"webstore_id": webstore_id}, {"_id": 0}).to_list(1000)
+    
+    # Get payouts
+    payouts = await db.webstore_payouts.find({"webstore_id": webstore_id}, {"_id": 0}).to_list(500)
+    
+    # Calculate metrics
+    total_orders = len(orders)
+    completed_orders = len([o for o in orders if o.get("status") in ["completed", "shipped"]])
+    pending_orders = len([o for o in orders if o.get("status") == "pending"])
+    processing_orders = len([o for o in orders if o.get("status") in ["processing", "production"]])
+    
+    total_revenue = sum(o.get("total", 0) for o in orders)
+    total_profit = sum(o.get("total_profit", 0) for o in orders)
+    shop_profit = sum(o.get("shop_profit", 0) for o in orders)
+    payout_amount = sum(o.get("payout_amount", 0) for o in orders)
+    
+    # Calculate paid out amount
+    total_paid_out = sum(p.get("amount", 0) for p in payouts)
+    balance_owed = payout_amount - total_paid_out
+    
+    # Average order value
+    avg_order_value = total_revenue / total_orders if total_orders > 0 else 0
+    
+    # Sales by day (last 30 days)
+    from collections import defaultdict
+    sales_by_day = defaultdict(float)
+    for order in orders:
+        order_date = order.get("created_at", "")[:10]  # Get YYYY-MM-DD
+        sales_by_day[order_date] += order.get("total", 0)
+    
+    # Sort sales by day
+    sales_by_day_sorted = sorted(sales_by_day.items())[-30:]  # Last 30 days
+    
+    # Top products
+    product_sales = defaultdict(lambda: {"quantity": 0, "revenue": 0, "name": ""})
+    for order in orders:
+        for item in order.get("items", []):
+            pid = item.get("product_id", "unknown")
+            product_sales[pid]["quantity"] += item.get("quantity", 0)
+            product_sales[pid]["revenue"] += item.get("total", 0)
+            product_sales[pid]["name"] = item.get("product_name", "Unknown")
+    
+    top_products = sorted(
+        [{"product_id": k, **v} for k, v in product_sales.items()],
+        key=lambda x: x["revenue"],
+        reverse=True
+    )[:10]
+    
+    # Fundraiser-specific metrics
+    fundraiser_metrics = None
+    if store.get("store_type") == "fundraiser":
+        goal = store.get("fundraiser_goal", 0)
+        raised = payout_amount
+        progress_percent = (raised / goal * 100) if goal > 0 else 0
+        
+        # Calculate days remaining
+        end_date_str = store.get("fundraiser_end_date")
+        days_remaining = None
+        if end_date_str:
+            try:
+                end_date = datetime.fromisoformat(end_date_str.replace("Z", "+00:00"))
+                now = datetime.now(timezone.utc)
+                days_remaining = max(0, (end_date - now).days)
+            except:
+                pass
+        
+        fundraiser_metrics = {
+            "goal": goal,
+            "raised": raised,
+            "progress_percent": min(progress_percent, 100),
+            "days_remaining": days_remaining,
+            "profit_percent": store.get("fundraiser_profit_percent", 0)
+        }
+    
+    return {
+        "store_id": webstore_id,
+        "store_name": store.get("name"),
+        "store_type": store.get("store_type"),
+        "summary": {
+            "total_orders": total_orders,
+            "completed_orders": completed_orders,
+            "pending_orders": pending_orders,
+            "processing_orders": processing_orders,
+            "total_revenue": total_revenue,
+            "total_profit": total_profit,
+            "shop_profit": shop_profit,
+            "avg_order_value": avg_order_value
+        },
+        "payout_info": {
+            "total_earned": payout_amount,
+            "total_paid_out": total_paid_out,
+            "balance_owed": balance_owed
+        },
+        "sales_by_day": [{"date": d, "amount": a} for d, a in sales_by_day_sorted],
+        "top_products": top_products,
+        "fundraiser_metrics": fundraiser_metrics
+    }
+
+# -------------- EMAIL NOTIFICATIONS --------------
+async def send_order_notification_email(order: dict, store: dict):
+    """Send email notification when a new order is placed"""
+    try:
+        # Get tenant info for the shop owner email
+        tenant = await db.tenants.find_one({}, {"_id": 0})
+        if not tenant or not tenant.get("owner_email"):
+            logger.warning("No tenant owner email found for order notification")
+            return
+        
+        shop_email = tenant.get("owner_email")
+        shop_name = tenant.get("name", "SignGuy AI Shop")
+        
+        # Build email content
+        items_html = ""
+        for item in order.get("items", []):
+            variant_str = f" - {item.get('variant_name')}" if item.get('variant_name') else ""
+            items_html += f"""
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">{item.get('product_name', 'Product')}{variant_str}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">{item.get('quantity', 1)}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.get('total', 0):.2f}</td>
+            </tr>
+            """
+        
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: #2F8BFB; color: white; padding: 20px; text-align: center; }}
+                .content {{ padding: 20px; background: #f9f9f9; }}
+                .order-details {{ background: white; padding: 15px; border-radius: 8px; margin: 15px 0; }}
+                .footer {{ text-align: center; padding: 20px; color: #666; font-size: 12px; }}
+                table {{ width: 100%; border-collapse: collapse; }}
+                th {{ background: #f0f0f0; padding: 10px; text-align: left; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>🛒 New Order Received!</h1>
+                </div>
+                <div class="content">
+                    <p>You have a new order from <strong>{store.get('name', 'Webstore')}</strong>!</p>
+                    
+                    <div class="order-details">
+                        <h3>Order #{order.get('id', '')[:8]}</h3>
+                        <p><strong>Customer:</strong> {order.get('customer_name', 'N/A')}</p>
+                        <p><strong>Email:</strong> {order.get('customer_email', 'N/A')}</p>
+                        <p><strong>Phone:</strong> {order.get('customer_phone', 'N/A')}</p>
+                        {f"<p><strong>Shipping Address:</strong> {order.get('shipping_address')}</p>" if order.get('shipping_address') else ""}
+                        
+                        <h4>Items Ordered:</h4>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th style="text-align: center;">Qty</th>
+                                    <th style="text-align: right;">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {items_html}
+                            </tbody>
+                        </table>
+                        
+                        <div style="margin-top: 15px; text-align: right;">
+                            <p><strong>Subtotal:</strong> ${order.get('subtotal', 0):.2f}</p>
+                            <p><strong>Tax:</strong> ${order.get('tax', 0):.2f}</p>
+                            <p><strong>Shipping:</strong> ${order.get('shipping', 0):.2f}</p>
+                            <p style="font-size: 18px;"><strong>Total:</strong> ${order.get('total', 0):.2f}</p>
+                        </div>
+                    </div>
+                    
+                    <p style="text-align: center;">
+                        <a href="{os.environ.get('FRONTEND_URL', 'https://signmaster-1.preview.emergentagent.com')}/webstores" 
+                           style="background: #2F8BFB; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                            View Order in Dashboard
+                        </a>
+                    </p>
+                </div>
+                <div class="footer">
+                    <p>This notification was sent from {shop_name}</p>
+                    <p>Powered by SignGuy AI</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Try to send via SendGrid if configured
+        sendgrid_api_key = os.environ.get("SENDGRID_API_KEY")
+        sender_email = os.environ.get("SENDER_EMAIL", "noreply@signguy.ai")
+        
+        if sendgrid_api_key:
+            try:
+                from sendgrid import SendGridAPIClient
+                from sendgrid.helpers.mail import Mail
+                
+                message = Mail(
+                    from_email=sender_email,
+                    to_emails=shop_email,
+                    subject=f"🛒 New Order from {store.get('name', 'Webstore')} - ${order.get('total', 0):.2f}",
+                    html_content=html_content
+                )
+                
+                sg = SendGridAPIClient(sendgrid_api_key)
+                response = sg.send(message)
+                logger.info(f"Order notification email sent to {shop_email}, status: {response.status_code}")
+            except Exception as e:
+                logger.error(f"Failed to send order notification via SendGrid: {e}")
+        else:
+            logger.info(f"SendGrid not configured. Order notification would be sent to: {shop_email}")
+            
+    except Exception as e:
+        logger.error(f"Error sending order notification: {e}")
+
 # -------------- DASHBOARD STATS --------------
 @api_router.get("/dashboard/stats")
 async def get_dashboard_stats():
