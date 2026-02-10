@@ -366,8 +366,19 @@ export const Sidebar = () => {
 
 // Mobile Navigation
 export const MobileNav = ({ isOpen, onClose }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
   const location = useLocation();
+
+  // Filter navigation based on permissions
+  const filteredNavigation = useMemo(() => {
+    return navigationCategories.map(category => {
+      const filteredItems = category.items.filter(item => {
+        if (!item.permission) return true;
+        return hasPermission(item.permission);
+      });
+      return { ...category, items: filteredItems };
+    }).filter(category => category.items.length > 0);
+  }, [hasPermission]);
 
   // Close on navigation
   useEffect(() => {
@@ -414,7 +425,7 @@ export const MobileNav = ({ isOpen, onClose }) => {
 
           {/* Navigation */}
           <nav className="flex-1 py-4 overflow-y-auto">
-            {navigationCategories.map((category) => (
+            {filteredNavigation.map((category) => (
               <div key={category.id} className="mb-4">
                 <div className="px-4 py-2">
                   <span className="text-xs font-semibold text-[#BDBDBD] uppercase tracking-wider">
