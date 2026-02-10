@@ -935,6 +935,7 @@ class WebstoreOrderItem(BaseModel):
 class WebstoreOrderV2(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: Optional[str] = None  # Multi-tenancy support
     webstore_id: str
     webstore_name: str
     store_type: WebstoreType
