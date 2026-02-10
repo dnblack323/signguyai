@@ -1,15 +1,15 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import axiosInstance from 'axiosInstance';
+import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-// Create axiosInstance instance with auth interceptor
-const axiosInstanceInstance = axiosInstance.create({
+// Create axios instance with auth interceptor
+const api = axios.create({
   baseURL: API,
 });
 
 // Add auth token to all requests
-axiosInstanceInstance.interceptors.request.use(
+api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
