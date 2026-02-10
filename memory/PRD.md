@@ -254,10 +254,12 @@ Build a web-based sign-shop operating system called "SignGuy AI" - a single dail
 ### P0 - Critical (Next Sprint)
 - [ ] Webstores Phase 2: Store owner dashboards (sales, orders, payouts)
 - [x] User Authentication (JWT) ✅ COMPLETED Feb 7, 2026
-- [ ] Role-based access control (Owner, Admin, Staff)
+- [x] Role-based access control (Owner, Admin, Staff) ✅ COMPLETED Feb 10, 2026
 
 ### P1 - High Priority
-- [ ] Artwork Approval System (upload proof, customer approve/reject)
+- [ ] Sprint 7: SaaS Foundation - Multi-Tenancy (data isolation between companies)
+- [ ] Sprint 8: Smart Pricing Engine (real-time profit margin calculators)
+- [ ] Sprint 9: Artwork Approval System (upload proof, customer approve/reject)
 - [ ] Email notifications for overdue invoices
 - [ ] Print-ready file generation
 - [ ] Mobile-responsive time clock interface
