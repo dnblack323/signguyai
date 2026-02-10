@@ -3902,6 +3902,9 @@ async def record_payout(webstore_id: str, amount: float, notes: Optional[str] = 
     }
     await db.webstore_payouts.insert_one(payout_record)
     
+    # Remove MongoDB _id before returning
+    payout_record.pop("_id", None)
+    
     return {"message": "Payout recorded", "payout": payout_record}
 
 @api_router.get("/webstores/v2/{webstore_id}/payouts")
