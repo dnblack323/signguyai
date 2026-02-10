@@ -449,6 +449,7 @@ class AIRequest(BaseModel):
 class AIResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: Optional[str] = None  # Multi-tenancy support
     tool: str
     input_data: Dict[str, Any]
     output: str
