@@ -1817,8 +1817,15 @@ async def get_job_details(
     }
 
 @api_router.put("/jobs/{job_id}", response_model=Job)
-async def update_job(job_id: str, input: JobUpdate):
-    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+async def update_job(
+    job_id: str, 
+    input: JobUpdate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    job = await db.jobs.find_one(
+        {"id": job_id, "tenant_id": current_user.tenant_id}, 
+        {"_id": 0}
+    )
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     
