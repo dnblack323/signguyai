@@ -194,6 +194,7 @@ export function PortalMessages() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>New Message</DialogTitle>
+            <DialogDescription>Send a message to the sign shop</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
