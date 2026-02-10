@@ -1544,7 +1544,10 @@ async def delete_customer(
 
 # -------------- QUOTES --------------
 @api_router.post("/quotes", response_model=Quote)
-async def create_quote(input: QuoteCreate):
+async def create_quote(
+    input: QuoteCreate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
     # Calculate totals for line items
     line_items = []
     total = 0
@@ -1563,7 +1566,8 @@ async def create_quote(input: QuoteCreate):
         line_items=line_items,
         notes=input.notes,
         status=input.status,
-        total=total
+        total=total,
+        tenant_id=current_user.tenant_id  # Tenant scoped
     )
     doc = quote.model_dump()
     await db.quotes.insert_one(doc)
@@ -1572,9 +1576,10 @@ async def create_quote(input: QuoteCreate):
 @api_router.get("/quotes", response_model=List[Quote])
 async def get_quotes(
     customer_id: Optional[str] = None,
-    status: Optional[QuoteStatus] = None
+    status: Optional[QuoteStatus] = None,
+    current_user: UserInDB = Depends(get_current_active_user)
 ):
-    query = {}
+    query = {"tenant_id": current_user.tenant_id}  # Tenant scoped
     if customer_id:
         query["customer_id"] = customer_id
     if status:
@@ -1583,15 +1588,28 @@ async def get_quotes(
     return quotes
 
 @api_router.get("/quotes/{quote_id}", response_model=Quote)
-async def get_quote(quote_id: str):
-    quote = await db.quotes.find_one({"id": quote_id}, {"_id": 0})
+async def get_quote(
+    quote_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    quote = await db.quotes.find_one(
+        {"id": quote_id, "tenant_id": current_user.tenant_id}, 
+        {"_id": 0}
+    )
     if not quote:
         raise HTTPException(status_code=404, detail="Quote not found")
     return quote
 
 @api_router.put("/quotes/{quote_id}", response_model=Quote)
-async def update_quote(quote_id: str, input: QuoteUpdate):
-    quote = await db.quotes.find_one({"id": quote_id}, {"_id": 0})
+async def update_quote(
+    quote_id: str, 
+    input: QuoteUpdate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    quote = await db.quotes.find_one(
+        {"id": quote_id, "tenant_id": current_user.tenant_id}, 
+        {"_id": 0}
+    )
     if not quote:
         raise HTTPException(status_code=404, detail="Quote not found")
     if quote.get("job_id"):
@@ -1618,8 +1636,14 @@ async def update_quote(quote_id: str, input: QuoteUpdate):
     return updated_quote
 
 @api_router.post("/quotes/{quote_id}/convert-to-job", response_model=Job)
-async def convert_quote_to_job(quote_id: str):
-    quote = await db.quotes.find_one({"id": quote_id}, {"_id": 0})
+async def convert_quote_to_job(
+    quote_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    quote = await db.quotes.find_one(
+        {"id": quote_id, "tenant_id": current_user.tenant_id}, 
+        {"_id": 0}
+    )
     if not quote:
         raise HTTPException(status_code=404, detail="Quote not found")
     if quote.get("job_id"):
@@ -1632,7 +1656,8 @@ async def convert_quote_to_job(quote_id: str):
         description=quote.get("notes", ""),
         status=JobStatus.APPROVED,
         quote_id=quote_id,
-        subtotal=quote.get("total", 0)
+        subtotal=quote.get("total", 0),
+        tenant_id=current_user.tenant_id  # Tenant scoped
     )
     job_doc = job.model_dump()
     await db.jobs.insert_one(job_doc)
