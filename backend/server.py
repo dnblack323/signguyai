@@ -4575,6 +4575,741 @@ async def send_order_notification_email(order: dict, store: dict):
     except Exception as e:
         logger.error(f"Error sending order notification: {e}")
 
+# ============== PRICING CALCULATOR API ==============
+
+# Helper: Get or create default pricing configuration for tenant
+async def get_pricing_defaults(tenant_id: str) -> dict:
+    """Get pricing defaults for a tenant, creating if doesn't exist"""
+    defaults = await db.pricing_defaults.find_one({"tenant_id": tenant_id}, {"_id": 0})
+    if not defaults:
+        # Create default pricing config
+        new_defaults = PricingDefaults(tenant_id=tenant_id)
+        await db.pricing_defaults.insert_one(new_defaults.model_dump())
+        defaults = new_defaults.model_dump()
+    return defaults
+
+# Helper: Calculate complexity multiplier
+def get_complexity_multiplier(complexity: int, base: float = 1.0, max_mult: float = 2.0) -> float:
+    """Calculate multiplier based on complexity (1-10)"""
+    complexity = max(1, min(10, complexity))  # Clamp to 1-10
+    # Linear interpolation from base at 1 to max at 10
+    return base + (max_mult - base) * (complexity - 1) / 9
+
+# Helper: Calculate quantity discount
+def get_quantity_discount(quantity: float, quantity_breaks: dict) -> float:
+    """Get discount percentage based on quantity"""
+    discount = 0
+    for break_name, break_data in quantity_breaks.items():
+        if quantity >= break_data.get("min_qty", 0):
+            discount = max(discount, break_data.get("discount_percent", 0))
+    return discount
+
+# ============== CATEGORY-SPECIFIC CALCULATORS ==============
+
+async def calculate_promotional(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
+    """Calculator for Promotional Items (margin-based)"""
+    unit_cost = data.unit_cost or 0
+    markup = data.markup_percent if data.markup_percent is not None else defaults.get("default_markup_percent", 100)
+    setup_fee = data.setup_fee or 0
+    
+    # Calculate
+    extended_cost = unit_cost * quantity
+    markup_amount = extended_cost * (markup / 100)
+    suggested_price = extended_cost + markup_amount + setup_fee
+    
+    production_cost = extended_cost + setup_fee
+    profit = suggested_price - production_cost
+    margin = (profit / suggested_price * 100) if suggested_price > 0 else 0
+    
+    return PricingCalculation(
+        material_cost=extended_cost,
+        setup_cost=setup_fee,
+        production_cost=production_cost,
+        suggested_price=suggested_price,
+        markup_percent=markup,
+        profit_margin_percent=round(margin, 1),
+        profit_amount=round(profit, 2),
+        breakdown={
+            "unit_cost": unit_cost,
+            "quantity": quantity,
+            "extended_cost": round(extended_cost, 2),
+            "markup_percent": markup,
+            "markup_amount": round(markup_amount, 2),
+            "setup_fee": setup_fee
+        }
+    )
+
+async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
+    """Calculator for Cut Vinyl (decals, lettering)"""
+    # Calculate square footage
+    width = data.width_inches or 0
+    length = data.length_inches or 0
+    sqft = data.square_footage or (width * length / 144)  # Convert sq inches to sq ft
+    
+    # Material costs based on vinyl type
+    vinyl_costs = {
+        "oracal_651": 0.50,
+        "oracal_751": 0.75,
+        "oracal_951": 1.25,
+        "avery_hp750": 0.90,
+        "reflective": 2.50,
+        "specialty": 1.50,
+        "custom": 1.00
+    }
+    vinyl_cost_per_sqft = vinyl_costs.get(data.vinyl_type.value if data.vinyl_type else "oracal_651", 0.75)
+    
+    # Complexity multiplier
+    complexity_mult = get_complexity_multiplier(
+        data.complexity, 
+        defaults.get("complexity_multiplier_base", 1.0),
+        defaults.get("complexity_multiplier_max", 2.0)
+    )
+    
+    # Color multiplier (more colors = more time)
+    color_mult = 1 + (data.num_colors - 1) * 0.25
+    
+    # Calculate costs
+    material_cost = sqft * vinyl_cost_per_sqft * data.num_colors * quantity
+    weeding_minutes = sqft * defaults.get("weeding_time_per_sqft", 5) * complexity_mult * color_mult
+    application_minutes = sqft * defaults.get("application_time_per_sqft", 3)
+    total_labor_minutes = (weeding_minutes + application_minutes) * quantity
+    labor_cost = (total_labor_minutes / 60) * defaults.get("hourly_rate", 75)
+    setup_cost = defaults.get("setup_fee_vinyl", 15)
+    
+    production_cost = material_cost + labor_cost + setup_cost
+    
+    # Apply minimum charge
+    min_charge = defaults.get("minimum_vinyl_charge", 25)
+    production_cost = max(production_cost, min_charge)
+    
+    # Quantity discount
+    qty_discount = get_quantity_discount(quantity, defaults.get("quantity_breaks", {}))
+    
+    # Suggested price with markup
+    markup = defaults.get("default_markup_percent", 100)
+    suggested_price = production_cost * (1 + markup / 100) * (1 - qty_discount / 100)
+    
+    profit = suggested_price - production_cost
+    margin = (profit / suggested_price * 100) if suggested_price > 0 else 0
+    
+    return PricingCalculation(
+        material_cost=round(material_cost, 2),
+        labor_cost=round(labor_cost, 2),
+        setup_cost=setup_cost,
+        production_cost=round(production_cost, 2),
+        suggested_price=round(suggested_price, 2),
+        markup_percent=markup,
+        profit_margin_percent=round(margin, 1),
+        profit_amount=round(profit, 2),
+        estimated_labor_minutes=round(total_labor_minutes, 1),
+        breakdown={
+            "square_footage": round(sqft, 2),
+            "vinyl_type": data.vinyl_type.value if data.vinyl_type else "oracal_651",
+            "vinyl_cost_per_sqft": vinyl_cost_per_sqft,
+            "num_colors": data.num_colors,
+            "complexity": data.complexity,
+            "complexity_multiplier": round(complexity_mult, 2),
+            "weeding_minutes": round(weeding_minutes, 1),
+            "application_minutes": round(application_minutes, 1),
+            "quantity_discount_percent": qty_discount
+        }
+    )
+
+async def calculate_services(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
+    """Calculator for Services (labor-based)"""
+    hours = data.estimated_hours or 1
+    
+    # Get hourly rate based on service type
+    service_rates = {
+        "design": defaults.get("design_hourly_rate", 85),
+        "installation": defaults.get("install_hourly_rate", 95),
+        "removal": defaults.get("install_hourly_rate", 95),
+        "site_survey": defaults.get("hourly_rate", 75),
+        "consultation": defaults.get("hourly_rate", 75),
+        "travel": defaults.get("hourly_rate", 75),
+        "other_labor": defaults.get("hourly_rate", 75)
+    }
+    hourly_rate = data.hourly_rate_override or service_rates.get(
+        data.service_type.value if data.service_type else "other_labor", 
+        defaults.get("hourly_rate", 75)
+    )
+    
+    # Complexity multiplier for services
+    complexity_mult = get_complexity_multiplier(
+        data.complexity,
+        defaults.get("complexity_multiplier_base", 1.0),
+        1.5  # Services max out at 1.5x
+    )
+    
+    # Number of workers
+    workers = max(1, data.num_workers)
+    
+    # Calculate labor cost
+    labor_cost = hours * hourly_rate * workers * complexity_mult * quantity
+    
+    # Travel cost
+    travel_cost = 0
+    if data.distance_miles and data.distance_miles > 0:
+        mileage_rate = defaults.get("mileage_rate", 0.67)
+        travel_cost = max(
+            data.distance_miles * mileage_rate * 2,  # Round trip
+            defaults.get("minimum_travel_charge", 50)
+        )
+    
+    production_cost = labor_cost + travel_cost
+    
+    # Apply minimum charge
+    min_charge = defaults.get("minimum_service_charge", 75)
+    production_cost = max(production_cost, min_charge)
+    
+    # Suggested price (services typically lower markup)
+    markup = 50  # 50% markup on services
+    suggested_price = production_cost * (1 + markup / 100)
+    
+    profit = suggested_price - production_cost
+    margin = (profit / suggested_price * 100) if suggested_price > 0 else 0
+    
+    return PricingCalculation(
+        labor_cost=round(labor_cost, 2),
+        additional_costs=round(travel_cost, 2),
+        production_cost=round(production_cost, 2),
+        suggested_price=round(suggested_price, 2),
+        markup_percent=markup,
+        profit_margin_percent=round(margin, 1),
+        profit_amount=round(profit, 2),
+        estimated_labor_minutes=round(hours * 60 * workers * quantity, 1),
+        breakdown={
+            "service_type": data.service_type.value if data.service_type else "other_labor",
+            "hours": hours,
+            "hourly_rate": hourly_rate,
+            "num_workers": workers,
+            "complexity": data.complexity,
+            "complexity_multiplier": round(complexity_mult, 2),
+            "travel_miles": data.distance_miles or 0,
+            "travel_cost": round(travel_cost, 2)
+        }
+    )
+
+async def calculate_digital_print(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
+    """Calculator for Digital Print (banners, posters)"""
+    # Calculate square footage
+    width = data.width_inches or 0
+    length = data.length_inches or 0
+    sqft = data.square_footage or (width * length / 144)
+    
+    # Material costs
+    material_costs = {
+        "banner_13oz": 0.75,
+        "banner_18oz": 1.10,
+        "vinyl_adhesive": 1.25,
+        "poster_paper": 0.35,
+        "canvas": 2.50,
+        "backlit": 2.00,
+        "perforated": 1.75,
+        "custom": 1.00
+    }
+    material_cost_per_sqft = material_costs.get(
+        data.print_material.value if data.print_material else "banner_13oz", 
+        1.00
+    )
+    
+    # Ink cost estimate (approx $0.15-0.30 per sqft)
+    ink_cost_per_sqft = 0.20
+    
+    # Laminate cost
+    laminate_cost_per_sqft = 0.40 if data.laminate else 0
+    
+    # Calculate costs
+    material_cost = sqft * material_cost_per_sqft * quantity
+    ink_cost = sqft * ink_cost_per_sqft * quantity
+    laminate_cost = sqft * laminate_cost_per_sqft * quantity
+    
+    # Labor
+    print_minutes = sqft * defaults.get("print_time_per_sqft", 1)
+    laminate_minutes = sqft * defaults.get("laminate_time_per_sqft", 1.5) if data.laminate else 0
+    total_labor_minutes = (print_minutes + laminate_minutes) * quantity
+    labor_cost = (total_labor_minutes / 60) * defaults.get("hourly_rate", 75)
+    
+    setup_cost = defaults.get("setup_fee_print", 25)
+    
+    production_cost = material_cost + ink_cost + laminate_cost + labor_cost + setup_cost
+    
+    # Apply minimum
+    min_charge = defaults.get("minimum_print_charge", 35)
+    production_cost = max(production_cost, min_charge)
+    
+    # Quantity discount
+    qty_discount = get_quantity_discount(quantity, defaults.get("quantity_breaks", {}))
+    
+    # Suggested price
+    markup = defaults.get("default_markup_percent", 100)
+    suggested_price = production_cost * (1 + markup / 100) * (1 - qty_discount / 100)
+    
+    profit = suggested_price - production_cost
+    margin = (profit / suggested_price * 100) if suggested_price > 0 else 0
+    
+    return PricingCalculation(
+        material_cost=round(material_cost + ink_cost + laminate_cost, 2),
+        labor_cost=round(labor_cost, 2),
+        setup_cost=setup_cost,
+        production_cost=round(production_cost, 2),
+        suggested_price=round(suggested_price, 2),
+        markup_percent=markup,
+        profit_margin_percent=round(margin, 1),
+        profit_amount=round(profit, 2),
+        estimated_labor_minutes=round(total_labor_minutes, 1),
+        breakdown={
+            "square_footage": round(sqft, 2),
+            "material_type": data.print_material.value if data.print_material else "banner_13oz",
+            "material_cost_per_sqft": material_cost_per_sqft,
+            "ink_cost": round(ink_cost, 2),
+            "laminated": data.laminate,
+            "laminate_cost": round(laminate_cost, 2),
+            "quantity_discount_percent": qty_discount
+        }
+    )
+
+async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
+    """Calculator for Rigid Signs (coroplast, aluminum, PVC)"""
+    # Calculate square footage
+    width = data.width_inches or 0
+    length = data.length_inches or 0
+    sqft = data.square_footage or (width * length / 144)
+    
+    # Substrate costs
+    substrate_costs = {
+        "coroplast_4mm": 0.45,
+        "coroplast_10mm": 0.65,
+        "aluminum_040": 1.50,
+        "aluminum_063": 2.25,
+        "aluminum_080": 3.00,
+        "pvc_3mm": 1.00,
+        "pvc_6mm": 1.50,
+        "acrylic": 4.00,
+        "dibond": 3.50,
+        "mdo": 2.00,
+        "custom": 1.50
+    }
+    substrate_cost_per_sqft = substrate_costs.get(
+        data.substrate_type.value if data.substrate_type else "coroplast_4mm",
+        1.00
+    )
+    
+    # Double-sided multiplier
+    sides_mult = 2 if data.double_sided else 1
+    
+    # Vinyl/print cost
+    vinyl_cost_per_sqft = 1.25  # Digital print on sign
+    
+    # Laminate
+    laminate_cost_per_sqft = 0.40 if data.laminate else 0
+    
+    # Calculate
+    substrate_cost = sqft * substrate_cost_per_sqft * quantity
+    vinyl_cost = sqft * vinyl_cost_per_sqft * sides_mult * quantity
+    laminate_cost = sqft * laminate_cost_per_sqft * sides_mult * quantity
+    
+    # Labor with complexity
+    complexity_mult = get_complexity_multiplier(data.complexity, 1.0, 1.75)
+    labor_minutes = sqft * 10 * complexity_mult * sides_mult  # ~10 min per sqft base
+    total_labor_minutes = labor_minutes * quantity
+    labor_cost = (total_labor_minutes / 60) * defaults.get("hourly_rate", 75)
+    
+    setup_cost = defaults.get("setup_fee_print", 25)
+    
+    production_cost = substrate_cost + vinyl_cost + laminate_cost + labor_cost + setup_cost
+    
+    # Minimum
+    min_charge = defaults.get("minimum_sign_charge", 50)
+    production_cost = max(production_cost, min_charge)
+    
+    # Quantity discount
+    qty_discount = get_quantity_discount(quantity, defaults.get("quantity_breaks", {}))
+    
+    # Suggested price
+    markup = defaults.get("default_markup_percent", 100)
+    suggested_price = production_cost * (1 + markup / 100) * (1 - qty_discount / 100)
+    
+    profit = suggested_price - production_cost
+    margin = (profit / suggested_price * 100) if suggested_price > 0 else 0
+    
+    return PricingCalculation(
+        material_cost=round(substrate_cost + vinyl_cost + laminate_cost, 2),
+        labor_cost=round(labor_cost, 2),
+        setup_cost=setup_cost,
+        production_cost=round(production_cost, 2),
+        suggested_price=round(suggested_price, 2),
+        markup_percent=markup,
+        profit_margin_percent=round(margin, 1),
+        profit_amount=round(profit, 2),
+        estimated_labor_minutes=round(total_labor_minutes, 1),
+        breakdown={
+            "square_footage": round(sqft, 2),
+            "substrate_type": data.substrate_type.value if data.substrate_type else "coroplast_4mm",
+            "substrate_cost": round(substrate_cost, 2),
+            "double_sided": data.double_sided,
+            "print_cost": round(vinyl_cost, 2),
+            "laminate_cost": round(laminate_cost, 2),
+            "complexity": data.complexity,
+            "quantity_discount_percent": qty_discount
+        }
+    )
+
+async def calculate_apparel(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
+    """Calculator for Apparel (t-shirts, hoodies, etc.)"""
+    # Blank costs by apparel type (base estimates)
+    blank_costs = {
+        "tshirt": 4.50,
+        "hoodie": 18.00,
+        "hat": 8.00,
+        "polo": 12.00,
+        "tank": 4.00,
+        "longsleeve": 7.50,
+        "jacket": 25.00,
+        "other": 6.00
+    }
+    blank_cost = data.blank_cost_override or blank_costs.get(
+        data.apparel_type.value if data.apparel_type else "tshirt",
+        6.00
+    )
+    
+    # Transfer costs by type
+    transfer_costs = {
+        "htv": 0.50,      # per color per location
+        "screen_print": 0.35,
+        "dtf": 0.75,
+        "sublimation": 1.00,
+        "embroidery": 2.50
+    }
+    transfer_cost_per = transfer_costs.get(
+        data.transfer_type.value if data.transfer_type else "htv",
+        0.50
+    )
+    
+    # Setup fees by transfer type
+    setup_fees = {
+        "htv": defaults.get("setup_fee_apparel_dtf", 20),
+        "screen_print": defaults.get("setup_fee_apparel_screen", 35) * data.num_colors,
+        "dtf": defaults.get("setup_fee_apparel_dtf", 20),
+        "sublimation": 15,
+        "embroidery": 50
+    }
+    setup_fee = setup_fees.get(
+        data.transfer_type.value if data.transfer_type else "htv",
+        20
+    )
+    
+    # Calculate costs
+    num_locations = max(1, data.num_print_locations)
+    num_colors = max(1, data.num_colors)
+    
+    blanks_cost = blank_cost * quantity
+    transfer_cost = transfer_cost_per * num_colors * num_locations * quantity
+    
+    # Labor: ~3-5 min per piece depending on complexity
+    complexity_mult = get_complexity_multiplier(data.complexity, 1.0, 2.0)
+    base_minutes_per_piece = 4
+    labor_minutes = base_minutes_per_piece * num_locations * complexity_mult * quantity
+    labor_cost = (labor_minutes / 60) * defaults.get("hourly_rate", 75)
+    
+    production_cost = blanks_cost + transfer_cost + labor_cost + setup_fee
+    
+    # Quantity discount (apparel often has significant qty breaks)
+    qty_discount = get_quantity_discount(quantity, defaults.get("quantity_breaks", {}))
+    
+    # Suggested price
+    markup = defaults.get("default_markup_percent", 100)
+    suggested_price = production_cost * (1 + markup / 100) * (1 - qty_discount / 100)
+    
+    profit = suggested_price - production_cost
+    margin = (profit / suggested_price * 100) if suggested_price > 0 else 0
+    
+    return PricingCalculation(
+        material_cost=round(blanks_cost + transfer_cost, 2),
+        labor_cost=round(labor_cost, 2),
+        setup_cost=round(setup_fee, 2),
+        production_cost=round(production_cost, 2),
+        suggested_price=round(suggested_price, 2),
+        markup_percent=markup,
+        profit_margin_percent=round(margin, 1),
+        profit_amount=round(profit, 2),
+        estimated_labor_minutes=round(labor_minutes, 1),
+        breakdown={
+            "apparel_type": data.apparel_type.value if data.apparel_type else "tshirt",
+            "blank_cost_each": blank_cost,
+            "transfer_type": data.transfer_type.value if data.transfer_type else "htv",
+            "num_colors": num_colors,
+            "num_print_locations": num_locations,
+            "print_locations": data.print_locations,
+            "transfer_cost_total": round(transfer_cost, 2),
+            "complexity": data.complexity,
+            "quantity_discount_percent": qty_discount
+        }
+    )
+
+async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
+    """Calculator for Vehicle Graphics & Wraps"""
+    # Vehicle base square footage estimates
+    vehicle_sqft = {
+        "car_sedan": 150,
+        "car_suv": 200,
+        "van_mini": 180,
+        "van_cargo": 250,
+        "van_sprinter": 350,
+        "box_truck_12ft": 400,
+        "box_truck_16ft": 500,
+        "box_truck_24ft": 650,
+        "trailer": 450,
+        "semi": 800,
+        "other": 200
+    }
+    base_sqft = data.estimated_vehicle_sqft or vehicle_sqft.get(
+        data.vehicle_type.value if data.vehicle_type else "car_sedan",
+        200
+    )
+    
+    # Coverage multiplier
+    coverage_mult = {
+        "spot": 0.15,
+        "partial": 0.40,
+        "half": 0.50,
+        "full": 1.0
+    }
+    coverage = coverage_mult.get(
+        data.coverage_type.value if data.coverage_type else "partial",
+        0.40
+    )
+    
+    actual_sqft = base_sqft * coverage
+    
+    # Material costs (premium cast vinyl + laminate for wraps)
+    vinyl_cost_per_sqft = 2.50  # Cast vinyl
+    laminate_cost_per_sqft = 0.75
+    material_cost = actual_sqft * (vinyl_cost_per_sqft + laminate_cost_per_sqft) * quantity
+    
+    # Print cost
+    print_cost = actual_sqft * 0.50 * quantity  # Ink
+    
+    # Design labor (wraps need significant design time)
+    design_hours = actual_sqft * 0.02 * get_complexity_multiplier(data.complexity, 1.0, 2.0)  # ~2 min per sqft
+    design_cost = design_hours * defaults.get("design_hourly_rate", 85)
+    
+    # Install labor (most significant cost)
+    install_difficulty = get_complexity_multiplier(data.install_difficulty, 1.0, 2.5)
+    install_hours = actual_sqft * 0.05 * install_difficulty  # ~3 min per sqft base
+    install_cost = install_hours * defaults.get("install_hourly_rate", 95) * quantity
+    
+    production_cost = material_cost + print_cost + design_cost + install_cost
+    
+    # Apply minimum
+    min_charge = defaults.get("minimum_wrap_charge", 500)
+    production_cost = max(production_cost, min_charge)
+    
+    # Suggested price (wraps typically 80-120% markup)
+    markup = 100
+    suggested_price = production_cost * (1 + markup / 100)
+    
+    profit = suggested_price - production_cost
+    margin = (profit / suggested_price * 100) if suggested_price > 0 else 0
+    
+    return PricingCalculation(
+        material_cost=round(material_cost + print_cost, 2),
+        labor_cost=round(design_cost + install_cost, 2),
+        production_cost=round(production_cost, 2),
+        suggested_price=round(suggested_price, 2),
+        markup_percent=markup,
+        profit_margin_percent=round(margin, 1),
+        profit_amount=round(profit, 2),
+        estimated_labor_minutes=round((design_hours + install_hours) * 60, 1),
+        breakdown={
+            "vehicle_type": data.vehicle_type.value if data.vehicle_type else "car_sedan",
+            "vehicle_make": data.vehicle_make,
+            "vehicle_model": data.vehicle_model,
+            "coverage_type": data.coverage_type.value if data.coverage_type else "partial",
+            "base_vehicle_sqft": base_sqft,
+            "coverage_multiplier": coverage,
+            "actual_sqft": round(actual_sqft, 2),
+            "material_cost": round(material_cost, 2),
+            "design_hours": round(design_hours, 1),
+            "design_cost": round(design_cost, 2),
+            "install_hours": round(install_hours, 1),
+            "install_cost": round(install_cost, 2),
+            "install_difficulty": data.install_difficulty
+        }
+    )
+
+async def calculate_custom(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
+    """Calculator for Custom/Other items (simple manual entry)"""
+    # Custom items use manual price entry - minimal calculation
+    unit_cost = data.unit_cost or 0
+    markup = data.markup_percent if data.markup_percent is not None else defaults.get("default_markup_percent", 100)
+    
+    production_cost = unit_cost * quantity
+    suggested_price = production_cost * (1 + markup / 100)
+    
+    profit = suggested_price - production_cost
+    margin = (profit / suggested_price * 100) if suggested_price > 0 else 0
+    
+    return PricingCalculation(
+        production_cost=round(production_cost, 2),
+        suggested_price=round(suggested_price, 2),
+        markup_percent=markup,
+        profit_margin_percent=round(margin, 1),
+        profit_amount=round(profit, 2),
+        breakdown={
+            "type": "custom_manual_entry",
+            "unit_cost": unit_cost,
+            "quantity": quantity,
+            "markup_percent": markup
+        }
+    )
+
+# Main calculator dispatcher
+async def calculate_pricing(
+    category: PricingCategory,
+    pricing_data: JobItemPricingData,
+    quantity: float,
+    tenant_id: str
+) -> PricingCalculation:
+    """Main entry point for pricing calculation"""
+    defaults = await get_pricing_defaults(tenant_id)
+    
+    calculators = {
+        PricingCategory.PROMOTIONAL: calculate_promotional,
+        PricingCategory.CUT_VINYL: calculate_cut_vinyl,
+        PricingCategory.SERVICES: calculate_services,
+        PricingCategory.DIGITAL_PRINT: calculate_digital_print,
+        PricingCategory.RIGID_SIGNS: calculate_rigid_signs,
+        PricingCategory.APPAREL: calculate_apparel,
+        PricingCategory.VEHICLE_GRAPHICS: calculate_vehicle_graphics,
+        PricingCategory.CUSTOM: calculate_custom,
+    }
+    
+    calculator = calculators.get(category, calculate_custom)
+    return await calculator(pricing_data, quantity, defaults)
+
+# ============== PRICING API ENDPOINTS ==============
+
+class PriceCalculateRequest(BaseModel):
+    category: PricingCategory
+    pricing_data: JobItemPricingData
+    quantity: float = 1
+
+@api_router.post("/pricing/calculate")
+async def calculate_price(
+    request: PriceCalculateRequest,
+    current_user: dict = Depends(get_current_active_user)
+):
+    """Calculate pricing for an item (real-time preview)"""
+    try:
+        calculation = await calculate_pricing(
+            request.category,
+            request.pricing_data,
+            request.quantity,
+            current_user.get("tenant_id")
+        )
+        return calculation.model_dump()
+    except Exception as e:
+        logger.error(f"Pricing calculation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Calculation error: {str(e)}")
+
+@api_router.get("/pricing/defaults")
+async def get_my_pricing_defaults(current_user: dict = Depends(get_current_active_user)):
+    """Get pricing defaults for current tenant"""
+    defaults = await get_pricing_defaults(current_user.get("tenant_id"))
+    return defaults
+
+@api_router.put("/pricing/defaults")
+async def update_pricing_defaults(
+    updates: Dict[str, Any],
+    current_user: dict = Depends(get_current_active_user)
+):
+    """Update pricing defaults for current tenant"""
+    tenant_id = current_user.get("tenant_id")
+    
+    # Ensure defaults exist
+    await get_pricing_defaults(tenant_id)
+    
+    # Update
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.pricing_defaults.update_one(
+        {"tenant_id": tenant_id},
+        {"$set": updates}
+    )
+    
+    return await get_pricing_defaults(tenant_id)
+
+@api_router.get("/pricing/materials")
+async def get_materials(
+    category: Optional[str] = None,
+    current_user: dict = Depends(get_current_active_user)
+):
+    """Get available materials (for dropdowns)"""
+    # Return built-in materials organized by category
+    materials = {
+        "vinyl": [
+            {"id": "oracal_651", "name": "Oracal 651 (Intermediate)", "cost_per_sqft": 0.50},
+            {"id": "oracal_751", "name": "Oracal 751 (High Performance)", "cost_per_sqft": 0.75},
+            {"id": "oracal_951", "name": "Oracal 951 (Premium Cast)", "cost_per_sqft": 1.25},
+            {"id": "avery_hp750", "name": "Avery HP750", "cost_per_sqft": 0.90},
+            {"id": "reflective", "name": "Reflective Vinyl", "cost_per_sqft": 2.50},
+            {"id": "specialty", "name": "Specialty Vinyl", "cost_per_sqft": 1.50},
+        ],
+        "print_material": [
+            {"id": "banner_13oz", "name": "13oz Banner", "cost_per_sqft": 0.75},
+            {"id": "banner_18oz", "name": "18oz Banner (Heavy)", "cost_per_sqft": 1.10},
+            {"id": "vinyl_adhesive", "name": "Adhesive Vinyl", "cost_per_sqft": 1.25},
+            {"id": "poster_paper", "name": "Poster Paper", "cost_per_sqft": 0.35},
+            {"id": "canvas", "name": "Canvas", "cost_per_sqft": 2.50},
+            {"id": "backlit", "name": "Backlit Film", "cost_per_sqft": 2.00},
+            {"id": "perforated", "name": "Perforated Window Film", "cost_per_sqft": 1.75},
+        ],
+        "substrate": [
+            {"id": "coroplast_4mm", "name": "Coroplast 4mm", "cost_per_sqft": 0.45},
+            {"id": "coroplast_10mm", "name": "Coroplast 10mm", "cost_per_sqft": 0.65},
+            {"id": "aluminum_040", "name": "Aluminum .040", "cost_per_sqft": 1.50},
+            {"id": "aluminum_063", "name": "Aluminum .063", "cost_per_sqft": 2.25},
+            {"id": "aluminum_080", "name": "Aluminum .080", "cost_per_sqft": 3.00},
+            {"id": "pvc_3mm", "name": "PVC 3mm", "cost_per_sqft": 1.00},
+            {"id": "pvc_6mm", "name": "PVC 6mm", "cost_per_sqft": 1.50},
+            {"id": "acrylic", "name": "Acrylic", "cost_per_sqft": 4.00},
+            {"id": "dibond", "name": "Dibond/ACM", "cost_per_sqft": 3.50},
+            {"id": "mdo", "name": "MDO Plywood", "cost_per_sqft": 2.00},
+        ],
+        "apparel": [
+            {"id": "tshirt", "name": "T-Shirt", "cost_each": 4.50},
+            {"id": "hoodie", "name": "Hoodie", "cost_each": 18.00},
+            {"id": "hat", "name": "Hat/Cap", "cost_each": 8.00},
+            {"id": "polo", "name": "Polo Shirt", "cost_each": 12.00},
+            {"id": "tank", "name": "Tank Top", "cost_each": 4.00},
+            {"id": "longsleeve", "name": "Long Sleeve", "cost_each": 7.50},
+            {"id": "jacket", "name": "Jacket", "cost_each": 25.00},
+        ],
+        "transfer_type": [
+            {"id": "htv", "name": "HTV (Heat Transfer Vinyl)", "cost_per_color": 0.50},
+            {"id": "screen_print", "name": "Screen Print", "cost_per_color": 0.35},
+            {"id": "dtf", "name": "DTF (Direct to Film)", "cost_per_color": 0.75},
+            {"id": "sublimation", "name": "Sublimation", "cost_per_color": 1.00},
+            {"id": "embroidery", "name": "Embroidery", "cost_per_stitch": 0.01},
+        ],
+        "vehicle_type": [
+            {"id": "car_sedan", "name": "Car (Sedan)", "base_sqft": 150},
+            {"id": "car_suv", "name": "Car (SUV)", "base_sqft": 200},
+            {"id": "van_mini", "name": "Minivan", "base_sqft": 180},
+            {"id": "van_cargo", "name": "Cargo Van", "base_sqft": 250},
+            {"id": "van_sprinter", "name": "Sprinter Van", "base_sqft": 350},
+            {"id": "box_truck_12ft", "name": "Box Truck (12ft)", "base_sqft": 400},
+            {"id": "box_truck_16ft", "name": "Box Truck (16ft)", "base_sqft": 500},
+            {"id": "box_truck_24ft", "name": "Box Truck (24ft)", "base_sqft": 650},
+            {"id": "trailer", "name": "Trailer", "base_sqft": 450},
+            {"id": "semi", "name": "Semi Truck", "base_sqft": 800},
+        ]
+    }
+    
+    if category:
+        return {category: materials.get(category, [])}
+    return materials
+
 # ============== CUSTOMER PORTAL API ==============
 
 # Customer Portal Auth Models
