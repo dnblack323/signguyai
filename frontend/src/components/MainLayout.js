@@ -57,6 +57,7 @@ const navigationCategories = [
     icon: Sparkles,
     items: [
       { name: 'AI Tools', href: '/ai-tools', icon: Sparkles, permission: Permission.AI_TOOLS_USE },
+      { name: 'Pricing Calculator', href: '/pricing', icon: DollarSign },
     ]
   },
   {
