@@ -243,19 +243,17 @@
 
 | Task | Priority | Status | Assignee |
 |------|----------|--------|----------|
-| Tenant Model (Company entity) | P0 | 🔲 Todo | - |
-| Tenant ID on All Records | P0 | 🔲 Todo | - |
-| Tenant-Scoped Queries | P0 | 🔲 Todo | - |
-| Tenant Settings Page | P1 | 🔲 Todo | - |
-| Tenant Onboarding Flow | P1 | 🔲 Todo | - |
+| Materials Cost Tracking | P0 | 🔲 Todo | - |
+| Labor Cost Calculation | P0 | 🔲 Todo | - |
+| Real-Time Profit Display | P0 | 🔲 Todo | - |
+| Price Suggestions | P1 | 🔲 Todo | - |
 
 ---
 
 ## 📅 UPCOMING FEATURES
 
-### Sprint 8: Smart Pricing Engine
-**Timeline:** After Multi-Tenancy
-**Goal:** Real-time profit margin calculators
+### Sprint 9: Artwork Approval System
+**Timeline:** After Smart Pricing
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
