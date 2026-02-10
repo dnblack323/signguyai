@@ -197,12 +197,34 @@
 | Theme Mode Removal | ✅ Done | Feb 2026 | Single unified theme |
 | Consistent Typography | ✅ Done | Feb 2026 | Barlow Condensed + Manrope |
 
+### Phase 14: Role-Based Access Control ✅ COMPLETE
+| Feature | Status | Date | Notes |
+|---------|--------|------|-------|
+| Permission Enum (39 permissions) | ✅ Done | Feb 2026 | Granular permissions |
+| Three User Roles | ✅ Done | Feb 2026 | Owner, Admin, Staff |
+| ROLE_PERMISSIONS Matrix | ✅ Done | Feb 2026 | Role → permissions mapping |
+| Backend Permission Checks | ✅ Done | Feb 2026 | require_permission decorator |
+| Admin Endpoints Protection | ✅ Done | Feb 2026 | 403 for unauthorized |
+| Frontend Permission Context | ✅ Done | Feb 2026 | hasPermission helper |
+| Navigation Filtering | ✅ Done | Feb 2026 | Hide nav by permission |
+| Protected Pages | ✅ Done | Feb 2026 | Access Denied component |
+| Role Badges | ✅ Done | Feb 2026 | Color-coded (amber/blue/gray) |
+| User Role Management | ✅ Done | Feb 2026 | Owner can change roles |
+| First User = Owner | ✅ Done | Feb 2026 | Auto-assign on first registration |
+
+**Permission Distribution:**
+| Role | Total Permissions | Key Access |
+|------|------------------|------------|
+| Owner | 39 | Full access + manage roles |
+| Admin | 30 | Operational access, view-only financials/payroll |
+| Staff | 7 | View customers/quotes/jobs, own timeclock, AI tools |
+
 ---
 
 ## 🔄 CURRENT SPRINT
 
-### Sprint 5: SaaS Foundation (In Progress)
-**Goal:** Prepare the app for multi-tenant SaaS deployment
+### Sprint 7: SaaS Foundation - Multi-Tenancy (In Progress)
+**Goal:** Isolate data between companies for SaaS deployment
 
 | Task | Priority | Status | Assignee |
 |------|----------|--------|----------|
