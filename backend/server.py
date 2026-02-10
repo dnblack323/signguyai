@@ -1472,8 +1472,12 @@ async def access_portal_via_magic_link(token: str):
 
 # -------------- CUSTOMERS --------------
 @api_router.post("/customers", response_model=Customer)
-async def create_customer(input: CustomerCreate):
+async def create_customer(
+    input: CustomerCreate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
     customer = Customer(**input.model_dump())
+    customer.tenant_id = current_user.tenant_id  # Assign to user's tenant
     doc = customer.model_dump()
     await db.customers.insert_one(doc)
     return customer
@@ -1481,9 +1485,10 @@ async def create_customer(input: CustomerCreate):
 @api_router.get("/customers", response_model=List[Customer])
 async def get_customers(
     status: Optional[CustomerStatus] = None,
-    search: Optional[str] = None
+    search: Optional[str] = None,
+    current_user: UserInDB = Depends(get_current_active_user)
 ):
-    query = {}
+    query = {"tenant_id": current_user.tenant_id}  # Tenant scoped
     if status:
         query["status"] = status.value
     if search:
@@ -1496,25 +1501,43 @@ async def get_customers(
     return customers
 
 @api_router.get("/customers/{customer_id}", response_model=Customer)
-async def get_customer(customer_id: str):
-    customer = await db.customers.find_one({"id": customer_id}, {"_id": 0})
+async def get_customer(
+    customer_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    customer = await db.customers.find_one(
+        {"id": customer_id, "tenant_id": current_user.tenant_id}, 
+        {"_id": 0}
+    )
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
     return customer
 
 @api_router.put("/customers/{customer_id}", response_model=Customer)
-async def update_customer(customer_id: str, input: CustomerUpdate):
+async def update_customer(
+    customer_id: str, 
+    input: CustomerUpdate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
     update_data = {k: v for k, v in input.model_dump().items() if v is not None}
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
-    result = await db.customers.update_one({"id": customer_id}, {"$set": update_data})
+    result = await db.customers.update_one(
+        {"id": customer_id, "tenant_id": current_user.tenant_id}, 
+        {"$set": update_data}
+    )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Customer not found")
     customer = await db.customers.find_one({"id": customer_id}, {"_id": 0})
     return customer
 
 @api_router.delete("/customers/{customer_id}")
-async def delete_customer(customer_id: str):
-    result = await db.customers.delete_one({"id": customer_id})
+async def delete_customer(
+    customer_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    result = await db.customers.delete_one(
+        {"id": customer_id, "tenant_id": current_user.tenant_id}
+    )
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Customer not found")
     return {"message": "Customer deleted"}
