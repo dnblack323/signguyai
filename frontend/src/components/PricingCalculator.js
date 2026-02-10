@@ -9,11 +9,14 @@ import { Slider } from '../components/ui/slider';
 import { Separator } from '../components/ui/separator';
 import { Badge } from '../components/ui/badge';
 import { Textarea } from '../components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { 
   Calculator, DollarSign, Clock, TrendingUp, Package, 
   Scissors, Printer, Square, Shirt, Car, Wrench, Tag,
-  ChevronDown, ChevronUp, AlertCircle, CheckCircle, Loader2
+  ChevronDown, ChevronUp, AlertCircle, CheckCircle, Loader2,
+  Save, Star, Trash2, FolderOpen
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
