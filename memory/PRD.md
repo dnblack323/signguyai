@@ -66,6 +66,19 @@ Build a web-based sign-shop operating system called "SignGuy AI" - a single dail
 - [x] Webstores (Fundraiser campaigns, B2B custom stores)
 
 ### Recent Updates (February 10, 2026) - COMPLETED
+- [x] **Sprint 7: Multi-Tenancy (SaaS Foundation)** ✅ COMPLETE
+  - **Tenant Model:** Added `Tenant` entity with fields: id, name, slug, owner_email, phone, address, city, state, zip_code, country, website, logo_url, plan, is_active, created_at, updated_at
+  - **Data Isolation:** All data models (Customer, Quote, Job, Invoice, Employee, Product, Webstore, etc.) now have `tenant_id` field
+  - **Tenant-Scoped Queries:** All API routes filter data by current user's tenant_id
+  - **Auto-Assignment:** New records automatically get assigned the current user's tenant_id
+  - **Tenant Management API:**
+    - `GET /api/tenant/current` - Returns tenant info for authenticated user
+    - `PUT /api/tenant/settings` - Updates tenant settings (name, phone, address, etc.)
+  - **Company Settings Page:** New UI for viewing and editing company information
+  - **First User = Owner + Tenant:** First registered user creates a new tenant and becomes owner
+  - **Data Migration:** All existing records migrated to default tenant
+
+### Recent Updates (February 10, 2026) - COMPLETED
 - [x] **Sprint 6: Role-Based Access Control (RBAC)** ✅ COMPLETE
   - **Three User Roles:** Owner (full access, 39 permissions), Admin (operational access, 30 permissions), Staff (limited access, 7 permissions)
   - **Backend Implementation:**
