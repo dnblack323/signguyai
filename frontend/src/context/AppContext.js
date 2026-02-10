@@ -584,6 +584,8 @@ export const AppProvider = ({ children }) => {
     createWebstoreOrderV2, getWebstoreOrdersV2, getWebstoreOrderV2, updateOrderStatus, createJobFromOrder,
     // Payouts
     recordPayout, getWebstorePayouts,
+    // Webstore Analytics
+    getWebstoreAnalytics,
     // Tenant / Company Settings
     getTenant, updateTenant
   };
