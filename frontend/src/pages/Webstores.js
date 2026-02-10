@@ -861,137 +861,19 @@ export default function Webstores() {
 
               <Tabs value={detailTab} onValueChange={setDetailTab}>
                 <TabsList className="grid grid-cols-4 w-full">
-                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="dashboard">
+                    <BarChart3 className="h-4 w-4 mr-2" /> Dashboard
+                  </TabsTrigger>
                   <TabsTrigger value="products">Products</TabsTrigger>
                   <TabsTrigger value="settings">Settings</TabsTrigger>
-                  <TabsTrigger value="payouts">Payouts</TabsTrigger>
+                  <TabsTrigger value="branding">Branding</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="overview" className="space-y-4">
-                  {/* Store Link Section */}
-                  <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-sm">Public Store Link</p>
-                        <p className="text-xs text-muted-foreground font-mono truncate max-w-[400px]">
-                          {getStoreUrl(selectedStore.id)}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleCopyLink(selectedStore.id)}
-                        >
-                          <Copy className="h-4 w-4 mr-2" /> Copy Link
-                        </Button>
-                        <Button 
-                          size="sm"
-                          onClick={() => handleOpenStore(selectedStore.id)}
-                        >
-                          <ExternalLink className="h-4 w-4 mr-2" /> Open Store
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="grid grid-cols-4 gap-3">
-                    <div className="p-3 bg-muted/30 rounded-lg text-center">
-                      <p className="text-xs text-muted-foreground">Total Sales</p>
-                      <p className="text-lg font-bold">{formatCurrency(selectedStore.total_sales || 0)}</p>
-                    </div>
-                    <div className="p-3 bg-muted/30 rounded-lg text-center">
-                      <p className="text-xs text-muted-foreground">Orders</p>
-                      <p className="text-lg font-bold">{selectedStore.total_orders || 0}</p>
-                    </div>
-                    <div className="p-3 bg-green-500/10 rounded-lg text-center">
-                      <p className="text-xs text-muted-foreground">Your Profit</p>
-                      <p className="text-lg font-bold text-green-400">
-                        {formatCurrency((selectedStore.total_profit || 0) - (selectedStore.payout_owed || 0))}
-                      </p>
-                    </div>
-                    <div className="p-3 bg-yellow-500/10 rounded-lg text-center">
-                      <p className="text-xs text-muted-foreground">Payout Owed</p>
-                      <p className="text-lg font-bold text-yellow-400">
-                        {formatCurrency(selectedStore.payout_owed || 0)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Fundraiser Progress */}
-                  {selectedStore.store_type === 'fundraiser' && selectedStore.fundraiser_goal > 0 && (
-                    <div className="p-4 bg-muted/30 rounded-lg">
-                      <div className="flex justify-between mb-2">
-                        <span className="text-sm">Fundraiser Progress</span>
-                        <span className="text-sm font-medium">
-                          {formatCurrency(selectedStore.total_sales || 0)} / {formatCurrency(selectedStore.fundraiser_goal)}
-                        </span>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-3">
-                        <div 
-                          className="bg-primary h-3 rounded-full transition-all"
-                          style={{ 
-                            width: `${Math.min(100, ((selectedStore.total_sales || 0) / selectedStore.fundraiser_goal) * 100)}%` 
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Store Info */}
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Store Details</h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Contact Email</p>
-                        <p>{selectedStore.owner_email || '-'}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Contact Phone</p>
-                        <p>{selectedStore.owner_phone || '-'}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Status</p>
-                        <Badge className={getStatusBadge(selectedStore.status)}>{selectedStore.status}</Badge>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Visibility</p>
-                        <p>{selectedStore.is_public ? 'Public' : 'Private'}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Branding Preview */}
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Store Branding</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 bg-muted/30 rounded-lg">
-                        <p className="text-xs text-muted-foreground mb-2">Logo</p>
-                        {selectedStore.branding?.logo_url ? (
-                          <img 
-                            src={selectedStore.branding.logo_url} 
-                            alt="Store logo" 
-                            className="h-12 w-auto object-contain"
-                          />
-                        ) : (
-                          <p className="text-sm text-muted-foreground italic">No logo set</p>
-                        )}
-                      </div>
-                      <div className="p-4 bg-muted/30 rounded-lg">
-                        <p className="text-xs text-muted-foreground mb-2">Accent Color</p>
-                        <div className="flex items-center gap-3">
-                          <div 
-                            className="w-10 h-10 rounded-lg border border-border"
-                            style={{ backgroundColor: selectedStore.branding?.primary_color || '#0D9488' }}
-                          />
-                          <span className="font-mono text-sm">
-                            {selectedStore.branding?.primary_color || '#0D9488'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                <TabsContent value="dashboard" className="mt-4">
+                  <WebstoreDetailDashboard 
+                    store={selectedStore} 
+                    onClose={() => setIsDetailDialogOpen(false)}
+                  />
                 </TabsContent>
 
                 <TabsContent value="products" className="space-y-4">
