@@ -448,17 +448,24 @@ class AIResponse(BaseModel):
 
 # ============== USER AUTH MODELS ==============
 
+class UserRole(str, Enum):
+    OWNER = "owner"
+    ADMIN = "admin"
+    STAFF = "staff"
+
 class UserBase(BaseModel):
     email: EmailStr
     full_name: str
     company_name: Optional[str] = None
     is_active: bool = True
+    role: UserRole = UserRole.STAFF
 
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
     full_name: str
     company_name: Optional[str] = None
+    role: Optional[UserRole] = None  # First user becomes owner, others default to staff
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -474,6 +481,9 @@ class User(UserBase):
 class UserInDB(User):
     hashed_password: str
 
+class UserRoleUpdate(BaseModel):
+    role: UserRole
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
@@ -485,6 +495,139 @@ class TokenData(BaseModel):
 
 class PasswordReset(BaseModel):
     new_password: str
+
+# ============== PERMISSION DEFINITIONS ==============
+# Define what each role can do
+
+class Permission(str, Enum):
+    # Customer permissions
+    CUSTOMERS_VIEW = "customers:view"
+    CUSTOMERS_CREATE = "customers:create"
+    CUSTOMERS_EDIT = "customers:edit"
+    CUSTOMERS_DELETE = "customers:delete"
+    
+    # Quote permissions
+    QUOTES_VIEW = "quotes:view"
+    QUOTES_CREATE = "quotes:create"
+    QUOTES_EDIT = "quotes:edit"
+    QUOTES_DELETE = "quotes:delete"
+    QUOTES_CONVERT = "quotes:convert"
+    
+    # Job permissions
+    JOBS_VIEW = "jobs:view"
+    JOBS_CREATE = "jobs:create"
+    JOBS_EDIT = "jobs:edit"
+    JOBS_DELETE = "jobs:delete"
+    
+    # Invoice permissions
+    INVOICES_VIEW = "invoices:view"
+    INVOICES_CREATE = "invoices:create"
+    INVOICES_EDIT = "invoices:edit"
+    INVOICES_DELETE = "invoices:delete"
+    
+    # Time Clock permissions
+    TIMECLOCK_VIEW_OWN = "timeclock:view_own"
+    TIMECLOCK_VIEW_ALL = "timeclock:view_all"
+    TIMECLOCK_CLOCK_IN = "timeclock:clock_in"
+    TIMECLOCK_EDIT = "timeclock:edit"
+    
+    # Payroll permissions
+    PAYROLL_VIEW = "payroll:view"
+    PAYROLL_EDIT = "payroll:edit"
+    
+    # Financial permissions
+    FINANCIALS_VIEW = "financials:view"
+    FINANCIALS_CREATE = "financials:create"
+    FINANCIALS_EDIT = "financials:edit"
+    FINANCIALS_DELETE = "financials:delete"
+    
+    # User management permissions
+    USERS_VIEW = "users:view"
+    USERS_CREATE = "users:create"
+    USERS_EDIT = "users:edit"
+    USERS_DELETE = "users:delete"
+    USERS_MANAGE_ROLES = "users:manage_roles"
+    
+    # Webstore permissions
+    WEBSTORES_VIEW = "webstores:view"
+    WEBSTORES_CREATE = "webstores:create"
+    WEBSTORES_EDIT = "webstores:edit"
+    WEBSTORES_DELETE = "webstores:delete"
+    
+    # AI Tools permissions
+    AI_TOOLS_USE = "ai_tools:use"
+    
+    # Settings permissions
+    SETTINGS_VIEW = "settings:view"
+    SETTINGS_EDIT = "settings:edit"
+
+# Role permission matrix
+ROLE_PERMISSIONS: Dict[UserRole, List[Permission]] = {
+    UserRole.OWNER: list(Permission),  # Owner has ALL permissions
+    
+    UserRole.ADMIN: [
+        # Full access to customers, quotes, jobs, invoices
+        Permission.CUSTOMERS_VIEW, Permission.CUSTOMERS_CREATE, Permission.CUSTOMERS_EDIT, Permission.CUSTOMERS_DELETE,
+        Permission.QUOTES_VIEW, Permission.QUOTES_CREATE, Permission.QUOTES_EDIT, Permission.QUOTES_DELETE, Permission.QUOTES_CONVERT,
+        Permission.JOBS_VIEW, Permission.JOBS_CREATE, Permission.JOBS_EDIT, Permission.JOBS_DELETE,
+        Permission.INVOICES_VIEW, Permission.INVOICES_CREATE, Permission.INVOICES_EDIT, Permission.INVOICES_DELETE,
+        # Full time clock access
+        Permission.TIMECLOCK_VIEW_OWN, Permission.TIMECLOCK_VIEW_ALL, Permission.TIMECLOCK_CLOCK_IN, Permission.TIMECLOCK_EDIT,
+        # View-only for payroll and financials
+        Permission.PAYROLL_VIEW,
+        Permission.FINANCIALS_VIEW,
+        # View-only for users (no role management)
+        Permission.USERS_VIEW,
+        # Full webstore access
+        Permission.WEBSTORES_VIEW, Permission.WEBSTORES_CREATE, Permission.WEBSTORES_EDIT, Permission.WEBSTORES_DELETE,
+        # AI Tools
+        Permission.AI_TOOLS_USE,
+        # View settings only
+        Permission.SETTINGS_VIEW,
+    ],
+    
+    UserRole.STAFF: [
+        # View-only for customers, quotes, jobs
+        Permission.CUSTOMERS_VIEW,
+        Permission.QUOTES_VIEW,
+        Permission.JOBS_VIEW,
+        # No invoice access
+        # Own time clock only
+        Permission.TIMECLOCK_VIEW_OWN, Permission.TIMECLOCK_CLOCK_IN,
+        # View webstores only
+        Permission.WEBSTORES_VIEW,
+        # AI Tools
+        Permission.AI_TOOLS_USE,
+    ],
+}
+
+def has_permission(user: UserInDB, permission: Permission) -> bool:
+    """Check if a user has a specific permission"""
+    user_permissions = ROLE_PERMISSIONS.get(user.role, [])
+    return permission in user_permissions
+
+def require_permission(permission: Permission):
+    """Dependency to require a specific permission"""
+    async def permission_checker(current_user: UserInDB = Depends(get_current_active_user)):
+        if not has_permission(current_user, permission):
+            raise HTTPException(
+                status_code=403,
+                detail=f"Permission denied. Required: {permission.value}"
+            )
+        return current_user
+    return permission_checker
+
+def require_any_permission(*permissions: Permission):
+    """Dependency to require any of the specified permissions"""
+    async def permission_checker(current_user: UserInDB = Depends(get_current_active_user)):
+        for perm in permissions:
+            if has_permission(current_user, perm):
+                return current_user
+        raise HTTPException(
+            status_code=403,
+            detail=f"Permission denied. Required one of: {[p.value for p in permissions]}"
+        )
+    return permission_checker
 
 # ============== MAGIC LINK MODELS ==============
 
