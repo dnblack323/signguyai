@@ -94,8 +94,22 @@ function App() {
               {/* Public Storefront - No Auth Required */}
               <Route path="/store/:storeId" element={<Storefront />} />
               
-              {/* Public Customer Portal - No Auth Required */}
+              {/* Public Customer Portal (Magic Link) - No Auth Required */}
               <Route path="/portal/:token" element={<CustomerPortal />} />
+              
+              {/* Customer Portal Routes - Separate Auth */}
+              <Route path="/customer-portal/login" element={<PortalLogin />} />
+              <Route path="/customer-portal" element={<PortalDashboard />} />
+              <Route path="/customer-portal/orders" element={<PortalOrders />} />
+              <Route path="/customer-portal/orders/:orderId" element={<PortalOrderDetail />} />
+              <Route path="/customer-portal/quotes" element={<PortalQuotes />} />
+              <Route path="/customer-portal/invoices" element={<PortalInvoices />} />
+              <Route path="/customer-portal/messages" element={<PortalMessages />} />
+              <Route path="/customer-portal/messages/:conversationId" element={<PortalConversation />} />
+              <Route path="/customer-portal/proofs" element={<PortalProofs />} />
+              <Route path="/customer-portal/proofs/:proofId" element={<PortalProofDetail />} />
+              <Route path="/customer-portal/appointments" element={<PortalAppointments />} />
+              <Route path="/customer-portal/profile" element={<PortalProfile />} />
               
               {/* Protected Admin Routes */}
               <Route path="/*" element={<ProtectedRoutes />} />
