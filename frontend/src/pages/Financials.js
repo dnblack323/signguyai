@@ -30,7 +30,7 @@ import {
 } from '../components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { formatCurrency, formatDate } from '../lib/utils';
-import { Plus, TrendingUp, TrendingDown, Receipt, DollarSign, Wallet, CreditCard, Mail, Banknote } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Receipt, DollarSign, Wallet, CreditCard, Mail, Banknote, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const expenseCategories = [
