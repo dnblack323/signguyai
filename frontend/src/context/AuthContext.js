@@ -4,31 +4,119 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const AuthContext = createContext(null);
 
+// Role definitions matching backend
+export const UserRole = {
+  OWNER: 'owner',
+  ADMIN: 'admin',
+  STAFF: 'staff',
+};
+
+// Permission definitions matching backend
+export const Permission = {
+  // Customer permissions
+  CUSTOMERS_VIEW: 'customers:view',
+  CUSTOMERS_CREATE: 'customers:create',
+  CUSTOMERS_EDIT: 'customers:edit',
+  CUSTOMERS_DELETE: 'customers:delete',
+  
+  // Quote permissions
+  QUOTES_VIEW: 'quotes:view',
+  QUOTES_CREATE: 'quotes:create',
+  QUOTES_EDIT: 'quotes:edit',
+  QUOTES_DELETE: 'quotes:delete',
+  QUOTES_CONVERT: 'quotes:convert',
+  
+  // Job permissions
+  JOBS_VIEW: 'jobs:view',
+  JOBS_CREATE: 'jobs:create',
+  JOBS_EDIT: 'jobs:edit',
+  JOBS_DELETE: 'jobs:delete',
+  
+  // Invoice permissions
+  INVOICES_VIEW: 'invoices:view',
+  INVOICES_CREATE: 'invoices:create',
+  INVOICES_EDIT: 'invoices:edit',
+  INVOICES_DELETE: 'invoices:delete',
+  
+  // Time Clock permissions
+  TIMECLOCK_VIEW_OWN: 'timeclock:view_own',
+  TIMECLOCK_VIEW_ALL: 'timeclock:view_all',
+  TIMECLOCK_CLOCK_IN: 'timeclock:clock_in',
+  TIMECLOCK_EDIT: 'timeclock:edit',
+  
+  // Payroll permissions
+  PAYROLL_VIEW: 'payroll:view',
+  PAYROLL_EDIT: 'payroll:edit',
+  
+  // Financial permissions
+  FINANCIALS_VIEW: 'financials:view',
+  FINANCIALS_CREATE: 'financials:create',
+  FINANCIALS_EDIT: 'financials:edit',
+  FINANCIALS_DELETE: 'financials:delete',
+  
+  // User management permissions
+  USERS_VIEW: 'users:view',
+  USERS_CREATE: 'users:create',
+  USERS_EDIT: 'users:edit',
+  USERS_DELETE: 'users:delete',
+  USERS_MANAGE_ROLES: 'users:manage_roles',
+  
+  // Webstore permissions
+  WEBSTORES_VIEW: 'webstores:view',
+  WEBSTORES_CREATE: 'webstores:create',
+  WEBSTORES_EDIT: 'webstores:edit',
+  WEBSTORES_DELETE: 'webstores:delete',
+  
+  // AI Tools permissions
+  AI_TOOLS_USE: 'ai_tools:use',
+  
+  // Settings permissions
+  SETTINGS_VIEW: 'settings:view',
+  SETTINGS_EDIT: 'settings:edit',
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [permissions, setPermissions] = useState([]);
   const [token, setToken] = useState(() => localStorage.getItem('auth_token'));
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch current user profile using token
+  // Fetch current user profile and permissions using token
   const fetchUserProfile = useCallback(async (authToken) => {
     try {
-      const response = await fetch(`${API_URL}/api/users/me`, {
+      // Fetch user profile
+      const profileResponse = await fetch(`${API_URL}/api/users/me`, {
         headers: {
           'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json',
         },
       });
 
-      if (response.ok) {
-        const userData = await response.json();
+      if (profileResponse.ok) {
+        const userData = await profileResponse.json();
         setUser(userData);
+        
+        // Fetch permissions
+        const permResponse = await fetch(`${API_URL}/api/users/me/permissions`, {
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (permResponse.ok) {
+          const permData = await permResponse.json();
+          setPermissions(permData.permissions || []);
+        }
+        
         return userData;
       } else {
         // Token is invalid or expired
         localStorage.removeItem('auth_token');
         setToken(null);
         setUser(null);
+        setPermissions([]);
         return null;
       }
     } catch (err) {
@@ -118,8 +206,30 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('auth_token');
     setToken(null);
     setUser(null);
+    setPermissions([]);
     setError(null);
   };
+
+  // Check if user has a specific permission
+  const hasPermission = (permission) => {
+    return permissions.includes(permission);
+  };
+
+  // Check if user has any of the specified permissions
+  const hasAnyPermission = (...perms) => {
+    return perms.some(p => permissions.includes(p));
+  };
+
+  // Check if user has all of the specified permissions
+  const hasAllPermissions = (...perms) => {
+    return perms.every(p => permissions.includes(p));
+  };
+
+  // Check if user is owner
+  const isOwner = () => user?.role === UserRole.OWNER;
+  
+  // Check if user is admin or owner
+  const isAdminOrOwner = () => user?.role === UserRole.OWNER || user?.role === UserRole.ADMIN;
 
   // Update user profile
   const updateProfile = async (updates) => {
@@ -154,6 +264,7 @@ export function AuthProvider({ children }) {
   const value = {
     user,
     token,
+    permissions,
     isLoading,
     error,
     isAuthenticated: !!user,
@@ -161,6 +272,11 @@ export function AuthProvider({ children }) {
     login,
     logout,
     updateProfile,
+    hasPermission,
+    hasAnyPermission,
+    hasAllPermissions,
+    isOwner,
+    isAdminOrOwner,
     clearError: () => setError(null),
   };
 
