@@ -22,7 +22,7 @@ import Products from "./pages/Products";
 import Storefront from "./pages/Storefront";
 import Login from "./pages/Login";
 import UserManagement from "./pages/UserManagement";
-import CompanySettings from "./pages/CompanySettings";
+import Pricing from "./pages/Pricing";
 
 // Customer Portal Pages
 import PortalLogin from "./pages/PortalLogin";
