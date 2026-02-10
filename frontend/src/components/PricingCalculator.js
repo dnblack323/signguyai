@@ -158,9 +158,132 @@ export default function PricingCalculator({
   const [showBreakdown, setShowBreakdown] = useState(true);
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
+  
+  // Template state
+  const [templates, setTemplates] = useState([]);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templateDesc, setTemplateDesc] = useState('');
+  const [savingTemplate, setSavingTemplate] = useState(false);
 
   // Get auth token
   const getToken = () => localStorage.getItem('token');
+
+  // Fetch templates
+  const fetchTemplates = useCallback(async () => {
+    const token = getToken();
+    if (!token) return;
+
+    try {
+      const response = await fetch(`${API_URL}/api/pricing/templates`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setTemplates(data);
+      }
+    } catch (err) {
+      console.error('Error fetching templates:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
+
+  // Save template
+  const handleSaveTemplate = async () => {
+    if (!templateName.trim() || !category) {
+      toast.error('Please enter a template name');
+      return;
+    }
+
+    const token = getToken();
+    setSavingTemplate(true);
+
+    try {
+      const response = await fetch(`${API_URL}/api/pricing/templates`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: templateName,
+          description: templateDesc,
+          category,
+          pricing_data: { ...pricingData, complexity },
+          quantity
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Template saved!');
+        setShowSaveDialog(false);
+        setTemplateName('');
+        setTemplateDesc('');
+        fetchTemplates();
+      } else {
+        const err = await response.json();
+        toast.error(err.detail || 'Failed to save template');
+      }
+    } catch (err) {
+      toast.error('Network error');
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
+  // Load template
+  const handleLoadTemplate = (template) => {
+    setCategory(template.category);
+    setPricingData(template.pricing_data || {});
+    setQuantity(template.quantity || 1);
+    setComplexity(template.pricing_data?.complexity || 5);
+    setDescription(template.name);
+    setShowTemplates(false);
+    toast.success(`Loaded: ${template.name}`);
+  };
+
+  // Delete template
+  const handleDeleteTemplate = async (templateId, e) => {
+    e.stopPropagation();
+    const token = getToken();
+
+    try {
+      const response = await fetch(`${API_URL}/api/pricing/templates/${templateId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        toast.success('Template deleted');
+        fetchTemplates();
+      }
+    } catch (err) {
+      toast.error('Failed to delete template');
+    }
+  };
+
+  // Toggle favorite
+  const handleToggleFavorite = async (templateId, e) => {
+    e.stopPropagation();
+    const token = getToken();
+
+    try {
+      const response = await fetch(`${API_URL}/api/pricing/templates/${templateId}/favorite`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        fetchTemplates();
+      }
+    } catch (err) {
+      console.error('Error toggling favorite:', err);
+    }
+  };
 
   // Calculate pricing
   const calculatePrice = useCallback(async () => {
