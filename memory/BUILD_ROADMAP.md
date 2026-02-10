@@ -282,7 +282,7 @@
 | **Business** | $99 | 15 | 500/mo | Unlimited | Priority support |
 | **Enterprise** | Custom | Unlimited | Unlimited | Unlimited | White-label, API |
 
-### Sprint 9: Customer Portal (Full)
+### Sprint 11: Customer Portal (Full)
 **Timeline:** After Billing
 **Goal:** Allow customers to create accounts
 
