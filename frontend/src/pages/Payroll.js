@@ -62,30 +62,23 @@ export default function Payroll() {
     date: new Date().toISOString().split('T')[0]
   });
   
-  // Permission denied view
-  if (!canViewPayroll) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 text-center">
-        <AlertTriangle className="h-12 w-12 mb-4" style={{ color: '#d97706' }} />
-        <h2 className="text-xl font-semibold mb-2" style={{ color: '#1A1A1A' }}>Access Denied</h2>
-        <p style={{ color: '#5A5A5A' }}>You don't have permission to view payroll.</p>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (canViewPayroll) {
+      loadData();
+    }
+  }, [canViewPayroll]);
 
   useEffect(() => {
-    loadData();
-  }, []);
-
-  useEffect(() => {
-    if (selectedEmployee) {
+    if (canViewPayroll && selectedEmployee) {
       loadEmployeeData();
     }
-  }, [selectedEmployee]);
+  }, [selectedEmployee, canViewPayroll]);
 
   useEffect(() => {
-    loadReport();
-  }, [dateRange]);
+    if (canViewPayroll) {
+      loadReport();
+    }
+  }, [dateRange, canViewPayroll]);
 
   const loadData = async () => {
     setLoading(true);
@@ -106,6 +99,17 @@ export default function Payroll() {
       console.error('Error loading payroll data:', err);
     }
   };
+  
+  // Permission denied view
+  if (!canViewPayroll) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center">
+        <AlertTriangle className="h-12 w-12 mb-4" style={{ color: '#d97706' }} />
+        <h2 className="text-xl font-semibold mb-2" style={{ color: '#1A1A1A' }}>Access Denied</h2>
+        <p style={{ color: '#5A5A5A' }}>You don't have permission to view payroll.</p>
+      </div>
+    );
+  }
 
   const loadReport = async () => {
     try {
