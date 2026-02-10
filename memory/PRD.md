@@ -290,6 +290,28 @@ Build a web-based sign-shop operating system called "SignGuy AI" - a single dail
 /api/auth/register - User registration (returns JWT)
 /api/auth/login - User login (returns JWT)
 /api/users/me - Get/Update current user profile (protected)
+
+# Customer Portal API
+/api/portal/auth/register - Customer portal registration
+/api/portal/auth/login - Customer portal login
+/api/portal/dashboard - Portal dashboard data
+/api/portal/profile - Get/Update customer profile
+/api/portal/change-password - Change portal password
+/api/portal/orders - Customer's orders (jobs)
+/api/portal/quotes - Customer's quotes
+/api/portal/invoices - Customer's invoices
+/api/portal/conversations - Customer's messaging conversations
+/api/portal/proofs - Customer's artwork proofs
+/api/portal/proofs/{id}/respond - Approve/reject/request revision on proof
+/api/portal/appointments - Customer's appointments
+/api/portal/notifications - Customer's notifications
+/api/portal/magic/{token} - Magic link access (public)
+
+# Shop-Side Portal Management
+/api/customers/{id}/enable-portal - Enable portal access for customer
+/api/shop/conversations - View all customer conversations
+/api/shop/proofs - Manage artwork proofs
+/api/shop/appointments - Manage appointments
 ```
 
 ## Prioritized Backlog
