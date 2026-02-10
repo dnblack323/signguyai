@@ -1033,6 +1033,38 @@ async def get_current_active_user(current_user: UserInDB = Depends(get_current_u
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
+# ============== TENANT HELPER FUNCTIONS ==============
+
+def generate_tenant_slug(name: str) -> str:
+    """Generate a URL-friendly slug from tenant name"""
+    import re
+    slug = name.lower()
+    slug = re.sub(r'[^a-z0-9\s-]', '', slug)
+    slug = re.sub(r'[\s-]+', '-', slug)
+    slug = slug.strip('-')
+    return slug[:50]  # Limit length
+
+async def get_current_tenant(current_user: UserInDB = Depends(get_current_active_user)) -> Tenant:
+    """Get the tenant for the current user"""
+    if not current_user.tenant_id:
+        raise HTTPException(status_code=400, detail="User has no associated tenant")
+    
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0})
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    return Tenant(**tenant)
+
+def tenant_query(base_query: dict, tenant_id: str) -> dict:
+    """Add tenant_id to a query for data isolation"""
+    return {**base_query, "tenant_id": tenant_id}
+
+async def get_tenant_id(current_user: UserInDB = Depends(get_current_active_user)) -> str:
+    """Get just the tenant_id for the current user"""
+    if not current_user.tenant_id:
+        raise HTTPException(status_code=400, detail="User has no associated tenant")
+    return current_user.tenant_id
+
 # -------------- AUTH ROUTES --------------
 @api_router.post("/auth/register", response_model=Token)
 async def register(input: UserCreate):
