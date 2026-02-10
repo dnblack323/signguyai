@@ -412,7 +412,7 @@ export const MobileNav = ({ isOpen, onClose }) => {
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-[#2F8BFB]/20 flex items-center justify-center overflow-hidden">
                 <img 
-                  src="https://customer-assets.emergentagent.com/job_cc25406f-f7f9-4d81-8429-039b5b2a7159/artifacts/dmeif3yx_1766814558812.png" 
+                  src="https://customer-assets.emergentagent.com/job_signmaster-1/artifacts/lr01uj91_square.png" 
                   alt="SG" 
                   className="h-7 w-auto object-contain"
                 />
