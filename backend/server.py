@@ -801,6 +801,7 @@ class ProductVariant(BaseModel):
 class Product(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: Optional[str] = None  # Multi-tenancy support
     name: str
     description: Optional[str] = None
     category: ProductCategory = ProductCategory.OTHER
