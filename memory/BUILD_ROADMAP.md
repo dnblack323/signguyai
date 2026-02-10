@@ -228,18 +228,19 @@
 
 | Task | Priority | Status | Assignee |
 |------|----------|--------|----------|
-| Apply theme to all remaining pages | P1 | 🔲 Todo | - |
-| Role-based access control | P0 | 🔲 Todo | - |
-| Multi-tenant data isolation | P0 | 🔲 Todo | - |
-| Company/tenant settings page | P1 | 🔲 Todo | - |
+| Tenant Model (Company entity) | P0 | 🔲 Todo | - |
+| Tenant ID on All Records | P0 | 🔲 Todo | - |
+| Tenant-Scoped Queries | P0 | 🔲 Todo | - |
+| Tenant Settings Page | P1 | 🔲 Todo | - |
+| Tenant Onboarding Flow | P1 | 🔲 Todo | - |
 
 ---
 
 ## 📅 UPCOMING FEATURES
 
-### Sprint 6: Role-Based Access Control
-**Timeline:** Next
-**Goal:** Implement permission levels for team management
+### Sprint 8: Smart Pricing Engine
+**Timeline:** After Multi-Tenancy
+**Goal:** Real-time profit margin calculators
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
