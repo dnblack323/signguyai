@@ -1849,8 +1849,14 @@ async def update_job(
     return updated_job
 
 @api_router.post("/jobs/{job_id}/archive")
-async def archive_job(job_id: str):
-    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+async def archive_job(
+    job_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    job = await db.jobs.find_one(
+        {"id": job_id, "tenant_id": current_user.tenant_id}, 
+        {"_id": 0}
+    )
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     
@@ -1860,8 +1866,14 @@ async def archive_job(job_id: str):
     return {"message": "Job archived"}
 
 @api_router.post("/jobs/{job_id}/unarchive")
-async def unarchive_job(job_id: str):
-    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+async def unarchive_job(
+    job_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    job = await db.jobs.find_one(
+        {"id": job_id, "tenant_id": current_user.tenant_id}, 
+        {"_id": 0}
+    )
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     
@@ -1871,8 +1883,14 @@ async def unarchive_job(job_id: str):
     return {"message": "Job unarchived"}
 
 @api_router.post("/jobs/{job_id}/complete")
-async def complete_job(job_id: str):
-    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+async def complete_job(
+    job_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    job = await db.jobs.find_one(
+        {"id": job_id, "tenant_id": current_user.tenant_id}, 
+        {"_id": 0}
+    )
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     
@@ -1883,12 +1901,17 @@ async def complete_job(job_id: str):
     return {"message": "Job marked as complete"}
 
 @api_router.delete("/jobs/{job_id}")
-async def delete_job(job_id: str):
+async def delete_job(
+    job_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
     # Also delete related job items, notes, and activities
     await db.job_items.delete_many({"job_id": job_id})
     await db.job_notes.delete_many({"job_id": job_id})
     await db.job_activities.delete_many({"job_id": job_id})
-    result = await db.jobs.delete_one({"id": job_id})
+    result = await db.jobs.delete_one(
+        {"id": job_id, "tenant_id": current_user.tenant_id}
+    )
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Job not found")
     return {"message": "Job deleted"}
