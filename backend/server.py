@@ -5310,6 +5310,112 @@ async def get_materials(
         return {category: materials.get(category, [])}
     return materials
 
+# ============== PRICING TEMPLATES API ==============
+
+class PricingTemplate(BaseModel):
+    """Saved pricing template for quick reuse"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    name: str
+    description: Optional[str] = None
+    category: PricingCategory
+    pricing_data: Dict[str, Any]
+    quantity: float = 1
+    is_favorite: bool = False
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class PricingTemplateCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    category: PricingCategory
+    pricing_data: Dict[str, Any]
+    quantity: float = 1
+
+@api_router.get("/pricing/templates")
+async def get_pricing_templates(
+    category: Optional[str] = None,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Get all pricing templates for the current tenant"""
+    query = {"tenant_id": current_user.tenant_id}
+    if category:
+        query["category"] = category
+    
+    templates = await db.pricing_templates.find(query, {"_id": 0}).sort("name", 1).to_list(100)
+    return templates
+
+@api_router.post("/pricing/templates")
+async def create_pricing_template(
+    input: PricingTemplateCreate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Save a new pricing template"""
+    template = PricingTemplate(
+        tenant_id=current_user.tenant_id,
+        name=input.name,
+        description=input.description,
+        category=input.category,
+        pricing_data=input.pricing_data,
+        quantity=input.quantity
+    )
+    await db.pricing_templates.insert_one(template.model_dump())
+    return template.model_dump()
+
+@api_router.put("/pricing/templates/{template_id}")
+async def update_pricing_template(
+    template_id: str,
+    updates: Dict[str, Any],
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Update a pricing template"""
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    result = await db.pricing_templates.update_one(
+        {"id": template_id, "tenant_id": current_user.tenant_id},
+        {"$set": updates}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    template = await db.pricing_templates.find_one({"id": template_id}, {"_id": 0})
+    return template
+
+@api_router.delete("/pricing/templates/{template_id}")
+async def delete_pricing_template(
+    template_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Delete a pricing template"""
+    result = await db.pricing_templates.delete_one(
+        {"id": template_id, "tenant_id": current_user.tenant_id}
+    )
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    return {"message": "Template deleted"}
+
+@api_router.put("/pricing/templates/{template_id}/favorite")
+async def toggle_template_favorite(
+    template_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Toggle favorite status of a template"""
+    template = await db.pricing_templates.find_one(
+        {"id": template_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    new_status = not template.get("is_favorite", False)
+    await db.pricing_templates.update_one(
+        {"id": template_id},
+        {"$set": {"is_favorite": new_status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"is_favorite": new_status}
+
 # ============== CUSTOMER PORTAL API ==============
 
 # Customer Portal Auth Models
