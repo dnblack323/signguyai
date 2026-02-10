@@ -322,9 +322,11 @@ Build a web-based sign-shop operating system called "SignGuy AI" - a single dail
 - [x] Role-based access control (Owner, Admin, Staff) ✅ COMPLETED Feb 10, 2026
 - [x] Multi-Tenancy (SaaS Foundation) ✅ COMPLETED Feb 10, 2026
 - [x] Webstores Phase 2: Enhanced Store Dashboard ✅ COMPLETED Feb 10, 2026
+- [x] Full Customer Portal ✅ COMPLETED Feb 10, 2026
 
 ### P1 - High Priority
-- [ ] Sprint 9: Artwork Approval System (upload proof, customer approve/reject)
+- [ ] Buy Now, Pay Later (BNPL) Integration - Affirm & Klarna
+- [ ] Sprint 9: Artwork Approval System (upload proof, customer approve/reject) - PARTIALLY DONE via Customer Portal
 - [ ] Sprint 10: Stripe Subscription & Billing
 - [ ] Email notifications configuration (SendGrid API key setup)
 - [ ] Print-ready file generation
@@ -332,11 +334,12 @@ Build a web-based sign-shop operating system called "SignGuy AI" - a single dail
 - [ ] Productivity Module enhancements (Kanban, Calendar)
 
 ### P2 - Medium Priority
+- [ ] Webstores Phase 2: External Dashboard for fundraiser organizers
 - [ ] Financial Tracking summary views and reports (Cash vs Credit vs Check breakdown)
 - [ ] Report generation and analytics
 - [ ] Bulk operations (multi-select delete, status update)
 - [ ] Search across all modules
-- [ ] Customer portal for viewing quotes/invoices
+- [x] Customer portal for viewing quotes/invoices ✅ COMPLETED Feb 10, 2026
 - [ ] Data export functionality (CSV/PDF)
 
 ### P3 - Low Priority / Future
