@@ -5198,7 +5198,7 @@ class PriceCalculateRequest(BaseModel):
 @api_router.post("/pricing/calculate")
 async def calculate_price(
     request: PriceCalculateRequest,
-    current_user: dict = Depends(get_current_active_user)
+    current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Calculate pricing for an item (real-time preview)"""
     try:
@@ -5206,7 +5206,7 @@ async def calculate_price(
             request.category,
             request.pricing_data,
             request.quantity,
-            current_user.get("tenant_id")
+            current_user.tenant_id
         )
         return calculation.model_dump()
     except Exception as e:
@@ -5214,18 +5214,18 @@ async def calculate_price(
         raise HTTPException(status_code=500, detail=f"Calculation error: {str(e)}")
 
 @api_router.get("/pricing/defaults")
-async def get_my_pricing_defaults(current_user: dict = Depends(get_current_active_user)):
+async def get_my_pricing_defaults(current_user: UserInDB = Depends(get_current_active_user)):
     """Get pricing defaults for current tenant"""
-    defaults = await get_pricing_defaults(current_user.get("tenant_id"))
+    defaults = await get_pricing_defaults(current_user.tenant_id)
     return defaults
 
 @api_router.put("/pricing/defaults")
 async def update_pricing_defaults(
     updates: Dict[str, Any],
-    current_user: dict = Depends(get_current_active_user)
+    current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Update pricing defaults for current tenant"""
-    tenant_id = current_user.get("tenant_id")
+    tenant_id = current_user.tenant_id
     
     # Ensure defaults exist
     await get_pricing_defaults(tenant_id)
@@ -5242,7 +5242,7 @@ async def update_pricing_defaults(
 @api_router.get("/pricing/materials")
 async def get_materials(
     category: Optional[str] = None,
-    current_user: dict = Depends(get_current_active_user)
+    current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Get available materials (for dropdowns)"""
     # Return built-in materials organized by category
