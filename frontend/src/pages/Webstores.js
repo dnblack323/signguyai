@@ -35,9 +35,10 @@ import { formatCurrency, formatDate, getStatusColor } from '../lib/utils';
 import { 
   Store, Heart, Building2, User, Plus, ShoppingCart, 
   Eye, Edit2, Trash2, Package, DollarSign, TrendingUp,
-  ExternalLink, Check, X, Settings, Copy, Link2
+  ExternalLink, Check, X, Settings, Copy, Link2, BarChart3
 } from 'lucide-react';
 import { toast } from 'sonner';
+import WebstoreDetailDashboard from '../components/WebstoreDetailDashboard';
 
 const storeTypes = [
   { value: 'business', label: 'Business (B2B)', icon: Building2, description: 'Employee apparel & company stores' },
