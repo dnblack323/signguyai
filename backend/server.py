@@ -408,6 +408,7 @@ class ExpenseEntryCreate(ExpenseEntryBase):
 class ExpenseEntry(ExpenseEntryBase):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: Optional[str] = None  # Multi-tenancy support
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class FinancialSummary(BaseModel):
