@@ -64,6 +64,7 @@ const navigationCategories = [
     icon: Shield,
     items: [
       { name: 'Users', href: '/users', icon: Shield, permission: Permission.USERS_VIEW },
+      { name: 'Company Settings', href: '/settings', icon: Building2, permission: Permission.SETTINGS_VIEW },
     ]
   },
 ];
