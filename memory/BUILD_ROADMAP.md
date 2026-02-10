@@ -244,22 +244,13 @@
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
-| User Roles | Owner, Admin, Staff | P0 |
-| Permission Matrix | Define what each role can access | P0 |
-| Role Assignment | Assign roles to users | P0 |
-| Protected Actions | Restrict sensitive operations | P0 |
-| Role-Based Navigation | Show/hide nav items by role | P1 |
-| Audit Log | Track who did what | P2 |
+| Materials Cost Tracking | Track material costs per job | P0 |
+| Labor Cost Calculation | Track labor hours × rate | P0 |
+| Real-Time Profit Display | Show margin on quotes/jobs | P0 |
+| Price Suggestions | AI-powered pricing recommendations | P1 |
 
-**Role Definitions:**
-| Role | Customers | Quotes | Jobs | Invoices | Time Clock | Payroll | Financials | Users | Settings |
-|------|-----------|--------|------|----------|------------|---------|------------|-------|----------|
-| Owner | Full | Full | Full | Full | Full | Full | Full | Full | Full |
-| Admin | Full | Full | Full | Full | Full | View | View | View | View |
-| Staff | View | View | View | None | Own Only | None | None | None | None |
-
-### Sprint 7: Multi-Tenant Architecture
-**Timeline:** After RBAC
+### Sprint 9: Artwork Approval System
+**Timeline:** After Smart Pricing
 **Goal:** Isolate data between companies
 
 | Feature | Description | Priority |
