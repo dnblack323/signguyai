@@ -63,6 +63,20 @@ export default function Invoices() {
   const [previewInvoiceId, setPreviewInvoiceId] = useState(null);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   
+  useEffect(() => {
+    if (canViewInvoices) {
+      loadData();
+    }
+  }, [statusFilter, canViewInvoices]);
+
+  const loadData = async () => {
+    setLoading(true);
+    const params = {};
+    if (statusFilter !== 'all') params.status = statusFilter;
+    await Promise.all([fetchInvoices(params), fetchCustomers(), fetchJobs()]);
+    setLoading(false);
+  };
+
   // Permission denied view
   if (!canViewInvoices) {
     return (
@@ -73,18 +87,6 @@ export default function Invoices() {
       </div>
     );
   }
-
-  useEffect(() => {
-    loadData();
-  }, [statusFilter]);
-
-  const loadData = async () => {
-    setLoading(true);
-    const params = {};
-    if (statusFilter !== 'all') params.status = statusFilter;
-    await Promise.all([fetchInvoices(params), fetchCustomers(), fetchJobs()]);
-    setLoading(false);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
