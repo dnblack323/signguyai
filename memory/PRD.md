@@ -24,7 +24,7 @@ Build a web-based sign-shop operating system called "SignGuy AI" - a single dail
 
 ## Data Model
 
-### JobItem (Line Items for Jobs)
+### JobItem (Line Items for Jobs) - ENHANCED WITH PRICING CALCULATOR
 - **job_id**: Reference to parent Job
 - **item_type**: banner, yard_sign, decal, wrap, install, design, vehicle_graphics, window_graphics, dimensional_letters, monument_sign, other
 - **description**: Text description of the item
@@ -33,6 +33,10 @@ Build a web-based sign-shop operating system called "SignGuy AI" - a single dail
 - **line_total**: Calculated (qty × unit_price)
 - **status**: pending, in_production, done
 - **notes**: Optional text/file references
+- **pricing_category**: promotional, cut_vinyl, services, digital_print, rigid_signs, apparel, vehicle_graphics, custom
+- **pricing_data**: Category-specific fields (dimensions, materials, complexity, etc.)
+- **pricing_calculation**: Calculated breakdown (material cost, labor cost, suggested price, margin)
+- **production_cost**: For margin tracking
 
 ### Webstore Branding Model (NEW)
 - **logo_url**: URL to customer's logo image
