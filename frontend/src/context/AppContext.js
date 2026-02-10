@@ -3,6 +3,25 @@ import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+// Create axios instance with auth interceptor
+const axiosInstance = axios.create({
+  baseURL: API,
+});
+
+// Add auth token to all requests
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 const AppContext = createContext(null);
 
 export const useApp = () => {
@@ -24,7 +43,7 @@ export const AppProvider = ({ children }) => {
   // Customers
   const fetchCustomers = async (params = {}) => {
     try {
-      const res = await axios.get(`${API}/customers`, { params });
+      const res = await axiosInstance.get(`/customers`, { params });
       setCustomers(res.data);
       return res.data;
     } catch (err) {
