@@ -70,6 +70,10 @@ const getCategoryLabel = (value) => {
 };
 
 export default function Financials() {
+  const { hasPermission } = useAuth();
+  const canViewFinancials = hasPermission(Permission.FINANCIALS_VIEW);
+  const canEditFinancials = hasPermission(Permission.FINANCIALS_CREATE);
+  
   const { 
     createSalesEntry, getSalesEntries, 
     createExpenseEntry, getExpenseEntries,
@@ -99,6 +103,17 @@ export default function Financials() {
     category: 'materials',
     description: ''
   });
+
+  // Permission denied view
+  if (!canViewFinancials) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center">
+        <AlertTriangle className="h-12 w-12 mb-4" style={{ color: '#d97706' }} />
+        <h2 className="text-xl font-semibold mb-2" style={{ color: '#1A1A1A' }}>Access Denied</h2>
+        <p style={{ color: '#5A5A5A' }}>You don't have permission to view financials.</p>
+      </div>
+    );
+  }
 
   useEffect(() => {
     loadData();
