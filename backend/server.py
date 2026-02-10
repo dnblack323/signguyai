@@ -1078,7 +1078,10 @@ async def update_current_user_profile(
 # -------------- ADMIN USER MANAGEMENT --------------
 @api_router.get("/admin/users", response_model=List[User])
 async def list_all_users(current_user: UserInDB = Depends(get_current_active_user)):
-    """List all users (admin only - for now any authenticated user can access)"""
+    """List all users - requires USERS_VIEW permission"""
+    if not has_permission(current_user, Permission.USERS_VIEW):
+        raise HTTPException(status_code=403, detail="Permission denied: Cannot view users")
+    
     users = await db.users.find({}, {"_id": 0, "hashed_password": 0}).to_list(1000)
     return [User(**u) for u in users]
 
@@ -1088,11 +1091,18 @@ async def admin_reset_password(
     input: PasswordReset,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Admin resets a user's password"""
+    """Admin resets a user's password - requires USERS_EDIT permission"""
+    if not has_permission(current_user, Permission.USERS_EDIT):
+        raise HTTPException(status_code=403, detail="Permission denied: Cannot reset passwords")
+    
     # Find target user
     target_user = await db.users.find_one({"id": user_id}, {"_id": 0})
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    # Only owner can reset another owner's password
+    if target_user.get("role") == UserRole.OWNER.value and current_user.role != UserRole.OWNER:
+        raise HTTPException(status_code=403, detail="Only owners can reset owner passwords")
     
     # Validate new password
     if len(input.new_password) < 6:
@@ -1113,7 +1123,10 @@ async def admin_toggle_user_status(
     is_active: bool,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Admin enables/disables a user account"""
+    """Admin enables/disables a user account - requires USERS_EDIT permission"""
+    if not has_permission(current_user, Permission.USERS_EDIT):
+        raise HTTPException(status_code=403, detail="Permission denied: Cannot modify user status")
+    
     # Prevent disabling own account
     if user_id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot modify your own account status")
@@ -1122,6 +1135,10 @@ async def admin_toggle_user_status(
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found")
     
+    # Only owner can disable another owner
+    if target_user.get("role") == UserRole.OWNER.value and current_user.role != UserRole.OWNER:
+        raise HTTPException(status_code=403, detail="Only owners can modify owner accounts")
+    
     await db.users.update_one(
         {"id": user_id},
         {"$set": {"is_active": is_active, "updated_at": datetime.now(timezone.utc).isoformat()}}
@@ -1129,6 +1146,64 @@ async def admin_toggle_user_status(
     
     status_text = "enabled" if is_active else "disabled"
     return {"message": f"User {target_user['email']} has been {status_text}"}
+
+@api_router.put("/admin/users/{user_id}/role")
+async def admin_update_user_role(
+    user_id: str,
+    input: UserRoleUpdate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Update a user's role - requires USERS_MANAGE_ROLES permission (Owner only)"""
+    if not has_permission(current_user, Permission.USERS_MANAGE_ROLES):
+        raise HTTPException(status_code=403, detail="Permission denied: Only owners can manage roles")
+    
+    # Prevent changing own role
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot modify your own role")
+    
+    target_user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Update role
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"role": input.role.value, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": f"User {target_user['email']} role updated to {input.role.value}"}
+
+@api_router.post("/admin/users/create", response_model=User)
+async def admin_create_user(
+    input: UserCreate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Admin creates a new user - requires USERS_CREATE permission"""
+    if not has_permission(current_user, Permission.USERS_CREATE):
+        raise HTTPException(status_code=403, detail="Permission denied: Cannot create users")
+    
+    # Check if user already exists
+    existing_user = await db.users.find_one({"email": input.email.lower()})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Only owner can create another owner
+    if input.role == UserRole.OWNER and current_user.role != UserRole.OWNER:
+        raise HTTPException(status_code=403, detail="Only owners can create owner accounts")
+    
+    # Create new user
+    hashed_password = get_password_hash(input.password)
+    user = UserInDB(
+        email=input.email.lower(),
+        full_name=input.full_name,
+        company_name=input.company_name,
+        role=input.role or UserRole.STAFF,
+        hashed_password=hashed_password
+    )
+    doc = user.model_dump()
+    await db.users.insert_one(doc)
+    
+    return User(**{k: v for k, v in doc.items() if k != "hashed_password"})
 
 # -------------- MAGIC LINKS (CUSTOMER PORTAL) --------------
 @api_router.post("/magic-links", response_model=MagicLink)
