@@ -1073,10 +1073,25 @@ async def register(input: UserCreate):
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
-    # Determine role: first user becomes owner, others default to staff
+    # Determine role and tenant: first user creates a new tenant and becomes owner
     user_count = await db.users.count_documents({})
+    tenant_id = None
+    
     if user_count == 0:
+        # First user ever - create a new tenant (company)
         role = UserRole.OWNER
+        company_name = input.company_name or f"{input.full_name}'s Sign Shop"
+        
+        # Create tenant
+        tenant = Tenant(
+            name=company_name,
+            slug=generate_tenant_slug(company_name),
+            owner_email=input.email.lower(),
+        )
+        tenant_doc = tenant.model_dump()
+        await db.tenants.insert_one(tenant_doc)
+        tenant_id = tenant.id
+        logger.info(f"Created new tenant: {tenant.name} ({tenant.id})")
     elif input.role:
         role = input.role
     else:
@@ -1089,6 +1104,7 @@ async def register(input: UserCreate):
         full_name=input.full_name,
         company_name=input.company_name,
         role=role,
+        tenant_id=tenant_id,
         hashed_password=hashed_password
     )
     doc = user.model_dump()
