@@ -78,6 +78,7 @@ function ProtectedRoutes() {
         <Route path="/products" element={<Products />} />
         <Route path="/users" element={<UserManagement />} />
         <Route path="/settings" element={<CompanySettings />} />
+        <Route path="/pricing" element={<Pricing />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </MainLayout>
