@@ -11,8 +11,8 @@ import { toast } from 'sonner';
 
 export default function CompanySettings() {
   const { hasPermission, isOwner } = useAuth();
-  const canViewSettings = hasPermission(Permission.SETTINGS_VIEW) || isOwner;
-  const canEditSettings = hasPermission(Permission.SETTINGS_EDIT) || isOwner;
+  const canViewSettings = hasPermission(Permission.SETTINGS_VIEW) || isOwner();
+  const canEditSettings = hasPermission(Permission.SETTINGS_EDIT) || isOwner();
   
   const { getTenant, updateTenant } = useApp();
   const [loading, setLoading] = useState(true);
