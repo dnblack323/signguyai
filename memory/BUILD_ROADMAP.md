@@ -1,7 +1,7 @@
 # SignGuy AI - Complete Build Roadmap & Feature Tracker
 
 > **Last Updated:** February 10, 2026  
-> **Version:** 2.1  
+> **Version:** 2.2  
 > **Status:** Active Development
 
 ---
