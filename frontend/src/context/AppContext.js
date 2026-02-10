@@ -558,7 +558,9 @@ export const AppProvider = ({ children }) => {
     // Webstore Orders V2
     createWebstoreOrderV2, getWebstoreOrdersV2, getWebstoreOrderV2, updateOrderStatus, createJobFromOrder,
     // Payouts
-    recordPayout, getWebstorePayouts
+    recordPayout, getWebstorePayouts,
+    // Tenant / Company Settings
+    getTenant, updateTenant
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
