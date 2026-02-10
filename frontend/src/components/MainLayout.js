@@ -209,17 +209,22 @@ export const Sidebar = () => {
             "flex items-center transition-all duration-300",
             isExpanded ? "gap-3" : "justify-center w-full"
           )}>
-            <div className="w-8 h-8 rounded-lg bg-[#2F8BFB]/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+            {isExpanded ? (
+              /* Long logo when expanded */
               <img 
-                src="https://customer-assets.emergentagent.com/job_cc25406f-f7f9-4d81-8429-039b5b2a7159/artifacts/dmeif3yx_1766814558812.png" 
-                alt="SG" 
-                className="h-7 w-auto object-contain"
+                src="https://customer-assets.emergentagent.com/job_signmaster-1/artifacts/mig22jgl_long.png" 
+                alt="SignGuy AI" 
+                className="h-8 w-auto object-contain"
               />
-            </div>
-            {isExpanded && (
-              <span className="text-[#F2F2F2] font-semibold text-lg font-heading animate-fade-in whitespace-nowrap">
-                SignGuy AI
-              </span>
+            ) : (
+              /* Square logo when collapsed */
+              <div className="w-8 h-8 rounded-lg bg-[#2F8BFB]/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <img 
+                  src="https://customer-assets.emergentagent.com/job_cc25406f-f7f9-4d81-8429-039b5b2a7159/artifacts/dmeif3yx_1766814558812.png" 
+                  alt="SG" 
+                  className="h-7 w-auto object-contain"
+                />
+              </div>
             )}
           </div>
         </div>
