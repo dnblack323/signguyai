@@ -181,7 +181,14 @@ export const Sidebar = () => {
     setIsExpanded(false);
   }, [location.pathname]);
 
-  const activeCategoryData = navigationCategories.find(c => c.id === activeCategory);
+  const activeCategoryData = filteredNavigation.find(c => c.id === activeCategory);
+
+  // Get role badge color
+  const getRoleBadgeColor = () => {
+    if (user?.role === 'owner') return '#d97706'; // amber
+    if (user?.role === 'admin') return '#2F8BFB'; // blue
+    return '#5A5A5A'; // gray for staff
+  };
 
   return (
     <aside
@@ -219,7 +226,7 @@ export const Sidebar = () => {
         {/* Navigation Categories */}
         <nav className="flex-1 py-4 overflow-y-auto">
           <div className="space-y-1 px-2">
-            {navigationCategories.map((category) => {
+            {filteredNavigation.map((category) => {
               const Icon = category.icon;
               const isActive = currentActiveCategory === category.id;
               const isHovered = activeCategory === category.id;
