@@ -559,8 +559,8 @@ export const MainLayout = ({ children }) => {
         </div>
       </main>
 
-      {/* Preview Mode Panel - Fixed Bottom Right */}
-      <div className="fixed bottom-4 right-4 z-50">
+      {/* Preview Mode Panel - Fixed Bottom Right (above Emergent badge) */}
+      <div className="fixed bottom-16 right-4 z-50">
         {previewOpen ? (
           <div className="bg-[#1E1E1E] border border-white/20 rounded-xl shadow-2xl w-72 overflow-hidden">
             {/* Header */}
