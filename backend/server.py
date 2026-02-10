@@ -453,12 +453,58 @@ class UserRole(str, Enum):
     ADMIN = "admin"
     STAFF = "staff"
 
+# ============== TENANT MODELS ==============
+
+class TenantPlan(str, Enum):
+    FREE = "free"
+    PRO = "pro"
+    BUSINESS = "business"
+    ENTERPRISE = "enterprise"
+
+class TenantBase(BaseModel):
+    name: str  # Company/Organization name
+    slug: str  # URL-friendly identifier
+    owner_email: EmailStr
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    zip_code: Optional[str] = None
+    country: str = "USA"
+    website: Optional[str] = None
+    logo_url: Optional[str] = None
+    plan: TenantPlan = TenantPlan.FREE
+    is_active: bool = True
+
+class TenantCreate(BaseModel):
+    name: str
+    owner_email: EmailStr
+    phone: Optional[str] = None
+
+class TenantUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    zip_code: Optional[str] = None
+    country: Optional[str] = None
+    website: Optional[str] = None
+    logo_url: Optional[str] = None
+
+class Tenant(TenantBase):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
 class UserBase(BaseModel):
     email: EmailStr
     full_name: str
     company_name: Optional[str] = None
     is_active: bool = True
     role: UserRole = UserRole.STAFF
+    tenant_id: Optional[str] = None  # Links user to their tenant/company
 
 class UserCreate(BaseModel):
     email: EmailStr
