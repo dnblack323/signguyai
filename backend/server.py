@@ -696,6 +696,7 @@ class MagicLinkType(str, Enum):
 class MagicLink(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: Optional[str] = None  # Multi-tenancy support
     token: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
     resource_type: MagicLinkType
     resource_id: str
