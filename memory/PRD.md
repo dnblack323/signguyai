@@ -281,12 +281,12 @@ Build a web-based sign-shop operating system called "SignGuy AI" - a single dail
 - [x] User Authentication (JWT) ✅ COMPLETED Feb 7, 2026
 - [x] Role-based access control (Owner, Admin, Staff) ✅ COMPLETED Feb 10, 2026
 - [x] Multi-Tenancy (SaaS Foundation) ✅ COMPLETED Feb 10, 2026
+- [x] Webstores Phase 2: Enhanced Store Dashboard ✅ COMPLETED Feb 10, 2026
 
 ### P1 - High Priority
 - [ ] Sprint 9: Artwork Approval System (upload proof, customer approve/reject)
 - [ ] Sprint 10: Stripe Subscription & Billing
-- [ ] Webstores Phase 2: Store owner dashboards (sales, orders, payouts)
-- [ ] Email notifications for overdue invoices
+- [ ] Email notifications configuration (SendGrid API key setup)
 - [ ] Print-ready file generation
 - [ ] Mobile-responsive time clock interface
 - [ ] Productivity Module enhancements (Kanban, Calendar)
