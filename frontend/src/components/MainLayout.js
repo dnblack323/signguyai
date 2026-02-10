@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import {
   LayoutDashboard, Users, FileText, Briefcase, Receipt, 
   Clock, DollarSign, CalendarDays, Sparkles, Store,
-  Package, LogOut, User, Shield, ChevronRight, Menu, X, Crown, Building2, Settings
+  Package, LogOut, User, Shield, ChevronRight, Menu, X, Crown, Building2, Settings,
+  Eye, ExternalLink, ChevronDown
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth, Permission } from '../context/AuthContext';
