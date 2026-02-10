@@ -17,7 +17,7 @@ export default function CustomerPortal() {
   useEffect(() => {
     const fetchResource = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/portal/${token}`);
+        const response = await fetch(`${API_URL}/api/portal/magic/${token}`);
         
         if (response.ok) {
           const result = await response.json();
