@@ -137,7 +137,7 @@ export default function CompanySettings() {
         </div>
         <div className="flex items-center gap-3">
           {planBadge(tenant.plan)}
-          {isOwner && (
+          {isOwner() && (
             <Badge className="bg-amber-100 text-amber-700 flex items-center gap-1">
               <Crown className="h-3 w-3" />
               Owner
