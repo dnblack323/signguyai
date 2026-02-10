@@ -90,7 +90,7 @@ export default function Webstores() {
   const [selectedStore, setSelectedStore] = useState(null);
   const [storeProducts, setStoreProducts] = useState([]);
   const [storePayouts, setStorePayouts] = useState([]);
-  const [detailTab, setDetailTab] = useState('overview');
+  const [detailTab, setDetailTab] = useState('dashboard');
   
   // Form state
   const [formData, setFormData] = useState({
