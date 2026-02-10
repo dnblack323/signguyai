@@ -860,13 +860,37 @@ export default function PricingCalculator({
     <div className={embedded ? '' : 'max-w-4xl mx-auto'}>
       <Card className="border-slate-200">
         <CardHeader className="pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
-              <Calculator className="h-5 w-5 text-teal-600" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
+                <Calculator className="h-5 w-5 text-teal-600" />
+              </div>
+              <div>
+                <CardTitle>Pricing Calculator</CardTitle>
+                <CardDescription>Calculate pricing for job items</CardDescription>
+              </div>
             </div>
-            <div>
-              <CardTitle>Pricing Calculator</CardTitle>
-              <CardDescription>Calculate pricing for job items</CardDescription>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowTemplates(true)}
+                className="border-slate-300"
+              >
+                <FolderOpen className="h-4 w-4 mr-2" />
+                Templates ({templates.length})
+              </Button>
+              {category && calculation && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowSaveDialog(true)}
+                  className="border-teal-300 text-teal-600 hover:bg-teal-50"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Save as Template
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
