@@ -81,11 +81,11 @@ export default function Login() {
       <div className="w-full max-w-md">
         {/* Logo / Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 overflow-hidden" style={{ backgroundColor: 'rgba(47, 139, 251, 0.2)' }}>
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl mb-4 overflow-hidden" style={{ backgroundColor: 'rgba(47, 139, 251, 0.15)' }}>
             <img 
-              src="https://customer-assets.emergentagent.com/job_cc25406f-f7f9-4d81-8429-039b5b2a7159/artifacts/dmeif3yx_1766814558812.png" 
+              src="https://customer-assets.emergentagent.com/job_signmaster-1/artifacts/lr01uj91_square.png" 
               alt="SignGuy AI" 
-              className="h-12 w-auto"
+              className="h-20 w-auto"
             />
           </div>
           <h1 className="text-3xl font-bold font-heading" style={{ color: '#F2F2F2' }}>SignGuy AI</h1>
