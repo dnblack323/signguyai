@@ -22,7 +22,6 @@ import Products from "./pages/Products";
 import Storefront from "./pages/Storefront";
 import Login from "./pages/Login";
 import UserManagement from "./pages/UserManagement";
-import CustomerPortal from "./pages/CustomerPortal";
 import CompanySettings from "./pages/CompanySettings";
 
 // Customer Portal Pages
