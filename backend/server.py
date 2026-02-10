@@ -3683,7 +3683,7 @@ async def create_webstore_order_v2(input: WebstoreOrderV2Create):
     
     # Send order notification email (non-blocking)
     import asyncio
-    asyncio.create_task(send_order_notification_email(order.model_dump(), store))
+    asyncio.create_task(send_order_notification_email(order.model_dump(), webstore))
     
     return order
 
