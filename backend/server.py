@@ -1705,8 +1705,12 @@ async def log_job_activity(job_id: str, activity_type: JobActivityType, descript
 
 # -------------- JOBS --------------
 @api_router.post("/jobs", response_model=Job)
-async def create_job(input: JobCreate):
+async def create_job(
+    input: JobCreate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
     job = Job(**input.model_dump())
+    job.tenant_id = current_user.tenant_id  # Tenant scoped
     doc = job.model_dump()
     await db.jobs.insert_one(doc)
     
@@ -1719,9 +1723,10 @@ async def create_job(input: JobCreate):
 async def get_jobs(
     customer_id: Optional[str] = None,
     status: Optional[JobStatus] = None,
-    filter_type: Optional[str] = None
+    filter_type: Optional[str] = None,
+    current_user: UserInDB = Depends(get_current_active_user)
 ):
-    query = {}
+    query = {"tenant_id": current_user.tenant_id}  # Tenant scoped
     if customer_id:
         query["customer_id"] = customer_id
     
@@ -1741,16 +1746,28 @@ async def get_jobs(
     return jobs
 
 @api_router.get("/jobs/{job_id}", response_model=Job)
-async def get_job(job_id: str):
-    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+async def get_job(
+    job_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    job = await db.jobs.find_one(
+        {"id": job_id, "tenant_id": current_user.tenant_id}, 
+        {"_id": 0}
+    )
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return job
 
 @api_router.get("/jobs/{job_id}/details")
-async def get_job_details(job_id: str):
+async def get_job_details(
+    job_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
     """Get comprehensive job details including related data"""
-    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    job = await db.jobs.find_one(
+        {"id": job_id, "tenant_id": current_user.tenant_id}, 
+        {"_id": 0}
+    )
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     
