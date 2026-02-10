@@ -93,9 +93,6 @@ function App() {
               {/* Public Storefront - No Auth Required */}
               <Route path="/store/:storeId" element={<Storefront />} />
               
-              {/* Public Customer Portal (Magic Link) - No Auth Required */}
-              <Route path="/portal/:token" element={<CustomerPortal />} />
-              
               {/* Customer Portal Routes - Separate Auth */}
               <Route path="/customer-portal/login" element={<PortalLogin />} />
               <Route path="/customer-portal" element={<PortalDashboard />} />
