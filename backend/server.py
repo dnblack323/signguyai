@@ -339,6 +339,7 @@ class TimeLogCreate(BaseModel):
 class TimeLog(TimeLogBase):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: Optional[str] = None  # Multi-tenancy support
 
 class DailyShiftSummary(BaseModel):
     employee_id: str
