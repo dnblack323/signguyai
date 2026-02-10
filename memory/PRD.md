@@ -66,6 +66,24 @@ Build a web-based sign-shop operating system called "SignGuy AI" - a single dail
 - [x] Webstores (Fundraiser campaigns, B2B custom stores)
 
 ### Recent Updates (February 10, 2026) - COMPLETED
+- [x] **Full Customer Portal** ✅ COMPLETE
+  - **Portal Authentication:** Separate JWT-based auth (type='portal') for customers
+  - **Registration:** Customers register using their email on file with the shop
+  - **Login Page:** Secure login at `/customer-portal/login` with Sign In/Register tabs
+  - **Dashboard:** Stats cards (Active Jobs, Quotes, Pending Invoices, Proofs Awaiting, New Messages, Notifications), Recent Orders, Recent Invoices, Upcoming Appointments
+  - **Orders Page:** View all orders with status filters, order detail view with line items
+  - **Quotes Page:** View all quotes with status filters
+  - **Invoices Page:** View invoices with balance due display
+  - **Messages:** Two-way communication with shop via conversations, create new messages, message history
+  - **Artwork Approvals:** View proofs, approve/reject/request revisions with comments
+  - **Appointments:** View upcoming and past appointments
+  - **Profile Management:** Update name, phone, profile image URL
+  - **Tax Exempt Status:** Enable tax exempt, link to certificate document
+  - **Notification Preferences:** Toggle email notifications for messages, orders, approvals, payments
+  - **Security:** Change portal password
+  - **Shop-Side Management:** Enable/disable customer portal access, view conversations, upload artwork proofs, create appointments
+
+### Recent Updates (February 10, 2026) - COMPLETED
 - [x] **Webstores Phase 2: Enhanced Store Dashboard** ✅ COMPLETE
   - **Store Analytics Dashboard:** Total revenue, orders, profit, avg order value KPIs
   - **Sales Trend Chart:** Visual bar chart showing sales over last 14 days
