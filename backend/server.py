@@ -135,6 +135,18 @@ class CustomerBase(BaseModel):
     email: Optional[str] = None
     status: CustomerStatus = CustomerStatus.LEAD
     notes: Optional[str] = None
+    # Portal-related fields
+    profile_image_url: Optional[str] = None
+    is_tax_exempt: bool = False
+    tax_exempt_document_url: Optional[str] = None
+    portal_password_hash: Optional[str] = None  # For portal login
+    portal_enabled: bool = False
+    notification_preferences: Dict[str, bool] = Field(default_factory=lambda: {
+        "email_messages": True,
+        "email_orders": True,
+        "email_approvals": True,
+        "email_payments": True
+    })
 
 class CustomerCreate(CustomerBase):
     pass
@@ -146,6 +158,10 @@ class CustomerUpdate(BaseModel):
     email: Optional[str] = None
     status: Optional[CustomerStatus] = None
     notes: Optional[str] = None
+    profile_image_url: Optional[str] = None
+    is_tax_exempt: Optional[bool] = None
+    tax_exempt_document_url: Optional[str] = None
+    notification_preferences: Optional[Dict[str, bool]] = None
 
 class Customer(CustomerBase):
     model_config = ConfigDict(extra="ignore")
@@ -153,6 +169,110 @@ class Customer(CustomerBase):
     tenant_id: Optional[str] = None  # Multi-tenancy support
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+# ============== CUSTOMER PORTAL MODELS ==============
+
+class MessageType(str, Enum):
+    TEXT = "text"
+    FILE = "file"
+    APPROVAL_REQUEST = "approval_request"
+    SYSTEM = "system"
+
+class ConversationMessage(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    conversation_id: str
+    sender_type: str  # "customer" or "shop"
+    sender_id: str
+    sender_name: str
+    message_type: MessageType = MessageType.TEXT
+    content: str
+    file_url: Optional[str] = None
+    file_name: Optional[str] = None
+    is_read: bool = False
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class Conversation(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: Optional[str] = None
+    customer_id: str
+    subject: str
+    related_job_id: Optional[str] = None
+    related_quote_id: Optional[str] = None
+    last_message_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    last_message_preview: str = ""
+    unread_customer: int = 0  # Unread count for customer
+    unread_shop: int = 0  # Unread count for shop
+    is_closed: bool = False
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class ProofStatus(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    REVISION_REQUESTED = "revision_requested"
+
+class ArtworkProof(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: Optional[str] = None
+    job_id: str
+    customer_id: str
+    version: int = 1
+    file_url: str
+    file_name: str
+    thumbnail_url: Optional[str] = None
+    description: Optional[str] = None
+    status: ProofStatus = ProofStatus.PENDING
+    customer_comment: Optional[str] = None
+    approved_at: Optional[str] = None
+    rejected_at: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class CustomerNotification(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: Optional[str] = None
+    customer_id: str
+    notification_type: str  # "message", "approval", "order_update", "payment", "appointment"
+    title: str
+    message: str
+    link: Optional[str] = None  # Link to relevant page in portal
+    related_id: Optional[str] = None  # Related entity ID
+    is_read: bool = False
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class AppointmentType(str, Enum):
+    CONSULTATION = "consultation"
+    PICKUP = "pickup"
+    INSTALLATION = "installation"
+    SITE_SURVEY = "site_survey"
+    OTHER = "other"
+
+class AppointmentStatus(str, Enum):
+    SCHEDULED = "scheduled"
+    CONFIRMED = "confirmed"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    NO_SHOW = "no_show"
+
+class Appointment(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: Optional[str] = None
+    customer_id: str
+    job_id: Optional[str] = None
+    appointment_type: AppointmentType
+    title: str
+    description: Optional[str] = None
+    scheduled_date: str  # ISO date
+    scheduled_time: str  # HH:MM
+    duration_minutes: int = 60
+    location: Optional[str] = None
+    status: AppointmentStatus = AppointmentStatus.SCHEDULED
+    notes: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 # Quote Models
 class QuoteLineItem(BaseModel):
