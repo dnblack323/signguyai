@@ -275,13 +275,28 @@ export const Sidebar = () => {
                 isExpanded ? "gap-3 px-3 py-2" : "justify-center py-2"
               )}>
                 <div className="w-8 h-8 rounded-full bg-[#2F8BFB]/20 flex items-center justify-center flex-shrink-0">
-                  <User className="w-4 h-4 text-[#2F8BFB]" />
+                  {user.role === 'owner' ? (
+                    <Crown className="w-4 h-4" style={{ color: '#d97706' }} />
+                  ) : (
+                    <User className="w-4 h-4 text-[#2F8BFB]" />
+                  )}
                 </div>
                 {isExpanded && (
                   <div className="flex-1 min-w-0 animate-fade-in">
-                    <p className="text-sm font-medium text-[#F2F2F2] truncate" data-testid="user-name">
-                      {user.full_name}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-[#F2F2F2] truncate" data-testid="user-name">
+                        {user.full_name}
+                      </p>
+                      <span 
+                        className="text-[10px] px-1.5 py-0.5 rounded uppercase font-semibold"
+                        style={{ 
+                          backgroundColor: `${getRoleBadgeColor()}20`,
+                          color: getRoleBadgeColor()
+                        }}
+                      >
+                        {user.role}
+                      </span>
+                    </div>
                     <p className="text-xs text-[#BDBDBD] truncate">
                       {user.company_name || user.email}
                     </p>
