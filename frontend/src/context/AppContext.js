@@ -524,6 +524,12 @@ export const AppProvider = ({ children }) => {
     return res.data;
   };
 
+  // Webstore Analytics
+  const getWebstoreAnalytics = async (webstoreId) => {
+    const res = await api.get(`/webstores/v2/${webstoreId}/analytics`);
+    return res.data;
+  };
+
   // Tenant / Company Settings
   const getTenant = async () => {
     const res = await api.get(`/tenant/current`);
