@@ -79,6 +79,7 @@ class JobItemStatus(str, Enum):
     DONE = "done"
 
 class JobItemType(str, Enum):
+    # Legacy types (kept for backwards compatibility)
     BANNER = "banner"
     YARD_SIGN = "yard_sign"
     DECAL = "decal"
@@ -90,6 +91,103 @@ class JobItemType(str, Enum):
     DIMENSIONAL_LETTERS = "dimensional_letters"
     MONUMENT_SIGN = "monument_sign"
     OTHER = "other"
+
+# ============== PRICING CALCULATOR ENUMS ==============
+
+class PricingCategory(str, Enum):
+    PROMOTIONAL = "promotional"
+    CUT_VINYL = "cut_vinyl"
+    SERVICES = "services"
+    DIGITAL_PRINT = "digital_print"
+    RIGID_SIGNS = "rigid_signs"
+    APPAREL = "apparel"
+    VEHICLE_GRAPHICS = "vehicle_graphics"
+    CUSTOM = "custom"
+
+class ServiceType(str, Enum):
+    DESIGN = "design"
+    INSTALLATION = "installation"
+    REMOVAL = "removal"
+    SITE_SURVEY = "site_survey"
+    CONSULTATION = "consultation"
+    TRAVEL = "travel"
+    OTHER_LABOR = "other_labor"
+
+class ApparelType(str, Enum):
+    TSHIRT = "tshirt"
+    HOODIE = "hoodie"
+    HAT = "hat"
+    POLO = "polo"
+    TANK = "tank"
+    LONGSLEEVE = "longsleeve"
+    JACKET = "jacket"
+    OTHER = "other"
+
+class TransferType(str, Enum):
+    HTV = "htv"
+    SCREEN_PRINT = "screen_print"
+    DTF = "dtf"
+    SUBLIMATION = "sublimation"
+    EMBROIDERY = "embroidery"
+
+class VinylType(str, Enum):
+    ORACAL_651 = "oracal_651"
+    ORACAL_751 = "oracal_751"
+    ORACAL_951 = "oracal_951"
+    AVERY_HP750 = "avery_hp750"
+    REFLECTIVE = "reflective"
+    SPECIALTY = "specialty"
+    CUSTOM = "custom"
+
+class PrintMaterial(str, Enum):
+    BANNER_13OZ = "banner_13oz"
+    BANNER_18OZ = "banner_18oz"
+    VINYL_ADHESIVE = "vinyl_adhesive"
+    POSTER_PAPER = "poster_paper"
+    CANVAS = "canvas"
+    BACKLIT = "backlit"
+    PERFORATED = "perforated"
+    CUSTOM = "custom"
+
+class SubstrateType(str, Enum):
+    COROPLAST_4MM = "coroplast_4mm"
+    COROPLAST_10MM = "coroplast_10mm"
+    ALUMINUM_040 = "aluminum_040"
+    ALUMINUM_063 = "aluminum_063"
+    ALUMINUM_080 = "aluminum_080"
+    PVC_3MM = "pvc_3mm"
+    PVC_6MM = "pvc_6mm"
+    ACRYLIC = "acrylic"
+    DIBOND = "dibond"
+    MDO = "mdo"
+    CUSTOM = "custom"
+
+class VehicleType(str, Enum):
+    CAR_SEDAN = "car_sedan"
+    CAR_SUV = "car_suv"
+    VAN_MINI = "van_mini"
+    VAN_CARGO = "van_cargo"
+    VAN_SPRINTER = "van_sprinter"
+    BOX_TRUCK_12FT = "box_truck_12ft"
+    BOX_TRUCK_16FT = "box_truck_16ft"
+    BOX_TRUCK_24FT = "box_truck_24ft"
+    TRAILER = "trailer"
+    SEMI = "semi"
+    OTHER = "other"
+
+class CoverageType(str, Enum):
+    SPOT = "spot"
+    PARTIAL = "partial"
+    HALF = "half"
+    FULL = "full"
+
+class PromoProductType(str, Enum):
+    MAGNETS = "magnets"
+    YARD_SIGNS = "yard_signs"
+    LICENSE_PLATES = "license_plates"
+    STICKERS = "stickers"
+    BRANDED_ITEMS = "branded_items"
+    CUSTOM = "custom"
 
 class InvoiceStatus(str, Enum):
     DRAFT = "draft"
