@@ -294,9 +294,9 @@ Build a web-based sign-shop operating system called "SignGuy AI" - a single dail
 - [ ] Google OAuth integration (optional addition to existing JWT auth)
 
 ## Next Tasks
-1. Sprint 7: SaaS Foundation - Multi-Tenancy (data isolation between companies)
+1. Sprint 8: Smart Pricing Engine (materials cost tracking, labor calculation, real-time profit display)
 2. Fix Customer Portal empty line item descriptions (P1 bug)
-3. Sprint 8: Smart Pricing Engine
-4. Sprint 9: Artwork Approval System
+3. Sprint 9: Artwork Approval System
+4. Sprint 10: Stripe Subscription & Billing
 5. Webstores Phase 2: Store owner dashboards
 
