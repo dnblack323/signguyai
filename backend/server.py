@@ -1543,8 +1543,8 @@ async def revoke_magic_link(
         raise HTTPException(status_code=404, detail="Magic link not found")
     return {"message": "Magic link revoked"}
 
-# Public endpoint - no auth required
-@api_router.get("/portal/{token}")
+# Public endpoint - no auth required (Magic Link Access)
+@api_router.get("/portal/magic/{token}")
 async def access_portal_via_magic_link(token: str):
     """Access customer portal via magic link (public endpoint)"""
     # Find the magic link
