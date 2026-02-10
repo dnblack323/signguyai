@@ -505,6 +505,17 @@ export const AppProvider = ({ children }) => {
     return res.data;
   };
 
+  // Tenant / Company Settings
+  const getTenant = async () => {
+    const res = await axios.get(`${API}/tenant/current`);
+    return res.data;
+  };
+
+  const updateTenant = async (data) => {
+    const res = await axios.put(`${API}/tenant/settings`, data);
+    return res.data;
+  };
+
   const value = {
     // State
     customers, quotes, jobs, invoices, employees, tasks, dashboardStats, loading,
