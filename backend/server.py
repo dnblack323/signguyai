@@ -980,12 +980,22 @@ async def register(input: UserCreate):
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
+    # Determine role: first user becomes owner, others default to staff
+    user_count = await db.users.count_documents({})
+    if user_count == 0:
+        role = UserRole.OWNER
+    elif input.role:
+        role = input.role
+    else:
+        role = UserRole.STAFF
+    
     # Create new user
     hashed_password = get_password_hash(input.password)
     user = UserInDB(
         email=input.email.lower(),
         full_name=input.full_name,
         company_name=input.company_name,
+        role=role,
         hashed_password=hashed_password
     )
     doc = user.model_dump()
