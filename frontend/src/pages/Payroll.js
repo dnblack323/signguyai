@@ -44,16 +44,6 @@ export default function Payroll() {
     getPayrollBalance, getPayrollReport 
   } = useApp();
   
-  // Permission denied view
-  if (!canViewPayroll) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 text-center">
-        <AlertTriangle className="h-12 w-12 mb-4" style={{ color: '#d97706' }} />
-        <h2 className="text-xl font-semibold mb-2" style={{ color: '#1A1A1A' }}>Access Denied</h2>
-        <p style={{ color: '#5A5A5A' }}>You don't have permission to view payroll.</p>
-      </div>
-    );
-  }
   const [loading, setLoading] = useState(true);
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [transactions, setTransactions] = useState([]);
@@ -71,6 +61,17 @@ export default function Payroll() {
     description: '',
     date: new Date().toISOString().split('T')[0]
   });
+  
+  // Permission denied view
+  if (!canViewPayroll) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center">
+        <AlertTriangle className="h-12 w-12 mb-4" style={{ color: '#d97706' }} />
+        <h2 className="text-xl font-semibold mb-2" style={{ color: '#1A1A1A' }}>Access Denied</h2>
+        <p style={{ color: '#5A5A5A' }}>You don't have permission to view payroll.</p>
+      </div>
+    );
+  }
 
   useEffect(() => {
     loadData();
