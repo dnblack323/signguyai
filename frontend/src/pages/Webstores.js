@@ -980,36 +980,91 @@ export default function Webstores() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="payouts" className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">Outstanding Balance</p>
-                      <p className="text-2xl font-bold text-yellow-400">
-                        {formatCurrency(selectedStore.payout_owed || 0)}
-                      </p>
-                    </div>
-                    <Button disabled={!selectedStore.payout_owed}>
-                      Record Payout
-                    </Button>
-                  </div>
-                  <Separator />
-                  <div>
-                    <h4 className="font-medium mb-2">Payout History</h4>
-                    {storePayouts.length === 0 ? (
-                      <p className="text-muted-foreground text-sm">No payouts recorded</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {storePayouts.map(payout => (
-                          <div key={payout.id} className="flex justify-between p-3 bg-muted/30 rounded-lg">
-                            <div>
-                              <p className="font-medium">{formatCurrency(payout.amount)}</p>
-                              <p className="text-xs text-muted-foreground">{payout.notes || 'No notes'}</p>
-                            </div>
-                            <p className="text-sm text-muted-foreground">{formatDate(payout.created_at)}</p>
-                          </div>
-                        ))}
+                <TabsContent value="branding" className="space-y-4">
+                  {/* Store Link Section */}
+                  <div className="p-4 rounded-lg border" style={{ background: '#F5F7FA', borderColor: '#D7DCE2' }}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-sm" style={{ color: '#1A1A1A' }}>Public Store Link</p>
+                        <p className="text-xs font-mono truncate max-w-[400px]" style={{ color: '#5A5A5A' }}>
+                          {getStoreUrl(selectedStore.id)}
+                        </p>
                       </div>
-                    )}
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleCopyLink(selectedStore.id)}
+                        >
+                          <Copy className="h-4 w-4 mr-2" /> Copy Link
+                        </Button>
+                        <Button 
+                          size="sm"
+                          onClick={() => handleOpenStore(selectedStore.id)}
+                          style={{ background: '#2F8BFB' }}
+                          className="text-white"
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" /> Open Store
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Branding Preview */}
+                  <div className="space-y-2">
+                    <h4 className="font-medium" style={{ color: '#1A1A1A' }}>Store Branding</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 rounded-lg" style={{ background: '#F5F7FA' }}>
+                        <p className="text-xs mb-2" style={{ color: '#5A5A5A' }}>Logo</p>
+                        {selectedStore.branding?.logo_url ? (
+                          <img 
+                            src={selectedStore.branding.logo_url} 
+                            alt="Store logo" 
+                            className="h-12 w-auto object-contain"
+                          />
+                        ) : (
+                          <p className="text-sm italic" style={{ color: '#5A5A5A' }}>No logo set</p>
+                        )}
+                      </div>
+                      <div className="p-4 rounded-lg" style={{ background: '#F5F7FA' }}>
+                        <p className="text-xs mb-2" style={{ color: '#5A5A5A' }}>Accent Color</p>
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="w-10 h-10 rounded-lg border"
+                            style={{ 
+                              backgroundColor: selectedStore.branding?.primary_color || '#0D9488',
+                              borderColor: '#D7DCE2'
+                            }}
+                          />
+                          <span className="font-mono text-sm" style={{ color: '#1A1A1A' }}>
+                            {selectedStore.branding?.primary_color || '#0D9488'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Store Info */}
+                  <div className="space-y-2">
+                    <h4 className="font-medium" style={{ color: '#1A1A1A' }}>Store Details</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p style={{ color: '#5A5A5A' }}>Contact Email</p>
+                        <p style={{ color: '#1A1A1A' }}>{selectedStore.owner_email || '-'}</p>
+                      </div>
+                      <div>
+                        <p style={{ color: '#5A5A5A' }}>Contact Phone</p>
+                        <p style={{ color: '#1A1A1A' }}>{selectedStore.owner_phone || '-'}</p>
+                      </div>
+                      <div>
+                        <p style={{ color: '#5A5A5A' }}>Status</p>
+                        <Badge className={getStatusBadge(selectedStore.status)}>{selectedStore.status}</Badge>
+                      </div>
+                      <div>
+                        <p style={{ color: '#5A5A5A' }}>Visibility</p>
+                        <p style={{ color: '#1A1A1A' }}>{selectedStore.is_public ? 'Public' : 'Private'}</p>
+                      </div>
+                    </div>
                   </div>
                 </TabsContent>
               </Tabs>
