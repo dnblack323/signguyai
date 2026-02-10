@@ -104,20 +104,11 @@ export default function Financials() {
     description: ''
   });
 
-  // Permission denied view
-  if (!canViewFinancials) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 text-center">
-        <AlertTriangle className="h-12 w-12 mb-4" style={{ color: '#d97706' }} />
-        <h2 className="text-xl font-semibold mb-2" style={{ color: '#1A1A1A' }}>Access Denied</h2>
-        <p style={{ color: '#5A5A5A' }}>You don't have permission to view financials.</p>
-      </div>
-    );
-  }
-
   useEffect(() => {
-    loadData();
-  }, [dateRange]);
+    if (canViewFinancials) {
+      loadData();
+    }
+  }, [dateRange, canViewFinancials]);
 
   const loadData = async () => {
     setLoading(true);
@@ -135,6 +126,17 @@ export default function Financials() {
     }
     setLoading(false);
   };
+
+  // Permission denied view
+  if (!canViewFinancials) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center">
+        <AlertTriangle className="h-12 w-12 mb-4" style={{ color: '#d97706' }} />
+        <h2 className="text-xl font-semibold mb-2" style={{ color: '#1A1A1A' }}>Access Denied</h2>
+        <p style={{ color: '#5A5A5A' }}>You don't have permission to view financials.</p>
+      </div>
+    );
+  }
 
   const handleSalesSubmit = async (e) => {
     e.preventDefault();
