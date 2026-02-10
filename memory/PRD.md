@@ -70,6 +70,20 @@ Build a web-based sign-shop operating system called "SignGuy AI" - a single dail
 - [x] Webstores (Fundraiser campaigns, B2B custom stores)
 
 ### Recent Updates (February 10, 2026) - COMPLETED
+- [x] **Pricing Calculator System** ✅ COMPLETE
+  - **8 Pricing Categories**: Promotional Items, Cut Vinyl, Services, Digital Print, Rigid Signs, Apparel, Vehicle Graphics, Custom/Other
+  - **Category-Specific Calculators**: Each category has its own form fields and pricing logic
+  - **Real-Time Calculations**: Auto-calculates as user inputs data
+  - **Pricing Breakdown**: Shows material cost, labor cost, setup fees, production cost, suggested price
+  - **Profit Margin Display**: Shows markup %, profit margin %, and profit amount
+  - **Complexity Multiplier**: 1-10 scale that affects pricing
+  - **Quantity Breaks**: Automatic discounts at quantity thresholds
+  - **Manual Override**: Users can override calculated price while tracking true cost
+  - **Configurable Defaults**: Hourly rates, markups, minimums stored per-tenant in Company Settings
+  - **Material Presets**: Built-in vinyl types, substrates, print materials, apparel blanks with costs
+  - **Standalone Tool**: Available at /pricing for quick price checks
+  - **Tier Preview Toggle**: Admin can preview different subscription tiers (Starter/Pro/Business)
+
 - [x] **Full Customer Portal** ✅ COMPLETE
   - **Portal Authentication:** Separate JWT-based auth (type='portal') for customers
   - **Registration:** Customers register using their email on file with the shop
