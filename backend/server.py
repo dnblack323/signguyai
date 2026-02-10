@@ -1042,9 +1042,19 @@ async def get_current_user_profile(current_user: UserInDB = Depends(get_current_
         full_name=current_user.full_name,
         company_name=current_user.company_name,
         is_active=current_user.is_active,
+        role=current_user.role,
         created_at=current_user.created_at,
         updated_at=current_user.updated_at
     )
+
+@api_router.get("/users/me/permissions")
+async def get_current_user_permissions(current_user: UserInDB = Depends(get_current_active_user)):
+    """Get all permissions for the current user"""
+    permissions = ROLE_PERMISSIONS.get(current_user.role, [])
+    return {
+        "role": current_user.role.value,
+        "permissions": [p.value for p in permissions]
+    }
 
 @api_router.put("/users/me", response_model=User)
 async def update_current_user_profile(
