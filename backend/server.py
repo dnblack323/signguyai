@@ -204,6 +204,7 @@ class JobUpdate(BaseModel):
 class Job(JobBase):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: Optional[str] = None  # Multi-tenancy support
     quote_id: Optional[str] = None
     invoice_id: Optional[str] = None
     subtotal: float = 0
