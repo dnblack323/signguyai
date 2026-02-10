@@ -1,15 +1,15 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import {
   LayoutDashboard, Users, FileText, Briefcase, Receipt, 
   Clock, DollarSign, CalendarDays, Sparkles, Store,
-  Package, LogOut, User, Shield, ChevronRight, Menu, X
+  Package, LogOut, User, Shield, ChevronRight, Menu, X, Crown
 } from 'lucide-react';
 import { Button } from './ui/button';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, Permission } from '../context/AuthContext';
 
-// Navigation structure with categories and nested items
+// Navigation structure with categories, nested items, and required permissions
 const navigationCategories = [
   {
     id: 'main',
@@ -24,10 +24,10 @@ const navigationCategories = [
     label: 'Sales',
     icon: FileText,
     items: [
-      { name: 'Customers', href: '/customers', icon: Users },
-      { name: 'Quotes', href: '/quotes', icon: FileText },
-      { name: 'Jobs', href: '/jobs', icon: Briefcase },
-      { name: 'Invoices', href: '/invoices', icon: Receipt },
+      { name: 'Customers', href: '/customers', icon: Users, permission: Permission.CUSTOMERS_VIEW },
+      { name: 'Quotes', href: '/quotes', icon: FileText, permission: Permission.QUOTES_VIEW },
+      { name: 'Jobs', href: '/jobs', icon: Briefcase, permission: Permission.JOBS_VIEW },
+      { name: 'Invoices', href: '/invoices', icon: Receipt, permission: Permission.INVOICES_VIEW },
     ]
   },
   {
@@ -35,10 +35,10 @@ const navigationCategories = [
     label: 'Operations',
     icon: Clock,
     items: [
-      { name: 'Time Clock', href: '/timeclock', icon: Clock },
-      { name: 'Payroll', href: '/payroll', icon: DollarSign },
+      { name: 'Time Clock', href: '/timeclock', icon: Clock, permission: Permission.TIMECLOCK_VIEW_OWN },
+      { name: 'Payroll', href: '/payroll', icon: DollarSign, permission: Permission.PAYROLL_VIEW },
       { name: 'Productivity', href: '/productivity', icon: CalendarDays },
-      { name: 'Financials', href: '/financials', icon: DollarSign },
+      { name: 'Financials', href: '/financials', icon: DollarSign, permission: Permission.FINANCIALS_VIEW },
     ]
   },
   {
@@ -46,8 +46,8 @@ const navigationCategories = [
     label: 'Webstores',
     icon: Store,
     items: [
-      { name: 'Webstores', href: '/webstores', icon: Store },
-      { name: 'Products', href: '/products', icon: Package },
+      { name: 'Webstores', href: '/webstores', icon: Store, permission: Permission.WEBSTORES_VIEW },
+      { name: 'Products', href: '/products', icon: Package, permission: Permission.WEBSTORES_VIEW },
     ]
   },
   {
@@ -55,7 +55,7 @@ const navigationCategories = [
     label: 'Tools',
     icon: Sparkles,
     items: [
-      { name: 'AI Tools', href: '/ai-tools', icon: Sparkles },
+      { name: 'AI Tools', href: '/ai-tools', icon: Sparkles, permission: Permission.AI_TOOLS_USE },
     ]
   },
   {
@@ -63,7 +63,7 @@ const navigationCategories = [
     label: 'Admin',
     icon: Shield,
     items: [
-      { name: 'Users', href: '/users', icon: Shield },
+      { name: 'Users', href: '/users', icon: Shield, permission: Permission.USERS_VIEW },
     ]
   },
 ];
