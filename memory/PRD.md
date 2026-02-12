@@ -372,9 +372,17 @@ Build a web-based sign-shop operating system called "SignGuy AI" - a single dail
 - [ ] Google OAuth integration (optional addition to existing JWT auth)
 
 ## Next Tasks
-1. Implement full SaaS Tier System (backend logic and feature gating) - awaiting user's tier configuration
-2. Backend Refactoring: Break down monolithic server.py into /routes, /models, /services
+1. **Continue Backend Refactoring**: Migrate route handlers from server.py to /routes modules
+2. Implement full SaaS Tier System (backend logic and feature gating) - awaiting user's tier configuration
 3. Integrate Buy Now, Pay Later (BNPL) - Affirm & Klarna for customer payments
 4. Webstores Phase 2: External Dashboard for fundraiser organizers
 5. Sprint 10: Stripe Subscription & Billing
+
+## Architecture Notes
+The backend has been partially refactored into a modular structure:
+- `/app/backend/core/` - Configuration, database, auth utilities
+- `/app/backend/models/` - All Pydantic models and enums (COMPLETE)
+- `/app/backend/routes/` - API route handlers (MIGRATION IN PROGRESS)
+- `/app/backend/services/` - Business logic services (MIGRATION IN PROGRESS)
+- `/app/backend/server.py` - Main server file (still contains route handlers)
 
