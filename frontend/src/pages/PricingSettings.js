@@ -648,6 +648,5 @@ export default function PricingSettings() {
           </TabsContent>
         </Tabs>
       </div>
-    </MainLayout>
   );
 }
