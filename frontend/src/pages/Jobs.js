@@ -1037,23 +1037,23 @@ export function JobDetails() {
                           </span>
                         </div>
                         <div className="space-y-2">
-                        <Label>Notes</Label>
-                        <Textarea
-                          value={itemFormData.notes}
-                          onChange={(e) => setItemFormData({ ...itemFormData, notes: e.target.value })}
-                          rows={2}
-                        />
-                      </div>
-                      <div className="flex justify-end gap-2">
-                        <Button type="button" variant="outline" onClick={resetItemForm}>Cancel</Button>
-                        <Button type="submit">{editingItem ? 'Update' : 'Add'}</Button>
-                      </div>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardHeader>
-            <CardContent>
+                          <Label>Notes</Label>
+                          <Textarea
+                            value={itemFormData.notes}
+                            onChange={(e) => setItemFormData({ ...itemFormData, notes: e.target.value })}
+                            rows={2}
+                          />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <Button type="button" variant="outline" onClick={resetItemForm}>Cancel</Button>
+                          <Button type="submit">{editingItem ? 'Update' : 'Add'}</Button>
+                        </div>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardHeader>
+              <CardContent>
               {job_items.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg">
                   <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
