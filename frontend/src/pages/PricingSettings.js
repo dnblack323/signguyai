@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { MainLayout } from '../components/MainLayout';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -8,7 +8,7 @@ import { Separator } from '../components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { 
   Loader2, Save, DollarSign, Clock, Percent, Package,
-  RefreshCw, AlertCircle, CheckCircle
+  RefreshCw, AlertCircle, ArrowLeft
 } from 'lucide-react';
 import { toast } from 'sonner';
 
