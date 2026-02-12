@@ -65,6 +65,32 @@ export default function Quotes() {
   const [generatingLink, setGeneratingLink] = useState(false);
   const [portalLink, setPortalLink] = useState(null);
   const [linkCopied, setLinkCopied] = useState(false);
+  
+  // Pricing calculator modal state
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
+
+  // Handle calculated item from pricing calculator
+  const handleCalculatedItem = (calculatedData) => {
+    // Add the calculated item to line items
+    const newItem = {
+      description: calculatedData.description || `${calculatedData.category} - Qty ${calculatedData.quantity}`,
+      quantity: calculatedData.quantity || 1,
+      unit_price: calculatedData.unit_price || calculatedData.suggested_price || 0
+    };
+    
+    // If the last item is empty, replace it; otherwise add a new one
+    const lastItem = formData.line_items[formData.line_items.length - 1];
+    if (lastItem && !lastItem.description && lastItem.quantity === 1 && lastItem.unit_price === 0) {
+      const newItems = [...formData.line_items];
+      newItems[newItems.length - 1] = newItem;
+      setFormData({ ...formData, line_items: newItems });
+    } else {
+      setFormData({ ...formData, line_items: [...formData.line_items, newItem] });
+    }
+    
+    setIsCalculatorOpen(false);
+    toast.success('Item added from calculator!');
+  };
 
   useEffect(() => {
     loadData();
