@@ -1135,6 +1135,163 @@ export default function PricingCalculator({
           )}
         </CardContent>
       </Card>
+
+      {/* Templates Browser Dialog */}
+      <Dialog open={showTemplates} onOpenChange={setShowTemplates}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FolderOpen className="h-5 w-5 text-teal-500" />
+              Saved Templates
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {templates.length === 0 ? (
+              <div className="text-center py-8 text-slate-500">
+                <FolderOpen className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                <p>No saved templates yet</p>
+                <p className="text-sm mt-1">Save your first template after configuring a pricing calculation</p>
+              </div>
+            ) : (
+              <>
+                {templates.filter(t => t.is_favorite).length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-xs uppercase text-slate-500 mb-2 flex items-center gap-1">
+                      <Star className="h-3 w-3" /> Favorites
+                    </p>
+                    {templates.filter(t => t.is_favorite).map(template => (
+                      <div
+                        key={template.id}
+                        onClick={() => handleLoadTemplate(template)}
+                        className="p-3 border border-teal-200 rounded-lg cursor-pointer hover:bg-teal-50 transition-colors mb-2 flex items-center justify-between"
+                      >
+                        <div>
+                          <p className="font-medium text-slate-800">{template.name}</p>
+                          <p className="text-xs text-slate-500">
+                            {PRICING_CATEGORIES.find(c => c.id === template.category)?.name} • Qty: {template.quantity}
+                          </p>
+                          {template.description && (
+                            <p className="text-xs text-slate-400 mt-1">{template.description}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={(e) => handleToggleFavorite(template.id, e)}
+                            className="p-1.5 hover:bg-amber-100 rounded"
+                          >
+                            <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                          </button>
+                          <button
+                            onClick={(e) => handleDeleteTemplate(template.id, e)}
+                            className="p-1.5 hover:bg-red-100 rounded"
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div>
+                  {templates.filter(t => t.is_favorite).length > 0 && templates.filter(t => !t.is_favorite).length > 0 && (
+                    <p className="text-xs uppercase text-slate-500 mb-2">All Templates</p>
+                  )}
+                  {templates.filter(t => !t.is_favorite).map(template => (
+                    <div
+                      key={template.id}
+                      onClick={() => handleLoadTemplate(template)}
+                      className="p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors mb-2 flex items-center justify-between"
+                    >
+                      <div>
+                        <p className="font-medium text-slate-800">{template.name}</p>
+                        <p className="text-xs text-slate-500">
+                          {PRICING_CATEGORIES.find(c => c.id === template.category)?.name} • Qty: {template.quantity}
+                        </p>
+                        {template.description && (
+                          <p className="text-xs text-slate-400 mt-1">{template.description}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={(e) => handleToggleFavorite(template.id, e)}
+                          className="p-1.5 hover:bg-slate-200 rounded"
+                        >
+                          <Star className="h-4 w-4 text-slate-400" />
+                        </button>
+                        <button
+                          onClick={(e) => handleDeleteTemplate(template.id, e)}
+                          className="p-1.5 hover:bg-red-100 rounded"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Save Template Dialog */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Save className="h-5 w-5 text-teal-500" />
+              Save as Template
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Template Name *</Label>
+              <Input
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                placeholder="e.g., Standard Yard Sign 18x24"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Description (optional)</Label>
+              <Textarea
+                value={templateDesc}
+                onChange={(e) => setTemplateDesc(e.target.value)}
+                placeholder="Notes about this template..."
+                className="mt-1"
+                rows={2}
+              />
+            </div>
+            <div className="p-3 bg-slate-50 rounded-lg text-sm">
+              <p className="text-slate-600">This will save:</p>
+              <ul className="mt-1 text-slate-500 space-y-1">
+                <li>• Category: <span className="font-medium text-slate-700">{getCategoryName(category)}</span></li>
+                <li>• Quantity: <span className="font-medium text-slate-700">{quantity}</span></li>
+                <li>• Complexity: <span className="font-medium text-slate-700">{complexity}</span></li>
+                <li>• All current settings and field values</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveTemplate}
+              disabled={savingTemplate || !templateName.trim()}
+              className="bg-teal-500 hover:bg-teal-600"
+            >
+              {savingTemplate ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Save Template
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
