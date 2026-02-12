@@ -380,9 +380,19 @@ Build a web-based sign-shop operating system called "SignGuy AI" - a single dail
 
 ## Architecture Notes
 The backend has been partially refactored into a modular structure:
-- `/app/backend/core/` - Configuration, database, auth utilities
-- `/app/backend/models/` - All Pydantic models and enums (COMPLETE)
-- `/app/backend/routes/` - API route handlers (MIGRATION IN PROGRESS)
-- `/app/backend/services/` - Business logic services (MIGRATION IN PROGRESS)
-- `/app/backend/server.py` - Main server file (still contains route handlers)
+- `/app/backend/core/` - Configuration, database, auth utilities (79 lines)
+- `/app/backend/models/` - All Pydantic models and enums (1,099 lines - COMPLETE)
+  - `enums.py` - 25+ enums
+  - `auth.py` - User, Tenant, Permission, Token models
+  - `customer.py` - Customer, Portal, Conversation, Proof models
+  - `jobs.py` - Quote, Job, JobItem, Invoice models  
+  - `pricing.py` - PricingDefaults, PricingCalculation, Template models
+- `/app/backend/routes/` - API route handlers (708 lines - IN PROGRESS)
+  - `auth.py` - Authentication, user profile, admin user management
+  - `customers.py` - Customer CRUD operations
+  - `pricing.py` - Pricing calculator, templates, materials catalog
+- `/app/backend/services/` - Business logic services (TO DO)
+- `/app/backend/server.py` - Main server file (still contains all 149 route handlers)
+
+**Note:** Routes are currently duplicated between server.py and /routes modules. The /routes modules serve as the target architecture. Full migration will involve updating server.py to import and use the modular routes.
 
