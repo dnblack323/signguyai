@@ -83,6 +83,9 @@ Build a web-based sign-shop operating system called "SignGuy AI" - a single dail
   - **Material Presets**: Built-in vinyl types, substrates, print materials, apparel blanks with costs
   - **Standalone Tool**: Available at /pricing for quick price checks
   - **Tier Preview Toggle**: Admin can preview different subscription tiers (Starter/Pro/Business)
+  - **Save as Template**: Save any calculation as a reusable template
+  - **Templates Browser**: Load, favorite, and delete saved templates
+  - **Pricing Settings Page**: Configure default labor rates, markups, minimums, complexity multipliers, quantity breaks, and setup fees at /pricing/settings
 
 - [x] **Full Customer Portal** ✅ COMPLETE
   - **Portal Authentication:** Separate JWT-based auth (type='portal') for customers
