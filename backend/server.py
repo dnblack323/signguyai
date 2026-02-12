@@ -1,3 +1,11 @@
+"""
+SignGuy AI - Backend API Server
+
+This is the main server file containing all API routes.
+Models are imported from the /models module.
+Core utilities are imported from the /core module.
+"""
+
 from fastapi import FastAPI, APIRouter, HTTPException, Query, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
@@ -14,6 +22,7 @@ from enum import Enum
 import jwt
 from passlib.context import CryptContext
 import secrets
+import re
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
