@@ -33,10 +33,11 @@ import { formatCurrency, formatDate, getStatusColor } from '../lib/utils';
 import { 
   Plus, Search, Edit2, ArrowRightCircle, Trash2, Eye,
   Printer, Mail, Building2, Phone, Calendar, FileText,
-  CheckCircle, XCircle, Link, Copy, Check
+  CheckCircle, XCircle, Link, Copy, Check, Calculator
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
+import PricingCalculatorModal from '../components/PricingCalculatorModal';
 
 const statusOptions = ['draft', 'sent', 'approved', 'declined'];
 const API_URL = process.env.REACT_APP_BACKEND_URL;
