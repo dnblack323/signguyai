@@ -1,0 +1,122 @@
+{
+  "summary": "Pricing Calculator testing complete. Found and fixed critical bug: token key mismatch ('token' vs 'auth_token'). Backend: 19/19 tests passed (100%). Frontend: All pricing features working after fix.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "bugs_fixed": [
+    {
+      "file": "/app/frontend/src/components/PricingCalculator.js",
+      "issue": "getToken() was looking for 'token' in localStorage but app stores it as 'auth_token'",
+      "fix": "Changed localStorage.getItem('token') to localStorage.getItem('auth_token')",
+      "line": 171
+    },
+    {
+      "file": "/app/frontend/src/pages/PricingSettings.js",
+      "issue": "Same token key mismatch as PricingCalculator",
+      "fix": "Changed localStorage.getItem('token') to localStorage.getItem('auth_token')",
+      "line": 23
+    }
+  ],
+  
+  "passed_tests": [
+    "✅ Backend: GET /api/pricing/defaults returns pricing defaults",
+    "✅ Backend: PUT /api/pricing/defaults updates and persists settings",
+    "✅ Backend: POST /api/pricing/calculate works for rigid_signs category",
+    "✅ Backend: POST /api/pricing/calculate works for cut_vinyl category",
+    "✅ Backend: POST /api/pricing/calculate works for digital_print category",
+    "✅ Backend: POST /api/pricing/calculate works for services category",
+    "✅ Backend: POST /api/pricing/calculate works for apparel category",
+    "✅ Backend: POST /api/pricing/calculate works for vehicle_graphics category",
+    "✅ Backend: POST /api/pricing/calculate works for promotional category",
+    "✅ Backend: POST /api/pricing/calculate works for custom category",
+    "✅ Backend: GET /api/pricing/templates returns template list",
+    "✅ Backend: POST /api/pricing/templates creates new template",
+    "✅ Backend: Template CRUD flow (create, read, favorite, delete) works",
+    "✅ Backend: Template category filter works",
+    "✅ Backend: GET /api/pricing/materials returns material options",
+    "✅ Backend: Materials category filter works",
+    "✅ Backend: Pricing endpoints require authentication (401)",
+    "✅ Frontend: Pricing Calculator page loads at /pricing",
+    "✅ Frontend: All 8 categories displayed (Promotional, Cut Vinyl, Services, Digital Print, Rigid Signs, Apparel, Vehicle Graphics, Custom)",
+    "✅ Frontend: Selecting category shows category-specific fields",
+    "✅ Frontend: Entering dimensions triggers auto-calculation",
+    "✅ Frontend: Calculation results show Production Cost, Suggested Price, Profit, Margin",
+    "✅ Frontend: Pricing breakdown shows Material Cost, Labor Cost, Setup Cost",
+    "✅ Frontend: Templates button opens templates dialog",
+    "✅ Frontend: Save as Template saves current calculation",
+    "✅ Frontend: Saved templates appear in templates list",
+    "✅ Frontend: Pricing Settings page loads at /pricing/settings",
+    "✅ Frontend: All 6 tabs work (Labor Rates, Markups, Minimums, Complexity, Quantity Breaks, Setup Fees)",
+    "✅ Frontend: Settings fields are editable",
+    "✅ Frontend: Save Changes button available"
+  ],
+  
+  "features_verified": {
+    "pricing_calculator": {
+      "endpoint": "POST /api/pricing/calculate",
+      "categories": ["promotional", "cut_vinyl", "services", "digital_print", "rigid_signs", "apparel", "vehicle_graphics", "custom"],
+      "returns": ["production_cost", "suggested_price", "profit_amount", "profit_margin_percent", "material_cost", "labor_cost", "setup_cost"],
+      "status": "WORKING"
+    },
+    "pricing_templates": {
+      "endpoints": ["GET /api/pricing/templates", "POST /api/pricing/templates", "PUT /api/pricing/templates/{id}", "DELETE /api/pricing/templates/{id}", "PUT /api/pricing/templates/{id}/favorite"],
+      "status": "WORKING"
+    },
+    "pricing_defaults": {
+      "endpoints": ["GET /api/pricing/defaults", "PUT /api/pricing/defaults"],
+      "status": "WORKING"
+    },
+    "pricing_materials": {
+      "endpoint": "GET /api/pricing/materials",
+      "categories": ["vinyl", "print_material", "substrate", "apparel", "transfer_type", "vehicle"],
+      "status": "WORKING"
+    }
+  },
+  
+  "test_report_links": [
+    "/app/backend/tests/test_pricing.py",
+    "/app/test_reports/pytest/pricing_results.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "Token key inconsistency fixed - both PricingCalculator.js and PricingSettings.js now use 'auth_token'",
+    "Auto-calculation triggers after 500ms debounce when inputs change",
+    "All pricing APIs properly require authentication"
+  ],
+  
+  "updated_files": [
+    "/app/frontend/src/components/PricingCalculator.js (line 171: fixed token key)",
+    "/app/frontend/src/pages/PricingSettings.js (line 23: fixed token key)",
+    "/app/backend/tests/test_pricing.py (new test file)"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (19/19 tests passed)",
+    "frontend": "100% (All pricing features working)"
+  },
+  
+  "test_credentials": {
+    "shop_owner": {"email": "testowner@signguy.com", "password": "Test123!"}
+  },
+  
+  "seed_data_creation": "Created and cleaned up TEST_ prefixed templates during testing",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Pricing Calculator fully tested and working. Key fix: localStorage token key was 'auth_token' not 'token'. All 8 pricing categories work with auto-calculation. Templates can be saved, loaded, favorited, deleted. Pricing Settings has 6 tabs for configuring rates. Test user: testowner@signguy.com/Test123!",
+  
+  "mocked_integrations": {}
+}
