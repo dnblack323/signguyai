@@ -454,6 +454,7 @@ export function JobDetails() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [newNote, setNewNote] = useState('');
   const [activeTab, setActiveTab] = useState('items');
@@ -485,6 +486,35 @@ export function JobDetails() {
     status: 'pending',
     notes: ''
   });
+
+  // Handle calculated item from pricing calculator
+  const handleCalculatedItem = (calculatedData) => {
+    // Map the calculator output to the item form format
+    const itemTypeMap = {
+      'rigid_signs': 'yard_sign',
+      'cut_vinyl': 'decal',
+      'digital_print': 'banner',
+      'vehicle_graphics': 'vehicle_graphics',
+      'apparel': 'other',
+      'services': 'design',
+      'promotional': 'other',
+      'custom': 'other'
+    };
+    
+    setItemFormData({
+      item_type: itemTypeMap[calculatedData.category] || 'other',
+      description: calculatedData.description || `${calculatedData.category} - Qty ${calculatedData.quantity}`,
+      quantity: calculatedData.quantity || 1,
+      unit_price: calculatedData.unit_price || calculatedData.suggested_price || 0,
+      status: 'pending',
+      notes: calculatedData.pricing_breakdown ? 
+        `Cost: $${calculatedData.production_cost?.toFixed(2)} | Profit: $${calculatedData.profit_amount?.toFixed(2)} (${calculatedData.profit_margin_percent?.toFixed(0)}%)` : ''
+    });
+    
+    setIsCalculatorOpen(false);
+    setIsItemDialogOpen(true);
+    toast.success('Item calculated! Review and save.');
+  };
 
   useEffect(() => {
     loadJobDetails();
