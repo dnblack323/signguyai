@@ -372,9 +372,9 @@ Build a web-based sign-shop operating system called "SignGuy AI" - a single dail
 - [ ] Google OAuth integration (optional addition to existing JWT auth)
 
 ## Next Tasks
-1. **Integrate Pricing Calculator into Jobs/Quotes**: Add calculator modal to line item creation workflow
-2. Integrate Buy Now, Pay Later (BNPL) - Affirm & Klarna for customer payments
-3. Webstores Phase 2: External Dashboard for fundraiser organizers
-4. Sprint 10: Stripe Subscription & Billing
-5. Backend Refactoring: Break down monolithic server.py into /routes, /models, /services
+1. Implement full SaaS Tier System (backend logic and feature gating) - awaiting user's tier configuration
+2. Backend Refactoring: Break down monolithic server.py into /routes, /models, /services
+3. Integrate Buy Now, Pay Later (BNPL) - Affirm & Klarna for customer payments
+4. Webstores Phase 2: External Dashboard for fundraiser organizers
+5. Sprint 10: Stripe Subscription & Billing
 
