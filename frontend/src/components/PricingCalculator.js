@@ -168,7 +168,7 @@ export default function PricingCalculator({
   const [savingTemplate, setSavingTemplate] = useState(false);
 
   // Get auth token
-  const getToken = () => localStorage.getItem('token');
+  const getToken = () => localStorage.getItem('auth_token');
 
   // Fetch templates
   const fetchTemplates = useCallback(async () => {
