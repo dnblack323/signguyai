@@ -918,96 +918,125 @@ export function JobDetails() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="font-heading uppercase">Line Items</CardTitle>
-                <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="neon-glow" data-testid="add-line-item-btn" onClick={resetItemForm}>
-                      <Plus className="h-4 w-4 mr-2" /> Add Item
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[500px]">
-                    <DialogHeader>
-                      <DialogTitle className="font-heading uppercase">
-                        {editingItem ? 'Edit Item' : 'Add Item'}
-                      </DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleItemSubmit} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Type</Label>
-                          <Select
-                            value={itemFormData.item_type}
-                            onValueChange={(val) => setItemFormData({ ...itemFormData, item_type: val })}
-                          >
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {itemTypes.map((t) => (
-                                <SelectItem key={t} value={t}>{itemTypeLabels[t]}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="border-teal-500/50 text-teal-500 hover:bg-teal-500/10"
+                    onClick={() => { resetItemForm(); setIsCalculatorOpen(true); }}
+                    data-testid="open-calculator-btn"
+                  >
+                    <Calculator className="h-4 w-4 mr-2" /> Use Calculator
+                  </Button>
+                  <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="neon-glow" data-testid="add-line-item-btn" onClick={resetItemForm}>
+                        <Plus className="h-4 w-4 mr-2" /> Add Item
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[500px]">
+                      <DialogHeader>
+                        <DialogTitle className="font-heading uppercase">
+                          {editingItem ? 'Edit Item' : 'Add Item'}
+                        </DialogTitle>
+                      </DialogHeader>
+                      <form onSubmit={handleItemSubmit} className="space-y-4">
+                        {/* Calculator shortcut */}
+                        {!editingItem && (
+                          <div className="p-3 bg-teal-500/10 border border-teal-500/30 rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <div className="text-sm">
+                                <p className="text-teal-400 font-medium">Need to calculate pricing?</p>
+                                <p className="text-muted-foreground text-xs mt-0.5">Use the calculator for accurate pricing</p>
+                              </div>
+                              <Button 
+                                type="button"
+                                variant="outline" 
+                                size="sm"
+                                className="border-teal-500/50 text-teal-500 hover:bg-teal-500/10"
+                                onClick={() => { setIsItemDialogOpen(false); setIsCalculatorOpen(true); }}
+                              >
+                                <Calculator className="h-4 w-4 mr-1" /> Calculate
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Type</Label>
+                            <Select
+                              value={itemFormData.item_type}
+                              onValueChange={(val) => setItemFormData({ ...itemFormData, item_type: val })}
+                            >
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {itemTypes.map((t) => (
+                                  <SelectItem key={t} value={t}>{itemTypeLabels[t]}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Status</Label>
+                            <Select
+                              value={itemFormData.status}
+                              onValueChange={(val) => setItemFormData({ ...itemFormData, status: val })}
+                            >
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {itemStatusOptions.map((s) => (
+                                  <SelectItem key={s} value={s}>{itemStatusLabels[s]}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                         <div className="space-y-2">
-                          <Label>Status</Label>
-                          <Select
-                            value={itemFormData.status}
-                            onValueChange={(val) => setItemFormData({ ...itemFormData, status: val })}
-                          >
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {itemStatusOptions.map((s) => (
-                                <SelectItem key={s} value={s}>{itemStatusLabels[s]}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Description *</Label>
-                        <Input
-                          value={itemFormData.description}
-                          onChange={(e) => setItemFormData({ ...itemFormData, description: e.target.value })}
-                          placeholder="e.g., 4x8 Vinyl Banner"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Quantity</Label>
+                          <Label>Description *</Label>
                           <Input
-                            type="number"
-                            min="1"
-                            value={itemFormData.quantity || ''}
-                            onChange={(e) => setItemFormData({ ...itemFormData, quantity: e.target.value === '' ? '' : parseFloat(e.target.value) || 1 })}
-                            onBlur={(e) => {
-                              if (e.target.value === '' || parseFloat(e.target.value) < 1) {
-                                setItemFormData({ ...itemFormData, quantity: 1 });
-                              }
-                            }}
-                            placeholder="1"
+                            value={itemFormData.description}
+                            onChange={(e) => setItemFormData({ ...itemFormData, description: e.target.value })}
+                            placeholder="e.g., 4x8 Vinyl Banner"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label>Unit Price</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={itemFormData.unit_price === 0 ? '' : itemFormData.unit_price}
-                            onChange={(e) => setItemFormData({ ...itemFormData, unit_price: e.target.value === '' ? '' : parseFloat(e.target.value) })}
-                            onBlur={(e) => {
-                              if (e.target.value === '') {
-                                setItemFormData({ ...itemFormData, unit_price: 0 });
-                              }
-                            }}
-                            placeholder="0.00"
-                          />
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Quantity</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={itemFormData.quantity || ''}
+                              onChange={(e) => setItemFormData({ ...itemFormData, quantity: e.target.value === '' ? '' : parseFloat(e.target.value) || 1 })}
+                              onBlur={(e) => {
+                                if (e.target.value === '' || parseFloat(e.target.value) < 1) {
+                                  setItemFormData({ ...itemFormData, quantity: 1 });
+                                }
+                              }}
+                              placeholder="1"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Unit Price</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={itemFormData.unit_price === 0 ? '' : itemFormData.unit_price}
+                              onChange={(e) => setItemFormData({ ...itemFormData, unit_price: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+                              onBlur={(e) => {
+                                if (e.target.value === '') {
+                                  setItemFormData({ ...itemFormData, unit_price: 0 });
+                                }
+                              }}
+                              placeholder="0.00"
+                            />
+                          </div>
                         </div>
-                      </div>
-                      <div className="p-3 bg-muted/30 rounded-lg text-right">
-                        <span className="text-muted-foreground">Line Total: </span>
-                        <span className="text-lg font-bold text-primary">
-                          {formatCurrency(itemFormData.quantity * itemFormData.unit_price)}
-                        </span>
-                      </div>
-                      <div className="space-y-2">
+                        <div className="p-3 bg-muted/30 rounded-lg text-right">
+                          <span className="text-muted-foreground">Line Total: </span>
+                          <span className="text-lg font-bold text-primary">
+                            {formatCurrency(itemFormData.quantity * itemFormData.unit_price)}
+                          </span>
+                        </div>
+                        <div className="space-y-2">
                         <Label>Notes</Label>
                         <Textarea
                           value={itemFormData.notes}
