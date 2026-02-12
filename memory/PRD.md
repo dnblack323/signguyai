@@ -379,45 +379,46 @@ Build a web-based sign-shop operating system called "SignGuy AI" - a single dail
 5. Sprint 10: Stripe Subscription & Billing
 
 ## Architecture Notes
-The backend has been substantially refactored into a modular structure:
+The backend has been fully refactored into a modular structure:
 
-### Completed Modules (3,757 lines):
-- `/app/backend/core/` - Configuration, database, auth utilities (79 lines)
-- `/app/backend/models/` - All Pydantic models and enums (1,099 lines - COMPLETE)
-  - `enums.py` - 25+ enums (252 lines)
-  - `auth.py` - User, Tenant, Permission, Token models (199 lines)
-  - `customer.py` - Customer, Portal, Conversation, Proof models (169 lines)
-  - `jobs.py` - Quote, Job, JobItem, Invoice models (175 lines)
-  - `pricing.py` - PricingDefaults, PricingCalculation, Template models (254 lines)
-- `/app/backend/routes/` - API route handlers (2,579 lines - 90% COMPLETE)
-  - `auth.py` - Authentication, user profile, admin management (266 lines)
-  - `customers.py` - Customer CRUD operations (154 lines)
-  - `quotes.py` - Quote CRUD, convert to job (229 lines)
-  - `jobs.py` - Job CRUD, items, notes, activities, status (488 lines)
-  - `invoices.py` - Invoice CRUD, from-job, payments (281 lines)
-  - `pricing.py` - Calculator, templates, materials catalog (259 lines)
-  - `portal.py` - Customer portal (auth, profile, orders, messaging, proofs) (520 lines)
-  - `employees.py` - Employee, time clock, payroll (346 lines)
+### Completed Modules (4,495 lines - 100%):
 
-### Pending Migrations:
-- Webstore routes (~600 lines)
-- Financial/Dashboard routes (~200 lines)
+**Core Module (79 lines):**
+- `config.py` - Database, auth config, helper utilities
+
+**Models Module (1,099 lines):**
+- `enums.py` - 25+ enums (252 lines)
+- `auth.py` - User, Tenant, Permission, Token models (199 lines)
+- `customer.py` - Customer, Portal, Conversation, Proof models (169 lines)
+- `jobs.py` - Quote, Job, JobItem, Invoice models (175 lines)
+- `pricing.py` - PricingDefaults, PricingCalculation, Template models (254 lines)
+
+**Routes Module (3,317 lines):**
+- `auth.py` - Authentication, user profile, admin management (266 lines)
+- `customers.py` - Customer CRUD operations (154 lines)
+- `quotes.py` - Quote CRUD, convert to job (229 lines)
+- `jobs.py` - Job CRUD, items, notes, activities, status (488 lines)
+- `invoices.py` - Invoice CRUD, from-job, payments (281 lines)
+- `pricing.py` - Calculator, templates, materials catalog (259 lines)
+- `portal.py` - Customer portal (auth, profile, orders, messaging, proofs) (520 lines)
+- `employees.py` - Employee, time clock, payroll (346 lines)
+- `webstores.py` - Products, webstores, orders (737 lines)
 
 ### Current Status:
-- `server.py`: 6,349 lines (still serves all requests)
-- Modular code: 3,757 lines (ready for integration)
+- `server.py`: 6,349 lines (still serves all requests - legacy)
+- Modular code: 4,495 lines (100% complete, ready for integration)
 - Routes are duplicated between server.py and /routes modules
-- Final step: Update server.py to import and use modular routes
+- **Next step**: Update server.py to import and use modular routes (reduces server.py to ~2,000 lines)
 
 ### File Structure:
 ```
 /app/backend/
-├── core/           # Config, DB, auth utilities
-├── models/         # Pydantic models & enums
-├── routes/         # API route handlers
+├── core/           # Config, DB, auth utilities (79 lines)
+├── models/         # Pydantic models & enums (1,099 lines)
+├── routes/         # API route handlers (3,317 lines)
 ├── services/       # Business logic (future)
 ├── tests/          # Test files
-├── server.py       # Main server (legacy)
+├── server.py       # Main server (6,349 lines - legacy)
 └── main.py         # New entry point
 ```
 
