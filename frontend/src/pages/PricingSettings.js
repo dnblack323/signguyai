@@ -106,28 +106,32 @@ export default function PricingSettings() {
 
   if (loading) {
     return (
-      <MainLayout>
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
-        </div>
-      </MainLayout>
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
+      </div>
     );
   }
 
   return (
-    <MainLayout>
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link to="/pricing">
+            <Button variant="outline" size="icon" className="border-slate-600 text-slate-300 hover:bg-slate-700">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
           <div>
             <h1 className="text-2xl font-bold text-white">Pricing Settings</h1>
             <p className="text-slate-400 mt-1">Configure default rates, markups, and pricing rules</p>
           </div>
-          <div className="flex items-center gap-3">
-            {hasChanges && (
-              <Button variant="outline" onClick={handleReset} className="border-slate-600">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Reset
+        </div>
+        <div className="flex items-center gap-3">
+          {hasChanges && (
+            <Button variant="outline" onClick={handleReset} className="border-slate-600">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Reset
               </Button>
             )}
             <Button 
