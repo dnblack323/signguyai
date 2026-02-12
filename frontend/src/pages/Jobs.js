@@ -1052,8 +1052,9 @@ export function JobDetails() {
                     </DialogContent>
                   </Dialog>
                 </div>
-              </CardHeader>
-              <CardContent>
+              </div>
+            </CardHeader>
+            <CardContent>
               {job_items.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg">
                   <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
