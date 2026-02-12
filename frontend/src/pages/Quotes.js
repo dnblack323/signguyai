@@ -325,6 +325,26 @@ export default function Quotes() {
                 </div>
               </div>
 
+              {/* Calculator Shortcut */}
+              <div className="p-3 bg-teal-500/10 border border-teal-500/30 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm">
+                    <p className="text-teal-400 font-medium">Need to calculate pricing?</p>
+                    <p className="text-muted-foreground text-xs mt-0.5">Use the pricing calculator for accurate quotes</p>
+                  </div>
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    size="sm"
+                    className="border-teal-500/50 text-teal-500 hover:bg-teal-500/10"
+                    onClick={() => setIsCalculatorOpen(true)}
+                    data-testid="quote-open-calculator-btn"
+                  >
+                    <Calculator className="h-4 w-4 mr-1" /> Calculate
+                  </Button>
+                </div>
+              </div>
+
               {/* Line Items */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
