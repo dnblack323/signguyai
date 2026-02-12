@@ -785,6 +785,13 @@ export default function Quotes() {
           })()}
         </DialogContent>
       </Dialog>
+
+      {/* Pricing Calculator Modal */}
+      <PricingCalculatorModal
+        isOpen={isCalculatorOpen}
+        onClose={() => setIsCalculatorOpen(false)}
+        onItemCalculated={handleCalculatedItem}
+      />
     </div>
   );
 }
