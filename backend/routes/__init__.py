@@ -2,9 +2,9 @@
 SignGuy AI Routes Module
 
 This module contains API route handlers organized by domain.
-All major routes have been migrated from server.py to individual modules.
+All routes have been migrated from server.py to individual modules.
 
-Completed migrations:
+Completed migrations (100%):
 - auth.py - Authentication routes (register, login, profile, admin user management)
 - customers.py - Customer CRUD routes
 - pricing.py - Pricing calculator routes (calculate, templates, materials, defaults)
@@ -13,10 +13,10 @@ Completed migrations:
 - invoices.py - Invoice routes (CRUD, from-job, payments)
 - portal.py - Customer portal routes (auth, profile, orders, messaging, proofs)
 - employees.py - Employee, time clock, payroll routes
+- webstores.py - Products catalog, webstores (B2B/Fundraiser/Creator), orders
 
-Pending migrations:
-- webstores.py - Webstore routes (B2B, fundraiser, creator stores)
-- financials.py - Financial reports/dashboard routes
+Pending:
+- financials.py - Financial reports/dashboard routes (optional, low priority)
 """
 
 # Note: These routes are defined but not yet integrated into the main app
@@ -32,5 +32,6 @@ Pending migrations:
 # from .invoices import router as invoices_router
 # from .portal import router as portal_router
 # from .employees import employees_router, timeclock_router, payroll_router
+# from .webstores import products_router, webstores_router
 
 
