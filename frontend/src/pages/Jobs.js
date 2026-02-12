@@ -44,10 +44,11 @@ import {
   Plus, Edit2, Trash2, Receipt, Calendar, ArrowLeft, Package, Eye, 
   MoreHorizontal, CheckCircle, Archive, ArchiveRestore, Clock,
   FileText, MessageSquare, Activity, DollarSign, User, ExternalLink,
-  ChevronRight, Send, CalendarPlus
+  ChevronRight, Send, CalendarPlus, Calculator
 } from 'lucide-react';
 import { toast } from 'sonner';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
+import PricingCalculatorModal, { PricingCalculatorButton } from '../components/PricingCalculatorModal';
 
 const statusOptions = ['quoted', 'approved', 'in_production', 'installed', 'complete', 'archived'];
 const activeStatuses = ['quoted', 'approved', 'in_production', 'installed'];
