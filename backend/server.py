@@ -1508,29 +1508,23 @@ async def register(input: UserCreate):
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
-    # Determine role and tenant: first user creates a new tenant and becomes owner
-    user_count = await db.users.count_documents({})
-    tenant_id = None
+    # Self-registration always creates a new tenant (company) and the user becomes owner
+    # Staff users should be added by the owner/admin, not self-registered
+    company_name = input.company_name or f"{input.full_name}'s Sign Shop"
     
-    if user_count == 0:
-        # First user ever - create a new tenant (company)
-        role = UserRole.OWNER
-        company_name = input.company_name or f"{input.full_name}'s Sign Shop"
-        
-        # Create tenant
-        tenant = Tenant(
-            name=company_name,
-            slug=generate_tenant_slug(company_name),
-            owner_email=input.email.lower(),
-        )
-        tenant_doc = tenant.model_dump()
-        await db.tenants.insert_one(tenant_doc)
-        tenant_id = tenant.id
-        logger.info(f"Created new tenant: {tenant.name} ({tenant.id})")
-    elif input.role:
-        role = input.role
-    else:
-        role = UserRole.STAFF
+    # Create tenant for this user
+    tenant = Tenant(
+        name=company_name,
+        slug=generate_tenant_slug(company_name),
+        owner_email=input.email.lower(),
+    )
+    tenant_doc = tenant.model_dump()
+    await db.tenants.insert_one(tenant_doc)
+    tenant_id = tenant.id
+    logger.info(f"Created new tenant: {tenant.name} ({tenant.id})")
+    
+    # Self-registering user is always the owner of their tenant
+    role = UserRole.OWNER
     
     # Create new user
     hashed_password = get_password_hash(input.password)
