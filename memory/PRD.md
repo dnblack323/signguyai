@@ -86,6 +86,8 @@ Build a web-based sign-shop operating system called "SignGuy AI" - a single dail
   - **Save as Template**: Save any calculation as a reusable template
   - **Templates Browser**: Load, favorite, and delete saved templates
   - **Pricing Settings Page**: Configure default labor rates, markups, minimums, complexity multipliers, quantity breaks, and setup fees at /pricing/settings
+  - **Jobs Integration**: "Use Calculator" button in Job Details line items section opens calculator modal, calculated items auto-populate the add item form
+  - **Quotes Integration**: "Calculate" button in New Quote form opens calculator modal, adds items directly to quote line items
 
 - [x] **Full Customer Portal** ✅ COMPLETE
   - **Portal Authentication:** Separate JWT-based auth (type='portal') for customers
