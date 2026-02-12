@@ -379,20 +379,34 @@ Build a web-based sign-shop operating system called "SignGuy AI" - a single dail
 5. Sprint 10: Stripe Subscription & Billing
 
 ## Architecture Notes
-The backend has been partially refactored into a modular structure:
+The backend has been substantially refactored into a modular structure:
+
+### Completed Modules:
 - `/app/backend/core/` - Configuration, database, auth utilities (79 lines)
 - `/app/backend/models/` - All Pydantic models and enums (1,099 lines - COMPLETE)
-  - `enums.py` - 25+ enums
-  - `auth.py` - User, Tenant, Permission, Token models
-  - `customer.py` - Customer, Portal, Conversation, Proof models
-  - `jobs.py` - Quote, Job, JobItem, Invoice models  
-  - `pricing.py` - PricingDefaults, PricingCalculation, Template models
-- `/app/backend/routes/` - API route handlers (708 lines - IN PROGRESS)
-  - `auth.py` - Authentication, user profile, admin user management
-  - `customers.py` - Customer CRUD operations
-  - `pricing.py` - Pricing calculator, templates, materials catalog
-- `/app/backend/services/` - Business logic services (TO DO)
-- `/app/backend/server.py` - Main server file (still contains all 149 route handlers)
+  - `enums.py` - 25+ enums (252 lines)
+  - `auth.py` - User, Tenant, Permission, Token models (199 lines)
+  - `customer.py` - Customer, Portal, Conversation, Proof models (169 lines)
+  - `jobs.py` - Quote, Job, JobItem, Invoice models (175 lines)
+  - `pricing.py` - PricingDefaults, PricingCalculation, Template models (254 lines)
+- `/app/backend/routes/` - API route handlers (1,712 lines - 70% COMPLETE)
+  - `auth.py` - Authentication, user profile, admin management (266 lines)
+  - `customers.py` - Customer CRUD operations (154 lines)
+  - `quotes.py` - Quote CRUD, convert to job (229 lines)
+  - `jobs.py` - Job CRUD, items, notes, activities, status (488 lines)
+  - `invoices.py` - Invoice CRUD, from-job, payments (281 lines)
+  - `pricing.py` - Calculator, templates, materials catalog (259 lines)
 
-**Note:** Routes are currently duplicated between server.py and /routes modules. The /routes modules serve as the target architecture. Full migration will involve updating server.py to import and use the modular routes.
+### Pending Migrations:
+- Customer Portal routes (~400 lines)
+- Webstore routes (~600 lines)
+- Time Clock/Payroll routes (~300 lines)
+- Employee routes (~100 lines)
+- Financial/Dashboard routes (~200 lines)
+
+### Current Status:
+- `server.py`: 6,349 lines (still serves all requests)
+- Modular code: 2,890 lines (ready for integration)
+- Routes are duplicated between server.py and /routes modules
+- Final step: Update server.py to import and use modular routes
 
