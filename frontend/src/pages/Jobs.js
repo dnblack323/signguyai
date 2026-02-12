@@ -1352,6 +1352,13 @@ export function JobDetails() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Pricing Calculator Modal */}
+      <PricingCalculatorModal
+        isOpen={isCalculatorOpen}
+        onClose={() => setIsCalculatorOpen(false)}
+        onItemCalculated={handleCalculatedItem}
+      />
     </div>
   );
 }
