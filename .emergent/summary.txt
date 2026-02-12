@@ -1,190 +1,189 @@
 <analysis>**original_problem_statement:**
-The user wants to build and market a web-based sign-shop operating system called SignGuy AI as a SaaS product. The application should provide a single platform for sign shops to manage Customers, Jobs, Invoices, Productivity, Financials, and Employee Time/Payroll. It also needs a suite of AI tools, a module for B2B/Fundraiser webstores, and a comprehensive customer-facing portal. The user has also requested specific UI/UX enhancements, including the integration of custom logos and a blended theme.
+The user wants to build and market a web-based sign-shop operating system called SignGuy AI as a SaaS product.
 
-**PRODUCT REQUIREMENTS:**
-- **Core Modules:** Customer Management, Quotes/Estimates, Job/Order Tickets, Invoicing, Productivity & Scheduling, Financial Tracking, Time Clock & Payroll.
-- **AI Tools Suite:** A suite of 15 AI tools for design, branding, and business tasks.
-- **Webstores:** A module for creating B2B, Fundraiser, and Creator webstores with an enhanced internal dashboard and email notifications.
-- **Full Customer Portal:** A secure portal for customers to manage their profile, communicate with the shop, view orders/quotes, make payments, approve artwork, and access their webstores.
-- **SaaS Architecture:** The system must support multi-tenancy, user roles (RBAC), and subscription tiers.
-- **User Authentication:** Secure user registration, login, and session management.
-- **Integrations:** Buy Now, Pay Later (BNPL) options like Affirm/Klarna for customer payments.
+The core requirements have expanded to include:
+- **Core Modules:** Customer Management, Quotes/Jobs, Invoicing, Productivity, Financials, Employee Time/Payroll.
+- **Full Customer Portal:** A secure, login-based portal for customers to manage their profile, communicate with the shop, view orders/quotes, make payments, and approve artwork.
+- **Webstores Module:** A module for creating B2B, Fundraiser, and Creator webstores.
+- **SaaS Billing Tiers:** A three-tier system (Free, Pro, Business) to gate features. Features can be ON, OFF, or have usage limits. The user will provide the specific configuration for each tier.
+- **Advanced Pricing Calculators:** A comprehensive system with dedicated calculators for 8 product categories (Apparel, Cut Vinyl, Services, etc.) to determine production costs and suggest sale prices.
+- **AI Tools Suite:** A suite of AI tools for design, branding, and business tasks, including an internal AI Business Assistant for analytics queries.
+- **Integrations:** Buy Now, Pay Later (BNPL) options like Affirm/Klarna.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A full-stack application (FastAPI backend, React frontend, MongoDB) with a completed JWT-based user authentication system. The app now supports both Role-Based Access Control (RBAC) and a full multi-tenancy architecture, isolating data by company/tenant. The UI has been redesigned with a blended theme, custom logos, and hover-expanding navigation. A Webstores Phase 2 has been partially completed, delivering an enhanced internal dashboard with analytics, order management, and email notifications for new orders via SendGrid. The agent has just begun work on a new, comprehensive Customer Portal, starting with the backend data models and API structure.
+The application is a full-stack system (FastAPI, React, MongoDB) with user authentication, RBAC, and multi-tenancy.
+
+- **Customer Portal:** A full-featured, authenticated Customer Portal has been completed and tested. It includes a login page, dashboard, messaging, order/quote history, artwork proofs, and profile management. The old magic link portal has been removed.
+- **Pricing Calculator:** A comprehensive, standalone pricing calculator system has been implemented. The backend supports 8 different product/service categories with complex, specific logic for each. The frontend features a dynamic form that updates based on the selected category.
+- **SaaS Tier Preview:** A Preview Mode toggle has been added to the admin UI, allowing the owner to switch between Starter, Pro, and Business subscription tiers to test UI changes. The backend logic for feature gating is not yet implemented.
 
 **Last working item**:
-- Last item agent was working: Starting the implementation of the new, full-featured Customer Portal. The agent defined the backend Pydantic models for portal messages, files, and extended the  model to support portal access. The agent was in the process of adding the corresponding API endpoints to .
+- Last item agent was working: Enhancing the newly created Pricing Calculator system with two user-requested features:
+    1.  A Save as Template function to reuse common pricing setups.
+    2.  A Pricing Settings page in the admin area for users to configure default values (e.g., markups, labor rates).
+    The agent had added the backend models and API endpoints for templates and created the frontend page for settings. It was in the process of integrating these features into the main  component.
 - Status: IN PROGRESS
-- Agent Testing Done: N
+- Agent Testing Done: Y (for the core calculator APIs)
 - Which testing method agent to use? both
 - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-- **Issue 1:** Implement the full Customer Portal. (P0)
-- **Issue 2:** The customer portal page shows empty descriptions for quote line items (Observed in the old magic-link portal, must be verified as fixed in the new portal). (P1)
-- **Issue 3:** Address minor frontend accessibility warnings from an old test report (). (P2)
-- **Issue 4:** User's account () was incorrectly set to staff. The agent upgraded it to owner. This needs user verification. (USER VERIFICATION PENDING)
+- **Issue 1:** Integrate the Pricing Calculator into the Jobs and Quotes forms. (P0)
+- **Issue 2:** Finish implementing the Save as Template and Pricing Settings features for the calculator. (P0)
+- **Issue 3:** Implement the full SaaS tier system (backend logic, feature gates, UI adaptation based on tier). (P1)
+- **Issue 4:** Refactor the monolithic backend. (P1)
+- **Issue 5:** Integrate Buy Now, Pay Later (Affirm/Klarna) options. (P2)
+- **Issue 6:** Address minor frontend accessibility warnings from . (P3)
+- **Issue 7:** User  role upgrade to 'owner' needs to be verified by the user. (USER VERIFICATION PENDING)
 
 **Issues Detail:**
 - **Issue 1:**
-    - **Attempted fixes:** Backend models for ,  have been added to .
+    - **Attempted fixes:** None. The calculator currently exists on a standalone page.
     - **Next debug checklist:**
-        1.  Complete the backend API endpoints for the Customer Portal (messaging, auth, profile updates, order history, etc.).
-        2.  Create the new frontend pages for the portal (, , , etc.).
-        3.  Implement the selected features from the user's list.
-        4.  Integrate the tax-exempt status checkbox and document upload functionality into the customer profile.
-        5.  Implement the profile image upload.
-    - **Why fix this issue and what will be achieved with the fix?** This is a major user-requested feature that forms a core part of the product's value proposition.
+        1. Create a modal or component to host the .
+        2. Add a button to the Add Line Item section of the Jobs and Quotes forms to launch the calculator.
+        3. Pass the calculated data from the calculator back to the Job/Quote item form.
+    - **Why fix this issue and what will be achieved with the fix?** To make the pricing calculator useful in the primary workflow of creating jobs and quotes.
+    - **Status:** NOT STARTED
+    - **Is recurring issue?** N
+    - **Should Test frontend/backend/both after fix?** both
+    - **Blocked on other issue:** Finish implementing the Save as Template and Pricing Settings features.
+- **Issue 2:**
+    - **Attempted fixes:** Backend API endpoints for templates () have been created in . A new frontend page () was created. The  component has been partially modified.
+    - **Next debug checklist:**
+        1. Complete the frontend logic in  to fetch, display, and use templates.
+        2. Implement the Save as Template button and its corresponding API call.
+        3. Build out the form and API integration for the  page.
+    - **Why fix this issue and what will be achieved with the fix?** To fulfill direct user requests for improving the usability and configurability of the pricing calculator.
     - **Status:** IN PROGRESS
     - **Is recurring issue?** N
     - **Should Test frontend/backend/both after fix?** both
     - **Blocked on other issue:** None.
-- **Issue 2:**
-    - **Attempted fixes:** None.
-    - **Next debug checklist:** While building the new portal's order history view, ensure that the API fetching order/quote data includes the line item descriptions and that the frontend component renders them correctly.
-    - **Why fix this issue and what will be achieved with the fix?** To ensure customers see full quote/order details in their portal.
+- **Issue 3:**
+    - **Attempted fixes:** A frontend Preview Mode toggle was added to .
+    - **Next debug checklist:**
+        1. Create database models to store feature configurations for each tier.
+        2. Implement backend middleware or route decorators to check a tenant's subscription tier before allowing access to a protected feature.
+        3. Modify frontend components to conditionally render UI elements or show Upgrade prompts based on the user's tier.
+        4. Create an admin interface for the user to manage which features belong to which tier.
+    - **Why fix this issue and what will be achieved with the fix?** This is a core requirement for the SaaS business model, enabling monetization.
     - **Status:** NOT STARTED
     - **Is recurring issue?** N
     - **Should Test frontend/backend/both after fix?** both
-    - **Blocked on other issue:** Blocked on Implement the full Customer Portal.
-- **Issue 3:**
+    - **Blocked on other issue:** User needs to provide the final list of features per tier.
+- **Issue 4:**
     - **Attempted fixes:** None.
-    - **Next debug checklist:** Review  and fix the reported contrast or ARIA attribute issues.
-    - **Why fix this issue and what will be achieved with the fix?** To improve application accessibility and adhere to web standards.
+    - **Next debug checklist:** Follow the modular structure plan proposed by the agent (breaking  into , ,  directories).
+    - **Why fix this issue and what will be achieved with the fix?** To improve maintainability, reduce development time, and decrease the risk of introducing bugs in the increasingly complex backend.
     - **Status:** NOT STARTED
     - **Is recurring issue?** N
-    - **Should Test frontend/backend/both after fix?** frontend
-    - **Blocked on other issue:** None.
-- **Issue 4:**
-    - **Attempted fixes:** The agent ran a database command to update the role for  from  to .
-    - **Next debug checklist:** The user needs to log out and log back in to confirm they now see the Admin section and have access to the Users and Company Settings pages.
-    - **Why fix this issue and what will be achieved with the fix?** To give the primary user administrative control over their application as intended.
-    - **Status:** USER VERIFICATION PENDING
-    - **Is recurring issue?** N
-    - **Should Test frontend/backend/both after fix?** frontend
-    - **Blocked on other issue:** None.
+    - **Should Test frontend/backend/both after fix?** both
+    - **Blocked on other issue:** The user requested to defer this until after the pricing calculators are complete and integrated.
 
 **In progress Task List**:
-- **Task 1:** Build the full Customer Portal. (P0)
-    - **Where to resume:** Continue building the backend API in . The agent was about to add the endpoints for the newly created models.
-    - **What will be achieved with this?** A complete, authenticated portal for customers.
+- **Task 1:** Finish the Pricing Calculator system. (P0)
+    - **Where to resume:** Continue editing  to add the UI and logic for loading and saving templates. Then, build the  page. Finally, integrate the calculator into the Job/Quote creation forms.
+    - **What will be achieved with this?** A fully-featured and integrated pricing tool that is configurable and easy to use.
     - **Status:** IN PROGRESS
     - **Should Test frontend/backend/both after fix?** both
     - **Blocked on something:** None.
 
 **Upcoming and Future Tasks**
 **Upcoming Tasks:**
--   **Integrate Buy Now, Pay Later (BNPL)**: Integrate both Affirm and Klarna into the customer payment process as requested by the user. (P0)
--   **Webstores Phase 2 - External Dashboard**: Build a simplified, public-facing dashboard for webstore owners (e.g., fundraiser organizers) to track their sales without needing a full sign shop login. (P1)
+-   **Implement SaaS Tier System (P1):** Build the backend logic and frontend UI to support the 3-tier subscription model.
+-   **Refactor Monolithic Backend (P1):** Break down the  file into a modular structure as agreed upon with the user.
+-   **Integrate Buy Now, Pay Later (P2):** Integrate both Affirm and Klarna into the customer payment process.
 
-**Future Tasks (from ):**
--   **Sprint 8: Smart Pricing Engine:** Implement real-time profit margin calculators within Quotes/Jobs.
--   **Sprint 9: Artwork Approval System:** Build the formal customer-facing workflow for viewing and approving designs (partially covered by new portal scope).
--   **SaaS Tiers & Subscriptions:** Implement logic to manage feature access based on subscription plans.
--   **Stripe Integration:** Allow end-customers to pay invoices online (partially covered by new portal scope).
+**Future Tasks:**
+-   **AI Business Assistant:** An internal chat interface for the user to ask questions about their business data.
+-   **Webstores Phase 3:** Build out the remaining webstore features based on the user's tier configuration.
+-   **External Webstore Dashboard:** A simplified, public-facing dashboard for webstore owners.
 -   **Enhanced Reports & Analytics:** Add detailed reporting with PDF/CSV exports.
--   **Inventory Management:** Track material stock levels.
 
 **Completed work in this session**
-- **Sprint 6: Role-Based Access Control (RBAC):** Fully implemented and tested. Added permission checks to backend routes and frontend components, preventing unauthorized access to pages like Financials, Payroll, and User Management.
-- **Sprint 7: SaaS Foundation - Multi-Tenancy:** Successfully implemented. All major data models now include a . Backend queries are scoped by tenant. A migration script was created and run to update existing data. A Company Settings page was added to the frontend.
-- **Webstores Phase 2 (Internal Dashboard):** Completed. A new backend endpoint () provides detailed store metrics. The frontend  page was enhanced with a new  component showing KPIs, charts, and lists for orders and payouts.
-- **Email Notifications:** Integrated SendGrid to send email notifications to the shop owner when a new webstore order is placed.
-- **User-Reported Fixes:**
-    - Changed the browser tab title to SignGuy AI in .
-    - Integrated the user's new square and long logos into the  page and  sidebar, including making the login logo larger.
-    - Upgraded the user's account () to the 'owner' role.
+- **Full Customer Portal:** Implemented and tested a complete, authenticated customer portal, replacing the old magic-link system. This includes:
+    - Login, Dashboard, Messaging, Order/Quote/Invoice History, Artwork Proofs, and Profile Management.
+- **SaaS Tier Preview Toggle:** Added a Preview Mode UI component for the admin to switch between viewing the app as a Starter, Pro, or Business tier user.
+- **Pricing Calculator System:** Built the backend and frontend for a comprehensive pricing calculator with 8 distinct, complex calculation types for different product categories.
+- **Magic Link Removal:** Decommissioned the old, insecure magic-link portal.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Backend:** FastAPI, Pydantic, Motor (async MongoDB driver)
--   **Frontend:** React, React Router, Tailwind CSS
+-   **Backend:** FastAPI, Pydantic, Motor
+-   **Frontend:** React, React Router, Tailwind CSS, Shadcn UI
 -   **Database:** MongoDB
--   **Authentication:** JWT (JSON Web Tokens).
--   **Authorization:** Role-Based Access Control (RBAC).
--   **SaaS Architecture:** Multi-Tenancy with data isolation via .
--   **Email:** SendGrid for transactional emails.
+-   **Architecture:** The application now has a full Customer Portal, a Preview Mode for SaaS tiers, and a complex Pricing Calculator engine, all built on the existing multi-tenant, RBAC foundation.
 
 **key DB schema**
--   **Tenant:** 
--   **User:** 
--   **Customer:** 
+-   **PricingConfiguration:** 
+-   **PricingTemplate:** 
+-   **JobItem:** (Heavily extended with fields for all 8 calculator types, e.g., , , etc.)
 -   **CustomerPortalMessage:** 
--   **All major data models (Quote, Job, Invoice, etc.):** Now include a  field for data isolation.
+-   **All major models:** include .
 
 **changes in tech stack**
--   Added  python library for email notifications.
+-   None.
 
 **All files of reference**
--   : The monolithic core of the application. All new backend logic (RBAC, Tenancy, Webstore Analytics, Customer Portal) was added here.
--   : Refactored to use a global Axios instance with an authentication interceptor. Contains new functions for tenant and webstore analytics.
--   : Significantly updated to integrate the new  component and fetch analytics data.
--   : New component for displaying detailed webstore analytics.
--   : New page for managing tenant-level information.
--   : Updated with the user's new, larger square logo.
--   : Updated to display the user's long logo when expanded and square logo when collapsed.
--   : Updated to reflect completion of Sprints 6 & 7 and the Webstore Dashboard.
--   : Updated to reflect completed work.
+-   : Heavily modified with all Customer Portal and Pricing Calculator models and API endpoints.
+-   : Modified to add the Preview Mode toggle and navigation links.
+-   : Modified to add all new routes for the portal and pricing pages, and to remove the old magic link route.
+-   : New, large component containing the UI and logic for all 8 calculators.
+-   : All new pages for the customer portal.
+-   : Updated with completion of Customer Portal and Pricing Calculator.
 
 **Areas that need refactoring**:
--   The monolithic backend at  is now a critical point of failure and complexity. It urgently needs to be broken down into a modular structure (e.g., , , ) to support further development.
--   The frontend  file is becoming very large and complex; its logic for creating/editing stores could be moved to separate components.
+-   The monolithic backend at  is now critically oversized (over 5,000 lines) and complex. The user has agreed to a modular refactoring immediately after the pricing calculator is fully integrated.
 
 **key api endpoints**
--    (PUT): Updates a user's role.
--    (GET): Retrieves the current user's tenant information.
--    (PUT): Updates the current tenant's settings.
--    (GET): Retrieves detailed analytics for a specific webstore.
--    (POST): Creates a new webstore order and now triggers an email notification.
+-    (POST)
+-    (GET)
+-    (GET/POST)
+-    (POST): Calculates the price for a given job item configuration.
+-    (GET/POST): Manages pricing calculator templates.
 
 **Critical Info for New Agent**
--   Your immediate priority is **building the new Customer Portal** based on the feature list the user selected. You will resume by creating the necessary backend API endpoints in .
--   The user has explicitly asked for **BNPL (Affirm/Klarna) integration**. This should be treated as a high-priority upcoming task after the portal structure is in place.
--   The backend  file is extremely large and complex. Be very cautious when adding new code. It is highly recommended to plan for its refactoring into a modular structure as a future task.
--   The user needs to **verify their 'owner' access** by logging out and back in. Guide them if they report still not having admin access.
+-   Your immediate priority is to finish the Pricing Calculator by implementing the Save as Template and Pricing Settings features, and then integrating the calculator into the Job/Quote creation workflows.
+-   Once the calculator is done, the next user-approved task is to **refactor the monolithic backend**. This is a critical step for future development.
+-   After refactoring, the next major task is implementing the backend logic for the **SaaS tier system**. The user has been provided with a comprehensive feature list and needs to decide which features belong to which tier.
 
 **documents and test reports created in this job**
--    (RBAC Test Report)
--    (Webstore Dashboard Test Report)
+-    (Customer Portal Test Report)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Approved a plan to build an enhanced webstore dashboard, add email notifications, and integrate a new logo.
-2.  **Agent:** Implemented the enhanced dashboard, email notifications, and logo.
-3.  **User:** Reported that the browser tab title was still signmaster, the login page logo needed to be bigger, and their account was staff instead of owner.
-4.  **Agent:** Fixed all three issues and confirmed the fixes with screenshots.
-5.  **User:** Requested to build a full customer portal with a messaging section, artwork approval, payment history, and webstore shortcuts.
-6.  **Agent:** Proposed a detailed list of 47 possible features for the customer portal.
-7.  **User:** Selected the desired features from the list, excluding several. Requested tax-exempt status upload and profile pictures. Also asked if BNPL (Affirm/Klarna) integration is possible.
-8.  **Agent:** Confirmed BNPL is possible and proposed a plan to build the portal first, then integrate BNPL.
-9.  **User:** Agreed to the plan.
-10. **Agent:** Confirmed the choice of both Affirm and Klarna and began work on the Customer Portal backend.
+1.  **User:** Asks what monolithic means.
+2.  **Agent:** Explains the problem with the monolithic backend and proposes a modular refactoring plan.
+3.  **User:** Agrees to refactor, but wants to build the pricing calculators first. Provides extremely detailed specifications for 7 calculator types.
+4.  **Agent:** Proposes a build order for the calculators, asks clarifying questions, and shows a UI mockup.
+5.  **User:** Answers the questions, approves the plan, and adds an 8th Custom/Manual category.
+6.  **Agent:** Implements the full backend and frontend for the standalone pricing calculator system.
+7.  **Agent:** Provides a summary of the completed calculator system.
+8.  **User:** Asks to add a Save as Template feature and a Pricing Settings page.
+9.  **Agent:** Agrees and begins implementing the template and settings features.
+10. **Agent's Last Action:** Mentions the next step is to integrate the calculator into Jobs/Quotes.
 
 **Project Health Check:**
--   **Broken:** The backend architecture is critically monolithic (), making development slow and risky.
--   **Mocked:** None.
+-   **Broken:** The backend architecture is critically monolithic (). The risk of regression and development friction is very high until it is refactored.
 
 **3rd Party Integrations**
--   **Emergent Integrations (Gemini 1.5 Pro):** Used for AI tasks. Uses the Emergent LLM Key.
--   **Emergent Integrations (OpenAI gpt-image-1):** Used for AI image generation. Uses the Emergent LLM Key.
--   **SendGrid:** Used for sending transactional emails (new webstore orders). Requires  in the environment.
--   **JWT-based Custom Auth:** Implemented for user authentication.
--   **Affirm/Klarna:** Requested by the user for future implementation.
+-   **SendGrid:** For transactional emails.
+-   **Affirm/Klarna:** Requested, but not yet implemented.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES. Used for RBAC (iteration 10) and the Webstore Dashboard (iteration 11), passing all tests.
+-   **Testing agent used after significant changes:** YES, for the Customer Portal (iteration 12), with 100% success.
 -   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:** None in this session.
+-   **Test files created:** None.
 -   **Known regressions:** None.
 
 **Credentials to test flow:**
--   Register a new user to create a new tenant. This user will be the 'owner'.
--   To test RBAC, log in as the 'owner', create a second user via the User Management page, and assign them a restrictive role. Log in as the new user to verify permissions.
--   The user's primary account for testing is . This account should now have the 'owner' role.
+-   Register a new user to create a new tenant and 'owner' account (e.g., ).
+-   Use the Preview Mode toggle in the bottom-right corner to test different tier views.
+-   Navigate to  to test the new standalone pricing calculator.
+-   Navigate to  to test the new customer portal. You will need to create a customer within the main app first and set a portal password for them.
 
 **What agent forgot to execute**
--   The agent correctly prioritized user requests and did not forget any major implementation steps. All completed work was based on direct user instructions.</analysis>
+-   The agent has been diligent in following user requests. No major tasks were forgotten. The primary pending item is the backend refactoring, which was consciously deferred by the user.</analysis>
