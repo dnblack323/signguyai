@@ -20,7 +20,7 @@ export default function PricingSettings() {
   const [defaults, setDefaults] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
 
-  const getToken = () => localStorage.getItem('token');
+  const getToken = () => localStorage.getItem('auth_token');
 
   const fetchDefaults = useCallback(async () => {
     const token = getToken();
