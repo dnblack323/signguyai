@@ -14,19 +14,22 @@ from typing import List, Optional
 from models.tiers import (
     TierLevel, TierConfig, FeatureCheckResult, TenantUsage
 )
-from models import UserInDB
+from models import UserInDB, Permission
 from services.tier_config import get_all_tiers, get_tier_config
 from services.feature_gate import FeatureGate
-
-# Import from server
-from server import db, logger, get_current_active_user, has_permission
-from models import Permission
 
 router = APIRouter(prefix="/tiers", tags=["Subscription Tiers"])
 
 
+# Lazy import to avoid circular dependency
+def _get_server_deps():
+    from server import db, logger, get_current_active_user, has_permission
+    return db, logger, get_current_active_user, has_permission
+
+
 # Create feature gate instance
 def get_gate() -> FeatureGate:
+    db, _, _, _ = _get_server_deps()
     return FeatureGate(db)
 
 
