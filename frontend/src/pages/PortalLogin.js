@@ -84,7 +84,12 @@ export default function PortalLogin() {
         })
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        data = { detail: 'Server error. Please try again.' };
+      }
 
       if (response.ok) {
         localStorage.setItem('portal_token', data.access_token);
@@ -92,10 +97,11 @@ export default function PortalLogin() {
         localStorage.setItem('portal_customer_name', data.customer_name);
         navigate('/customer-portal');
       } else {
-        setError(data.detail || 'Registration failed');
+        setError(data.detail || `Registration failed (${response.status})`);
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      console.error('Registration error:', err);
+      setError('Network error. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
