@@ -169,7 +169,7 @@ async def get_pricing_plans():
 @router.get("/trial-status")
 async def get_trial_status(
     db = Depends(get_db),
-    current_user: UserInDB = Depends(get_current_user_dep())
+    current_user: UserInDB = Depends(get_current_user_billing)
 ):
     """Get current trial status for the user"""
     # Get subscription
@@ -242,7 +242,7 @@ async def create_checkout_session(
     request: CheckoutRequest,
     http_request: Request,
     db = Depends(get_db),
-    current_user: UserInDB = Depends(get_current_user_dep())
+    current_user: UserInDB = Depends(get_current_user_billing)
 ):
     """Create a Stripe checkout session for subscription"""
     api_key = await get_stripe()
@@ -306,7 +306,7 @@ async def create_checkout_session(
 async def get_checkout_status(
     session_id: str,
     db = Depends(get_db),
-    current_user: UserInDB = Depends(get_current_user_dep())
+    current_user: UserInDB = Depends(get_current_user_billing)
 ):
     """Get status of a checkout session"""
     api_key = await get_stripe()
@@ -421,7 +421,7 @@ async def _activate_subscription(db, session_id: str, metadata: dict):
 @router.get("/subscription")
 async def get_subscription(
     db = Depends(get_db),
-    current_user: UserInDB = Depends(get_current_user_dep())
+    current_user: UserInDB = Depends(get_current_user_billing)
 ):
     """Get current subscription details"""
     subscription = await db.subscriptions.find_one(
@@ -476,7 +476,7 @@ async def get_subscription(
 @router.get("/payment-history")
 async def get_payment_history(
     db = Depends(get_db),
-    current_user: UserInDB = Depends(get_current_user_dep())
+    current_user: UserInDB = Depends(get_current_user_billing)
 ):
     """Get payment history for the tenant"""
     transactions = await db.payment_transactions.find(
