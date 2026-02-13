@@ -91,6 +91,7 @@ const Tooltip = ({ children, content, show }) => {
 
 export const Sidebar = () => {
   const { user, logout, hasPermission } = useAuth();
+  const { checkFeature, requireFeature, tier } = useTier();
   const location = useLocation();
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeCategory, setActiveCategory] = useState(null);
@@ -107,11 +108,18 @@ export const Sidebar = () => {
         if (!item.permission) return true;
         // Check if user has the permission
         return hasPermission(item.permission);
+      }).map(item => {
+        // Add tier check info
+        if (item.tierFeature) {
+          const tierCheck = checkFeature(item.tierFeature.category, item.tierFeature.feature);
+          return { ...item, tierLocked: !tierCheck.allowed, tierStatus: tierCheck.status };
+        }
+        return item;
       });
       
       return { ...category, items: filteredItems };
     }).filter(category => category.items.length > 0); // Remove empty categories
-  }, [hasPermission]);
+  }, [hasPermission, checkFeature]);
 
   // Find active category based on current path
   const findActiveCategory = () => {
