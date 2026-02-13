@@ -2,7 +2,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppProvider } from "./context/AppContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { TierProvider } from "./context/TierContext";
 import { MainLayout } from "./components/MainLayout";
+import { UpgradeModal } from "./components/UpgradeModal";
 import { Toaster } from "./components/ui/sonner";
 import { Loader2 } from "lucide-react";
 
