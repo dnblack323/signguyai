@@ -14,86 +14,62 @@ The core requirements have expanded to include:
 
 **what currently exists?**
 The application is a full-stack system (FastAPI, React, MongoDB) with user authentication, RBAC, and multi-tenancy.
-
-- **Customer Portal:** A full-featured, authenticated Customer Portal has been completed and tested. It includes a login page, dashboard, messaging, order/quote history, artwork proofs, and profile management. The old magic link portal has been removed.
-- **Pricing Calculator:** A comprehensive, standalone pricing calculator system has been implemented. The backend supports 8 different product/service categories with complex, specific logic for each. The frontend features a dynamic form that updates based on the selected category.
-- **SaaS Tier Preview:** A Preview Mode toggle has been added to the admin UI, allowing the owner to switch between Starter, Pro, and Business subscription tiers to test UI changes. The backend logic for feature gating is not yet implemented.
+- **Customer Portal:** A full-featured portal exists, and a recent bug fix resolved a Network Error during login by replacing  with  to correctly handle API error responses.
+- **Pricing Calculator:** A comprehensive, standalone pricing calculator system is complete. It includes Save as Template and Pricing Settings features.
+- **Calculator Integration:** The pricing calculator is now fully integrated into the Jobs and Quotes creation workflows via a modal.
+- **Backend Architecture:** The monolithic  has been refactored into a modular structure. All Pydantic models and API routes have been extracted into separate files under  and . The application is functional, but the old code in  is now redundant and needs to be removed.
+- **SaaS Tier Preview:** A UI toggle allows the admin to preview different subscription tiers, but the backend feature-gating logic is not yet implemented.
 
 **Last working item**:
-- Last item agent was working: Enhancing the newly created Pricing Calculator system with two user-requested features:
-    1.  A Save as Template function to reuse common pricing setups.
-    2.  A Pricing Settings page in the admin area for users to configure default values (e.g., markups, labor rates).
-    The agent had added the backend models and API endpoints for templates and created the frontend page for settings. It was in the process of integrating these features into the main  component.
-- Status: IN PROGRESS
-- Agent Testing Done: Y (for the core calculator APIs)
-- Which testing method agent to use? both
+- Last item agent was working: Investigating and fixing a network error reported by the user on the customer portal login page.
+- Status: USER VERIFICATION PENDING
+- Agent Testing Done: Y
+- Which testing method agent to use? frontend testing agent
 - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-- **Issue 1:** Integrate the Pricing Calculator into the Jobs and Quotes forms. (P0)
-- **Issue 2:** Finish implementing the Save as Template and Pricing Settings features for the calculator. (P0)
-- **Issue 3:** Implement the full SaaS tier system (backend logic, feature gates, UI adaptation based on tier). (P1)
-- **Issue 4:** Refactor the monolithic backend. (P1)
-- **Issue 5:** Integrate Buy Now, Pay Later (Affirm/Klarna) options. (P2)
-- **Issue 6:** Address minor frontend accessibility warnings from . (P3)
-- **Issue 7:** User  role upgrade to 'owner' needs to be verified by the user. (USER VERIFICATION PENDING)
+- **Issue 1:** Finalize the backend refactoring by removing redundant code from . (P0)
+- **Issue 2:** Implement the full SaaS tier system (backend logic, feature gates, UI adaptation based on tier). (P1)
+- **Issue 3:** Integrate Buy Now, Pay Later (Affirm/Klarna) options. (P2)
+- **Issue 4:** Address minor frontend accessibility warnings from . (P3)
+- **Issue 5:** User  role upgrade to 'owner' needs to be verified by the user. (USER VERIFICATION PENDING)
 
 **Issues Detail:**
 - **Issue 1:**
-    - **Attempted fixes:** None. The calculator currently exists on a standalone page.
+    - **Attempted fixes:** All models and routes have been successfully extracted from  into a new modular structure (, ). A new  entrypoint exists. The application remains functional by including the new route routers.
     - **Next debug checklist:**
-        1. Create a modal or component to host the .
-        2. Add a button to the Add Line Item section of the Jobs and Quotes forms to launch the calculator.
-        3. Pass the calculated data from the calculator back to the Job/Quote item form.
-    - **Why fix this issue and what will be achieved with the fix?** To make the pricing calculator useful in the primary workflow of creating jobs and quotes.
-    - **Status:** NOT STARTED
-    - **Is recurring issue?** N
-    - **Should Test frontend/backend/both after fix?** both
-    - **Blocked on other issue:** Finish implementing the Save as Template and Pricing Settings features.
-- **Issue 2:**
-    - **Attempted fixes:** Backend API endpoints for templates () have been created in . A new frontend page () was created. The  component has been partially modified.
-    - **Next debug checklist:**
-        1. Complete the frontend logic in  to fetch, display, and use templates.
-        2. Implement the Save as Template button and its corresponding API call.
-        3. Build out the form and API integration for the  page.
-    - **Why fix this issue and what will be achieved with the fix?** To fulfill direct user requests for improving the usability and configurability of the pricing calculator.
+        1.  Verify that  correctly includes all routers from the  directory.
+        2.  Systematically remove the now-redundant route handler functions and model definitions from .
+        3.  After cleanup, run a full regression test to ensure all API endpoints still function as expected.
+    - **Why fix this issue and what will be achieved with the fix?** To complete the refactoring, eliminate thousands of lines of dead code, improve maintainability, and reduce the risk of future bugs.
     - **Status:** IN PROGRESS
     - **Is recurring issue?** N
-    - **Should Test frontend/backend/both after fix?** both
+    - **Should Test frontend/backend/both after fix?** backend
     - **Blocked on other issue:** None.
-- **Issue 3:**
-    - **Attempted fixes:** A frontend Preview Mode toggle was added to .
+- **Issue 2:**
+    - **Attempted fixes:** A frontend Preview Mode toggle was added.
     - **Next debug checklist:**
-        1. Create database models to store feature configurations for each tier.
-        2. Implement backend middleware or route decorators to check a tenant's subscription tier before allowing access to a protected feature.
-        3. Modify frontend components to conditionally render UI elements or show Upgrade prompts based on the user's tier.
-        4. Create an admin interface for the user to manage which features belong to which tier.
+        1.  Create database models to store feature configurations for each tier.
+        2.  Implement backend middleware or decorators to check a tenant's tier before allowing access.
+        3.  Modify frontend components to conditionally render UI elements or show Upgrade prompts.
+        4.  Create an admin UI for the user to manage features per tier.
     - **Why fix this issue and what will be achieved with the fix?** This is a core requirement for the SaaS business model, enabling monetization.
     - **Status:** NOT STARTED
     - **Is recurring issue?** N
     - **Should Test frontend/backend/both after fix?** both
     - **Blocked on other issue:** User needs to provide the final list of features per tier.
-- **Issue 4:**
-    - **Attempted fixes:** None.
-    - **Next debug checklist:** Follow the modular structure plan proposed by the agent (breaking  into , ,  directories).
-    - **Why fix this issue and what will be achieved with the fix?** To improve maintainability, reduce development time, and decrease the risk of introducing bugs in the increasingly complex backend.
-    - **Status:** NOT STARTED
-    - **Is recurring issue?** N
-    - **Should Test frontend/backend/both after fix?** both
-    - **Blocked on other issue:** The user requested to defer this until after the pricing calculators are complete and integrated.
 
 **In progress Task List**:
-- **Task 1:** Finish the Pricing Calculator system. (P0)
-    - **Where to resume:** Continue editing  to add the UI and logic for loading and saving templates. Then, build the  page. Finally, integrate the calculator into the Job/Quote creation forms.
-    - **What will be achieved with this?** A fully-featured and integrated pricing tool that is configurable and easy to use.
+- **Task 1:** Backend Refactoring Cleanup (P0)
+    - **Where to resume:** All modules are extracted. The next step is to clean up  by removing all the model definitions and route handlers that now live in the  and  directories.
+    - **What will be achieved with this?** A clean, maintainable, and modular backend codebase, completing the user's request.
     - **Status:** IN PROGRESS
-    - **Should Test frontend/backend/both after fix?** both
+    - **Should Test frontend/backend/both after fix?** backend
     - **Blocked on something:** None.
 
 **Upcoming and Future Tasks**
 **Upcoming Tasks:**
 -   **Implement SaaS Tier System (P1):** Build the backend logic and frontend UI to support the 3-tier subscription model.
--   **Refactor Monolithic Backend (P1):** Break down the  file into a modular structure as agreed upon with the user.
 -   **Integrate Buy Now, Pay Later (P2):** Integrate both Affirm and Klarna into the customer payment process.
 
 **Future Tasks:**
@@ -103,78 +79,81 @@ The application is a full-stack system (FastAPI, React, MongoDB) with user authe
 -   **Enhanced Reports & Analytics:** Add detailed reporting with PDF/CSV exports.
 
 **Completed work in this session**
-- **Full Customer Portal:** Implemented and tested a complete, authenticated customer portal, replacing the old magic-link system. This includes:
-    - Login, Dashboard, Messaging, Order/Quote/Invoice History, Artwork Proofs, and Profile Management.
-- **SaaS Tier Preview Toggle:** Added a Preview Mode UI component for the admin to switch between viewing the app as a Starter, Pro, or Business tier user.
-- **Pricing Calculator System:** Built the backend and frontend for a comprehensive pricing calculator with 8 distinct, complex calculation types for different product categories.
-- **Magic Link Removal:** Decommissioned the old, insecure magic-link portal.
+- **Pricing Calculator Features:** Successfully implemented the Save as Template and Pricing Settings features, completing the calculator's core functionality.
+- **Calculator Integration:** Integrated the Pricing Calculator into the Job and Quote creation forms using a new  component.
+- **Backend Refactoring:** Performed a major refactoring of the monolithic . Created a modular structure (, , , ) and successfully extracted 100% of the Pydantic models and API route handlers into this new structure.
+- **Portal Login Bug Fix:** Diagnosed and fixed a Network error on the customer portal login page by replacing  with  to properly handle API error responses.
+- **User Registration Bug Fix:** Corrected a critical flaw where new users were not being assigned a , which broke multi-tenancy logic.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
 -   **Backend:** FastAPI, Pydantic, Motor
--   **Frontend:** React, React Router, Tailwind CSS, Shadcn UI
+-   **Frontend:** React, React Router, Tailwind CSS, Shadcn UI, Axios
 -   **Database:** MongoDB
--   **Architecture:** The application now has a full Customer Portal, a Preview Mode for SaaS tiers, and a complex Pricing Calculator engine, all built on the existing multi-tenant, RBAC foundation.
+-   **Architecture:** The backend is transitioning from a monolithic to a fully modular architecture.
 
 **key DB schema**
 -   **PricingConfiguration:** 
 -   **PricingTemplate:** 
--   **JobItem:** (Heavily extended with fields for all 8 calculator types, e.g., , , etc.)
+-   **JobItem:** (Extended with fields for all 8 calculator types)
 -   **CustomerPortalMessage:** 
 -   **All major models:** include .
 
 **changes in tech stack**
--   None.
+-   The frontend now uses  for API requests in the Customer Portal login, replacing the native  API to resolve an error handling issue.
 
 **All files of reference**
--   : Heavily modified with all Customer Portal and Pricing Calculator models and API endpoints.
--   : Modified to add the Preview Mode toggle and navigation links.
--   : Modified to add all new routes for the portal and pricing pages, and to remove the old magic link route.
--   : New, large component containing the UI and logic for all 8 calculators.
--   : All new pages for the customer portal.
--   : Updated with completion of Customer Portal and Pricing Calculator.
+-   : The new main entry point for the backend application.
+-   : Directory containing all extracted API route modules.
+-   : Directory containing all extracted Pydantic model definitions.
+-   : Modified to use  to fix the network error bug.
+-   : New component to embed the calculator in other forms.
+-    & : Modified to integrate the pricing calculator modal.
+-   : The original monolithic file, which still contains duplicated code that needs to be removed.
 
 **Areas that need refactoring**:
--   The monolithic backend at  is now critically oversized (over 5,000 lines) and complex. The user has agreed to a modular refactoring immediately after the pricing calculator is fully integrated.
+-   The  file is the top priority. It contains over 6,000 lines of code that are now redundant since the logic has been migrated to the new modular structure. The file must be cleaned up to only contain startup/shutdown logic and import routers from .
 
 **key api endpoints**
 -    (POST)
--    (GET)
+-    (POST)
 -    (GET/POST)
--    (POST): Calculates the price for a given job item configuration.
--    (GET/POST): Manages pricing calculator templates.
+-    (GET/POST)
+-    (GET/POST)
 
 **Critical Info for New Agent**
--   Your immediate priority is to finish the Pricing Calculator by implementing the Save as Template and Pricing Settings features, and then integrating the calculator into the Job/Quote creation workflows.
--   Once the calculator is done, the next user-approved task is to **refactor the monolithic backend**. This is a critical step for future development.
--   After refactoring, the next major task is implementing the backend logic for the **SaaS tier system**. The user has been provided with a comprehensive feature list and needs to decide which features belong to which tier.
+-   Your immediate priority is to complete the backend refactoring. The user has explicitly requested this. This involves removing the now-obsolete code from , as all models and routes have already been moved to their respective modules.
+-   The network error on the portal login has been fixed by replacing  with  in . The user who reported it should verify the fix.
+-   Once the refactoring is complete, the next major task is implementing the SaaS tier system, but this is blocked until the user provides the feature configuration for each tier.
 
 **documents and test reports created in this job**
--    (Customer Portal Test Report)
+-   
+-    (updated multiple times)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Asks what monolithic means.
-2.  **Agent:** Explains the problem with the monolithic backend and proposes a modular refactoring plan.
-3.  **User:** Agrees to refactor, but wants to build the pricing calculators first. Provides extremely detailed specifications for 7 calculator types.
-4.  **Agent:** Proposes a build order for the calculators, asks clarifying questions, and shows a UI mockup.
-5.  **User:** Answers the questions, approves the plan, and adds an 8th Custom/Manual category.
-6.  **Agent:** Implements the full backend and frontend for the standalone pricing calculator system.
-7.  **Agent:** Provides a summary of the completed calculator system.
-8.  **User:** Asks to add a Save as Template feature and a Pricing Settings page.
-9.  **Agent:** Agrees and begins implementing the template and settings features.
-10. **Agent's Last Action:** Mentions the next step is to integrate the calculator into Jobs/Quotes.
+1.  **User:** Asks to start the backend refactoring.
+2.  **Agent:** Acknowledges and starts the refactoring process, providing incremental updates.
+3.  **User:** Responds with continue to prompts, approving the continuation of the refactoring task.
+4.  **Agent:** Completes the extraction of all route modules from .
+5.  **User:** Reports a network error when trying to sign into the customer portal.
+6.  **Agent:** Investigates the portal login issue.
+7.  **Agent:** Identifies the issue is how the frontend handles API errors, not a server-side problem.
+8.  **Agent:** Replaces  with  in  to fix the error handling.
+9.  **Agent:** Confirms via screenshot that the correct API error message (Invalid email or password) is now displayed instead of a generic network error.
+10. **Agent:** The login functionality is now working as expected, awaiting user verification.
 
 **Project Health Check:**
--   **Broken:** The backend architecture is critically monolithic (). The risk of regression and development friction is very high until it is refactored.
+- **Broken:** The backend is in a transitional state. While functional, the old  contains thousands of lines of redundant code that has been migrated to the new modular structure. This redundancy needs to be eliminated to complete the refactoring.
 
 **3rd Party Integrations**
 -   **SendGrid:** For transactional emails.
+-   **axios:** Added to the frontend for robust API calls.
 -   **Affirm/Klarna:** Requested, but not yet implemented.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES, for the Customer Portal (iteration 12), with 100% success.
+-   **Testing agent used after significant changes:** YES. Used to validate the Pricing Calculator features, which uncovered and helped fix a token inconsistency bug. The report is at .
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:** None.
 -   **Known regressions:** None.
@@ -182,8 +161,8 @@ The application is a full-stack system (FastAPI, React, MongoDB) with user authe
 **Credentials to test flow:**
 -   Register a new user to create a new tenant and 'owner' account (e.g., ).
 -   Use the Preview Mode toggle in the bottom-right corner to test different tier views.
--   Navigate to  to test the new standalone pricing calculator.
--   Navigate to  to test the new customer portal. You will need to create a customer within the main app first and set a portal password for them.
+-   Navigate to  to test the standalone pricing calculator.
+-   To test the customer portal, create a customer within the main app, enable portal access, and set a password for them. Then navigate to .
 
 **What agent forgot to execute**
--   The agent has been diligent in following user requests. No major tasks were forgotten. The primary pending item is the backend refactoring, which was consciously deferred by the user.</analysis>
+-   The agent has followed user requests and priorities diligently. The conscious decision to switch from feature work to refactoring was driven by the user. No tasks were forgotten.</analysis>
