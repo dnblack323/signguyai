@@ -358,21 +358,36 @@ export const Sidebar = () => {
             {activeCategoryData.items.map((item) => {
               const ItemIcon = item.icon;
               const isItemActive = location.pathname === item.href;
+              const isLocked = item.tierLocked;
+              
+              const handleClick = (e) => {
+                if (isLocked && item.tierFeature) {
+                  e.preventDefault();
+                  requireFeature(item.tierFeature.category, item.tierFeature.feature);
+                }
+              };
               
               return (
                 <NavLink
                   key={item.href}
-                  to={item.href}
+                  to={isLocked ? '#' : item.href}
+                  onClick={handleClick}
                   data-testid={`nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
                   className={cn(
                     "flex items-center gap-3 px-4 py-2.5 text-sm transition-all duration-150",
-                    isItemActive 
+                    isLocked && "opacity-60 cursor-pointer",
+                    isItemActive && !isLocked
                       ? "bg-[#2F8BFB] text-white" 
+                      : isLocked
+                      ? "text-[#BDBDBD] hover:bg-white/5"
                       : "text-[#F2F2F2] hover:bg-[#2F8BFB] hover:text-white"
                   )}
                 >
                   <ItemIcon className="h-4 w-4" />
-                  <span>{item.name}</span>
+                  <span className="flex-1">{item.name}</span>
+                  {isLocked && (
+                    <Lock className="h-3.5 w-3.5 text-amber-500" />
+                  )}
                 </NavLink>
               );
             })}
