@@ -287,6 +287,20 @@ export const Sidebar = () => {
 
         {/* User Section */}
         <div className="border-t border-white/10 p-3 space-y-2">
+          {/* Tier Badge */}
+          {isExpanded && (
+            <div className="px-1 pb-2">
+              <TierBadge size="sm" />
+            </div>
+          )}
+          {!isExpanded && (
+            <Tooltip content={`${tier?.charAt(0).toUpperCase() + tier?.slice(1) || 'Starter'} Plan`} show={true}>
+              <div className="flex justify-center py-1">
+                <Zap className="w-4 h-4 text-blue-400" />
+              </div>
+            </Tooltip>
+          )}
+          
           {user && (
             <>
               <div className={cn(
