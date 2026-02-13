@@ -266,11 +266,12 @@ def get_quantity_discount(quantity: float, quantity_breaks: dict) -> float:
 async def calculate_promotional(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
     """Calculate pricing for promotional products"""
     base_cost = data.unit_cost or 0
-    if data.product_type == "magnets":
+    product_type = data.promo_product_type
+    if product_type == "magnets":
         base_cost = base_cost or 2.50
-    elif data.product_type == "yard_signs":
+    elif product_type == "yard_signs":
         base_cost = base_cost or 8.00
-    elif data.product_type == "stickers":
+    elif product_type == "stickers":
         base_cost = base_cost or 0.50
     
     setup_fee = data.setup_fee or 25.0
