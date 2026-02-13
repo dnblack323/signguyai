@@ -460,8 +460,8 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
 
 async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
     """Calculate pricing for rigid signs"""
-    width = data.width or 24
-    height = data.height or 18
+    width = data.width_inches or 24
+    height = data.length_inches or 18
     sqft = (width * height) / 144
     
     substrate_costs = {
@@ -475,7 +475,7 @@ async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defau
         "acrylic": 10.00,
         "dibond": 12.00,
         "mdo": 8.00,
-        "custom": data.material_cost_override or 5.00
+        "custom": getattr(data, 'material_cost_override', None) or 5.00
     }
     
     substrate = data.substrate_type or "coroplast_4mm"
@@ -486,11 +486,11 @@ async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defau
     print_cost = sqft * 3.00 * quantity
     
     finishing_cost = 0
-    if data.rounded_corners:
+    if getattr(data, 'rounded_corners', False):
         finishing_cost += 2.00 * quantity
-    if data.drill_holes:
-        finishing_cost += (data.num_holes or 4) * 0.50 * quantity
-    if data.stand or data.stake:
+    if getattr(data, 'drill_holes', False):
+        finishing_cost += (getattr(data, 'num_holes', 4) or 4) * 0.50 * quantity
+    if getattr(data, 'stand', False) or getattr(data, 'stake', False):
         finishing_cost += 5.00 * quantity
     
     hourly_rate = defaults.get("hourly_rate", 75)
