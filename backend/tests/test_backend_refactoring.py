@@ -671,8 +671,8 @@ class TestPricingRoutes:
         response = requests.post(f"{BASE_URL}/api/pricing/calculate", headers=auth_headers, json={
             "category": "cut_vinyl",
             "pricing_data": {
-                "width": 12,
-                "height": 12,
+                "width_inches": 12,
+                "length_inches": 12,
                 "vinyl_type": "oracal_651"
             },
             "quantity": 5
