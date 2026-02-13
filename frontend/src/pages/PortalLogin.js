@@ -68,33 +68,22 @@ export default function PortalLogin() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/portal/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: registerForm.email,
-          password: registerForm.password
-        })
+      const response = await axios.post(`${API_URL}/api/portal/auth/register`, {
+        email: registerForm.email,
+        password: registerForm.password
       });
-
-      let data;
-      try {
-        data = await response.json();
-      } catch (jsonError) {
-        data = { detail: 'Server error. Please try again.' };
-      }
-
-      if (response.ok) {
-        localStorage.setItem('portal_token', data.access_token);
-        localStorage.setItem('portal_customer_id', data.customer_id);
-        localStorage.setItem('portal_customer_name', data.customer_name);
-        navigate('/customer-portal');
-      } else {
-        setError(data.detail || `Registration failed (${response.status})`);
-      }
+      
+      localStorage.setItem('portal_token', response.data.access_token);
+      localStorage.setItem('portal_customer_id', response.data.customer_id);
+      localStorage.setItem('portal_customer_name', response.data.customer_name);
+      navigate('/customer-portal');
     } catch (err) {
       console.error('Registration error:', err);
-      setError('Network error. Please check your connection and try again.');
+      if (err.response?.data?.detail) {
+        setError(err.response.data.detail);
+      } else {
+        setError('Registration failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
