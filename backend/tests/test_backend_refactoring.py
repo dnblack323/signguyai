@@ -689,7 +689,7 @@ class TestPricingRoutes:
             "pricing_data": {
                 "apparel_type": "tshirt",
                 "transfer_type": "htv",
-                "print_locations": 1
+                "num_print_locations": 1
             },
             "quantity": 24
         })
