@@ -579,20 +579,28 @@ export const MainLayout = ({ children }) => {
       <MobileNav isOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
       {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 z-30 app-header flex items-center px-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setMobileOpen(true)}
-          className="text-[#F2F2F2] hover:bg-white/10"
-          data-testid="mobile-menu-toggle"
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
-        <h1 className="ml-4 font-heading font-semibold text-lg text-[#F2F2F2]">
-          {pageTitle}
-        </h1>
+      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 z-30 app-header flex items-center justify-between px-4">
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileOpen(true)}
+            className="text-[#F2F2F2] hover:bg-white/10"
+            data-testid="mobile-menu-toggle"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          <h1 className="ml-4 font-heading font-semibold text-lg text-[#F2F2F2]">
+            {pageTitle}
+          </h1>
+        </div>
+        <TrialCountdown />
       </header>
+
+      {/* Desktop Trial Countdown - Fixed top right */}
+      <div className="hidden lg:block fixed top-4 right-4 z-40">
+        <TrialCountdown />
+      </div>
 
       {/* Main Content */}
       <main className="lg:pl-16 pt-16 lg:pt-0 min-h-screen">
