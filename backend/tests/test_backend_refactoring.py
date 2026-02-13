@@ -1126,7 +1126,7 @@ class TestInvoiceFromJob:
         
         # Add job item
         requests.post(f"{BASE_URL}/api/jobs/{job_id}/items", headers=auth_headers, json={
-            "item_type": "sign",
+            "item_type": "banner",
             "description": "Test item for invoice",
             "quantity": 2,
             "unit_price": 150.00
