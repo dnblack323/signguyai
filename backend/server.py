@@ -307,8 +307,8 @@ async def calculate_promotional(data: JobItemPricingData, quantity: float, defau
 
 async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
     """Calculate pricing for cut vinyl"""
-    width = data.width or 12
-    height = data.height or 12
+    width = data.width_inches or 12
+    height = data.length_inches or 12
     sqft = (width * height) / 144
     
     vinyl_costs = {
@@ -318,7 +318,7 @@ async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, default
         "avery_hp750": 0.85,
         "reflective": 2.50,
         "specialty": 1.50,
-        "custom": data.material_cost_override or 1.00
+        "custom": getattr(data, 'material_cost_override', None) or 1.00
     }
     
     vinyl_type = data.vinyl_type or "oracal_651"
