@@ -5,12 +5,14 @@ import {
   LayoutDashboard, Users, FileText, Briefcase, Receipt, 
   Clock, DollarSign, CalendarDays, Sparkles, Store,
   Package, LogOut, User, Shield, ChevronRight, Menu, X, Crown, Building2, Settings,
-  Eye, ExternalLink, ChevronDown
+  Eye, ExternalLink, ChevronDown, Lock, Zap
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth, Permission } from '../context/AuthContext';
+import { useTier } from '../context/TierContext';
+import { TierBadge } from './UpgradeModal';
 
-// Navigation structure with categories, nested items, and required permissions
+// Navigation structure with categories, nested items, required permissions, and tier features
 const navigationCategories = [
   {
     id: 'main',
@@ -36,10 +38,10 @@ const navigationCategories = [
     label: 'Operations',
     icon: Clock,
     items: [
-      { name: 'Time Clock', href: '/timeclock', icon: Clock, permission: Permission.TIMECLOCK_VIEW_OWN },
-      { name: 'Payroll', href: '/payroll', icon: DollarSign, permission: Permission.PAYROLL_VIEW },
+      { name: 'Time Clock', href: '/timeclock', icon: Clock, permission: Permission.TIMECLOCK_VIEW_OWN, tierFeature: { category: 'core_modules', feature: 'time_clock' } },
+      { name: 'Payroll', href: '/payroll', icon: DollarSign, permission: Permission.PAYROLL_VIEW, tierFeature: { category: 'core_modules', feature: 'payroll' } },
       { name: 'Productivity', href: '/productivity', icon: CalendarDays },
-      { name: 'Financials', href: '/financials', icon: DollarSign, permission: Permission.FINANCIALS_VIEW },
+      { name: 'Financials', href: '/financials', icon: DollarSign, permission: Permission.FINANCIALS_VIEW, tierFeature: { category: 'core_modules', feature: 'financial_tracking' } },
     ]
   },
   {
