@@ -41,17 +41,40 @@ async def get_db():
 
 
 async def get_stripe():
-    """Get Stripe checkout instance"""
+    """Get Stripe API key"""
     api_key = os.environ.get('STRIPE_SECRET_KEY')
     if not api_key:
         raise HTTPException(status_code=500, detail="Stripe not configured")
     return api_key
 
 
-async def get_current_user_dep():
-    """Import to avoid circular dependency"""
-    from routes.tiers import get_current_user_dep
-    return get_current_user_dep
+# Import the user dependency directly
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+async def get_current_user_billing(credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False))):
+    """Get current user for billing routes"""
+    from server import db, SECRET_KEY, ALGORITHM
+    import jwt
+    
+    if credentials is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+    
+    return UserInDB(**user)
 
 
 # ============== PRICING PAGE (PUBLIC) ==============
