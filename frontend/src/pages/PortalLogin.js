@@ -32,7 +32,13 @@ export default function PortalLogin() {
         body: JSON.stringify(loginForm)
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        // If JSON parsing fails, create a generic error
+        data = { detail: 'Server error. Please try again.' };
+      }
 
       if (response.ok) {
         localStorage.setItem('portal_token', data.access_token);
@@ -40,10 +46,11 @@ export default function PortalLogin() {
         localStorage.setItem('portal_customer_name', data.customer_name);
         navigate('/customer-portal');
       } else {
-        setError(data.detail || 'Login failed');
+        setError(data.detail || `Login failed (${response.status})`);
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      console.error('Login error:', err);
+      setError('Network error. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
