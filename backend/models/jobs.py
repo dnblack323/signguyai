@@ -1,7 +1,7 @@
 """
 Quote, Job, and Invoice related Pydantic models.
 """
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime, timezone
 import uuid
