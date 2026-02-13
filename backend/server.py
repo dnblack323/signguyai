@@ -401,8 +401,8 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
 
 async def calculate_digital_print(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
     """Calculate pricing for digital prints"""
-    width = data.width or 24
-    height = data.height or 36
+    width = data.width_inches or 24
+    height = data.length_inches or 36
     sqft = (width * height) / 144
     
     material_costs = {
@@ -413,7 +413,7 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
         "canvas": 4.00,
         "backlit": 5.00,
         "perforated": 4.50,
-        "custom": data.material_cost_override or 2.00
+        "custom": getattr(data, 'material_cost_override', None) or 2.00
     }
     
     material = data.print_material or "banner_13oz"
@@ -422,11 +422,15 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
     material_cost = sqft * cost_per_sqft * quantity
     
     finishing_cost = 0
-    if data.grommets:
+    grommets = getattr(data, 'grommets', False)
+    hemming = getattr(data, 'hemming', False)
+    lamination = data.laminate
+    
+    if grommets:
         finishing_cost += 1.50 * quantity
-    if data.hemming:
+    if hemming:
         finishing_cost += (width + height) * 2 / 12 * 0.50 * quantity
-    if data.lamination:
+    if lamination:
         material_cost *= 1.4
     
     hourly_rate = defaults.get("hourly_rate", 75)
@@ -451,9 +455,9 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
             "material": material,
             "cost_per_sqft": cost_per_sqft,
             "finishing_cost": round(finishing_cost, 2),
-            "grommets": data.grommets,
-            "hemming": data.hemming,
-            "lamination": data.lamination
+            "grommets": grommets,
+            "hemming": hemming,
+            "lamination": lamination
         }
     )
 
