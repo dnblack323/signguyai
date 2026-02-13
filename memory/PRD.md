@@ -116,6 +116,21 @@ Build a web-based sign-shop operating system called "SignGuy AI" - a single dail
   - **Bug Fixes Applied:** Fixed pricing calculator field names, log_job_activity signature, PricingDefaults tenant_id requirement
   - **Maintainability:** Codebase now follows proper separation of concerns pattern
 
+- [x] **SaaS Tier System** ✅ COMPLETE
+  - **3-Tier Structure:** Starter (Free), Pro ($49/mo), Business ($149/mo)
+  - **15 Feature Categories:** Customer Portal, Webstores, Webstore Payments, B2B, Creator/Affiliate, Order Management, Pricing, Analytics, AI Tools, AI Business Assistant, Team, Core Modules, Communications, Integrations, Data
+  - **Feature States:** ON (unlimited), OFF (blocked with upgrade prompt), LIMITED (usage tracking)
+  - **Usage Tracking:** Automatic tracking for limited features (AI generations, team members, webstores, storage)
+  - **Upgrade Prompts:** Dynamic prompts showing which tier unlocks blocked features with pricing
+  - **API Endpoints:**
+    - `GET /api/tiers/plans` - List subscription plans (public)
+    - `GET /api/tiers/my-plan` - Current tenant's tier & all features
+    - `GET /api/tiers/check/{category}/{feature}` - Check specific feature access
+    - `POST /api/tiers/use/{category}/{feature}` - Consume limited feature
+    - `GET /api/tiers/usage` - View usage for all limited features
+    - `GET /api/tiers/upgrade-prompt/{category}/{feature}` - Get upgrade CTA
+  - **30 API Tests Passed:** Full tier system functionality verified
+
 ### Recent Updates (February 10, 2026) - COMPLETED
 - [x] **Webstores Phase 2: Enhanced Store Dashboard** ✅ COMPLETE
   - **Store Analytics Dashboard:** Total revenue, orders, profit, avg order value KPIs
