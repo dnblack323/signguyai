@@ -254,7 +254,9 @@ async def get_clock_status(employee_id: str):
 @payroll_router.post("/transactions", response_model=PayrollTransaction)
 async def create_payroll_transaction(input: PayrollTransactionCreate):
     """Create a payroll transaction (earnings, advance, payment)"""
-    transaction = PayrollTransaction(**input.model_dump())
+    # Filter out None values to allow defaults to work
+    input_data = {k: v for k, v in input.model_dump().items() if v is not None}
+    transaction = PayrollTransaction(**input_data)
     doc = transaction.model_dump()
     await db.payroll_transactions.insert_one(doc)
     return transaction
