@@ -34,10 +34,11 @@ export default function PortalLogin() {
 
       let data;
       try {
-        data = await response.json();
+        const text = await response.text();
+        data = JSON.parse(text);
       } catch (jsonError) {
-        // If JSON parsing fails, create a generic error
-        data = { detail: 'Server error. Please try again.' };
+        console.error('JSON parse error:', jsonError);
+        data = { detail: 'Invalid response from server' };
       }
 
       if (response.ok) {
