@@ -274,6 +274,7 @@ class TierConfig(BaseModel):
 # ============== USAGE TRACKING ==============
 
 class UsageType(str, Enum):
+    """Common usage types - but we also support arbitrary category.feature strings"""
     AI_GENERATIONS = "ai_generations"
     STORAGE_MB = "storage_mb"
     TEAM_MEMBERS = "team_members"
@@ -286,7 +287,7 @@ class TenantUsage(BaseModel):
     """Track usage for limited features"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    usage_type: UsageType
+    usage_type: str  # Can be UsageType enum or "category.feature" string
     current_usage: int = 0
     limit: int = 0
     period_start: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
