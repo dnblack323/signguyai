@@ -241,7 +241,7 @@ async def get_pricing_defaults(tenant_id: str) -> dict:
         return config
     
     # Return system defaults if no tenant-specific config
-    return PricingDefaults().model_dump()
+    return PricingDefaults(tenant_id=tenant_id).model_dump()
 
 
 def get_complexity_multiplier(complexity: int, base: float = 1.0, max_mult: float = 2.0) -> float:
