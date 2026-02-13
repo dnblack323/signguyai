@@ -95,8 +95,11 @@ class JobActivity(BaseModel):
     job_id: str
     activity_type: JobActivityType
     description: str
+    user_id: Optional[str] = None
+    user_name: Optional[str] = None
     old_value: Optional[str] = None
     new_value: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
