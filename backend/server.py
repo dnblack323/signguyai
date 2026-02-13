@@ -361,7 +361,7 @@ async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, default
 async def calculate_services(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
     """Calculate pricing for services (design, installation, etc.)"""
     hourly_rate = defaults.get("hourly_rate", 75)
-    hours = data.labor_hours or 1
+    hours = data.estimated_hours or 1
     
     service_rates = {
         "design": hourly_rate * 1.2,
@@ -377,7 +377,7 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
     rate = service_rates.get(service_type, hourly_rate)
     
     labor_cost = rate * hours * quantity
-    material_cost = data.material_cost_override or 0
+    material_cost = getattr(data, 'material_cost_override', None) or 0
     
     total_cost = labor_cost + material_cost
     
