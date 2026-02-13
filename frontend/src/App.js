@@ -105,6 +105,13 @@ function App() {
                 {/* Public Storefront - No Auth Required */}
                 <Route path="/store/:storeId" element={<Storefront />} />
                 
+                {/* Public Pricing Page */}
+                <Route path="/pricing-plans" element={<PricingPage />} />
+                
+                {/* Billing Routes */}
+                <Route path="/billing/success" element={<BillingSuccess />} />
+                <Route path="/billing/cancel" element={<BillingCancel />} />
+                
                 {/* Customer Portal Routes - Separate Auth */}
                 <Route path="/customer-portal/login" element={<PortalLogin />} />
                 <Route path="/customer-portal" element={<PortalDashboard />} />
