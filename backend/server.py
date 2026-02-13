@@ -215,8 +215,10 @@ async def log_job_activity(
     job_id: str,
     activity_type: JobActivityType,
     description: str,
-    user_id: str,
-    user_name: str,
+    user_id: Optional[str] = None,
+    user_name: Optional[str] = None,
+    old_value: Optional[str] = None,
+    new_value: Optional[str] = None,
     metadata: Optional[dict] = None
 ):
     """Log an activity for a job"""
@@ -226,6 +228,8 @@ async def log_job_activity(
         description=description,
         user_id=user_id,
         user_name=user_name,
+        old_value=old_value,
+        new_value=new_value,
         metadata=metadata or {}
     )
     await db.job_activities.insert_one(activity.model_dump())
