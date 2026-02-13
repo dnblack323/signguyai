@@ -37,6 +37,11 @@ import { PortalMessages, PortalConversation } from "./pages/PortalMessages";
 import PortalProfile from "./pages/PortalProfile";
 import { PortalQuotes, PortalInvoices, PortalAppointments } from "./pages/PortalPages";
 
+// Billing Pages
+import PricingPage from "./pages/PricingPage";
+import BillingSuccess from "./pages/BillingSuccess";
+import BillingCancel from "./pages/BillingCancel";
+
 import "./App.css";
 
 // Loading Screen Component
