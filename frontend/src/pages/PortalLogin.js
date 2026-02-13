@@ -32,14 +32,7 @@ export default function PortalLogin() {
         body: JSON.stringify(loginForm)
       });
 
-      let data;
-      try {
-        const text = await response.text();
-        data = JSON.parse(text);
-      } catch (jsonError) {
-        console.error('JSON parse error:', jsonError);
-        data = { detail: 'Invalid response from server' };
-      }
+      const data = await response.json();
 
       if (response.ok) {
         localStorage.setItem('portal_token', data.access_token);
@@ -47,11 +40,11 @@ export default function PortalLogin() {
         localStorage.setItem('portal_customer_name', data.customer_name);
         navigate('/customer-portal');
       } else {
-        setError(data.detail || `Login failed (${response.status})`);
+        setError(data.detail || 'Invalid email or password');
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError('Network error. Please check your connection and try again.');
+      setError('Unable to connect. Please try again.');
     } finally {
       setLoading(false);
     }
