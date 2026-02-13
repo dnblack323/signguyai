@@ -604,7 +604,7 @@ async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, 
         "box_truck_24ft": 650,
         "trailer": 800,
         "semi": 1000,
-        "other": data.total_sqft or 200
+        "other": data.estimated_vehicle_sqft or 200
     }
     
     coverage_multipliers = {
@@ -621,9 +621,10 @@ async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, 
     actual_sqft = base_sqft * coverage_multipliers.get(coverage, 0.35)
     
     material_cost_sqft = 4.00
-    if data.wrap_type == "color_change":
+    wrap_type = getattr(data, 'wrap_type', None)
+    if wrap_type == "color_change":
         material_cost_sqft = 6.00
-    elif data.wrap_type == "printed":
+    elif wrap_type == "printed":
         material_cost_sqft = 5.00
     
     material_cost = actual_sqft * material_cost_sqft * quantity
@@ -635,7 +636,8 @@ async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, 
     labor_cost = labor_hours * install_rate
     
     design_cost = 0
-    if data.include_design:
+    include_design = getattr(data, 'include_design', False)
+    if include_design:
         complexity = data.complexity or 2
         design_cost = 150 * complexity
     
