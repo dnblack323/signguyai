@@ -534,7 +534,7 @@ async def calculate_apparel(data: JobItemPricingData, quantity: float, defaults:
         "tank": 4.00,
         "longsleeve": 8.00,
         "jacket": 25.00,
-        "other": data.garment_cost or 10.00
+        "other": data.blank_cost_override or 10.00
     }
     
     apparel_type = data.apparel_type or "tshirt"
@@ -551,7 +551,7 @@ async def calculate_apparel(data: JobItemPricingData, quantity: float, defaults:
     transfer_type = data.transfer_type or "htv"
     decoration_cost = transfer_costs.get(transfer_type, 3.00)
     
-    num_locations = data.print_locations or 1
+    num_locations = data.num_print_locations or 1
     decoration_cost *= num_locations
     
     material_cost = (garment_cost + decoration_cost) * quantity
