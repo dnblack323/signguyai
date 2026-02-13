@@ -84,8 +84,16 @@ async def get_pricing_plans():
     """Get all available pricing plans for the pricing page (public)"""
     plans = []
     
-    # Paid Trial
+    # Paid Trial - show first 6 features
     trial = FOUNDER_PRICING[SubscriptionPlan.PAID_TRIAL]
+    trial_features = [
+        "5 Webstores",
+        "100 AI generations/month",
+        "5 Team members",
+        "1GB Storage",
+        "Time Clock & Payroll",
+        "Kanban & Calendar"
+    ]
     plans.append(PricingPlan(
         id=SubscriptionPlan.PAID_TRIAL.value,
         name=trial["name"],
@@ -93,7 +101,7 @@ async def get_pricing_plans():
         regular_price=trial["regular_price"],
         description=trial["description"],
         tier=trial["tier"],
-        features=TIER_FEATURES["pro"][:5],  # First 5 features
+        features=trial_features,
         is_popular=False
     ))
     
