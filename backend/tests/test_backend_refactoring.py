@@ -467,7 +467,7 @@ class TestJobRoutes:
     def test_add_job_item(self, auth_headers, test_job):
         """Test POST /api/jobs/{id}/items adds item"""
         response = requests.post(f"{BASE_URL}/api/jobs/{test_job['id']}/items", headers=auth_headers, json={
-            "item_type": "sign",
+            "item_type": "banner",
             "description": "Test Sign Item",
             "quantity": 2,
             "unit_price": 50.00
