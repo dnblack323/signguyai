@@ -666,10 +666,10 @@ async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, 
 
 async def calculate_custom(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
     """Calculate pricing for custom items"""
-    material_cost = (data.material_cost_override or 0) * quantity
+    material_cost = (getattr(data, 'material_cost_override', None) or 0) * quantity
     
     hourly_rate = defaults.get("hourly_rate", 75)
-    labor_hours = data.labor_hours or 1
+    labor_hours = data.estimated_hours or 1
     labor_cost = labor_hours * hourly_rate * quantity
     
     total_cost = material_cost + labor_cost
@@ -677,8 +677,9 @@ async def calculate_custom(data: JobItemPricingData, quantity: float, defaults: 
     markup = defaults.get("default_markup", 2.5)
     suggested_price = total_cost * markup
     
-    if data.custom_price:
-        suggested_price = data.custom_price * quantity
+    custom_price = data.price_override if data.override_enabled else None
+    if custom_price:
+        suggested_price = custom_price * quantity
     
     return PricingCalculation(
         material_cost=round(material_cost, 2),
