@@ -11,6 +11,7 @@ import { Button } from './ui/button';
 import { useAuth, Permission } from '../context/AuthContext';
 import { useTier } from '../context/TierContext';
 import { TierBadge } from './UpgradeModal';
+import { TrialCountdown } from './TrialLockout';
 
 // Navigation structure with categories, nested items, required permissions, and tier features
 const navigationCategories = [
