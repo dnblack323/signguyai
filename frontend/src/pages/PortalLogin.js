@@ -27,25 +27,23 @@ export default function PortalLogin() {
     setError('');
 
     try {
-      const response = await fetch(`${API_URL}/api/portal/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(loginForm)
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem('portal_token', data.access_token);
-        localStorage.setItem('portal_customer_id', data.customer_id);
-        localStorage.setItem('portal_customer_name', data.customer_name);
-        navigate('/customer-portal');
-      } else {
-        setError(data.detail || 'Invalid email or password');
-      }
+      const response = await axios.post(`${API_URL}/api/portal/auth/login`, loginForm);
+      
+      localStorage.setItem('portal_token', response.data.access_token);
+      localStorage.setItem('portal_customer_id', response.data.customer_id);
+      localStorage.setItem('portal_customer_name', response.data.customer_name);
+      navigate('/customer-portal');
     } catch (err) {
       console.error('Login error:', err);
-      setError('Unable to connect. Please try again.');
+      if (err.response?.data?.detail) {
+        setError(err.response.data.detail);
+      } else if (err.response?.status === 401) {
+        setError('Invalid email or password');
+      } else if (err.response?.status === 403) {
+        setError('Portal access is not enabled for this account');
+      } else {
+        setError('Unable to connect. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
