@@ -653,8 +653,8 @@ class TestPricingRoutes:
         response = requests.post(f"{BASE_URL}/api/pricing/calculate", headers=auth_headers, json={
             "category": "rigid_signs",
             "pricing_data": {
-                "width": 24,
-                "height": 18,
+                "width_inches": 24,
+                "length_inches": 18,
                 "substrate_type": "coroplast_4mm"
             },
             "quantity": 2
