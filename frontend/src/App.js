@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { TierProvider } from "./context/TierContext";
 import { MainLayout } from "./components/MainLayout";
 import { UpgradeModal } from "./components/UpgradeModal";
+import { TrialLockout } from "./components/TrialLockout";
 import { Toaster } from "./components/ui/sonner";
 import { Loader2 } from "lucide-react";
 
