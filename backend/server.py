@@ -743,6 +743,7 @@ from routes.pricing import router as pricing_router
 from routes.portal import router as portal_router
 from routes.webstores import webstores_router, products_router
 from routes.tiers import router as tiers_router
+from routes.billing import router as billing_router, webhook_router
 
 # Include all routers in the api_router
 api_router.include_router(auth_router)
@@ -760,6 +761,8 @@ api_router.include_router(portal_router)
 api_router.include_router(webstores_router)
 api_router.include_router(products_router)
 api_router.include_router(tiers_router)
+api_router.include_router(billing_router)
+api_router.include_router(webhook_router)
 
 # Include the api_router in the main app
 app.include_router(api_router)
