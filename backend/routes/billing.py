@@ -1,31 +1,27 @@
 """
-Billing & Subscription Routes
+Billing & Subscription Routes - Updated Pricing
 
-Handles:
-- Checkout sessions for trials and subscriptions
-- Subscription management
-- Stripe webhooks
-- Pricing page data
+Pricing Structure:
+- 24-Hour Free Trial (no payment)
+- 14-Day Extended Trial ($19.99)
+- Founder Pricing (first 100): Tier 1 $79, Tier 2 $129, Tier 3 $199, AI Add-on $49
+- Standard Pricing (after 100): $129, $229, $379, $89
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 import os
-
-from emergentintegrations.payments.stripe.checkout import (
-    StripeCheckout, 
-    CheckoutSessionRequest,
-    CheckoutSessionResponse,
-    CheckoutStatusResponse
-)
+import jwt
 
 from models.billing import (
     SubscriptionPlan, SubscriptionStatus, PaymentStatus,
-    FOUNDER_PRICING, TIER_FEATURES,
-    Subscription, PaymentTransaction,
+    FOUNDER_PRICING, STANDARD_PRICING, MAX_FOUNDER_ACCOUNTS,
+    TIER_FEATURES, FOUNDER_BENEFITS,
+    Subscription, FounderCounter, PaymentTransaction,
     CheckoutRequest, CheckoutResponse, SubscriptionResponse,
-    PricingPlan, TrialStatus
+    PricingPlan, PricingResponse, TrialStatus
 )
 from models import UserInDB
 
@@ -40,21 +36,9 @@ async def get_db():
     return db
 
 
-async def get_stripe():
-    """Get Stripe API key"""
-    api_key = os.environ.get('STRIPE_SECRET_KEY')
-    if not api_key:
-        raise HTTPException(status_code=500, detail="Stripe not configured")
-    return api_key
-
-
-# Import the user dependency directly
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-
 async def get_current_user_billing(credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False))):
     """Get current user for billing routes"""
     from server import db, SECRET_KEY, ALGORITHM
-    import jwt
     
     if credentials is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -77,99 +61,144 @@ async def get_current_user_billing(credentials: HTTPAuthorizationCredentials = D
     return UserInDB(**user)
 
 
+# ============== HELPER FUNCTIONS ==============
+
+async def get_founder_count(db) -> int:
+    """Get current number of founder accounts"""
+    counter = await db.founder_counter.find_one({"id": "founder_counter"})
+    return counter["count"] if counter else 0
+
+
+async def increment_founder_count(db) -> int:
+    """Increment founder count and return new number"""
+    result = await db.founder_counter.find_one_and_update(
+        {"id": "founder_counter"},
+        {
+            "$inc": {"count": 1},
+            "$set": {"last_updated": datetime.now(timezone.utc).isoformat()}
+        },
+        upsert=True,
+        return_document=True
+    )
+    return result["count"]
+
+
+async def is_founder_pricing_available(db) -> bool:
+    """Check if founder pricing is still available"""
+    count = await get_founder_count(db)
+    return count < MAX_FOUNDER_ACCOUNTS
+
+
+def get_pricing_config(is_founder: bool):
+    """Get the appropriate pricing configuration"""
+    return FOUNDER_PRICING if is_founder else STANDARD_PRICING
+
+
 # ============== PRICING PAGE (PUBLIC) ==============
 
-@router.get("/pricing")
-async def get_pricing_plans():
-    """Get all available pricing plans for the pricing page (public)"""
+@router.get("/pricing", response_model=PricingResponse)
+async def get_pricing_plans(db = Depends(get_db)):
+    """Get all available pricing plans for the pricing page"""
+    founder_count = await get_founder_count(db)
+    is_founder = founder_count < MAX_FOUNDER_ACCOUNTS
+    pricing = get_pricing_config(is_founder)
+    
     plans = []
     
-    # Paid Trial - show first 6 features
-    trial = FOUNDER_PRICING[SubscriptionPlan.PAID_TRIAL]
-    trial_features = [
-        "5 Webstores",
-        "100 AI generations/month",
-        "5 Team members",
-        "1GB Storage",
-        "Time Clock & Payroll",
-        "Kanban & Calendar"
-    ]
+    # Tier 1
+    t1 = pricing[SubscriptionPlan.TIER_1]
     plans.append(PricingPlan(
-        id=SubscriptionPlan.PAID_TRIAL.value,
-        name=trial["name"],
-        amount=trial["amount"],
-        regular_price=trial["regular_price"],
-        description=trial["description"],
-        tier=trial["tier"],
-        features=trial_features,
+        id=SubscriptionPlan.TIER_1.value,
+        name=t1["name"],
+        display_name=t1.get("display_name", "Starter Shop"),
+        amount=t1["amount"],
+        standard_price=t1.get("standard_price"),
+        savings=t1.get("standard_price", 0) - t1["amount"] if t1.get("standard_price") else None,
+        description=t1["description"],
+        interval=t1.get("interval", "month"),
+        tier=t1["tier"],
+        features=TIER_FEATURES["starter"],
+        onboarding_fee=t1.get("onboarding_fee", 0),
         is_popular=False
     ))
     
-    # Pro Monthly
-    pro_m = FOUNDER_PRICING[SubscriptionPlan.PRO_MONTHLY]
+    # Tier 2
+    t2 = pricing[SubscriptionPlan.TIER_2]
     plans.append(PricingPlan(
-        id=SubscriptionPlan.PRO_MONTHLY.value,
-        name=pro_m["name"],
-        amount=pro_m["amount"],
-        regular_price=pro_m["regular_price"],
-        description=pro_m["description"],
-        interval="month",
-        tier=pro_m["tier"],
+        id=SubscriptionPlan.TIER_2.value,
+        name=t2["name"],
+        display_name=t2.get("display_name", "Growth Shop"),
+        amount=t2["amount"],
+        standard_price=t2.get("standard_price"),
+        savings=t2.get("standard_price", 0) - t2["amount"] if t2.get("standard_price") else None,
+        description=t2["description"],
+        interval=t2.get("interval", "month"),
+        tier=t2["tier"],
         features=TIER_FEATURES["pro"],
+        onboarding_fee=t2.get("onboarding_fee", 0),
         is_popular=True
     ))
     
-    # Pro Yearly
-    pro_y = FOUNDER_PRICING[SubscriptionPlan.PRO_YEARLY]
+    # Tier 3
+    t3 = pricing[SubscriptionPlan.TIER_3]
     plans.append(PricingPlan(
-        id=SubscriptionPlan.PRO_YEARLY.value,
-        name=pro_y["name"],
-        amount=pro_y["amount"],
-        regular_price=pro_y["regular_price"],
-        savings=pro_y["savings"],
-        description=pro_y["description"],
-        interval="year",
-        tier=pro_y["tier"],
-        features=TIER_FEATURES["pro"],
-        monthly_equivalent=pro_y["monthly_equivalent"],
-        is_popular=False
-    ))
-    
-    # Business Monthly
-    biz_m = FOUNDER_PRICING[SubscriptionPlan.BUSINESS_MONTHLY]
-    plans.append(PricingPlan(
-        id=SubscriptionPlan.BUSINESS_MONTHLY.value,
-        name=biz_m["name"],
-        amount=biz_m["amount"],
-        regular_price=biz_m["regular_price"],
-        description=biz_m["description"],
-        interval="month",
-        tier=biz_m["tier"],
+        id=SubscriptionPlan.TIER_3.value,
+        name=t3["name"],
+        display_name=t3.get("display_name", "Pro Shop"),
+        amount=t3["amount"],
+        standard_price=t3.get("standard_price"),
+        savings=t3.get("standard_price", 0) - t3["amount"] if t3.get("standard_price") else None,
+        description=t3["description"],
+        interval=t3.get("interval", "month"),
+        tier=t3["tier"],
         features=TIER_FEATURES["business"],
+        onboarding_fee=t3.get("onboarding_fee", 0),
         is_popular=False
     ))
     
-    # Business Yearly
-    biz_y = FOUNDER_PRICING[SubscriptionPlan.BUSINESS_YEARLY]
-    plans.append(PricingPlan(
-        id=SubscriptionPlan.BUSINESS_YEARLY.value,
-        name=biz_y["name"],
-        amount=biz_y["amount"],
-        regular_price=biz_y["regular_price"],
-        savings=biz_y["savings"],
-        description=biz_y["description"],
-        interval="year",
-        tier=biz_y["tier"],
-        features=TIER_FEATURES["business"],
-        monthly_equivalent=biz_y["monthly_equivalent"],
-        is_popular=False
-    ))
+    # AI Add-on
+    ai = pricing[SubscriptionPlan.AI_ADDON]
+    addon = PricingPlan(
+        id=SubscriptionPlan.AI_ADDON.value,
+        name=ai["name"],
+        display_name=ai.get("display_name", "AI Tools Pack"),
+        amount=ai["amount"],
+        standard_price=ai.get("standard_price"),
+        savings=ai.get("standard_price", 0) - ai["amount"] if ai.get("standard_price") else None,
+        description=ai["description"],
+        interval=ai.get("interval", "month"),
+        tier=ai["tier"],
+        features=TIER_FEATURES["ai_addon"],
+        is_addon=True
+    )
     
-    return {
-        "plans": [p.model_dump() for p in plans],
-        "founder_pricing": True,
-        "founder_message": "🎉 Founder Member Pricing - Lock in these rates forever!"
-    }
+    # Extended Trial
+    trial_info = pricing[SubscriptionPlan.EXTENDED_TRIAL]
+    trial = PricingPlan(
+        id=SubscriptionPlan.EXTENDED_TRIAL.value,
+        name=trial_info["name"],
+        display_name="Extended Trial",
+        amount=trial_info["amount"],
+        description=trial_info["description"],
+        tier=trial_info["tier"],
+        features=[
+            "Full platform access",
+            "All features unlocked",
+            "Live support access",
+            "Onboarding assistance",
+            "$19.99 credits to Tier 3 subscription"
+        ]
+    )
+    
+    return PricingResponse(
+        is_founder_pricing=is_founder,
+        founders_remaining=max(0, MAX_FOUNDER_ACCOUNTS - founder_count),
+        founders_claimed=founder_count,
+        plans=plans,
+        addon=addon,
+        trial=trial,
+        founder_benefits=FOUNDER_BENEFITS if is_founder else []
+    )
 
 
 # ============== TRIAL STATUS ==============
@@ -230,10 +259,11 @@ async def get_trial_status(
             remaining = trial_end - now
             return TrialStatus(
                 is_trial=True,
-                trial_type=sub.plan.value,
+                trial_type="extended_trial" if sub.extended_trial_paid else "free_trial",
                 days_remaining=round(remaining.days + remaining.seconds / 86400, 1),
                 is_locked=False,
-                can_upgrade=True
+                can_upgrade=True,
+                extended_trial_paid=sub.extended_trial_paid
             )
     
     return TrialStatus(
@@ -253,25 +283,39 @@ async def create_checkout_session(
     current_user: UserInDB = Depends(get_current_user_billing)
 ):
     """Create a Stripe checkout session for subscription"""
-    api_key = await get_stripe()
+    from emergentintegrations.payments.stripe.checkout import (
+        StripeCheckout, CheckoutSessionRequest
+    )
+    
+    api_key = os.environ.get('STRIPE_SECRET_KEY')
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Stripe not configured")
+    
+    # Check if founder pricing is available
+    is_founder = await is_founder_pricing_available(db)
+    pricing = get_pricing_config(is_founder)
     
     # Validate plan
-    if request.plan not in FOUNDER_PRICING:
+    if request.plan not in pricing:
         raise HTTPException(status_code=400, detail="Invalid plan")
     
-    plan_info = FOUNDER_PRICING[request.plan]
+    plan_info = pricing[request.plan]
     amount = float(plan_info["amount"])
+    
+    # Add AI addon if requested
+    if request.include_ai_addon and request.plan != SubscriptionPlan.AI_ADDON:
+        ai_info = pricing[SubscriptionPlan.AI_ADDON]
+        amount += float(ai_info["amount"])
     
     # Build URLs
     origin = request.origin_url.rstrip('/')
     success_url = f"{origin}/billing/success?session_id={{CHECKOUT_SESSION_ID}}"
     cancel_url = f"{origin}/billing/cancel"
     
-    # Initialize Stripe
+    # Create checkout session
     webhook_url = f"{str(http_request.base_url).rstrip('/')}/api/webhook/stripe"
     stripe_checkout = StripeCheckout(api_key=api_key, webhook_url=webhook_url)
     
-    # Create checkout session
     checkout_request = CheckoutSessionRequest(
         amount=amount,
         currency="usd",
@@ -283,11 +327,12 @@ async def create_checkout_session(
             "email": current_user.email,
             "plan": request.plan.value,
             "tier": plan_info["tier"],
-            "is_founder": "true"
+            "is_founder": str(is_founder).lower(),
+            "include_ai_addon": str(request.include_ai_addon).lower()
         }
     )
     
-    session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
+    session = await stripe_checkout.create_checkout_session(checkout_request)
     
     # Create payment transaction record
     transaction = PaymentTransaction(
@@ -299,9 +344,11 @@ async def create_checkout_session(
         currency="usd",
         plan=request.plan,
         payment_status=PaymentStatus.INITIATED,
+        is_founder_purchase=is_founder,
         metadata={
             "plan_name": plan_info["name"],
-            "tier": plan_info["tier"]
+            "tier": plan_info["tier"],
+            "include_ai_addon": request.include_ai_addon
         }
     )
     
@@ -317,22 +364,23 @@ async def get_checkout_status(
     current_user: UserInDB = Depends(get_current_user_billing)
 ):
     """Get status of a checkout session"""
-    api_key = await get_stripe()
+    from emergentintegrations.payments.stripe.checkout import StripeCheckout
+    
+    api_key = os.environ.get('STRIPE_SECRET_KEY')
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Stripe not configured")
     
     stripe_checkout = StripeCheckout(api_key=api_key, webhook_url="")
-    
-    status: CheckoutStatusResponse = await stripe_checkout.get_checkout_status(session_id)
+    status = await stripe_checkout.get_checkout_status(session_id)
     
     # Update transaction if paid
     if status.payment_status == "paid":
-        # Check if already processed
         existing = await db.payment_transactions.find_one({
             "stripe_session_id": session_id,
             "payment_status": PaymentStatus.PAID.value
         })
         
         if not existing:
-            # Update transaction
             await db.payment_transactions.update_one(
                 {"stripe_session_id": session_id},
                 {
@@ -344,13 +392,12 @@ async def get_checkout_status(
                 }
             )
             
-            # Process subscription activation
             await _activate_subscription(db, session_id, status.metadata)
     
     return {
         "status": status.status,
         "payment_status": status.payment_status,
-        "amount": status.amount_total / 100,  # Convert cents to dollars
+        "amount": status.amount_total / 100,
         "currency": status.currency
     }
 
@@ -359,7 +406,9 @@ async def _activate_subscription(db, session_id: str, metadata: dict):
     """Activate subscription after successful payment"""
     tenant_id = metadata.get("tenant_id")
     plan_str = metadata.get("plan")
-    tier = metadata.get("tier", "pro")
+    tier = metadata.get("tier", "starter")
+    is_founder = metadata.get("is_founder", "false") == "true"
+    include_ai_addon = metadata.get("include_ai_addon", "false") == "true"
     
     if not tenant_id or not plan_str:
         return
@@ -369,43 +418,56 @@ async def _activate_subscription(db, session_id: str, metadata: dict):
     except ValueError:
         return
     
-    plan_info = FOUNDER_PRICING.get(plan, {})
-    
-    # Calculate trial/subscription period
     now = datetime.now(timezone.utc)
+    founder_number = None
     
-    if plan == SubscriptionPlan.PAID_TRIAL:
-        # 14-day trial
+    # Assign founder number if applicable
+    if is_founder and plan != SubscriptionPlan.EXTENDED_TRIAL:
+        founder_number = await increment_founder_count(db)
+    
+    # Get transaction for amount
+    transaction = await db.payment_transactions.find_one({"stripe_session_id": session_id})
+    amount_paid = transaction.get("amount", 0) if transaction else 0
+    
+    if plan == SubscriptionPlan.EXTENDED_TRIAL:
+        # 14-day extended trial
         trial_end = now + timedelta(days=14)
         subscription_data = {
             "tenant_id": tenant_id,
             "plan": plan.value,
             "status": SubscriptionStatus.TRIALING.value,
-            "tier": tier,
-            "is_founder": True,
-            "founder_locked_at": now.isoformat(),
+            "tier": "business",  # Full access during trial
+            "is_founder": is_founder,
+            "has_ai_addon": True,  # Full access during trial
             "trial_start": now.isoformat(),
             "trial_end": trial_end.isoformat(),
-            "trial_credits_applied": plan_info.get("amount", 0),
+            "trial_credits_applied": amount_paid,  # $19.99 credits toward Tier 3
+            "extended_trial_paid": True,
             "created_at": now.isoformat(),
             "updated_at": now.isoformat()
         }
     else:
         # Regular subscription
-        if "yearly" in plan.value:
-            period_end = now + timedelta(days=365)
-        else:
-            period_end = now + timedelta(days=30)
+        period_end = now + timedelta(days=30)
+        
+        # Check if user has trial credits to apply to Tier 3
+        existing_sub = await db.subscriptions.find_one({"tenant_id": tenant_id})
+        trial_credits = 0
+        if existing_sub and plan == SubscriptionPlan.TIER_3:
+            trial_credits = existing_sub.get("trial_credits_applied", 0)
         
         subscription_data = {
             "tenant_id": tenant_id,
             "plan": plan.value,
             "status": SubscriptionStatus.ACTIVE.value,
             "tier": tier,
-            "is_founder": True,
-            "founder_locked_at": now.isoformat(),
+            "is_founder": is_founder,
+            "founder_number": founder_number,
+            "founder_locked_at": now.isoformat() if is_founder else None,
+            "has_ai_addon": include_ai_addon or plan == SubscriptionPlan.AI_ADDON,
             "current_period_start": now.isoformat(),
             "current_period_end": period_end.isoformat(),
+            "trial_credits_applied": trial_credits,
             "created_at": now.isoformat(),
             "updated_at": now.isoformat()
         }
@@ -458,27 +520,49 @@ async def get_subscription(
         
         return SubscriptionResponse(
             plan="free_trial",
+            plan_name="24-Hour Free Trial",
             status=status,
-            tier="pro",  # Full access during 24hr trial
-            is_founder=True,
+            tier="business",  # Full access during trial
+            is_founder=await is_founder_pricing_available(db),
             trial_end=trial_end,
-            features=TIER_FEATURES["pro"]
+            features=TIER_FEATURES["business"]
         )
     
     sub = Subscription(**subscription)
     tier_features = TIER_FEATURES.get(sub.tier, [])
     
+    # Get plan name
+    is_founder = sub.is_founder
+    pricing = get_pricing_config(is_founder)
+    plan_info = pricing.get(sub.plan, {})
+    plan_name = plan_info.get("name", sub.plan)
+    
     return SubscriptionResponse(
         plan=sub.plan.value if isinstance(sub.plan, SubscriptionPlan) else sub.plan,
+        plan_name=plan_name,
         status=sub.status.value if isinstance(sub.status, SubscriptionStatus) else sub.status,
         tier=sub.tier,
         is_founder=sub.is_founder,
+        founder_number=sub.founder_number,
+        has_ai_addon=sub.has_ai_addon,
         trial_end=sub.trial_end,
         current_period_end=sub.current_period_end,
         cancel_at_period_end=sub.cancel_at_period_end,
         trial_credits=sub.trial_credits_applied,
         features=tier_features
     )
+
+
+@router.get("/founder-status")
+async def get_founder_status(db = Depends(get_db)):
+    """Get current founder account availability (public)"""
+    count = await get_founder_count(db)
+    return {
+        "founders_claimed": count,
+        "founders_remaining": max(0, MAX_FOUNDER_ACCOUNTS - count),
+        "is_founder_pricing_available": count < MAX_FOUNDER_ACCOUNTS,
+        "max_founders": MAX_FOUNDER_ACCOUNTS
+    }
 
 
 @router.get("/payment-history")
@@ -500,6 +584,7 @@ async def get_payment_history(
                 "currency": t["currency"],
                 "plan": t["plan"],
                 "status": t["payment_status"],
+                "is_founder": t.get("is_founder_purchase", False),
                 "created_at": t["created_at"],
                 "paid_at": t.get("paid_at")
             }
@@ -513,6 +598,8 @@ async def get_payment_history(
 @webhook_router.post("/webhook/stripe")
 async def stripe_webhook(request: Request, db = Depends(get_db)):
     """Handle Stripe webhook events"""
+    from emergentintegrations.payments.stripe.checkout import StripeCheckout
+    
     api_key = os.environ.get('STRIPE_SECRET_KEY')
     if not api_key:
         raise HTTPException(status_code=500, detail="Stripe not configured")
@@ -525,10 +612,8 @@ async def stripe_webhook(request: Request, db = Depends(get_db)):
     try:
         event = await stripe_checkout.handle_webhook(body, signature)
         
-        # Handle checkout.session.completed
         if event.event_type == "checkout.session.completed":
             if event.payment_status == "paid":
-                # Update transaction
                 await db.payment_transactions.update_one(
                     {"stripe_session_id": event.session_id},
                     {
@@ -539,11 +624,8 @@ async def stripe_webhook(request: Request, db = Depends(get_db)):
                         }
                     }
                 )
-                
-                # Activate subscription
                 await _activate_subscription(db, event.session_id, event.metadata)
         
-        # Handle payment_intent.payment_failed
         elif event.event_type == "payment_intent.payment_failed":
             await db.payment_transactions.update_one(
                 {"stripe_session_id": event.session_id},
