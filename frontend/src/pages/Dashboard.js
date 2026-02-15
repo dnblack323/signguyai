@@ -38,14 +38,14 @@ const StatCard = ({ title, value, icon: Icon, subtitle, href }) => (
 
 const getStatusBadgeStyles = (status) => {
   const styles = {
-    quoted: { backgroundColor: 'rgba(47, 139, 251, 0.15)', color: '#2F8BFB' },
-    in_production: { backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#d97706' },
-    complete: { backgroundColor: 'rgba(34, 197, 94, 0.15)', color: '#16a34a' },
-    delivered: { backgroundColor: 'rgba(34, 197, 94, 0.15)', color: '#16a34a' },
-    overdue: { backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#dc2626' },
-    paid: { backgroundColor: 'rgba(34, 197, 94, 0.15)', color: '#16a34a' },
-    sent: { backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#d97706' },
-    draft: { backgroundColor: '#F5F7FA', color: '#5A5A5A' },
+    quoted: { backgroundColor: 'var(--accent-soft)', color: 'var(--accent)' },
+    in_production: { backgroundColor: 'var(--warning-soft)', color: 'var(--warning)' },
+    complete: { backgroundColor: 'var(--success-soft)', color: 'var(--success)' },
+    delivered: { backgroundColor: 'var(--success-soft)', color: 'var(--success)' },
+    overdue: { backgroundColor: 'var(--danger-soft)', color: 'var(--danger)' },
+    paid: { backgroundColor: 'var(--success-soft)', color: 'var(--success)' },
+    sent: { backgroundColor: 'var(--warning-soft)', color: 'var(--warning)' },
+    draft: { backgroundColor: 'var(--surface-2)', color: 'var(--text-muted)' },
   };
   return styles[status] || styles.draft;
 };
