@@ -498,45 +498,118 @@
 }
 
 /* ============================================
-   OVERRIDE SHADCN DEFAULTS FOR BLENDED THEME
+   OVERRIDE SHADCN DEFAULTS FOR THEME
    ============================================ */
 
 /* Ensure buttons use the correct blue */
 .bg-primary {
-    background-color: var(--brand-primary) !important;
+    background-color: var(--accent) !important;
 }
 
 .text-primary {
-    color: var(--brand-primary) !important;
+    color: var(--accent) !important;
 }
 
 .border-primary {
-    border-color: var(--brand-primary) !important;
+    border-color: var(--accent) !important;
 }
 
-/* Fix card backgrounds */
+/* Fix card backgrounds - cards should be light surfaces */
 [data-slot="card"],
 .card {
-    background-color: var(--panel-bg-secondary);
-    border-color: var(--panel-border);
+    background-color: var(--surface);
+    border-color: var(--border-light);
+    color: var(--text);
 }
 
-/* Fix input styles */
+/* Fix input styles - inputs should have light backgrounds */
 input, textarea, select {
-    background-color: var(--panel-bg-secondary) !important;
-    border-color: var(--panel-border) !important;
-    color: var(--panel-text) !important;
+    background-color: var(--surface) !important;
+    border-color: var(--border-light) !important;
+    color: var(--text) !important;
 }
 
 input::placeholder,
 textarea::placeholder {
-    color: var(--panel-text-secondary) !important;
+    color: var(--text-muted) !important;
     opacity: 0.7 !important;
 }
 
-/* Fix dialog/modal backgrounds */
+/* Fix dialog/modal backgrounds - should be light surfaces */
 [role="dialog"] {
-    background-color: var(--panel-bg-secondary);
+    background-color: var(--surface);
+    color: var(--text);
+}
+
+/* Dialog content should use light theme */
+[role="dialog"] h1,
+[role="dialog"] h2,
+[role="dialog"] h3,
+[role="dialog"] h4,
+[role="dialog"] p,
+[role="dialog"] label,
+[role="dialog"] span {
+    color: var(--text);
+}
+
+[role="dialog"] .text-muted-foreground {
+    color: var(--text-muted) !important;
+}
+
+/* Fix select dropdowns */
+[role="listbox"] {
+    background-color: var(--surface) !important;
+    border-color: var(--border-light) !important;
+}
+
+[role="option"] {
+    color: var(--text) !important;
+}
+
+[role="option"]:hover,
+[role="option"][data-highlighted] {
+    background-color: var(--accent-soft) !important;
+}
+
+/* Table styling on light surfaces */
+table {
+    color: var(--text);
+}
+
+thead {
+    background-color: var(--surface-2);
+}
+
+th {
+    color: var(--text) !important;
+    font-weight: 600;
+}
+
+td {
+    color: var(--text);
+}
+
+tr:nth-child(even) {
+    background-color: var(--surface-2);
+}
+
+tr:hover {
+    background-color: var(--accent-soft);
+}
+
+/* Dropdown menu styling */
+[role="menu"] {
+    background-color: var(--surface) !important;
+    border-color: var(--border-light) !important;
+}
+
+[role="menuitem"] {
+    color: var(--text) !important;
+}
+
+[role="menuitem"]:hover,
+[role="menuitem"][data-highlighted] {
+    background-color: var(--accent-soft) !important;
 }
 
 /* ============================================
