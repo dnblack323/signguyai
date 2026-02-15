@@ -426,7 +426,7 @@ export default function AITools() {
     <div className="space-y-6 animate-fade-in" data-testid="ai-tools-page">
       {/* Header */}
       <div>
-        <h1 className="text-4xl font-bold font-heading uppercase tracking-tight">AI Tools Suite</h1>
+        <h1 className="text-4xl font-bold font-heading uppercase tracking-tight" style={{ color: 'var(--text)' }}>AI Tools Suite</h1>
         <p className="text-muted-foreground mt-1">15 AI-powered tools for design, branding, business, and marketing</p>
       </div>
 

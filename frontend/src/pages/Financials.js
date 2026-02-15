@@ -194,7 +194,7 @@ export default function Financials() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight">Financials</h1>
+          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight" style={{ color: 'var(--text)' }}>Financials</h1>
           <p className="text-muted-foreground mt-1">Track sales, expenses, and taxes</p>
         </div>
         <div className="flex gap-2">
