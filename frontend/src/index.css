@@ -432,8 +432,8 @@
    ============================================ */
 
 .tooltip {
-    background-color: var(--shell-bg);
-    color: var(--shell-text);
+    background-color: var(--sidebar);
+    color: var(--text-on-dark);
     padding: 6px 12px;
     border-radius: 6px;
     font-size: 12px;
@@ -445,36 +445,56 @@
    UTILITY CLASSES
    ============================================ */
 
+/* Text on dark surfaces (sidebar, header) */
 .text-on-dark {
-    color: var(--shell-text);
+    color: var(--text-on-dark);
 }
 
 .text-on-dark-muted {
-    color: var(--shell-text-muted);
+    color: var(--text-muted-on-dark);
 }
 
+/* Text on light surfaces (cards, panels) */
 .text-on-light {
-    color: var(--panel-text);
+    color: var(--text);
 }
 
 .text-on-light-muted {
-    color: var(--panel-text-secondary);
+    color: var(--text-muted);
 }
 
+/* Background utilities */
 .bg-shell {
-    background-color: var(--shell-bg);
+    background-color: var(--sidebar);
 }
 
-.bg-panel {
-    background-color: var(--panel-bg);
+.bg-app {
+    background-color: var(--bg);
 }
 
-.bg-panel-secondary {
-    background-color: var(--panel-bg-secondary);
+.bg-surface {
+    background-color: var(--surface);
 }
 
-.border-panel {
-    border-color: var(--panel-border);
+.bg-surface-2 {
+    background-color: var(--surface-2);
+}
+
+/* Border utilities */
+.border-light {
+    border-color: var(--border-light);
+}
+
+.border-dark {
+    border-color: var(--border-dark);
+}
+
+/* Content surface - for main content areas with light background */
+.content-surface {
+    background-color: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
 }
 
 /* ============================================
