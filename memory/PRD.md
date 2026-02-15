@@ -8,7 +8,7 @@ Build a web-based sign-shop operating system called "SignGuy AI" - a single dail
 - **Backend**: FastAPI (Python) with async MongoDB motor driver
 - **Database**: MongoDB
 - **AI Integration**: OpenAI GPT-5.2 via Emergent LLM key
-- **Theme**: Dark mode with electric teal (#00E0D0) accent
+- **Theme**: Dark shell + Light surface design system (charcoal black #0B0F14, light surfaces #F5F7FA)
 
 ## User Personas
 1. **Sign Shop Owners** - Need overview dashboards, financial tracking, business decisions
