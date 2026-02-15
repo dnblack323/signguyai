@@ -55,30 +55,30 @@ const RecentActivity = ({ jobs, invoices, onInvoiceClick }) => {
   const overdueInvoices = invoices?.filter(i => i.status === 'overdue') || [];
 
   return (
-    <div className="rounded-xl" style={{ backgroundColor: '#FFFFFF', border: '1px solid #D7DCE2' }}>
-      <div className="px-6 py-4" style={{ borderBottom: '1px solid #D7DCE2' }}>
-        <h2 className="font-heading text-lg font-semibold uppercase tracking-wide" style={{ color: '#1A1A1A' }}>
+    <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+      <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--border-light)' }}>
+        <h2 className="font-heading text-lg font-semibold uppercase tracking-wide" style={{ color: 'var(--text)' }}>
           Recent Activity
         </h2>
       </div>
       <div className="p-4 space-y-3">
         {recentJobs.length === 0 && overdueInvoices.length === 0 ? (
-          <p className="text-sm py-4 text-center" style={{ color: '#5A5A5A' }}>No recent activity</p>
+          <p className="text-sm py-4 text-center" style={{ color: 'var(--text-muted)' }}>No recent activity</p>
         ) : (
           <>
             {recentJobs.map(job => (
               <Link key={job.id} to={`/jobs/${job.id}`} data-testid={`recent-job-${job.id}`}>
                 <div 
                   className="flex items-center justify-between p-3 rounded-lg transition-all duration-150 hover:shadow-sm"
-                  style={{ backgroundColor: '#F5F7FA', border: '1px solid transparent' }}
-                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(47, 139, 251, 0.3)'}
+                  style={{ backgroundColor: 'var(--surface-2)', border: '1px solid transparent' }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent)'}
                   onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
                 >
                   <div className="flex items-center gap-3">
-                    <Briefcase className="h-4 w-4" style={{ color: '#5A5A5A' }} />
+                    <Briefcase className="h-4 w-4" style={{ color: 'var(--text-muted)' }} />
                     <div>
-                      <p className="font-medium text-sm" style={{ color: '#1A1A1A' }}>{job.name}</p>
-                      <p className="text-xs" style={{ color: '#5A5A5A' }}>
+                      <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>{job.name}</p>
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                         Due: {formatDate(job.due_date)}
                       </p>
                     </div>
@@ -98,13 +98,13 @@ const RecentActivity = ({ jobs, invoices, onInvoiceClick }) => {
                 onClick={() => onInvoiceClick(inv.id)}
                 data-testid={`recent-invoice-${inv.id}`}
                 className="flex items-center justify-between p-3 rounded-lg transition-colors cursor-pointer"
-                style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)' }}
+                style={{ backgroundColor: 'var(--danger-soft)', border: '1px solid var(--danger)' }}
               >
                 <div className="flex items-center gap-3">
-                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  <AlertTriangle className="h-4 w-4" style={{ color: 'var(--danger)' }} />
                   <div>
-                    <p className="font-medium text-sm" style={{ color: '#1A1A1A' }}>Invoice Overdue</p>
-                    <p className="text-xs" style={{ color: '#5A5A5A' }}>{formatCurrency(inv.total)}</p>
+                    <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>Invoice Overdue</p>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatCurrency(inv.total)}</p>
                   </div>
                 </div>
                 <span 
