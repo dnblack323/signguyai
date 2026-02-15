@@ -118,42 +118,42 @@
 }
 
 /* ============================================
-   NAVIGATION STYLES
+   NAVIGATION STYLES (Dark Shell)
    ============================================ */
 
 .nav-shell {
-    background-color: var(--shell-bg);
-    color: var(--shell-text);
+    background-color: var(--sidebar);
+    color: var(--text-on-dark);
 }
 
 .nav-item {
-    color: var(--shell-text-muted);
+    color: var(--text-muted-on-dark);
     transition: all 0.2s ease;
 }
 
 .nav-item:hover {
-    background-color: var(--shell-bg-hover);
-    color: var(--shell-text);
+    background-color: var(--sidebar-hover);
+    color: var(--text-on-dark);
 }
 
 .nav-item-active {
-    background-color: var(--brand-primary) !important;
+    background-color: var(--accent) !important;
     color: white !important;
 }
 
 .nav-flyout {
-    background-color: var(--shell-bg-hover);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: var(--sidebar-hover);
+    border: 1px solid var(--border-dark);
     box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
 }
 
 .nav-flyout-item {
-    color: var(--shell-text);
+    color: var(--text-on-dark);
     transition: all 0.15s ease;
 }
 
 .nav-flyout-item:hover {
-    background-color: var(--brand-primary);
+    background-color: var(--accent);
     color: white;
 }
 
