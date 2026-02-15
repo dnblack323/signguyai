@@ -410,21 +410,21 @@
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--panel-border);
+    background: var(--border-light);
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--panel-text-secondary);
+    background: var(--text-muted);
 }
 
 /* Dark scrollbar for nav */
 .nav-shell::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--border-dark);
 }
 
 .nav-shell::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--text-muted-on-dark);
 }
 
 /* ============================================
