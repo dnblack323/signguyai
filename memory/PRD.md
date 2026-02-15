@@ -106,6 +106,31 @@ Build a web-based sign-shop operating system called "SignGuy AI" - a single dail
   - **Security:** Change portal password
   - **Shop-Side Management:** Enable/disable customer portal access, view conversations, upload artwork proofs, create appointments
 
+### Recent Updates (February 15, 2026) - COMPLETED
+- [x] **Complete Theme System Refactor** ✅ COMPLETE
+  - **Dark Shell + Light Surface Design:** Charcoal black app background (#0B0F14), deep charcoal sidebar (#111826), light content surfaces (#F5F7FA)
+  - **Color Palette:**
+    - Background: #0B0F14 (charcoal black)
+    - Sidebar/Header: #111826 (deep charcoal)
+    - Light Surfaces: #F5F7FA (near-white)
+    - Secondary Surfaces: #E9EEF5 (light gray-blue)
+    - Text on Light: #0F172A (near-black)
+    - Text Muted on Light: #475569
+    - Text on Dark: #F8FAFC (white)
+    - Text Muted on Dark: #CBD5E1
+    - Accent Blue: #2F8BFB
+    - Accent Hover: #1E7AF0
+    - Accent Soft: #E7F0FF
+    - Danger: #EF4444
+    - Success: #22C55E
+    - Warning: #F59E0B
+  - **Shadcn Components Updated:** Button, Card, Input, Select, Dialog, Table, Tabs, Checkbox, Alert, Textarea, DropdownMenu - all with explicit hex colors
+  - **CSS Variables System:** Global theme variables in index.css for consistent styling
+  - **Fixed 11 Pages:** Page titles (h1) now have explicit dark text color on light surfaces
+  - **Login Page:** Dark background, light card surface, visible blue Sign In button
+  - **Dashboard:** Dark sidebar, light content surface, readable stat cards
+  - **Customer Portal:** Separate teal color scheme intentionally for differentiation
+
 ### Recent Updates (February 13, 2026) - COMPLETED
 - [x] **Backend Architecture Refactoring** ✅ COMPLETE
   - **Massive Code Cleanup:** Reduced server.py from 6,349 lines to 786 lines (88% reduction)
