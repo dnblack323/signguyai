@@ -103,9 +103,9 @@
     }
     
     body {
-        font-family: 'Manrope', sans-serif;
-        background-color: var(--panel-bg);
-        color: var(--panel-text);
+        font-family: 'Inter', 'Manrope', system-ui, sans-serif;
+        background-color: var(--bg);
+        color: var(--text-on-dark);
     }
     
     h1, h2, h3, h4, h5, h6 {
