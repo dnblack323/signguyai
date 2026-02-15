@@ -569,7 +569,7 @@ export const MainLayout = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--panel-bg)' }}>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg)' }}>
       {/* Desktop Sidebar */}
       <div className="hidden lg:block">
         <Sidebar />
@@ -585,12 +585,12 @@ export const MainLayout = ({ children }) => {
             variant="ghost"
             size="icon"
             onClick={() => setMobileOpen(true)}
-            className="text-[#F2F2F2] hover:bg-white/10"
+            className="text-[var(--text-on-dark)] hover:bg-[var(--sidebar-hover)]"
             data-testid="mobile-menu-toggle"
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <h1 className="ml-4 font-heading font-semibold text-lg text-[#F2F2F2]">
+          <h1 className="ml-4 font-heading font-semibold text-lg text-[var(--text-on-dark)]">
             {pageTitle}
           </h1>
         </div>
@@ -605,23 +605,26 @@ export const MainLayout = ({ children }) => {
       {/* Main Content */}
       <main className="lg:pl-16 pt-16 lg:pt-0 min-h-screen">
         <div className="p-6 lg:p-8">
-          {children}
+          {/* Content wrapper with light surface */}
+          <div className="bg-[var(--surface)] rounded-2xl p-6 lg:p-8 min-h-[calc(100vh-4rem)] shadow-sm">
+            {children}
+          </div>
         </div>
       </main>
 
       {/* Preview Mode Panel - Fixed Bottom Right (above Emergent badge) */}
       <div className="fixed bottom-16 right-4 z-50">
         {previewOpen ? (
-          <div className="bg-[#1E1E1E] border border-white/20 rounded-xl shadow-2xl w-72 overflow-hidden">
+          <div className="bg-[var(--sidebar)] border border-[var(--border-dark)] rounded-xl shadow-2xl w-72 overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between p-3 border-b border-white/10 bg-[#2F8BFB]/20">
+            <div className="flex items-center justify-between p-3 border-b border-[var(--border-dark)] bg-[var(--accent)]/20">
               <div className="flex items-center gap-2">
-                <Eye className="h-4 w-4 text-[#2F8BFB]" />
-                <span className="text-sm font-semibold text-white">Preview Mode</span>
+                <Eye className="h-4 w-4 text-[var(--accent)]" />
+                <span className="text-sm font-semibold text-[var(--text-on-dark)]">Preview Mode</span>
               </div>
               <button 
                 onClick={() => setPreviewOpen(false)}
-                className="text-white/60 hover:text-white"
+                className="text-[var(--text-muted-on-dark)] hover:text-[var(--text-on-dark)]"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -630,7 +633,7 @@ export const MainLayout = ({ children }) => {
             {/* Tier Selection */}
             <div className="p-3 space-y-3">
               <div>
-                <label className="text-xs font-medium text-white/60 uppercase tracking-wide">Subscription Tier</label>
+                <label className="text-xs font-medium text-[var(--text-muted-on-dark)] uppercase tracking-wide">Subscription Tier</label>
                 <div className="mt-2 space-y-1">
                   {Object.entries(tierLabels).map(([tier, { name, color }]) => (
                     <button
@@ -639,14 +642,14 @@ export const MainLayout = ({ children }) => {
                       className={cn(
                         "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all",
                         previewTier === tier 
-                          ? "bg-white/10 ring-1 ring-[#2F8BFB]" 
-                          : "hover:bg-white/5"
+                          ? "bg-[var(--sidebar-hover)] ring-1 ring-[var(--accent)]" 
+                          : "hover:bg-[var(--sidebar-hover)]"
                       )}
                     >
                       <div className={cn("w-3 h-3 rounded-full", color)} />
-                      <span className="text-sm text-white">{name}</span>
+                      <span className="text-sm text-[var(--text-on-dark)]">{name}</span>
                       {previewTier === tier && (
-                        <span className="ml-auto text-xs text-[#2F8BFB]">Active</span>
+                        <span className="ml-auto text-xs text-[var(--accent)]">Active</span>
                       )}
                     </button>
                   ))}
@@ -654,26 +657,26 @@ export const MainLayout = ({ children }) => {
               </div>
 
               {/* Quick Links */}
-              <div className="pt-2 border-t border-white/10">
-                <label className="text-xs font-medium text-white/60 uppercase tracking-wide">Quick Access</label>
+              <div className="pt-2 border-t border-[var(--border-dark)]">
+                <label className="text-xs font-medium text-[var(--text-muted-on-dark)] uppercase tracking-wide">Quick Access</label>
                 <div className="mt-2 space-y-1">
                   <button
                     onClick={() => window.open('/customer-portal/login', '_blank')}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-white/5 transition-all"
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-[var(--sidebar-hover)] transition-all"
                   >
                     <User className="h-4 w-4 text-teal-400" />
-                    <span className="text-sm text-white">Customer Portal</span>
-                    <ExternalLink className="h-3 w-3 ml-auto text-white/40" />
+                    <span className="text-sm text-[var(--text-on-dark)]">Customer Portal</span>
+                    <ExternalLink className="h-3 w-3 ml-auto text-[var(--text-muted-on-dark)]" />
                   </button>
                 </div>
               </div>
 
               {/* Current Tier Info */}
-              <div className="pt-2 border-t border-white/10">
-                <div className="flex items-center gap-2 px-3 py-2 bg-white/5 rounded-lg">
+              <div className="pt-2 border-t border-[var(--border-dark)]">
+                <div className="flex items-center gap-2 px-3 py-2 bg-[var(--sidebar-hover)] rounded-lg">
                   <div className={cn("w-2 h-2 rounded-full", tierLabels[previewTier].color)} />
-                  <span className="text-xs text-white/60">
-                    Viewing as: <span className="text-white font-medium">{tierLabels[previewTier].name}</span>
+                  <span className="text-xs text-[var(--text-muted-on-dark)]">
+                    Viewing as: <span className="text-[var(--text-on-dark)] font-medium">{tierLabels[previewTier].name}</span>
                   </span>
                 </div>
               </div>
