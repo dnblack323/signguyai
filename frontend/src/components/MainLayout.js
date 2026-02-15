@@ -218,7 +218,7 @@ export const Sidebar = () => {
     >
       <div className="flex h-full flex-col">
         {/* Logo */}
-        <div className="flex h-16 items-center px-4 border-b border-white/10">
+        <div className="flex h-16 items-center px-4 border-b border-[var(--border-dark)]">
           <div className={cn(
             "flex items-center transition-all duration-300",
             isExpanded ? "gap-3" : "justify-center w-full"
@@ -232,7 +232,7 @@ export const Sidebar = () => {
               />
             ) : (
               /* Square logo when collapsed */
-              <div className="w-8 h-8 rounded-lg bg-[#2F8BFB]/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+              <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
                 <img 
                   src="https://customer-assets.emergentagent.com/job_signmaster-1/artifacts/lr01uj91_square.png" 
                   alt="SG" 
@@ -262,9 +262,9 @@ export const Sidebar = () => {
                     className={cn(
                       "flex items-center rounded-lg cursor-pointer transition-all duration-200",
                       isExpanded ? "px-3 py-2.5 gap-3" : "justify-center py-2.5",
-                      isActive && !isHovered && "bg-[#2F8BFB] text-white",
-                      isHovered && "bg-[#3A3A3A] text-white",
-                      !isActive && !isHovered && "text-[#BDBDBD] hover:bg-[#3A3A3A] hover:text-[#F2F2F2]"
+                      isActive && !isHovered && "bg-[var(--accent)] text-white",
+                      isHovered && "bg-[var(--sidebar-hover)] text-[var(--text-on-dark)]",
+                      !isActive && !isHovered && "text-[var(--text-muted-on-dark)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-on-dark)]"
                     )}
                     onMouseEnter={() => isExpanded && handleCategoryEnter(category.id)}
                     data-testid={`nav-category-${category.id}`}
@@ -287,7 +287,7 @@ export const Sidebar = () => {
         </nav>
 
         {/* User Section */}
-        <div className="border-t border-white/10 p-3 space-y-2">
+        <div className="border-t border-[var(--border-dark)] p-3 space-y-2">
           {/* Tier Badge */}
           {isExpanded && (
             <div className="px-1 pb-2">
@@ -305,20 +305,20 @@ export const Sidebar = () => {
           {user && (
             <>
               <div className={cn(
-                "flex items-center rounded-lg bg-white/5 transition-all duration-200",
+                "flex items-center rounded-lg bg-[var(--sidebar-hover)] transition-all duration-200",
                 isExpanded ? "gap-3 px-3 py-2" : "justify-center py-2"
               )}>
-                <div className="w-8 h-8 rounded-full bg-[#2F8BFB]/20 flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-[var(--accent)]/20 flex items-center justify-center flex-shrink-0">
                   {user.role === 'owner' ? (
                     <Crown className="w-4 h-4" style={{ color: '#d97706' }} />
                   ) : (
-                    <User className="w-4 h-4 text-[#2F8BFB]" />
+                    <User className="w-4 h-4 text-[var(--accent)]" />
                   )}
                 </div>
                 {isExpanded && (
                   <div className="flex-1 min-w-0 animate-fade-in">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-[#F2F2F2] truncate" data-testid="user-name">
+                      <p className="text-sm font-medium text-[var(--text-on-dark)] truncate" data-testid="user-name">
                         {user.full_name}
                       </p>
                       <span 
@@ -331,7 +331,7 @@ export const Sidebar = () => {
                         {user.role}
                       </span>
                     </div>
-                    <p className="text-xs text-[#BDBDBD] truncate">
+                    <p className="text-xs text-[var(--text-muted-on-dark)] truncate">
                       {user.company_name || user.email}
                     </p>
                   </div>
@@ -359,14 +359,14 @@ export const Sidebar = () => {
       {/* Flyout Submenu */}
       {isExpanded && activeCategory && activeCategoryData && (
         <div
-          className="absolute left-64 w-56 bg-[#3A3A3A] rounded-lg shadow-xl border border-white/10 overflow-hidden animate-slide-in"
+          className="absolute left-64 w-56 bg-[var(--sidebar-hover)] rounded-lg shadow-xl border border-[var(--border-dark)] overflow-hidden animate-slide-in"
           style={{ top: flyoutPosition.top }}
           onMouseEnter={handleFlyoutEnter}
           onMouseLeave={handleNavLeave}
         >
           <div className="py-2">
-            <div className="px-4 py-2 border-b border-white/10">
-              <span className="text-xs font-semibold text-[#BDBDBD] uppercase tracking-wider">
+            <div className="px-4 py-2 border-b border-[var(--border-dark)]">
+              <span className="text-xs font-semibold text-[var(--text-muted-on-dark)] uppercase tracking-wider">
                 {activeCategoryData.label}
               </span>
             </div>
@@ -392,10 +392,10 @@ export const Sidebar = () => {
                     "flex items-center gap-3 px-4 py-2.5 text-sm transition-all duration-150",
                     isLocked && "opacity-60 cursor-pointer",
                     isItemActive && !isLocked
-                      ? "bg-[#2F8BFB] text-white" 
+                      ? "bg-[var(--accent)] text-white" 
                       : isLocked
-                      ? "text-[#BDBDBD] hover:bg-white/5"
-                      : "text-[#F2F2F2] hover:bg-[#2F8BFB] hover:text-white"
+                      ? "text-[var(--text-muted-on-dark)] hover:bg-[var(--sidebar)]"
+                      : "text-[var(--text-on-dark)] hover:bg-[var(--accent)] hover:text-white"
                   )}
                 >
                   <ItemIcon className="h-4 w-4" />
