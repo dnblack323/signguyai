@@ -12,23 +12,23 @@ import InvoicePreviewModal from '../components/InvoicePreviewModal';
 const StatCard = ({ title, value, icon: Icon, subtitle, href }) => (
   <div 
     className="rounded-xl p-6 transition-all duration-200 hover:shadow-md"
-    style={{ backgroundColor: '#FFFFFF', border: '1px solid #D7DCE2' }}
+    style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}
   >
     <div className="flex items-start justify-between">
       <div className="space-y-2">
-        <p className="text-sm font-medium" style={{ color: '#5A5A5A' }}>{title}</p>
-        <p className="text-3xl font-bold font-heading tracking-tight" style={{ color: '#1A1A1A' }}>{value}</p>
+        <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>{title}</p>
+        <p className="text-3xl font-bold font-heading tracking-tight" style={{ color: 'var(--text)' }}>{value}</p>
         {subtitle && (
-          <p className="text-xs" style={{ color: '#5A5A5A' }}>{subtitle}</p>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>
         )}
       </div>
-      <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(47, 139, 251, 0.1)' }}>
-        <Icon className="h-6 w-6" style={{ color: '#2F8BFB' }} />
+      <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--accent-soft)' }}>
+        <Icon className="h-6 w-6" style={{ color: 'var(--accent)' }} />
       </div>
     </div>
     {href && (
       <Link to={href}>
-        <button className="mt-4 flex items-center text-sm font-medium hover:opacity-80 transition-opacity" style={{ color: '#2F8BFB' }}>
+        <button className="mt-4 flex items-center text-sm font-medium hover:opacity-80 transition-opacity" style={{ color: 'var(--accent)' }}>
           View all <ArrowRight className="ml-1 h-4 w-4" />
         </button>
       </Link>
