@@ -123,47 +123,47 @@ const RecentActivity = ({ jobs, invoices, onInvoiceClick }) => {
 };
 
 const QuickActions = () => (
-  <div className="rounded-xl" style={{ backgroundColor: '#FFFFFF', border: '1px solid #D7DCE2' }}>
-    <div className="px-6 py-4" style={{ borderBottom: '1px solid #D7DCE2' }}>
-      <h2 className="font-heading text-lg font-semibold uppercase tracking-wide" style={{ color: '#1A1A1A' }}>
+  <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+    <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--border-light)' }}>
+      <h2 className="font-heading text-lg font-semibold uppercase tracking-wide" style={{ color: 'var(--text)' }}>
         Quick Actions
       </h2>
     </div>
     <div className="p-4 grid grid-cols-2 gap-3">
       <Link to="/customers">
         <button 
-          className="w-full flex items-center justify-start gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150"
-          style={{ backgroundColor: '#F5F7FA', color: '#1A1A1A', border: '1px solid #D7DCE2' }}
+          className="w-full flex items-center justify-start gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150 hover:shadow-sm"
+          style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
           data-testid="quick-add-customer"
         >
-          <Plus className="h-4 w-4" style={{ color: '#2F8BFB' }} /> New Customer
+          <Plus className="h-4 w-4" style={{ color: 'var(--accent)' }} /> New Customer
         </button>
       </Link>
       <Link to="/quotes">
         <button 
-          className="w-full flex items-center justify-start gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150"
-          style={{ backgroundColor: '#F5F7FA', color: '#1A1A1A', border: '1px solid #D7DCE2' }}
+          className="w-full flex items-center justify-start gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150 hover:shadow-sm"
+          style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
           data-testid="quick-add-quote"
         >
-          <Plus className="h-4 w-4" style={{ color: '#2F8BFB' }} /> New Quote
+          <Plus className="h-4 w-4" style={{ color: 'var(--accent)' }} /> New Quote
         </button>
       </Link>
       <Link to="/jobs">
         <button 
-          className="w-full flex items-center justify-start gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150"
-          style={{ backgroundColor: '#F5F7FA', color: '#1A1A1A', border: '1px solid #D7DCE2' }}
+          className="w-full flex items-center justify-start gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150 hover:shadow-sm"
+          style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
           data-testid="quick-add-job"
         >
-          <Plus className="h-4 w-4" style={{ color: '#2F8BFB' }} /> New Job
+          <Plus className="h-4 w-4" style={{ color: 'var(--accent)' }} /> New Job
         </button>
       </Link>
       <Link to="/timeclock">
         <button 
-          className="w-full flex items-center justify-start gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150"
-          style={{ backgroundColor: '#F5F7FA', color: '#1A1A1A', border: '1px solid #D7DCE2' }}
+          className="w-full flex items-center justify-start gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150 hover:shadow-sm"
+          style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
           data-testid="quick-clock-in"
         >
-          <Clock className="h-4 w-4" style={{ color: '#2F8BFB' }} /> Time Clock
+          <Clock className="h-4 w-4" style={{ color: 'var(--accent)' }} /> Time Clock
         </button>
       </Link>
     </div>
