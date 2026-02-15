@@ -8,7 +8,7 @@ module.exports = {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Manrope', 'sans-serif'],
+                sans: ['Inter', 'Manrope', 'system-ui', 'sans-serif'],
                 heading: ['Barlow Condensed', 'sans-serif'],
                 mono: ['JetBrains Mono', 'monospace'],
             },
@@ -18,6 +18,25 @@ module.exports = {
                 sm: 'calc(var(--radius) - 4px)'
             },
             colors: {
+                // New theme colors
+                'theme-bg': '#0B0F14',
+                'theme-sidebar': '#111826',
+                'theme-surface': '#F5F7FA',
+                'theme-surface-2': '#E9EEF5',
+                'theme-text': '#0F172A',
+                'theme-text-muted': '#475569',
+                'theme-text-on-dark': '#F8FAFC',
+                'theme-text-muted-on-dark': '#CBD5E1',
+                'theme-border': '#CBD5E1',
+                'theme-border-dark': '#243041',
+                'theme-accent': '#2F8BFB',
+                'theme-accent-hover': '#1E7AF0',
+                'theme-accent-soft': '#E7F0FF',
+                'theme-danger': '#EF4444',
+                'theme-success': '#22C55E',
+                'theme-warning': '#F59E0B',
+                
+                // Shadcn colors
                 background: 'hsl(var(--background))',
                 foreground: 'hsl(var(--foreground))',
                 card: {
