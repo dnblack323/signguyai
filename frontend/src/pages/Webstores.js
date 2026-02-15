@@ -296,7 +296,7 @@ export default function Webstores() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight">Webstore Manager</h1>
+          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight" style={{ color: 'var(--text)' }}>Webstore Manager</h1>
           <p className="text-muted-foreground mt-1">Manage all your webstores from one place</p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>

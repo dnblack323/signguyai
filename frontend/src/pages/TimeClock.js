@@ -147,7 +147,7 @@ export default function TimeClock() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight">Time Clock</h1>
+          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight" style={{ color: 'var(--text)' }}>Time Clock</h1>
           <p className="text-muted-foreground mt-1">Track employee work hours</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
