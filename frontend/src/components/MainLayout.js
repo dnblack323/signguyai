@@ -82,9 +82,9 @@ const Tooltip = ({ children, content, show }) => {
   return (
     <div className="relative group">
       {children}
-      <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-[#2E2E2E] text-[#F2F2F2] text-xs font-medium rounded-md whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-lg">
+      <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-[var(--sidebar)] text-[var(--text-on-dark)] text-xs font-medium rounded-md whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-lg">
         {content}
-        <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#2E2E2E]" />
+        <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[var(--sidebar)]" />
       </div>
     </div>
   );
