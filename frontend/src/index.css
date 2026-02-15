@@ -234,7 +234,7 @@
 
 .tabs-container {
     display: inline-flex;
-    background-color: var(--panel-bg);
+    background-color: var(--surface-2);
     border-radius: 8px;
     padding: 4px;
     gap: 4px;
@@ -245,18 +245,19 @@
     border-radius: 6px;
     font-weight: 500;
     font-size: 14px;
-    color: var(--panel-text);
+    color: var(--text-muted);
     background-color: transparent;
     transition: all 0.2s ease;
     cursor: pointer;
 }
 
 .tab-item:hover {
-    background-color: rgba(47, 139, 251, 0.1);
+    background-color: var(--accent-soft);
+    color: var(--text);
 }
 
 .tab-item-active {
-    background-color: var(--brand-primary);
+    background-color: var(--accent);
     color: white;
 }
 
