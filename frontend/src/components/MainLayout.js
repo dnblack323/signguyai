@@ -451,22 +451,22 @@ export const MobileNav = ({ isOpen, onClose }) => {
       )}>
         <div className="flex h-full flex-col">
           {/* Header */}
-          <div className="flex h-16 items-center justify-between px-4 border-b border-white/10">
+          <div className="flex h-16 items-center justify-between px-4 border-b border-[var(--border-dark)]">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#2F8BFB]/20 flex items-center justify-center overflow-hidden">
+              <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/20 flex items-center justify-center overflow-hidden">
                 <img 
                   src="https://customer-assets.emergentagent.com/job_signmaster-1/artifacts/lr01uj91_square.png" 
                   alt="SG" 
                   className="h-7 w-auto object-contain"
                 />
               </div>
-              <span className="text-[#F2F2F2] font-semibold text-lg font-heading">
+              <span className="text-[var(--text-on-dark)] font-semibold text-lg font-heading">
                 SignGuy AI
               </span>
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg text-[#BDBDBD] hover:text-[#F2F2F2] hover:bg-white/10"
+              className="p-2 rounded-lg text-[var(--text-muted-on-dark)] hover:text-[var(--text-on-dark)] hover:bg-[var(--sidebar-hover)]"
             >
               <X className="h-5 w-5" />
             </button>
@@ -477,7 +477,7 @@ export const MobileNav = ({ isOpen, onClose }) => {
             {filteredNavigation.map((category) => (
               <div key={category.id} className="mb-4">
                 <div className="px-4 py-2">
-                  <span className="text-xs font-semibold text-[#BDBDBD] uppercase tracking-wider">
+                  <span className="text-xs font-semibold text-[var(--text-muted-on-dark)] uppercase tracking-wider">
                     {category.label}
                   </span>
                 </div>
@@ -493,8 +493,8 @@ export const MobileNav = ({ isOpen, onClose }) => {
                         className={cn(
                           "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                           isActive 
-                            ? "bg-[#2F8BFB] text-white" 
-                            : "text-[#BDBDBD] hover:bg-[#3A3A3A] hover:text-[#F2F2F2]"
+                            ? "bg-[var(--accent)] text-white" 
+                            : "text-[var(--text-muted-on-dark)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-on-dark)]"
                         )}
                       >
                         <Icon className="h-5 w-5" />
@@ -509,16 +509,16 @@ export const MobileNav = ({ isOpen, onClose }) => {
 
           {/* User Section */}
           {user && (
-            <div className="border-t border-white/10 p-4 space-y-3">
+            <div className="border-t border-[var(--border-dark)] p-4 space-y-3">
               <div className="flex items-center gap-3 px-2">
-                <div className="w-10 h-10 rounded-full bg-[#2F8BFB]/20 flex items-center justify-center">
-                  <User className="w-5 h-5 text-[#2F8BFB]" />
+                <div className="w-10 h-10 rounded-full bg-[var(--accent)]/20 flex items-center justify-center">
+                  <User className="w-5 h-5 text-[var(--accent)]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[#F2F2F2] truncate">
+                  <p className="text-sm font-medium text-[var(--text-on-dark)] truncate">
                     {user.full_name}
                   </p>
-                  <p className="text-xs text-[#BDBDBD] truncate">
+                  <p className="text-xs text-[var(--text-muted-on-dark)] truncate">
                     {user.company_name || user.email}
                   </p>
                 </div>
