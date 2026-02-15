@@ -262,23 +262,23 @@
 }
 
 /* ============================================
-   TABLE STYLES
+   TABLE STYLES (Light Surfaces)
    ============================================ */
 
 .table-container {
-    background-color: var(--panel-bg-secondary);
-    border: 1px solid var(--panel-border);
+    background-color: var(--surface);
+    border: 1px solid var(--border-light);
     border-radius: 12px;
     overflow: hidden;
 }
 
 .table-header {
-    background-color: var(--panel-bg);
-    border-bottom: 1px solid var(--panel-border);
+    background-color: var(--surface-2);
+    border-bottom: 1px solid var(--border-light);
 }
 
 .table-header th {
-    color: var(--panel-text-secondary);
+    color: var(--text);
     font-weight: 600;
     font-size: 12px;
     text-transform: uppercase;
@@ -287,7 +287,7 @@
 }
 
 .table-row {
-    border-bottom: 1px solid var(--panel-border);
+    border-bottom: 1px solid var(--border-light);
     transition: background-color 0.15s ease;
 }
 
@@ -296,11 +296,15 @@
 }
 
 .table-row:hover {
-    background-color: rgba(47, 139, 251, 0.03);
+    background-color: var(--accent-soft);
+}
+
+.table-row:nth-child(even) {
+    background-color: var(--surface-2);
 }
 
 .table-cell {
-    color: var(--panel-text);
+    color: var(--text);
     padding: 12px 16px;
 }
 
