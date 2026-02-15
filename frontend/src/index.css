@@ -633,3 +633,209 @@ tr:hover {
 .animate-slide-in {
     animation: slideIn 0.2s ease-out;
 }
+
+/* ============================================
+   MAIN CONTENT AREA STYLES
+   ============================================ */
+
+/* Main content wrapper - ensures content is on light surface */
+.main-content {
+    background-color: var(--bg);
+    min-height: 100vh;
+}
+
+/* Page container - wraps page content in light surface */
+.page-container {
+    background-color: var(--surface);
+    border-radius: 16px;
+    padding: 2rem;
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Page header text styling */
+.page-title {
+    color: var(--text);
+    font-family: 'Barlow Condensed', sans-serif;
+}
+
+.page-subtitle {
+    color: var(--text-muted);
+}
+
+/* ============================================
+   ICON STYLING
+   ============================================ */
+
+/* Icons on light surfaces */
+.icon-on-light {
+    color: var(--text-muted);
+}
+
+.icon-on-light-active {
+    color: var(--accent);
+}
+
+/* Icons on dark surfaces */
+.icon-on-dark {
+    color: var(--text-muted-on-dark);
+}
+
+.icon-on-dark-active {
+    color: var(--accent);
+}
+
+/* ============================================
+   HOVER & FOCUS STATES
+   ============================================ */
+
+/* Light surface hover states */
+.hover-surface:hover {
+    background-color: var(--accent-soft);
+}
+
+/* Selected row on tables */
+.row-selected {
+    background-color: var(--accent-soft) !important;
+}
+
+/* Focus ring for accessibility */
+.focus-ring:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent);
+}
+
+/* ============================================
+   SPECIFIC COMPONENT OVERRIDES
+   ============================================ */
+
+/* Shadcn Card override for light surface */
+.bg-card {
+    background-color: var(--surface) !important;
+    color: var(--text) !important;
+}
+
+/* Muted background should be surface-2 */
+.bg-muted {
+    background-color: var(--surface-2) !important;
+}
+
+.bg-muted\/30 {
+    background-color: rgba(233, 238, 245, 0.3) !important;
+}
+
+.bg-muted\/50 {
+    background-color: rgba(233, 238, 245, 0.5) !important;
+}
+
+/* Text color overrides */
+.text-foreground {
+    color: var(--text) !important;
+}
+
+.text-muted-foreground {
+    color: var(--text-muted) !important;
+}
+
+/* Border color overrides */
+.border-border {
+    border-color: var(--border-light) !important;
+}
+
+.border-border\/50 {
+    border-color: rgba(203, 213, 225, 0.5) !important;
+}
+
+/* Popover and Dropdown fixes */
+[data-radix-popper-content-wrapper] > div {
+    background-color: var(--surface) !important;
+    border-color: var(--border-light) !important;
+    color: var(--text) !important;
+}
+
+/* Tab list styling */
+[role="tablist"] {
+    background-color: var(--surface-2);
+}
+
+[role="tab"] {
+    color: var(--text-muted);
+}
+
+[role="tab"][data-state="active"] {
+    background-color: var(--surface);
+    color: var(--text);
+}
+
+/* Separator styling */
+[data-orientation="horizontal"] {
+    background-color: var(--border-light);
+}
+
+/* Alert styling */
+[role="alert"] {
+    background-color: var(--surface);
+    border-color: var(--border-light);
+    color: var(--text);
+}
+
+/* Checkbox and radio styling */
+[role="checkbox"],
+[role="radio"] {
+    border-color: var(--border-light);
+    background-color: var(--surface);
+}
+
+[role="checkbox"][data-state="checked"],
+[role="radio"][data-state="checked"] {
+    background-color: var(--accent);
+    border-color: var(--accent);
+}
+
+/* Progress bar styling */
+[role="progressbar"] {
+    background-color: var(--surface-2);
+}
+
+[role="progressbar"] > div {
+    background-color: var(--accent);
+}
+
+/* Slider styling */
+[role="slider"] {
+    background-color: var(--surface-2);
+}
+
+/* Switch styling */
+[role="switch"] {
+    background-color: var(--surface-2);
+}
+
+[role="switch"][data-state="checked"] {
+    background-color: var(--accent);
+}
+
+/* ============================================
+   LOADING STATES
+   ============================================ */
+
+.loading-spinner {
+    border-color: var(--border-light);
+    border-top-color: var(--accent);
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+    body {
+        background-color: white !important;
+        color: black !important;
+    }
+    
+    .nav-shell,
+    .app-header {
+        display: none !important;
+    }
+}
