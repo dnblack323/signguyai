@@ -758,7 +758,7 @@ export function JobDetails() {
               <div className="flex items-start gap-4 mb-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h1 className="text-3xl font-bold font-heading uppercase">{job.name}</h1>
+                    <h1 className="text-3xl font-bold font-heading uppercase" style={{ color: 'var(--text)' }}>{job.name}</h1>
                     {/* Editable Status Dropdown */}
                     <Select value={job.status} onValueChange={handleStatusChange}>
                       <SelectTrigger className="w-[160px]" data-testid="job-status-dropdown">
