@@ -379,21 +379,21 @@
 }
 
 /* ============================================
-   HEADER STYLES
+   HEADER STYLES (Dark Shell)
    ============================================ */
 
 .app-header {
-    background-color: var(--shell-bg);
-    color: var(--shell-text);
+    background-color: var(--sidebar);
+    color: var(--text-on-dark);
     height: 64px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--border-dark);
 }
 
 .app-header-title {
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 600;
     font-size: 20px;
-    color: var(--shell-text);
+    color: var(--text-on-dark);
 }
 
 /* ============================================
