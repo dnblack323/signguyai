@@ -203,7 +203,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#2F8BFB' }}></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--accent)' }}></div>
       </div>
     );
   }
@@ -212,10 +212,10 @@ export default function Dashboard() {
     <div className="space-y-8 animate-fade-in" data-testid="dashboard">
       {/* Header */}
       <div>
-        <h1 className="text-4xl font-bold font-heading uppercase tracking-tight" style={{ color: '#1A1A1A' }}>
+        <h1 className="text-4xl font-bold font-heading uppercase tracking-tight" style={{ color: 'var(--text)' }}>
           Dashboard
         </h1>
-        <p className="mt-1" style={{ color: '#5A5A5A' }}>Welcome back to SignGuy AI</p>
+        <p className="mt-1" style={{ color: 'var(--text-muted)' }}>Welcome back to SignGuy AI</p>
       </div>
 
       {/* Stats Grid */}
@@ -250,15 +250,15 @@ export default function Dashboard() {
       {dashboardStats?.overdue_count > 0 && (
         <div 
           className="rounded-xl p-4 flex items-center justify-between"
-          style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)' }}
+          style={{ backgroundColor: 'var(--danger-soft)', border: '1px solid var(--danger)' }}
         >
           <div className="flex items-center gap-3">
-            <AlertTriangle className="h-5 w-5 text-red-500" />
+            <AlertTriangle className="h-5 w-5" style={{ color: 'var(--danger)' }} />
             <div>
-              <p className="font-medium" style={{ color: '#1A1A1A' }}>
+              <p className="font-medium" style={{ color: 'var(--text)' }}>
                 {dashboardStats.overdue_count} Overdue Invoice{dashboardStats.overdue_count > 1 ? 's' : ''}
               </p>
-              <p className="text-sm" style={{ color: '#5A5A5A' }}>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                 Total: {formatCurrency(dashboardStats.overdue_total)}
               </p>
             </div>
@@ -268,7 +268,7 @@ export default function Dashboard() {
               size="sm" 
               data-testid="view-overdue"
               className="text-white"
-              style={{ backgroundColor: '#dc2626' }}
+              style={{ backgroundColor: 'var(--danger)' }}
             >
               View Overdue
             </Button>
