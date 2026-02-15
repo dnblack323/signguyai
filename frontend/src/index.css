@@ -202,23 +202,30 @@
 }
 
 /* ============================================
-   CARD / PANEL STYLES
+   CARD / PANEL STYLES (Light Surfaces)
    ============================================ */
 
 .panel {
-    background-color: var(--panel-bg-secondary);
-    border: 1px solid var(--panel-border);
+    background-color: var(--surface);
+    border: 1px solid var(--border-light);
     border-radius: 12px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .panel-header {
-    border-bottom: 1px solid var(--panel-border);
+    border-bottom: 1px solid var(--border-light);
     padding: 1rem 1.25rem;
 }
 
 .panel-body {
     padding: 1.25rem;
+}
+
+/* Card component overrides for light surfaces */
+.card-surface {
+    background-color: var(--surface) !important;
+    border-color: var(--border-light) !important;
+    color: var(--text) !important;
 }
 
 /* ============================================
