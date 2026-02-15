@@ -217,8 +217,7 @@ export default function Login() {
               <Button
                 type="submit"
                 data-testid={isRegister ? 'register-submit-btn' : 'login-submit-btn'}
-                className="w-full text-white font-medium"
-                style={{ backgroundColor: 'var(--accent)' }}
+                className="w-full text-white font-medium bg-[#2F8BFB] hover:bg-[#1E7AF0]"
                 disabled={isLoading}
               >
                 {isLoading ? (
