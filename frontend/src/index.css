@@ -162,14 +162,14 @@
    ============================================ */
 
 .btn-primary {
-    background-color: var(--brand-primary);
+    background-color: var(--accent);
     color: white;
     border-radius: 8px;
     transition: all 0.2s ease;
 }
 
 .btn-primary:hover {
-    background-color: var(--brand-primary-hover);
+    background-color: var(--accent-hover);
 }
 
 .btn-primary:focus {
@@ -178,15 +178,27 @@
 }
 
 .btn-secondary {
-    background-color: transparent;
-    color: var(--brand-primary);
-    border: 1px solid var(--brand-primary);
+    background-color: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border-light);
     border-radius: 8px;
     transition: all 0.2s ease;
 }
 
 .btn-secondary:hover {
-    background-color: var(--brand-primary-light);
+    background-color: var(--surface);
+    border-color: var(--accent);
+}
+
+.btn-ghost {
+    background-color: transparent;
+    color: var(--accent);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.btn-ghost:hover {
+    background-color: var(--accent-soft);
 }
 
 /* ============================================
