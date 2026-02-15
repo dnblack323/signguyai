@@ -1,52 +1,80 @@
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ============================================
-   UNIFIED BLENDED THEME - Sign Guy AI
-   Dark shell + Light content panels
+   SIGNGUY AI THEME - Dark Shell + Light Surface
+   Legible, professional design system
    ============================================ */
 
 @layer base {
     :root {
-        /* === BRAND COLORS (Hard Rules) === */
-        --brand-primary: #2F8BFB;           /* Primary blue - buttons, highlights */
-        --brand-primary-hover: #1a7ae8;     /* Darker blue for hover */
-        --brand-primary-light: rgba(47, 139, 251, 0.1);  /* Light blue tint */
+        /* === APP BACKGROUND (Dark Shell) === */
+        --bg: #0B0F14;                      /* Charcoal black - main app background */
+        --sidebar: #111826;                 /* Deep charcoal - sidebar/header */
+        --sidebar-hover: #1a2332;           /* Slightly lighter for hover */
         
-        /* === DARK SHELL COLORS === */
-        --shell-bg: #2E2E2E;                /* Main dark background */
-        --shell-bg-hover: #3A3A3A;          /* Flyout/hover surfaces */
-        --shell-text: #F2F2F2;              /* Text on dark backgrounds */
-        --shell-text-muted: #BDBDBD;        /* Muted text on dark */
+        /* === LIGHT CONTENT SURFACES === */
+        --surface: #F5F7FA;                 /* Near-white - main cards/panels */
+        --surface-2: #E9EEF5;               /* Light gray-blue - secondary panels */
         
-        /* === LIGHT PANEL COLORS === */
-        --panel-bg: #F5F7FA;                /* Main content surface */
-        --panel-bg-secondary: #FFFFFF;      /* Inner containers, cards */
-        --panel-border: #D7DCE2;            /* Borders and dividers */
-        --panel-text: #1A1A1A;              /* Primary text on light */
-        --panel-text-secondary: #5A5A5A;    /* Secondary text on light */
+        /* === TEXT COLORS === */
+        --text: #0F172A;                    /* Near-black - text on light surfaces */
+        --text-muted: #475569;              /* Muted text on light surfaces */
+        --text-on-dark: #F8FAFC;            /* White text on dark surfaces */
+        --text-muted-on-dark: #CBD5E1;      /* Muted text on dark surfaces */
+        
+        /* === BORDERS === */
+        --border-light: #CBD5E1;            /* Borders on light surfaces */
+        --border-dark: #243041;             /* Borders on dark surfaces */
+        
+        /* === ACCENT COLORS === */
+        --accent: #2F8BFB;                  /* Primary blue */
+        --accent-hover: #1E7AF0;            /* Darker blue for hover */
+        --accent-soft: #E7F0FF;             /* Light blue background tint */
+        
+        /* === STATUS COLORS === */
+        --danger: #EF4444;
+        --danger-soft: rgba(239, 68, 68, 0.15);
+        --success: #22C55E;
+        --success-soft: rgba(34, 197, 94, 0.15);
+        --warning: #F59E0B;
+        --warning-soft: rgba(245, 158, 11, 0.15);
+        
+        /* === LEGACY VARIABLES (for compatibility) === */
+        --brand-primary: var(--accent);
+        --brand-primary-hover: var(--accent-hover);
+        --brand-primary-light: var(--accent-soft);
+        --shell-bg: var(--sidebar);
+        --shell-bg-hover: var(--sidebar-hover);
+        --shell-text: var(--text-on-dark);
+        --shell-text-muted: var(--text-muted-on-dark);
+        --panel-bg: var(--surface);
+        --panel-bg-secondary: #FFFFFF;
+        --panel-border: var(--border-light);
+        --panel-text: var(--text);
+        --panel-text-secondary: var(--text-muted);
         
         /* === SHADCN THEME VARIABLES === */
-        --background: 220 10% 96%;          /* #F5F7FA equivalent */
-        --foreground: 0 0% 10%;             /* #1A1A1A equivalent */
+        --background: 216 28% 7%;           /* #0B0F14 - app background */
+        --foreground: 215 28% 17%;          /* #0F172A equivalent */
         
-        --card: 0 0% 100%;                  /* White cards */
-        --card-foreground: 0 0% 10%;
+        --card: 210 20% 98%;                /* #F5F7FA - card background */
+        --card-foreground: 222 47% 11%;     /* #0F172A - text on cards */
         
         --popover: 0 0% 100%;
-        --popover-foreground: 0 0% 10%;
+        --popover-foreground: 222 47% 11%;
         
         --primary: 211 96% 58%;             /* #2F8BFB */
         --primary-foreground: 0 0% 100%;
         
-        --secondary: 220 10% 96%;
-        --secondary-foreground: 0 0% 10%;
+        --secondary: 214 32% 91%;           /* #E9EEF5 */
+        --secondary-foreground: 222 47% 11%;
         
-        --muted: 220 10% 92%;
-        --muted-foreground: 0 0% 35%;       /* #5A5A5A */
+        --muted: 214 32% 91%;               /* #E9EEF5 */
+        --muted-foreground: 215 16% 47%;    /* #475569 */
         
         --accent: 211 96% 58%;
         --accent-foreground: 0 0% 100%;
@@ -54,11 +82,11 @@
         --destructive: 0 84% 60%;
         --destructive-foreground: 0 0% 100%;
         
-        --border: 220 13% 87%;              /* #D7DCE2 */
-        --input: 220 13% 87%;
+        --border: 214 32% 82%;              /* #CBD5E1 */
+        --input: 214 32% 91%;               /* #E9EEF5 */
         --ring: 211 96% 58%;
         
-        --radius: 0.625rem;                 /* 10px radius */
+        --radius: 0.75rem;                  /* 12px radius */
         
         /* Chart colors */
         --chart-1: 211 96% 58%;
