@@ -248,8 +248,35 @@ export const Sidebar = () => {
           <div className="space-y-1 px-2">
             {filteredNavigation.map((category) => {
               const Icon = category.icon;
-              const isActive = currentActiveCategory === category.id;
+              const isActive = currentActiveCategory === category.id || (category.isDirectLink && location.pathname === category.href);
               const isHovered = activeCategory === category.id;
+              
+              // Handle direct link items (like Home)
+              if (category.isDirectLink) {
+                return (
+                  <Tooltip 
+                    key={category.id} 
+                    content={category.label}
+                    show={!isExpanded}
+                  >
+                    <NavLink
+                      to={category.href}
+                      className={cn(
+                        "flex items-center rounded-lg cursor-pointer transition-all duration-200",
+                        isExpanded ? "px-3 py-2.5 gap-3" : "justify-center py-2.5",
+                        isActive && "bg-[var(--accent)] text-white",
+                        !isActive && "text-[var(--text-muted-on-dark)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-on-dark)]"
+                      )}
+                      data-testid={`nav-${category.id}`}
+                    >
+                      <Icon className="h-5 w-5 flex-shrink-0" />
+                      {isExpanded && (
+                        <span className="flex-1 font-medium text-sm">{category.label}</span>
+                      )}
+                    </NavLink>
+                  </Tooltip>
+                );
+              }
               
               return (
                 <Tooltip 
