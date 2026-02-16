@@ -114,14 +114,14 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : invoice ? (
-          <div className="invoice-preview space-y-6 p-4 bg-background rounded-lg border print:border-none print:p-0">
+          <div className="invoice-preview space-y-6 p-6 bg-white rounded-lg border border-gray-200 shadow-sm print:border-none print:p-0 print:shadow-none">
             {/* Invoice Header */}
             <div className="flex justify-between items-start">
               <div>
-                <h2 className="text-2xl font-bold font-heading uppercase tracking-tight text-primary">
+                <h2 className="text-2xl font-bold font-heading uppercase tracking-tight text-blue-600">
                   INVOICE
                 </h2>
-                <p className="text-muted-foreground font-mono text-sm mt-1">
+                <p className="text-gray-500 font-mono text-sm mt-1">
                   #{invoice.id.slice(0, 8).toUpperCase()}
                 </p>
               </div>
@@ -132,71 +132,71 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
                     {invoice.status.toUpperCase()}
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-500">
                   <Calendar className="h-3 w-3 inline mr-1" />
                   Created: {formatDate(invoice.created_at)}
                 </p>
                 {invoice.due_date && (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-gray-500">
                     Due: {formatDate(invoice.due_date)}
                   </p>
                 )}
               </div>
             </div>
 
-            <Separator />
+            <Separator className="bg-gray-200" />
 
             {/* Bill To Section */}
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <h3 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                <h3 className="text-sm font-semibold text-gray-500 mb-2 uppercase tracking-wide">
                   Bill To
                 </h3>
                 {customer ? (
                   <div className="space-y-1">
-                    <p className="font-bold text-lg">{customer.name}</p>
+                    <p className="font-bold text-lg text-gray-900">{customer.name}</p>
                     {customer.company && (
-                      <p className="text-muted-foreground flex items-center gap-1">
+                      <p className="text-gray-600 flex items-center gap-1">
                         <Building2 className="h-3 w-3" /> {customer.company}
                       </p>
                     )}
                     {customer.email && (
-                      <p className="text-muted-foreground flex items-center gap-1">
+                      <p className="text-gray-600 flex items-center gap-1">
                         <Mail className="h-3 w-3" /> {customer.email}
                       </p>
                     )}
                     {customer.phone && (
-                      <p className="text-muted-foreground flex items-center gap-1">
+                      <p className="text-gray-600 flex items-center gap-1">
                         <Phone className="h-3 w-3" /> {customer.phone}
                       </p>
                     )}
                   </div>
                 ) : (
-                  <p className="text-muted-foreground">Customer not found</p>
+                  <p className="text-gray-500">Customer not found</p>
                 )}
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                <h3 className="text-sm font-semibold text-gray-500 mb-2 uppercase tracking-wide">
                   From
                 </h3>
                 <div className="space-y-1">
-                  <p className="font-bold text-lg">SignGuy AI</p>
-                  <p className="text-muted-foreground">Your Sign Shop</p>
+                  <p className="font-bold text-lg text-gray-900">SignGuy AI</p>
+                  <p className="text-gray-600">Your Sign Shop</p>
                 </div>
               </div>
             </div>
 
             {/* Job Reference */}
             {job && (
-              <div className="p-3 bg-muted/30 rounded-lg">
-                <p className="text-sm">
-                  <span className="text-muted-foreground">Reference Job: </span>
+              <div className="p-3 bg-gray-100 rounded-lg">
+                <p className="text-sm text-gray-800">
+                  <span className="text-gray-600">Reference Job: </span>
                   <span className="font-medium">{job.name}</span>
                 </p>
               </div>
             )}
 
-            <Separator />
+            <Separator className="bg-gray-200" />
 
             {/* Line Items Table */}
             <div>
