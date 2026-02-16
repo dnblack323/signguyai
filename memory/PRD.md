@@ -99,6 +99,16 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
 - `/api/tasks` - GET/POST tasks
 - `/api/tasks/{id}` - GET/PUT/DELETE task
 
+### Employee Portal (NEW)
+- `/api/employee-portal/auth/login` - POST employee login with email/PIN
+- `/api/employee-portal/profile` - GET employee profile
+- `/api/employee-portal/time-clock/status` - GET current clock status
+- `/api/employee-portal/time-clock/punch` - POST clock action (start_work, break_start, break_end, end_work)
+- `/api/employee-portal/time-clock/history` - GET clock history
+- `/api/employee-portal/pay/summary` - GET pay summary (earnings, YTD, balance)
+- `/api/employee-portal/tasks` - GET assigned tasks
+- `/api/employee-portal/tasks/{id}/complete` - PUT mark task complete
+
 ### Pricing Calculator
 - `/api/pricing/calculate` - POST calculate pricing with profit/margin
 
