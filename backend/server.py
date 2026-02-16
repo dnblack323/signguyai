@@ -155,7 +155,7 @@ def require_permission(permission: Permission):
         if not has_permission(current_user, permission):
             raise HTTPException(
                 status_code=403,
-                detail=f"You don't have permission to perform this action"
+                detail="You don't have permission to perform this action"
             )
         return current_user
     return permission_checker
@@ -169,7 +169,7 @@ def require_any_permission(*permissions: Permission):
                 return current_user
         raise HTTPException(
             status_code=403,
-            detail=f"You don't have permission to perform this action"
+            detail="You don't have permission to perform this action"
         )
     return permission_checker
 
