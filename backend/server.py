@@ -612,6 +612,7 @@ async def calculate_apparel(data: JobItemPricingData, quantity: float, defaults:
     time_per_item = 0.1 if transfer_type == "screen_print" else 0.25
     labor_cost = time_per_item * quantity * hourly_rate
     
+    # Setup fee (charged once per order, not per item)
     setup_fee = data.setup_fee or 25.0
     if transfer_type == "screen_print":
         setup_fee += (data.num_colors or 1) * 15
@@ -620,6 +621,10 @@ async def calculate_apparel(data: JobItemPricingData, quantity: float, defaults:
     
     markup = defaults.get("apparel_markup", 2.0)
     suggested_price = total_cost * markup
+    
+    # Apply complexity multiplier
+    complexity_mult = get_complexity_multiplier(data.complexity or 1)
+    suggested_price *= complexity_mult
     
     discount = get_quantity_discount(quantity, {"12": 0.05, "24": 0.10, "48": 0.15, "100": 0.20})
     if discount > 0:
@@ -639,7 +644,8 @@ async def calculate_apparel(data: JobItemPricingData, quantity: float, defaults:
             "decoration_cost_per_location": transfer_costs.get(transfer_type, 3.00),
             "print_locations": num_locations,
             "setup_fee": setup_fee,
-            "quantity_discount": discount
+            "quantity_discount": discount,
+            "complexity_multiplier": complexity_mult
         }
     )
 
