@@ -782,6 +782,7 @@ from routes.billing import router as billing_router, webhook_router
 from routes.dashboard import router as dashboard_router
 from routes.tasks import router as tasks_router
 from routes.employee_portal import router as employee_portal_router
+from routes.ai import router as ai_router
 
 # Include all routers in the api_router
 api_router.include_router(auth_router)
