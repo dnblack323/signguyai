@@ -11,10 +11,12 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from pydantic import BaseModel, Field
 import uuid
+from motor.motor_asyncio import AsyncIOMotorClient
+import os
 
-from server import db, get_current_active_user
-from models import UserInDB
-
+# Get database directly
+MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017/signguy")
+DB_NAME = os.environ.get("DB_NAME", "signguy")
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
