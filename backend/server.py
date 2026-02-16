@@ -805,6 +805,7 @@ api_router.include_router(webhook_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(tasks_router)
 api_router.include_router(employee_portal_router)
+api_router.include_router(ai_router)
 
 # Include the api_router in the main app
 app.include_router(api_router)
