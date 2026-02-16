@@ -5,84 +5,90 @@ The product requirements include:
 - **Core Business Modules:** Customer Management, Quotes/Jobs, Invoicing, Productivity, Financials, Employee Time/Payroll.
 - **Customer Portal:** A secure portal for customers to manage their profile, view orders, approve artwork, make payments, and communicate with the shop.
 - **Webstores Module:** Functionality to create B2B, Fundraiser, and Creator webstores.
-- **SaaS Billing & Tiers:** A new, detailed pricing structure has been provided, which includes:
-    - A 24-hour free trial with full access.
-    - A 14-day extended trial for 9.99, which credits towards the top-tier plan.
-    - Three Founder tiers with lifetime locked-in pricing for the first 100 customers.
-    - A standalone AI Tools Add-On subscription.
-    - Higher Standard pricing that will apply after the founder slots are filled.
-- **Employee Portal:** A dedicated portal for employees to clock in/out, view their tasks, track time against specific jobs, and see their pay information, with features gated by the shop's subscription tier.
-- **Advanced Features:** Comprehensive pricing calculators, an AI tools suite, a job status/timeline tracker, and an AI-powered business assistant for analytics.
-- **Integrations:** Stripe for payments (in progress), and future plans for BNPL (Affirm/Klarna), SMS (Twilio), and accounting (QuickBooks).
+- **SaaS Billing & Tiers:** A detailed pricing structure including a 24-hour free trial, a 14-day extended trial, Founder tiers with lifetime pricing, a standalone AI Tools Add-On, and standard pricing.
+- **Employee Portal:** A dedicated portal for employees with features gated by the shop's subscription tier.
+- **Advanced Features:** Comprehensive pricing calculators, an AI tools suite, a job status/timeline tracker, and an AI-powered business assistant.
+- **Integrations:** Stripe for payments (in progress), and future plans for BNPL (Affirm/Klarna), SMS (Twilio), and QuickBooks.
+- **Theme:** A consistent, legible dark shell + light content surface design system.
 
 **User's preferred language**: English
 
 **what currently exists?**
 - The application is a full-stack system using FastAPI, React, and MongoDB, with user authentication, RBAC, and multi-tenancy.
-- The backend has been refactored from a monolithic  into a clean, modular architecture. The refactoring cleanup is complete.
-- A full-featured customer portal is implemented.
-- A comprehensive, standalone pricing calculator is complete and integrated into the job/quote creation workflows.
-- An initial version of a 3-tier SaaS system (backend API and frontend UI) was built, but it is now being replaced by a new, more complex pricing model requested by the user.
-- A 24-hour trial lockout system is fully implemented and tested, including a countdown timer in the UI and a lockout screen upon expiry.
-- The backend models and routes for the billing system have been overwritten to reflect the new pricing structure, but the implementation is incomplete.
+- The backend has been refactored into a modular architecture.
+- A full-featured customer portal and a standalone pricing calculator are implemented.
+- A 24-hour trial lockout system is in place.
+- The backend models/routes for billing have been overwritten to support a new pricing structure but are untested and incomplete.
+- A comprehensive theme overhaul has just been completed, implementing a dark shell + light content surface design system across the entire application to fix UI contrast and legibility issues.
 
 **Last working item**:
-- Last item agent was working: The agent was in the middle of a major refactoring of the entire billing system to implement a new, highly detailed pricing structure provided by the user. This new structure includes multiple trial options, Founder tiers, a standalone AI add-on, and future standard pricing.
-- Status: IN PROGRESS
+- Last item agent was working: The agent was completing a comprehensive theme overhaul. However, the user's last message reported a critical blocker: they are being redirected to the pricing page and cannot access the application. The current focus must shift to resolving this access issue.
+- Status: BLOCKED
 - Agent Testing Done: N
-- Which testing method agent to use? both
+- Which testing method agent to use? manual testing by curl
 - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-- **Issue 1:** Fix white-on-white theme issues across the application. (P2)
+-   Issue 1: User is redirected to the pricing page and cannot access the app (P0)
+-   Issue 2: Complete the Billing System Refactor for New Pricing Structure (P1)
 
 **Issues Detail:**
 - **Issue 1:**
-    - **Attempted fixes:** None. This was recently requested by the user.
+    - **Attempted fixes:** None. This issue was just reported by the user.
     - **Next debug checklist:**
-        1. Systematically navigate through all pages and components of the application.
-        2. Identify all instances where text is unreadable due to color contrast issues (e.g., white text on a light or white background).
-        3. Inspect the CSS/Tailwind classes for the affected elements.
-        4. Correct the text color or background color variables to ensure readability in both light and dark themes.
-    - **Why fix this issue and what will be achieved with the fix?** To ensure the application is usable and professional. It fixes a critical UI bug that prevents users from seeing important information.
+        1.  Try to access the main dashboard ('/') to reproduce the redirection.
+        2.  Examine the main frontend routing component at  to understand the redirection logic.
+        3.  Check the  component and its related context () to see if the trial expiration logic is misfiring and redirecting to .
+        4.  Investigate the response from the  endpoint to determine the subscription status the backend is reporting for the user.
+    - **Why fix this issue and what will be achieved with the fix?** This is a critical blocker preventing all access and use of the application. Fixing it will restore core functionality.
     - **Status:** NOT STARTED
     - **Is recurring issue?** N
-    - **Should Test frontend/backend/both after fix?** frontend
-    - **Blocked on other issue:** none
+    - **Should Test frontend/backend/both after fix?** both
+    - **Blocked on other issue:** None. This is the primary blocker.
+
+- **Issue 2:**
+    - **Where to resume:**
+        1.  Thoroughly test and debug the new backend components:  and .
+        2.  Completely redesign and implement the frontend pricing page () to match the new 5-tier structure.
+        3.  Implement backend logic to track the first 100 founder accounts and switch to standard pricing.
+        4.  Implement the logic for the 9.99 trial credit.
+        5.  Integrate the standalone AI Tools Add-On.
+    - **Why fix this issue and what will be achieved with the fix?** To align the application's core monetization strategy with the user's detailed business requirements.
+    - **Status:** IN PROGRESS
+    - **Is recurring issue?** N
+    - **Should Test frontend/backend/both after fix?** both
+    - **Blocked on other issue:** Issue 1
 
 **In progress Task List**:
-- **Task 1:** Complete the Billing System Refactor for New Pricing Structure (P0)
-    - **Where to resume:**
-        1.  The backend models () and routes () have been overwritten. The next step is to **thoroughly test and debug** these new backend components to ensure they work.
-        2.  Completely redesign and implement the frontend pricing page () to match the new 5-tier structure (2 trials, 3 founder plans, 1 add-on).
-        3.  Implement the backend logic to track the first 100 founder accounts and switch to standard pricing afterwards.
-        4.  Implement the logic for the 9.99 trial credit being applied to the Tier 3 subscription.
-        5.  Integrate the standalone AI Tools Add-On into the checkout and subscription logic.
-    - **What will be achieved with this?** This will align the application's core monetization strategy with the user's detailed business requirements.
-    - **Status:** IN PROGRESS
-    - **Should Test frontend/backend/both after fix?** both
-    - **Blocked on something:** None.
+None.
 
 **Upcoming and Future Tasks**
 **Upcoming Tasks:**
--   **Dashboard Enhancement (P1):** Move the 'Dashboard' link to be a top-level 'Home' item in the sidebar. Enhance the dashboard with widgets: personalized greeting, today's schedule, pending approvals, unread customer messages, and a list of clocked-in employees.
--   **Employee Portal (P1):** Build the full employee-facing portal with a separate login (). Implement tier-gated features like Time Clock, My Pay, My Tasks, and assigned jobs.
--   **Job Time Tracking (P1):** As part of the Employee Portal, create a system for employees to log time against specific jobs. This data is critical for future AI-powered cost analysis.
--   **Job Status Flow & Timeline (P1):** Create a visual timeline on job tickets to track their progress through various production stages, timestamping each transition.
+-   **Dashboard Enhancement (P1):** Move the 'Dashboard' link to be a top-level 'Home' item in the sidebar. Enhance the dashboard with widgets for a personalized greeting, schedule, pending approvals, messages, and clocked-in employees.
+-   **Employee Portal (P1):** Build the full employee-facing portal with a separate login, including tier-gated features like Time Clock, My Pay, and My Tasks.
+-   **Job Time Tracking (P1):** Create a system for employees to log time against specific jobs.
+-   **Job Status Flow & Timeline (P1):** Create a visual timeline on job tickets to track their progress through production stages.
 
 **Future Tasks:**
--   **Efficiency Dashboard (P2):** For the Business tier, create a dashboard for employees showing performance metrics like efficiency scores, jobs completed, etc.
--   **AI Business Assistant (P2):** Implement the planned internal chat interface for the owner to query business data using natural language.
--   **Calendar + Kanban Views (P2):** Build out the full Calendar and Kanban board features as specified in the tier definitions.
--   **Integrations (P3):** Implement BNPL (Affirm/Klarna), SMS (Twilio), and QuickBooks integrations.
--   **Custom Domain Support (P3):** Add support for subdomains and custom domains for customer webstores.
+-   **Efficiency Dashboard (P2):** Create a dashboard for employees showing performance metrics.
+-   **AI Business Assistant (P2):** Implement an internal chat interface for the owner to query business data.
+-   **Calendar + Kanban Views (P2):** Build out the full Calendar and Kanban board features.
+-   **Integrations (P3):** Implement BNPL (Affirm/Klarna), SMS (Twilio), and QuickBooks.
+-   **Custom Domain Support (P3):** Add support for subdomains and custom domains for webstores.
 
 **Completed work in this session**
-- **Backend Refactoring Cleanup:** The monolithic  file was successfully cleaned up, reducing its size by 88% (from 6349 to 774 lines). The backend is now fully modular. This was verified with a comprehensive regression test suite.
-- **SaaS Tier System (v1):** A full backend API and frontend integration for a 3-tier system was completed, including feature-gating logic, an upgrade modal, and locked feature icons in the UI. **Note:** This is being superseded by the new pricing model.
-- **Stripe Integration Foundation:** Securely stored user's **LIVE** API keys in . Created initial backend models and routes for the billing system.
-- **Trial Lockout System:** Implemented a full-screen lockout page that appears after the 24-hour free trial expires, along with a real-time countdown timer in the UI header.
-- **Pricing Page (v1):** Created a functional and styled frontend pricing page. **Note:** This page is based on the old pricing model and needs to be completely rebuilt.
+- **Comprehensive Theme Overhaul (DONE):**
+  - A new dark shell + light content surface design system was implemented globally, fixing all white-on-white text and contrast issues.
+  - Global CSS variables for a new color palette were defined in .
+  -  was updated to use the new color tokens.
+  - All major components (Sidebar, Buttons, Inputs, Modals, Tables, etc.) and pages were refactored to use the new theme.
+  - The testing agent was used to find and fix inconsistent page title colors across 11 files.
+
+**Earlier issues found/mentioned but not fixed**
+None.
+
+**Known issue recurrence from previous fork**
+None.
 
 **Code Architecture**
 
@@ -92,76 +98,62 @@ The product requirements include:
 - **Frontend:** React, React Router, Tailwind CSS, Shadcn UI, Axios, React Context API
 - **Database:** MongoDB
 - **Architecture:** Modular backend, Monorepo structure
-- **Monetization:** Tiered SaaS subscriptions, time-based trials, feature-gating, usage limits.
+- **Styling:** CSS Custom Properties (Variables) for global theming.
+- **Monetization:** Tiered SaaS subscriptions, time-based trials.
 
 **key DB schema**
 -   **Tenant:** 
 -   **Subscription:**  (in )
 -   **Plan:**  (in )
--   **FeatureAccess:** Defines features for each plan (in  and )
 
 **changes in tech stack**
-- No changes to the core stack.  python library is now a key dependency.
+- No changes to the core stack.  python library is a key dependency.
 
 **All files of reference**
--   : **NEEDS REVIEW & TESTING.** Contains the new pricing logic for Stripe.
--   : **NEEDS REFACTOR.** The current UI does not match the new pricing model.
--   : The component that handles expired trials.
--   : Contains the user-approved project plan with priorities and cost estimates.
+-   : **CRITICAL** for debugging the current P0 redirection issue.
+-   : Defines the new global theme color variables.
+-   : Extends Tailwind's theme with the new color palette.
+-   : Untested file containing the new pricing logic.
+-   : Outdated UI that needs a complete rewrite.
 -   : Contains the **LIVE** Stripe keys.
 
 **Areas that need refactoring**:
--    requires a complete rewrite to accommodate the new, more complex pricing structure.
+-    requires a complete rewrite to accommodate the new pricing structure.
 
 **key api endpoints**
--    (GET): Returns the new structure of available pricing plans.
+-    (GET): Returns the structure of available pricing plans.
 -    (POST): Initiates a Stripe checkout.
--    (POST): Handles events from Stripe (e.g., successful payment, subscription updates).
--    (POST): Creates a Stripe Customer Portal session for users to manage their subscription.
 -    (GET): Returns the current user's plan and feature access.
--    (GET): Checks if the user can access a specific feature.
 
 **Critical Info for New Agent**
--   **PRIORITY #1:** The most critical task is to finish implementing the new, detailed pricing structure the user provided. The backend files () have been updated but are untested. The frontend pricing page is completely outdated and needs to be rebuilt.
--   **LIVE STRIPE KEYS:** The user has provided **LIVE** Stripe keys, which are stored in . All payment-related testing must be handled with extreme care. It is highly recommended to ask the user for their **TEST** keys to build and verify the entire flow safely before using live keys.
--   **NEW BACKLOG:** The user has approved a clear backlog of features. After the pricing refactor, the next priorities are the Dashboard Enhancement and the Employee Portal. Refer to  for the full list.
--   **UI BUGS:** The user has reported UI bugs where text is unreadable (white-on-white). This Theme Audit is a pending task. Be mindful of this when creating or modifying UI components.
+-   **P0 BLOCKER:** The user cannot access the app. They are being redirected to the pricing page after login. This is the absolute highest priority. Debugging should start with the frontend routing () and the trial/subscription status check logic.
+-   **LIVE STRIPE KEYS:** The application is configured with **LIVE** Stripe keys. This is extremely risky. The next agent should strongly recommend and request to switch to **TEST** keys before continuing any work on the billing system.
+-   **Billing System Refactor (P1):** Once the access issue is resolved, the next major task is to complete the implementation of the new, complex pricing model. The backend files are updated but untested, and the frontend page is obsolete.
+-   **Theme is Complete:** The comprehensive UI theme overhaul is finished and tested. No further work on base styles should be needed.
 
 **documents and test reports created in this job**
--   /app/test_reports/iteration_14.json
--   /app/test_reports/iteration_15.json
--   /app/test_reports/iteration_16.json
--   /app/memory/ROADMAP.md
+-   /app/test_reports/iteration_17.json
+-   /app/memory/ROADMAP.md (updated)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Asks for a comprehensive project overview, including completed tasks, remaining tasks, and estimated credit costs.
-2.  **Agent:** Provides a detailed  and a summary.
-3.  **User:** Asks for an explanation of how webstore domains work.
-4.  **Agent:** Explains path-based, subdomain, and custom domain options.
-5.  **User:** Confirms path-based is fine for now and asks if the pricing page is complete.
-6.  **Agent:** Confirms the features of the *first version* of the pricing page are done.
-7.  **User:** Clarifies that the agent's understanding of the pricing is wrong and provides a new, highly detailed pricing structure with Founder Tiers, trials, an AI add-on, and future standard pricing.
-8.  **Agent:** Acknowledges the new structure and begins implementation by overwriting backend billing models and routes.
-9.  **User:** Asks about the Employee Portal concept again with detailed requirements.
-10. **Agent:** Outlines the Employee Portal features by tier, including job time tracking and an efficiency dashboard, and asks for user clarification.
+- **User:** Provided a detailed prompt to fix the app theme with a dark shell + light surface style, including a specific color palette and component styling rules. (Status: COMPLETED)
+- **User:** how do i access the app it takes me to the pricing page (Status: PENDING - CRITICAL BLOCKER)
 
 **Project Health Check:**
-- **Broken:** The billing and pricing system is in a broken, transitional state. The backend has been updated to a new data model, but the frontend () reflects an old, obsolete model. The application's monetization core is non-functional until this refactor is complete.
+- **Broken:** The application is critically broken. Users are blocked from accessing any part of the app due to a redirection issue. The core monetization/billing system also remains non-functional and mid-refactor.
 
 **3rd Party Integrations**
 -   **Stripe:** (In Progress) For subscription billing. **LIVE keys are currently in use.**
 -   **SendGrid:** For transactional emails.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES. The agent was used to test the backend refactoring and the initial SaaS tier system implementation.
+-   **Testing agent used after significant changes:** YES (For the theme overhaul).
 -   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:** 
--   **Known regressions:** The entire pricing and subscription flow is currently non-functional due to the ongoing refactor.
+-   **Test files created:** None in this session.
+-   **Known regressions:** A new critical regression has appeared where users are redirected to the pricing page, blocking all app access.
 
 **Credentials to test flow:**
--   Create a new user account on the main registration page to act as the 'owner'.
--   To test the customer portal, log in as the owner, create a customer, enable portal access, and set a password. Then log out and navigate to .
--   To test the trial lockout, a user's  field in the  collection needs to be set to more than 24 hours in the past.
+-   Create a new user account on the main registration page to act as the 'owner'. The current redirection issue may prevent logging in successfully.
 
 **What agent forgot to execute**
-- The agent correctly identified the need to refactor the billing system after the user's clarification. No major tasks were forgotten, but the current state is mid-refactor, leaving the billing system intentionally broken. The agent did not prompt the user for **test keys** for Stripe, which is a critical safety step.</analysis>
+- The agent did not act on the previous handoff's critical recommendation to switch from **LIVE** Stripe keys to **TEST** keys. This remains a significant risk.</analysis>
