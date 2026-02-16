@@ -122,9 +122,9 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
 - "Business" badge in bottom-right is PREVIEW TIER SELECTOR (not a bug)
 
 ## Test Credentials
-- Email: testuser123@test.com
-- Password: Test123!
-- Customer: customer@test.com
+- **Admin:** testuser123@test.com / Test123!
+- **Customer Portal:** customer@test.com
+- **Employee Portal:** john@signshop.com / PIN: 5678
 
 ## Last Updated
 February 16, 2026
