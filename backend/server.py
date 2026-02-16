@@ -681,12 +681,13 @@ async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, 
     markup = defaults.get("vehicle_markup", 2.0)
     suggested_price = total_cost * markup
     
-    return PricingCalculation(
-        material_cost=round(material_cost, 2),
-        labor_cost=round(labor_cost + design_cost, 2),
-        total_cost=round(total_cost, 2),
-        suggested_price=round(suggested_price, 2),
-        profit_margin=round((suggested_price - total_cost) / suggested_price * 100, 1) if suggested_price > 0 else 0,
+    return create_pricing_result(
+        material_cost=material_cost,
+        labor_cost=labor_cost,
+        setup_cost=0,
+        additional_costs=design_cost,
+        suggested_price=suggested_price,
+        estimated_labor_minutes=labor_hours * 60,
         breakdown={
             "vehicle_type": vehicle_type,
             "coverage": coverage,
@@ -716,12 +717,13 @@ async def calculate_custom(data: JobItemPricingData, quantity: float, defaults: 
     if custom_price:
         suggested_price = custom_price * quantity
     
-    return PricingCalculation(
-        material_cost=round(material_cost, 2),
-        labor_cost=round(labor_cost, 2),
-        total_cost=round(total_cost, 2),
-        suggested_price=round(suggested_price, 2),
-        profit_margin=round((suggested_price - total_cost) / suggested_price * 100, 1) if suggested_price > 0 else 0,
+    return create_pricing_result(
+        material_cost=material_cost,
+        labor_cost=labor_cost,
+        setup_cost=0,
+        additional_costs=0,
+        suggested_price=suggested_price,
+        estimated_labor_minutes=labor_hours * 60,
         breakdown={
             "custom_item": True,
             "labor_hours": labor_hours,
