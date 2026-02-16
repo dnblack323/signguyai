@@ -540,12 +540,13 @@ async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defau
     markup = defaults.get("default_markup", 2.5)
     suggested_price = total_cost * markup
     
-    return PricingCalculation(
-        material_cost=round(material_cost + finishing_cost, 2),
-        labor_cost=round(labor_cost, 2),
-        total_cost=round(total_cost, 2),
-        suggested_price=round(suggested_price, 2),
-        profit_margin=round((suggested_price - total_cost) / suggested_price * 100, 1) if suggested_price > 0 else 0,
+    return create_pricing_result(
+        material_cost=material_cost + finishing_cost,
+        labor_cost=labor_cost,
+        setup_cost=0,
+        additional_costs=0,
+        suggested_price=suggested_price,
+        estimated_labor_minutes=labor_hours * 60,
         breakdown={
             "dimensions": f"{width}\" x {height}\"",
             "square_feet": round(sqft, 2),
