@@ -62,11 +62,22 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
   - Kanban drag-and-drop functionality
   - Task CRUD API created (/api/tasks)
   - Kanban cards clickable to navigate to job
+- [x] **Employee Portal (Feb 16, 2026):**
+  - Separate login with email/PIN authentication
+  - Dashboard with clock in/out, break management
+  - Time clock status tracking (hours worked, break time)
+  - My Pay page with earnings, YTD, balance owed
+  - My Tasks page with assigned tasks
+  - Profile page with clock history
+  - Bottom navigation and responsive mobile-first design
+  - JWT tokens with employee type
+  - Backend tests created (/app/backend/tests/test_employee_portal.py)
 
 ## Upcoming Tasks (P1)
-- [ ] Employee Portal - separate login, tier-gated features
 - [ ] Job Time Tracking - log time against specific jobs
 - [ ] Job Status Flow & Timeline - visual timeline on job tickets
+- [ ] Complete Billing System Logic - track first 100 founders, $19.99 credit, AI Tools Add-On
+- [ ] Re-enable Trial Lockout System - fix root cause, not just disable
 
 ## Future Tasks (P2/P3)
 - [ ] Efficiency Dashboard for employees
