@@ -759,23 +759,44 @@ export default function Quotes() {
 
                 {/* Actions (hidden in print) */}
                 <div className="flex justify-between print:hidden">
-                  {!selectedQuote.job_id && selectedQuote.status !== 'approved' && (
-                    <Button 
-                      variant="outline" 
-                      onClick={() => { setIsPreviewOpen(false); handleEdit(selectedQuote); }}
-                    >
-                      <Edit2 className="h-4 w-4 mr-2" /> Edit Quote
-                    </Button>
-                  )}
-                  {!selectedQuote.job_id && selectedQuote.status === 'approved' && (
-                    <Button 
-                      onClick={() => { handleConvert(selectedQuote.id); setIsPreviewOpen(false); }}
-                      className="bg-primary"
-                    >
-                      <ArrowRightCircle className="h-4 w-4 mr-2" /> Convert to Job
-                    </Button>
-                  )}
-                  {selectedQuote.job_id && <div />}
+                  <div className="flex gap-2">
+                    {!selectedQuote.job_id && (
+                      <Button 
+                        variant="outline" 
+                        onClick={() => { setIsPreviewOpen(false); handleEdit(selectedQuote); }}
+                      >
+                        <Edit2 className="h-4 w-4 mr-2" /> Edit Quote
+                      </Button>
+                    )}
+                    {!selectedQuote.job_id && (
+                      <Button 
+                        onClick={async () => {
+                          await handleConvert(selectedQuote.id);
+                          setIsPreviewOpen(false);
+                        }}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <ArrowRightCircle className="h-4 w-4 mr-2" /> Convert to Job
+                      </Button>
+                    )}
+                    {!selectedQuote.job_id && (
+                      <Button 
+                        variant="outline"
+                        onClick={() => {
+                          const customer = getCustomer(selectedQuote.customer_id);
+                          if (customer?.email) {
+                            const subject = encodeURIComponent(`Quote #${selectedQuote.id.slice(0, 8).toUpperCase()} from SignGuy AI`);
+                            const body = encodeURIComponent(`Dear ${customer.name},\n\nPlease find attached your quote #${selectedQuote.id.slice(0, 8).toUpperCase()} for ${formatCurrency(selectedQuote.total)}.\n\nThis quote is valid for 30 days.\n\nBest regards,\nSignGuy AI`);
+                            window.open(`mailto:${customer.email}?subject=${subject}&body=${body}`, '_blank');
+                          } else {
+                            toast.error('Customer email not found');
+                          }
+                        }}
+                      >
+                        <Mail className="h-4 w-4 mr-2" /> Email
+                      </Button>
+                    )}
+                  </div>
                   <Button variant="outline" onClick={() => setIsPreviewOpen(false)}>
                     Close
                   </Button>
