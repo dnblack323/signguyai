@@ -72,6 +72,21 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
   - Bottom navigation and responsive mobile-first design
   - JWT tokens with employee type
   - Backend tests created (/app/backend/tests/test_employee_portal.py)
+- [x] **Bug Fixes Batch 3 (Feb 17, 2026):**
+  - User upgraded to Business tier (Payroll/Financials now accessible)
+  - Job list rows fully clickable (not just eyeball icon)
+  - Pricing calculator shows zeros initially (not blank)
+  - Complexity slider now affects all calculator prices (1.0x to 2.0x multiplier)
+  - Setup fee charged once per order (not per item)
+  - Fixed Payroll report.map error (handles backend response format)
+- [x] **AI Tools Suite (Feb 17, 2026):**
+  - Created /api/ai/generate endpoint for text generation
+  - Created /api/ai/generate-images endpoint for image generation
+  - Created /api/ai/history endpoint for generation history
+  - Using OpenAI GPT-5.2 for text, GPT Image 1 for images via Emergent LLM key
+  - 15 AI tools across 4 categories: Design, Branding, Business, Marketing
+  - Tools include: Photo Enhancer, Vectorizer, Font Identifier, Sign/Banner Designer,
+    Tagline Generator, Brand Color Advisor, Proposal Writer, Review Responder, etc.
 
 ## Upcoming Tasks (P1)
 - [ ] Job Time Tracking - log time against specific jobs
