@@ -63,12 +63,12 @@ const statusLabels = {
 };
 
 const statusColors = {
-  quoted: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
-  approved: 'bg-green-500/20 text-green-400 border-green-500/30',
-  in_production: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  installed: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-  complete: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  archived: 'bg-slate-500/20 text-slate-400 border-slate-500/30'
+  quoted: 'bg-gray-200 text-gray-800 border-gray-300',
+  approved: 'bg-green-200 text-green-800 border-green-300',
+  in_production: 'bg-yellow-200 text-yellow-800 border-yellow-300',
+  installed: 'bg-purple-200 text-purple-800 border-purple-300',
+  complete: 'bg-blue-200 text-blue-800 border-blue-300',
+  archived: 'bg-slate-200 text-slate-800 border-slate-300'
 };
 
 const itemTypes = [
