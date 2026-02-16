@@ -328,23 +328,27 @@ export function JobsList() {
               {jobs.map((job) => (
                 <div 
                   key={job.id} 
-                  className="p-4 hover:bg-muted/30 transition-colors group"
+                  className="p-4 hover:bg-muted/30 transition-colors group cursor-pointer"
                   data-testid={`job-row-${job.id}`}
+                  onClick={(e) => {
+                    // Don't navigate if clicking on interactive elements
+                    if (e.target.closest('button') || e.target.closest('[role="menu"]') || e.target.closest('a')) return;
+                    navigate(`/jobs/${job.id}`);
+                  }}
                 >
                   <div className="flex items-center gap-4">
                     {/* Job Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-1">
-                        <Link 
-                          to={`/jobs/${job.id}`}
-                          className="font-bold text-lg hover:text-primary transition-colors truncate"
+                        <span 
+                          className="font-bold text-lg hover:text-primary transition-colors truncate cursor-pointer"
                         >
                           {job.name}
-                        </Link>
+                        </span>
                         {/* Interactive Status Badge */}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button className="focus:outline-none">
+                            <button className="focus:outline-none" onClick={(e) => e.stopPropagation()}>
                               <Badge 
                                 className={cn(
                                   statusColors[job.status], 
@@ -389,7 +393,7 @@ export function JobsList() {
                       <Button
                         variant="default"
                         size="sm"
-                        onClick={() => navigate(`/jobs/${job.id}`)}
+                        onClick={(e) => { e.stopPropagation(); navigate(`/jobs/${job.id}`); }}
                         data-testid={`view-job-${job.id}`}
                       >
                         <Eye className="h-4 w-4 mr-1" /> View
