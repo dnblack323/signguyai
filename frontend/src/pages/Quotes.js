@@ -616,85 +616,85 @@ export default function Quotes() {
                         {selectedQuote.status.toUpperCase()}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-gray-500">
                       <Calendar className="h-3 w-3 inline mr-1" />
                       Created: {formatDate(selectedQuote.created_at)}
                     </p>
                     {selectedQuote.job_id && (
-                      <p className="text-sm text-green-400 mt-1">
+                      <p className="text-sm text-green-600 mt-1">
                         Converted to Job
                       </p>
                     )}
                   </div>
                 </div>
 
-                <Separator />
+                <Separator className="bg-gray-200" />
 
                 {/* Customer Info */}
                 <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <h3 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                    <h3 className="text-sm font-semibold text-gray-500 mb-2 uppercase tracking-wide">
                       Prepared For
                     </h3>
                     {customer ? (
                       <div className="space-y-1">
-                        <p className="font-bold text-lg">{customer.name}</p>
+                        <p className="font-bold text-lg text-gray-900">{customer.name}</p>
                         {customer.company && (
-                          <p className="text-muted-foreground flex items-center gap-1">
+                          <p className="text-gray-600 flex items-center gap-1">
                             <Building2 className="h-3 w-3" /> {customer.company}
                           </p>
                         )}
                         {customer.email && (
-                          <p className="text-muted-foreground flex items-center gap-1">
+                          <p className="text-gray-600 flex items-center gap-1">
                             <Mail className="h-3 w-3" /> {customer.email}
                           </p>
                         )}
                         {customer.phone && (
-                          <p className="text-muted-foreground flex items-center gap-1">
+                          <p className="text-gray-600 flex items-center gap-1">
                             <Phone className="h-3 w-3" /> {customer.phone}
                           </p>
                         )}
                       </div>
                     ) : (
-                      <p className="text-muted-foreground">Customer not found</p>
+                      <p className="text-gray-500">Customer not found</p>
                     )}
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                    <h3 className="text-sm font-semibold text-gray-500 mb-2 uppercase tracking-wide">
                       From
                     </h3>
                     <div className="space-y-1">
-                      <p className="font-bold text-lg">SignGuy AI</p>
-                      <p className="text-muted-foreground">Your Professional Sign Shop</p>
+                      <p className="font-bold text-lg text-gray-900">SignGuy AI</p>
+                      <p className="text-gray-600">Your Professional Sign Shop</p>
                     </div>
                   </div>
                 </div>
 
-                <Separator />
+                <Separator className="bg-gray-200" />
 
                 {/* Line Items Table */}
                 <div>
-                  <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
+                  <h3 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">
                     Quote Details
                   </h3>
-                  <div className="border rounded-lg overflow-hidden">
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
                     <table className="w-full">
-                      <thead className="bg-muted/50">
+                      <thead className="bg-gray-100">
                         <tr>
-                          <th className="text-left p-3 text-sm font-semibold">Description</th>
-                          <th className="text-center p-3 text-sm font-semibold w-20">Qty</th>
-                          <th className="text-right p-3 text-sm font-semibold w-28">Unit Price</th>
-                          <th className="text-right p-3 text-sm font-semibold w-28">Total</th>
+                          <th className="text-left p-3 text-sm font-semibold text-gray-700">Description</th>
+                          <th className="text-center p-3 text-sm font-semibold text-gray-700 w-20">Qty</th>
+                          <th className="text-right p-3 text-sm font-semibold text-gray-700 w-28">Unit Price</th>
+                          <th className="text-right p-3 text-sm font-semibold text-gray-700 w-28">Total</th>
                         </tr>
                       </thead>
                       <tbody>
                         {selectedQuote.line_items && selectedQuote.line_items.length > 0 ? (
                           selectedQuote.line_items.map((item, idx) => (
-                            <tr key={idx} className={idx % 2 === 1 ? 'bg-muted/20' : ''}>
-                              <td className="p-3 text-sm">{item.description}</td>
-                              <td className="p-3 text-sm text-center">{item.quantity}</td>
-                              <td className="p-3 text-sm text-right">{formatCurrency(item.unit_price)}</td>
-                              <td className="p-3 text-sm text-right font-medium">
+                            <tr key={idx} className={idx % 2 === 1 ? 'bg-gray-50' : 'bg-white'}>
+                              <td className="p-3 text-sm text-gray-900">{item.description}</td>
+                              <td className="p-3 text-sm text-center text-gray-900">{item.quantity}</td>
+                              <td className="p-3 text-sm text-right text-gray-900">{formatCurrency(item.unit_price)}</td>
+                              <td className="p-3 text-sm text-right font-medium text-gray-900">
                                 {formatCurrency(item.quantity * item.unit_price)}
                               </td>
                             </tr>
