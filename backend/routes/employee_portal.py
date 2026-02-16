@@ -9,7 +9,7 @@ This module contains routes for the employee-facing portal:
 - View assigned tasks
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Header
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field
