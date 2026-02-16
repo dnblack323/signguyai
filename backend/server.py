@@ -664,8 +664,7 @@ async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, 
     
     material_cost = actual_sqft * material_cost_sqft * quantity
     
-    hourly_rate = defaults.get("hourly_rate", 75)
-    install_rate = 100
+    install_rate = defaults.get("install_hourly_rate", 100)
     hours_per_sqft = 0.15
     labor_hours = actual_sqft * hours_per_sqft * quantity
     labor_cost = labor_hours * install_rate
