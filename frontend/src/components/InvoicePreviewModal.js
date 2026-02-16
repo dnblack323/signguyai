@@ -31,7 +31,12 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
     setLoading(true);
     try {
       const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-      const res = await fetch(`${API}/invoices/${invoiceId}`);
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch(`${API}/invoices/${invoiceId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!res.ok) throw new Error('Invoice not found');
       const data = await res.json();
       setInvoice(data);
