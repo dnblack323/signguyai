@@ -220,7 +220,7 @@ export default function Invoices() {
                       <SelectValue placeholder="Select job (optional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {jobs.filter(j => j.customer_id === formData.customer_id).map((j) => (
                         <SelectItem key={j.id} value={j.id}>
                           {j.name}
