@@ -263,6 +263,35 @@ def get_quantity_discount(quantity: float, quantity_breaks: dict) -> float:
     return 0
 
 
+def create_pricing_result(
+    material_cost: float,
+    labor_cost: float,
+    setup_cost: float,
+    additional_costs: float,
+    suggested_price: float,
+    estimated_labor_minutes: float = 0,
+    breakdown: dict = None
+) -> PricingCalculation:
+    """Create a PricingCalculation with properly calculated profit fields"""
+    production_cost = material_cost + labor_cost + setup_cost + additional_costs
+    profit_amount = suggested_price - production_cost
+    profit_margin_percent = round((profit_amount / suggested_price * 100), 1) if suggested_price > 0 else 0
+    
+    return PricingCalculation(
+        material_cost=round(material_cost, 2),
+        labor_cost=round(labor_cost, 2),
+        setup_cost=round(setup_cost, 2),
+        additional_costs=round(additional_costs, 2),
+        production_cost=round(production_cost, 2),
+        suggested_price=round(suggested_price, 2),
+        markup_percent=round((suggested_price / production_cost - 1) * 100, 1) if production_cost > 0 else 0,
+        profit_margin_percent=profit_margin_percent,
+        profit_amount=round(profit_amount, 2),
+        estimated_labor_minutes=round(estimated_labor_minutes, 1),
+        breakdown=breakdown or {}
+    )
+
+
 async def calculate_promotional(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
     """Calculate pricing for promotional products"""
     base_cost = data.unit_cost or 0
