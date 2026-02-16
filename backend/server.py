@@ -543,16 +543,23 @@ async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defau
     labor_hours = 0.25 + (sqft * 0.15) * quantity
     labor_cost = labor_hours * hourly_rate
     
+    # Setup fee (charged once per order, not per item)
+    setup_fee = data.setup_fee or 0
+    
     material_cost = substrate_cost + print_cost
-    total_cost = material_cost + labor_cost + finishing_cost
+    total_cost = material_cost + labor_cost + finishing_cost + setup_fee
     
     markup = defaults.get("default_markup", 2.5)
     suggested_price = total_cost * markup
     
+    # Apply complexity multiplier
+    complexity_mult = get_complexity_multiplier(data.complexity or 1)
+    suggested_price *= complexity_mult
+    
     return create_pricing_result(
         material_cost=material_cost + finishing_cost,
         labor_cost=labor_cost,
-        setup_cost=0,
+        setup_cost=setup_fee,
         additional_costs=0,
         suggested_price=suggested_price,
         estimated_labor_minutes=labor_hours * 60,
@@ -562,7 +569,9 @@ async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defau
             "substrate": substrate,
             "substrate_cost_per_sqft": cost_per_sqft,
             "print_cost": round(print_cost, 2),
-            "finishing_cost": round(finishing_cost, 2)
+            "finishing_cost": round(finishing_cost, 2),
+            "complexity_multiplier": complexity_mult,
+            "setup_fee": setup_fee
         }
     )
 
