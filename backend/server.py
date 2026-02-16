@@ -470,15 +470,22 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
     print_time = sqft * 0.1 * quantity
     labor_cost = (setup_time + print_time) * hourly_rate
     
-    total_cost = material_cost + labor_cost + finishing_cost
+    # Setup fee (charged once per order, not per item)
+    setup_fee = data.setup_fee or 0
+    
+    total_cost = material_cost + labor_cost + finishing_cost + setup_fee
     
     markup = defaults.get("default_markup", 2.5)
     suggested_price = total_cost * markup
     
+    # Apply complexity multiplier
+    complexity_mult = get_complexity_multiplier(data.complexity or 1)
+    suggested_price *= complexity_mult
+    
     return create_pricing_result(
         material_cost=material_cost + finishing_cost,
         labor_cost=labor_cost,
-        setup_cost=0,
+        setup_cost=setup_fee,
         additional_costs=0,
         suggested_price=suggested_price,
         estimated_labor_minutes=(setup_time + print_time) * 60,
@@ -490,7 +497,9 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
             "finishing_cost": round(finishing_cost, 2),
             "grommets": grommets,
             "hemming": hemming,
-            "lamination": lamination
+            "lamination": lamination,
+            "complexity_multiplier": complexity_mult,
+            "setup_fee": setup_fee
         }
     )
 
