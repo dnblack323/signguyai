@@ -414,34 +414,58 @@ export default function Productivity() {
         <TabsContent value="kanban" className="mt-4">
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 overflow-x-auto">
             {jobStatuses.map((status) => (
-              <div key={status} className="min-w-[250px]">
+              <div 
+                key={status} 
+                className="min-w-[250px]"
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, status)}
+              >
                 <div className="bg-muted/30 rounded-lg p-3 mb-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-sm uppercase tracking-wide">
+                    <h3 className="font-bold text-sm uppercase tracking-wide" style={{ color: 'var(--text)' }}>
                       {status.replace('_', ' ')}
                     </h3>
                     <Badge variant="outline">{jobsByStatus[status].length}</Badge>
                   </div>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-3 min-h-[200px]">
                   {jobsByStatus[status].map((job) => (
                     <Card 
                       key={job.id} 
-                      className="bg-card border-border/50 hover:border-primary/30 transition-all"
+                      className={cn(
+                        "cursor-pointer transition-all hover:shadow-md",
+                        draggedJob?.id === job.id && "opacity-50"
+                      )}
+                      style={{ 
+                        backgroundColor: 'var(--surface)',
+                        borderColor: 'var(--border-light)'
+                      }}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, job)}
+                      onClick={() => handleJobClick(job.id)}
                     >
                       <CardContent className="p-4">
-                        <h4 className="font-medium text-sm">{job.name}</h4>
+                        <h4 className="font-medium text-sm" style={{ color: 'var(--text)' }}>{job.name}</h4>
                         {job.due_date && (
-                          <p className="text-xs text-muted-foreground mt-2">
+                          <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
                             Due: {formatDate(job.due_date)}
                           </p>
                         )}
+                        <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                          Drag to change status
+                        </p>
                       </CardContent>
                     </Card>
                   ))}
                   {jobsByStatus[status].length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground text-sm border-2 border-dashed border-border/50 rounded-lg">
-                      No jobs
+                    <div 
+                      className={cn(
+                        "text-center py-8 text-sm border-2 border-dashed rounded-lg transition-colors",
+                        draggedJob ? "border-blue-400 bg-blue-50/10" : "border-border/50"
+                      )}
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      {draggedJob ? 'Drop here' : 'No jobs'}
                     </div>
                   )}
                 </div>
