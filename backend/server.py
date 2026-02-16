@@ -764,6 +764,7 @@ api_router.include_router(products_router)
 api_router.include_router(tiers_router)
 api_router.include_router(billing_router)
 api_router.include_router(webhook_router)
+api_router.include_router(dashboard_router)
 
 # Include the api_router in the main app
 app.include_router(api_router)
