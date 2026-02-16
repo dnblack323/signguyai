@@ -136,6 +136,13 @@ function App() {
                 <Route path="/customer-portal/appointments" element={<PortalAppointments />} />
                 <Route path="/customer-portal/profile" element={<PortalProfile />} />
                 
+                {/* Employee Portal Routes - Separate Auth */}
+                <Route path="/employee-portal/login" element={<EmployeePortalLogin />} />
+                <Route path="/employee-portal" element={<EmployeePortalDashboard />} />
+                <Route path="/employee-portal/pay" element={<EmployeePortalPay />} />
+                <Route path="/employee-portal/tasks" element={<EmployeePortalTasks />} />
+                <Route path="/employee-portal/profile" element={<EmployeePortalProfile />} />
+                
                 {/* Protected Admin Routes */}
                 <Route path="/*" element={<ProtectedRoutes />} />
               </Routes>
