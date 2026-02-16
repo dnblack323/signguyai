@@ -1,0 +1,345 @@
+import { useEffect, useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import { 
+  Clock, Play, Pause, Square, Coffee, DollarSign, 
+  CheckCircle, ListTodo, LogOut, User, HardHat,
+  ChevronRight, AlertCircle
+} from 'lucide-react';
+import { toast } from 'sonner';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+// Employee Portal Layout wrapper
+const EmployeePortalLayout = ({ children, employeeName }) => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('employee_token');
+    localStorage.removeItem('employee_id');
+    localStorage.removeItem('employee_name');
+    localStorage.removeItem('employee_tenant_id');
+    navigate('/employee-portal/login');
+  };
+
+  return (
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
+      {/* Header */}
+      <header 
+        className="sticky top-0 z-50 border-b"
+        style={{ backgroundColor: 'var(--sidebar-bg)', borderColor: 'var(--border-dark)' }}
+      >
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div 
+              className="w-10 h-10 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: 'var(--accent)' }}
+            >
+              <HardHat className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h1 className="font-bold font-heading" style={{ color: 'var(--text-on-dark)' }}>
+                Employee Portal
+              </h1>
+              <p className="text-xs" style={{ color: 'var(--text-muted-on-dark)' }}>
+                {employeeName}
+              </p>
+            </div>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleLogout}
+            className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+          >
+            <LogOut className="h-4 w-4 mr-2" /> Sign Out
+          </Button>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-4xl mx-auto px-4 py-6">
+        {children}
+      </main>
+
+      {/* Bottom Navigation */}
+      <nav 
+        className="fixed bottom-0 left-0 right-0 border-t"
+        style={{ backgroundColor: 'var(--sidebar-bg)', borderColor: 'var(--border-dark)' }}
+      >
+        <div className="max-w-4xl mx-auto px-4 py-2 flex items-center justify-around">
+          <Link to="/employee-portal" className="flex flex-col items-center py-2 px-4">
+            <Clock className="h-5 w-5" style={{ color: 'var(--accent)' }} />
+            <span className="text-xs mt-1" style={{ color: 'var(--text-on-dark)' }}>Clock</span>
+          </Link>
+          <Link to="/employee-portal/pay" className="flex flex-col items-center py-2 px-4">
+            <DollarSign className="h-5 w-5" style={{ color: 'var(--text-muted-on-dark)' }} />
+            <span className="text-xs mt-1" style={{ color: 'var(--text-muted-on-dark)' }}>My Pay</span>
+          </Link>
+          <Link to="/employee-portal/tasks" className="flex flex-col items-center py-2 px-4">
+            <ListTodo className="h-5 w-5" style={{ color: 'var(--text-muted-on-dark)' }} />
+            <span className="text-xs mt-1" style={{ color: 'var(--text-muted-on-dark)' }}>Tasks</span>
+          </Link>
+          <Link to="/employee-portal/profile" className="flex flex-col items-center py-2 px-4">
+            <User className="h-5 w-5" style={{ color: 'var(--text-muted-on-dark)' }} />
+            <span className="text-xs mt-1" style={{ color: 'var(--text-muted-on-dark)' }}>Profile</span>
+          </Link>
+        </div>
+      </nav>
+    </div>
+  );
+};
+
+// Format time helper
+const formatTime = (isoString) => {
+  if (!isoString) return '--:--';
+  const date = new Date(isoString);
+  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+};
+
+// Format hours helper
+const formatHours = (hours) => {
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  return `${h}h ${m}m`;
+};
+
+export default function EmployeePortalDashboard() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [clockStatus, setClockStatus] = useState(null);
+  const [punching, setPunching] = useState(false);
+  
+  const employeeName = localStorage.getItem('employee_name') || 'Employee';
+  const token = localStorage.getItem('employee_token');
+
+  useEffect(() => {
+    if (!token) {
+      navigate('/employee-portal/login');
+      return;
+    }
+    loadClockStatus();
+  }, [token, navigate]);
+
+  const loadClockStatus = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/employee-portal/time-clock/status`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setClockStatus(res.data);
+    } catch (err) {
+      console.error('Failed to load clock status:', err);
+      if (err.response?.status === 401) {
+        navigate('/employee-portal/login');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePunch = async (action) => {
+    setPunching(true);
+    try {
+      await axios.post(
+        `${API_URL}/api/employee-portal/time-clock/punch?action=${action}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success(`${action.replace('_', ' ')} recorded!`);
+      await loadClockStatus();
+    } catch (err) {
+      toast.error('Failed to record time');
+    } finally {
+      setPunching(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <EmployeePortalLayout employeeName={employeeName}>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--accent)' }}></div>
+        </div>
+      </EmployeePortalLayout>
+    );
+  }
+
+  const { is_clocked_in, current_status, clocked_in_at, total_hours_today, break_time_today } = clockStatus || {};
+
+  return (
+    <EmployeePortalLayout employeeName={employeeName}>
+      <div className="space-y-6 pb-24">
+        {/* Greeting */}
+        <div className="text-center">
+          <h2 className="text-2xl font-bold font-heading" style={{ color: 'var(--text)' }}>
+            Hello, {employeeName.split(' ')[0]}!
+          </h2>
+          <p style={{ color: 'var(--text-muted)' }}>
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          </p>
+        </div>
+
+        {/* Clock Status Card */}
+        <Card style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)' }}>
+          <CardContent className="pt-6">
+            <div className="text-center mb-6">
+              <div 
+                className={`inline-flex items-center justify-center w-24 h-24 rounded-full mb-4 ${
+                  is_clocked_in 
+                    ? current_status === 'on_break' 
+                      ? 'bg-amber-500/20' 
+                      : 'bg-green-500/20' 
+                    : 'bg-gray-500/20'
+                }`}
+              >
+                {is_clocked_in ? (
+                  current_status === 'on_break' ? (
+                    <Coffee className="h-12 w-12 text-amber-500" />
+                  ) : (
+                    <Play className="h-12 w-12 text-green-500" />
+                  )
+                ) : (
+                  <Clock className="h-12 w-12 text-gray-400" />
+                )}
+              </div>
+              
+              <Badge 
+                className={`text-sm px-4 py-1 ${
+                  is_clocked_in 
+                    ? current_status === 'on_break'
+                      ? 'bg-amber-500/20 text-amber-500 border-amber-500/50'
+                      : 'bg-green-500/20 text-green-500 border-green-500/50'
+                    : 'bg-gray-500/20 text-gray-400 border-gray-500/50'
+                }`}
+              >
+                {is_clocked_in 
+                  ? current_status === 'on_break' 
+                    ? 'On Break' 
+                    : 'Clocked In'
+                  : 'Clocked Out'
+                }
+              </Badge>
+
+              {is_clocked_in && clocked_in_at && (
+                <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>
+                  Since {formatTime(clocked_in_at)}
+                </p>
+              )}
+            </div>
+
+            {/* Time Stats */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div 
+                className="text-center p-4 rounded-lg"
+                style={{ backgroundColor: 'var(--surface-2)' }}
+              >
+                <p className="text-2xl font-bold" style={{ color: 'var(--text)' }}>
+                  {formatHours(total_hours_today || 0)}
+                </p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Hours Worked</p>
+              </div>
+              <div 
+                className="text-center p-4 rounded-lg"
+                style={{ backgroundColor: 'var(--surface-2)' }}
+              >
+                <p className="text-2xl font-bold" style={{ color: 'var(--text)' }}>
+                  {formatHours(break_time_today || 0)}
+                </p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Break Time</p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-3">
+              {!is_clocked_in ? (
+                <Button 
+                  className="col-span-2 h-14 text-lg bg-green-600 hover:bg-green-700 text-white"
+                  onClick={() => handlePunch('start_work')}
+                  disabled={punching}
+                  data-testid="clock-in-btn"
+                >
+                  <Play className="h-5 w-5 mr-2" /> Clock In
+                </Button>
+              ) : (
+                <>
+                  {current_status === 'on_break' ? (
+                    <Button 
+                      className="col-span-2 h-14 text-lg bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => handlePunch('break_end')}
+                      disabled={punching}
+                      data-testid="end-break-btn"
+                    >
+                      <Play className="h-5 w-5 mr-2" /> End Break
+                    </Button>
+                  ) : (
+                    <>
+                      <Button 
+                        className="h-14 bg-amber-600 hover:bg-amber-700 text-white"
+                        onClick={() => handlePunch('break_start')}
+                        disabled={punching}
+                        data-testid="start-break-btn"
+                      >
+                        <Coffee className="h-5 w-5 mr-2" /> Break
+                      </Button>
+                      <Button 
+                        className="h-14 bg-red-600 hover:bg-red-700 text-white"
+                        onClick={() => handlePunch('end_work')}
+                        disabled={punching}
+                        data-testid="clock-out-btn"
+                      >
+                        <Square className="h-5 w-5 mr-2" /> Clock Out
+                      </Button>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Links */}
+        <div className="grid grid-cols-2 gap-4">
+          <Link to="/employee-portal/pay">
+            <Card 
+              className="cursor-pointer hover:shadow-md transition-shadow"
+              style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)' }}
+            >
+              <CardContent className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                    <DollarSign className="h-5 w-5 text-green-500" />
+                  </div>
+                  <span className="font-medium" style={{ color: 'var(--text)' }}>My Pay</span>
+                </div>
+                <ChevronRight className="h-5 w-5" style={{ color: 'var(--text-muted)' }} />
+              </CardContent>
+            </Card>
+          </Link>
+          
+          <Link to="/employee-portal/tasks">
+            <Card 
+              className="cursor-pointer hover:shadow-md transition-shadow"
+              style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)' }}
+            >
+              <CardContent className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                    <ListTodo className="h-5 w-5 text-blue-500" />
+                  </div>
+                  <span className="font-medium" style={{ color: 'var(--text)' }}>My Tasks</span>
+                </div>
+                <ChevronRight className="h-5 w-5" style={{ color: 'var(--text-muted)' }} />
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+      </div>
+    </EmployeePortalLayout>
+  );
+}
+
+// Export for use in other employee portal pages
+export { EmployeePortalLayout, formatTime, formatHours };
