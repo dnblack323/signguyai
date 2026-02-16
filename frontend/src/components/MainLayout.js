@@ -104,6 +104,11 @@ export const Sidebar = () => {
   // Filter navigation based on permissions
   const filteredNavigation = useMemo(() => {
     return navigationCategories.map(category => {
+      // Keep direct link items (like Home) as-is
+      if (category.isDirectLink) {
+        return category;
+      }
+      
       const filteredItems = category.items.filter(item => {
         // If no permission required, show the item
         if (!item.permission) return true;
@@ -119,7 +124,7 @@ export const Sidebar = () => {
       });
       
       return { ...category, items: filteredItems };
-    }).filter(category => category.items.length > 0); // Remove empty categories
+    }).filter(category => category.isDirectLink || category.items.length > 0); // Keep direct links and non-empty categories
   }, [hasPermission, checkFeature]);
 
   // Find active category based on current path
