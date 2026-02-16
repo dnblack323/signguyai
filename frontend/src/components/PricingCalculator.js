@@ -150,7 +150,20 @@ export default function PricingCalculator({
   const [quantity, setQuantity] = useState(1);
   const [complexity, setComplexity] = useState(5);
   const [pricingData, setPricingData] = useState(initialData || {});
-  const [calculation, setCalculation] = useState(null);
+  // Initialize calculation with zeros instead of null
+  const [calculation, setCalculation] = useState({
+    material_cost: 0,
+    labor_cost: 0,
+    setup_cost: 0,
+    additional_costs: 0,
+    production_cost: 0,
+    suggested_price: 0,
+    markup_percent: 0,
+    profit_margin_percent: 0,
+    profit_amount: 0,
+    estimated_labor_minutes: 0,
+    breakdown: {}
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [overrideEnabled, setOverrideEnabled] = useState(false);
