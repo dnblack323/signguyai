@@ -29,13 +29,15 @@ import { toast } from 'sonner';
 
 export default function Productivity() {
   const { 
-    tasks, jobs, fetchTasks, fetchJobs,
+    tasks, jobs, fetchTasks, fetchJobs, updateJob,
     createTask, updateTask, deleteTask 
   } = useApp();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('list');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [draggedJob, setDraggedJob] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
