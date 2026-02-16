@@ -503,19 +503,20 @@ export default function Quotes() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        {!quote.job_id && quote.status === 'approved' && (
+                        {!quote.job_id && (
                           <Button
-                            variant="outline"
-                            size="sm"
+                            variant="ghost"
+                            size="icon"
                             onClick={() => handleConvert(quote.id)}
                             data-testid={`convert-quote-${quote.id}`}
-                            className="text-primary border-primary/50"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            title="Convert to Job"
                           >
-                            <ArrowRightCircle className="h-4 w-4 mr-1" /> To Job
+                            <ArrowRightCircle className="h-4 w-4" />
                           </Button>
                         )}
                         {quote.job_id && (
-                          <Badge variant="outline" className="text-green-400 border-green-400/50">
+                          <Badge variant="outline" className="text-green-600 border-green-500/50 bg-green-50">
                             Converted
                           </Badge>
                         )}
