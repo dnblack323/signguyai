@@ -318,12 +318,12 @@ async def calculate_promotional(data: JobItemPricingData, quantity: float, defau
     if discount > 0:
         suggested_price *= (1 - discount)
     
-    return PricingCalculation(
-        material_cost=round(material_cost, 2),
-        labor_cost=round(labor_cost, 2),
-        total_cost=round(total_cost, 2),
-        suggested_price=round(suggested_price, 2),
-        profit_margin=round((suggested_price - total_cost) / suggested_price * 100, 1) if suggested_price > 0 else 0,
+    return create_pricing_result(
+        material_cost=material_cost,
+        labor_cost=0,
+        setup_cost=setup_fee,
+        additional_costs=0,
+        suggested_price=suggested_price,
         breakdown={
             "base_unit_cost": base_cost,
             "quantity": quantity,
