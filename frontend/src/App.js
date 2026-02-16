@@ -38,6 +38,13 @@ import { PortalMessages, PortalConversation } from "./pages/PortalMessages";
 import PortalProfile from "./pages/PortalProfile";
 import { PortalQuotes, PortalInvoices, PortalAppointments } from "./pages/PortalPages";
 
+// Employee Portal Pages
+import EmployeePortalLogin from "./pages/EmployeePortalLogin";
+import EmployeePortalDashboard from "./pages/EmployeePortalDashboard";
+import EmployeePortalPay from "./pages/EmployeePortalPay";
+import EmployeePortalTasks from "./pages/EmployeePortalTasks";
+import EmployeePortalProfile from "./pages/EmployeePortalProfile";
+
 // Billing Pages
 import PricingPage from "./pages/PricingPage";
 import BillingSuccess from "./pages/BillingSuccess";
