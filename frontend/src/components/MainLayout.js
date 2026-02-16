@@ -16,12 +16,12 @@ import { TrialCountdown } from './TrialLockout';
 // Navigation structure with categories, nested items, required permissions, and tier features
 const navigationCategories = [
   {
-    id: 'main',
-    label: 'Main',
+    id: 'home',
+    label: 'Home',
     icon: LayoutDashboard,
-    items: [
-      { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-    ]
+    isDirectLink: true,  // Special flag for direct navigation
+    href: '/',
+    items: []
   },
   {
     id: 'sales',
