@@ -744,6 +744,7 @@ from routes.portal import router as portal_router
 from routes.webstores import webstores_router, products_router
 from routes.tiers import router as tiers_router
 from routes.billing import router as billing_router, webhook_router
+from routes.dashboard import router as dashboard_router
 
 # Include all routers in the api_router
 api_router.include_router(auth_router)
