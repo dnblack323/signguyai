@@ -114,9 +114,17 @@ export default function Payroll() {
   const loadReport = async () => {
     try {
       const reportData = await getPayrollReport(dateRange.start, dateRange.end);
-      setReport(reportData);
+      // Handle both array and object format from backend
+      if (reportData && reportData.employees) {
+        setReport(reportData.employees);
+      } else if (Array.isArray(reportData)) {
+        setReport(reportData);
+      } else {
+        setReport([]);
+      }
     } catch (err) {
       console.error('Error loading report:', err);
+      setReport([]);
     }
   };
 
