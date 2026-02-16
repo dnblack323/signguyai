@@ -598,14 +598,14 @@ export default function Quotes() {
             ) : null;
 
             return (
-              <div className="quote-preview space-y-6 p-4 bg-background rounded-lg border print:border-none print:p-0">
+              <div className="quote-preview space-y-6 p-6 bg-white rounded-lg border border-gray-200 shadow-sm print:border-none print:p-0 print:shadow-none">
                 {/* Quote Header */}
                 <div className="flex justify-between items-start">
                   <div>
-                    <h2 className="text-2xl font-bold font-heading uppercase tracking-tight text-primary">
+                    <h2 className="text-2xl font-bold font-heading uppercase tracking-tight text-blue-600">
                       QUOTE
                     </h2>
-                    <p className="text-muted-foreground font-mono text-sm mt-1">
+                    <p className="text-gray-500 font-mono text-sm mt-1">
                       #{selectedQuote.id.slice(0, 8).toUpperCase()}
                     </p>
                   </div>
