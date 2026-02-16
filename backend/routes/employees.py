@@ -28,6 +28,8 @@ class EmployeeBase(BaseModel):
     hourly_rate: float = 0
     role: str = "staff"
     is_active: bool = True
+    tenant_id: Optional[str] = None
+    pin: Optional[str] = None  # 4-6 digit PIN for employee portal login
 
 class EmployeeCreate(EmployeeBase):
     pass
@@ -39,6 +41,7 @@ class EmployeeUpdate(BaseModel):
     hourly_rate: Optional[float] = None
     role: Optional[str] = None
     is_active: Optional[bool] = None
+    pin: Optional[str] = None
 
 class Employee(EmployeeBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
