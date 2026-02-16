@@ -699,15 +699,22 @@ async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, 
         complexity = data.complexity or 2
         design_cost = 150 * complexity
     
-    total_cost = material_cost + labor_cost + design_cost
+    # Setup fee (charged once per order, not per item)
+    setup_fee = data.setup_fee or 0
+    
+    total_cost = material_cost + labor_cost + design_cost + setup_fee
     
     markup = defaults.get("vehicle_markup", 2.0)
     suggested_price = total_cost * markup
     
+    # Apply complexity multiplier
+    complexity_mult = get_complexity_multiplier(data.complexity or 1)
+    suggested_price *= complexity_mult
+    
     return create_pricing_result(
         material_cost=material_cost,
         labor_cost=labor_cost,
-        setup_cost=0,
+        setup_cost=setup_fee,
         additional_costs=design_cost,
         suggested_price=suggested_price,
         estimated_labor_minutes=labor_hours * 60,
@@ -718,7 +725,9 @@ async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, 
             "actual_sqft": round(actual_sqft, 2),
             "material_cost_per_sqft": material_cost_sqft,
             "install_hours": round(labor_hours, 2),
-            "design_cost": design_cost
+            "design_cost": design_cost,
+            "complexity_multiplier": complexity_mult,
+            "setup_fee": setup_fee
         }
     )
 
