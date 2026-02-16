@@ -176,10 +176,9 @@ async def employee_login(data: EmployeeLogin):
 @router.post("/auth/set-pin")
 async def set_employee_pin(
     new_pin: str,
-    authorization: str = None
+    authorization: str = Header(default="")
 ):
     """Set or update employee PIN"""
-    from fastapi import Header
     # This would need proper auth in production
     # For now, simplified implementation
     return {"message": "PIN updated successfully"}
