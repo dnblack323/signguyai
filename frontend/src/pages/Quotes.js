@@ -701,7 +701,7 @@ export default function Quotes() {
                           ))
                         ) : (
                           <tr>
-                            <td colSpan="4" className="p-3 text-sm text-center text-muted-foreground">
+                            <td colSpan="4" className="p-3 text-sm text-center text-gray-500">
                               No line items
                             </td>
                           </tr>
@@ -714,10 +714,10 @@ export default function Quotes() {
                 {/* Totals */}
                 <div className="flex justify-end">
                   <div className="w-64 space-y-2">
-                    <Separator />
+                    <Separator className="bg-gray-200" />
                     <div className="flex justify-between font-bold text-lg">
-                      <span>Total:</span>
-                      <span className="text-primary">
+                      <span className="text-gray-900">Total:</span>
+                      <span className="text-blue-600">
                         {formatCurrency(selectedQuote.total)}
                       </span>
                     </div>
@@ -727,12 +727,12 @@ export default function Quotes() {
                 {/* Notes */}
                 {selectedQuote.notes && (
                   <>
-                    <Separator />
+                    <Separator className="bg-gray-200" />
                     <div>
-                      <h3 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                      <h3 className="text-sm font-semibold text-gray-500 mb-2 uppercase tracking-wide">
                         Notes
                       </h3>
-                      <p className="text-sm p-3 bg-muted/30 rounded-lg whitespace-pre-wrap">
+                      <p className="text-sm p-3 bg-gray-100 rounded-lg whitespace-pre-wrap text-gray-800">
                         {selectedQuote.notes}
                       </p>
                     </div>
@@ -740,9 +740,9 @@ export default function Quotes() {
                 )}
 
                 {/* Terms / Footer */}
-                <Separator />
-                <div className="text-sm text-muted-foreground space-y-2">
-                  <p className="font-medium">Terms & Conditions:</p>
+                <Separator className="bg-gray-200" />
+                <div className="text-sm text-gray-600 space-y-2">
+                  <p className="font-medium text-gray-700">Terms & Conditions:</p>
                   <ul className="list-disc list-inside space-y-1 text-xs">
                     <li>This quote is valid for 30 days from the date issued</li>
                     <li>50% deposit required upon approval to begin production</li>
@@ -752,7 +752,7 @@ export default function Quotes() {
                 </div>
 
                 {/* Footer */}
-                <div className="text-center text-xs text-muted-foreground print:mt-8">
+                <div className="text-center text-xs text-gray-500 print:mt-8">
                   <p>Thank you for your business!</p>
                   <p className="mt-1">SignGuy AI - Your Professional Sign Shop</p>
                 </div>
