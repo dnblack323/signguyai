@@ -74,6 +74,18 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
     <AlertTriangle className="h-5 w-5 text-red-400" />
   ) : null;
 
+  const handleEmail = () => {
+    if (!invoice) return;
+    const customer = getCustomer();
+    if (customer?.email) {
+      const subject = encodeURIComponent(`Invoice #${invoice.id.slice(0, 8).toUpperCase()} from SignGuy AI`);
+      const body = encodeURIComponent(`Dear ${customer.name},\n\nPlease find attached your invoice #${invoice.id.slice(0, 8).toUpperCase()} for ${formatCurrency(invoice.total)}.\n\nThank you for your business!\n\nBest regards,\nSignGuy AI`);
+      window.open(`mailto:${customer.email}?subject=${subject}&body=${body}`, '_blank');
+    } else {
+      toast.error('Customer email not found');
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent 
@@ -87,6 +99,9 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
               Invoice Preview
             </DialogTitle>
             <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={handleEmail} data-testid="email-invoice-btn">
+                <Mail className="h-4 w-4 mr-2" /> Email
+              </Button>
               <Button variant="outline" size="sm" onClick={handlePrint} data-testid="print-invoice-btn">
                 <Printer className="h-4 w-4 mr-2" /> Print
               </Button>
