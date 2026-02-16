@@ -200,32 +200,32 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
 
             {/* Line Items Table */}
             <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
+              <h3 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">
                 Line Items
               </h3>
-              <div className="border rounded-lg overflow-hidden">
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
                 <table className="w-full">
-                  <thead className="bg-muted/50">
+                  <thead className="bg-gray-100">
                     <tr>
-                      <th className="text-left p-3 text-sm font-semibold">Description</th>
-                      <th className="text-center p-3 text-sm font-semibold w-20">Qty</th>
-                      <th className="text-right p-3 text-sm font-semibold w-28">Unit Price</th>
-                      <th className="text-right p-3 text-sm font-semibold w-28">Total</th>
+                      <th className="text-left p-3 text-sm font-semibold text-gray-700">Description</th>
+                      <th className="text-center p-3 text-sm font-semibold text-gray-700 w-20">Qty</th>
+                      <th className="text-right p-3 text-sm font-semibold text-gray-700 w-28">Unit Price</th>
+                      <th className="text-right p-3 text-sm font-semibold text-gray-700 w-28">Total</th>
                     </tr>
                   </thead>
                   <tbody>
                     {invoice.line_items && invoice.line_items.length > 0 ? (
                       invoice.line_items.map((item, idx) => (
-                        <tr key={idx} className={idx % 2 === 1 ? 'bg-muted/20' : ''}>
-                          <td className="p-3 text-sm">{item.description}</td>
-                          <td className="p-3 text-sm text-center">{item.quantity}</td>
-                          <td className="p-3 text-sm text-right">{formatCurrency(item.unit_price)}</td>
-                          <td className="p-3 text-sm text-right font-medium">{formatCurrency(item.total)}</td>
+                        <tr key={idx} className={idx % 2 === 1 ? 'bg-gray-50' : 'bg-white'}>
+                          <td className="p-3 text-sm text-gray-900">{item.description}</td>
+                          <td className="p-3 text-sm text-center text-gray-900">{item.quantity}</td>
+                          <td className="p-3 text-sm text-right text-gray-900">{formatCurrency(item.unit_price)}</td>
+                          <td className="p-3 text-sm text-right font-medium text-gray-900">{formatCurrency(item.total)}</td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="4" className="p-3 text-sm text-center text-muted-foreground">
+                        <td colSpan="4" className="p-3 text-sm text-center text-gray-500">
                           No line items
                         </td>
                       </tr>
@@ -239,19 +239,19 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
             <div className="flex justify-end">
               <div className="w-64 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal:</span>
-                  <span>{formatCurrency(invoice.total)}</span>
+                  <span className="text-gray-600">Subtotal:</span>
+                  <span className="text-gray-900">{formatCurrency(invoice.total)}</span>
                 </div>
                 {invoice.amount_paid > 0 && (
-                  <div className="flex justify-between text-sm text-green-400">
+                  <div className="flex justify-between text-sm text-green-600">
                     <span>Paid:</span>
                     <span>-{formatCurrency(invoice.amount_paid)}</span>
                   </div>
                 )}
-                <Separator />
+                <Separator className="bg-gray-200" />
                 <div className="flex justify-between font-bold text-lg">
-                  <span>Balance Due:</span>
-                  <span className={invoice.total - invoice.amount_paid > 0 ? 'text-primary' : 'text-green-400'}>
+                  <span className="text-gray-900">Balance Due:</span>
+                  <span className={invoice.total - invoice.amount_paid > 0 ? 'text-blue-600' : 'text-green-600'}>
                     {formatCurrency(invoice.total - invoice.amount_paid)}
                   </span>
                 </div>
@@ -261,12 +261,12 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
             {/* Notes */}
             {invoice.notes && (
               <>
-                <Separator />
+                <Separator className="bg-gray-200" />
                 <div>
-                  <h3 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                  <h3 className="text-sm font-semibold text-gray-500 mb-2 uppercase tracking-wide">
                     Notes
                   </h3>
-                  <p className="text-sm p-3 bg-muted/30 rounded-lg whitespace-pre-wrap">
+                  <p className="text-sm p-3 bg-gray-100 rounded-lg whitespace-pre-wrap text-gray-800">
                     {invoice.notes}
                   </p>
                 </div>
