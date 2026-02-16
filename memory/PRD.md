@@ -21,15 +21,15 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
 ```
 /app/
 ├── backend/
-│   ├── models/         # Pydantic models (billing.py, auth.py, jobs.py, etc.)
-│   ├── routes/         # API routes (billing.py, auth.py, tiers.py, dashboard.py, etc.)
-│   ├── services/       # Business logic (feature_gate.py, tier_config.py)
+│   ├── models/         # Pydantic models
+│   ├── routes/         # API routes (billing, auth, tiers, dashboard, tasks, etc.)
+│   ├── services/       # Business logic
 │   └── server.py       # Main FastAPI app with pricing calculator
 ├── frontend/
 │   ├── src/
-│   │   ├── components/ # UI components (TrialLockout.js, MainLayout.js, ui/)
-│   │   ├── context/    # React contexts (AuthContext, TierContext, AppContext)
-│   │   ├── pages/      # Page components (Dashboard.js, Quotes.js, Jobs.js, Invoices.js)
+│   │   ├── components/ # UI components
+│   │   ├── context/    # React contexts
+│   │   ├── pages/      # Page components
 │   │   └── index.css   # Global theme variables
 │   └── tailwind.config.js
 └── memory/
@@ -45,36 +45,35 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
 - [x] Time Clock & Payroll
 - [x] Customer Portal (full-featured)
 - [x] Standalone Pricing Calculator with profit/margin calculations
-- [x] 24-hour trial lockout system (TEMPORARILY DISABLED for testing)
-- [x] Dark shell + light content surface theme overhaul
+- [x] 24-hour trial lockout system (TEMPORARILY DISABLED)
+- [x] Dark shell + light content surface theme
 - [x] Pricing page with 5-tier structure
 - [x] Stripe TEST keys configured
-- [x] **Dashboard Enhancement (Feb 16, 2026):**
-  - Home as top-level direct link in sidebar
-  - Personalized greeting with time-based icon
-  - Widgets: Today's Schedule, Messages, Pending Approvals, Clocked In
-  - 5 dashboard API endpoints
+- [x] Dashboard Enhancement - Home link, widgets, 5 API endpoints
 - [x] **Bug Fixes (Feb 16, 2026):**
-  - Job status badges with readable text colors
-  - Quote preview with white background, dark text
+  - Job status badges with readable text
+  - Quote preview white background, dark text
+  - Invoice preview white background, dark text
   - Email buttons on Invoice and Quote previews
   - Pricing calculator profit_amount and profit_margin_percent
-  - Convert Quote to Job available for all quotes
+  - Convert Quote to Job available for all quotes + icon in actions
   - Invoice preview auth header fix
-  - Edit Invoice SelectItem empty value bug fix
+  - AI Tools link restored (no permission required)
+  - Kanban drag-and-drop functionality
+  - Task CRUD API created (/api/tasks)
+  - Kanban cards clickable to navigate to job
 
 ## Upcoming Tasks (P1)
-- [ ] Employee Portal - separate login, tier-gated features (Time Clock, My Pay, My Tasks)
+- [ ] Employee Portal - separate login, tier-gated features
 - [ ] Job Time Tracking - log time against specific jobs
 - [ ] Job Status Flow & Timeline - visual timeline on job tickets
 
 ## Future Tasks (P2/P3)
 - [ ] Efficiency Dashboard for employees
 - [ ] AI Business Assistant (internal chat)
-- [ ] Calendar + Kanban Views
+- [ ] Calendar + Kanban Views (Calendar view)
 - [ ] Integrations: BNPL (Affirm/Klarna), SMS (Twilio), QuickBooks
 - [ ] Custom Domain Support for webstores
-- [ ] Re-enable trial lockout once billing complete
 
 ## Key API Endpoints
 
@@ -84,6 +83,10 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
 - `/api/dashboard/unread-messages` - GET unread customer messages
 - `/api/dashboard/clocked-in` - GET employees currently clocked in
 - `/api/dashboard/todays-schedule` - GET jobs due today
+
+### Tasks (NEW)
+- `/api/tasks` - GET/POST tasks
+- `/api/tasks/{id}` - GET/PUT/DELETE task
 
 ### Pricing Calculator
 - `/api/pricing/calculate` - POST calculate pricing with profit/margin
@@ -95,7 +98,7 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
 
 ## Known Issues
 - Trial lockout TEMPORARILY DISABLED for development/testing
-- Quick Actions navigate to pages (not modals) - by design
+- "Business" badge in bottom-right is PREVIEW TIER SELECTOR (not a bug)
 
 ## Test Credentials
 - Email: testuser123@test.com
