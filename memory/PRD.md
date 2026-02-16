@@ -15,21 +15,21 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
 - **Backend:** FastAPI, Pydantic, Motor (MongoDB)
 - **Frontend:** React, React Router, Tailwind CSS, Shadcn UI, Axios, React Context API
 - **Database:** MongoDB
-- **Payments:** Stripe (LIVE keys currently - need TEST keys)
+- **Payments:** Stripe (TEST keys configured)
 
 ## Current Architecture
 ```
 /app/
 ├── backend/
 │   ├── models/         # Pydantic models (billing.py, auth.py, jobs.py, etc.)
-│   ├── routes/         # API routes (billing.py, auth.py, tiers.py, etc.)
+│   ├── routes/         # API routes (billing.py, auth.py, tiers.py, dashboard.py, etc.)
 │   ├── services/       # Business logic (feature_gate.py, tier_config.py)
 │   └── server.py       # Main FastAPI app
 ├── frontend/
 │   ├── src/
-│   │   ├── components/ # UI components (TrialLockout.js, layout/, ui/)
+│   │   ├── components/ # UI components (TrialLockout.js, MainLayout.js, ui/)
 │   │   ├── context/    # React contexts (AuthContext, TierContext, etc.)
-│   │   ├── pages/      # Page components
+│   │   ├── pages/      # Page components (Dashboard.js, etc.)
 │   │   └── index.css   # Global theme variables
 │   └── tailwind.config.js
 └── memory/
@@ -45,15 +45,23 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
 - [x] Time Clock & Payroll
 - [x] Customer Portal (full-featured)
 - [x] Standalone Pricing Calculator
-- [x] 24-hour trial lockout system (TEMPORARILY DISABLED)
+- [x] 24-hour trial lockout system (TEMPORARILY DISABLED for testing)
 - [x] Dark shell + light content surface theme overhaul
-- [x] Backend billing models/routes (needs testing)
+- [x] Pricing page with 5-tier structure (24hr trial, extended trial, 3 tiers, AI add-on)
+- [x] Stripe TEST keys configured
+- [x] **Dashboard Enhancement (Feb 16, 2026):**
+  - Home is now top-level direct link in sidebar
+  - Personalized greeting with time-based icon
+  - Today's Schedule widget
+  - Messages widget
+  - Pending Approvals widget
+  - Clocked In Employees widget
+  - 5 new dashboard API endpoints
 
 ## In Progress
-- [ ] Billing System Refactor - backend updated but untested, frontend PricingPage.js needs complete rewrite
+- [ ] Billing System Testing - backend routes need production testing
 
 ## Upcoming Tasks (P1)
-- [ ] Dashboard Enhancement - Home link, widgets for greeting, schedule, approvals, messages
 - [ ] Employee Portal - separate login, tier-gated features (Time Clock, My Pay, My Tasks)
 - [ ] Job Time Tracking - log time against specific jobs
 - [ ] Job Status Flow & Timeline - visual timeline on job tickets
@@ -64,17 +72,30 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
 - [ ] Calendar + Kanban Views
 - [ ] Integrations: BNPL (Affirm/Klarna), SMS (Twilio), QuickBooks
 - [ ] Custom Domain Support for webstores
+- [ ] Re-enable trial lockout once billing complete
 
 ## Key API Endpoints
+
+### Dashboard (NEW)
+- `/api/dashboard/stats` - GET dashboard statistics
+- `/api/dashboard/pending-approvals` - GET proofs awaiting approval
+- `/api/dashboard/unread-messages` - GET unread customer messages
+- `/api/dashboard/clocked-in` - GET employees currently clocked in
+- `/api/dashboard/todays-schedule` - GET jobs due today
+
+### Billing
 - `/api/billing/pricing` - GET available plans
 - `/api/billing/trial-status` - GET user's trial status
 - `/api/billing/checkout` - POST create Stripe checkout
 - `/api/tiers/my-plan` - GET user's current plan & features
 
 ## Known Issues
-- Trial lockout TEMPORARILY DISABLED for development
-- LIVE Stripe keys in use (should switch to TEST)
-- PricingPage.js outdated for new 5-tier structure
+- Trial lockout TEMPORARILY DISABLED for development/testing
+- Billing system backend untested in production
+
+## Test Credentials
+- Email: testuser123@test.com
+- Password: Test123!
 
 ## Last Updated
 February 16, 2026
