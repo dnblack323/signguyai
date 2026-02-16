@@ -92,9 +92,23 @@ payroll_router = APIRouter(prefix="/payroll", tags=["Payroll"])
 # ============== EMPLOYEE ROUTES ==============
 
 @employees_router.post("", response_model=Employee)
-async def create_employee(input: EmployeeCreate):
+async def create_employee(
+    input: EmployeeCreate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
     """Create a new employee"""
-    employee = Employee(**input.model_dump())
+    # Set tenant_id from current user
+    employee_data = input.model_dump()
+    employee_data["tenant_id"] = current_user.tenant_id
+    
+    # Set default PIN if not provided (last 4 of phone or 1234)
+    if not employee_data.get("pin"):
+        if employee_data.get("phone") and len(employee_data["phone"]) >= 4:
+            employee_data["pin"] = employee_data["phone"][-4:]
+        else:
+            employee_data["pin"] = "1234"
+    
+    employee = Employee(**employee_data)
     doc = employee.model_dump()
     await db.employees.insert_one(doc)
     return employee
