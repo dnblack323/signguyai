@@ -8,7 +8,7 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
 - **SaaS Billing & Tiers:** 24-hour free trial, 14-day extended trial, Founder pricing (first 100), AI Tools Add-On, standard pricing
 - **Employee Portal:** Dedicated portal with tier-gated features
 - **Advanced Features:** Pricing calculators, AI tools suite, job status/timeline tracker, AI business assistant
-- **Integrations:** Stripe (in progress), future BNPL, SMS, QuickBooks
+- **Integrations:** Stripe (TEST keys configured), future BNPL, SMS, QuickBooks
 - **Theme:** Dark shell + light content surface design system
 
 ## Tech Stack
@@ -24,12 +24,12 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
 │   ├── models/         # Pydantic models (billing.py, auth.py, jobs.py, etc.)
 │   ├── routes/         # API routes (billing.py, auth.py, tiers.py, dashboard.py, etc.)
 │   ├── services/       # Business logic (feature_gate.py, tier_config.py)
-│   └── server.py       # Main FastAPI app
+│   └── server.py       # Main FastAPI app with pricing calculator
 ├── frontend/
 │   ├── src/
 │   │   ├── components/ # UI components (TrialLockout.js, MainLayout.js, ui/)
-│   │   ├── context/    # React contexts (AuthContext, TierContext, etc.)
-│   │   ├── pages/      # Page components (Dashboard.js, etc.)
+│   │   ├── context/    # React contexts (AuthContext, TierContext, AppContext)
+│   │   ├── pages/      # Page components (Dashboard.js, Quotes.js, Jobs.js, Invoices.js)
 │   │   └── index.css   # Global theme variables
 │   └── tailwind.config.js
 └── memory/
@@ -40,26 +40,28 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
 - [x] User authentication with JWT
 - [x] Multi-tenant architecture with RBAC
 - [x] Customer Management module
-- [x] Quotes & Jobs module
-- [x] Invoicing module
+- [x] Quotes & Jobs module with Convert to Job functionality
+- [x] Invoicing module with email capability
 - [x] Time Clock & Payroll
 - [x] Customer Portal (full-featured)
-- [x] Standalone Pricing Calculator
+- [x] Standalone Pricing Calculator with profit/margin calculations
 - [x] 24-hour trial lockout system (TEMPORARILY DISABLED for testing)
 - [x] Dark shell + light content surface theme overhaul
-- [x] Pricing page with 5-tier structure (24hr trial, extended trial, 3 tiers, AI add-on)
+- [x] Pricing page with 5-tier structure
 - [x] Stripe TEST keys configured
 - [x] **Dashboard Enhancement (Feb 16, 2026):**
-  - Home is now top-level direct link in sidebar
+  - Home as top-level direct link in sidebar
   - Personalized greeting with time-based icon
-  - Today's Schedule widget
-  - Messages widget
-  - Pending Approvals widget
-  - Clocked In Employees widget
-  - 5 new dashboard API endpoints
-
-## In Progress
-- [ ] Billing System Testing - backend routes need production testing
+  - Widgets: Today's Schedule, Messages, Pending Approvals, Clocked In
+  - 5 dashboard API endpoints
+- [x] **Bug Fixes (Feb 16, 2026):**
+  - Job status badges with readable text colors
+  - Quote preview with white background, dark text
+  - Email buttons on Invoice and Quote previews
+  - Pricing calculator profit_amount and profit_margin_percent
+  - Convert Quote to Job available for all quotes
+  - Invoice preview auth header fix
+  - Edit Invoice SelectItem empty value bug fix
 
 ## Upcoming Tasks (P1)
 - [ ] Employee Portal - separate login, tier-gated features (Time Clock, My Pay, My Tasks)
@@ -76,26 +78,29 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
 
 ## Key API Endpoints
 
-### Dashboard (NEW)
+### Dashboard
 - `/api/dashboard/stats` - GET dashboard statistics
 - `/api/dashboard/pending-approvals` - GET proofs awaiting approval
 - `/api/dashboard/unread-messages` - GET unread customer messages
 - `/api/dashboard/clocked-in` - GET employees currently clocked in
 - `/api/dashboard/todays-schedule` - GET jobs due today
 
+### Pricing Calculator
+- `/api/pricing/calculate` - POST calculate pricing with profit/margin
+
 ### Billing
 - `/api/billing/pricing` - GET available plans
 - `/api/billing/trial-status` - GET user's trial status
 - `/api/billing/checkout` - POST create Stripe checkout
-- `/api/tiers/my-plan` - GET user's current plan & features
 
 ## Known Issues
 - Trial lockout TEMPORARILY DISABLED for development/testing
-- Billing system backend untested in production
+- Quick Actions navigate to pages (not modals) - by design
 
 ## Test Credentials
 - Email: testuser123@test.com
 - Password: Test123!
+- Customer: customer@test.com
 
 ## Last Updated
 February 16, 2026
