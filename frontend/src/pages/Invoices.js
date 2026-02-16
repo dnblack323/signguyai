@@ -212,8 +212,8 @@ export default function Invoices() {
                 <div className="space-y-2">
                   <Label>Linked Job</Label>
                   <Select
-                    value={formData.job_id}
-                    onValueChange={(val) => setFormData({ ...formData, job_id: val })}
+                    value={formData.job_id || 'none'}
+                    onValueChange={(val) => setFormData({ ...formData, job_id: val === 'none' ? '' : val })}
                     disabled={!!editingInvoice}
                   >
                     <SelectTrigger data-testid="invoice-job-select">
