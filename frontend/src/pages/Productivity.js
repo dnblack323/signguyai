@@ -123,6 +123,37 @@ export default function Productivity() {
     return acc;
   }, {});
 
+  // Drag and drop handlers
+  const handleDragStart = (e, job) => {
+    setDraggedJob(job);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = async (e, newStatus) => {
+    e.preventDefault();
+    if (!draggedJob || draggedJob.status === newStatus) {
+      setDraggedJob(null);
+      return;
+    }
+    
+    try {
+      await updateJob(draggedJob.id, { status: newStatus });
+      toast.success(`Job moved to ${newStatus.replace('_', ' ')}`);
+    } catch (err) {
+      toast.error('Failed to update job status');
+    }
+    setDraggedJob(null);
+  };
+
+  const handleJobClick = (jobId) => {
+    navigate(`/jobs/${jobId}`);
+  };
+
   const incompleteTasks = tasks.filter(t => !t.is_complete);
   const completedTasks = tasks.filter(t => t.is_complete);
 
