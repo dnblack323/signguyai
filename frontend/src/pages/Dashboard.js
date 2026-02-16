@@ -1,17 +1,31 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { formatCurrency, formatDate } from '../lib/utils';
 import { 
   Users, FileText, Briefcase, Receipt, TrendingUp, 
-  AlertTriangle, Plus, ArrowRight, Clock 
+  AlertTriangle, Plus, ArrowRight, Clock, MessageSquare,
+  CheckCircle, Calendar, UserCheck, Coffee, Sun, Sunset, Moon,
+  ChevronRight, Eye
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
+import axios from 'axios';
 
-const StatCard = ({ title, value, icon: Icon, subtitle, href }) => (
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+// Get greeting based on time of day
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return { text: 'Good morning', icon: Sun, color: 'text-amber-500' };
+  if (hour < 17) return { text: 'Good afternoon', icon: Sunset, color: 'text-orange-500' };
+  return { text: 'Good evening', icon: Moon, color: 'text-indigo-400' };
+};
+
+const StatCard = ({ title, value, icon: Icon, subtitle, href, accentColor = 'var(--accent)' }) => (
   <div 
-    className="rounded-xl p-6 transition-all duration-200 hover:shadow-md"
+    className="rounded-xl p-6 transition-all duration-200 hover:shadow-md group"
     style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}
   >
     <div className="flex items-start justify-between">
@@ -22,13 +36,13 @@ const StatCard = ({ title, value, icon: Icon, subtitle, href }) => (
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>
         )}
       </div>
-      <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--accent-soft)' }}>
-        <Icon className="h-6 w-6" style={{ color: 'var(--accent)' }} />
+      <div className="p-3 rounded-lg transition-transform group-hover:scale-110" style={{ backgroundColor: `${accentColor}15` }}>
+        <Icon className="h-6 w-6" style={{ color: accentColor }} />
       </div>
     </div>
     {href && (
       <Link to={href}>
-        <button className="mt-4 flex items-center text-sm font-medium hover:opacity-80 transition-opacity" style={{ color: 'var(--accent)' }}>
+        <button className="mt-4 flex items-center text-sm font-medium hover:opacity-80 transition-opacity" style={{ color: accentColor }}>
           View all <ArrowRight className="ml-1 h-4 w-4" />
         </button>
       </Link>
@@ -46,76 +60,235 @@ const getStatusBadgeStyles = (status) => {
     paid: { backgroundColor: 'var(--success-soft)', color: 'var(--success)' },
     sent: { backgroundColor: 'var(--warning-soft)', color: 'var(--warning)' },
     draft: { backgroundColor: 'var(--surface-2)', color: 'var(--text-muted)' },
+    working: { backgroundColor: 'var(--success-soft)', color: 'var(--success)' },
+    on_break: { backgroundColor: 'var(--warning-soft)', color: 'var(--warning)' },
+    urgent: { backgroundColor: 'var(--danger-soft)', color: 'var(--danger)' },
+    pending: { backgroundColor: 'var(--warning-soft)', color: 'var(--warning)' },
   };
   return styles[status] || styles.draft;
 };
 
-const RecentActivity = ({ jobs, invoices, onInvoiceClick }) => {
-  const recentJobs = jobs?.slice(0, 5) || [];
-  const overdueInvoices = invoices?.filter(i => i.status === 'overdue') || [];
+// Pending Approvals Widget
+const PendingApprovalsWidget = ({ approvals }) => {
+  if (!approvals || approvals.length === 0) {
+    return (
+      <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+        <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-emerald-500" />
+            <h2 className="font-heading text-base font-semibold" style={{ color: 'var(--text)' }}>
+              Pending Approvals
+            </h2>
+          </div>
+          <span className="text-xs px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500">All clear</span>
+        </div>
+        <div className="p-6 text-center">
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No proofs awaiting approval</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
-      <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--border-light)' }}>
-        <h2 className="font-heading text-lg font-semibold uppercase tracking-wide" style={{ color: 'var(--text)' }}>
-          Recent Activity
-        </h2>
+      <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
+        <div className="flex items-center gap-2">
+          <Eye className="h-5 w-5 text-amber-500" />
+          <h2 className="font-heading text-base font-semibold" style={{ color: 'var(--text)' }}>
+            Pending Approvals
+          </h2>
+        </div>
+        <span className="text-xs px-2 py-1 rounded-full bg-amber-500/10 text-amber-500 font-medium">
+          {approvals.length} pending
+        </span>
       </div>
-      <div className="p-4 space-y-3">
-        {recentJobs.length === 0 && overdueInvoices.length === 0 ? (
-          <p className="text-sm py-4 text-center" style={{ color: 'var(--text-muted)' }}>No recent activity</p>
+      <div className="p-4 space-y-2">
+        {approvals.slice(0, 3).map(approval => (
+          <Link key={approval.id} to={`/jobs/${approval.job_id}`}>
+            <div 
+              className="flex items-center justify-between p-3 rounded-lg transition-all duration-150 hover:shadow-sm cursor-pointer"
+              style={{ backgroundColor: 'var(--surface-2)', border: '1px solid transparent' }}
+            >
+              <div>
+                <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>{approval.job_name}</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{approval.customer_name}</p>
+              </div>
+              <ChevronRight className="h-4 w-4" style={{ color: 'var(--text-muted)' }} />
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Unread Messages Widget
+const MessagesWidget = ({ messages }) => {
+  if (!messages || messages.length === 0) {
+    return (
+      <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+        <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-blue-500" />
+            <h2 className="font-heading text-base font-semibold" style={{ color: 'var(--text)' }}>
+              Messages
+            </h2>
+          </div>
+          <span className="text-xs px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500">Inbox zero</span>
+        </div>
+        <div className="p-6 text-center">
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No unread messages</p>
+        </div>
+      </div>
+    );
+  }
+
+  const totalUnread = messages.reduce((sum, m) => sum + m.unread_count, 0);
+
+  return (
+    <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+      <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
+        <div className="flex items-center gap-2">
+          <MessageSquare className="h-5 w-5 text-blue-500" />
+          <h2 className="font-heading text-base font-semibold" style={{ color: 'var(--text)' }}>
+            Messages
+          </h2>
+        </div>
+        <span className="text-xs px-2 py-1 rounded-full bg-blue-500/10 text-blue-500 font-medium">
+          {totalUnread} unread
+        </span>
+      </div>
+      <div className="p-4 space-y-2">
+        {messages.slice(0, 3).map(msg => (
+          <div 
+            key={msg.conversation_id}
+            className="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-150 hover:shadow-sm"
+            style={{ backgroundColor: 'var(--surface-2)' }}
+          >
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="font-medium text-sm truncate" style={{ color: 'var(--text)' }}>{msg.customer_name}</p>
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center">
+                  {msg.unread_count}
+                </span>
+              </div>
+              <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{msg.last_message}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Clocked In Employees Widget
+const ClockedInWidget = ({ employees }) => {
+  return (
+    <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+      <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
+        <div className="flex items-center gap-2">
+          <UserCheck className="h-5 w-5 text-emerald-500" />
+          <h2 className="font-heading text-base font-semibold" style={{ color: 'var(--text)' }}>
+            Clocked In
+          </h2>
+        </div>
+        <Link to="/timeclock">
+          <span className="text-xs text-blue-500 hover:underline">View all</span>
+        </Link>
+      </div>
+      <div className="p-4">
+        {(!employees || employees.length === 0) ? (
+          <div className="text-center py-4">
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No employees clocked in</p>
+          </div>
         ) : (
-          <>
-            {recentJobs.map(job => (
-              <Link key={job.id} to={`/jobs/${job.id}`} data-testid={`recent-job-${job.id}`}>
-                <div 
-                  className="flex items-center justify-between p-3 rounded-lg transition-all duration-150 hover:shadow-sm"
-                  style={{ backgroundColor: 'var(--surface-2)', border: '1px solid transparent' }}
-                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent)'}
-                  onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                >
-                  <div className="flex items-center gap-3">
-                    <Briefcase className="h-4 w-4" style={{ color: 'var(--text-muted)' }} />
-                    <div>
-                      <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>{job.name}</p>
-                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                        Due: {formatDate(job.due_date)}
-                      </p>
-                    </div>
-                  </div>
-                  <span 
-                    className="px-2.5 py-0.5 rounded-full text-xs font-medium"
-                    style={getStatusBadgeStyles(job.status)}
-                  >
-                    {job.status.replace('_', ' ')}
-                  </span>
-                </div>
-              </Link>
-            ))}
-            {overdueInvoices.map(inv => (
+          <div className="space-y-2">
+            {employees.map(emp => (
               <div 
-                key={inv.id} 
-                onClick={() => onInvoiceClick(inv.id)}
-                data-testid={`recent-invoice-${inv.id}`}
-                className="flex items-center justify-between p-3 rounded-lg transition-colors cursor-pointer"
-                style={{ backgroundColor: 'var(--danger-soft)', border: '1px solid var(--danger)' }}
+                key={emp.employee_id}
+                className="flex items-center justify-between p-3 rounded-lg"
+                style={{ backgroundColor: 'var(--surface-2)' }}
               >
                 <div className="flex items-center gap-3">
-                  <AlertTriangle className="h-4 w-4" style={{ color: 'var(--danger)' }} />
+                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                    {emp.status === 'on_break' ? (
+                      <Coffee className="h-4 w-4 text-amber-500" />
+                    ) : (
+                      <UserCheck className="h-4 w-4 text-emerald-500" />
+                    )}
+                  </div>
                   <div>
-                    <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>Invoice Overdue</p>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatCurrency(inv.total)}</p>
+                    <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>{emp.employee_name}</p>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      Since {new Date(emp.clocked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
                   </div>
                 </div>
                 <span 
-                  className="px-2.5 py-0.5 rounded-full text-xs font-medium"
-                  style={getStatusBadgeStyles('overdue')}
+                  className="px-2 py-0.5 rounded-full text-xs font-medium"
+                  style={getStatusBadgeStyles(emp.status)}
                 >
-                  Overdue
+                  {emp.status === 'on_break' ? 'Break' : 'Working'}
                 </span>
               </div>
             ))}
-          </>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Today's Schedule Widget
+const ScheduleWidget = ({ schedule }) => {
+  return (
+    <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+      <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
+        <div className="flex items-center gap-2">
+          <Calendar className="h-5 w-5 text-purple-500" />
+          <h2 className="font-heading text-base font-semibold" style={{ color: 'var(--text)' }}>
+            Today's Schedule
+          </h2>
+        </div>
+        <Link to="/jobs">
+          <span className="text-xs text-blue-500 hover:underline">View all jobs</span>
+        </Link>
+      </div>
+      <div className="p-4">
+        {(!schedule || schedule.length === 0) ? (
+          <div className="text-center py-4">
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No jobs due today</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {schedule.slice(0, 4).map(item => (
+              <Link key={item.id} to={`/jobs/${item.id}`}>
+                <div 
+                  className="flex items-center justify-between p-3 rounded-lg transition-all duration-150 hover:shadow-sm cursor-pointer"
+                  style={{ 
+                    backgroundColor: item.priority === 'overdue' ? 'var(--danger-soft)' : 'var(--surface-2)',
+                    border: item.priority === 'overdue' ? '1px solid var(--danger)' : '1px solid transparent'
+                  }}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate" style={{ color: 'var(--text)' }}>{item.name}</p>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{item.customer_name}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {item.priority === 'overdue' && (
+                      <AlertTriangle className="h-4 w-4 text-red-500" />
+                    )}
+                    <span 
+                      className="px-2 py-0.5 rounded-full text-xs font-medium"
+                      style={getStatusBadgeStyles(item.status)}
+                    >
+                      {item.status.replace('_', ' ')}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
         )}
       </div>
     </div>
@@ -125,7 +298,7 @@ const RecentActivity = ({ jobs, invoices, onInvoiceClick }) => {
 const QuickActions = () => (
   <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
     <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--border-light)' }}>
-      <h2 className="font-heading text-lg font-semibold uppercase tracking-wide" style={{ color: 'var(--text)' }}>
+      <h2 className="font-heading text-base font-semibold" style={{ color: 'var(--text)' }}>
         Quick Actions
       </h2>
     </div>
@@ -171,16 +344,24 @@ const QuickActions = () => (
 );
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const { 
     fetchDashboardStats, fetchCustomers, fetchJobs, fetchInvoices,
     dashboardStats, customers, jobs, invoices 
   } = useApp();
   const [loading, setLoading] = useState(true);
+  const [pendingApprovals, setPendingApprovals] = useState([]);
+  const [unreadMessages, setUnreadMessages] = useState([]);
+  const [clockedInEmployees, setClockedInEmployees] = useState([]);
+  const [todaysSchedule, setTodaysSchedule] = useState([]);
   
   // Invoice preview modal state
   const [previewInvoiceId, setPreviewInvoiceId] = useState(null);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   
+  const greeting = getGreeting();
+  const GreetingIcon = greeting.icon;
+
   const handleInvoiceClick = (invoiceId) => {
     setPreviewInvoiceId(invoiceId);
     setIsInvoiceModalOpen(true);
@@ -189,12 +370,25 @@ export default function Dashboard() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([
-        fetchDashboardStats(),
-        fetchCustomers(),
-        fetchJobs(),
-        fetchInvoices()
-      ]);
+      const token = localStorage.getItem('auth_token');
+      const headers = { Authorization: `Bearer ${token}` };
+      
+      try {
+        // Fetch all dashboard data in parallel
+        await Promise.all([
+          fetchDashboardStats(),
+          fetchCustomers(),
+          fetchJobs(),
+          fetchInvoices(),
+          // Fetch new widget data
+          axios.get(`${API}/dashboard/pending-approvals`, { headers }).then(res => setPendingApprovals(res.data)).catch(() => {}),
+          axios.get(`${API}/dashboard/unread-messages`, { headers }).then(res => setUnreadMessages(res.data)).catch(() => {}),
+          axios.get(`${API}/dashboard/clocked-in`, { headers }).then(res => setClockedInEmployees(res.data)).catch(() => {}),
+          axios.get(`${API}/dashboard/todays-schedule`, { headers }).then(res => setTodaysSchedule(res.data)).catch(() => {}),
+        ]);
+      } catch (err) {
+        console.error('Error loading dashboard:', err);
+      }
       setLoading(false);
     };
     loadData();
@@ -210,12 +404,27 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8 animate-fade-in" data-testid="dashboard">
-      {/* Header */}
-      <div>
-        <h1 className="text-4xl font-bold font-heading uppercase tracking-tight" style={{ color: 'var(--text)' }}>
-          Dashboard
-        </h1>
-        <p className="mt-1" style={{ color: 'var(--text-muted)' }}>Welcome back to SignGuy AI</p>
+      {/* Personalized Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <GreetingIcon className={`h-7 w-7 ${greeting.color}`} />
+            <h1 className="text-3xl font-bold font-heading tracking-tight" style={{ color: 'var(--text)' }}>
+              {greeting.text}, {user?.full_name?.split(' ')[0] || 'there'}!
+            </h1>
+          </div>
+          <p className="ml-10" style={{ color: 'var(--text-muted)' }}>
+            Here's what's happening at {user?.company_name || 'your shop'} today
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          </p>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -225,24 +434,28 @@ export default function Dashboard() {
           value={dashboardStats?.total_customers || 0}
           icon={Users}
           href="/customers"
+          accentColor="#2F8BFB"
         />
         <StatCard
           title="Active Jobs"
           value={dashboardStats?.active_jobs || 0}
           icon={Briefcase}
           href="/jobs"
+          accentColor="#10B981"
         />
         <StatCard
           title="Pending Invoices"
           value={dashboardStats?.pending_invoices || 0}
           icon={Receipt}
           href="/invoices"
+          accentColor="#F59E0B"
         />
         <StatCard
           title="Today's Revenue"
           value={formatCurrency(dashboardStats?.today_revenue || 0)}
           icon={TrendingUp}
           href="/financials"
+          accentColor="#8B5CF6"
         />
       </div>
 
@@ -276,11 +489,21 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Recent Activity & Quick Actions */}
+      {/* Main Content Grid - 3 columns */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <RecentActivity jobs={jobs} invoices={invoices} onInvoiceClick={handleInvoiceClick} />
+        {/* Left Column - Schedule & Approvals */}
+        <div className="space-y-6">
+          <ScheduleWidget schedule={todaysSchedule} />
+          <PendingApprovalsWidget approvals={pendingApprovals} />
         </div>
+        
+        {/* Middle Column - Messages & Clocked In */}
+        <div className="space-y-6">
+          <MessagesWidget messages={unreadMessages} />
+          <ClockedInWidget employees={clockedInEmployees} />
+        </div>
+        
+        {/* Right Column - Quick Actions */}
         <div>
           <QuickActions />
         </div>
