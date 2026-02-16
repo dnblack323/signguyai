@@ -188,7 +188,7 @@ async def set_employee_pin(
 # ============== PROFILE ROUTES ==============
 
 @router.get("/profile", response_model=EmployeeProfile)
-async def get_employee_profile(authorization: str = ""):
+async def get_employee_profile(authorization: str = Header(default="")):
     """Get current employee's profile"""
     token = extract_token(authorization)
     employee = await get_current_employee(token)
@@ -207,7 +207,7 @@ async def get_employee_profile(authorization: str = ""):
 # ============== TIME CLOCK ROUTES ==============
 
 @router.get("/time-clock/status", response_model=TimeClockStatus)
-async def get_time_clock_status(authorization: str = ""):
+async def get_time_clock_status(authorization: str = Header(default="")):
     """Get current time clock status for employee"""
     token = extract_token(authorization)
     employee = await get_current_employee(token)
@@ -289,7 +289,7 @@ async def get_time_clock_status(authorization: str = ""):
 
 
 @router.post("/time-clock/punch")
-async def punch_time_clock(action: str, authorization: str = ""):
+async def punch_time_clock(action: str, authorization: str = Header(default="")):
     """Punch time clock (start_work, break_start, break_end, end_work)"""
     token = extract_token(authorization)
     employee = await get_current_employee(token)
@@ -315,7 +315,7 @@ async def punch_time_clock(action: str, authorization: str = ""):
 @router.get("/time-clock/history", response_model=List[TimeLogEntry])
 async def get_time_clock_history(
     days: int = 7,
-    authorization: str = ""
+    authorization: str = Header(default="")
 ):
     """Get time clock history for the past N days"""
     token = extract_token(authorization)
@@ -334,7 +334,7 @@ async def get_time_clock_history(
 # ============== PAY ROUTES ==============
 
 @router.get("/pay/summary", response_model=PaySummary)
-async def get_pay_summary(authorization: str = ""):
+async def get_pay_summary(authorization: str = Header(default="")):
     """Get employee pay summary"""
     token = extract_token(authorization)
     employee = await get_current_employee(token)
@@ -433,7 +433,7 @@ async def get_pay_summary(authorization: str = ""):
 @router.get("/tasks", response_model=List[EmployeeTask])
 async def get_employee_tasks(
     include_completed: bool = False,
-    authorization: str = ""
+    authorization: str = Header(default="")
 ):
     """Get tasks assigned to employee"""
     token = extract_token(authorization)
@@ -467,7 +467,7 @@ async def get_employee_tasks(
 
 
 @router.put("/tasks/{task_id}/complete")
-async def complete_task(task_id: str, authorization: str = ""):
+async def complete_task(task_id: str, authorization: str = Header(default="")):
     """Mark a task as complete"""
     token = extract_token(authorization)
     employee = await get_current_employee(token)
