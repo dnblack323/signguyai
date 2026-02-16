@@ -781,6 +781,7 @@ from routes.tiers import router as tiers_router
 from routes.billing import router as billing_router, webhook_router
 from routes.dashboard import router as dashboard_router
 from routes.tasks import router as tasks_router
+from routes.employee_portal import router as employee_portal_router
 
 # Include all routers in the api_router
 api_router.include_router(auth_router)
@@ -802,6 +803,7 @@ api_router.include_router(billing_router)
 api_router.include_router(webhook_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(tasks_router)
+api_router.include_router(employee_portal_router)
 
 # Include the api_router in the main app
 app.include_router(api_router)
