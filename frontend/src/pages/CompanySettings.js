@@ -61,6 +61,16 @@ export default function CompanySettings() {
         website: data.website || '',
         logo_url: data.logo_url || ''
       });
+      // Load time tracking settings from tenant
+      if (data.time_tracking_settings) {
+        setTimeTrackingSettings({
+          track_per_job: data.time_tracking_settings.track_per_job ?? true,
+          track_per_line_item: data.time_tracking_settings.track_per_line_item ?? false,
+          enable_employee_portal: data.time_tracking_settings.enable_employee_portal ?? false,
+          enable_kiosk_mode: data.time_tracking_settings.enable_kiosk_mode ?? false,
+          auto_suggest_on_status_change: data.time_tracking_settings.auto_suggest_on_status_change ?? true
+        });
+      }
     } catch (err) {
       console.error('Error loading tenant:', err);
       toast.error('Failed to load company settings');
