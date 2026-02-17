@@ -1017,6 +1017,9 @@ export function JobDetails() {
           <TabsTrigger value="activity">
             <Activity className="h-4 w-4 mr-2" /> Activity ({activities.length})
           </TabsTrigger>
+          <TabsTrigger value="timeline">
+            <GitBranch className="h-4 w-4 mr-2" /> Timeline
+          </TabsTrigger>
         </TabsList>
 
         {/* Time Tracking Tab */}
