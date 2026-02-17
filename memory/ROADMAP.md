@@ -122,6 +122,17 @@
 | 15 | **QuickBooks Integration** | Accounting sync | 80-100 |
 | 16 | **Webstores Phase 3** | B2B, Creator/Affiliate stores | 100-150 |
 
+### 🔵 RaceWrap AI Tool (Future AI Feature - P2)
+| Item | Details |
+|------|---------|
+| **Feature Name** | RaceWrap AI - Race Car Number & Sponsor Wrap Designer |
+| **What It Does** | 1) Custom race car numbers optimized for motorsports visibility, 2) Full/partial race car wrap concepts, 3) Sponsor logo placement strategies based on hierarchy and visibility |
+| **Required Inputs** | Car type (late model, sprint car, dirt modified, stock car, drag car, kart, etc.), car views needed (side, hood, roof, rear), primary race number, team/driver name, primary color preference |
+| **Optional Inputs** | Sponsor logos upload (PNG, SVG, JPG), sponsor priority ranking (primary, secondary, minor), series rules/restrictions (number color, outline rules, placement rules), existing brand colors or logo, style preference (aggressive/clean/retro/modern) |
+| **Core Outputs** | Race number design options (multiple font/style variations, outline/shadow suggestions, color contrast optimized for speed visibility), wrap concept mockups (side view, top view, number placement previews) |
+| **Sponsor Outputs** | Suggested sponsor hierarchy, optimal logo placement zones, balanced layout suggestions, conflict warnings (too many logos, unreadable clustering, poor contrast) |
+| **Smart Behavior** | Auto-scale sponsor logos proportionally, avoid placing critical sponsors on high-damage zones, prioritize driver number legibility over aesthetics, suggest alternates when logos clash visually, warn when sponsor logo is too low-res for wrap use |
+
 ### **TOTAL REMAINING:** ~1,100-1,500 credits estimated
 
 ---
