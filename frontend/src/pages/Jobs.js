@@ -456,7 +456,8 @@ export function JobDetails() {
     createInvoiceFromJob, fetchJobs,
     fetchJobItems, createJobItem, updateJobItem, deleteJobItem,
     createJobNote, deleteJobNote,
-    createTask
+    createTask,
+    startJobTimer, stopJobTimer, getJobTimeEntries, getJobTimeSummary, getJobActiveTimer, deleteJobTimeEntry
   } = useApp();
   
   const [loading, setLoading] = useState(true);
@@ -468,6 +469,15 @@ export function JobDetails() {
   const [editingItem, setEditingItem] = useState(null);
   const [newNote, setNewNote] = useState('');
   const [activeTab, setActiveTab] = useState('items');
+  
+  // Time tracking state
+  const [timeEntries, setTimeEntries] = useState([]);
+  const [timeSummary, setTimeSummary] = useState(null);
+  const [activeTimer, setActiveTimer] = useState(null);
+  const [isTimerLoading, setIsTimerLoading] = useState(false);
+  const [timerTaskType, setTimerTaskType] = useState('production');
+  const [timerDescription, setTimerDescription] = useState('');
+  const [runningTime, setRunningTime] = useState(0);
   
   const [editFormData, setEditFormData] = useState({
     name: '',
