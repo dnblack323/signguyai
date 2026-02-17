@@ -354,6 +354,37 @@ export const AppProvider = ({ children }) => {
     return res.data;
   };
 
+  // Job Time Tracking
+  const startJobTimer = async (jobId, data = {}) => {
+    const res = await api.post(`/jobs/${jobId}/time/start`, data);
+    return res.data;
+  };
+
+  const stopJobTimer = async (jobId) => {
+    const res = await api.post(`/jobs/${jobId}/time/stop`);
+    return res.data;
+  };
+
+  const getJobTimeEntries = async (jobId) => {
+    const res = await api.get(`/jobs/${jobId}/time`);
+    return res.data;
+  };
+
+  const getJobTimeSummary = async (jobId) => {
+    const res = await api.get(`/jobs/${jobId}/time/summary`);
+    return res.data;
+  };
+
+  const getJobActiveTimer = async (jobId) => {
+    const res = await api.get(`/jobs/${jobId}/time/active`);
+    return res.data;
+  };
+
+  const deleteJobTimeEntry = async (jobId, entryId) => {
+    const res = await api.delete(`/jobs/${jobId}/time/${entryId}`);
+    return res.data;
+  };
+
   // Financials
   const createSalesEntry = async (data) => {
     const res = await api.post(`/financials/sales`, data);
