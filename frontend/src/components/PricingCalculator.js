@@ -14,7 +14,7 @@ import {
   Calculator, DollarSign, Clock, TrendingUp, Package, 
   Scissors, Printer, Square, Shirt, Car, Wrench, Tag,
   ChevronDown, ChevronUp, AlertCircle, CheckCircle, Loader2,
-  Save, Star, Trash2, FolderOpen
+  Save, Star, Trash2, FolderOpen, Sparkles, Lightbulb, Target
 } from 'lucide-react';
 import { toast } from 'sonner';
 
