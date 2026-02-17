@@ -115,6 +115,9 @@ function App() {
           <AppProvider>
             <BrowserRouter>
               <Routes>
+                {/* Public Landing Page */}
+                <Route path="/home" element={<LandingPage />} />
+                
                 {/* Public Storefront - No Auth Required */}
                 <Route path="/store/:storeId" element={<Storefront />} />
                 
