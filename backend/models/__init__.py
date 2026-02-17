@@ -37,7 +37,7 @@ from .jobs import (
 
 # Auth & Tenant models
 from .auth import (
-    TenantBase, TenantCreate, TenantUpdate, Tenant,
+    TenantBase, TenantCreate, TenantUpdate, Tenant, TimeTrackingSettings,
     UserBase, UserCreate, UserLogin, User, UserInDB, UserRoleUpdate,
     Token, TokenData, PasswordReset,
     Permission, ROLE_PERMISSIONS, get_user_permissions, user_has_permission
