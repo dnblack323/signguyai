@@ -50,6 +50,9 @@ import PricingPage from "./pages/PricingPage";
 import BillingSuccess from "./pages/BillingSuccess";
 import BillingCancel from "./pages/BillingCancel";
 
+// Public Pages
+import LandingPage from "./pages/LandingPage";
+
 import "./App.css";
 
 // Loading Screen Component
