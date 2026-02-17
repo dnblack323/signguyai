@@ -136,6 +136,48 @@ class JobItem(JobItemBase):
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
+# ============== JOB TIME TRACKING MODELS ==============
+class JobTimeEntryBase(BaseModel):
+    """Time entry for tracking work on a specific job"""
+    job_id: str
+    employee_id: str
+    description: Optional[str] = None
+    task_type: Optional[str] = None  # design, production, installation, admin
+
+class JobTimeEntryCreate(BaseModel):
+    description: Optional[str] = None
+    task_type: Optional[str] = "production"
+
+class JobTimeEntryUpdate(BaseModel):
+    description: Optional[str] = None
+    task_type: Optional[str] = None
+    end_time: Optional[str] = None
+
+class JobTimeEntry(JobTimeEntryBase):
+    """Complete time entry with all fields"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: Optional[str] = None
+    employee_name: Optional[str] = None
+    start_time: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    end_time: Optional[str] = None
+    duration_minutes: float = 0
+    hourly_rate: float = 0
+    labor_cost: float = 0
+    is_active: bool = True  # True if currently working
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class JobTimeSummary(BaseModel):
+    """Summary of time spent on a job"""
+    job_id: str
+    total_minutes: float = 0
+    total_hours: float = 0
+    total_labor_cost: float = 0
+    entries_count: int = 0
+    by_employee: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+    by_task_type: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+
+
 # ============== INVOICE MODELS ==============
 class InvoiceLineItem(BaseModel):
     description: str
