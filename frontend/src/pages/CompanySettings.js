@@ -30,6 +30,16 @@ export default function CompanySettings() {
     website: '',
     logo_url: ''
   });
+  
+  // Time tracking settings
+  const [timeTrackingSettings, setTimeTrackingSettings] = useState({
+    track_per_job: true,
+    track_per_line_item: false,
+    enable_employee_portal: false,
+    enable_kiosk_mode: false,
+    auto_suggest_on_status_change: true
+  });
+  const [savingTimeSettings, setSavingTimeSettings] = useState(false);
 
   useEffect(() => {
     loadTenant();
