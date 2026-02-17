@@ -106,6 +106,71 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
 - [ ] Integrations: BNPL (Affirm/Klarna), SMS (Twilio), QuickBooks
 - [ ] Custom Domain Support for webstores
 
+## Future Features - Detailed Specs
+
+### Smart Quote Builder (P2)
+AI-powered quote generation from natural language descriptions.
+- Input: "24x36 banner with grommets for outdoor use"
+- Output: Full quote with materials, pricing, timeline
+- Learns from shop's pricing history and preferences
+
+### Form & Document Library (P2)
+Comprehensive document management system for customer communication.
+
+**Document Types:**
+1. **Questionnaires** (Customer fills out via portal)
+   - Logo Design Brief - colors, style, industry, competitors
+   - Vehicle Wrap Questionnaire - vehicle info, design preferences, coverage
+   - Sign Project Intake - location, size, materials, installation needs
+   
+2. **Inspection Checklists** (Staff fills out)
+   - Pre-Wrap Vehicle Inspection - dents, rust, paint condition, measurements
+   - Installation Checklist - site prep, mounting verification
+   
+3. **Aftercare Guides** (Auto-send to customer)
+   - Vinyl/Wrap Care Instructions - washing, waxing, damage prevention
+   - Sign Maintenance Guide - cleaning, inspection schedule
+   - Apparel Care Instructions - washing, drying, storage
+
+4. **AI-Generated Documents**
+   - Custom documents created via AI Document Creator
+   - Save to library for reuse
+
+**Features:**
+- 📎 Attach documents to jobs/orders
+- 📧 Quick-send to customers via email
+- 🌐 Customer portal questionnaire completion
+- 🤖 AI summarizes questionnaire responses
+- 💾 Save AI-created docs to library
+- 🏷️ Template categories by job type
+- 📄 **PDF Export** - branded with shop logo & colors
+- 🎨 Customizable templates
+
+**Starter Templates (Pre-built):**
+- Vehicle Wrap Questionnaire
+- Logo Design Brief  
+- Sign Project Intake Form
+- Pre-Wrap Vehicle Inspection
+- Wrap Aftercare Guide
+- Vinyl Care Instructions
+- Apparel Washing Guide
+
+**Customer Flow Example:**
+```
+1. Customer orders vehicle wrap
+2. Auto-send: Vehicle Wrap Questionnaire (via portal)
+3. Customer fills out in portal
+4. AI summarizes responses → attached to job
+5. Staff completes: Pre-Wrap Inspection Form
+6. Job complete
+7. Auto-send: Wrap Aftercare Guide (PDF, branded)
+```
+
+**Database Schema (Planned):**
+- Document: {id, type, name, content, category, is_template, tenant_id}
+- DocumentAttachment: {id, document_id, job_id, sent_at, completed_at}
+- QuestionnaireResponse: {id, document_id, customer_id, responses, ai_summary}
+
 ## Key API Endpoints
 
 ### Dashboard
