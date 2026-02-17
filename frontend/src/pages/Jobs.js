@@ -1001,11 +1001,14 @@ export function JobDetails() {
         </Card>
       </div>
 
-      {/* Tabs: Line Items, Notes, Activity */}
+      {/* Tabs: Line Items, Notes, Activity, Time Tracking */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="items">
             <Package className="h-4 w-4 mr-2" /> Line Items ({job_items.length})
+          </TabsTrigger>
+          <TabsTrigger value="time">
+            <Timer className="h-4 w-4 mr-2" /> Time {timeSummary && timeSummary.total_hours > 0 ? `(${timeSummary.total_hours.toFixed(1)}h)` : ''}
           </TabsTrigger>
           <TabsTrigger value="notes">
             <MessageSquare className="h-4 w-4 mr-2" /> Notes ({notes.length})
@@ -1014,6 +1017,170 @@ export function JobDetails() {
             <Activity className="h-4 w-4 mr-2" /> Activity ({activities.length})
           </TabsTrigger>
         </TabsList>
+
+        {/* Time Tracking Tab */}
+        <TabsContent value="time" className="mt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Timer Control Panel */}
+            <Card className="bg-card border-border/50 lg:col-span-1">
+              <CardHeader className="pb-3">
+                <CardTitle className="font-heading uppercase text-sm flex items-center gap-2">
+                  <Timer className="h-4 w-4" /> Job Timer
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {activeTimer ? (
+                  /* Active Timer Display */
+                  <div className="space-y-4">
+                    <div className="text-center p-6 bg-green-500/10 border border-green-500/30 rounded-xl">
+                      <div className="text-4xl font-mono font-bold text-green-400" data-testid="active-timer-display">
+                        {formatTimeDisplay(runningTime)}
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        {activeTimer.task_type && <Badge variant="outline" className="mr-2">{activeTimer.task_type}</Badge>}
+                        {activeTimer.description || 'Working...'}
+                      </p>
+                    </div>
+                    <Button 
+                      onClick={handleStopTimer}
+                      disabled={isTimerLoading}
+                      className="w-full bg-red-600 hover:bg-red-700"
+                      data-testid="stop-timer-btn"
+                    >
+                      {isTimerLoading ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Square className="h-4 w-4 mr-2" />
+                      )}
+                      Stop Timer
+                    </Button>
+                  </div>
+                ) : (
+                  /* Start Timer Form */
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Task Type</Label>
+                      <Select value={timerTaskType} onValueChange={setTimerTaskType}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {taskTypes.map((t) => (
+                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Description (optional)</Label>
+                      <Input
+                        placeholder="What are you working on?"
+                        value={timerDescription}
+                        onChange={(e) => setTimerDescription(e.target.value)}
+                      />
+                    </div>
+                    <Button 
+                      onClick={handleStartTimer}
+                      disabled={isTimerLoading}
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      data-testid="start-timer-btn"
+                    >
+                      {isTimerLoading ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Play className="h-4 w-4 mr-2" />
+                      )}
+                      Start Timer
+                    </Button>
+                  </div>
+                )}
+
+                {/* Summary Stats */}
+                {timeSummary && timeSummary.entries_count > 0 && (
+                  <div className="pt-4 border-t border-border/50 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Total Time:</span>
+                      <span className="font-medium">{timeSummary.total_hours.toFixed(2)} hours</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Labor Cost:</span>
+                      <span className="font-medium">{formatCurrency(timeSummary.total_labor_cost)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Entries:</span>
+                      <span className="font-medium">{timeSummary.entries_count}</span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Time Entries List */}
+            <Card className="bg-card border-border/50 lg:col-span-2">
+              <CardHeader className="pb-3">
+                <CardTitle className="font-heading uppercase text-sm">Time Log</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {timeEntries.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No time entries yet</p>
+                    <p className="text-sm">Start the timer to track time on this job</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {timeEntries.map((entry) => (
+                      <div 
+                        key={entry.id} 
+                        className={cn(
+                          "flex items-center justify-between p-3 rounded-lg border",
+                          entry.is_active ? "bg-green-500/10 border-green-500/30" : "bg-muted/30 border-border/50"
+                        )}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">{entry.task_type}</Badge>
+                            <span className="text-sm font-medium">{entry.employee_name}</span>
+                            {entry.is_active && (
+                              <Badge className="bg-green-500 text-white animate-pulse">Active</Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {entry.description || 'No description'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDateTime(entry.start_time)}
+                            {entry.end_time && ` - ${formatDateTime(entry.end_time)}`}
+                          </p>
+                        </div>
+                        <div className="text-right flex items-center gap-3">
+                          <div>
+                            <p className="font-mono font-medium">
+                              {entry.is_active ? formatTimeDisplay(runningTime) : `${entry.duration_minutes?.toFixed(0) || 0} min`}
+                            </p>
+                            {entry.labor_cost > 0 && (
+                              <p className="text-xs text-muted-foreground">{formatCurrency(entry.labor_cost)}</p>
+                            )}
+                          </div>
+                          {!entry.is_active && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteTimeEntry(entry.id)}
+                              className="text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
         {/* Line Items Tab */}
         <TabsContent value="items" className="mt-4">
