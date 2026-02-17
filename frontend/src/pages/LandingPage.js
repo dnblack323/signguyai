@@ -690,10 +690,7 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-[#00D4FF] to-[#0066CC] rounded-lg flex items-center justify-center">
-                  <Zap className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-lg font-bold">SignGuy AI</span>
+                <img src="/logo.png" alt="TheSignGuy AI" className="h-12 w-auto" />
               </div>
               <p className="text-gray-400 text-sm">
                 The AI-powered operating system for serious sign shops.
