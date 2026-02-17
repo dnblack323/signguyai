@@ -151,16 +151,13 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0a1628] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a1628]/90 backdrop-blur-md border-b border-white/10">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-lg flex items-center justify-center">
-                <Zap className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-xl font-bold">SignGuy AI</span>
+          <div className="flex items-center justify-between h-20">
+            <div className="flex items-center gap-3">
+              <img src="/logo.png" alt="TheSignGuy AI" className="h-14 w-auto" />
             </div>
             
             {/* Desktop Nav */}
