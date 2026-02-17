@@ -1130,6 +1130,65 @@ export default function PricingCalculator({
                     </div>
                   )}
 
+                  {/* AI Pricing Suggestions */}
+                  <div className="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                          <Sparkles className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-purple-900">AI Pricing Advisor</p>
+                          <p className="text-xs text-purple-600">Get smart pricing recommendations</p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={fetchAiSuggestions}
+                        disabled={loadingAiSuggestions}
+                        className="border-purple-300 text-purple-700 hover:bg-purple-100"
+                      >
+                        {loadingAiSuggestions ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Analyzing...
+                          </>
+                        ) : (
+                          <>
+                            <Lightbulb className="h-4 w-4 mr-2" />
+                            Get Suggestions
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    
+                    {showAiSuggestions && aiSuggestions && (
+                      <div className="mt-4 p-4 bg-white rounded-lg border border-purple-100">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Target className="h-4 w-4 text-purple-600" />
+                          <span className="text-sm font-medium text-purple-800">AI Recommendations</span>
+                        </div>
+                        <div className="prose prose-sm prose-purple max-w-none">
+                          <div 
+                            className="text-sm text-slate-700 whitespace-pre-wrap"
+                            dangerouslySetInnerHTML={{ 
+                              __html: aiSuggestions
+                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                .replace(/\n/g, '<br/>') 
+                            }}
+                          />
+                        </div>
+                        <button
+                          onClick={() => setShowAiSuggestions(false)}
+                          className="mt-3 text-xs text-purple-600 hover:text-purple-800"
+                        >
+                          Hide suggestions
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Price Override */}
                   <div className="p-4 border-2 border-dashed border-slate-300 rounded-lg">
                     <div className="flex items-center gap-2 mb-3">
