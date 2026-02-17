@@ -121,6 +121,10 @@ function App() {
               <Routes>
                 {/* Public Landing Page */}
                 <Route path="/home" element={<LandingPage />} />
+                <Route path="/features" element={<FeaturesPage />} />
+                <Route path="/pricing" element={<PricingPagePublic />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/contact" element={<ContactPage />} />
                 
                 {/* Public Storefront - No Auth Required */}
                 <Route path="/store/:storeId" element={<Storefront />} />
