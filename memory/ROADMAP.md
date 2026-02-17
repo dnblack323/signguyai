@@ -83,25 +83,15 @@
 ### 🔴 P0 - Critical (Revenue/Core)
 | # | Feature | Description | Est. Credits |
 |---|---------|-------------|--------------|
-| 1 | **Dashboard Enhancement** | Greeting, schedule, notifications, stats | 60-80 |
-| 2 | **Sidebar Restructure** | Home link at top, cleaner nav | 20-30 |
+| 1 | **Public Landing Page** | Marketing website explaining SignGuy AI features, pricing, testimonials, call-to-action | 80-120 |
+| 2 | **Documentation/Help Center** | User guides, how-to articles, FAQs, searchable knowledge base | 100-150 |
+| 3 | **Mobile Responsiveness** | Optimize owner dashboard for mobile - collapsible sidebar, mobile tables, touch-friendly | 60-80 |
 
 ### 🟠 P1 - High Priority
 | # | Feature | Description | Est. Credits |
 |---|---------|-------------|--------------|
-| 3 | **Employee Portal** | Separate login for employees | 100-150 |
-| | - Login Page | `/employee-portal/login` | 30 |
-| | - Time Clock View | Punch in/out, current shift | 40 |
-| | - My Hours/Pay | Pay stubs, earnings history | 40 |
-| | - My Jobs/Tasks | Assigned work list | 40 |
-| 4 | **Job Time Tracking** | Track time per job for AI pricing | 80-100 |
-| | - Job Selection on Clock-in | Pick job when starting | 30 |
-| | - Time Logging per Job | Automatic time records | 30 |
-| | - AI Pricing Feedback | Use real time data for pricing | 40 |
-| 5 | **Job Status Flow/Timeline** | Visual progress on job tickets | 60-80 |
-| | - Status Stages | Design → Production → QC → Complete | 30 |
-| | - Timeline View | Timestamps at each stage | 30 |
-| | - Stage Analytics | Time spent per stage | 20 |
+| 4 | **Re-enable Trial Lockout** | Fix root cause of redirect issue, re-enable 24hr trial system | 40-60 |
+| 5 | **Complete Billing Logic** | Track first 100 founders, $19.99 credit, AI Tools Add-On | 60-80 |
 | 6 | **Subscription Management** | View/cancel subscription page | 40-60 |
 
 ### 🟡 P2 - Medium Priority
