@@ -821,11 +821,14 @@ async def update_tenant_info(
     if current_user.role != "owner":
         raise HTTPException(status_code=403, detail="Only owners can update tenant settings")
     
-    update_dict = {k: v for k, v in update_data.model_dump().items() if v is not None}
-    
-    # Handle time_tracking_settings as a nested object
-    if 'time_tracking_settings' in update_dict and update_dict['time_tracking_settings']:
-        update_dict['time_tracking_settings'] = update_dict['time_tracking_settings'].model_dump()
+    update_dict = {}
+    for k, v in update_data.model_dump().items():
+        if v is not None:
+            # Handle nested Pydantic models
+            if hasattr(v, 'model_dump'):
+                update_dict[k] = v.model_dump()
+            else:
+                update_dict[k] = v
     
     if update_dict:
         update_dict['updated_at'] = datetime.now(timezone.utc).isoformat()
