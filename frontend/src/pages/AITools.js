@@ -667,7 +667,7 @@ export default function AITools() {
                       onClick={() => handleSelectImage(index)}
                     >
                       <img 
-                        src={img.url} 
+                        src={img} 
                         alt={`Design option ${index + 1}`}
                         className="w-full aspect-square object-contain bg-white"
                       />
@@ -703,7 +703,7 @@ export default function AITools() {
                             className="h-8 text-xs"
                             onClick={(e) => {
                               e.stopPropagation();
-                              downloadImage(img.url, index);
+                              downloadImage(img, index);
                             }}
                           >
                             <Download className="h-3 w-3" />
