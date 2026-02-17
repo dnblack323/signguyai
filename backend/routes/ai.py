@@ -314,7 +314,23 @@ Supporting text area for: {subtext}
 Style: {style}, {event_type} theme.
 Colors: {brand_colors}.
 Clean, readable typography, professional print-ready design.
-Marketing banner suitable for outdoor or indoor display."""
+Marketing banner suitable for outdoor or indoor display.""",
+
+    "logo_creator": """Professional logo design for "{business_name}".
+Industry: {industry}.
+Logo style: {logo_type}, {style_preferences} aesthetic.
+Colors: {color_preferences}.
+Tagline to incorporate: {tagline}.
+Icon/symbol ideas: {icon_ideas}.
+The logo should be clean, scalable, memorable, and work well on signage.
+Professional brand identity design, vector-style appearance, white or transparent background.
+High quality logo suitable for business cards, signs, and digital use.""",
+
+    "mockup_creator": """Realistic mockup photograph showing {product_type} in a {environment} setting.
+The design shows: {design_description}.
+Professional product photography, realistic lighting, natural environment integration.
+The mockup should look like an actual installed sign or vehicle wrap in the real world.
+High quality commercial photography style, sharp details, professional presentation."""
 }
 
 
