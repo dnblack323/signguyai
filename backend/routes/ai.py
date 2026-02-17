@@ -53,6 +53,30 @@ class AIHistoryEntry(BaseModel):
 # ============== TOOL PROMPTS ==============
 
 TOOL_PROMPTS = {
+    # Pricing Advisor Tool
+    "pricing_advisor": """You are an expert pricing advisor for a sign shop. Analyze this pricing and provide smart recommendations.
+
+**Current Pricing:**
+- Category: {category}
+- Quantity: {quantity}
+- Current Price: ${current_price:.2f}
+- Production Cost: ${production_cost:.2f}
+- Profit Margin: {profit_margin}%
+- Complexity: {complexity}/10
+
+**Breakdown:**
+{breakdown}
+
+Provide 4-5 concise, actionable recommendations:
+
+1. **Pricing Assessment**: Is this price competitive for a sign shop? Too high/low?
+2. **Quantity Optimization**: Would different quantities unlock better pricing tiers?
+3. **Margin Analysis**: Is the margin healthy for this type of work? Industry target is 40-60%.
+4. **Upsell Opportunities**: What add-ons could increase the order value?
+5. **Quick Win**: One immediate adjustment that could improve profitability.
+
+Keep each point to 1-2 sentences. Be practical and sign-shop specific. Include specific dollar amounts where relevant.""",
+
     # Design Tools
     "photo_enhancer": """You are an expert photo analyst for a sign shop. Analyze the uploaded image and provide:
 1. **Print Readiness Assessment**: Resolution quality, color depth, potential issues for large format printing
