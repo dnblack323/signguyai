@@ -6,7 +6,8 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
-import { Building2, Phone, MapPin, Globe, Save, AlertTriangle, Crown } from 'lucide-react';
+import { Switch } from '../components/ui/switch';
+import { Building2, Phone, MapPin, Globe, Save, AlertTriangle, Crown, Timer, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function CompanySettings() {
