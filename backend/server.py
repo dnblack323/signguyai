@@ -800,6 +800,45 @@ async def health():
     return {"status": "healthy"}
 
 
+# ============== TENANT ROUTES ==============
+
+@api_router.get("/tenant")
+async def get_tenant_info(current_user: UserInDB = Depends(get_current_active_user)):
+    """Get current user's tenant information"""
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0})
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    return tenant
+
+
+@api_router.put("/tenant")
+async def update_tenant_info(
+    update_data: TenantUpdate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Update current user's tenant information"""
+    # Only owners can update tenant settings
+    if current_user.role != "owner":
+        raise HTTPException(status_code=403, detail="Only owners can update tenant settings")
+    
+    update_dict = {k: v for k, v in update_data.model_dump().items() if v is not None}
+    
+    # Handle time_tracking_settings as a nested object
+    if 'time_tracking_settings' in update_dict and update_dict['time_tracking_settings']:
+        update_dict['time_tracking_settings'] = update_dict['time_tracking_settings'].model_dump()
+    
+    if update_dict:
+        update_dict['updated_at'] = datetime.now(timezone.utc).isoformat()
+        await db.tenants.update_one(
+            {"id": current_user.tenant_id},
+            {"$set": update_dict}
+        )
+    
+    # Return updated tenant
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0})
+    return tenant
+
+
 # ============== IMPORT AND INCLUDE ROUTERS ==============
 from routes.auth import router as auth_router, users_router, admin_router
 from routes.customers import router as customers_router
