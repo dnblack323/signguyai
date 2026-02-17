@@ -44,7 +44,7 @@ import {
   Plus, Edit2, Trash2, Receipt, Calendar, ArrowLeft, Package, Eye, 
   MoreHorizontal, CheckCircle, Archive, ArchiveRestore, Clock,
   FileText, MessageSquare, Activity, DollarSign, User, ExternalLink,
-  ChevronRight, Send, CalendarPlus, Calculator
+  ChevronRight, Send, CalendarPlus, Calculator, Play, Square, Timer, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
@@ -52,6 +52,12 @@ import PricingCalculatorModal, { PricingCalculatorButton } from '../components/P
 
 const statusOptions = ['quoted', 'approved', 'in_production', 'installed', 'complete', 'archived'];
 const activeStatuses = ['quoted', 'approved', 'in_production', 'installed'];
+const taskTypes = [
+  { value: 'design', label: 'Design' },
+  { value: 'production', label: 'Production' },
+  { value: 'installation', label: 'Installation' },
+  { value: 'admin', label: 'Admin/Other' }
+];
 
 const statusLabels = {
   quoted: 'Quoted',
