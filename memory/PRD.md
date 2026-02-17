@@ -87,6 +87,11 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
   - 15 AI tools across 4 categories: Design, Branding, Business, Marketing
   - Tools include: Photo Enhancer, Vectorizer, Font Identifier, Sign/Banner Designer,
     Tagline Generator, Brand Color Advisor, Proposal Writer, Review Responder, etc.
+- [x] **AI Pricing Advisor (Feb 17, 2026):**
+  - Added AI-powered pricing suggestions in calculator
+  - Analyzes current pricing and provides actionable recommendations
+  - Suggests quantity tiers, upsells, margin improvements
+  - Purple-themed UI with Sparkles icon
 
 ## Upcoming Tasks (P1)
 - [ ] Job Time Tracking - log time against specific jobs
