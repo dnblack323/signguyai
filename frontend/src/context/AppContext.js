@@ -568,6 +568,8 @@ export const AppProvider = ({ children }) => {
     generateAIContent, generateAIImages, fetchAIHistory,
     // Time Clock
     clockAction, getClockStatus, getTodayLogs, getShiftSummary,
+    // Job Time Tracking
+    startJobTimer, stopJobTimer, getJobTimeEntries, getJobTimeSummary, getJobActiveTimer, deleteJobTimeEntry,
     // Payroll
     createPayrollTransaction, getPayrollTransactions, getPayrollBalance, getPayrollReport,
     // Financials
