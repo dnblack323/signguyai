@@ -272,7 +272,7 @@ export default function LandingPage() {
               </Badge>
               <h2 className="text-3xl sm:text-4xl font-bold mb-6">
                 Built by a Sign Shop Owner,<br />
-                <span className="text-cyan-400">For Sign Shop Owners</span>
+                <span className="text-[#00D4FF]">For Sign Shop Owners</span>
               </h2>
               <div className="space-y-4 text-gray-300">
                 <p>
@@ -281,30 +281,30 @@ export default function LandingPage() {
                 <p>
                   When I realized how much it transformed my business, I knew I had to share it. This isn't backed by venture capitalists or built by a team that's never held a squeegee. It's built by someone who knows the difference between cast and calendered vinyl.
                 </p>
-                <p className="text-cyan-400 font-semibold">
+                <p className="text-[#00D4FF] font-semibold">
                   As a founding member, you're not just a customer — you're a partner. Need a feature? Tell me. Don't like something? I'll fix it. This software grows with your input.
                 </p>
               </div>
             </div>
             <div className="relative">
-              <div className="bg-gradient-to-br from-cyan-500/20 to-blue-600/20 rounded-2xl p-8 border border-white/10">
+              <div className="bg-gradient-to-br from-[#00D4FF]/20 to-[#0066CC]/20 rounded-2xl p-8 border border-white/10">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-[#0a1628] rounded-xl p-4 text-center">
-                    <Building2 className="w-8 h-8 text-cyan-400 mx-auto mb-2" />
+                  <div className="bg-[#0a0a0a] rounded-xl p-4 text-center">
+                    <Building2 className="w-8 h-8 text-[#00D4FF] mx-auto mb-2" />
                     <div className="text-sm text-gray-400">Built by</div>
                     <div className="font-semibold">Real Shop Owner</div>
                   </div>
-                  <div className="bg-[#0a1628] rounded-xl p-4 text-center">
+                  <div className="bg-[#0a0a0a] rounded-xl p-4 text-center">
                     <Award className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
                     <div className="text-sm text-gray-400">Not backed by</div>
                     <div className="font-semibold">VC or Investors</div>
                   </div>
-                  <div className="bg-[#0a1628] rounded-xl p-4 text-center">
+                  <div className="bg-[#0a0a0a] rounded-xl p-4 text-center">
                     <MessageSquare className="w-8 h-8 text-green-400 mx-auto mb-2" />
                     <div className="text-sm text-gray-400">Features</div>
                     <div className="font-semibold">You Request</div>
                   </div>
-                  <div className="bg-[#0a1628] rounded-xl p-4 text-center">
+                  <div className="bg-[#0a0a0a] rounded-xl p-4 text-center">
                     <TrendingUp className="w-8 h-8 text-purple-400 mx-auto mb-2" />
                     <div className="text-sm text-gray-400">Constant</div>
                     <div className="font-semibold">Updates</div>
@@ -326,7 +326,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="bg-[#0d1f35] rounded-2xl border border-white/10 overflow-hidden">
+          <div className="bg-[#111111] rounded-2xl border border-white/10 overflow-hidden">
             {/* Screenshot tabs */}
             <div className="flex border-b border-white/10 overflow-x-auto">
               {screenshots.map((screen, index) => (
@@ -335,7 +335,7 @@ export default function LandingPage() {
                   onClick={() => setActiveScreenshot(index)}
                   className={`px-6 py-4 font-medium whitespace-nowrap transition ${
                     activeScreenshot === index
-                      ? 'bg-cyan-500/20 text-cyan-400 border-b-2 border-cyan-400'
+                      ? 'bg-[#00D4FF]/20 text-[#00D4FF] border-b-2 border-[#00D4FF]'
                       : 'text-gray-400 hover:text-white'
                   }`}
                 >
@@ -346,7 +346,7 @@ export default function LandingPage() {
             
             {/* Screenshot display */}
             <div className="p-4">
-              <div className="bg-[#0a1628] rounded-lg overflow-hidden">
+              <div className="bg-[#0a0a0a] rounded-lg overflow-hidden">
                 <img
                   src={screenshots[activeScreenshot].image}
                   alt={screenshots[activeScreenshot].name}
@@ -363,10 +363,10 @@ export default function LandingPage() {
       </section>
 
       {/* Features Grid */}
-      <section id="features" className="py-20 px-4 bg-[#0d1f35]">
+      <section id="features" className="py-20 px-4 bg-[#111111]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-cyan-500/20 text-cyan-400 border-cyan-500/30">
+            <Badge className="mb-4 bg-[#00D4FF]/20 text-[#00D4FF] border-[#00D4FF]/30">
               Everything You Need
             </Badge>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
@@ -379,10 +379,10 @@ export default function LandingPage() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {features.map((feature, index) => (
-              <Card key={index} className="bg-[#0a1628] border-white/10 hover:border-cyan-500/50 transition-all group">
+              <Card key={index} className="bg-[#0a0a0a] border-white/10 hover:border-[#00D4FF]/50 transition-all group">
                 <CardContent className="p-6">
-                  <div className="w-12 h-12 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 rounded-xl flex items-center justify-center mb-4 group-hover:from-cyan-500/30 group-hover:to-blue-600/30 transition">
-                    <feature.icon className="w-6 h-6 text-cyan-400" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#00D4FF]/20 to-[#0066CC]/20 rounded-xl flex items-center justify-center mb-4 group-hover:from-[#00D4FF]/30 group-hover:to-[#0066CC]/30 transition">
+                    <feature.icon className="w-6 h-6 text-[#00D4FF]" />
                   </div>
                   <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
                   <p className="text-gray-400 text-sm">{feature.description}</p>
@@ -413,7 +413,7 @@ export default function LandingPage() {
             {aiTools.map((tool, index) => (
               <div
                 key={index}
-                className="bg-[#0d1f35] border border-white/10 rounded-xl p-4 hover:border-purple-500/50 transition group"
+                className="bg-[#111111] border border-white/10 rounded-xl p-4 hover:border-purple-500/50 transition group"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg flex items-center justify-center group-hover:from-purple-500/30 group-hover:to-pink-500/30 transition">
@@ -440,7 +440,7 @@ export default function LandingPage() {
       </section>
 
       {/* Comparison Table */}
-      <section className="py-20 px-4 bg-[#0d1f35]">
+      <section className="py-20 px-4 bg-[#111111]">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-green-500/20 text-green-400 border-green-500/30">
@@ -461,7 +461,7 @@ export default function LandingPage() {
                 <tr className="border-b border-white/10">
                   <th className="text-left py-4 px-4 text-gray-400 font-medium">Feature</th>
                   <th className="py-4 px-4">
-                    <div className="text-cyan-400 font-bold">SignGuy AI</div>
+                    <div className="text-[#00D4FF] font-bold">SignGuy AI</div>
                     <div className="text-xs text-gray-500">That's us!</div>
                   </th>
                   <th className="py-4 px-4 text-gray-400">shopVOX</th>
@@ -481,7 +481,7 @@ export default function LandingPage() {
                           <X className="w-5 h-5 text-red-400 mx-auto" />
                         )
                       ) : (
-                        <span className="text-cyan-400 font-medium">{row.signguy}</span>
+                        <span className="text-[#00D4FF] font-medium">{row.signguy}</span>
                       )}
                     </td>
                     <td className="py-4 px-4 text-center">
@@ -545,13 +545,13 @@ export default function LandingPage() {
             {pricingTiers.map((tier, index) => (
               <Card
                 key={index}
-                className={`bg-[#0d1f35] border-white/10 relative ${
-                  tier.popular ? 'border-cyan-500 scale-105' : ''
+                className={`bg-[#111111] border-white/10 relative ${
+                  tier.popular ? 'border-[#00D4FF] scale-105' : ''
                 }`}
               >
                 {tier.popular && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white border-0 px-4 py-1">
+                    <Badge className="bg-gradient-to-r from-[#00D4FF] to-[#0066CC] text-white border-0 px-4 py-1">
                       Most Popular
                     </Badge>
                   </div>
@@ -562,7 +562,7 @@ export default function LandingPage() {
                   
                   <div className="mb-6">
                     <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-bold text-cyan-400">${tier.founding}</span>
+                      <span className="text-4xl font-bold text-[#00D4FF]">${tier.founding}</span>
                       <span className="text-gray-500">/month</span>
                     </div>
                     <div className="text-sm text-gray-500 line-through">${tier.regular}/month regular</div>
@@ -571,7 +571,7 @@ export default function LandingPage() {
                   <ul className="space-y-3 mb-8">
                     {tier.features.map((feature, i) => (
                       <li key={i} className="flex items-center gap-2 text-gray-300">
-                        <CheckCircle2 className="w-5 h-5 text-cyan-400 flex-shrink-0" />
+                        <CheckCircle2 className="w-5 h-5 text-[#00D4FF] flex-shrink-0" />
                         {feature}
                       </li>
                     ))}
@@ -581,7 +581,7 @@ export default function LandingPage() {
                     <Button
                       className={`w-full ${
                         tier.popular
-                          ? 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700'
+                          ? 'bg-gradient-to-r from-[#00D4FF] to-[#0066CC] hover:from-[#00B8E6] hover:to-blue-700'
                           : 'bg-white/10 hover:bg-white/20'
                       }`}
                     >
@@ -626,7 +626,7 @@ export default function LandingPage() {
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="py-20 px-4 bg-[#0d1f35]">
+      <section id="faq" className="py-20 px-4 bg-[#111111]">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">Frequently Asked Questions</h2>
@@ -637,7 +637,7 @@ export default function LandingPage() {
             {faqs.map((faq, index) => (
               <div
                 key={index}
-                className="bg-[#0a1628] border border-white/10 rounded-xl overflow-hidden"
+                className="bg-[#0a0a0a] border border-white/10 rounded-xl overflow-hidden"
               >
                 <button
                   onClick={() => setActiveFaq(activeFaq === index ? null : index)}
@@ -670,7 +670,7 @@ export default function LandingPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/register">
-              <Button size="lg" className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-lg px-8 py-6 h-auto">
+              <Button size="lg" className="bg-gradient-to-r from-[#00D4FF] to-[#0066CC] hover:from-[#00B8E6] hover:to-blue-700 text-lg px-8 py-6 h-auto">
                 Start Your Free Trial
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
@@ -690,7 +690,7 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-[#00D4FF] to-[#0066CC] rounded-lg flex items-center justify-center">
                   <Zap className="w-5 h-5 text-white" />
                 </div>
                 <span className="text-lg font-bold">SignGuy AI</span>
