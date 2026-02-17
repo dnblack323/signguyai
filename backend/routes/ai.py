@@ -322,7 +322,7 @@ Marketing banner suitable for outdoor or indoor display."""
 
 async def generate_text_content(tool: str, input_data: Dict[str, Any]) -> str:
     """Generate text content using GPT-5.2"""
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContent
     
     if not EMERGENT_LLM_KEY:
         raise HTTPException(status_code=500, detail="AI service not configured")
@@ -341,12 +341,13 @@ async def generate_text_content(tool: str, input_data: Dict[str, Any]) -> str:
             breakdown_str = str(breakdown)
         input_data['breakdown'] = breakdown_str
     
-    # Format the prompt with input data
+    # Format the prompt with input data (excluding image_upload)
+    prompt_data = {k: v if v is not None else '' for k, v in input_data.items() if k != 'image_upload'}
     try:
-        prompt = prompt_template.format(**{k: v if v is not None else '' for k, v in input_data.items()})
+        prompt = prompt_template.format(**prompt_data)
     except KeyError as e:
         prompt = prompt_template
-        for key, value in input_data.items():
+        for key, value in prompt_data.items():
             prompt = prompt.replace(f"{{{key}}}", str(value if value is not None else ''))
     
     # Initialize chat
@@ -357,7 +358,26 @@ async def generate_text_content(tool: str, input_data: Dict[str, Any]) -> str:
     ).with_model("openai", "gpt-5.2")
     
     # Handle image analysis if present
-    user_message = UserMessage(text=prompt)
+    file_contents = None
+    image_upload = input_data.get('image_upload')
+    if image_upload and isinstance(image_upload, str):
+        # Check if it's a base64 data URL
+        if image_upload.startswith('data:'):
+            # Extract content type and base64 data
+            # Format: data:image/png;base64,XXXXXX
+            try:
+                header, base64_data = image_upload.split(',', 1)
+                content_type = header.split(':')[1].split(';')[0]  # e.g., "image/png"
+                file_contents = [FileContent(content_type=content_type, file_content_base64=base64_data)]
+                prompt = f"Please analyze this uploaded image.\n\n{prompt}"
+            except Exception as e:
+                print(f"Error parsing image upload: {e}")
+    
+    # Create message with or without image
+    if file_contents:
+        user_message = UserMessage(text=prompt, file_contents=file_contents)
+    else:
+        user_message = UserMessage(text=prompt)
     
     # Send message and get response
     response = await chat.send_message(user_message)
