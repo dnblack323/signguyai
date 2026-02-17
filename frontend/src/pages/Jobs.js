@@ -539,7 +539,90 @@ export function JobDetails() {
   useEffect(() => {
     loadJobDetails();
     fetchCustomers();
+    loadTimeTracking();
   }, [id]);
+
+  // Update running time every second when timer is active
+  useEffect(() => {
+    let interval;
+    if (activeTimer) {
+      interval = setInterval(() => {
+        const start = new Date(activeTimer.start_time);
+        const now = new Date();
+        const diffSeconds = Math.floor((now - start) / 1000);
+        setRunningTime(diffSeconds);
+      }, 1000);
+    } else {
+      setRunningTime(0);
+    }
+    return () => clearInterval(interval);
+  }, [activeTimer]);
+
+  const loadTimeTracking = async () => {
+    try {
+      const [entriesData, summaryData, activeData] = await Promise.all([
+        getJobTimeEntries(id),
+        getJobTimeSummary(id),
+        getJobActiveTimer(id)
+      ]);
+      setTimeEntries(entriesData || []);
+      setTimeSummary(summaryData);
+      if (activeData?.has_active_timer) {
+        setActiveTimer(activeData.entry);
+      } else {
+        setActiveTimer(null);
+      }
+    } catch (err) {
+      console.error('Failed to load time tracking:', err);
+    }
+  };
+
+  const handleStartTimer = async () => {
+    setIsTimerLoading(true);
+    try {
+      const result = await startJobTimer(id, {
+        description: timerDescription || undefined,
+        task_type: timerTaskType
+      });
+      setActiveTimer(result);
+      setTimerDescription('');
+      await loadTimeTracking();
+      toast.success('Timer started!');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to start timer');
+    }
+    setIsTimerLoading(false);
+  };
+
+  const handleStopTimer = async () => {
+    setIsTimerLoading(true);
+    try {
+      await stopJobTimer(id);
+      setActiveTimer(null);
+      await loadTimeTracking();
+      toast.success('Timer stopped!');
+    } catch (err) {
+      toast.error('Failed to stop timer');
+    }
+    setIsTimerLoading(false);
+  };
+
+  const handleDeleteTimeEntry = async (entryId) => {
+    try {
+      await deleteJobTimeEntry(id, entryId);
+      await loadTimeTracking();
+      toast.success('Time entry deleted');
+    } catch (err) {
+      toast.error('Failed to delete time entry');
+    }
+  };
+
+  const formatTimeDisplay = (seconds) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const loadJobDetails = async () => {
     setLoading(true);
