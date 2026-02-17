@@ -172,6 +172,11 @@ export default function PricingCalculator({
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
   
+  // AI Suggestions state
+  const [aiSuggestions, setAiSuggestions] = useState(null);
+  const [loadingAiSuggestions, setLoadingAiSuggestions] = useState(false);
+  const [showAiSuggestions, setShowAiSuggestions] = useState(false);
+  
   // Template state
   const [templates, setTemplates] = useState([]);
   const [showTemplates, setShowTemplates] = useState(false);
@@ -182,6 +187,52 @@ export default function PricingCalculator({
 
   // Get auth token
   const getToken = () => localStorage.getItem('auth_token');
+
+  // Fetch AI-powered pricing suggestions
+  const fetchAiSuggestions = async () => {
+    if (!category || !calculation) return;
+    
+    const token = getToken();
+    if (!token) return;
+    
+    setLoadingAiSuggestions(true);
+    try {
+      const response = await fetch(`${API_URL}/api/ai/generate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          tool: 'pricing_advisor',
+          input_data: {
+            category: category,
+            quantity: quantity,
+            current_price: calculation?.suggested_price || 0,
+            production_cost: calculation?.production_cost || 0,
+            profit_margin: calculation?.profit_margin_percent || 0,
+            complexity: complexity,
+            pricing_data: pricingData,
+            breakdown: calculation?.breakdown || {}
+          }
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setAiSuggestions(data.content);
+        setShowAiSuggestions(true);
+        toast.success('AI suggestions generated!');
+      } else {
+        toast.error('Failed to get AI suggestions');
+      }
+    } catch (err) {
+      console.error('Error fetching AI suggestions:', err);
+      toast.error('Failed to connect to AI service');
+    } finally {
+      setLoadingAiSuggestions(false);
+    }
+  };
 
   // Fetch templates
   const fetchTemplates = useCallback(async () => {
