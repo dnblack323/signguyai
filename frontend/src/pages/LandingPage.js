@@ -203,20 +203,20 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4 relative overflow-hidden">
         {/* Background effects */}
-        <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/10 via-transparent to-transparent" />
-        <div className="absolute top-20 left-1/4 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl" />
-        <div className="absolute top-40 right-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#00D4FF]/10 via-transparent to-transparent" />
+        <div className="absolute top-20 left-1/4 w-96 h-96 bg-[#00D4FF]/15 rounded-full blur-3xl" />
+        <div className="absolute top-40 right-1/4 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl" />
         
         <div className="max-w-7xl mx-auto relative">
           <div className="text-center max-w-4xl mx-auto">
-            <Badge className="mb-6 bg-cyan-500/20 text-cyan-400 border-cyan-500/30 px-4 py-2">
+            <Badge className="mb-6 bg-[#00D4FF]/20 text-[#00D4FF] border-[#00D4FF]/30 px-4 py-2">
               <Rocket className="w-4 h-4 mr-2" />
               Founding Member Pricing - Limited Time
             </Badge>
             
             <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold mb-6 leading-tight">
-              The <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">AI-Powered</span> Operating System for{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">Serious Sign Shops</span>
+              The <span className="text-[#00D4FF]">AI-Powered</span> Operating System for{' '}
+              <span className="text-white">Serious Sign Shops</span>
             </h1>
             
             <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
@@ -225,13 +225,13 @@ export default function LandingPage() {
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
               <Link to="/register">
-                <Button size="lg" className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-lg px-8 py-6 h-auto">
+                <Button size="lg" className="bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold text-lg px-8 py-6 h-auto">
                   Start Your Free Trial
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
               <a href="#demo">
-                <Button size="lg" variant="outline" className="border-white/20 text-lg px-8 py-6 h-auto hover:bg-white/10">
+                <Button size="lg" variant="outline" className="border-[#00D4FF]/30 text-[#00D4FF] text-lg px-8 py-6 h-auto hover:bg-[#00D4FF]/10">
                   <Play className="w-5 h-5 mr-2" />
                   Watch Demo
                 </Button>
@@ -241,19 +241,19 @@ export default function LandingPage() {
             {/* Stats Bar */}
             <div className="flex flex-wrap justify-center gap-8 text-center">
               <div>
-                <div className="text-3xl font-bold text-cyan-400">15+</div>
+                <div className="text-3xl font-bold text-[#00D4FF]">15+</div>
                 <div className="text-gray-500">AI Tools</div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-cyan-400">8</div>
+                <div className="text-3xl font-bold text-[#00D4FF]">8</div>
                 <div className="text-gray-500">Pricing Calculators</div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-cyan-400">∞</div>
+                <div className="text-3xl font-bold text-[#00D4FF]">∞</div>
                 <div className="text-gray-500">Possibilities</div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-cyan-400">24hr</div>
+                <div className="text-3xl font-bold text-[#00D4FF]">24hr</div>
                 <div className="text-gray-500">Free Trial</div>
               </div>
             </div>
@@ -262,7 +262,7 @@ export default function LandingPage() {
       </section>
 
       {/* Built by a Sign Shop Owner Section */}
-      <section className="py-20 px-4 bg-gradient-to-b from-[#0d1f35] to-[#0a1628]">
+      <section className="py-20 px-4 bg-gradient-to-b from-[#111111] to-[#0a0a0a]">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
