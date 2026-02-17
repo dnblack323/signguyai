@@ -356,6 +356,119 @@ export default function CompanySettings() {
         </CardContent>
       </Card>
 
+      {/* Time Tracking Settings Card */}
+      <Card className="border" style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2" style={{ color: '#1A1A1A' }}>
+            <Timer className="h-5 w-5" style={{ color: '#2F8BFB' }} />
+            Time Tracking Settings
+          </CardTitle>
+          <CardDescription style={{ color: '#5A5A5A' }}>
+            Configure how employees track time on jobs
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Tracking Level */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-sm uppercase tracking-wider" style={{ color: '#5A5A5A' }}>
+              Tracking Level
+            </h4>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
+                <div>
+                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Track Time Per Job</Label>
+                  <p className="text-sm" style={{ color: '#5A5A5A' }}>Log time at the job level (e.g., "Worked on Banner Job")</p>
+                </div>
+                <Switch
+                  checked={timeTrackingSettings.track_per_job}
+                  onCheckedChange={(checked) => setTimeTrackingSettings({...timeTrackingSettings, track_per_job: checked})}
+                  disabled={!canEditSettings}
+                  data-testid="track-per-job-toggle"
+                />
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
+                <div>
+                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Track Time Per Line Item</Label>
+                  <p className="text-sm" style={{ color: '#5A5A5A' }}>Log time on specific items (e.g., "Worked on 24x36 Banner")</p>
+                </div>
+                <Switch
+                  checked={timeTrackingSettings.track_per_line_item}
+                  onCheckedChange={(checked) => setTimeTrackingSettings({...timeTrackingSettings, track_per_line_item: checked})}
+                  disabled={!canEditSettings}
+                  data-testid="track-per-line-item-toggle"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Access Methods */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-sm uppercase tracking-wider" style={{ color: '#5A5A5A' }}>
+              Employee Access (Coming Soon)
+            </h4>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-lg border opacity-60" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
+                <div>
+                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Employee Portal Time Tracking</Label>
+                  <p className="text-sm" style={{ color: '#5A5A5A' }}>Let employees track time from their portal</p>
+                </div>
+                <Switch
+                  checked={timeTrackingSettings.enable_employee_portal}
+                  onCheckedChange={(checked) => setTimeTrackingSettings({...timeTrackingSettings, enable_employee_portal: checked})}
+                  disabled={true}
+                />
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg border opacity-60" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
+                <div>
+                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Kiosk Mode</Label>
+                  <p className="text-sm" style={{ color: '#5A5A5A' }}>Shop floor tablet with PIN login and job scanning</p>
+                </div>
+                <Switch
+                  checked={timeTrackingSettings.enable_kiosk_mode}
+                  onCheckedChange={(checked) => setTimeTrackingSettings({...timeTrackingSettings, enable_kiosk_mode: checked})}
+                  disabled={true}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Automation */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-sm uppercase tracking-wider" style={{ color: '#5A5A5A' }}>
+              Automation
+            </h4>
+            <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
+              <div>
+                <Label className="font-medium" style={{ color: '#1A1A1A' }}>Auto-Suggest on Status Change</Label>
+                <p className="text-sm" style={{ color: '#5A5A5A' }}>Prompt to start/stop timer when job status changes</p>
+              </div>
+              <Switch
+                checked={timeTrackingSettings.auto_suggest_on_status_change}
+                onCheckedChange={(checked) => setTimeTrackingSettings({...timeTrackingSettings, auto_suggest_on_status_change: checked})}
+                disabled={!canEditSettings}
+                data-testid="auto-suggest-toggle"
+              />
+            </div>
+          </div>
+
+          {/* Save Button */}
+          {canEditSettings && (
+            <div className="flex justify-end pt-4 border-t" style={{ borderColor: '#D7DCE2' }}>
+              <Button 
+                onClick={handleSaveTimeSettings}
+                disabled={savingTimeSettings}
+                data-testid="save-time-settings-btn"
+                style={{ background: '#2F8BFB' }}
+                className="text-white hover:opacity-90"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {savingTimeSettings ? 'Saving...' : 'Save Time Settings'}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Account Info Card */}
       <Card className="border" style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }}>
         <CardHeader>
