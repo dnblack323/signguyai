@@ -31,7 +31,8 @@ from .jobs import (
     JobBase, JobCreate, JobUpdate, Job,
     JobNoteBase, JobNoteCreate, JobNote,
     JobActivity, JobItemBase, JobItemCreate, JobItemUpdate, JobItem,
-    InvoiceLineItem, InvoiceBase, InvoiceCreate, InvoiceUpdate, Invoice
+    InvoiceLineItem, InvoiceBase, InvoiceCreate, InvoiceUpdate, Invoice,
+    JobTimeEntry, JobTimeEntryCreate, JobTimeEntryUpdate, JobTimeSummary
 )
 
 # Auth & Tenant models
