@@ -94,10 +94,18 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
   - Purple-themed UI with Sparkles icon
 
 ## Upcoming Tasks (P1)
-- [ ] Job Time Tracking - log time against specific jobs
 - [ ] Job Status Flow & Timeline - visual timeline on job tickets
 - [ ] Complete Billing System Logic - track first 100 founders, $19.99 credit, AI Tools Add-On
 - [ ] Re-enable Trial Lockout System - fix root cause, not just disable
+- [x] **Job Time Tracking (Feb 17, 2026):**
+  - Start/Stop timer on jobs with task type selection
+  - Track time by: design, production, installation, admin
+  - Time Log showing all entries with employee, duration, labor cost
+  - Summary panel with total hours, labor cost, entry count
+  - Delete time entries
+  - Real-time running timer display (HH:MM:SS)
+  - Prevents duplicate active timers per employee per job
+  - API endpoints: /api/jobs/{id}/time/start, stop, summary, active
 
 ## Future Tasks (P2/P3)
 - [ ] Efficiency Dashboard for employees
