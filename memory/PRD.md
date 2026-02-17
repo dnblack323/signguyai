@@ -114,6 +114,9 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
   - Activities logged on status change with old_value and new_value
 
 ## Future Tasks (P2/P3)
+- [ ] **Public Landing Page (P0):** Marketing website explaining SignGuy AI features, pricing, testimonials, call-to-action for signups
+- [ ] **Documentation/Help Center (P0):** User guides, how-to articles, FAQs, searchable knowledge base integrated into app
+- [ ] **Mobile Responsiveness (P0):** Optimize owner dashboard for mobile - collapsible sidebar, mobile-friendly tables, touch-optimized buttons
 - [ ] **RaceWrap AI Tool (P2):** Race Car Number & Sponsor Wrap Designer - custom race car numbers, full/partial wrap concepts, sponsor placement strategies (see ROADMAP.md for full specs)
 - [ ] Form & Document Library - questionnaires, inspections, aftercare guides with AI summarization, PDF export
 - [ ] Efficiency Dashboard for employees
