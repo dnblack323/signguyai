@@ -332,13 +332,22 @@ async def generate_text_content(tool: str, input_data: Dict[str, Any]) -> str:
     if not prompt_template:
         raise HTTPException(status_code=400, detail=f"Unknown tool: {tool}")
     
+    # Handle special formatting for pricing_advisor tool
+    if tool == "pricing_advisor":
+        breakdown = input_data.get('breakdown', {})
+        if isinstance(breakdown, dict):
+            breakdown_str = "\n".join([f"- {k}: {v}" for k, v in breakdown.items()])
+        else:
+            breakdown_str = str(breakdown)
+        input_data['breakdown'] = breakdown_str
+    
     # Format the prompt with input data
     try:
-        prompt = prompt_template.format(**{k: v or '' for k, v in input_data.items()})
+        prompt = prompt_template.format(**{k: v if v is not None else '' for k, v in input_data.items()})
     except KeyError as e:
         prompt = prompt_template
         for key, value in input_data.items():
-            prompt = prompt.replace(f"{{{key}}}", str(value or ''))
+            prompt = prompt.replace(f"{{{key}}}", str(value if value is not None else ''))
     
     # Initialize chat
     chat = LlmChat(
