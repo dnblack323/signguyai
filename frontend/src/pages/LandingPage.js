@@ -170,7 +170,7 @@ export default function LandingPage() {
                 <Button variant="ghost" className="text-gray-300 hover:text-white">Log In</Button>
               </Link>
               <Link to="/register">
-                <Button className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700">
+                <Button className="bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold">
                   Start Free Trial
                 </Button>
               </Link>
