@@ -1493,6 +1493,161 @@ export function JobDetails() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Timeline Tab - Visual Status Flow */}
+        <TabsContent value="timeline" className="mt-4">
+          <Card className="bg-card border-border/50">
+            <CardHeader>
+              <CardTitle className="font-heading uppercase flex items-center gap-2">
+                <GitBranch className="h-5 w-5" /> Job Status Timeline
+              </CardTitle>
+              <CardDescription>Visual progression through production stages</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Status Flow Diagram */}
+              <div className="mb-8">
+                <div className="flex items-center justify-between max-w-4xl mx-auto">
+                  {statusOptions.filter(s => s !== 'archived').map((status, index, arr) => {
+                    const isCurrentStatus = job?.status === status;
+                    const isPastStatus = statusOptions.indexOf(job?.status) > statusOptions.indexOf(status);
+                    const statusActivity = activities.find(a => 
+                      a.activity_type === 'status_changed' && a.new_status === status
+                    );
+                    
+                    return (
+                      <div key={status} className="flex items-center flex-1">
+                        <div className="flex flex-col items-center">
+                          <div 
+                            className={cn(
+                              "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all",
+                              isCurrentStatus 
+                                ? "bg-primary border-primary text-primary-foreground scale-110 shadow-lg" 
+                                : isPastStatus 
+                                  ? "bg-green-500 border-green-500 text-white"
+                                  : "bg-muted border-muted-foreground/30 text-muted-foreground"
+                            )}
+                          >
+                            {isPastStatus ? (
+                              <CheckCircle className="h-5 w-5" />
+                            ) : (
+                              <span className="text-xs font-bold">{index + 1}</span>
+                            )}
+                          </div>
+                          <span 
+                            className={cn(
+                              "text-xs mt-2 font-medium text-center",
+                              isCurrentStatus ? "text-primary" : isPastStatus ? "text-green-600" : "text-muted-foreground"
+                            )}
+                          >
+                            {statusLabels[status]}
+                          </span>
+                          {statusActivity && (
+                            <span className="text-[10px] text-muted-foreground mt-1">
+                              {new Date(statusActivity.created_at).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                        {index < arr.length - 1 && (
+                          <div 
+                            className={cn(
+                              "flex-1 h-1 mx-2",
+                              isPastStatus ? "bg-green-500" : "bg-muted"
+                            )}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Status Change History */}
+              <div className="border-t border-border/50 pt-6">
+                <h4 className="text-sm font-medium uppercase tracking-wider text-muted-foreground mb-4">
+                  Status Change History
+                </h4>
+                {(() => {
+                  const statusChanges = activities.filter(a => 
+                    a.activity_type === 'status_changed' || 
+                    a.activity_type === 'created' ||
+                    a.activity_type === 'completed' ||
+                    a.activity_type === 'archived' ||
+                    a.activity_type === 'unarchived'
+                  );
+                  
+                  if (statusChanges.length === 0) {
+                    return (
+                      <p className="text-center text-muted-foreground py-4">No status changes recorded</p>
+                    );
+                  }
+                  
+                  return (
+                    <div className="space-y-3">
+                      {statusChanges.map((activity, index) => {
+                        const prevActivity = statusChanges[index + 1];
+                        let timeInStatus = null;
+                        
+                        if (prevActivity) {
+                          const current = new Date(activity.created_at);
+                          const prev = new Date(prevActivity.created_at);
+                          const diffMs = current - prev;
+                          const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                          const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                          
+                          if (diffHours > 24) {
+                            const diffDays = Math.floor(diffHours / 24);
+                            timeInStatus = `${diffDays} day${diffDays > 1 ? 's' : ''}`;
+                          } else if (diffHours > 0) {
+                            timeInStatus = `${diffHours}h ${diffMins}m`;
+                          } else {
+                            timeInStatus = `${diffMins} min`;
+                          }
+                        }
+                        
+                        return (
+                          <div 
+                            key={activity.id}
+                            className="flex items-center gap-4 p-3 rounded-lg bg-muted/30 border border-border/50"
+                          >
+                            <div className="flex-shrink-0">
+                              {activity.old_status && activity.new_status ? (
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className={cn(statusColors[activity.old_status], "text-xs")}>
+                                    {statusLabels[activity.old_status] || activity.old_status}
+                                  </Badge>
+                                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                                  <Badge className={cn(statusColors[activity.new_status])}>
+                                    {statusLabels[activity.new_status] || activity.new_status}
+                                  </Badge>
+                                </div>
+                              ) : (
+                                <Badge variant="outline">{activity.activity_type.replace('_', ' ')}</Badge>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm">{activity.description}</p>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className="text-xs text-muted-foreground">
+                                {formatDateTime(activity.created_at)}
+                              </p>
+                              {timeInStatus && (
+                                <p className="text-xs text-primary font-medium mt-1">
+                                  <Clock className="h-3 w-3 inline mr-1" />
+                                  {timeInStatus} in previous status
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* Invoice Preview Modal */}
