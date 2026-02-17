@@ -816,6 +816,7 @@ from routes.dashboard import router as dashboard_router
 from routes.tasks import router as tasks_router
 from routes.employee_portal import router as employee_portal_router
 from routes.ai import router as ai_router
+from routes.job_time import router as job_time_router
 
 # Include all routers in the api_router
 api_router.include_router(auth_router)
@@ -839,6 +840,7 @@ api_router.include_router(dashboard_router)
 api_router.include_router(tasks_router)
 api_router.include_router(employee_portal_router)
 api_router.include_router(ai_router)
+api_router.include_router(job_time_router)
 
 # Include the api_router in the main app
 app.include_router(api_router)
