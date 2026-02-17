@@ -11,6 +11,15 @@ from .enums import UserRole, TenantPlan
 
 
 # ============== TENANT MODELS ==============
+class TimeTrackingSettings(BaseModel):
+    """Time tracking configuration for a tenant"""
+    track_per_job: bool = True
+    track_per_line_item: bool = False
+    enable_employee_portal: bool = False
+    enable_kiosk_mode: bool = False
+    auto_suggest_on_status_change: bool = True
+
+
 class TenantBase(BaseModel):
     name: str
     slug: str
@@ -25,6 +34,7 @@ class TenantBase(BaseModel):
     logo_url: Optional[str] = None
     plan: TenantPlan = TenantPlan.FREE
     is_active: bool = True
+    time_tracking_settings: Optional[TimeTrackingSettings] = None
 
 class TenantCreate(BaseModel):
     name: str
@@ -41,6 +51,7 @@ class TenantUpdate(BaseModel):
     country: Optional[str] = None
     website: Optional[str] = None
     logo_url: Optional[str] = None
+    time_tracking_settings: Optional[TimeTrackingSettings] = None
 
 class Tenant(TenantBase):
     model_config = ConfigDict(extra="ignore")
