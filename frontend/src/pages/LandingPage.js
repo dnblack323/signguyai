@@ -185,7 +185,7 @@ export default function LandingPage() {
 
         {/* Mobile Nav */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-[#0d1f35] border-t border-white/10 p-4">
+          <div className="md:hidden bg-[#111111] border-t border-white/10 p-4">
             <div className="flex flex-col gap-4">
               <a href="#features" className="text-gray-300 hover:text-white">Features</a>
               <a href="#ai-tools" className="text-gray-300 hover:text-white">AI Tools</a>
@@ -193,7 +193,7 @@ export default function LandingPage() {
               <a href="#faq" className="text-gray-300 hover:text-white">FAQ</a>
               <Link to="/login" className="text-gray-300 hover:text-white">Log In</Link>
               <Link to="/register">
-                <Button className="w-full bg-gradient-to-r from-cyan-500 to-blue-600">Start Free Trial</Button>
+                <Button className="w-full bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold">Start Free Trial</Button>
               </Link>
             </div>
           </div>
