@@ -1,0 +1,460 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Button } from '../components/ui/button';
+import { Card, CardContent } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import {
+  Users, FileText, Calculator, Receipt, Clock, DollarSign,
+  Sparkles, BarChart3, Store, Shield, Zap, CheckCircle2,
+  ChevronRight, ArrowRight, Menu, X, Briefcase, Calendar,
+  MessageSquare, Palette, Image, Type, Target, TrendingUp,
+  ClipboardList, Truck, Settings, Bell, Search, Filter,
+  PieChart, CreditCard, UserCheck, Building2, Layers
+} from 'lucide-react';
+
+export default function FeaturesPage() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeCategory, setActiveCategory] = useState('all');
+
+  const categories = [
+    { id: 'all', name: 'All Features' },
+    { id: 'core', name: 'Core Business' },
+    { id: 'ai', name: 'AI Tools' },
+    { id: 'portals', name: 'Portals' },
+    { id: 'financial', name: 'Financial' },
+  ];
+
+  const features = [
+    {
+      id: 'customers',
+      category: 'core',
+      icon: Users,
+      title: 'Customer Management',
+      tagline: 'Your complete CRM built for sign shops',
+      description: 'Keep track of every customer interaction, from first contact to repeat business. No more lost emails or forgotten follow-ups.',
+      capabilities: [
+        'Contact information with multiple addresses',
+        'Customer status tracking (Lead, Active, VIP)',
+        'Complete job history per customer',
+        'Notes and communication log',
+        'Quick actions for quotes and jobs',
+        'Search and filter customers instantly',
+        'Customer portal access management',
+      ],
+      color: 'from-blue-500 to-cyan-500',
+    },
+    {
+      id: 'jobs',
+      category: 'core',
+      icon: Briefcase,
+      title: 'Job Tracking',
+      tagline: 'From quote to completion, never lose track',
+      description: 'Visual job management that shows you exactly where every project stands. Track status, time, materials, and profitability.',
+      capabilities: [
+        'Visual status timeline (Quote → Production → Install → Complete)',
+        'Line items with pricing calculator integration',
+        'Time tracking per job with labor costs',
+        'File attachments and proofs',
+        'Job notes and activity log',
+        'Due date scheduling',
+        'Archive completed jobs',
+        'Kanban board view',
+      ],
+      color: 'from-purple-500 to-pink-500',
+    },
+    {
+      id: 'quotes',
+      category: 'core',
+      icon: Calculator,
+      title: 'Smart Pricing & Quotes',
+      tagline: '8 specialized calculators for accurate pricing',
+      description: 'Stop guessing on prices. Our calculators factor in materials, labor, complexity, and setup fees to give you profitable quotes every time.',
+      capabilities: [
+        'Vinyl graphics calculator',
+        'Vehicle wrap calculator',
+        'Banner & large format calculator',
+        'Channel letter calculator',
+        'Monument sign calculator',
+        'A-frame & yard sign calculator',
+        'Window graphics calculator',
+        'Custom product calculator',
+        'Complexity multipliers',
+        'Setup fee handling',
+        'AI pricing suggestions',
+      ],
+      color: 'from-green-500 to-emerald-500',
+    },
+    {
+      id: 'invoicing',
+      category: 'financial',
+      icon: Receipt,
+      title: 'Professional Invoicing',
+      tagline: 'Get paid faster with professional invoices',
+      description: 'Create and send professional invoices in seconds. Track payments, send reminders, and accept online payments.',
+      capabilities: [
+        'One-click invoice from job',
+        'Professional invoice templates',
+        'Payment status tracking',
+        'Partial payment support',
+        'Payment reminders',
+        'Online payment integration',
+        'Invoice history and reporting',
+        'PDF export and email',
+      ],
+      color: 'from-yellow-500 to-orange-500',
+    },
+    {
+      id: 'time-tracking',
+      category: 'core',
+      icon: Clock,
+      title: 'Time Tracking',
+      tagline: 'Know exactly where your time goes',
+      description: 'Track time per job, per employee, per task. See real labor costs and improve your estimates with actual data.',
+      capabilities: [
+        'Start/stop timer on any job',
+        'Task type categorization',
+        'Employee time logs',
+        'Labor cost calculations',
+        'Time summaries per job',
+        'Billable vs non-billable tracking',
+        'Export time reports',
+        'Integration with payroll',
+      ],
+      color: 'from-cyan-500 to-blue-500',
+    },
+    {
+      id: 'payroll',
+      category: 'financial',
+      icon: DollarSign,
+      title: 'Payroll & Financials',
+      tagline: 'Business tier power features',
+      description: 'Manage employee pay, track profit margins, and get financial insights all in one place.',
+      capabilities: [
+        'Employee pay tracking',
+        'Hourly rate management',
+        'Pay period summaries',
+        'Profit margin reports',
+        'Revenue tracking',
+        'Expense categorization',
+        'Financial dashboard',
+        'Export to accounting software',
+      ],
+      color: 'from-emerald-500 to-teal-500',
+    },
+    {
+      id: 'ai-tools',
+      category: 'ai',
+      icon: Sparkles,
+      title: 'AI Tools Suite',
+      tagline: '15+ AI-powered tools no other software has',
+      description: 'Generate logos, design signs, write copy, get pricing suggestions - all powered by cutting-edge AI built right into your workflow.',
+      capabilities: [
+        'Logo Creator - generate logo concepts',
+        'Sign Designer - AI sign mockups',
+        'Banner Designer - promotional banners',
+        'Mockup Creator - realistic product mockups',
+        'Tagline Generator - catchy business taglines',
+        'Business Copywriter - marketing copy',
+        'Pricing Advisor - AI pricing suggestions',
+        'Brand Color Advisor - color palettes',
+        'Photo Enhancer - image improvements',
+        'Font Identifier - identify fonts from images',
+        'And more tools added regularly',
+      ],
+      color: 'from-violet-500 to-purple-500',
+    },
+    {
+      id: 'customer-portal',
+      category: 'portals',
+      icon: Shield,
+      title: 'Customer Portal',
+      tagline: 'Let customers help themselves',
+      description: 'Give your customers 24/7 access to view orders, approve artwork, make payments, and communicate with your shop.',
+      capabilities: [
+        'Branded portal with your logo',
+        'Order status visibility',
+        'Artwork approval workflow',
+        'Online payment processing',
+        'Message your team directly',
+        'Download invoices and receipts',
+        'Request new quotes',
+        'View job history',
+      ],
+      color: 'from-blue-500 to-indigo-500',
+    },
+    {
+      id: 'employee-portal',
+      category: 'portals',
+      icon: UserCheck,
+      title: 'Employee Portal',
+      tagline: 'Mobile-friendly for your team',
+      description: 'Your employees get their own simple interface to clock in/out, view tasks, check pay stubs, and stay productive.',
+      capabilities: [
+        'Simple clock in/out',
+        'View assigned jobs and tasks',
+        'Time clock history',
+        'Pay stub access',
+        'Profile management',
+        'Mobile-optimized design',
+        'Separate login system',
+        'Role-based permissions',
+      ],
+      color: 'from-teal-500 to-cyan-500',
+    },
+    {
+      id: 'webstores',
+      category: 'portals',
+      icon: Store,
+      title: 'Webstore Builder',
+      tagline: 'Sell online without the hassle',
+      description: 'Create fundraiser stores, B2B ordering portals, or public product catalogs. Let customers order directly.',
+      capabilities: [
+        'Fundraiser stores for schools/teams',
+        'B2B customer ordering portals',
+        'Product catalog pages',
+        'Custom pricing per store',
+        'Order management',
+        'Inventory tracking',
+        'Branded storefronts',
+        'Easy setup wizard',
+      ],
+      color: 'from-pink-500 to-rose-500',
+    },
+    {
+      id: 'scheduling',
+      category: 'core',
+      icon: Calendar,
+      title: 'Scheduling & Calendar',
+      tagline: 'Never miss a deadline',
+      description: 'See all your jobs on a calendar, schedule installations, and manage your shop\'s capacity.',
+      capabilities: [
+        'Calendar view of all jobs',
+        'Due date management',
+        'Installation scheduling',
+        'Capacity planning',
+        'Deadline alerts',
+        'Drag and drop scheduling',
+        'Team availability',
+        'Integration with job status',
+      ],
+      color: 'from-orange-500 to-red-500',
+    },
+    {
+      id: 'messaging',
+      category: 'core',
+      icon: MessageSquare,
+      title: 'Built-in Messaging',
+      tagline: 'Keep all communication in one place',
+      description: 'Message customers and team members without leaving the app. Everything is tied to the relevant job or customer.',
+      capabilities: [
+        'Customer messaging',
+        'Team communication',
+        'Messages tied to jobs',
+        'Notification alerts',
+        'Message history',
+        'File sharing in messages',
+        'Read receipts',
+        'Email notifications',
+      ],
+      color: 'from-indigo-500 to-blue-500',
+    },
+  ];
+
+  const filteredFeatures = activeCategory === 'all' 
+    ? features 
+    : features.filter(f => f.category === activeCategory);
+
+  return (
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-md border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-20">
+            <Link to="/home" className="flex items-center gap-3">
+              <img src="/logo.png" alt="TheSignGuy AI" className="h-14 w-auto" />
+            </Link>
+            
+            <div className="hidden md:flex items-center gap-8">
+              <Link to="/features" className="text-[#00D4FF] font-medium">Features</Link>
+              <Link to="/pricing" className="text-gray-300 hover:text-white transition">Pricing</Link>
+              <Link to="/about" className="text-gray-300 hover:text-white transition">About</Link>
+              <Link to="/contact" className="text-gray-300 hover:text-white transition">Contact</Link>
+              <Link to="/login">
+                <Button variant="ghost" className="text-gray-300 hover:text-white">Log In</Button>
+              </Link>
+              <Link to="/register">
+                <Button className="bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold">
+                  Start Free Trial
+                </Button>
+              </Link>
+            </div>
+
+            <button className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
+        </div>
+
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-[#111111] border-t border-white/10 p-4">
+            <div className="flex flex-col gap-4">
+              <Link to="/features" className="text-[#00D4FF]">Features</Link>
+              <Link to="/pricing" className="text-gray-300 hover:text-white">Pricing</Link>
+              <Link to="/about" className="text-gray-300 hover:text-white">About</Link>
+              <Link to="/contact" className="text-gray-300 hover:text-white">Contact</Link>
+              <Link to="/login" className="text-gray-300 hover:text-white">Log In</Link>
+              <Link to="/register">
+                <Button className="w-full bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold">Start Free Trial</Button>
+              </Link>
+            </div>
+          </div>
+        )}
+      </nav>
+
+      {/* Hero */}
+      <section className="pt-32 pb-16 px-4">
+        <div className="max-w-7xl mx-auto text-center">
+          <Badge className="mb-6 bg-[#00D4FF]/20 text-[#00D4FF] border-[#00D4FF]/30 px-4 py-2">
+            <Layers className="w-4 h-4 mr-2" />
+            Everything You Need
+          </Badge>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
+            Features That Actually <span className="text-[#00D4FF]">Make Sense</span>
+          </h1>
+          <p className="text-xl text-gray-400 max-w-3xl mx-auto mb-8">
+            Built by a sign shop owner who was tired of software that didn't understand the business. 
+            Every feature exists because we needed it in our own shop.
+          </p>
+        </div>
+      </section>
+
+      {/* Category Filter */}
+      <section className="px-4 pb-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-wrap justify-center gap-2">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className={`px-4 py-2 rounded-full font-medium transition ${
+                  activeCategory === cat.id
+                    ? 'bg-[#00D4FF] text-black'
+                    : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features List */}
+      <section className="px-4 pb-20">
+        <div className="max-w-7xl mx-auto space-y-16">
+          {filteredFeatures.map((feature, index) => (
+            <div
+              key={feature.id}
+              className={`grid lg:grid-cols-2 gap-8 items-center ${
+                index % 2 === 1 ? 'lg:flex-row-reverse' : ''
+              }`}
+            >
+              <div className={index % 2 === 1 ? 'lg:order-2' : ''}>
+                <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${feature.color} mb-6`}>
+                  <feature.icon className="w-8 h-8 text-white" />
+                </div>
+                <h2 className="text-3xl font-bold text-white mb-2">{feature.title}</h2>
+                <p className="text-[#00D4FF] font-medium mb-4">{feature.tagline}</p>
+                <p className="text-gray-400 mb-6">{feature.description}</p>
+                
+                <ul className="space-y-2">
+                  {feature.capabilities.map((cap, i) => (
+                    <li key={i} className="flex items-start gap-2 text-gray-300">
+                      <CheckCircle2 className="w-5 h-5 text-[#00D4FF] flex-shrink-0 mt-0.5" />
+                      {cap}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div className={`${index % 2 === 1 ? 'lg:order-1' : ''}`}>
+                <div className={`bg-gradient-to-br ${feature.color} p-1 rounded-2xl`}>
+                  <div className="bg-[#111111] rounded-xl p-8 h-full min-h-[300px] flex items-center justify-center">
+                    <div className="text-center">
+                      <feature.icon className="w-24 h-24 text-white/20 mx-auto mb-4" />
+                      <p className="text-gray-500">Screenshot coming soon</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 px-4 bg-[#111111]">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold mb-6">
+            Ready to Try These Features?
+          </h2>
+          <p className="text-xl text-gray-400 mb-8">
+            Start your free trial and see why sign shops are switching to SignGuy AI.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to="/register">
+              <Button size="lg" className="bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold text-lg px-8 py-6 h-auto">
+                Start Your Free Trial
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </Link>
+            <Link to="/pricing">
+              <Button size="lg" variant="outline" className="border-[#00D4FF]/30 text-[#00D4FF] text-lg px-8 py-6 h-auto hover:bg-[#00D4FF]/10">
+                View Pricing
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-12 px-4 border-t border-white/10">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <img src="/logo.png" alt="TheSignGuy AI" className="h-12 w-auto mb-4" />
+              <p className="text-gray-400 text-sm">
+                The AI-powered operating system for serious sign shops.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold text-white mb-4">Product</h4>
+              <ul className="space-y-2 text-gray-400 text-sm">
+                <li><Link to="/features" className="hover:text-white transition">Features</Link></li>
+                <li><Link to="/pricing" className="hover:text-white transition">Pricing</Link></li>
+                <li><Link to="/home#faq" className="hover:text-white transition">FAQ</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-white mb-4">Company</h4>
+              <ul className="space-y-2 text-gray-400 text-sm">
+                <li><Link to="/about" className="hover:text-white transition">About</Link></li>
+                <li><Link to="/contact" className="hover:text-white transition">Contact</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-white mb-4">Legal</h4>
+              <ul className="space-y-2 text-gray-400 text-sm">
+                <li><a href="#" className="hover:text-white transition">Privacy Policy</a></li>
+                <li><a href="#" className="hover:text-white transition">Terms of Service</a></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-white/10 pt-8 text-center text-gray-500 text-sm">
+            &copy; {new Date().getFullYear()} SignGuy AI. All rights reserved.
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
