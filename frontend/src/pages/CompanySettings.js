@@ -105,6 +105,23 @@ export default function CompanySettings() {
     setSaving(false);
   };
 
+  const handleSaveTimeSettings = async () => {
+    if (!canEditSettings) {
+      toast.error('You do not have permission to edit settings');
+      return;
+    }
+    
+    setSavingTimeSettings(true);
+    try {
+      await updateTenant({ time_tracking_settings: timeTrackingSettings });
+      toast.success('Time tracking settings updated');
+    } catch (err) {
+      console.error('Error updating time settings:', err);
+      toast.error('Failed to update time tracking settings');
+    }
+    setSavingTimeSettings(false);
+  };
+
   const planBadge = (plan) => {
     const colors = {
       free: 'bg-gray-100 text-gray-700',
