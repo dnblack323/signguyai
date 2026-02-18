@@ -84,6 +84,19 @@ export default function CompanySettings() {
           auto_suggest_on_status_change: data.time_tracking_settings.auto_suggest_on_status_change ?? true
         });
       }
+      // Load employee portal permissions
+      if (data.employee_portal_settings) {
+        setEmployeePortalSettings({
+          can_view_tasks: data.employee_portal_settings.can_view_tasks ?? true,
+          can_view_schedule: data.employee_portal_settings.can_view_schedule ?? true,
+          can_view_pay_stubs: data.employee_portal_settings.can_view_pay_stubs ?? true,
+          can_view_time_clock: data.employee_portal_settings.can_view_time_clock ?? true,
+          can_edit_profile: data.employee_portal_settings.can_edit_profile ?? true,
+          can_see_job_details: data.employee_portal_settings.can_see_job_details ?? false,
+          can_see_customer_info: data.employee_portal_settings.can_see_customer_info ?? false,
+          can_see_pricing: data.employee_portal_settings.can_see_pricing ?? false
+        });
+      }
     } catch (err) {
       console.error('Error loading tenant:', err);
       toast.error('Failed to load company settings');
