@@ -512,6 +512,152 @@ export default function CompanySettings() {
         </CardContent>
       </Card>
 
+      {/* Employee Portal Permissions Card */}
+      <Card className="border" style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2" style={{ color: '#1A1A1A' }}>
+            <Users className="h-5 w-5" style={{ color: '#2F8BFB' }} />
+            Employee Portal Permissions
+          </CardTitle>
+          <CardDescription style={{ color: '#5A5A5A' }}>
+            Control what employees can see and do in their portal
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Basic Visibility */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-sm uppercase tracking-wider flex items-center gap-2" style={{ color: '#5A5A5A' }}>
+              <Eye className="h-4 w-4" />
+              Portal Sections
+            </h4>
+            <div className="grid gap-3">
+              <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
+                <div>
+                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Tasks</Label>
+                  <p className="text-sm" style={{ color: '#5A5A5A' }}>View assigned tasks and to-dos</p>
+                </div>
+                <Switch
+                  checked={employeePortalSettings.can_view_tasks}
+                  onCheckedChange={(checked) => setEmployeePortalSettings({...employeePortalSettings, can_view_tasks: checked})}
+                  disabled={!canEditSettings}
+                  data-testid="emp-view-tasks-toggle"
+                />
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
+                <div>
+                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Schedule</Label>
+                  <p className="text-sm" style={{ color: '#5A5A5A' }}>View work schedule and shifts</p>
+                </div>
+                <Switch
+                  checked={employeePortalSettings.can_view_schedule}
+                  onCheckedChange={(checked) => setEmployeePortalSettings({...employeePortalSettings, can_view_schedule: checked})}
+                  disabled={!canEditSettings}
+                  data-testid="emp-view-schedule-toggle"
+                />
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
+                <div>
+                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Pay Stubs</Label>
+                  <p className="text-sm" style={{ color: '#5A5A5A' }}>View payroll history and pay stubs</p>
+                </div>
+                <Switch
+                  checked={employeePortalSettings.can_view_pay_stubs}
+                  onCheckedChange={(checked) => setEmployeePortalSettings({...employeePortalSettings, can_view_pay_stubs: checked})}
+                  disabled={!canEditSettings}
+                  data-testid="emp-view-pay-toggle"
+                />
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
+                <div>
+                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Time Clock</Label>
+                  <p className="text-sm" style={{ color: '#5A5A5A' }}>Clock in/out and track breaks</p>
+                </div>
+                <Switch
+                  checked={employeePortalSettings.can_view_time_clock}
+                  onCheckedChange={(checked) => setEmployeePortalSettings({...employeePortalSettings, can_view_time_clock: checked})}
+                  disabled={!canEditSettings}
+                  data-testid="emp-view-time-clock-toggle"
+                />
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
+                <div>
+                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Edit Profile</Label>
+                  <p className="text-sm" style={{ color: '#5A5A5A' }}>Update their own contact information</p>
+                </div>
+                <Switch
+                  checked={employeePortalSettings.can_edit_profile}
+                  onCheckedChange={(checked) => setEmployeePortalSettings({...employeePortalSettings, can_edit_profile: checked})}
+                  disabled={!canEditSettings}
+                  data-testid="emp-edit-profile-toggle"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Sensitive Information */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-sm uppercase tracking-wider flex items-center gap-2" style={{ color: '#5A5A5A' }}>
+              <Shield className="h-4 w-4" />
+              Sensitive Information Access
+            </h4>
+            <div className="grid gap-3">
+              <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#FFF9E6' }}>
+                <div>
+                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Job Details</Label>
+                  <p className="text-sm" style={{ color: '#5A5A5A' }}>See full job specifications and notes</p>
+                </div>
+                <Switch
+                  checked={employeePortalSettings.can_see_job_details}
+                  onCheckedChange={(checked) => setEmployeePortalSettings({...employeePortalSettings, can_see_job_details: checked})}
+                  disabled={!canEditSettings}
+                  data-testid="emp-see-job-details-toggle"
+                />
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#FFF9E6' }}>
+                <div>
+                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Customer Information</Label>
+                  <p className="text-sm" style={{ color: '#5A5A5A' }}>See customer names and contact details</p>
+                </div>
+                <Switch
+                  checked={employeePortalSettings.can_see_customer_info}
+                  onCheckedChange={(checked) => setEmployeePortalSettings({...employeePortalSettings, can_see_customer_info: checked})}
+                  disabled={!canEditSettings}
+                  data-testid="emp-see-customer-toggle"
+                />
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#FFF9E6' }}>
+                <div>
+                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Pricing Information</Label>
+                  <p className="text-sm" style={{ color: '#5A5A5A' }}>See job prices and financial details</p>
+                </div>
+                <Switch
+                  checked={employeePortalSettings.can_see_pricing}
+                  onCheckedChange={(checked) => setEmployeePortalSettings({...employeePortalSettings, can_see_pricing: checked})}
+                  disabled={!canEditSettings}
+                  data-testid="emp-see-pricing-toggle"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Save Button */}
+          {canEditSettings && (
+            <div className="flex justify-end pt-4 border-t" style={{ borderColor: '#D7DCE2' }}>
+              <Button 
+                onClick={handleSavePortalSettings}
+                disabled={savingPortalSettings}
+                data-testid="save-portal-settings-btn"
+                style={{ background: '#2F8BFB' }}
+                className="text-white hover:opacity-90"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {savingPortalSettings ? 'Saving...' : 'Save Portal Permissions'}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Account Info Card */}
       <Card className="border" style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }}>
         <CardHeader>
