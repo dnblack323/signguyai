@@ -115,6 +115,11 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
 
 ## Future Tasks (P2/P3)
 - [x] **Public Landing Page (Feb 17, 2026):** Marketing website with hero, features, AI tools showcase, comparison table, pricing tiers, FAQ - accessible at /home
+- [x] **Marketing Site Integration (Feb 18, 2026):**
+  - Added "View Website" link button in dashboard (bottom-right corner)
+  - Fixed landing page screenshot display using AI-generated mockup images
+  - All 4 screenshot tabs (Dashboard, Jobs, AI Tools, Customers) now working
+  - Images hosted on static.prod-images.emergentagent.com
 - [ ] **Documentation/Help Center (P0):** User guides, how-to articles, FAQs, searchable knowledge base integrated into app
 - [ ] **Mobile Responsiveness (P0):** Optimize owner dashboard for mobile - collapsible sidebar, mobile-friendly tables, touch-optimized buttons
 - [ ] **RaceWrap AI Tool (P2):** Race Car Number & Sponsor Wrap Designer - custom race car numbers, full/partial wrap concepts, sponsor placement strategies (see ROADMAP.md for full specs)
