@@ -120,6 +120,24 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
   - Fixed landing page screenshot display using AI-generated mockup images
   - All 4 screenshot tabs (Dashboard, Jobs, AI Tools, Customers) now working
   - Images hosted on static.prod-images.emergentagent.com
+- [x] **Additional AI Tools (Feb 18, 2026):**
+  - Logo Refresher - upload logo, get modern style variations (3 images)
+  - Generative Fill / Image Expander - expand images with AI (2 images)
+  - Text to Image Creator - generate images from prompts (3 images)
+  - Idea Brainstormer - taglines, logo concepts, business names
+  - Sign Permit Research - permit guidance for any location
+  - AI Business Assistant - full chat interface for sign shop questions
+  - Blog Article Creator - full blog articles with SEO optimization
+  - Completed Job Post Creator - social media content from job photos
+  - Vehicle Wrap Mockup Generator - see designs on various vehicle types
+  - **Total: 24 AI Tools across 4 categories**
+- [x] **AI Email Integration (Feb 18, 2026):**
+  - AI Email Composer component for contextual email drafting
+  - Invoice emails: Send, Reminder, Overdue notices
+  - Quote emails: Send, Follow-up
+  - Added "AI Draft" button to Invoice Preview Modal
+  - Added "AI Draft" button to Quote Preview Modal
+  - Backend /api/ai/generate-email endpoint
 - [ ] **Documentation/Help Center (P0):** User guides, how-to articles, FAQs, searchable knowledge base integrated into app
 - [ ] **Mobile Responsiveness (P0):** Optimize owner dashboard for mobile - collapsible sidebar, mobile-friendly tables, touch-optimized buttons
 - [ ] **RaceWrap AI Tool (P2):** Race Car Number & Sponsor Wrap Designer - custom race car numbers, full/partial wrap concepts, sponsor placement strategies (see ROADMAP.md for full specs)
