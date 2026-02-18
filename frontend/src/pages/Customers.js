@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -21,6 +21,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
+  DialogFooter,
 } from '../components/ui/dialog';
 import {
   Table,
@@ -34,10 +36,13 @@ import { formatDate, formatCurrency, getStatusColor, getInitials } from '../lib/
 import { 
   Plus, Search, Edit2, Trash2, Mail, Phone, Building, 
   User, Briefcase, Receipt, FileText, Calendar, Eye,
-  DollarSign, Clock
+  DollarSign, Clock, Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Download
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const statusOptions = ['lead', 'active', 'inactive'];
 
