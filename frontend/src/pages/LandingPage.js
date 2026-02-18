@@ -449,17 +449,17 @@ export default function LandingPage() {
       </section>
 
       {/* Comparison Table */}
-      <section className="py-20 px-4 bg-[#111111]">
+      <section className="py-12 px-4 bg-[#111111]">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-green-500/20 text-green-400 border-green-500/30">
+          <div className="text-center mb-8">
+            <Badge className="mb-3 bg-green-500/20 text-green-400 border-green-500/30">
               <CheckCircle2 className="w-4 h-4 mr-2" />
               Compare
             </Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2">
               See How We Stack Up
             </h2>
-            <p className="text-gray-400 max-w-2xl mx-auto">
+            <p className="text-gray-400 text-sm max-w-2xl mx-auto">
               We're not just another sign shop software. See the difference.
             </p>
           </div>
