@@ -644,8 +644,22 @@ export const MainLayout = ({ children }) => {
         </div>
       </main>
 
-      {/* Preview Mode Panel - Fixed Bottom Right (above Emergent badge) */}
-      <div className="fixed bottom-16 right-4 z-50">
+      {/* Marketing Site Link - Fixed Bottom Right */}
+      <div className="fixed bottom-16 right-4 z-50 flex items-center gap-2">
+        {/* Visit Marketing Site */}
+        <a
+          href="/home"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#00D4FF]/20 border border-[#00D4FF]/30 text-[#00D4FF] hover:bg-[#00D4FF]/30 transition-all shadow-lg"
+          data-testid="marketing-site-link"
+        >
+          <Globe className="h-4 w-4" />
+          <span className="text-sm font-medium">View Website</span>
+          <ExternalLink className="h-3 w-3" />
+        </a>
+
+        {/* Preview Mode Panel */}
         {previewOpen ? (
           <div className="bg-[var(--sidebar)] border border-[var(--border-dark)] rounded-xl shadow-2xl w-72 overflow-hidden">
             {/* Header */}
