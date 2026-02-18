@@ -17,10 +17,10 @@ export default function LandingPage() {
   const [activeScreenshot, setActiveScreenshot] = useState(0);
 
   const screenshots = [
-    { name: 'Dashboard', description: 'Your command center', image: '/screenshots/dashboard.png' },
-    { name: 'Jobs', description: 'Track every project', image: '/screenshots/jobs.png' },
-    { name: 'AI Tools', description: '15+ AI-powered tools', image: '/screenshots/ai-tools.png' },
-    { name: 'Customers', description: 'CRM built for signs', image: '/screenshots/customers.png' },
+    { name: 'Dashboard', description: 'Your command center', image: 'https://static.prod-images.emergentagent.com/jobs/68d3c309-7b19-4755-baa0-7548763342ea/images/cafdb7c76719024b1584cd38f5322b63e95a642f8681d2ecf003f95516739af4.png' },
+    { name: 'Jobs', description: 'Track every project', image: 'https://static.prod-images.emergentagent.com/jobs/68d3c309-7b19-4755-baa0-7548763342ea/images/d0aa443962b31f5aef76326a7cc3918c89be2bda4af4c52dd47c8b8edd6dbdd7.png' },
+    { name: 'AI Tools', description: '15+ AI-powered tools', image: 'https://static.prod-images.emergentagent.com/jobs/68d3c309-7b19-4755-baa0-7548763342ea/images/f2a302406e72a92a0991caaf26f935f5c1f1b7b164814178a5e10e16c9775f36.png' },
+    { name: 'Customers', description: 'CRM built for signs', image: 'https://static.prod-images.emergentagent.com/jobs/68d3c309-7b19-4755-baa0-7548763342ea/images/601affc8bb490ff88583bf04251110f9a2cac1085b10726a588d3496a815c297.png' },
   ];
 
   const features = [
