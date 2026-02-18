@@ -205,6 +205,24 @@ const aiTools = [
       { name: 'environment', label: 'Environment Setting', type: 'select', options: ['urban_street_day', 'suburban_plaza', 'parking_lot', 'highway_view', 'indoor_office', 'indoor_retail', 'night_illuminated'] }
     ]
   },
+  {
+    id: 'vehicle_wrap_mockup',
+    name: 'Vehicle Wrap Mockup Generator',
+    description: 'See your wrap design on different vehicle types - sedans, vans, trucks, and more.',
+    icon: Box,
+    category: 'design',
+    generatesImages: true,
+    imageCount: 2,
+    fields: [
+      { name: 'design_description', label: 'Describe Your Wrap Design', type: 'textarea', placeholder: 'Describe the wrap: colors, logo placement, text, graphics, style. E.g., "Blue and white design with company logo on doors, phone number on rear, website on hood"', required: true },
+      { name: 'business_name', label: 'Business Name on Wrap', type: 'text', placeholder: 'Name to show on the vehicle', required: true },
+      { name: 'vehicle_type', label: 'Vehicle Type', type: 'select', options: ['sedan_car', 'suv_crossover', 'pickup_truck', 'box_truck', 'cargo_van', 'sprinter_van', 'semi_truck', 'trailer', 'bus', 'sports_car'], required: true },
+      { name: 'wrap_coverage', label: 'Wrap Coverage', type: 'select', options: ['full_wrap', 'partial_wrap_sides', 'partial_wrap_rear', 'spot_graphics_logo_only', 'half_wrap_lower'] },
+      { name: 'primary_colors', label: 'Primary Colors', type: 'text', placeholder: 'e.g., Navy Blue, Orange, White' },
+      { name: 'style', label: 'Design Style', type: 'select', options: ['clean_corporate', 'bold_aggressive', 'elegant_luxury', 'fun_playful', 'industrial_rugged', 'tech_modern', 'classic_traditional'] },
+      { name: 'view_angle', label: 'View Angle', type: 'select', options: ['three_quarter_front', 'side_view', 'three_quarter_rear', 'front_view'] }
+    ]
+  },
   // Branding Tools
   {
     id: 'logo_creator',
