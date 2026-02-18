@@ -399,10 +399,10 @@ const aiTools = [
 
 const categories = [
   { id: 'all', name: 'All Tools', icon: Sparkles, color: 'text-cyan-400' },
-  { id: 'design', name: 'Design Tools', icon: Image, color: 'text-blue-400', count: 9 },
+  { id: 'design', name: 'Design Tools', icon: Image, color: 'text-blue-400', count: 10 },
   { id: 'branding', name: 'Branding', icon: Palette, color: 'text-purple-400', count: 3 },
   { id: 'business', name: 'Business', icon: FileText, color: 'text-green-400', count: 5 },
-  { id: 'marketing', name: 'Marketing', icon: Share2, color: 'text-pink-400', count: 4 }
+  { id: 'marketing', name: 'Marketing', icon: Share2, color: 'text-pink-400', count: 6 }
 ];
 
 export default function AITools() {
