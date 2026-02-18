@@ -12,9 +12,10 @@ import { Separator } from './ui/separator';
 import { formatCurrency, formatDate, getStatusColor } from '../lib/utils';
 import { 
   Printer, X, Building2, Receipt, Calendar, 
-  Phone, Mail, CheckCircle, AlertTriangle
+  Phone, Mail, CheckCircle, AlertTriangle, Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
+import AIEmailComposer from './AIEmailComposer';
 
 export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
   const { customers, fetchCustomers, jobs, fetchJobs } = useApp();
