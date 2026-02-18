@@ -7,7 +7,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Switch } from '../components/ui/switch';
-import { Building2, Phone, MapPin, Globe, Save, AlertTriangle, Crown, Timer, Clock } from 'lucide-react';
+import { Building2, Phone, MapPin, Globe, Save, AlertTriangle, Crown, Timer, Clock, Users, Shield, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function CompanySettings() {
@@ -40,6 +40,19 @@ export default function CompanySettings() {
     auto_suggest_on_status_change: true
   });
   const [savingTimeSettings, setSavingTimeSettings] = useState(false);
+
+  // Employee Portal Permissions
+  const [employeePortalSettings, setEmployeePortalSettings] = useState({
+    can_view_tasks: true,
+    can_view_schedule: true,
+    can_view_pay_stubs: true,
+    can_view_time_clock: true,
+    can_edit_profile: true,
+    can_see_job_details: false,
+    can_see_customer_info: false,
+    can_see_pricing: false
+  });
+  const [savingPortalSettings, setSavingPortalSettings] = useState(false);
 
   useEffect(() => {
     loadTenant();
