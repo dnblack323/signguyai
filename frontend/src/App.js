@@ -156,6 +156,10 @@ function App() {
                   <Route path="ai-tools" element={<DocsAITools />} />
                   <Route path="time-tracking" element={<DocsTimeTracking />} />
                   <Route path="employees" element={<DocsEmployees />} />
+                  <Route path="webstores" element={<DocsWebstores />} />
+                  <Route path="customer-portal" element={<DocsCustomerPortal />} />
+                  <Route path="financials" element={<DocsFinancials />} />
+                  <Route path="productivity" element={<DocsProductivity />} />
                   <Route path="faq" element={<DocsFAQ />} />
                 </Route>
                 
