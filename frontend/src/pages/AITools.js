@@ -353,6 +353,7 @@ const categories = [
 ];
 
 export default function AITools() {
+  const navigate = useNavigate();
   const { generateAIContent, fetchAIHistory, generateAIImages } = useApp();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedTool, setSelectedTool] = useState(aiTools[0]);
@@ -372,6 +373,13 @@ export default function AITools() {
 
   const handleToolSelect = (toolId) => {
     const tool = aiTools.find(t => t.id === toolId);
+    
+    // Handle external link tools
+    if (tool.isExternalLink && tool.externalUrl) {
+      navigate(tool.externalUrl);
+      return;
+    }
+    
     setSelectedTool(tool);
     setFormData({});
     setResult(null);
