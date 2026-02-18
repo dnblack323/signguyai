@@ -96,14 +96,18 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
 ## Upcoming Tasks (P1)
 - [ ] Complete Billing System Logic - track first 100 founders, $19.99 credit, AI Tools Add-On
 - [ ] Re-enable Trial Lockout System - fix root cause, not just disable
-- [x] **Fix Pricing Calculator Estimates (Feb 18, 2026):** FIXED
-  - Reduced default markup from 2.5x to 1.75x
-  - Reduced complexity multiplier from 2.0x to 1.5x max
-  - Lowered material costs to realistic industry rates
-  - Adjusted labor rates from $75/hr to $65/hr
-  - Fixed vehicle wrap pricing (was ~$15k, now ~$4.8k for full van)
-  - Fixed banner pricing (was ~$1.5k, now ~$300 for 4x8)
-  - Fixed decal pricing (was ~$150, now ~$37 for 12x12)
+- [x] **Pricing Calculator Major Overhaul (Feb 18, 2026):** FIXED - Industry-standard pricing
+  - **Previous Issue:** Prices were WAY TOO HIGH (e.g., $80+ for a 12x12 decal)
+  - **Root Cause:** Complexity defaulted to 5 (mid-range) + aggressive labor calculations + automatic setup fees
+  - **Changes Made:**
+    - Complexity now defaults to 1 (simple) instead of 5
+    - Setup fee is now OPTIONAL via checkbox (one-time per order, not per item)
+    - Simplified labor calculations to flat rate per sqft
+    - Aligned pricing with industry standards ($5-8/sqft for cut vinyl)
+    - Example: 12x12 simple decal now costs **$5.00** (was $80+)
+    - Example: 4x8 banner now costs **$140** (was ~$270+)
+    - Example: 25 t-shirts with HTV now costs **$1,083** (~$43/shirt)
+  - Fixed route conflict: `/pricing-calculator` for internal app, `/pricing` for public SaaS pricing
 - [x] **Job Time Tracking (Feb 17, 2026):**
   - Start/Stop timer on jobs with task type selection
   - Track time by: design, production, installation, admin
