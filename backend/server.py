@@ -550,23 +550,23 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
 
 
 async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate pricing for rigid signs - FIXED with realistic pricing"""
+    """Calculate pricing for rigid signs - Industry standard, optional setup fee"""
     width = data.width_inches or 24
     height = data.length_inches or 18
     sqft = (width * height) / 144
     
-    # Reduced substrate costs - more realistic
+    # Substrate costs per sqft
     substrate_costs = {
-        "coroplast_4mm": 1.00,   # Was 2.00
-        "coroplast_10mm": 1.50,  # Was 3.00
-        "aluminum_040": 3.00,    # Was 5.00
-        "aluminum_063": 4.50,    # Was 7.00
-        "aluminum_080": 6.00,    # Was 9.00
-        "pvc_3mm": 2.50,         # Was 4.00
-        "pvc_6mm": 3.50,         # Was 6.00
-        "acrylic": 6.00,         # Was 10.00
-        "dibond": 7.00,          # Was 12.00
-        "mdo": 5.00,             # Was 8.00
+        "coroplast_4mm": 1.00,
+        "coroplast_10mm": 1.50,
+        "aluminum_040": 3.00,
+        "aluminum_063": 4.50,
+        "aluminum_080": 6.00,
+        "pvc_3mm": 2.50,
+        "pvc_6mm": 3.50,
+        "acrylic": 6.00,
+        "dibond": 7.00,
+        "mdo": 5.00,
         "custom": getattr(data, 'material_cost_override', None) or 3.00
     }
     
@@ -575,34 +575,46 @@ async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defau
     
     substrate_cost = sqft * cost_per_sqft * quantity
     
-    # Print cost reduced
-    print_cost = sqft * 1.50 * quantity  # Was 3.00
+    # Print cost
+    print_cost = sqft * 1.50 * quantity
     
+    # Finishing costs
     finishing_cost = 0
     if getattr(data, 'rounded_corners', False):
-        finishing_cost += 1.00 * quantity  # Was 2.00
+        finishing_cost += 1.00 * quantity
     if getattr(data, 'drill_holes', False):
-        finishing_cost += (getattr(data, 'num_holes', 4) or 4) * 0.25 * quantity  # Was 0.50
+        finishing_cost += (getattr(data, 'num_holes', 4) or 4) * 0.25 * quantity
     if getattr(data, 'stand', False) or getattr(data, 'stake', False):
-        finishing_cost += 3.00 * quantity  # Was 5.00
+        finishing_cost += 3.00 * quantity
     
-    hourly_rate = defaults.get("hourly_rate", 65)  # Was 75
-    labor_hours = 0.15 + (sqft * 0.10) * quantity  # Reduced from 0.25 + sqft * 0.15
-    labor_cost = labor_hours * hourly_rate
+    # Double-sided adds 75% more material
+    if data.double_sided:
+        print_cost *= 1.75
     
-    # Setup fee (charged once per order, not per item)
-    setup_fee = data.setup_fee or 0
+    # Labor: Flat rate per sqft
+    labor_per_sqft = 2.00
+    labor_cost = sqft * labor_per_sqft * quantity
+    
+    # Setup fee is OPTIONAL
+    include_setup = getattr(data, 'include_setup_fee', False)
+    setup_fee = 0
+    if include_setup:
+        setup_fee = data.setup_fee or defaults.get("sign_setup_fee", 20.0)
     
     material_cost = substrate_cost + print_cost
-    total_cost = material_cost + labor_cost + finishing_cost + setup_fee
+    total_cost = material_cost + labor_cost + finishing_cost
     
-    # Reduced markup from 2.5x to 1.75x
-    markup = defaults.get("default_markup", 1.75)
-    suggested_price = total_cost * markup
+    # Markup
+    markup = defaults.get("sign_markup", 2.0)
+    suggested_price = total_cost * markup + setup_fee
     
-    # Apply complexity multiplier (now capped at 1.5x)
-    complexity_mult = get_complexity_multiplier(data.complexity or 1)
-    suggested_price *= complexity_mult
+    # Minimum price
+    min_price = 15.00
+    if suggested_price < min_price:
+        suggested_price = min_price
+    
+    # Estimate labor time
+    estimated_minutes = 10 + (sqft * 3)
     
     return create_pricing_result(
         material_cost=material_cost + finishing_cost,
@@ -610,7 +622,7 @@ async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defau
         setup_cost=setup_fee,
         additional_costs=0,
         suggested_price=suggested_price,
-        estimated_labor_minutes=labor_hours * 60,
+        estimated_labor_minutes=estimated_minutes * quantity,
         breakdown={
             "dimensions": f"{width}\" x {height}\"",
             "square_feet": round(sqft, 2),
@@ -618,8 +630,10 @@ async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defau
             "substrate_cost_per_sqft": cost_per_sqft,
             "print_cost": round(print_cost, 2),
             "finishing_cost": round(finishing_cost, 2),
-            "complexity_multiplier": complexity_mult,
-            "setup_fee": setup_fee
+            "double_sided": data.double_sided,
+            "setup_fee": setup_fee,
+            "setup_included": include_setup,
+            "price_per_sqft": round(suggested_price / sqft, 2) if sqft > 0 else 0
         }
     )
 
