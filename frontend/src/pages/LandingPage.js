@@ -355,7 +355,7 @@ export default function LandingPage() {
       <section id="features" className="py-20 px-4 bg-[#111111]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-[#00D4FF]/20 text-[#00D4FF] border-[#00D4FF]/30">
+            <Badge className="mb-4 bg-blue-500/20 text-blue-400 border-blue-500/30">
               Everything You Need
             </Badge>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
@@ -368,13 +368,13 @@ export default function LandingPage() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {features.map((feature, index) => (
-              <Card key={index} className="bg-[#0a0a0a] border-white/10 hover:border-[#00D4FF]/50 transition-all group">
+              <Card key={index} className="bg-white border-gray-200 hover:border-blue-400 hover:shadow-lg transition-all group">
                 <CardContent className="p-6">
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#00D4FF]/20 to-[#0066CC]/20 rounded-xl flex items-center justify-center mb-4 group-hover:from-[#00D4FF]/30 group-hover:to-[#0066CC]/30 transition">
-                    <feature.icon className="w-6 h-6 text-[#00D4FF]" />
+                  <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-600 transition">
+                    <feature.icon className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
-                  <p className="text-gray-400 text-sm">{feature.description}</p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{feature.title}</h3>
+                  <p className="text-gray-600 text-sm">{feature.description}</p>
                 </CardContent>
               </Card>
             ))}
