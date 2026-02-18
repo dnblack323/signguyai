@@ -442,7 +442,7 @@ export default function LandingPage() {
               Already happy with your current software but want AI superpowers?
             </p>
             <Badge className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-300 border-purple-500/30 px-6 py-3 text-lg">
-              AI Tools Add-On: Just $19/month
+              AI Tools Add-On: Just $49/month (founder price)
             </Badge>
           </div>
         </div>
