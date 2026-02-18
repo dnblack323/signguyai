@@ -904,7 +904,7 @@ Write a complete email with subject line and body. Sign off as "SignGuy AI Team"
                     break
         
         return {
-            "subject": subject or f"Message from SignGuy AI",
+            "subject": subject or "Message from SignGuy AI",
             "body": body
         }
         
