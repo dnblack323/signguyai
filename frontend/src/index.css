@@ -299,9 +299,7 @@
     background-color: var(--accent-soft);
 }
 
-.table-row:nth-child(even) {
-    background-color: var(--surface-2);
-}
+/* Removed alternating row colors for cleaner design */
 
 .table-cell {
     color: var(--text);
