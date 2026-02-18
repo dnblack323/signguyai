@@ -17,10 +17,10 @@ export default function LandingPage() {
   const [activeScreenshot, setActiveScreenshot] = useState(0);
 
   const screenshots = [
-    { name: 'Dashboard', description: 'Your command center', image: 'https://static.prod-images.emergentagent.com/jobs/68d3c309-7b19-4755-baa0-7548763342ea/images/cafdb7c76719024b1584cd38f5322b63e95a642f8681d2ecf003f95516739af4.png' },
-    { name: 'Jobs', description: 'Track every project', image: 'https://static.prod-images.emergentagent.com/jobs/68d3c309-7b19-4755-baa0-7548763342ea/images/d0aa443962b31f5aef76326a7cc3918c89be2bda4af4c52dd47c8b8edd6dbdd7.png' },
-    { name: 'AI Tools', description: '15+ AI-powered tools', image: 'https://static.prod-images.emergentagent.com/jobs/68d3c309-7b19-4755-baa0-7548763342ea/images/f2a302406e72a92a0991caaf26f935f5c1f1b7b164814178a5e10e16c9775f36.png' },
-    { name: 'Customers', description: 'CRM built for signs', image: 'https://static.prod-images.emergentagent.com/jobs/68d3c309-7b19-4755-baa0-7548763342ea/images/601affc8bb490ff88583bf04251110f9a2cac1085b10726a588d3496a815c297.png' },
+    { name: 'Dashboard', description: 'Your command center', image: 'https://static.prod-images.emergentagent.com/jobs/91c5e43a-1649-47d7-9b1f-6f722fa7598c/images/937417dd4d201f6141ee2faf10f50c21f1f019c6579a7e0b3de8f46ea5e59a28.png' },
+    { name: 'Jobs', description: 'Track every project', image: 'https://static.prod-images.emergentagent.com/jobs/91c5e43a-1649-47d7-9b1f-6f722fa7598c/images/ac67ef19ece59d2f3eb0dfa9eda8595167e68ea7e6ba857c30c2cfbe36634818.png' },
+    { name: 'AI Tools', description: '24+ AI-powered tools', image: 'https://static.prod-images.emergentagent.com/jobs/91c5e43a-1649-47d7-9b1f-6f722fa7598c/images/a18fb2dfb7d458e0af2190a15f2298347b616a16a31e6f446f0ece6c5c91cea2.png' },
+    { name: 'Pricing Calculator', description: '8 specialized calculators', image: 'https://static.prod-images.emergentagent.com/jobs/91c5e43a-1649-47d7-9b1f-6f722fa7598c/images/244b8200edbafdf678e7f1906aa86d5053bd99120bd661bfaefaca733c8130a3.png' },
   ];
 
   const features = [
