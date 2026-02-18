@@ -1011,8 +1011,8 @@ export default function PricingCalculator({
                 {renderCategoryFields()}
               </div>
 
-              {/* Quantity and Complexity */}
-              <div className="grid grid-cols-2 gap-6">
+              {/* Quantity, Complexity, and Setup Fee */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <Label>Quantity</Label>
                   <Input 
@@ -1035,6 +1035,33 @@ export default function PricingCalculator({
                       className="flex-1"
                     />
                     <Badge variant="outline" className="w-8 justify-center">{complexity}</Badge>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">1=Simple, 10=Very Complex</p>
+                </div>
+                <div>
+                  <Label>Setup Fee</Label>
+                  <div className="flex items-center gap-3 mt-2 p-3 border rounded-lg bg-white">
+                    <Checkbox 
+                      id="include_setup"
+                      checked={includeSetupFee}
+                      onCheckedChange={setIncludeSetupFee}
+                    />
+                    <div className="flex-1">
+                      <Label htmlFor="include_setup" className="cursor-pointer font-normal">
+                        Include Setup Fee
+                      </Label>
+                      <p className="text-xs text-slate-400">One-time fee per order</p>
+                    </div>
+                    {includeSetupFee && (
+                      <Input 
+                        type="number" 
+                        step="0.01"
+                        value={pricingData.setup_fee || ''}
+                        onChange={(e) => setPricingData({...pricingData, setup_fee: parseFloat(e.target.value) || 0})}
+                        placeholder="$15"
+                        className="w-20"
+                      />
+                    )}
                   </div>
                 </div>
               </div>
