@@ -428,6 +428,110 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Comparison Table */}
+      <section className="py-12 px-4 bg-[#111111]">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-8">
+            <Badge className="mb-3 bg-green-500/20 text-green-400 border-green-500/30">
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              Compare
+            </Badge>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2">
+              See How We Stack Up
+            </h2>
+            <p className="text-gray-400 text-sm max-w-2xl mx-auto">
+              We're not just another sign shop software. See the difference.
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/10">
+                  <th className="text-left py-2 px-3 text-gray-400 font-medium">Feature</th>
+                  <th className="py-2 px-3">
+                    <div className="text-[#00D4FF] font-bold">SignGuy AI</div>
+                    <div className="text-xs text-gray-500">That's us!</div>
+                  </th>
+                  <th className="py-2 px-3 text-gray-400">shopVOX</th>
+                  <th className="py-2 px-3 text-gray-400">Cyrious</th>
+                  <th className="py-2 px-3 text-gray-400">SignTracker</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { feature: 'AI-Powered Tools (24+ tools)', signguy: true, shopvox: false, cyrious: false, signtracker: false },
+                  { feature: 'AI Email Drafting', signguy: true, shopvox: false, cyrious: false, signtracker: false },
+                  { feature: 'AI Business Assistant', signguy: true, shopvox: false, cyrious: false, signtracker: false },
+                  { feature: 'Built-in Pricing Calculators', signguy: '8 Types', shopvox: 'Basic', cyrious: 'Basic', signtracker: 'Limited' },
+                  { feature: 'Customer Portal', signguy: true, shopvox: true, cyrious: false, signtracker: false },
+                  { feature: 'Employee Portal', signguy: true, shopvox: false, cyrious: false, signtracker: false },
+                  { feature: 'Time Tracking per Job', signguy: true, shopvox: 'Add-on', cyrious: true, signtracker: false },
+                  { feature: 'Visual Job Timeline', signguy: true, shopvox: false, cyrious: false, signtracker: false },
+                  { feature: 'Webstore Builder', signguy: true, shopvox: true, cyrious: false, signtracker: false },
+                  { feature: 'Online Payments', signguy: true, shopvox: true, cyrious: false, signtracker: false },
+                  { feature: 'Scheduling & Calendar', signguy: true, shopvox: 'Add-on', cyrious: true, signtracker: false },
+                  { feature: 'Payroll & Time Clock', signguy: true, shopvox: false, cyrious: false, signtracker: false },
+                  { feature: 'Expense Tracking', signguy: true, shopvox: false, cyrious: 'Add-on', signtracker: false },
+                  { feature: 'Logo/Design Generator', signguy: 'AI', shopvox: false, cyrious: false, signtracker: false },
+                  { feature: 'Mobile-Friendly', signguy: true, shopvox: 'Partial', cyrious: false, signtracker: true },
+                  { feature: 'Starting Price', signguy: '$79/mo', shopvox: '$99/mo', cyrious: '$150/mo', signtracker: '$79/mo' },
+                  { feature: 'Founder Price', signguy: '$79/mo', shopvox: 'N/A', cyrious: 'N/A', signtracker: 'N/A' },
+                ].map((row, index) => (
+                  <tr key={index} className="border-b border-white/5">
+                    <td className="py-2 px-3 text-gray-300">{row.feature}</td>
+                    <td className="py-2 px-3 text-center">
+                      {typeof row.signguy === 'boolean' ? (
+                        row.signguy ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-400 mx-auto" />
+                        ) : (
+                          <X className="w-4 h-4 text-red-400 mx-auto" />
+                        )
+                      ) : (
+                        <span className="text-[#00D4FF] font-medium">{row.signguy}</span>
+                      )}
+                    </td>
+                    <td className="py-2 px-3 text-center">
+                      {typeof row.shopvox === 'boolean' ? (
+                        row.shopvox ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-400 mx-auto" />
+                        ) : (
+                          <X className="w-4 h-4 text-gray-600 mx-auto" />
+                        )
+                      ) : (
+                        <span className="text-gray-400">{row.shopvox}</span>
+                      )}
+                    </td>
+                    <td className="py-2 px-3 text-center">
+                      {typeof row.cyrious === 'boolean' ? (
+                        row.cyrious ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-400 mx-auto" />
+                        ) : (
+                          <X className="w-4 h-4 text-gray-600 mx-auto" />
+                        )
+                      ) : (
+                        <span className="text-gray-400">{row.cyrious}</span>
+                      )}
+                    </td>
+                    <td className="py-2 px-3 text-center">
+                      {typeof row.signtracker === 'boolean' ? (
+                        row.signtracker ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-400 mx-auto" />
+                        ) : (
+                          <X className="w-4 h-4 text-gray-600 mx-auto" />
+                        )
+                      ) : (
+                        <span className="text-gray-400">{row.signtracker}</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing Section */}
       <section id="pricing" className="py-20 px-4">
         <div className="max-w-7xl mx-auto">
