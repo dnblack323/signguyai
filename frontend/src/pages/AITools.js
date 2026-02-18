@@ -286,6 +286,41 @@ const aiTools = [
   },
   // Marketing Tools
   {
+    id: 'blog_creator',
+    name: 'Blog Article Creator',
+    description: 'Generate full blog articles for your website on any sign industry topic.',
+    icon: FileText,
+    category: 'marketing',
+    generatesImages: false,
+    fields: [
+      { name: 'topic_type', label: 'Topic Source', type: 'select', options: ['i_have_a_topic', 'suggest_topics_for_me'], required: true },
+      { name: 'topic', label: 'Your Topic (if you have one)', type: 'text', placeholder: 'e.g., "Benefits of Vehicle Wraps for Small Businesses"' },
+      { name: 'topic_area', label: 'Topic Area (for suggestions)', type: 'select', options: ['vehicle_wraps', 'business_signage', 'trade_shows', 'window_graphics', 'branding', 'marketing_tips', 'industry_trends', 'how_to_guides', 'customer_stories'] },
+      { name: 'article_length', label: 'Article Length', type: 'select', options: ['short_500_words', 'medium_800_words', 'long_1200_words', 'comprehensive_1500_plus'] },
+      { name: 'tone', label: 'Writing Tone', type: 'select', options: ['professional_informative', 'friendly_conversational', 'authoritative_expert', 'casual_engaging'] },
+      { name: 'target_audience', label: 'Target Reader', type: 'text', placeholder: 'e.g., small business owners, marketing managers, fleet managers' },
+      { name: 'include_cta', label: 'Call to Action', type: 'select', options: ['contact_for_quote', 'schedule_consultation', 'view_portfolio', 'download_guide', 'none'] },
+      { name: 'seo_keywords', label: 'SEO Keywords (optional)', type: 'text', placeholder: 'e.g., vehicle wrap cost, business signs, custom graphics' }
+    ]
+  },
+  {
+    id: 'completed_job_post',
+    name: 'Completed Job Post Creator',
+    description: 'Upload a photo of your completed work and get ready-to-post social content.',
+    icon: Share2,
+    category: 'marketing',
+    generatesImages: false,
+    fields: [
+      { name: 'image_upload', label: 'Upload Completed Job Photo', type: 'image_upload', required: true },
+      { name: 'job_type', label: 'What Did You Create?', type: 'select', options: ['full_vehicle_wrap', 'partial_vehicle_wrap', 'fleet_graphics', 'storefront_sign', 'channel_letters', 'monument_sign', 'wall_mural', 'window_graphics', 'banner', 'trade_show_display', 'dimensional_letters', 'awning', 'a_frame_sign', 'yard_signs', 'interior_signage', 'other'], required: true },
+      { name: 'job_details', label: 'Job Details', type: 'textarea', placeholder: 'Describe the project: colors, materials, challenges overcome, special features, turnaround time' },
+      { name: 'client_industry', label: 'Client Industry (no names)', type: 'text', placeholder: 'e.g., local plumber, restaurant, real estate agent' },
+      { name: 'platforms', label: 'Posting To', type: 'select', options: ['facebook', 'instagram', 'linkedin', 'tiktok', 'all_platforms'] },
+      { name: 'post_style', label: 'Post Style', type: 'select', options: ['professional_showcase', 'behind_the_scenes', 'before_after', 'educational', 'casual_fun'] },
+      { name: 'include_hashtags', label: 'Include Hashtags?', type: 'select', options: ['yes_full_set', 'yes_minimal', 'no'] }
+    ]
+  },
+  {
     id: 'social_job_post',
     name: 'Social Media Job Post Creator',
     description: 'Create engaging social posts from completed jobs.',
