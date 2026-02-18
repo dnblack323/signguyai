@@ -337,11 +337,12 @@ async def calculate_promotional(data: JobItemPricingData, quantity: float, defau
 
 
 async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate pricing for cut vinyl - FIXED with minimum handling"""
+    """Calculate pricing for cut vinyl - Industry standard $5-8/sqft final price"""
     width = data.width_inches or 12
     height = data.length_inches or 12
     sqft = (width * height) / 144
     
+    # Material costs per sqft (shop cost)
     vinyl_costs = {
         "oracal_651": 0.50,
         "oracal_751": 0.75,
@@ -357,26 +358,34 @@ async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, default
     
     material_cost = sqft * cost_per_sqft * quantity
     
-    hourly_rate = defaults.get("hourly_rate", 65)
+    # Labor: Flat rate approach - simpler and more predictable
+    # Base labor: $2/sqft for simple, scales with complexity
     complexity = data.complexity or 1
+    labor_per_sqft = 1.50 + (complexity - 1) * 0.50  # $1.50-$6/sqft labor based on complexity
+    labor_cost = sqft * labor_per_sqft * quantity
     
-    # Minimum 0.05 hours (3 min) base time + 0.08 hours per sqft
-    base_time = 0.05
-    time_per_sqft = 0.08  # Was 0.15
-    labor_hours = (base_time + sqft * time_per_sqft * complexity) * quantity
-    labor_cost = labor_hours * hourly_rate
+    # Setup fee is OPTIONAL - only included if checkbox is checked (include_setup_fee=True)
+    include_setup = getattr(data, 'include_setup_fee', False)
+    setup_fee = data.setup_fee or 0
+    if include_setup and setup_fee == 0:
+        setup_fee = defaults.get("default_setup_fee", 15.0)  # Default $15 if checked but no amount specified
+    elif not include_setup:
+        setup_fee = 0
     
-    # Weeding adds 10% per complexity level above 1
-    weeding_factor = 1 + (complexity - 1) * 0.10
-    labor_cost *= weeding_factor
-    
-    # Reduced setup fee for small jobs
-    setup_fee = data.setup_fee if data.setup_fee is not None else (5.0 if sqft < 2 else 10.0)
     total_cost = material_cost + labor_cost + setup_fee
     
-    # Markup reduced to 1.6x for cut vinyl (simpler product)
-    markup = defaults.get("vinyl_markup", 1.6)
-    suggested_price = total_cost * markup
+    # Target final price: $5-8/sqft for simple vinyl (industry standard)
+    # Material ~$0.50-1 + Labor ~$1.50-2 = ~$2-3 cost, markup to $5-8
+    markup = defaults.get("vinyl_markup", 2.0)
+    suggested_price = (material_cost + labor_cost) * markup + setup_fee  # Setup fee not marked up
+    
+    # Minimum price for very small decals
+    min_price = 5.00
+    if suggested_price < min_price:
+        suggested_price = min_price
+    
+    # Estimate labor time (for display only)
+    estimated_minutes = 3 + (sqft * 2 * complexity)  # 3 min base + 2 min/sqft * complexity
     
     return create_pricing_result(
         material_cost=material_cost,
@@ -384,15 +393,16 @@ async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, default
         setup_cost=setup_fee,
         additional_costs=0,
         suggested_price=suggested_price,
-        estimated_labor_minutes=labor_hours * 60,
+        estimated_labor_minutes=estimated_minutes * quantity,
         breakdown={
             "dimensions": f"{width}\" x {height}\"",
             "square_feet": round(sqft, 2),
             "vinyl_type": vinyl_type,
             "cost_per_sqft": cost_per_sqft,
-            "labor_hours": round(labor_hours, 3),
-            "weeding_factor": round(weeding_factor, 2),
-            "setup_fee": setup_fee
+            "labor_per_sqft": labor_per_sqft,
+            "setup_fee": setup_fee,
+            "setup_included": include_setup,
+            "price_per_sqft": round(suggested_price / sqft, 2) if sqft > 0 else 0
         }
     )
 
