@@ -589,9 +589,7 @@ td {
     color: var(--text);
 }
 
-tr:nth-child(even) {
-    background-color: var(--surface-2);
-}
+/* Removed alternating row colors - clean uniform design */
 
 tr:hover {
     background-color: var(--accent-soft);
