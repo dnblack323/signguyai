@@ -60,7 +60,7 @@ const navigationCategories = [
     icon: Sparkles,
     items: [
       { name: 'AI Tools', href: '/ai-tools', icon: Sparkles },
-      { name: 'Pricing Calculator', href: '/pricing', icon: DollarSign },
+      { name: 'Pricing Calculator', href: '/pricing-calculator', icon: DollarSign },
     ]
   },
   {
@@ -70,7 +70,7 @@ const navigationCategories = [
     items: [
       { name: 'Users', href: '/users', icon: Shield, permission: Permission.USERS_VIEW },
       { name: 'Company Settings', href: '/settings', icon: Building2, permission: Permission.SETTINGS_VIEW },
-      { name: 'Pricing Settings', href: '/pricing/settings', icon: DollarSign, permission: Permission.SETTINGS_VIEW },
+      { name: 'Pricing Settings', href: '/pricing-calculator/settings', icon: DollarSign, permission: Permission.SETTINGS_VIEW },
     ]
   },
 ];
