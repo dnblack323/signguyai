@@ -390,6 +390,31 @@ Provide:
 }
 
 IMAGE_PROMPTS = {
+    # NEW IMAGE TOOLS
+    "logo_refresher": """Redesigned modern logo for "{business_name}".
+Style direction: {style_direction}.
+Elements to preserve: {keep_elements}.
+Changes to make: {change_elements}.
+The logo should be clean, professional, scalable, and work well on signage.
+Modern logo design, vector-style appearance, clean white or transparent background.
+High quality brand identity design suitable for business cards, signs, and digital use.
+Single logo centered in frame, professional presentation.""",
+
+    "generative_fill": """Expanded image with seamless continuation.
+Expansion direction: {expand_direction}.
+Content to generate: {content_description}.
+Style matching: {style_match}.
+The expanded areas should seamlessly blend with the original image.
+Photorealistic continuation, matching lighting, colors, and style perfectly.
+Professional quality image expansion, natural and believable result.""",
+
+    "text_to_image": """{image_prompt}
+Style: {image_style}.
+Aspect ratio: {aspect_ratio}.
+Color mood: {color_mood}.
+High quality, professional image suitable for signage and marketing materials.
+Sharp details, clean composition, visually appealing.""",
+
     "ai_sign_designer": """Professional photograph of a {sign_type} sign for "{business_name}" business.
 Style: {style_preference}, clean professional signage photography.
 Colors: {colors}.
