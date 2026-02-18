@@ -155,7 +155,7 @@ export default function LandingPage() {
     },
     {
       question: 'I already have software I like. Can I just use the AI tools?',
-      answer: 'Yes! We offer an AI Tools Add-On for $19/month that gives you access to all 15+ AI tools without switching your main software.',
+      answer: 'Yes! We offer an AI Tools Add-On for $49/month (founder price) that gives you access to all 24+ AI tools without switching your main software.',
     },
   ];
 
