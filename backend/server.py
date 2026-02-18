@@ -337,11 +337,12 @@ async def calculate_promotional(data: JobItemPricingData, quantity: float, defau
 
 
 async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate pricing for cut vinyl"""
+    """Calculate pricing for cut vinyl - FIXED"""
     width = data.width_inches or 12
     height = data.length_inches or 12
     sqft = (width * height) / 144
     
+    # Vinyl costs are already reasonable
     vinyl_costs = {
         "oracal_651": 0.50,
         "oracal_751": 0.75,
@@ -357,18 +358,19 @@ async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, default
     
     material_cost = sqft * cost_per_sqft * quantity
     
-    hourly_rate = defaults.get("hourly_rate", 75)
+    hourly_rate = defaults.get("hourly_rate", 65)  # Was 75
     complexity = data.complexity or 1
-    labor_hours = (sqft * 0.25 * complexity) * quantity
+    labor_hours = (sqft * 0.15 * complexity) * quantity  # Was 0.25 - faster with experience
     labor_cost = labor_hours * hourly_rate
     
-    weeding_factor = 1 + (complexity - 1) * 0.2
+    weeding_factor = 1 + (complexity - 1) * 0.15  # Was 0.2
     labor_cost *= weeding_factor
     
-    setup_fee = data.setup_fee or 15.0
+    setup_fee = data.setup_fee or 10.0  # Was 15.0
     total_cost = material_cost + labor_cost + setup_fee
     
-    markup = defaults.get("default_markup", 2.5)
+    # Reduced markup from 2.5x to 1.75x
+    markup = defaults.get("default_markup", 1.75)
     suggested_price = total_cost * markup
     
     return create_pricing_result(
