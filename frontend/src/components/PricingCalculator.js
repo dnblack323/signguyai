@@ -470,29 +470,19 @@ export default function PricingCalculator({
                   step="0.01"
                   value={pricingData.unit_cost || ''} 
                   onChange={(e) => setPricingData({...pricingData, unit_cost: parseFloat(e.target.value) || 0})}
-                  placeholder="0.00"
+                  placeholder="Your cost per item"
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Markup %</Label>
-                <Input 
-                  type="number" 
-                  value={pricingData.markup_percent ?? 100} 
-                  onChange={(e) => setPricingData({...pricingData, markup_percent: parseFloat(e.target.value) || 0})}
-                />
-              </div>
-              <div>
-                <Label>Setup Fee ($)</Label>
-                <Input 
-                  type="number" 
-                  step="0.01"
-                  value={pricingData.setup_fee || ''} 
-                  onChange={(e) => setPricingData({...pricingData, setup_fee: parseFloat(e.target.value) || 0})}
-                  placeholder="0.00"
-                />
-              </div>
+            <div>
+              <Label>Markup %</Label>
+              <Input 
+                type="number" 
+                value={pricingData.markup_percent ?? 100} 
+                onChange={(e) => setPricingData({...pricingData, markup_percent: parseFloat(e.target.value) || 0})}
+                placeholder="100 = 2x markup"
+              />
+              <p className="text-xs text-slate-400 mt-1">100% markup doubles the price</p>
             </div>
           </div>
         );
