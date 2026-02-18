@@ -190,7 +190,7 @@ export default function LandingPage() {
               <a href="#features" className="text-gray-300 hover:text-white">Features</a>
               <a href="#ai-tools" className="text-gray-300 hover:text-white">AI Tools</a>
               <a href="#pricing" className="text-gray-300 hover:text-white">Pricing</a>
-              <a href="#faq" className="text-gray-300 hover:text-white">FAQ</a>
+              <Link to="/docs" className="text-gray-300 hover:text-white">Docs</Link>
               <Link to="/login" className="text-gray-300 hover:text-white">Log In</Link>
               <Link to="/register">
                 <Button className="w-full bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold">Start Free Trial</Button>
