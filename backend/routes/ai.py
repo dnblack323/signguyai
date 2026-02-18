@@ -638,3 +638,70 @@ async def get_ai_history(
     ).sort("created_at", -1).limit(limit).to_list(limit)
     
     return history
+
+
+# ============== AI BUSINESS ASSISTANT ==============
+
+class AIAssistantRequest(BaseModel):
+    message: str
+    session_id: str
+    conversation_history: Optional[List[Dict[str, str]]] = None
+
+
+@router.post("/assistant")
+async def ai_business_assistant(
+    request: AIAssistantRequest,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """AI Business Assistant - Chat interface for sign shop operations"""
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    
+    if not EMERGENT_LLM_KEY:
+        raise HTTPException(status_code=500, detail="AI service not configured")
+    
+    try:
+        # Build conversation context from history
+        context_messages = ""
+        if request.conversation_history:
+            for msg in request.conversation_history[-6:]:  # Last 6 messages for context
+                role = "User" if msg.get("role") == "user" else "Assistant"
+                context_messages += f"{role}: {msg.get('content', '')}\n\n"
+        
+        system_message = """You are an expert AI Business Assistant for sign shop owners and operators. You have deep knowledge of:
+
+- **Sign Industry Operations**: Vehicle wraps, channel letters, monument signs, banners, vinyl graphics, dimensional letters, LED signs, A-frames, window graphics, wall wraps, trade show displays
+- **Materials & Production**: Vinyl types (cast, calendered, reflective), substrates (ACM, PVC, MDO), laminates, print technologies, installation techniques
+- **Business Management**: Pricing strategies, profit margins (industry standard 40-60%), job costing, time tracking, workflow optimization
+- **Sales & Customer Service**: Quote follow-ups, handling objections, upselling, managing difficult customers, building relationships
+- **Marketing**: Social media for sign shops, portfolio presentation, local SEO, referral programs
+- **Industry Standards**: Typical production times, installation best practices, warranty policies
+
+Your personality:
+- Friendly and conversational, like a knowledgeable mentor
+- Practical and actionable advice, not theoretical
+- Direct answers with specific numbers when possible
+- Acknowledge you're AI but provide genuinely useful industry insights
+
+Always be helpful, specific, and sign-industry focused. When giving pricing advice, remind users that rates vary by market and to verify with local competitors."""
+        
+        # Initialize chat with the session
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=request.session_id,
+            system_message=system_message
+        ).with_model("openai", "gpt-5.2")
+        
+        # Build the prompt with context
+        if context_messages:
+            full_prompt = f"Previous conversation:\n{context_messages}\nUser's new message: {request.message}"
+        else:
+            full_prompt = request.message
+        
+        # Send message and get response
+        response = await chat.send_message(UserMessage(text=full_prompt))
+        
+        return {"response": response}
+        
+    except Exception as e:
+        print(f"AI Assistant error: {e}")
+        raise HTTPException(status_code=500, detail=f"Assistant error: {str(e)}")
