@@ -11,6 +11,24 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
 - **Integrations:** Stripe (TEST keys configured), future BNPL, SMS, QuickBooks
 - **Theme:** Dark shell + light content surface design system
 
+## Pricing Tiers (Updated Feb 18, 2026)
+- **Starter Shop:** $79/mo founder, $129/mo regular
+  - Customer Management, Quotes & Jobs, Basic Invoicing
+  - 1 Webstore, 25 AI generations/month, 1 Team member
+  - 100MB Storage, Email Support
+- **Growth Shop:** $129/mo founder, $229/mo regular (Most Popular)
+  - Everything in Starter, plus:
+  - 5 Webstores, 100 AI generations/month, 5 Team members
+  - 1GB Storage, Time Clock & Payroll, Kanban & Calendar
+  - Advanced Analytics, Priority Support
+- **Pro Shop:** $199/mo founder, $379/mo regular
+  - Everything in Growth, plus:
+  - Unlimited Webstores, AI generations, Team members
+  - 5GB Storage, B2B Features, BNPL Payments
+  - Custom Reports, SMS Notifications, API Access, Dedicated Support
+- **AI Tools Add-On:** $49/mo founder, $89/mo later (standalone or with any plan)
+- **Extended Trial:** $19.99 for 14 days (credits toward Tier 3)
+
 ## Tech Stack
 - **Backend:** FastAPI, Pydantic, Motor (MongoDB)
 - **Frontend:** React, React Router, Tailwind CSS, Shadcn UI, Axios, React Context API
