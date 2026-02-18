@@ -536,7 +536,7 @@ export default function LandingPage() {
       <section id="pricing" className="py-20 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+            <Badge className="mb-4 bg-blue-500/20 text-blue-400 border-blue-500/30">
               <Star className="w-4 h-4 mr-2" />
               Founding Member Pricing
             </Badge>
@@ -552,33 +552,33 @@ export default function LandingPage() {
             {pricingTiers.map((tier, index) => (
               <Card
                 key={index}
-                className={`bg-[#111111] border-white/10 relative ${
-                  tier.popular ? 'border-[#00D4FF] scale-105' : ''
+                className={`bg-white border-gray-200 relative shadow-lg ${
+                  tier.popular ? 'border-blue-500 border-2 scale-105' : ''
                 }`}
               >
                 {tier.popular && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-gradient-to-r from-[#00D4FF] to-[#0066CC] text-white border-0 px-4 py-1">
+                    <Badge className="bg-blue-500 text-white border-0 px-4 py-1">
                       Most Popular
                     </Badge>
                   </div>
                 )}
                 <CardContent className="p-8">
-                  <h3 className="text-2xl font-bold text-white mb-2">{tier.name}</h3>
-                  <p className="text-gray-400 text-sm mb-6">{tier.description}</p>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">{tier.name}</h3>
+                  <p className="text-gray-500 text-sm mb-6">{tier.description}</p>
                   
                   <div className="mb-6">
                     <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-bold text-[#00D4FF]">${tier.founding}</span>
+                      <span className="text-4xl font-bold text-blue-600">${tier.founding}</span>
                       <span className="text-gray-500">/month</span>
                     </div>
-                    <div className="text-sm text-gray-500 line-through">${tier.regular}/month regular</div>
+                    <div className="text-sm text-gray-400 line-through">${tier.regular}/month regular</div>
                   </div>
 
                   <ul className="space-y-3 mb-8">
                     {tier.features.map((feature, i) => (
-                      <li key={i} className="flex items-center gap-2 text-gray-300">
-                        <CheckCircle2 className="w-5 h-5 text-[#00D4FF] flex-shrink-0" />
+                      <li key={i} className="flex items-center gap-2 text-gray-700">
+                        <CheckCircle2 className="w-5 h-5 text-blue-500 flex-shrink-0" />
                         {feature}
                       </li>
                     ))}
@@ -588,8 +588,8 @@ export default function LandingPage() {
                     <Button
                       className={`w-full ${
                         tier.popular
-                          ? 'bg-gradient-to-r from-[#00D4FF] to-[#0066CC] hover:from-[#00B8E6] hover:to-blue-700'
-                          : 'bg-white/10 hover:bg-white/20'
+                          ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                          : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
                       }`}
                     >
                       {tier.cta}
@@ -603,21 +603,21 @@ export default function LandingPage() {
 
           {/* AI Add-On */}
           <div className="mt-16 max-w-3xl mx-auto">
-            <Card className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-purple-500/30">
+            <Card className="bg-white border-blue-200 shadow-lg">
               <CardContent className="p-8">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                   <div>
-                    <Badge className="mb-2 bg-purple-500/20 text-purple-400 border-purple-500/30">
+                    <Badge className="mb-2 bg-blue-500/20 text-blue-600 border-blue-500/30">
                       <Sparkles className="w-4 h-4 mr-2" />
                       For Existing Software Users
                     </Badge>
-                    <h3 className="text-2xl font-bold text-white mb-2">AI Tools Add-On</h3>
-                    <p className="text-gray-400">
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">AI Tools Add-On</h3>
+                    <p className="text-gray-600">
                       Love your current software but want AI superpowers? Get access to all 24+ AI tools without switching.
                     </p>
                   </div>
                   <div className="text-center">
-                    <div className="text-4xl font-bold text-purple-400">$49</div>
+                    <div className="text-4xl font-bold text-blue-600">$49</div>
                     <div className="text-gray-500">/month founder</div>
                     <div className="text-sm text-gray-500 line-through">$89/mo later</div>
                     <Link to="/register">
