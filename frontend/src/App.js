@@ -141,6 +141,20 @@ function App() {
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/contact" element={<ContactPage />} />
                 
+                {/* Documentation Routes */}
+                <Route path="/docs" element={<DocsLayout />}>
+                  <Route index element={<DocsOverview />} />
+                  <Route path="getting-started" element={<GettingStarted />} />
+                  <Route path="customers" element={<DocsCustomers />} />
+                  <Route path="quotes-jobs" element={<DocsQuotesJobs />} />
+                  <Route path="invoicing" element={<DocsInvoicing />} />
+                  <Route path="pricing-calculator" element={<DocsPricingCalculator />} />
+                  <Route path="ai-tools" element={<DocsAITools />} />
+                  <Route path="time-tracking" element={<DocsTimeTracking />} />
+                  <Route path="employees" element={<DocsEmployees />} />
+                  <Route path="faq" element={<DocsFAQ />} />
+                </Route>
+                
                 {/* Public Storefront - No Auth Required */}
                 <Route path="/store/:storeId" element={<Storefront />} />
                 
