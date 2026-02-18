@@ -714,6 +714,14 @@ export const MainLayout = ({ children }) => {
                     <span className="text-sm text-[var(--text-on-dark)]">Customer Portal</span>
                     <ExternalLink className="h-3 w-3 ml-auto text-[var(--text-muted-on-dark)]" />
                   </button>
+                  <button
+                    onClick={() => window.open('/employee-portal/login', '_blank')}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-[var(--sidebar-hover)] transition-all"
+                  >
+                    <Clock className="h-4 w-4 text-purple-400" />
+                    <span className="text-sm text-[var(--text-on-dark)]">Employee Portal</span>
+                    <ExternalLink className="h-3 w-3 ml-auto text-[var(--text-muted-on-dark)]" />
+                  </button>
                 </div>
               </div>
 
