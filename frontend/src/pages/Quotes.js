@@ -565,6 +565,18 @@ export default function Quotes() {
                   <Link className="h-4 w-4 mr-2" /> 
                   {generatingLink ? 'Creating...' : 'Share Link'}
                 </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    setAiEmailType(selectedQuote?.status === 'sent' ? 'quote_followup' : 'quote_send');
+                    setShowAIEmail(true);
+                  }}
+                  className="bg-purple-50 border-purple-200 text-purple-600 hover:bg-purple-100"
+                  data-testid="ai-email-quote-btn"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" /> AI Draft
+                </Button>
                 <Button variant="outline" size="sm" onClick={handleEmail} data-testid="email-quote-btn">
                   <Mail className="h-4 w-4 mr-2" /> Email
                 </Button>
