@@ -879,6 +879,7 @@ Write a complete email with subject line and body. Sign off as "SignGuy AI Team"
         # Initialize chat
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
+            session_id=f"email_gen_{uuid.uuid4()}",
             system_message=system_message
         ).with_model("openai", "gpt-5.2")
         
