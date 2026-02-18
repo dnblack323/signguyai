@@ -165,7 +165,7 @@ export default function LandingPage() {
               <a href="#features" className="text-gray-300 hover:text-white transition">Features</a>
               <a href="#ai-tools" className="text-gray-300 hover:text-white transition">AI Tools</a>
               <a href="#pricing" className="text-gray-300 hover:text-white transition">Pricing</a>
-              <a href="#faq" className="text-gray-300 hover:text-white transition">FAQ</a>
+              <Link to="/docs" className="text-gray-300 hover:text-white transition">Docs</Link>
               <Link to="/login">
                 <Button variant="ghost" className="text-gray-300 hover:text-white">Log In</Button>
               </Link>
