@@ -432,24 +432,25 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
 
 
 async def calculate_digital_print(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate pricing for digital prints"""
+    """Calculate pricing for digital prints - FIXED with realistic pricing"""
     width = data.width_inches or 24
     height = data.length_inches or 36
     sqft = (width * height) / 144
     
+    # Realistic material costs per sqft (industry standard)
     material_costs = {
-        "banner_13oz": 1.50,
-        "banner_18oz": 2.00,
-        "vinyl_adhesive": 3.00,
-        "poster_paper": 1.00,
-        "canvas": 4.00,
-        "backlit": 5.00,
-        "perforated": 4.50,
-        "custom": getattr(data, 'material_cost_override', None) or 2.00
+        "banner_13oz": 0.75,      # Was 1.50 - too high
+        "banner_18oz": 1.00,      # Was 2.00
+        "vinyl_adhesive": 1.50,   # Was 3.00
+        "poster_paper": 0.50,     # Was 1.00
+        "canvas": 2.50,           # Was 4.00
+        "backlit": 3.00,          # Was 5.00
+        "perforated": 2.50,       # Was 4.50
+        "custom": getattr(data, 'material_cost_override', None) or 1.00
     }
     
     material = data.print_material or "banner_13oz"
-    cost_per_sqft = material_costs.get(material, 2.00)
+    cost_per_sqft = material_costs.get(material, 1.00)
     
     material_cost = sqft * cost_per_sqft * quantity
     
@@ -459,15 +460,16 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
     lamination = data.laminate
     
     if grommets:
-        finishing_cost += 1.50 * quantity
+        finishing_cost += 1.00 * quantity  # Per banner, not per grommet
     if hemming:
-        finishing_cost += (width + height) * 2 / 12 * 0.50 * quantity
+        finishing_cost += 0.50 * quantity  # Flat rate per banner for hemming
     if lamination:
-        material_cost *= 1.4
+        material_cost *= 1.25  # 25% increase for lamination (was 40%)
     
-    hourly_rate = defaults.get("hourly_rate", 75)
-    setup_time = 0.25
-    print_time = sqft * 0.1 * quantity
+    # Labor calculation - more realistic
+    hourly_rate = defaults.get("hourly_rate", 65)  # Reduced from 75
+    setup_time = 0.15  # 9 minutes setup (was 0.25 = 15 min)
+    print_time = sqft * 0.05 * quantity  # Reduced from 0.1
     labor_cost = (setup_time + print_time) * hourly_rate
     
     # Setup fee (charged once per order, not per item)
@@ -475,10 +477,11 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
     
     total_cost = material_cost + labor_cost + finishing_cost + setup_fee
     
-    markup = defaults.get("default_markup", 2.5)
+    # Reduced markup from 2.5x to 1.75x
+    markup = defaults.get("default_markup", 1.75)
     suggested_price = total_cost * markup
     
-    # Apply complexity multiplier
+    # Apply complexity multiplier (now capped at 1.5x)
     complexity_mult = get_complexity_multiplier(data.complexity or 1)
     suggested_price *= complexity_mult
     
