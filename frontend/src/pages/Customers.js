@@ -370,54 +370,222 @@ export default function Customers() {
           <h1 className="text-4xl font-bold font-heading uppercase tracking-tight" style={{ color: 'var(--text)' }}>Customers</h1>
           <p className="text-muted-foreground mt-1">{customers.length} total customers</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="neon-glow" data-testid="add-customer-btn" onClick={() => resetForm()}>
-              <Plus className="h-4 w-4 mr-2" /> Add Customer
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle className="font-heading uppercase">
-                {editingCustomer ? 'Edit Customer' : 'New Customer'}
-              </DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                    data-testid="customer-name-input"
-                  />
+        <div className="flex gap-2">
+          {/* Import CSV Button */}
+          <Dialog open={isImportOpen} onOpenChange={(open) => { setIsImportOpen(open); if (!open) resetImport(); }}>
+            <DialogTrigger asChild>
+              <Button variant="outline" data-testid="import-csv-btn">
+                <Upload className="h-4 w-4 mr-2" /> Import CSV
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle className="font-heading uppercase flex items-center gap-2">
+                  <FileSpreadsheet className="h-5 w-5" />
+                  Import Customers from CSV
+                </DialogTitle>
+                <DialogDescription>
+                  Upload a CSV file to bulk import customers
+                </DialogDescription>
+              </DialogHeader>
+
+              {/* Step 1: Upload */}
+              {importStep === 'upload' && (
+                <div className="space-y-4 py-4">
+                  <div 
+                    className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-lg font-medium">Click to upload CSV file</p>
+                    <p className="text-sm text-muted-foreground mt-1">or drag and drop</p>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".csv"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                  </div>
+                  <div className="flex items-center justify-center">
+                    <Button variant="link" onClick={downloadTemplate}>
+                      <Download className="h-4 w-4 mr-2" /> Download Template
+                    </Button>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="company">Company</Label>
-                  <Input
-                    id="company"
-                    value={formData.company}
-                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                    data-testid="customer-company-input"
-                  />
+              )}
+
+              {/* Step 2: Map Columns */}
+              {importStep === 'map' && (
+                <div className="space-y-4 py-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                      Map your CSV columns to customer fields
+                    </p>
+                    <Badge variant="outline">{csvFile?.name}</Badge>
+                  </div>
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                    {csvHeaders.map((header, index) => (
+                      <div key={index} className="flex items-center gap-3 p-2 rounded bg-muted/50">
+                        <div className="w-1/3 font-medium truncate text-sm">{header}</div>
+                        <span className="text-muted-foreground">→</span>
+                        <Select
+                          value={columnMapping[index] || ''}
+                          onValueChange={(val) => setColumnMapping({ ...columnMapping, [index]: val })}
+                        >
+                          <SelectTrigger className="w-1/2">
+                            <SelectValue placeholder="Select field" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableFields.map((field) => (
+                              <SelectItem key={field.value} value={field.value}>
+                                {field.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Preview */}
+                  <div className="mt-4">
+                    <p className="text-sm font-medium mb-2">Preview (first 5 rows):</p>
+                    <div className="border rounded-lg overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            {csvHeaders.map((header, index) => (
+                              <TableHead key={index} className="text-xs">
+                                {columnMapping[index] ? (
+                                  <Badge variant="default" className="text-xs">{columnMapping[index]}</Badge>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableHead>
+                            ))}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {csvPreview.map((row, rowIndex) => (
+                            <TableRow key={rowIndex}>
+                              {row.map((cell, cellIndex) => (
+                                <TableCell key={cellIndex} className="text-xs py-1 truncate max-w-[100px]">
+                                  {cell || '-'}
+                                </TableCell>
+                              ))}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+
+                  <DialogFooter className="flex gap-2">
+                    <Button variant="outline" onClick={resetImport}>Cancel</Button>
+                    <Button onClick={handleImport} disabled={importing || !Object.values(columnMapping).includes('name')}>
+                      {importing ? 'Importing...' : 'Import Customers'}
+                    </Button>
+                  </DialogFooter>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    data-testid="customer-email-input"
-                  />
+              )}
+
+              {/* Step 3: Results */}
+              {importStep === 'result' && importResult && (
+                <div className="space-y-4 py-4">
+                  <div className="text-center py-4">
+                    <CheckCircle2 className="h-16 w-16 mx-auto text-green-500 mb-4" />
+                    <h3 className="text-xl font-bold">Import Complete!</h3>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="text-center p-4 rounded-lg bg-green-50">
+                      <p className="text-3xl font-bold text-green-600">{importResult.created}</p>
+                      <p className="text-sm text-muted-foreground">Created</p>
+                    </div>
+                    <div className="text-center p-4 rounded-lg bg-blue-50">
+                      <p className="text-3xl font-bold text-blue-600">{importResult.updated || 0}</p>
+                      <p className="text-sm text-muted-foreground">Updated</p>
+                    </div>
+                    <div className="text-center p-4 rounded-lg bg-red-50">
+                      <p className="text-3xl font-bold text-red-600">{importResult.errors?.length || 0}</p>
+                      <p className="text-sm text-muted-foreground">Errors</p>
+                    </div>
+                  </div>
+                  {importResult.errors?.length > 0 && (
+                    <div className="mt-4 p-3 rounded bg-red-50 border border-red-200">
+                      <p className="text-sm font-medium text-red-700 mb-2">Errors:</p>
+                      <ul className="text-xs text-red-600 space-y-1">
+                        {importResult.errors.slice(0, 5).map((err, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                            {err}
+                          </li>
+                        ))}
+                        {importResult.errors.length > 5 && (
+                          <li>...and {importResult.errors.length - 5} more errors</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                  <DialogFooter>
+                    <Button onClick={() => { setIsImportOpen(false); resetImport(); }}>
+                      Done
+                    </Button>
+                  </DialogFooter>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input
+              )}
+            </DialogContent>
+          </Dialog>
+
+          {/* Add Customer Button */}
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="neon-glow" data-testid="add-customer-btn" onClick={() => resetForm()}>
+                <Plus className="h-4 w-4 mr-2" /> Add Customer
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle className="font-heading uppercase">
+                  {editingCustomer ? 'Edit Customer' : 'New Customer'}
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Name *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
+                      data-testid="customer-name-input"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="company">Company</Label>
+                    <Input
+                      id="company"
+                      value={formData.company}
+                      onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                      data-testid="customer-company-input"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      data-testid="customer-email-input"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input
                     id="phone"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
