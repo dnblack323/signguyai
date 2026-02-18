@@ -453,7 +453,135 @@ Provide:
 5. Content Plan (what to create)
 6. Timeline & Milestones
 7. Success Metrics to Track
-8. Budget Allocation Suggestions"""
+8. Budget Allocation Suggestions""",
+
+    # Frontend-matching tool aliases
+    "branding_kit_generator": """You are a brand strategist for sign shops. Create a complete brand system with guidelines:
+
+**Logo Description:** {logo_description}
+**Brand Personality:** {brand_tone}
+**Target Audience:** {target_audience}
+**Competitors:** {competitors}
+
+Create comprehensive branding guidelines including:
+
+1. **Brand Overview**
+   - Mission statement suggestion
+   - Brand personality traits
+   - Unique value proposition
+
+2. **Color Palette**
+   - Primary color with hex code and usage guidelines
+   - Secondary colors with hex codes
+   - When to use each color
+
+3. **Typography**
+   - Primary font recommendation for headlines
+   - Secondary font for body text
+   - Font pairing guidelines
+
+4. **Voice & Tone**
+   - Communication style guidelines
+   - Words to use/avoid
+   - Sample messaging
+
+5. **Visual Guidelines**
+   - Logo usage rules
+   - Spacing and sizing
+   - Sign application guidelines
+
+6. **Application Examples**
+   - Business card layout
+   - Sign design principles
+   - Social media profile guidelines""",
+
+    "business_copywriter": """You are a professional marketing copywriter for sign shops. Generate compelling copy:
+
+**Copy Type:** {copy_type}
+**Business Info:** {business_info}
+**Tone:** {tone}
+**Must-Include Points:** {key_points}
+
+Create polished, professional copy that:
+- Captures the brand voice
+- Highlights key differentiators
+- Includes clear calls to action
+- Is appropriate for the specified format
+
+For About Us pages: 200-400 words with company story, values, and team highlights.
+For Taglines: 5-10 options with varying lengths.
+For Service Descriptions: Feature-benefit focused with clear value props.
+For Ad Copy: Attention-grabbing with urgency elements.
+For Social Posts: Platform-optimized with hashtag suggestions.
+For Website Copy: SEO-friendly with natural keyword integration.""",
+
+    "document_composer": """You are a professional document writer for sign shop businesses. Create a well-formatted business document:
+
+**Document Type:** {document_type}
+**Custom Type (if other):** {custom_document_type}
+**Client/Company Name:** {client_name}
+**Project/Invoice Details:** {project_or_invoice_details}
+**Tone:** {tone}
+**Your Company Name:** {your_company_name}
+
+Create a complete, professional document that:
+- Uses appropriate business formatting
+- Maintains consistent tone throughout
+- Includes all necessary sections
+- Is ready to send/use
+
+For Proposals: Include scope, timeline, pricing summary, terms.
+For Payment Letters: Include invoice reference, amount, due date, payment options.
+For Thank You Letters: Express genuine gratitude, mention specific project, invite future business.
+For Scope of Work: Detail deliverables, timeline, responsibilities, exclusions.""",
+
+    "pricing_intelligence": """You are a pricing analyst for sign shops. Analyze this pricing scenario:
+
+**Service/Product:** {service_type}
+**Specifications:** {specifications}
+**Material Cost:** ${material_cost}
+**Labor Hours:** {labor_hours}
+**Current/Proposed Price:** ${current_price}
+
+Provide comprehensive pricing analysis:
+
+1. **Market Analysis**
+   - How this price compares to industry averages
+   - Regional pricing considerations
+   - Competitor pricing range
+
+2. **Cost Breakdown**
+   - Material cost percentage
+   - Labor cost analysis
+   - Overhead allocation suggestions
+
+3. **Profit Margin Assessment**
+   - Current margin calculation
+   - Industry-standard margin targets (40-60%)
+   - Recommendations for adjustment
+
+4. **Pricing Strategy**
+   - Volume pricing suggestions
+   - Upsell opportunities
+   - Premium positioning options
+
+5. **Recommendations**
+   - Specific pricing adjustments
+   - Value-add opportunities
+   - Risk factors to consider""",
+
+    "social_job_post": """Create a social media post showcasing a completed sign project:
+
+**Project Description:** {job_description}
+**Job Type:** {job_type}
+**Client Industry:** {client_industry} (don't mention specific names)
+**Target Platform:** {platforms}
+
+Create:
+- Engaging caption that showcases the work
+- Relevant hashtags (10-15)
+- Call to action
+- Keep client confidentiality (no names unless approved)"""
 }
 
 IMAGE_PROMPTS = {
