@@ -723,26 +723,26 @@ async def calculate_apparel(data: JobItemPricingData, quantity: float, defaults:
 
 
 async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate pricing for vehicle graphics - FIXED with realistic pricing"""
-    # Realistic vehicle square footage estimates
+    """Calculate pricing for vehicle graphics - Industry standard, optional setup fee"""
+    # Vehicle square footage estimates
     vehicle_sqft = {
-        "car_sedan": 120,     # Reduced from 150
-        "car_suv": 160,       # Reduced from 200
-        "van_mini": 140,      # Reduced from 180
-        "van_cargo": 200,     # Reduced from 250
-        "van_sprinter": 250,  # Reduced from 300
-        "box_truck_12ft": 320,  # Reduced from 400
-        "box_truck_16ft": 400,  # Reduced from 500
-        "box_truck_24ft": 520,  # Reduced from 650
-        "trailer": 600,       # Reduced from 800
-        "semi": 800,          # Reduced from 1000
+        "car_sedan": 120,
+        "car_suv": 160,
+        "van_mini": 140,
+        "van_cargo": 200,
+        "van_sprinter": 250,
+        "box_truck_12ft": 320,
+        "box_truck_16ft": 400,
+        "box_truck_24ft": 520,
+        "trailer": 600,
+        "semi": 800,
         "other": data.estimated_vehicle_sqft or 160
     }
     
     coverage_multipliers = {
-        "spot": 0.10,      # Was 0.15 - spot graphics are small (logo + phone)
-        "partial": 0.25,   # Was 0.35 - partial is ~quarter of vehicle
-        "half": 0.45,      # Was 0.50
+        "spot": 0.10,      # Spot graphics (logo + phone)
+        "partial": 0.25,   # ~quarter of vehicle
+        "half": 0.45,
         "full": 1.0
     }
     
@@ -752,40 +752,42 @@ async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, 
     coverage = data.coverage_type or "partial"
     actual_sqft = base_sqft * coverage_multipliers.get(coverage, 0.25)
     
-    # Reduced material costs - more realistic
-    material_cost_sqft = 2.50  # Was 4.00 - basic vinyl wrap material
+    # Material costs per sqft
+    material_cost_sqft = 2.50  # Base vinyl
     wrap_type = getattr(data, 'wrap_type', None)
     if wrap_type == "color_change":
-        material_cost_sqft = 4.00  # Was 6.00
+        material_cost_sqft = 4.00
     elif wrap_type == "printed":
-        material_cost_sqft = 3.50  # Was 5.00
+        material_cost_sqft = 3.50
     
     material_cost = actual_sqft * material_cost_sqft * quantity
     
-    # Installation labor - more realistic rates
-    install_rate = defaults.get("install_hourly_rate", 75)  # Reduced from 100
-    hours_per_sqft = 0.10  # Was 0.15 - experienced installers are faster
-    labor_hours = actual_sqft * hours_per_sqft * quantity
-    labor_cost = labor_hours * install_rate
+    # Installation labor - flat rate per sqft
+    install_per_sqft = 8.00  # $8/sqft installed (industry standard)
+    labor_cost = actual_sqft * install_per_sqft * quantity
     
+    # Design cost (optional)
     design_cost = 0
     include_design = getattr(data, 'include_design', False)
     if include_design:
         complexity = data.complexity or 2
-        design_cost = 100 * complexity  # Was 150 * complexity
+        design_cost = 100 * complexity
     
-    # Setup fee (charged once per order, not per item)
-    setup_fee = data.setup_fee or 0
+    # Setup fee is OPTIONAL
+    include_setup = getattr(data, 'include_setup_fee', False)
+    setup_fee = 0
+    if include_setup:
+        setup_fee = data.setup_fee or defaults.get("vehicle_setup_fee", 50.0)
     
-    total_cost = material_cost + labor_cost + design_cost + setup_fee
+    total_cost = material_cost + labor_cost + design_cost
     
-    # Reduced markup from 2.0x to 1.6x for vehicle wraps
-    markup = defaults.get("vehicle_markup", 1.6)
-    suggested_price = total_cost * markup
+    # Markup - vehicle graphics already include labor, so lower markup
+    markup = defaults.get("vehicle_markup", 1.3)
+    suggested_price = total_cost * markup + setup_fee + design_cost
     
-    # Apply complexity multiplier (now capped at 1.5x)
-    complexity_mult = get_complexity_multiplier(data.complexity or 1)
-    suggested_price *= complexity_mult
+    # Estimate labor hours
+    hours_per_sqft = 0.10
+    labor_hours = actual_sqft * hours_per_sqft
     
     return create_pricing_result(
         material_cost=material_cost,
@@ -793,17 +795,19 @@ async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, 
         setup_cost=setup_fee,
         additional_costs=design_cost,
         suggested_price=suggested_price,
-        estimated_labor_minutes=labor_hours * 60,
+        estimated_labor_minutes=labor_hours * 60 * quantity,
         breakdown={
             "vehicle_type": vehicle_type,
             "coverage": coverage,
             "base_sqft": base_sqft,
             "actual_sqft": round(actual_sqft, 2),
             "material_cost_per_sqft": material_cost_sqft,
+            "install_per_sqft": install_per_sqft,
             "install_hours": round(labor_hours, 2),
             "design_cost": design_cost,
-            "complexity_multiplier": complexity_mult,
-            "setup_fee": setup_fee
+            "setup_fee": setup_fee,
+            "setup_included": include_setup,
+            "total_per_vehicle": round(suggested_price / quantity, 2) if quantity > 0 else 0
         }
     )
 
