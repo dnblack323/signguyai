@@ -465,62 +465,62 @@ export default function LandingPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10">
-                  <th className="text-left py-4 px-4 text-gray-400 font-medium">Feature</th>
-                  <th className="py-4 px-4">
+                  <th className="text-left py-2 px-3 text-gray-400 font-medium">Feature</th>
+                  <th className="py-2 px-3">
                     <div className="text-[#00D4FF] font-bold">SignGuy AI</div>
                     <div className="text-xs text-gray-500">That's us!</div>
                   </th>
-                  <th className="py-4 px-4 text-gray-400">shopVOX</th>
-                  <th className="py-4 px-4 text-gray-400">Cyrious</th>
-                  <th className="py-4 px-4 text-gray-400">SignTracker</th>
+                  <th className="py-2 px-3 text-gray-400">shopVOX</th>
+                  <th className="py-2 px-3 text-gray-400">Cyrious</th>
+                  <th className="py-2 px-3 text-gray-400">SignTracker</th>
                 </tr>
               </thead>
               <tbody>
                 {comparisonFeatures.map((row, index) => (
                   <tr key={index} className="border-b border-white/5">
-                    <td className="py-4 px-4 text-gray-300">{row.feature}</td>
-                    <td className="py-4 px-4 text-center">
+                    <td className="py-2 px-3 text-gray-300">{row.feature}</td>
+                    <td className="py-2 px-3 text-center">
                       {typeof row.signguy === 'boolean' ? (
                         row.signguy ? (
-                          <CheckCircle2 className="w-5 h-5 text-green-400 mx-auto" />
+                          <CheckCircle2 className="w-4 h-4 text-green-400 mx-auto" />
                         ) : (
-                          <X className="w-5 h-5 text-red-400 mx-auto" />
+                          <X className="w-4 h-4 text-red-400 mx-auto" />
                         )
                       ) : (
                         <span className="text-[#00D4FF] font-medium">{row.signguy}</span>
                       )}
                     </td>
-                    <td className="py-4 px-4 text-center">
+                    <td className="py-2 px-3 text-center">
                       {typeof row.shopvox === 'boolean' ? (
                         row.shopvox ? (
-                          <CheckCircle2 className="w-5 h-5 text-green-400 mx-auto" />
+                          <CheckCircle2 className="w-4 h-4 text-green-400 mx-auto" />
                         ) : (
-                          <X className="w-5 h-5 text-gray-600 mx-auto" />
+                          <X className="w-4 h-4 text-gray-600 mx-auto" />
                         )
                       ) : (
                         <span className="text-gray-400">{row.shopvox}</span>
                       )}
                     </td>
-                    <td className="py-4 px-4 text-center">
+                    <td className="py-2 px-3 text-center">
                       {typeof row.cyrious === 'boolean' ? (
                         row.cyrious ? (
-                          <CheckCircle2 className="w-5 h-5 text-green-400 mx-auto" />
+                          <CheckCircle2 className="w-4 h-4 text-green-400 mx-auto" />
                         ) : (
-                          <X className="w-5 h-5 text-gray-600 mx-auto" />
+                          <X className="w-4 h-4 text-gray-600 mx-auto" />
                         )
                       ) : (
                         <span className="text-gray-400">{row.cyrious}</span>
                       )}
                     </td>
-                    <td className="py-4 px-4 text-center">
+                    <td className="py-2 px-3 text-center">
                       {typeof row.signtracker === 'boolean' ? (
                         row.signtracker ? (
-                          <CheckCircle2 className="w-5 h-5 text-green-400 mx-auto" />
+                          <CheckCircle2 className="w-4 h-4 text-green-400 mx-auto" />
                         ) : (
-                          <X className="w-5 h-5 text-gray-600 mx-auto" />
+                          <X className="w-4 h-4 text-gray-600 mx-auto" />
                         )
                       ) : (
                         <span className="text-gray-400">{row.signtracker}</span>
