@@ -618,10 +618,10 @@ export default function LandingPage() {
                   </div>
                   <div className="text-center">
                     <div className="text-4xl font-bold text-blue-600">$49</div>
-                    <div className="text-gray-500">/month founder</div>
-                    <div className="text-sm text-gray-500 line-through">$89/mo later</div>
+                    <div className="text-gray-600">/month founder</div>
+                    <div className="text-sm text-gray-400 line-through">$89/mo later</div>
                     <Link to="/register">
-                      <Button className="mt-4 bg-purple-500 hover:bg-purple-600">
+                      <Button className="mt-4 bg-blue-500 hover:bg-blue-600 text-white">
                         Get AI Tools
                       </Button>
                     </Link>
@@ -634,7 +634,7 @@ export default function LandingPage() {
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="py-20 px-4 bg-[#111111]">
+      <section id="faq" className="py-20 px-4 bg-[#1a1a1a]">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">Frequently Asked Questions</h2>
@@ -645,21 +645,21 @@ export default function LandingPage() {
             {faqs.map((faq, index) => (
               <div
                 key={index}
-                className="bg-[#0a0a0a] border border-white/10 rounded-xl overflow-hidden"
+                className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm"
               >
                 <button
                   onClick={() => setActiveFaq(activeFaq === index ? null : index)}
                   className="w-full px-6 py-4 flex items-center justify-between text-left"
                 >
-                  <span className="font-medium text-white">{faq.question}</span>
+                  <span className="font-medium text-gray-900">{faq.question}</span>
                   <ChevronRight
-                    className={`w-5 h-5 text-gray-400 transition-transform ${
+                    className={`w-5 h-5 text-gray-500 transition-transform ${
                       activeFaq === index ? 'rotate-90' : ''
                     }`}
                   />
                 </button>
                 {activeFaq === index && (
-                  <div className="px-6 pb-4 text-gray-400">{faq.answer}</div>
+                  <div className="px-6 pb-4 text-gray-600">{faq.answer}</div>
                 )}
               </div>
             ))}
