@@ -4,11 +4,13 @@ Customer Management Routes
 This module contains all routes related to:
 - Customer CRUD operations
 - Customer search and filtering
+- Bulk import from CSV
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional
 from datetime import datetime, timezone
+from pydantic import BaseModel
 
 from models import (
     Customer, CustomerCreate, CustomerUpdate, CustomerStatus,
@@ -22,6 +24,25 @@ from server import (
 )
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
+
+
+class CustomerImportItem(BaseModel):
+    name: str
+    company: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    status: Optional[str] = "lead"
+    notes: Optional[str] = None
+
+
+class CustomerImportRequest(BaseModel):
+    customers: List[CustomerImportItem]
+
+
+class CustomerImportResponse(BaseModel):
+    created: int
+    updated: int
+    errors: List[str]
 
 
 @router.post("", response_model=Customer)
