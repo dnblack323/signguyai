@@ -3,7 +3,7 @@ import { Link, useLocation, Outlet } from 'react-router-dom';
 import { 
   Book, Home, Users, FileText, Receipt, Sparkles, Calculator,
   Clock, UserCog, HelpCircle, ChevronRight, ChevronDown,
-  Search, ArrowLeft, Briefcase, PlayCircle
+  Search, ArrowLeft, Briefcase, PlayCircle, Store, Shield, DollarSign, Columns
 } from 'lucide-react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
@@ -32,6 +32,10 @@ const docsNavigation = [
       { title: 'AI Tools Suite', href: '/docs/ai-tools', icon: Sparkles },
       { title: 'Time Tracking', href: '/docs/time-tracking', icon: Clock },
       { title: 'Employee Management', href: '/docs/employees', icon: UserCog },
+      { title: 'Webstores', href: '/docs/webstores', icon: Store },
+      { title: 'Customer Portal', href: '/docs/customer-portal', icon: Shield },
+      { title: 'Financial Tracking', href: '/docs/financials', icon: DollarSign },
+      { title: 'Productivity Tools', href: '/docs/productivity', icon: Columns },
     ]
   },
   {
