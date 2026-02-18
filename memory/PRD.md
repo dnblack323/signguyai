@@ -96,7 +96,14 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
 ## Upcoming Tasks (P1)
 - [ ] Complete Billing System Logic - track first 100 founders, $19.99 credit, AI Tools Add-On
 - [ ] Re-enable Trial Lockout System - fix root cause, not just disable
-- [ ] **Fix Pricing Calculator Estimates (P1):** Estimates are too high and not aligned with real pricing analysis. Need to recalibrate base rates, multipliers, and pricing logic.
+- [x] **Fix Pricing Calculator Estimates (Feb 18, 2026):** FIXED
+  - Reduced default markup from 2.5x to 1.75x
+  - Reduced complexity multiplier from 2.0x to 1.5x max
+  - Lowered material costs to realistic industry rates
+  - Adjusted labor rates from $75/hr to $65/hr
+  - Fixed vehicle wrap pricing (was ~$15k, now ~$4.8k for full van)
+  - Fixed banner pricing (was ~$1.5k, now ~$300 for 4x8)
+  - Fixed decal pricing (was ~$150, now ~$37 for 12x12)
 - [x] **Job Time Tracking (Feb 17, 2026):**
   - Start/Stop timer on jobs with task type selection
   - Track time by: design, production, installation, admin
