@@ -96,6 +96,7 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
 ## Upcoming Tasks (P1)
 - [ ] Complete Billing System Logic - track first 100 founders, $19.99 credit, AI Tools Add-On
 - [ ] Re-enable Trial Lockout System - fix root cause, not just disable
+- [ ] **Fix Pricing Calculator Estimates (P1):** Estimates are too high and not aligned with real pricing analysis. Need to recalibrate base rates, multipliers, and pricing logic.
 - [x] **Job Time Tracking (Feb 17, 2026):**
   - Start/Stop timer on jobs with task type selection
   - Track time by: design, production, installation, admin
