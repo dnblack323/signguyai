@@ -148,6 +148,23 @@ export default function CompanySettings() {
     setSavingTimeSettings(false);
   };
 
+  const handleSavePortalSettings = async () => {
+    if (!canEditSettings) {
+      toast.error('You do not have permission to edit settings');
+      return;
+    }
+    
+    setSavingPortalSettings(true);
+    try {
+      await updateTenant({ employee_portal_settings: employeePortalSettings });
+      toast.success('Employee portal permissions updated');
+    } catch (err) {
+      console.error('Error updating portal settings:', err);
+      toast.error('Failed to update employee portal permissions');
+    }
+    setSavingPortalSettings(false);
+  };
+
   const planBadge = (plan) => {
     const colors = {
       free: 'bg-gray-100 text-gray-700',
