@@ -248,8 +248,8 @@ async def get_pricing_defaults(tenant_id: str) -> dict:
     return PricingDefaults(tenant_id=tenant_id).model_dump()
 
 
-def get_complexity_multiplier(complexity: int, base: float = 1.0, max_mult: float = 2.0) -> float:
-    """Calculate complexity multiplier (1-5 scale)"""
+def get_complexity_multiplier(complexity: int, base: float = 1.0, max_mult: float = 1.5) -> float:
+    """Calculate complexity multiplier (1-5 scale) - reduced from 2.0 to 1.5 max"""
     if complexity <= 1:
         return base
     return base + (max_mult - base) * (complexity - 1) / 4
