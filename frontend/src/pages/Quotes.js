@@ -67,6 +67,10 @@ export default function Quotes() {
   const [portalLink, setPortalLink] = useState(null);
   const [linkCopied, setLinkCopied] = useState(false);
   
+  // AI Email composer state
+  const [showAIEmail, setShowAIEmail] = useState(false);
+  const [aiEmailType, setAiEmailType] = useState('quote_send');
+  
   // Pricing calculator modal state
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
 
