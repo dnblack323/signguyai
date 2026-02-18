@@ -831,6 +831,20 @@ export default function Quotes() {
         onClose={() => setIsCalculatorOpen(false)}
         onItemCalculated={handleCalculatedItem}
       />
+
+      {/* AI Email Composer Modal */}
+      <AIEmailComposer
+        isOpen={showAIEmail}
+        onClose={() => setShowAIEmail(false)}
+        emailType={aiEmailType}
+        context={{
+          customer_name: selectedQuote ? getCustomer(selectedQuote.customer_id)?.name : '',
+          customer_email: selectedQuote ? getCustomer(selectedQuote.customer_id)?.email : '',
+          quote_number: selectedQuote?.id?.slice(0, 8).toUpperCase(),
+          amount: selectedQuote?.total,
+          company_name: 'SignGuy AI'
+        }}
+      />
     </div>
   );
 }
