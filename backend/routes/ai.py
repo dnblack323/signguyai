@@ -788,3 +788,127 @@ Always be helpful, specific, and sign-industry focused. When giving pricing advi
     except Exception as e:
         print(f"AI Assistant error: {e}")
         raise HTTPException(status_code=500, detail=f"Assistant error: {str(e)}")
+
+
+# ============== AI EMAIL GENERATOR ==============
+
+class EmailGenerateRequest(BaseModel):
+    email_type: str  # invoice_send, quote_send, approval_request, etc.
+    tone: str = "professional"  # professional, friendly, formal, urgent
+    context: Dict[str, Any] = {}
+
+
+EMAIL_TYPE_PROMPTS = {
+    "invoice_send": "Write an email to send an invoice to a customer. Be clear about the amount due and payment terms.",
+    "invoice_reminder": "Write a polite payment reminder email. Be friendly but clear that payment is expected.",
+    "invoice_overdue": "Write a firm but professional overdue payment notice. Emphasize the importance of settling the balance.",
+    "quote_send": "Write an email to send a quote/estimate to a potential customer. Highlight value and encourage them to proceed.",
+    "quote_followup": "Write a follow-up email about a quote that hasn't been responded to. Be helpful, not pushy.",
+    "approval_request": "Write an email requesting customer approval for artwork, design proof, or project details. Be clear about what needs approval.",
+    "job_update": "Write an email updating the customer on their job progress. Be informative and reassuring.",
+    "job_complete": "Write an email notifying the customer their job is complete and ready. Include next steps for pickup or installation.",
+    "thank_you": "Write a thank you email after completing a job. Express gratitude and encourage future business/referrals.",
+}
+
+
+@router.post("/generate-email")
+async def generate_email(
+    request: EmailGenerateRequest,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Generate professional email content using AI"""
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    
+    if not EMERGENT_LLM_KEY:
+        raise HTTPException(status_code=500, detail="AI service not configured")
+    
+    email_type = request.email_type
+    if email_type not in EMAIL_TYPE_PROMPTS:
+        raise HTTPException(status_code=400, detail=f"Unknown email type: {email_type}")
+    
+    try:
+        # Build context string from provided context
+        context = request.context
+        context_parts = []
+        
+        if context.get("customer_name"):
+            context_parts.append(f"Customer Name: {context['customer_name']}")
+        if context.get("customer_email"):
+            context_parts.append(f"Customer Email: {context['customer_email']}")
+        if context.get("invoice_number"):
+            context_parts.append(f"Invoice Number: {context['invoice_number']}")
+        if context.get("quote_number"):
+            context_parts.append(f"Quote Number: {context['quote_number']}")
+        if context.get("job_name"):
+            context_parts.append(f"Job/Project Name: {context['job_name']}")
+        if context.get("amount"):
+            context_parts.append(f"Amount: ${context['amount']}")
+        if context.get("due_date"):
+            context_parts.append(f"Due Date: {context['due_date']}")
+        if context.get("company_name"):
+            context_parts.append(f"Our Company: {context['company_name']}")
+        if context.get("additional_notes"):
+            context_parts.append(f"Additional Notes: {context['additional_notes']}")
+        
+        context_str = "\n".join(context_parts) if context_parts else "No specific context provided"
+        
+        system_message = """You are an expert email writer for a sign shop business. Write professional, clear, and effective business emails.
+
+Your emails should:
+- Be appropriately toned based on the request (professional, friendly, formal, or urgent)
+- Be concise but complete
+- Include a clear subject line
+- Have proper greeting and sign-off
+- Sound human and genuine, not robotic
+- Be appropriate for a sign shop/graphics business context
+
+Return your response in this exact format:
+SUBJECT: [Your subject line here]
+---
+[Your email body here]"""
+        
+        prompt = f"""{EMAIL_TYPE_PROMPTS[email_type]}
+
+Tone: {request.tone}
+
+Context:
+{context_str}
+
+Write a complete email with subject line and body. Sign off as "SignGuy AI Team" or similar."""
+        
+        # Initialize chat
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            system_message=system_message
+        ).with_model("openai", "gpt-5.2")
+        
+        # Generate email
+        response = await chat.send_message(UserMessage(text=prompt))
+        
+        # Parse the response to extract subject and body
+        subject = ""
+        body = response
+        
+        if "SUBJECT:" in response and "---" in response:
+            parts = response.split("---", 1)
+            subject_part = parts[0].strip()
+            if subject_part.startswith("SUBJECT:"):
+                subject = subject_part.replace("SUBJECT:", "").strip()
+            body = parts[1].strip() if len(parts) > 1 else response
+        elif "Subject:" in response:
+            lines = response.split("\n")
+            for i, line in enumerate(lines):
+                if line.lower().startswith("subject:"):
+                    subject = line.split(":", 1)[1].strip()
+                    body = "\n".join(lines[i+1:]).strip()
+                    break
+        
+        return {
+            "subject": subject or f"Message from SignGuy AI",
+            "body": body
+        }
+        
+    except Exception as e:
+        print(f"Email generation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Email generation error: {str(e)}")
+
