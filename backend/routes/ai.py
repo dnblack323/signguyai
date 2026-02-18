@@ -511,7 +511,23 @@ High quality logo suitable for business cards, signs, and digital use.""",
 The design shows: {design_description}.
 Professional product photography, realistic lighting, natural environment integration.
 The mockup should look like an actual installed sign or vehicle wrap in the real world.
-High quality commercial photography style, sharp details, professional presentation."""
+High quality commercial photography style, sharp details, professional presentation.""",
+
+    "vehicle_wrap_mockup": """Realistic vehicle wrap mockup photograph.
+Vehicle type: {vehicle_type}.
+Wrap coverage: {wrap_coverage}.
+Business name: "{business_name}".
+Design description: {design_description}.
+Primary colors: {primary_colors}.
+Design style: {style}.
+View angle: {view_angle}.
+
+Show a {vehicle_type} with a professional {wrap_coverage} vehicle wrap.
+The wrap features {design_description} in {primary_colors} colors with a {style} aesthetic.
+The vehicle should be shown from a {view_angle} angle.
+Photorealistic mockup, professional vehicle wrap photography, clean background or simple environment.
+The wrap should look professionally installed, with realistic reflections and contours following the vehicle body.
+High quality commercial photography style suitable for client presentations."""
 }
 
 
