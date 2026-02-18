@@ -429,10 +429,10 @@ export default function LandingPage() {
       </section>
 
       {/* Comparison Table */}
-      <section className="py-12 px-4 bg-[#111111]">
+      <section className="py-12 px-4 bg-[#1a1a1a]">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
-            <Badge className="mb-3 bg-green-500/20 text-green-400 border-green-500/30">
+            <Badge className="mb-3 bg-blue-500/20 text-blue-400 border-blue-500/30">
               <CheckCircle2 className="w-4 h-4 mr-2" />
               Compare
             </Badge>
@@ -444,18 +444,18 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto bg-white rounded-xl shadow-lg">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-white/10">
-                  <th className="text-left py-2 px-3 text-gray-400 font-medium">Feature</th>
-                  <th className="py-2 px-3">
-                    <div className="text-[#00D4FF] font-bold">SignGuy AI</div>
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="text-left py-3 px-4 text-gray-700 font-semibold">Feature</th>
+                  <th className="py-3 px-4">
+                    <div className="text-blue-600 font-bold">SignGuy AI</div>
                     <div className="text-xs text-gray-500">That's us!</div>
                   </th>
-                  <th className="py-2 px-3 text-gray-400">shopVOX</th>
-                  <th className="py-2 px-3 text-gray-400">Cyrious</th>
-                  <th className="py-2 px-3 text-gray-400">SignTracker</th>
+                  <th className="py-3 px-4 text-gray-600">shopVOX</th>
+                  <th className="py-3 px-4 text-gray-600">Cyrious</th>
+                  <th className="py-3 px-4 text-gray-600">SignTracker</th>
                 </tr>
               </thead>
               <tbody>
@@ -478,50 +478,50 @@ export default function LandingPage() {
                   { feature: 'Starting Price', signguy: '$79/mo', shopvox: '$99/mo', cyrious: '$150/mo', signtracker: '$79/mo' },
                   { feature: 'Founder Price', signguy: '$79/mo', shopvox: 'N/A', cyrious: 'N/A', signtracker: 'N/A' },
                 ].map((row, index) => (
-                  <tr key={index} className="border-b border-white/5">
-                    <td className="py-2 px-3 text-gray-300">{row.feature}</td>
-                    <td className="py-2 px-3 text-center">
+                  <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-3 px-4 text-gray-800">{row.feature}</td>
+                    <td className="py-3 px-4 text-center">
                       {typeof row.signguy === 'boolean' ? (
                         row.signguy ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-400 mx-auto" />
+                          <CheckCircle2 className="w-5 h-5 text-green-500 mx-auto" />
                         ) : (
-                          <X className="w-4 h-4 text-red-400 mx-auto" />
+                          <X className="w-5 h-5 text-red-400 mx-auto" />
                         )
                       ) : (
-                        <span className="text-[#00D4FF] font-medium">{row.signguy}</span>
+                        <span className="text-blue-600 font-semibold">{row.signguy}</span>
                       )}
                     </td>
-                    <td className="py-2 px-3 text-center">
+                    <td className="py-3 px-4 text-center">
                       {typeof row.shopvox === 'boolean' ? (
                         row.shopvox ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-400 mx-auto" />
+                          <CheckCircle2 className="w-5 h-5 text-green-500 mx-auto" />
                         ) : (
-                          <X className="w-4 h-4 text-gray-600 mx-auto" />
+                          <X className="w-5 h-5 text-gray-300 mx-auto" />
                         )
                       ) : (
-                        <span className="text-gray-400">{row.shopvox}</span>
+                        <span className="text-gray-600">{row.shopvox}</span>
                       )}
                     </td>
-                    <td className="py-2 px-3 text-center">
+                    <td className="py-3 px-4 text-center">
                       {typeof row.cyrious === 'boolean' ? (
                         row.cyrious ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-400 mx-auto" />
+                          <CheckCircle2 className="w-5 h-5 text-green-500 mx-auto" />
                         ) : (
-                          <X className="w-4 h-4 text-gray-600 mx-auto" />
+                          <X className="w-5 h-5 text-gray-300 mx-auto" />
                         )
                       ) : (
-                        <span className="text-gray-400">{row.cyrious}</span>
+                        <span className="text-gray-600">{row.cyrious}</span>
                       )}
                     </td>
-                    <td className="py-2 px-3 text-center">
+                    <td className="py-3 px-4 text-center">
                       {typeof row.signtracker === 'boolean' ? (
                         row.signtracker ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-400 mx-auto" />
+                          <CheckCircle2 className="w-5 h-5 text-green-500 mx-auto" />
                         ) : (
-                          <X className="w-4 h-4 text-gray-600 mx-auto" />
+                          <X className="w-5 h-5 text-gray-300 mx-auto" />
                         )
                       ) : (
-                        <span className="text-gray-400">{row.signtracker}</span>
+                        <span className="text-gray-600">{row.signtracker}</span>
                       )}
                     </td>
                   </tr>
