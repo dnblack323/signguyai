@@ -293,22 +293,23 @@ def create_pricing_result(
 
 
 async def calculate_promotional(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate pricing for promotional products"""
+    """Calculate pricing for promotional products - FIXED"""
     base_cost = data.unit_cost or 0
     product_type = data.promo_product_type
     if product_type == "magnets":
-        base_cost = base_cost or 2.50
+        base_cost = base_cost or 1.50  # Was 2.50
     elif product_type == "yard_signs":
-        base_cost = base_cost or 8.00
+        base_cost = base_cost or 5.00  # Was 8.00
     elif product_type == "stickers":
-        base_cost = base_cost or 0.50
+        base_cost = base_cost or 0.25  # Was 0.50
     
-    setup_fee = data.setup_fee or 25.0
+    setup_fee = data.setup_fee or 15.0  # Was 25.0
     material_cost = base_cost * quantity
     labor_cost = setup_fee
     total_cost = material_cost + labor_cost
     
-    markup = defaults.get("default_markup", 2.5)
+    # Reduced markup from 2.5x to 1.8x
+    markup = defaults.get("default_markup", 1.8)
     suggested_price = total_cost * markup
     
     complexity_mult = get_complexity_multiplier(data.complexity or 1)
