@@ -99,6 +99,7 @@ function ProtectedRoutes() {
           <Route path="/productivity" element={<Productivity />} />
           <Route path="/financials" element={<Financials />} />
           <Route path="/ai-tools" element={<AITools />} />
+          <Route path="/ai-assistant" element={<AIAssistant />} />
           <Route path="/webstores" element={<Webstores />} />
           <Route path="/products" element={<Products />} />
           <Route path="/users" element={<UserManagement />} />
