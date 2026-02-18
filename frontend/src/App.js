@@ -58,6 +58,19 @@ import PricingPagePublic from "./pages/PricingPagePublic";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 
+// Documentation Pages
+import DocsLayout from "./components/DocsLayout";
+import DocsOverview from "./pages/docs/DocsOverview";
+import GettingStarted from "./pages/docs/GettingStarted";
+import DocsCustomers from "./pages/docs/DocsCustomers";
+import DocsQuotesJobs from "./pages/docs/DocsQuotesJobs";
+import DocsInvoicing from "./pages/docs/DocsInvoicing";
+import DocsPricingCalculator from "./pages/docs/DocsPricingCalculator";
+import DocsAITools from "./pages/docs/DocsAITools";
+import DocsTimeTracking from "./pages/docs/DocsTimeTracking";
+import DocsEmployees from "./pages/docs/DocsEmployees";
+import DocsFAQ from "./pages/docs/DocsFAQ";
+
 import "./App.css";
 
 // Loading Screen Component
