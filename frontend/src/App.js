@@ -20,6 +20,7 @@ import Payroll from "./pages/Payroll";
 import Productivity from "./pages/Productivity";
 import Financials from "./pages/Financials";
 import AITools from "./pages/AITools";
+import AIAssistant from "./pages/AIAssistant";
 import Webstores from "./pages/Webstores";
 import Products from "./pages/Products";
 import Storefront from "./pages/Storefront";
