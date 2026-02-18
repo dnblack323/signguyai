@@ -70,6 +70,10 @@ import DocsAITools from "./pages/docs/DocsAITools";
 import DocsTimeTracking from "./pages/docs/DocsTimeTracking";
 import DocsEmployees from "./pages/docs/DocsEmployees";
 import DocsFAQ from "./pages/docs/DocsFAQ";
+import DocsWebstores from "./pages/docs/DocsWebstores";
+import DocsCustomerPortal from "./pages/docs/DocsCustomerPortal";
+import DocsFinancials from "./pages/docs/DocsFinancials";
+import DocsProductivity from "./pages/docs/DocsProductivity";
 
 import "./App.css";
 
