@@ -24,6 +24,97 @@ import {
 import { toast } from 'sonner';
 
 const aiTools = [
+  // NEW AI Tools
+  {
+    id: 'logo_refresher',
+    name: 'Logo Refresher',
+    description: 'Upload your logo and get it refreshed in multiple modern styles.',
+    icon: RefreshCw,
+    category: 'design',
+    generatesImages: true,
+    imageCount: 3,
+    fields: [
+      { name: 'image_upload', label: 'Upload Your Current Logo', type: 'image_upload', required: true },
+      { name: 'business_name', label: 'Business Name', type: 'text', placeholder: 'Name on the logo', required: true },
+      { name: 'style_direction', label: 'Style Direction', type: 'select', options: ['modernize_minimal', 'make_bold_impactful', 'add_elegance', 'make_playful', 'vintage_retro', 'tech_futuristic', 'hand_drawn_organic'] },
+      { name: 'keep_elements', label: 'Elements to Keep', type: 'textarea', placeholder: 'e.g., keep the mountain icon, keep the color blue, preserve the shield shape' },
+      { name: 'change_elements', label: 'Elements to Change', type: 'textarea', placeholder: 'e.g., update the font, simplify the icon, change to single color' }
+    ]
+  },
+  {
+    id: 'generative_fill',
+    name: 'Generative Fill / Image Expander',
+    description: 'Expand your images beyond their borders or fill in missing areas with AI.',
+    icon: ImageIcon,
+    category: 'design',
+    generatesImages: true,
+    imageCount: 2,
+    fields: [
+      { name: 'image_upload', label: 'Upload Image to Expand', type: 'image_upload', required: true },
+      { name: 'expand_direction', label: 'Expansion Direction', type: 'select', options: ['expand_all_sides', 'expand_left', 'expand_right', 'expand_top', 'expand_bottom', 'expand_horizontal', 'expand_vertical'] },
+      { name: 'content_description', label: 'Describe What to Generate', type: 'textarea', placeholder: 'Describe what should appear in the expanded area, e.g., continue the sky and clouds, add more storefront, extend the road' },
+      { name: 'style_match', label: 'Style Matching', type: 'select', options: ['match_exactly', 'enhance_quality', 'artistic_interpretation'] }
+    ]
+  },
+  {
+    id: 'text_to_image',
+    name: 'Text to Image Creator',
+    description: 'Generate custom images from text descriptions for signs, mockups, and marketing.',
+    icon: Sparkles,
+    category: 'design',
+    generatesImages: true,
+    imageCount: 3,
+    fields: [
+      { name: 'image_prompt', label: 'Describe the Image You Want', type: 'textarea', placeholder: 'Be specific! e.g., A modern coffee shop storefront with large windows, outdoor seating, and a warm inviting glow at sunset', required: true },
+      { name: 'image_style', label: 'Image Style', type: 'select', options: ['photorealistic', 'illustration', 'digital_art', 'sketch', 'watercolor', 'minimalist', '3d_render', 'vintage_photo'] },
+      { name: 'aspect_ratio', label: 'Aspect Ratio', type: 'select', options: ['square_1x1', 'landscape_16x9', 'portrait_9x16', 'wide_banner_3x1', 'standard_4x3'] },
+      { name: 'color_mood', label: 'Color/Mood', type: 'select', options: ['vibrant_colorful', 'muted_soft', 'dark_moody', 'bright_airy', 'warm_tones', 'cool_tones', 'black_and_white', 'neon_glow'] }
+    ]
+  },
+  {
+    id: 'idea_brainstormer',
+    name: 'Idea Brainstormer',
+    description: 'Generate creative taglines, logo concepts, and business ideas.',
+    icon: Sparkles,
+    category: 'branding',
+    generatesImages: false,
+    fields: [
+      { name: 'brainstorm_type', label: 'What Do You Need?', type: 'select', options: ['taglines_slogans', 'logo_concepts', 'business_names', 'campaign_ideas', 'product_names', 'event_themes'], required: true },
+      { name: 'business_name', label: 'Business/Brand Name', type: 'text', placeholder: 'Name of the business (if applicable)' },
+      { name: 'industry', label: 'Industry', type: 'text', placeholder: 'e.g., Restaurant, Auto Repair, Law Firm, Fitness' },
+      { name: 'target_audience', label: 'Target Audience', type: 'textarea', placeholder: 'Who are you trying to reach? What do they care about?' },
+      { name: 'key_values', label: 'Key Values/USP', type: 'textarea', placeholder: 'What makes this business unique? Core values, differentiators' },
+      { name: 'tone', label: 'Desired Tone', type: 'select', options: ['professional_serious', 'friendly_approachable', 'fun_playful', 'luxurious_premium', 'bold_edgy', 'warm_caring', 'innovative_tech'] },
+      { name: 'avoid', label: 'Things to Avoid', type: 'text', placeholder: 'Any words, themes, or styles to avoid' }
+    ]
+  },
+  {
+    id: 'permit_research',
+    name: 'Sign Permit Research',
+    description: 'Get guidance on sign permit requirements for any location.',
+    icon: FileText,
+    category: 'business',
+    generatesImages: false,
+    fields: [
+      { name: 'city_state', label: 'City and State', type: 'text', placeholder: 'e.g., Austin, TX or Los Angeles, CA', required: true },
+      { name: 'sign_type', label: 'Type of Sign', type: 'select', options: ['monument_sign', 'pylon_sign', 'channel_letters', 'wall_sign', 'awning_sign', 'window_graphics', 'a_frame_sidewalk', 'digital_led', 'banner_temporary', 'vehicle_wrap'], required: true },
+      { name: 'sign_size', label: 'Approximate Sign Size', type: 'text', placeholder: 'e.g., 4ft x 8ft, 24 inch tall letters' },
+      { name: 'location_type', label: 'Location Type', type: 'select', options: ['commercial_strip', 'shopping_center', 'downtown_historic', 'industrial', 'residential_area', 'highway_visible'] },
+      { name: 'illumination', label: 'Illumination', type: 'select', options: ['non_illuminated', 'internally_lit', 'externally_lit', 'led_digital', 'neon'] },
+      { name: 'specific_questions', label: 'Specific Questions', type: 'textarea', placeholder: 'Any specific permit questions you have?' }
+    ]
+  },
+  {
+    id: 'ai_business_assistant',
+    name: 'AI Business Assistant',
+    description: 'Chat with an AI assistant about your sign shop business, pricing, operations, and more.',
+    icon: Sparkles,
+    category: 'business',
+    generatesImages: false,
+    isExternalLink: true,
+    externalUrl: '/ai-assistant',
+    fields: []
+  },
   // Design Tools
   {
     id: 'photo_enhancer',
