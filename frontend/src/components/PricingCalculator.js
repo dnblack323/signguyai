@@ -148,8 +148,9 @@ export default function PricingCalculator({
 }) {
   const [category, setCategory] = useState(initialCategory || '');
   const [quantity, setQuantity] = useState(1);
-  const [complexity, setComplexity] = useState(5);
+  const [complexity, setComplexity] = useState(1);  // Default to 1 (simple) - was 5
   const [pricingData, setPricingData] = useState(initialData || {});
+  const [includeSetupFee, setIncludeSetupFee] = useState(false);  // Setup fee is opt-in
   // Initialize calculation with zeros instead of null
   const [calculation, setCalculation] = useState({
     material_cost: 0,
