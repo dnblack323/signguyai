@@ -475,7 +475,7 @@ async def generate_text_content(tool: str, input_data: Dict[str, Any]) -> str:
     prompt_data = {k: v if v is not None else '' for k, v in input_data.items() if k != 'image_upload'}
     try:
         prompt = prompt_template.format(**prompt_data)
-    except KeyError as e:
+    except KeyError:
         prompt = prompt_template
         for key, value in prompt_data.items():
             prompt = prompt.replace(f"{{{key}}}", str(value if value is not None else ''))
