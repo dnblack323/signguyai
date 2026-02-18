@@ -297,6 +297,22 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
           </div>
         )}
       </DialogContent>
+
+      {/* AI Email Composer Modal */}
+      <AIEmailComposer
+        isOpen={showAIEmail}
+        onClose={() => setShowAIEmail(false)}
+        emailType={invoice?.status === 'overdue' ? 'invoice_overdue' : invoice?.status === 'sent' ? 'invoice_reminder' : 'invoice_send'}
+        context={{
+          customer_name: customer?.name,
+          customer_email: customer?.email,
+          invoice_number: invoice?.id?.slice(0, 8).toUpperCase(),
+          job_name: job?.name,
+          amount: invoice?.total,
+          due_date: invoice?.due_date,
+          company_name: 'SignGuy AI'
+        }}
+      />
     </Dialog>
   );
 }
