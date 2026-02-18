@@ -401,7 +401,7 @@ export default function PricingCalculator({
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [category, pricingData, quantity, complexity, calculatePrice]);
+  }, [category, pricingData, quantity, complexity, includeSetupFee, calculatePrice]);
 
   // Handle adding item
   const handleAddItem = () => {
