@@ -615,12 +615,13 @@ export default function LandingPage() {
                     </Badge>
                     <h3 className="text-2xl font-bold text-white mb-2">AI Tools Add-On</h3>
                     <p className="text-gray-400">
-                      Love your current software but want AI superpowers? Get access to all 15+ AI tools without switching.
+                      Love your current software but want AI superpowers? Get access to all 24+ AI tools without switching.
                     </p>
                   </div>
                   <div className="text-center">
-                    <div className="text-4xl font-bold text-purple-400">$19</div>
-                    <div className="text-gray-500">/month</div>
+                    <div className="text-4xl font-bold text-purple-400">$49</div>
+                    <div className="text-gray-500">/month founder</div>
+                    <div className="text-sm text-gray-500 line-through">$89/mo later</div>
                     <Link to="/register">
                       <Button className="mt-4 bg-purple-500 hover:bg-purple-600">
                         Get AI Tools
