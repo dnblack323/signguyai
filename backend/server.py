@@ -337,12 +337,11 @@ async def calculate_promotional(data: JobItemPricingData, quantity: float, defau
 
 
 async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate pricing for cut vinyl - FIXED"""
+    """Calculate pricing for cut vinyl - FIXED with minimum handling"""
     width = data.width_inches or 12
     height = data.length_inches or 12
     sqft = (width * height) / 144
     
-    # Vinyl costs are already reasonable
     vinyl_costs = {
         "oracal_651": 0.50,
         "oracal_751": 0.75,
@@ -358,19 +357,25 @@ async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, default
     
     material_cost = sqft * cost_per_sqft * quantity
     
-    hourly_rate = defaults.get("hourly_rate", 65)  # Was 75
+    hourly_rate = defaults.get("hourly_rate", 65)
     complexity = data.complexity or 1
-    labor_hours = (sqft * 0.15 * complexity) * quantity  # Was 0.25 - faster with experience
+    
+    # Minimum 0.05 hours (3 min) base time + 0.08 hours per sqft
+    base_time = 0.05
+    time_per_sqft = 0.08  # Was 0.15
+    labor_hours = (base_time + sqft * time_per_sqft * complexity) * quantity
     labor_cost = labor_hours * hourly_rate
     
-    weeding_factor = 1 + (complexity - 1) * 0.15  # Was 0.2
+    # Weeding adds 10% per complexity level above 1
+    weeding_factor = 1 + (complexity - 1) * 0.10
     labor_cost *= weeding_factor
     
-    setup_fee = data.setup_fee or 10.0  # Was 15.0
+    # Reduced setup fee for small jobs
+    setup_fee = data.setup_fee if data.setup_fee is not None else (5.0 if sqft < 2 else 10.0)
     total_cost = material_cost + labor_cost + setup_fee
     
-    # Reduced markup from 2.5x to 1.75x
-    markup = defaults.get("default_markup", 1.75)
+    # Markup reduced to 1.6x for cut vinyl (simpler product)
+    markup = defaults.get("vinyl_markup", 1.6)
     suggested_price = total_cost * markup
     
     return create_pricing_result(
@@ -385,7 +390,7 @@ async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, default
             "square_feet": round(sqft, 2),
             "vinyl_type": vinyl_type,
             "cost_per_sqft": cost_per_sqft,
-            "labor_hours": round(labor_hours, 2),
+            "labor_hours": round(labor_hours, 3),
             "weeding_factor": round(weeding_factor, 2),
             "setup_fee": setup_fee
         }
