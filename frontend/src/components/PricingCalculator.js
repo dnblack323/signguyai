@@ -372,7 +372,8 @@ export default function PricingCalculator({
           pricing_data: {
             ...pricingData,
             category,
-            complexity
+            complexity,
+            include_setup_fee: includeSetupFee  // Pass the setup fee toggle
           },
           quantity
         })
@@ -390,7 +391,7 @@ export default function PricingCalculator({
     } finally {
       setLoading(false);
     }
-  }, [category, pricingData, quantity, complexity]);
+  }, [category, pricingData, quantity, complexity, includeSetupFee]);
 
   // Auto-calculate when inputs change
   useEffect(() => {
