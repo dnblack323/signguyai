@@ -105,7 +105,11 @@ class PricingCalculation(BaseModel):
 class JobItemPricingData(BaseModel):
     """Category-specific pricing inputs for a job item"""
     category: PricingCategory = PricingCategory.CUSTOM
-    complexity: int = 5
+    complexity: int = 1  # Default to 1 (simple), not 5
+    
+    # Setup fee control - ONE TIME per order, optional
+    include_setup_fee: bool = False
+    setup_fee: Optional[float] = None
     
     # Dimensions
     width_inches: Optional[float] = None
@@ -116,7 +120,6 @@ class JobItemPricingData(BaseModel):
     promo_product_type: Optional[PromoProductType] = None
     unit_cost: Optional[float] = None
     markup_percent: Optional[float] = None
-    setup_fee: Optional[float] = None
     
     # Cut Vinyl
     vinyl_type: Optional[VinylType] = None
