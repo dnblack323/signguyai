@@ -58,6 +58,76 @@ async def create_customer(
     return customer
 
 
+@router.post("/import", response_model=CustomerImportResponse)
+async def import_customers(
+    request: CustomerImportRequest,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Bulk import customers from CSV data"""
+    created = 0
+    updated = 0
+    errors = []
+    
+    for i, item in enumerate(request.customers):
+        try:
+            # Validate name
+            if not item.name or not item.name.strip():
+                errors.append(f"Row {i + 1}: Name is required")
+                continue
+            
+            # Check for existing customer with same email (if email provided)
+            existing = None
+            if item.email and item.email.strip():
+                existing = await db.customers.find_one({
+                    "email": item.email.strip(),
+                    "tenant_id": current_user.tenant_id
+                })
+            
+            # Normalize status
+            status = "lead"
+            if item.status and item.status.lower() in ["lead", "active", "inactive"]:
+                status = item.status.lower()
+            
+            if existing:
+                # Update existing customer
+                update_data = {
+                    "name": item.name.strip(),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }
+                if item.company:
+                    update_data["company"] = item.company.strip()
+                if item.phone:
+                    update_data["phone"] = item.phone.strip()
+                if item.notes:
+                    update_data["notes"] = item.notes.strip()
+                update_data["status"] = status
+                
+                await db.customers.update_one(
+                    {"id": existing["id"]},
+                    {"$set": update_data}
+                )
+                updated += 1
+            else:
+                # Create new customer
+                customer = Customer(
+                    name=item.name.strip(),
+                    company=item.company.strip() if item.company else None,
+                    email=item.email.strip() if item.email else None,
+                    phone=item.phone.strip() if item.phone else None,
+                    status=status,
+                    notes=item.notes.strip() if item.notes else None,
+                    tenant_id=current_user.tenant_id
+                )
+                await db.customers.insert_one(customer.model_dump())
+                created += 1
+                
+        except Exception as e:
+            logger.error(f"Error importing customer row {i + 1}: {str(e)}")
+            errors.append(f"Row {i + 1}: {str(e)}")
+    
+    return CustomerImportResponse(created=created, updated=updated, errors=errors)
+
+
 @router.get("", response_model=List[Customer])
 async def get_customers(
     status: Optional[CustomerStatus] = None,
