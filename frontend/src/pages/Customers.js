@@ -70,6 +70,28 @@ export default function Customers() {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [detailTab, setDetailTab] = useState('overview');
 
+  // CSV Import state
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [csvFile, setCsvFile] = useState(null);
+  const [csvPreview, setCsvPreview] = useState([]);
+  const [csvHeaders, setCsvHeaders] = useState([]);
+  const [columnMapping, setColumnMapping] = useState({});
+  const [importing, setImporting] = useState(false);
+  const [importStep, setImportStep] = useState('upload'); // 'upload', 'map', 'preview', 'result'
+  const [importResult, setImportResult] = useState(null);
+  const fileInputRef = useRef(null);
+
+  // Available fields for mapping
+  const availableFields = [
+    { value: '', label: 'Skip this column' },
+    { value: 'name', label: 'Name *', required: true },
+    { value: 'company', label: 'Company' },
+    { value: 'email', label: 'Email' },
+    { value: 'phone', label: 'Phone' },
+    { value: 'status', label: 'Status (lead/active/inactive)' },
+    { value: 'notes', label: 'Notes' },
+  ];
+
   useEffect(() => {
     loadCustomers();
   }, [statusFilter, search]);
