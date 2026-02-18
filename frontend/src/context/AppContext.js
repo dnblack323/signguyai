@@ -563,7 +563,7 @@ export const AppProvider = ({ children }) => {
 
   // Tenant / Company Settings
   const getTenant = async () => {
-    const res = await api.get(`/tenant/current`);
+    const res = await api.get(`/tenant`);
     return res.data;
   };
 
