@@ -251,17 +251,17 @@ export default function LandingPage() {
       </section>
 
       {/* Built by a Sign Shop Owner Section */}
-      <section className="py-20 px-4 bg-gradient-to-b from-[#111111] to-[#0a0a0a]">
+      <section className="py-20 px-4 bg-[#1a1a1a]">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
-              <Badge className="mb-4 bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+              <Badge className="mb-4 bg-blue-500/20 text-blue-400 border-blue-500/30">
                 <Heart className="w-4 h-4 mr-2" />
                 Our Story
               </Badge>
               <h2 className="text-3xl sm:text-4xl font-bold mb-6">
                 Built by a Sign Shop Owner,<br />
-                <span className="text-[#00D4FF]">For Sign Shop Owners</span>
+                <span className="text-blue-500">For Sign Shop Owners</span>
               </h2>
               <div className="space-y-4 text-gray-300">
                 <p>
@@ -270,33 +270,33 @@ export default function LandingPage() {
                 <p>
                   When I realized how much it transformed my business, I knew I had to share it. This isn't backed by venture capitalists or built by a team that's never held a squeegee. It's built by someone who knows the difference between cast and calendered vinyl.
                 </p>
-                <p className="text-[#00D4FF] font-semibold">
+                <p className="text-blue-400 font-semibold">
                   As a founding member, you're not just a customer — you're a partner. Need a feature? Tell me. Don't like something? I'll fix it. This software grows with your input.
                 </p>
               </div>
             </div>
             <div className="relative">
-              <div className="bg-gradient-to-br from-[#00D4FF]/20 to-[#0066CC]/20 rounded-2xl p-8 border border-white/10">
+              <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-lg">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-[#0a0a0a] rounded-xl p-4 text-center">
-                    <Building2 className="w-8 h-8 text-[#00D4FF] mx-auto mb-2" />
-                    <div className="text-sm text-gray-400">Built by</div>
-                    <div className="font-semibold">Real Shop Owner</div>
+                  <div className="bg-gray-50 rounded-xl p-4 text-center border border-gray-100">
+                    <Building2 className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                    <div className="text-sm text-gray-500">Built by</div>
+                    <div className="font-semibold text-gray-900">Real Shop Owner</div>
                   </div>
-                  <div className="bg-[#0a0a0a] rounded-xl p-4 text-center">
-                    <Award className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-                    <div className="text-sm text-gray-400">Not backed by</div>
-                    <div className="font-semibold">VC or Investors</div>
+                  <div className="bg-gray-50 rounded-xl p-4 text-center border border-gray-100">
+                    <Award className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                    <div className="text-sm text-gray-500">Not backed by</div>
+                    <div className="font-semibold text-gray-900">VC or Investors</div>
                   </div>
-                  <div className="bg-[#0a0a0a] rounded-xl p-4 text-center">
-                    <MessageSquare className="w-8 h-8 text-green-400 mx-auto mb-2" />
-                    <div className="text-sm text-gray-400">Features</div>
-                    <div className="font-semibold">You Request</div>
+                  <div className="bg-gray-50 rounded-xl p-4 text-center border border-gray-100">
+                    <MessageSquare className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                    <div className="text-sm text-gray-500">Features</div>
+                    <div className="font-semibold text-gray-900">You Request</div>
                   </div>
-                  <div className="bg-[#0a0a0a] rounded-xl p-4 text-center">
-                    <TrendingUp className="w-8 h-8 text-purple-400 mx-auto mb-2" />
-                    <div className="text-sm text-gray-400">Constant</div>
-                    <div className="font-semibold">Updates</div>
+                  <div className="bg-gray-50 rounded-xl p-4 text-center border border-gray-100">
+                    <TrendingUp className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                    <div className="text-sm text-gray-500">Constant</div>
+                    <div className="font-semibold text-gray-900">Updates</div>
                   </div>
                 </div>
               </div>
