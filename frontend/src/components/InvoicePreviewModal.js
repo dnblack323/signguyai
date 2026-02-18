@@ -101,6 +101,15 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
               Invoice Preview
             </DialogTitle>
             <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowAIEmail(true)} 
+                className="bg-purple-50 border-purple-200 text-purple-600 hover:bg-purple-100"
+                data-testid="ai-email-invoice-btn"
+              >
+                <Sparkles className="h-4 w-4 mr-2" /> AI Draft
+              </Button>
               <Button variant="outline" size="sm" onClick={handleEmail} data-testid="email-invoice-btn">
                 <Mail className="h-4 w-4 mr-2" /> Email
               </Button>
