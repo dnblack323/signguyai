@@ -17,10 +17,10 @@ export default function LandingPage() {
   const [activeScreenshot, setActiveScreenshot] = useState(0);
 
   const screenshots = [
-    { name: 'Dashboard', description: 'Your command center', image: 'https://static.prod-images.emergentagent.com/jobs/91c5e43a-1649-47d7-9b1f-6f722fa7598c/images/937417dd4d201f6141ee2faf10f50c21f1f019c6579a7e0b3de8f46ea5e59a28.png' },
-    { name: 'Jobs', description: 'Track every project', image: 'https://static.prod-images.emergentagent.com/jobs/91c5e43a-1649-47d7-9b1f-6f722fa7598c/images/ac67ef19ece59d2f3eb0dfa9eda8595167e68ea7e6ba857c30c2cfbe36634818.png' },
-    { name: 'AI Tools', description: '24+ AI-powered tools', image: 'https://static.prod-images.emergentagent.com/jobs/91c5e43a-1649-47d7-9b1f-6f722fa7598c/images/a18fb2dfb7d458e0af2190a15f2298347b616a16a31e6f446f0ece6c5c91cea2.png' },
-    { name: 'Pricing Calculator', description: '8 specialized calculators', image: 'https://static.prod-images.emergentagent.com/jobs/91c5e43a-1649-47d7-9b1f-6f722fa7598c/images/244b8200edbafdf678e7f1906aa86d5053bd99120bd661bfaefaca733c8130a3.png' },
+    { name: 'Dashboard', description: 'Your command center', image: 'https://static.prod-images.emergentagent.com/jobs/9b7f34b8-177f-48ad-b4d8-74cf608027f1/images/c7c7e53bbdea412dae0b7c1f809015dd6ea9ace26dbdf12ab1299d6d28eba2a9.png' },
+    { name: 'Jobs', description: 'Track every project', image: 'https://static.prod-images.emergentagent.com/jobs/9b7f34b8-177f-48ad-b4d8-74cf608027f1/images/fc831c9f1ca385f87d32514cb1d4f338ef4875c08e16ed7a1fede6b636e0f299.png' },
+    { name: 'AI Tools', description: '24+ AI-powered tools', image: 'https://static.prod-images.emergentagent.com/jobs/9b7f34b8-177f-48ad-b4d8-74cf608027f1/images/d5a686159ed4e8884634e06a28b4c222375a998899ba1aabf6b0b8689ad7f957.png' },
+    { name: 'Pricing Calculator', description: '8 specialized calculators', image: 'https://static.prod-images.emergentagent.com/jobs/9b7f34b8-177f-48ad-b4d8-74cf608027f1/images/c9f9486bf66063359dddc2676f85d066b1e0f262da3d4b1572a295560f7f04be.png' },
   ];
 
   const features = [
