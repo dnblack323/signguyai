@@ -191,6 +191,175 @@ export default function Customers() {
     setIsDialogOpen(false);
   };
 
+  // CSV Import Functions
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (!file.name.endsWith('.csv')) {
+      toast.error('Please select a CSV file');
+      return;
+    }
+    
+    setCsvFile(file);
+    parseCSV(file);
+  };
+
+  const parseCSV = (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target.result;
+      const lines = text.split('\n').filter(line => line.trim());
+      
+      if (lines.length < 2) {
+        toast.error('CSV file must have headers and at least one row of data');
+        return;
+      }
+      
+      // Parse headers (first row)
+      const headers = parseCSVLine(lines[0]);
+      setCsvHeaders(headers);
+      
+      // Auto-map columns based on header names
+      const autoMapping = {};
+      headers.forEach((header, index) => {
+        const normalizedHeader = header.toLowerCase().trim();
+        if (normalizedHeader.includes('name') && !normalizedHeader.includes('company')) {
+          autoMapping[index] = 'name';
+        } else if (normalizedHeader.includes('company') || normalizedHeader.includes('business')) {
+          autoMapping[index] = 'company';
+        } else if (normalizedHeader.includes('email')) {
+          autoMapping[index] = 'email';
+        } else if (normalizedHeader.includes('phone') || normalizedHeader.includes('tel')) {
+          autoMapping[index] = 'phone';
+        } else if (normalizedHeader.includes('status')) {
+          autoMapping[index] = 'status';
+        } else if (normalizedHeader.includes('note')) {
+          autoMapping[index] = 'notes';
+        }
+      });
+      setColumnMapping(autoMapping);
+      
+      // Parse data rows (preview first 5)
+      const preview = [];
+      for (let i = 1; i < Math.min(lines.length, 6); i++) {
+        const values = parseCSVLine(lines[i]);
+        preview.push(values);
+      }
+      setCsvPreview(preview);
+      setImportStep('map');
+    };
+    reader.readAsText(file);
+  };
+
+  const parseCSVLine = (line) => {
+    const values = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        values.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    values.push(current.trim());
+    return values;
+  };
+
+  const handleImport = async () => {
+    // Validate name column is mapped
+    if (!Object.values(columnMapping).includes('name')) {
+      toast.error('You must map the "Name" column');
+      return;
+    }
+    
+    setImporting(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const text = e.target.result;
+        const lines = text.split('\n').filter(line => line.trim());
+        
+        // Skip header, process all data rows
+        const customers = [];
+        for (let i = 1; i < lines.length; i++) {
+          const values = parseCSVLine(lines[i]);
+          const customer = { status: 'lead' }; // Default status
+          
+          Object.entries(columnMapping).forEach(([colIndex, field]) => {
+            if (field && values[parseInt(colIndex)]) {
+              let value = values[parseInt(colIndex)].replace(/^["']|["']$/g, '').trim();
+              // Normalize status values
+              if (field === 'status') {
+                value = value.toLowerCase();
+                if (!['lead', 'active', 'inactive'].includes(value)) {
+                  value = 'lead';
+                }
+              }
+              customer[field] = value;
+            }
+          });
+          
+          // Only add if name is present
+          if (customer.name) {
+            customers.push(customer);
+          }
+        }
+        
+        if (customers.length === 0) {
+          toast.error('No valid customers found in CSV');
+          setImporting(false);
+          return;
+        }
+        
+        // Send to backend
+        const token = localStorage.getItem('token');
+        const response = await axios.post(
+          `${API_URL}/api/customers/import`,
+          { customers },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        
+        setImportResult(response.data);
+        setImportStep('result');
+        toast.success(`Successfully imported ${response.data.created} customers`);
+        loadCustomers();
+      };
+      reader.readAsText(csvFile);
+    } catch (err) {
+      console.error('Import error:', err);
+      toast.error(err.response?.data?.detail || 'Failed to import customers');
+    }
+    setImporting(false);
+  };
+
+  const resetImport = () => {
+    setCsvFile(null);
+    setCsvPreview([]);
+    setCsvHeaders([]);
+    setColumnMapping({});
+    setImportStep('upload');
+    setImportResult(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const downloadTemplate = () => {
+    const template = 'Name,Company,Email,Phone,Status,Notes\nJohn Doe,Acme Inc,john@acme.com,555-1234,active,VIP customer\nJane Smith,,,555-5678,lead,New lead from website';
+    const blob = new Blob([template], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'customer_import_template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const filteredCustomers = customers;
 
   return (
