@@ -53,7 +53,74 @@ class AIHistoryEntry(BaseModel):
 # ============== TOOL PROMPTS ==============
 
 TOOL_PROMPTS = {
-    # NEW TOOLS
+    # NEW TOOLS - Blog Creator
+    "blog_creator": """You are an expert content writer specializing in the sign and graphics industry. Create a comprehensive blog article based on:
+
+**Topic Source:** {topic_type}
+**Specific Topic:** {topic}
+**Topic Area (for suggestions):** {topic_area}
+**Target Length:** {article_length}
+**Writing Tone:** {tone}
+**Target Reader:** {target_audience}
+**Call to Action:** {include_cta}
+**SEO Keywords:** {seo_keywords}
+
+If the user selected "suggest_topics_for_me", first provide 5 topic suggestions for the topic area, then write about the most compelling one.
+
+Create a complete blog article including:
+
+1. **SEO-Optimized Title** - Engaging, keyword-rich title (under 60 characters)
+2. **Meta Description** - 150-160 character summary for search engines
+3. **Introduction** - Hook the reader, introduce the topic
+4. **Main Body** - Well-structured with H2 headers, practical information, examples
+5. **Conclusion** - Summary and call to action
+6. **Suggested Image Descriptions** - 2-3 image ideas for the post
+
+The article should:
+- Be written for the sign/graphics industry context
+- Include practical, actionable information
+- Use the specified tone throughout
+- Naturally incorporate SEO keywords if provided
+- End with the specified call to action
+
+Format the article with clear headers and easy-to-scan structure.""",
+
+    # NEW TOOLS - Completed Job Post Creator
+    "completed_job_post": """You are a social media expert for sign shops. Based on the uploaded photo of a completed job, create engaging social media content.
+
+**Job Type:** {job_type}
+**Job Details:** {job_details}
+**Client Industry:** {client_industry}
+**Platform:** {platforms}
+**Post Style:** {post_style}
+**Include Hashtags:** {include_hashtags}
+
+Analyze the uploaded image and create:
+
+1. **Primary Post Caption** (platform-optimized length):
+   - Hook/attention-grabber in first line
+   - Describe the work showcased
+   - Highlight craftsmanship, challenges overcome, or unique features
+   - Include the call to action
+   - Match the requested post style
+
+2. **Alternative Caption** - A shorter or different angle version
+
+3. **Hashtag Set** (if requested):
+   - Industry hashtags (#signshop, #vehiclewrap, etc.)
+   - Local/service area hashtags (suggest format)
+   - Trending relevant hashtags
+   - Branded hashtag suggestion
+
+4. **Best Posting Tips**:
+   - Optimal posting time for this content type
+   - Suggested story/reel content ideas
+   - Engagement prompt suggestions
+
+Keep client confidentiality - use industry description, not names.
+Make the content genuinely engaging, not generic or salesy.""",
+
+    # Original NEW TOOLS
     "idea_brainstormer": """You are a creative brainstorming expert for sign shops and their clients. Generate creative ideas based on:
 
 **Request Type:** {brainstorm_type}
