@@ -21,6 +21,7 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
   const { customers, fetchCustomers, jobs, fetchJobs } = useApp();
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showAIEmail, setShowAIEmail] = useState(false);
 
   useEffect(() => {
     if (isOpen && invoiceId) {
