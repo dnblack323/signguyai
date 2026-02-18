@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -19,7 +20,8 @@ import {
   Sparkles, Image, Wand2, Type, Layout, Flag, Box, 
   Palette, FileText, PenTool, Share2, Calendar, Target,
   FileEdit, DollarSign, Loader2, Copy, History, Upload,
-  Download, ChevronRight, Check, RefreshCw, ImageIcon
+  Download, ChevronRight, Check, RefreshCw, ImageIcon,
+  ExternalLink, MessageSquare, ClipboardList
 } from 'lucide-react';
 import { toast } from 'sonner';
 
