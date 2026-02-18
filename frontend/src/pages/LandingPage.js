@@ -51,26 +51,6 @@ export default function LandingPage() {
     { icon: Type, name: 'Font Identifier', generates: 'analysis' },
   ];
 
-  const comparisonFeatures = [
-    { feature: 'AI-Powered Tools (24+ tools)', signguy: true, shopvox: false, cyrious: false, signtracker: false },
-    { feature: 'AI Email Drafting', signguy: true, shopvox: false, cyrious: false, signtracker: false },
-    { feature: 'AI Business Assistant', signguy: true, shopvox: false, cyrious: false, signtracker: false },
-    { feature: 'Built-in Pricing Calculators', signguy: '8 Types', shopvox: 'Basic', cyrious: 'Basic', signtracker: 'Limited' },
-    { feature: 'Customer Portal', signguy: true, shopvox: true, cyrious: false, signtracker: false },
-    { feature: 'Employee Portal', signguy: true, shopvox: false, cyrious: false, signtracker: false },
-    { feature: 'Time Tracking per Job', signguy: true, shopvox: 'Add-on', cyrious: true, signtracker: false },
-    { feature: 'Visual Job Timeline', signguy: true, shopvox: false, cyrious: false, signtracker: false },
-    { feature: 'Webstore Builder', signguy: true, shopvox: true, cyrious: false, signtracker: false },
-    { feature: 'Online Payments', signguy: true, shopvox: true, cyrious: false, signtracker: false },
-    { feature: 'Scheduling & Calendar', signguy: true, shopvox: 'Add-on', cyrious: true, signtracker: false },
-    { feature: 'Payroll & Time Clock', signguy: true, shopvox: false, cyrious: false, signtracker: false },
-    { feature: 'Expense Tracking', signguy: true, shopvox: false, cyrious: 'Add-on', signtracker: false },
-    { feature: 'Logo/Design Generator', signguy: 'AI', shopvox: false, cyrious: false, signtracker: false },
-    { feature: 'Mobile-Friendly', signguy: true, shopvox: 'Partial', cyrious: false, signtracker: true },
-    { feature: 'Starting Price', signguy: '$79/mo', shopvox: '$99/mo', cyrious: '$150/mo', signtracker: '$79/mo' },
-    { feature: 'Founder Price', signguy: '$79/mo', shopvox: 'N/A', cyrious: 'N/A', signtracker: 'N/A' },
-  ];
-
   const pricingTiers = [
     {
       name: 'Starter Shop',
