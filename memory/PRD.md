@@ -78,6 +78,20 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
   - Invoice preview auth header fix
   - AI Tools link restored (no permission required)
   - Kanban drag-and-drop functionality
+- [x] **Website & Pricing Updates (Feb 18, 2026):**
+  - Pricing tiers: Starter $79, Growth $129, Pro $199 (founder)
+  - AI Tools Add-On: $49/mo founder
+  - Comparison table cleaned up (no alternating colors)
+  - Added new features to comparison table
+- [x] **Employee Portal Permissions (Feb 18, 2026):**
+  - Settings page section for controlling employee access
+  - Portal Sections: Tasks, Schedule, Pay Stubs, Time Clock, Edit Profile
+  - Sensitive Info: Job Details, Customer Info, Pricing (all OFF by default)
+- [x] **Customer CSV Import (Feb 18, 2026):**
+  - Import CSV button on Customers page
+  - Column mapping interface
+  - Download template feature
+  - Bulk create/update customers
   - Task CRUD API created (/api/tasks)
   - Kanban cards clickable to navigate to job
 - [x] **Employee Portal (Feb 16, 2026):**
