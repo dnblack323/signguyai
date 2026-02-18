@@ -139,7 +139,14 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
   - Added "AI Draft" button to Invoice Preview Modal
   - Added "AI Draft" button to Quote Preview Modal
   - Backend /api/ai/generate-email endpoint
-- [ ] **Documentation/Help Center (P0):** User guides, how-to articles, FAQs, searchable knowledge base integrated into app
+- [x] **Documentation & Help Center (Feb 18, 2026):**
+  - Complete docs site at /docs with sidebar navigation
+  - Getting Started guide (5-step walkthrough)
+  - Feature docs: Customers, Quotes & Jobs, Invoicing, Pricing Calculator
+  - Advanced docs: AI Tools Suite, Time Tracking, Employee Management
+  - FAQ section with collapsible questions
+  - "Docs" link added to landing page navigation
+- [ ] **Mobile Responsiveness (P1):** Owner dashboard mobile optimization
 - [ ] **Mobile Responsiveness (P0):** Optimize owner dashboard for mobile - collapsible sidebar, mobile-friendly tables, touch-optimized buttons
 - [ ] **RaceWrap AI Tool (P2):** Race Car Number & Sponsor Wrap Designer - custom race car numbers, full/partial wrap concepts, sponsor placement strategies (see ROADMAP.md for full specs)
 - [ ] Form & Document Library - questionnaires, inspections, aftercare guides with AI summarization, PDF export
