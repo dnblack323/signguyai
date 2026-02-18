@@ -508,42 +508,44 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
 
 
 async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate pricing for rigid signs"""
+    """Calculate pricing for rigid signs - FIXED with realistic pricing"""
     width = data.width_inches or 24
     height = data.length_inches or 18
     sqft = (width * height) / 144
     
+    # Reduced substrate costs - more realistic
     substrate_costs = {
-        "coroplast_4mm": 2.00,
-        "coroplast_10mm": 3.00,
-        "aluminum_040": 5.00,
-        "aluminum_063": 7.00,
-        "aluminum_080": 9.00,
-        "pvc_3mm": 4.00,
-        "pvc_6mm": 6.00,
-        "acrylic": 10.00,
-        "dibond": 12.00,
-        "mdo": 8.00,
-        "custom": getattr(data, 'material_cost_override', None) or 5.00
+        "coroplast_4mm": 1.00,   # Was 2.00
+        "coroplast_10mm": 1.50,  # Was 3.00
+        "aluminum_040": 3.00,    # Was 5.00
+        "aluminum_063": 4.50,    # Was 7.00
+        "aluminum_080": 6.00,    # Was 9.00
+        "pvc_3mm": 2.50,         # Was 4.00
+        "pvc_6mm": 3.50,         # Was 6.00
+        "acrylic": 6.00,         # Was 10.00
+        "dibond": 7.00,          # Was 12.00
+        "mdo": 5.00,             # Was 8.00
+        "custom": getattr(data, 'material_cost_override', None) or 3.00
     }
     
     substrate = data.substrate_type or "coroplast_4mm"
-    cost_per_sqft = substrate_costs.get(substrate, 3.00)
+    cost_per_sqft = substrate_costs.get(substrate, 2.00)
     
     substrate_cost = sqft * cost_per_sqft * quantity
     
-    print_cost = sqft * 3.00 * quantity
+    # Print cost reduced
+    print_cost = sqft * 1.50 * quantity  # Was 3.00
     
     finishing_cost = 0
     if getattr(data, 'rounded_corners', False):
-        finishing_cost += 2.00 * quantity
+        finishing_cost += 1.00 * quantity  # Was 2.00
     if getattr(data, 'drill_holes', False):
-        finishing_cost += (getattr(data, 'num_holes', 4) or 4) * 0.50 * quantity
+        finishing_cost += (getattr(data, 'num_holes', 4) or 4) * 0.25 * quantity  # Was 0.50
     if getattr(data, 'stand', False) or getattr(data, 'stake', False):
-        finishing_cost += 5.00 * quantity
+        finishing_cost += 3.00 * quantity  # Was 5.00
     
-    hourly_rate = defaults.get("hourly_rate", 75)
-    labor_hours = 0.25 + (sqft * 0.15) * quantity
+    hourly_rate = defaults.get("hourly_rate", 65)  # Was 75
+    labor_hours = 0.15 + (sqft * 0.10) * quantity  # Reduced from 0.25 + sqft * 0.15
     labor_cost = labor_hours * hourly_rate
     
     # Setup fee (charged once per order, not per item)
@@ -552,10 +554,11 @@ async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defau
     material_cost = substrate_cost + print_cost
     total_cost = material_cost + labor_cost + finishing_cost + setup_fee
     
-    markup = defaults.get("default_markup", 2.5)
+    # Reduced markup from 2.5x to 1.75x
+    markup = defaults.get("default_markup", 1.75)
     suggested_price = total_cost * markup
     
-    # Apply complexity multiplier
+    # Apply complexity multiplier (now capped at 1.5x)
     complexity_mult = get_complexity_multiplier(data.complexity or 1)
     suggested_price *= complexity_mult
     
