@@ -293,28 +293,39 @@ def create_pricing_result(
 
 
 async def calculate_promotional(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate pricing for promotional products - FIXED"""
+    """Calculate pricing for promotional products - Setup fee is OPTIONAL"""
     base_cost = data.unit_cost or 0
     product_type = data.promo_product_type
     if product_type == "magnets":
-        base_cost = base_cost or 1.50  # Was 2.50
+        base_cost = base_cost or 1.50
     elif product_type == "yard_signs":
-        base_cost = base_cost or 5.00  # Was 8.00
+        base_cost = base_cost or 5.00
     elif product_type == "stickers":
-        base_cost = base_cost or 0.25  # Was 0.50
+        base_cost = base_cost or 0.25
+    elif product_type == "license_plates":
+        base_cost = base_cost or 2.00
+    elif product_type == "branded_items":
+        base_cost = base_cost or 3.00
+    else:
+        base_cost = base_cost or 2.00
     
-    setup_fee = data.setup_fee or 15.0  # Was 25.0
     material_cost = base_cost * quantity
-    labor_cost = setup_fee
-    total_cost = material_cost + labor_cost
     
-    # Reduced markup from 2.5x to 1.8x
-    markup = defaults.get("default_markup", 1.8)
-    suggested_price = total_cost * markup
+    # Setup fee is OPTIONAL - only if checkbox is checked
+    include_setup = getattr(data, 'include_setup_fee', False)
+    setup_fee = 0
+    if include_setup:
+        setup_fee = data.setup_fee or defaults.get("promo_setup_fee", 15.0)
     
-    complexity_mult = get_complexity_multiplier(data.complexity or 1)
-    suggested_price *= complexity_mult
+    total_cost = material_cost + setup_fee
     
+    # Markup (setup fee not marked up)
+    markup = data.markup_percent / 100 if data.markup_percent else defaults.get("default_markup", 1.0)
+    if markup < 1:  # If percentage given (e.g., 100 = 100%)
+        markup = 1 + markup
+    suggested_price = material_cost * markup + setup_fee
+    
+    # Quantity discount
     discount = get_quantity_discount(quantity, defaults.get("quantity_breaks", {}))
     if discount > 0:
         suggested_price *= (1 - discount)
@@ -326,12 +337,14 @@ async def calculate_promotional(data: JobItemPricingData, quantity: float, defau
         additional_costs=0,
         suggested_price=suggested_price,
         breakdown={
+            "product_type": product_type,
             "base_unit_cost": base_cost,
             "quantity": quantity,
             "setup_fee": setup_fee,
+            "setup_included": include_setup,
             "markup": markup,
-            "complexity_multiplier": complexity_mult,
-            "quantity_discount": discount
+            "quantity_discount": discount,
+            "price_per_item": round(suggested_price / quantity, 2) if quantity > 0 else 0
         }
     )
 
