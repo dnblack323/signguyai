@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -9,11 +10,19 @@ import { Checkbox } from '../components/ui/checkbox';
 import { Loader2, Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
 
 export default function Login() {
-  const { login, register, error, clearError } = useAuth();
+  const navigate = useNavigate();
+  const { login, register, error, clearError, isAuthenticated } = useAuth();
   const [isRegister, setIsRegister] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState('');
+
+  // Redirect to dashboard if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
 
   // Form fields
   const [email, setEmail] = useState('');
