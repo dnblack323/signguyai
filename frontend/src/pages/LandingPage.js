@@ -426,8 +426,42 @@ export default function LandingPage() {
             </p>
           </div>
 
+          {/* Featured AI Tools - Business Assistant & Pricing Analyzer */}
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            <div className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30 rounded-2xl p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 bg-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Bot className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <Badge className="mb-2 bg-blue-500 text-white">Featured</Badge>
+                  <h3 className="text-xl font-bold text-white mb-2">AI Business Assistant</h3>
+                  <p className="text-gray-300 text-sm">
+                    Chat with your AI assistant anytime. Ask questions about your business, get insights into sales trends, 
+                    find information across jobs and customers, and get recommendations to improve your shop's performance.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-green-500/20 to-blue-500/20 border border-green-500/30 rounded-2xl p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 bg-green-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <TrendingUp className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <Badge className="mb-2 bg-green-500 text-white">Featured</Badge>
+                  <h3 className="text-xl font-bold text-white mb-2">Smart Pricing Analyzer</h3>
+                  <p className="text-gray-300 text-sm">
+                    Compare your prices to competitors in your area. Get AI-powered recommendations on where you're 
+                    leaving money on the table and where you might be pricing too high.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {aiTools.map((tool, index) => (
+            {aiTools.filter(tool => !tool.highlight).map((tool, index) => (
               <div
                 key={index}
                 className="bg-white border border-gray-200 rounded-xl p-4 hover:border-blue-400 hover:shadow-md transition group"
