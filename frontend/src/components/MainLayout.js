@@ -759,7 +759,7 @@ export const MainLayout = ({ children }) => {
             <span className="text-sm font-medium text-white">{tierLabels[previewTier].name}</span>
             <ChevronDown className="h-3 w-3 text-white/80" />
           </button>
-        )}
+        ))}
       </div>
     </div>
   );
