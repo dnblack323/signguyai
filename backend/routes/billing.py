@@ -209,6 +209,22 @@ async def get_trial_status(
     current_user: UserInDB = Depends(get_current_user_billing)
 ):
     """Get current trial status for the user"""
+    
+    # First check if user/tenant is a founder - founders are never locked
+    tenant = await db.tenants.find_one(
+        {"id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    
+    if tenant:
+        # Founders and active subscriptions are never locked
+        if tenant.get("is_founder") or tenant.get("subscription_status") == "active":
+            return TrialStatus(
+                is_trial=False,
+                is_locked=False,
+                can_upgrade=False
+            )
+    
     # Get subscription
     subscription = await db.subscriptions.find_one(
         {"tenant_id": current_user.tenant_id},
@@ -217,11 +233,6 @@ async def get_trial_status(
     
     if not subscription:
         # Check tenant creation time for 24hr free trial
-        tenant = await db.tenants.find_one(
-            {"id": current_user.tenant_id},
-            {"_id": 0, "created_at": 1}
-        )
-        
         if tenant and tenant.get("created_at"):
             created_at = datetime.fromisoformat(tenant["created_at"].replace("Z", "+00:00"))
             trial_end = created_at + timedelta(hours=24)
