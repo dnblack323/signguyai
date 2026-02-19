@@ -148,9 +148,8 @@ function App() {
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/contact" element={<ContactPage />} />
                 
-                {/* Login Page - Separate from protected routes */}
+                {/* Auth Routes - Public */}
                 <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
                 
                 {/* Documentation Routes */}
                 <Route path="/docs" element={<DocsLayout />}>
