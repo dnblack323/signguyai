@@ -128,7 +128,8 @@ async def get_current_user_profile(current_user: UserInDB = Depends(get_current_
         role=current_user.role,
         tenant_id=current_user.tenant_id,
         created_at=current_user.created_at,
-        updated_at=current_user.updated_at
+        updated_at=current_user.updated_at,
+        is_founder=getattr(current_user, 'is_founder', False)
     )
 
 
