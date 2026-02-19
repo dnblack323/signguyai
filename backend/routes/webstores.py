@@ -250,11 +250,18 @@ async def create_product(
                 name=v.get("name", ""),
                 size=v.get("size"),
                 color=v.get("color"),
+                tier=v.get("tier"),  # Support apparel tier
                 sku=v.get("sku"),
                 additional_cost=v.get("additional_cost", 0),
                 is_available=v.get("is_available", True)
             )
             variants.append(variant.model_dump())
+    
+    # Handle images - limit to 3
+    images = input.images[:3] if input.images else []
+    # Legacy support: if image_url is set but images is empty, use image_url
+    if input.image_url and not images:
+        images = [input.image_url]
     
     product = Product(
         tenant_id=current_user.tenant_id,
@@ -263,13 +270,24 @@ async def create_product(
         category=input.category,
         base_cost=input.base_cost,
         retail_price=input.retail_price,
-        image_url=input.image_url,
+        images=images,
+        image_url=images[0] if images else None,  # Keep legacy field populated
         has_variants=input.has_variants,
         variants=variants
     )
     doc = product.model_dump()
     await db.products.insert_one(doc)
     return product
+
+
+@products_router.get("/defaults/apparel-options")
+async def get_apparel_defaults():
+    """Get default apparel tier options and sizes"""
+    return {
+        "tiers": APPAREL_TIER_DEFAULTS,
+        "apparel_sizes": APPAREL_SIZES,
+        "decal_sizes": DECAL_SIZES
+    }
 
 
 @products_router.get("", response_model=List[Product])
