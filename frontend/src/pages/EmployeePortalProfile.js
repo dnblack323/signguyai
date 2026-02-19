@@ -23,8 +23,10 @@ const formatCurrency = (amount) => {
 export default function EmployeePortalProfile() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
   const [profile, setProfile] = useState(null);
   const [clockHistory, setClockHistory] = useState([]);
+  const fileInputRef = useRef(null);
   
   const employeeName = localStorage.getItem('employee_name') || 'Employee';
   const token = localStorage.getItem('employee_token');
