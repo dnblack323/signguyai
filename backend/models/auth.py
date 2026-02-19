@@ -68,6 +68,7 @@ class UserBase(BaseModel):
     is_active: bool = True
     role: UserRole = UserRole.STAFF
     tenant_id: Optional[str] = None
+    is_founder: bool = False
 
 class UserCreate(BaseModel):
     email: EmailStr
