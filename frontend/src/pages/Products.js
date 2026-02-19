@@ -488,7 +488,7 @@ export default function Products() {
                     )}
 
                     {/* Add Variant Form */}
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="grid grid-cols-5 gap-2">
                       <Input
                         placeholder="Variant name"
                         value={newVariant.name}
@@ -504,6 +504,20 @@ export default function Products() {
                         value={newVariant.color}
                         onChange={(e) => setNewVariant({ ...newVariant, color: e.target.value })}
                       />
+                      <Select
+                        value={newVariant.tier}
+                        onValueChange={(val) => setNewVariant({ ...newVariant, tier: val })}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue placeholder="Tier" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">No Tier</SelectItem>
+                          <SelectItem value="economy">Economy</SelectItem>
+                          <SelectItem value="standard">Standard</SelectItem>
+                          <SelectItem value="premium">Premium</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <div className="flex gap-1">
                         <Input
                           type="number"
@@ -511,7 +525,7 @@ export default function Products() {
                           placeholder="+$"
                           value={newVariant.additional_cost || ''}
                           onChange={(e) => setNewVariant({ ...newVariant, additional_cost: parseFloat(e.target.value) || 0 })}
-                          className="w-20"
+                          className="w-16"
                         />
                         <Button type="button" size="icon" onClick={handleAddVariant}>
                           <Plus className="h-4 w-4" />
