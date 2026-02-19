@@ -124,13 +124,19 @@ async def get_pending_approvals(current_user: UserInDB = Depends(get_current_act
     
     approvals = []
     for proof in pending_proofs:
-        # Get job info
-        job = await db.jobs.find_one({"id": proof.get("job_id")}, {"_id": 0, "name": 1, "customer_id": 1})
+        # Get job info (tenant-filtered for extra safety)
+        job = await db.jobs.find_one(
+            {"id": proof.get("job_id"), "tenant_id": tenant_id}, 
+            {"_id": 0, "name": 1, "customer_id": 1}
+        )
         if not job:
             continue
             
-        # Get customer name
-        customer = await db.customers.find_one({"id": job.get("customer_id")}, {"_id": 0, "name": 1})
+        # Get customer name (tenant-filtered for extra safety)
+        customer = await db.customers.find_one(
+            {"id": job.get("customer_id"), "tenant_id": tenant_id}, 
+            {"_id": 0, "name": 1}
+        )
         customer_name = customer.get("name", "Unknown") if customer else "Unknown"
         
         approvals.append(PendingApproval(
@@ -158,8 +164,11 @@ async def get_unread_messages(current_user: UserInDB = Depends(get_current_activ
     
     messages = []
     for conv in conversations:
-        # Get customer name
-        customer = await db.customers.find_one({"id": conv.get("customer_id")}, {"_id": 0, "name": 1})
+        # Get customer name (tenant-filtered for extra safety)
+        customer = await db.customers.find_one(
+            {"id": conv.get("customer_id"), "tenant_id": tenant_id}, 
+            {"_id": 0, "name": 1}
+        )
         customer_name = customer.get("name", "Unknown") if customer else "Unknown"
         
         messages.append(UnreadMessage(
