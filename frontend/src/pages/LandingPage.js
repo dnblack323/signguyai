@@ -8,7 +8,8 @@ import {
   Sparkles, BarChart3, Store, Shield, Zap, CheckCircle2,
   ChevronRight, Star, ArrowRight, Play, Menu, X,
   Briefcase, Calendar, MessageSquare, Palette, Image, Type,
-  Target, TrendingUp, Award, Heart, Rocket, Building2
+  Target, TrendingUp, Award, Heart, Rocket, Building2,
+  Bot, FileQuestion, ClipboardList, FolderOpen, Brain
 } from 'lucide-react';
 
 export default function LandingPage() {
