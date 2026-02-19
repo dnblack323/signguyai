@@ -40,12 +40,30 @@ class ProductCategory(str, Enum):
     PROMOTIONAL = "promotional"
     OTHER = "other"
 
+# Apparel tiers for default options
+class ApparelTier(str, Enum):
+    ECONOMY = "economy"
+    STANDARD = "standard"
+    PREMIUM = "premium"
+
+# Default apparel tier configurations
+APPAREL_TIER_DEFAULTS = {
+    "economy": {"name": "Economy", "description": "Budget-friendly option", "price_modifier": 0},
+    "standard": {"name": "Standard", "description": "Great quality at a good price", "price_modifier": 5},
+    "premium": {"name": "Premium", "description": "Top-tier quality materials", "price_modifier": 12}
+}
+
+# Common sizes for apparel and decals
+APPAREL_SIZES = ["XS", "S", "M", "L", "XL", "2XL", "3XL"]
+DECAL_SIZES = ["Small (3\")", "Medium (6\")", "Large (12\")", "XL (18\")", "Custom"]
+
 
 class ProductVariant(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     size: Optional[str] = None
     color: Optional[str] = None
+    tier: Optional[str] = None  # economy, standard, premium for apparel
     sku: Optional[str] = None
     additional_cost: float = 0
     is_available: bool = True
@@ -60,7 +78,9 @@ class Product(BaseModel):
     category: ProductCategory = ProductCategory.OTHER
     base_cost: float
     retail_price: float
-    image_url: Optional[str] = None
+    # Support up to 3 images
+    images: List[str] = []
+    image_url: Optional[str] = None  # Legacy field - still support for backwards compat
     has_variants: bool = False
     variants: List[ProductVariant] = []
     is_active: bool = True
@@ -73,7 +93,8 @@ class ProductCreate(BaseModel):
     category: ProductCategory = ProductCategory.OTHER
     base_cost: float
     retail_price: float
-    image_url: Optional[str] = None
+    images: List[str] = []  # Up to 3 images
+    image_url: Optional[str] = None  # Legacy support
     has_variants: bool = False
     variants: List[Dict[str, Any]] = []
 
@@ -84,6 +105,7 @@ class ProductUpdate(BaseModel):
     category: Optional[ProductCategory] = None
     base_cost: Optional[float] = None
     retail_price: Optional[float] = None
+    images: Optional[List[str]] = None
     image_url: Optional[str] = None
     has_variants: Optional[bool] = None
     variants: Optional[List[Dict[str, Any]]] = None
