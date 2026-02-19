@@ -158,7 +158,10 @@ async def update_employee(
     }, {"$set": update_data})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Employee not found")
-    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    employee = await db.employees.find_one(
+        {"id": employee_id, "tenant_id": current_user.tenant_id}, 
+        {"_id": 0}
+    )
     return employee
 
 
