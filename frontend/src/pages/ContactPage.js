@@ -76,9 +76,9 @@ export default function ContactPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0B0F17] text-white">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-md border-b border-white/10">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0B0F17]/90 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             <Link to="/home" className="flex items-center gap-3">
@@ -207,7 +207,7 @@ export default function ContactPage() {
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             placeholder="John Smith"
-                            className="bg-[#0a0a0a] border-white/20"
+                            className="bg-[#0B0F17] border-white/20"
                           />
                         </div>
                         <div className="space-y-2">
@@ -219,7 +219,7 @@ export default function ContactPage() {
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                             placeholder="john@signshop.com"
-                            className="bg-[#0a0a0a] border-white/20"
+                            className="bg-[#0B0F17] border-white/20"
                           />
                         </div>
                       </div>
@@ -232,7 +232,7 @@ export default function ContactPage() {
                             value={formData.company}
                             onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                             placeholder="Your Sign Shop"
-                            className="bg-[#0a0a0a] border-white/20"
+                            className="bg-[#0B0F17] border-white/20"
                           />
                         </div>
                         <div className="space-y-2">
@@ -243,7 +243,7 @@ export default function ContactPage() {
                             value={formData.subject}
                             onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                             placeholder="Question about..."
-                            className="bg-[#0a0a0a] border-white/20"
+                            className="bg-[#0B0F17] border-white/20"
                           />
                         </div>
                       </div>
@@ -257,7 +257,7 @@ export default function ContactPage() {
                           value={formData.message}
                           onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                           placeholder="Tell us what's on your mind..."
-                          className="bg-[#0a0a0a] border-white/20 resize-none"
+                          className="bg-[#0B0F17] border-white/20 resize-none"
                         />
                       </div>
                       
