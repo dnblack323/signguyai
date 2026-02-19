@@ -17,10 +17,10 @@ export default function LandingPage() {
   const [activeScreenshot, setActiveScreenshot] = useState(0);
 
   const screenshots = [
-    { name: 'Dashboard', description: 'Your command center', image: 'https://static.prod-images.emergentagent.com/jobs/9b7f34b8-177f-48ad-b4d8-74cf608027f1/images/c7c7e53bbdea412dae0b7c1f809015dd6ea9ace26dbdf12ab1299d6d28eba2a9.png' },
-    { name: 'Jobs', description: 'Track every project', image: 'https://static.prod-images.emergentagent.com/jobs/9b7f34b8-177f-48ad-b4d8-74cf608027f1/images/fc831c9f1ca385f87d32514cb1d4f338ef4875c08e16ed7a1fede6b636e0f299.png' },
-    { name: 'AI Tools', description: '24+ AI-powered tools', image: 'https://static.prod-images.emergentagent.com/jobs/9b7f34b8-177f-48ad-b4d8-74cf608027f1/images/d5a686159ed4e8884634e06a28b4c222375a998899ba1aabf6b0b8689ad7f957.png' },
-    { name: 'Pricing Calculator', description: '8 specialized calculators', image: 'https://static.prod-images.emergentagent.com/jobs/9b7f34b8-177f-48ad-b4d8-74cf608027f1/images/c9f9486bf66063359dddc2676f85d066b1e0f262da3d4b1572a295560f7f04be.png' },
+    { name: 'Dashboard', description: 'Your command center', image: '/screenshots/dashboard.png' },
+    { name: 'Jobs', description: 'Track every project', image: '/screenshots/jobs.png' },
+    { name: 'AI Tools', description: '24+ AI-powered tools', image: '/screenshots/ai-tools.png' },
+    { name: 'Pricing Calculator', description: '8 specialized calculators', image: '/screenshots/pricing.png' },
   ];
 
   const features = [
