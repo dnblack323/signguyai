@@ -931,7 +931,7 @@ from routes.invoices import router as invoices_router
 from routes.employees import employees_router, timeclock_router, payroll_router
 from routes.pricing import router as pricing_router
 from routes.portal import router as portal_router
-from routes.webstores import webstores_router, products_router
+from routes.webstores import webstores_router, products_router, storefront_router
 from routes.tiers import router as tiers_router
 from routes.billing import router as billing_router, webhook_router
 from routes.dashboard import router as dashboard_router
@@ -956,6 +956,7 @@ api_router.include_router(pricing_router)
 api_router.include_router(portal_router)
 api_router.include_router(webstores_router)
 api_router.include_router(products_router)
+api_router.include_router(storefront_router)  # Public storefront routes
 api_router.include_router(tiers_router)
 api_router.include_router(billing_router)
 api_router.include_router(webhook_router)
