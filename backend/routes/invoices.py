@@ -108,7 +108,10 @@ async def update_invoice(
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Invoice not found")
-    invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+    invoice = await db.invoices.find_one(
+        {"id": invoice_id, "tenant_id": current_user.tenant_id}, 
+        {"_id": 0}
+    )
     return invoice
 
 
