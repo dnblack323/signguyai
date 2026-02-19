@@ -204,6 +204,29 @@ export default function PricingPagePublic() {
             </Link>
           </div>
           <p className="text-sm text-gray-500 -mt-8 mb-8">Full access, no credit card required</p>
+
+          {/* Billing Cycle Toggle */}
+          <div className="flex items-center justify-center gap-4 mb-8">
+            <span className={`text-sm ${billingCycle === 'monthly' ? 'text-white' : 'text-gray-500'}`}>Monthly</span>
+            <button
+              onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'annual' : 'monthly')}
+              className={`relative w-14 h-7 rounded-full transition-colors ${
+                billingCycle === 'annual' ? 'bg-[#2F8BFB]' : 'bg-gray-600'
+              }`}
+            >
+              <span
+                className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-transform ${
+                  billingCycle === 'annual' ? 'translate-x-8' : 'translate-x-1'
+                }`}
+              />
+            </button>
+            <span className={`text-sm ${billingCycle === 'annual' ? 'text-white' : 'text-gray-500'}`}>
+              Annual
+              <Badge className="ml-2 bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                1 Month Free
+              </Badge>
+            </span>
+          </div>
         </div>
       </section>
 
@@ -213,6 +236,11 @@ export default function PricingPagePublic() {
           <div className="grid md:grid-cols-3 gap-6 items-start">
             {tiers.map((tier) => {
               const Icon = tier.icon;
+              const displayPrice = billingCycle === 'annual' 
+                ? Math.round(tier.annualPrice / 12) 
+                : tier.founderPrice;
+              const totalAnnual = tier.annualPrice;
+              
               return (
                 <Card
                   key={tier.name}
@@ -246,7 +274,7 @@ export default function PricingPagePublic() {
                     {/* Pricing */}
                     <div className="mb-1">
                       <div className="flex items-baseline gap-2">
-                        <span className="text-4xl font-bold text-[#2F8BFB]">${tier.founderPrice}</span>
+                        <span className="text-4xl font-bold text-[#2F8BFB]">${displayPrice}</span>
                         <span className="text-gray-500">/month</span>
                       </div>
                       <div className="text-sm text-gray-500 line-through">
