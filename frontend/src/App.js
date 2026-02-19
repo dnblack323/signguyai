@@ -99,14 +99,14 @@ function ProtectedRoutes() {
   }
 
   if (!isAuthenticated) {
-    return <Login />;
+    return <Navigate to="/login" replace />;
   }
 
   return (
     <TrialLockout>
       <MainLayout>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/customers" element={<Customers />} />
           <Route path="/quotes" element={<Quotes />} />
           <Route path="/jobs" element={<Jobs />} />
