@@ -51,19 +51,21 @@ const StatCard = ({ title, value, icon: Icon, subtitle, href, accentColor = 'var
 );
 
 const getStatusBadgeStyles = (status) => {
+  // High-contrast badge styles for readability
   const styles = {
-    quoted: { backgroundColor: 'var(--accent-soft)', color: 'var(--accent)' },
-    in_production: { backgroundColor: 'var(--warning-soft)', color: 'var(--warning)' },
-    complete: { backgroundColor: 'var(--success-soft)', color: 'var(--success)' },
-    delivered: { backgroundColor: 'var(--success-soft)', color: 'var(--success)' },
-    overdue: { backgroundColor: 'var(--danger-soft)', color: 'var(--danger)' },
-    paid: { backgroundColor: 'var(--success-soft)', color: 'var(--success)' },
-    sent: { backgroundColor: 'var(--warning-soft)', color: 'var(--warning)' },
-    draft: { backgroundColor: 'var(--surface-2)', color: 'var(--text-muted)' },
-    working: { backgroundColor: 'var(--success-soft)', color: 'var(--success)' },
-    on_break: { backgroundColor: 'var(--warning-soft)', color: 'var(--warning)' },
-    urgent: { backgroundColor: 'var(--danger-soft)', color: 'var(--danger)' },
-    pending: { backgroundColor: 'var(--warning-soft)', color: 'var(--warning)' },
+    quoted: { backgroundColor: '#2F8BFB', color: '#FFFFFF' },           // Blue with white text
+    in_production: { backgroundColor: '#F59E0B', color: '#000000' },    // Amber with black text for contrast
+    complete: { backgroundColor: '#22C55E', color: '#FFFFFF' },         // Green with white text
+    delivered: { backgroundColor: '#22C55E', color: '#FFFFFF' },        // Green with white text
+    overdue: { backgroundColor: '#EF4444', color: '#FFFFFF' },          // Red with white text
+    paid: { backgroundColor: '#22C55E', color: '#FFFFFF' },             // Green with white text
+    sent: { backgroundColor: '#8B5CF6', color: '#FFFFFF' },             // Purple with white text
+    draft: { backgroundColor: '#6B7280', color: '#FFFFFF' },            // Gray with white text
+    working: { backgroundColor: '#22C55E', color: '#FFFFFF' },          // Green with white text
+    on_break: { backgroundColor: '#F59E0B', color: '#000000' },         // Amber with black text
+    urgent: { backgroundColor: '#EF4444', color: '#FFFFFF' },           // Red with white text
+    pending: { backgroundColor: '#F59E0B', color: '#000000' },          // Amber with black text
+    approved: { backgroundColor: '#2F8BFB', color: '#FFFFFF' },         // Blue with white text
   };
   return styles[status] || styles.draft;
 };
