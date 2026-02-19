@@ -255,8 +255,11 @@ async def get_todays_schedule(current_user: UserInDB = Depends(get_current_activ
     
     schedule = []
     for job in jobs:
-        # Get customer name
-        customer = await db.customers.find_one({"id": job.get("customer_id")}, {"_id": 0, "name": 1})
+        # Get customer name (tenant-filtered for extra safety)
+        customer = await db.customers.find_one(
+            {"id": job.get("customer_id"), "tenant_id": tenant_id}, 
+            {"_id": 0, "name": 1}
+        )
         customer_name = customer.get("name", "Unknown") if customer else "Unknown"
         
         # Determine priority based on due date
