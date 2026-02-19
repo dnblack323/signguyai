@@ -316,6 +316,14 @@ Comprehensive document management system for customer communication.
 - **Dashboard Badge Fix:** Status badges in "Today's Schedule" now have high-contrast colors (solid backgrounds with white/black text)
 - **Theme Consistency:** Applied blue accent color (#2F8BFB) across all marketing pages (was using teal #00D4FF)
 - **Background Colors:** Standardized dark backgrounds to #0B0F17 and secondary surfaces to #111826
+- **Logo Updates:** Updated to new brand logos:
+  - Slant logo on sign-in page
+  - Long logo ("The Sign Guy AI") in marketing headers
+  - Square logo in app sidebar
+- **Promo Codes System:** Admin feature to create discount codes for friends/beta testers
+  - Create codes with % off, $ off, or free extended trial
+  - Track usage, set limits and expiration dates
+  - Located in Admin > Promo Codes
 
 ## Last Updated
 February 19, 2026
