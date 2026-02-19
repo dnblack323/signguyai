@@ -280,6 +280,11 @@ export default function PricingPagePublic() {
                       <div className="text-sm text-gray-500 line-through">
                         ${tier.regularPrice}/mo after founder-phase
                       </div>
+                      {billingCycle === 'annual' && (
+                        <div className="text-xs text-[#2F8BFB] mt-1">
+                          ${totalAnnual}/year (1 month free!)
+                        </div>
+                      )}
                     </div>
 
                     <div className="text-sm text-green-400 mb-1">
@@ -290,7 +295,7 @@ export default function PricingPagePublic() {
                       No onboarding fee (saves up to $599)
                     </div>
 
-                    <Link to="/register">
+                    <Link to="/login">
                       <Button
                         className={`w-full mb-4 ${
                           tier.popular
