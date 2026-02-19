@@ -218,8 +218,8 @@ export default function LandingPage() {
               Manage customers, jobs, quotes, invoices, employees, and more — with 15+ AI tools that no other sign shop software has. Built by a sign shop owner who knows exactly what you need.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <Link to="/register">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+              <Link to="/login">
                 <Button size="lg" className="bg-[#2F8BFB] hover:bg-[#1E7AF0] text-black font-semibold text-lg px-8 py-6 h-auto">
                   Start Your Free Trial
                   <ArrowRight className="w-5 h-5 ml-2" />
@@ -231,6 +231,22 @@ export default function LandingPage() {
                   Watch Demo
                 </Button>
               </a>
+            </div>
+
+            {/* Quick Links */}
+            <div className="flex flex-wrap justify-center gap-6 mb-12 text-sm">
+              <Link to="/features" className="text-gray-400 hover:text-[#2F8BFB] transition flex items-center gap-1">
+                <Sparkles className="w-4 h-4" /> See All Features
+              </Link>
+              <Link to="/about" className="text-gray-400 hover:text-[#2F8BFB] transition flex items-center gap-1">
+                <Heart className="w-4 h-4" /> Our Story
+              </Link>
+              <Link to="/pricing" className="text-gray-400 hover:text-[#2F8BFB] transition flex items-center gap-1">
+                <DollarSign className="w-4 h-4" /> Founder Pricing
+              </Link>
+              <Link to="/docs" className="text-gray-400 hover:text-[#2F8BFB] transition flex items-center gap-1">
+                <FileText className="w-4 h-4" /> Documentation
+              </Link>
             </div>
 
             {/* Stats Bar */}
