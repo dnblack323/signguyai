@@ -47,6 +47,15 @@
 
 ## 🟡 FUTURE FEATURES (Backlog)
 
+### Document Library (Coming Soon - Announced on Website)
+- [ ] **Smart Document Library** - Central document management system
+  - [ ] Attach questionnaires to jobs (logo design, project intake)
+  - [ ] Vehicle inspection forms (fill on-site, save to job)
+  - [ ] Contract templates attached to quotes/jobs
+  - [ ] AI summarizes form responses for team
+  - [ ] Customer portal form filling
+  - [ ] Central document storage and organization
+
 ### New Modules
 - [ ] **Form/Document Library** - Templates for common sign shop forms
 - [ ] **AI Smart Quote Builder** - AI-assisted quote generation
