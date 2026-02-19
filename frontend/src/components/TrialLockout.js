@@ -52,11 +52,10 @@ export const TrialLockout = ({ children }) => {
     );
   }
 
-  // TEMPORARILY DISABLED: Trial lockout bypass for development/testing
-  // TODO: Re-enable once billing system is complete
-  // if (trialStatus?.is_locked) {
-  //   return <LockoutScreen />;
-  // }
+  // Trial lockout - show lockout screen if trial is expired
+  if (trialStatus?.is_locked) {
+    return <LockoutScreen />;
+  }
 
   // Otherwise, render children normally
   return children;
