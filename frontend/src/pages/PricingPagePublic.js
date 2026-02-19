@@ -10,6 +10,7 @@ import {
 
 export default function PricingPagePublic() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' or 'annual'
 
   const tiers = [
     {
@@ -20,6 +21,7 @@ export default function PricingPagePublic() {
       description: 'Perfect for small shops just getting started',
       founderPrice: 79,
       regularPrice: 129,
+      annualPrice: 79 * 11, // 1 month free
       savings: 50,
       features: [
         'Customer Management',
@@ -41,8 +43,9 @@ export default function PricingPagePublic() {
       description: 'For growing shops that need more power',
       founderPrice: 129,
       regularPrice: 229,
+      annualPrice: 129 * 11, // 1 month free
       savings: 100,
-      inheritText: 'Everything in Tier 1, plus:',
+      inheritText: 'Everything in Starter, plus:',
       features: [
         '5 Webstores',
         '100 AI generations/month',
@@ -63,8 +66,9 @@ export default function PricingPagePublic() {
       description: 'Full power for serious operations',
       founderPrice: 199,
       regularPrice: 379,
+      annualPrice: 199 * 11, // 1 month free
       savings: 180,
-      inheritText: 'Everything in Tier 2, plus:',
+      inheritText: 'Everything in Growth, plus:',
       features: [
         'Unlimited Webstores',
         'Unlimited AI generations',
