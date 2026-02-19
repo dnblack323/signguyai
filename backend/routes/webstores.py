@@ -386,6 +386,14 @@ async def update_product(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Update a product"""
+    # First verify the product belongs to this tenant
+    existing = await db.products.find_one(
+        {"id": product_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
     update_data = {k: v for k, v in input.model_dump().items() if v is not None}
     if "variants" in update_data and update_data["variants"]:
         variants = []
@@ -400,9 +408,10 @@ async def update_product(
             {"id": product_id, "tenant_id": current_user.tenant_id}, 
             {"$set": update_data}
         )
-    product = await db.products.find_one({"id": product_id}, {"_id": 0})
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
+    product = await db.products.find_one(
+        {"id": product_id, "tenant_id": current_user.tenant_id}, 
+        {"_id": 0}
+    )
     return product
 
 
