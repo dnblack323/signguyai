@@ -178,9 +178,13 @@ async def get_unread_messages(current_user: UserInDB = Depends(get_current_activ
 async def get_clocked_in_employees(current_user: UserInDB = Depends(get_current_active_user)):
     """Get employees currently clocked in"""
     today = datetime.now(timezone.utc).date().isoformat()
+    tenant_id = current_user.tenant_id
     
-    # Get all employees
-    employees = await db.employees.find({"is_active": True}, {"_id": 0}).to_list(100)
+    # Get all employees FOR THIS TENANT ONLY
+    employees = await db.employees.find({
+        "is_active": True,
+        "tenant_id": tenant_id
+    }, {"_id": 0}).to_list(100)
     
     clocked_in = []
     for emp in employees:
