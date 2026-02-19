@@ -428,19 +428,43 @@ job_items_router = APIRouter(prefix="/job-items", tags=["Job Items"])
 
 
 @job_items_router.get("/{item_id}", response_model=JobItem)
-async def get_job_item(item_id: str):
-    """Get a specific job item"""
+async def get_job_item(
+    item_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Get a specific job item (tenant-scoped)"""
     job_item = await db.job_items.find_one({"id": item_id}, {"_id": 0})
     if not job_item:
         raise HTTPException(status_code=404, detail="Job item not found")
+    
+    # Verify the parent job belongs to this tenant
+    job = await db.jobs.find_one(
+        {"id": job_item["job_id"], "tenant_id": current_user.tenant_id},
+        {"_id": 0, "id": 1}
+    )
+    if not job:
+        raise HTTPException(status_code=404, detail="Job item not found")
+    
     return job_item
 
 
 @job_items_router.put("/{item_id}", response_model=JobItem)
-async def update_job_item(item_id: str, input: JobItemUpdate):
-    """Update a job item"""
+async def update_job_item(
+    item_id: str, 
+    input: JobItemUpdate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Update a job item (tenant-scoped)"""
     job_item = await db.job_items.find_one({"id": item_id}, {"_id": 0})
     if not job_item:
+        raise HTTPException(status_code=404, detail="Job item not found")
+    
+    # Verify the parent job belongs to this tenant
+    job = await db.jobs.find_one(
+        {"id": job_item["job_id"], "tenant_id": current_user.tenant_id},
+        {"_id": 0, "id": 1}
+    )
+    if not job:
         raise HTTPException(status_code=404, detail="Job item not found")
     
     update_data = {k: v for k, v in input.model_dump().items() if v is not None}
@@ -463,10 +487,21 @@ async def update_job_item(item_id: str, input: JobItemUpdate):
 
 
 @job_items_router.delete("/{item_id}")
-async def delete_job_item(item_id: str):
-    """Delete a job item"""
+async def delete_job_item(
+    item_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Delete a job item (tenant-scoped)"""
     job_item = await db.job_items.find_one({"id": item_id}, {"_id": 0})
     if not job_item:
+        raise HTTPException(status_code=404, detail="Job item not found")
+    
+    # Verify the parent job belongs to this tenant
+    job = await db.jobs.find_one(
+        {"id": job_item["job_id"], "tenant_id": current_user.tenant_id},
+        {"_id": 0, "id": 1}
+    )
+    if not job:
         raise HTTPException(status_code=404, detail="Job item not found")
     
     job_id = job_item["job_id"]
