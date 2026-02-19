@@ -54,11 +54,12 @@ export default function EmployeePortalLogin() {
       <div className="w-full max-w-md">
         {/* Logo/Header */}
         <div className="text-center mb-8">
-          <div 
-            className="inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-4"
-            style={{ backgroundColor: 'var(--accent)' }}
-          >
-            <HardHat className="h-10 w-10 text-white" />
+          <div className="inline-flex items-center justify-center mb-4">
+            <img 
+              src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/zofnt5d0_sgai%20square.png" 
+              alt="SignGuy AI" 
+              className="h-20 w-auto"
+            />
           </div>
           <h1 className="text-2xl font-bold font-heading" style={{ color: 'var(--text-on-dark)' }}>
             Employee Portal
