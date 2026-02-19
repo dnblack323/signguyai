@@ -43,6 +43,7 @@ class EmployeeUpdate(BaseModel):
     role: Optional[str] = None
     is_active: Optional[bool] = None
     pin: Optional[str] = None
+    profile_image: Optional[str] = None
 
 class Employee(EmployeeBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
