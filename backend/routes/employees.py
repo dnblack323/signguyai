@@ -117,9 +117,12 @@ async def create_employee(
 
 
 @employees_router.get("", response_model=List[Employee])
-async def get_employees(is_active: Optional[bool] = None):
-    """List all employees"""
-    query = {}
+async def get_employees(
+    is_active: Optional[bool] = None,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """List all employees for current tenant"""
+    query = {"tenant_id": current_user.tenant_id}
     if is_active is not None:
         query["is_active"] = is_active
     employees = await db.employees.find(query, {"_id": 0}).to_list(1000)
@@ -127,19 +130,32 @@ async def get_employees(is_active: Optional[bool] = None):
 
 
 @employees_router.get("/{employee_id}", response_model=Employee)
-async def get_employee(employee_id: str):
-    """Get a specific employee"""
-    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+async def get_employee(
+    employee_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Get a specific employee (must belong to current tenant)"""
+    employee = await db.employees.find_one({
+        "id": employee_id,
+        "tenant_id": current_user.tenant_id
+    }, {"_id": 0})
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
     return employee
 
 
 @employees_router.put("/{employee_id}", response_model=Employee)
-async def update_employee(employee_id: str, input: EmployeeUpdate):
-    """Update an employee"""
+async def update_employee(
+    employee_id: str, 
+    input: EmployeeUpdate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Update an employee (must belong to current tenant)"""
     update_data = {k: v for k, v in input.model_dump().items() if v is not None}
-    result = await db.employees.update_one({"id": employee_id}, {"$set": update_data})
+    result = await db.employees.update_one({
+        "id": employee_id,
+        "tenant_id": current_user.tenant_id
+    }, {"$set": update_data})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Employee not found")
     employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
