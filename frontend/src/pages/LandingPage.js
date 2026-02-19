@@ -490,6 +490,56 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Document Library Coming Soon */}
+      <section className="py-16 px-4 bg-gradient-to-b from-[#0B0F17] to-[#111826]">
+        <div className="max-w-5xl mx-auto">
+          <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-2xl p-8 md:p-12">
+            <div className="flex flex-col md:flex-row items-start gap-6">
+              <div className="w-16 h-16 bg-amber-500 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <FolderOpen className="w-8 h-8 text-white" />
+              </div>
+              <div className="flex-1">
+                <Badge className="mb-3 bg-amber-500/20 text-amber-400 border-amber-500/30">Coming Soon</Badge>
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">Smart Document Library</h2>
+                <p className="text-gray-300 mb-6">
+                  Attach questionnaires, inspection forms, contracts, and PDFs directly to any job. AI automatically summarizes responses so your team gets the info they need instantly.
+                </p>
+                <div className="grid sm:grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-white font-medium">Logo Design Questionnaires</div>
+                      <div className="text-gray-400">Send to customers, AI summarizes for your designer</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-white font-medium">Vehicle Inspection Forms</div>
+                      <div className="text-gray-400">Fill out on-site, save to job automatically</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-white font-medium">Contract Templates</div>
+                      <div className="text-gray-400">Reusable forms attached to quotes/jobs</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-white font-medium">Central Document Storage</div>
+                      <div className="text-gray-400">All documents organized in one place</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Comparison Table */}
       <section className="py-12 px-4 bg-[#1a1a1a]">
         <div className="max-w-6xl mx-auto">
