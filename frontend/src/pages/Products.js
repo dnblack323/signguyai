@@ -75,12 +75,22 @@ export default function Products() {
     category: 'other',
     base_cost: 0,
     retail_price: 0,
-    image_url: '',
+    images: [],  // Support up to 3 images
     has_variants: false,
     variants: []
   });
 
-  const [newVariant, setNewVariant] = useState({ name: '', size: '', color: '', additional_cost: 0 });
+  const [newVariant, setNewVariant] = useState({ name: '', size: '', color: '', tier: '', additional_cost: 0 });
+  const [newImageUrl, setNewImageUrl] = useState('');
+
+  // Default apparel options
+  const apparelTiers = [
+    { value: 'economy', label: 'Economy', priceModifier: 0 },
+    { value: 'standard', label: 'Standard', priceModifier: 5 },
+    { value: 'premium', label: 'Premium', priceModifier: 12 }
+  ];
+  const apparelSizes = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'];
+  const decalSizes = ['Small (3")', 'Medium (6")', 'Large (12")', 'XL (18")', 'Custom'];
 
   useEffect(() => {
     loadProducts();
@@ -104,11 +114,12 @@ export default function Products() {
       category: 'other',
       base_cost: 0,
       retail_price: 0,
-      image_url: '',
+      images: [],
       has_variants: false,
       variants: []
     });
-    setNewVariant({ name: '', size: '', color: '', additional_cost: 0 });
+    setNewVariant({ name: '', size: '', color: '', tier: '', additional_cost: 0 });
+    setNewImageUrl('');
     setEditingProduct(null);
   };
 
@@ -121,7 +132,7 @@ export default function Products() {
         category: product.category,
         base_cost: product.base_cost,
         retail_price: product.retail_price,
-        image_url: product.image_url || '',
+        images: product.images || (product.image_url ? [product.image_url] : []),
         has_variants: product.has_variants,
         variants: product.variants || []
       });
@@ -129,6 +140,29 @@ export default function Products() {
       resetForm();
     }
     setIsDialogOpen(true);
+  };
+
+  const handleAddImage = () => {
+    if (!newImageUrl.trim()) {
+      toast.error('Please enter an image URL');
+      return;
+    }
+    if (formData.images.length >= 3) {
+      toast.error('Maximum 3 images allowed');
+      return;
+    }
+    setFormData({
+      ...formData,
+      images: [...formData.images, newImageUrl.trim()]
+    });
+    setNewImageUrl('');
+  };
+
+  const handleRemoveImage = (index) => {
+    setFormData({
+      ...formData,
+      images: formData.images.filter((_, i) => i !== index)
+    });
   };
 
   const handleAddVariant = () => {
@@ -140,7 +174,49 @@ export default function Products() {
       ...formData,
       variants: [...formData.variants, { ...newVariant, id: `temp-${Date.now()}` }]
     });
-    setNewVariant({ name: '', size: '', color: '', additional_cost: 0 });
+    setNewVariant({ name: '', size: '', color: '', tier: '', additional_cost: 0 });
+  };
+
+  // Quick add variants for apparel with tiers
+  const handleAddApparelVariants = () => {
+    const newVariants = [];
+    apparelTiers.forEach(tier => {
+      apparelSizes.forEach(size => {
+        newVariants.push({
+          id: `temp-${Date.now()}-${tier.value}-${size}`,
+          name: `${tier.label} - ${size}`,
+          size: size,
+          tier: tier.value,
+          color: '',
+          additional_cost: tier.priceModifier
+        });
+      });
+    });
+    setFormData({
+      ...formData,
+      has_variants: true,
+      variants: [...formData.variants, ...newVariants]
+    });
+    toast.success(`Added ${newVariants.length} apparel variants`);
+  };
+
+  // Quick add decal size variants
+  const handleAddDecalVariants = () => {
+    const priceModifiers = { 'Small (3")': 0, 'Medium (6")': 5, 'Large (12")': 15, 'XL (18")': 30, 'Custom': 50 };
+    const newVariants = decalSizes.map(size => ({
+      id: `temp-${Date.now()}-${size}`,
+      name: size,
+      size: size,
+      tier: '',
+      color: '',
+      additional_cost: priceModifiers[size] || 0
+    }));
+    setFormData({
+      ...formData,
+      has_variants: true,
+      variants: [...formData.variants, ...newVariants]
+    });
+    toast.success(`Added ${newVariants.length} decal size variants`);
   };
 
   const handleRemoveVariant = (index) => {
