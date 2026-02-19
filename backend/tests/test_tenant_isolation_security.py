@@ -267,15 +267,19 @@ class TestTenantIsolation:
     def test_job_items_isolation(self, headers_a, headers_b):
         """Job items should now require auth and verify parent job tenant"""
         # First create customer and job for Tenant A
+        unique_cust = f"SECURITY_ITEM_CUSTOMER_{uuid.uuid4().hex[:8]}"
         customer_resp = requests.post(f"{BASE_URL}/api/customers", json={
-            "name": f"SECURITY_ITEM_CUSTOMER_{uuid.uuid4().hex[:8]}"
+            "name": unique_cust
         }, headers=headers_a)
+        assert customer_resp.status_code in [200, 201], f"Failed to create customer: {customer_resp.text}"
         customer_a_id = customer_resp.json().get("id")
         
+        unique_job = f"SECURITY_ITEM_JOB_{uuid.uuid4().hex[:8]}"
         job_resp = requests.post(f"{BASE_URL}/api/jobs", json={
-            "name": f"SECURITY_ITEM_JOB_{uuid.uuid4().hex[:8]}",
+            "name": unique_job,
             "customer_id": customer_a_id
         }, headers=headers_a)
+        assert job_resp.status_code in [200, 201], f"Failed to create job: {job_resp.text}"
         job_a_id = job_resp.json().get("id")
         
         # Create job item as Tenant A
@@ -308,9 +312,9 @@ class TestTenantIsolation:
             "description": "Unauthorized item",
             "quantity": 1,
             "unit_price": 100.0,
-            "item_type": "sign"
+            "item_type": "other"
         }, headers=headers_b)
-        assert create_b_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can create items on Tenant A's job!"
+        assert create_b_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can create items on Tenant A's job! Status: {create_b_resp.status_code}, Response: {create_b_resp.text}"
         
         # Cleanup
         requests.delete(f"{BASE_URL}/api/jobs/{job_a_id}", headers=headers_a)
