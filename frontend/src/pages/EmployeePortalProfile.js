@@ -61,6 +61,49 @@ export default function EmployeePortalProfile() {
     }
   };
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // Convert to base64
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64Image = reader.result;
+        
+        // Upload to backend
+        await axios.put(
+          `${API_URL}/api/employee-portal/profile/image`,
+          { profile_image: base64Image },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        
+        // Update local state
+        setProfile(prev => ({ ...prev, profile_image: base64Image }));
+        toast.success('Profile image updated!');
+        setUploading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Failed to upload image:', err);
+      toast.error('Failed to upload image');
+      setUploading(false);
+    }
+  };
+
   const formatTime = (isoString) => {
     if (!isoString) return '';
     const date = new Date(isoString);
