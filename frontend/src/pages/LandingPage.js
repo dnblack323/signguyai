@@ -146,7 +146,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             <div className="flex items-center gap-3">
-              <img src="/logo.png" alt="TheSignGuy AI" className="h-14 w-auto" />
+              <img src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/k3asaz65_sgai%20long.png" alt="TheSignGuy AI" className="h-14 w-auto" />
             </div>
             
             {/* Desktop Nav */}
@@ -698,7 +698,7 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <img src="/logo.png" alt="TheSignGuy AI" className="h-12 w-auto" />
+                <img src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/k3asaz65_sgai%20long.png" alt="TheSignGuy AI" className="h-12 w-auto" />
               </div>
               <p className="text-gray-400 text-sm">
                 The AI-powered operating system for serious sign shops.
