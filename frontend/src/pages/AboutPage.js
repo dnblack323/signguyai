@@ -58,9 +58,9 @@ export default function AboutPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0B0F17] text-white">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-md border-b border-white/10">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0B0F17]/90 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             <Link to="/home" className="flex items-center gap-3">
@@ -159,7 +159,7 @@ export default function AboutPage() {
           </p>
           
           <div className="grid md:grid-cols-2 gap-6">
-            <Card className="bg-[#0a0a0a] border-red-500/30">
+            <Card className="bg-[#0B0F17] border-red-500/30">
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold text-red-400 mb-2">Too Expensive</h3>
                 <p className="text-gray-400">
@@ -168,7 +168,7 @@ export default function AboutPage() {
                 </p>
               </CardContent>
             </Card>
-            <Card className="bg-[#0a0a0a] border-red-500/30">
+            <Card className="bg-[#0B0F17] border-red-500/30">
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold text-red-400 mb-2">Built by Committees</h3>
                 <p className="text-gray-400">
@@ -177,7 +177,7 @@ export default function AboutPage() {
                 </p>
               </CardContent>
             </Card>
-            <Card className="bg-[#0a0a0a] border-red-500/30">
+            <Card className="bg-[#0B0F17] border-red-500/30">
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold text-red-400 mb-2">Outdated Technology</h3>
                 <p className="text-gray-400">
@@ -186,7 +186,7 @@ export default function AboutPage() {
                 </p>
               </CardContent>
             </Card>
-            <Card className="bg-[#0a0a0a] border-red-500/30">
+            <Card className="bg-[#0B0F17] border-red-500/30">
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold text-red-400 mb-2">No Innovation</h3>
                 <p className="text-gray-400">
@@ -226,7 +226,7 @@ export default function AboutPage() {
       {/* Founder Promise */}
       <section className="py-20 px-4 bg-gradient-to-r from-[#00D4FF]/10 to-blue-600/10">
         <div className="max-w-4xl mx-auto">
-          <Card className="bg-[#0a0a0a] border-[#00D4FF]/30">
+          <Card className="bg-[#0B0F17] border-[#00D4FF]/30">
             <CardContent className="p-8 md:p-12">
               <div className="flex items-start gap-4 mb-6">
                 <div className="w-12 h-12 bg-[#00D4FF]/20 rounded-xl flex items-center justify-center flex-shrink-0">
