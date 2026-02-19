@@ -231,17 +231,17 @@ export const Sidebar = () => {
             {isExpanded ? (
               /* Long logo when expanded */
               <img 
-                src="https://customer-assets.emergentagent.com/job_signmaster-1/artifacts/mig22jgl_long.png" 
+                src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/k3asaz65_sgai%20long.png" 
                 alt="SignGuy AI" 
-                className="h-8 w-auto object-contain"
+                className="h-10 w-auto object-contain"
               />
             ) : (
               /* Square logo when collapsed */
-              <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
                 <img 
-                  src="https://customer-assets.emergentagent.com/job_signmaster-1/artifacts/lr01uj91_square.png" 
+                  src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/zofnt5d0_sgai%20square.png" 
                   alt="SG" 
-                  className="h-7 w-auto object-contain"
+                  className="h-8 w-auto object-contain"
                 />
               </div>
             )}
@@ -485,11 +485,11 @@ export const MobileNav = ({ isOpen, onClose }) => {
           {/* Header */}
           <div className="flex h-16 items-center justify-between px-4 border-b border-[var(--border-dark)]">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/20 flex items-center justify-center overflow-hidden">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
                 <img 
-                  src="https://customer-assets.emergentagent.com/job_signmaster-1/artifacts/lr01uj91_square.png" 
+                  src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/zofnt5d0_sgai%20square.png" 
                   alt="SG" 
-                  className="h-7 w-auto object-contain"
+                  className="h-8 w-auto object-contain"
                 />
               </div>
               <span className="text-[var(--text-on-dark)] font-semibold text-lg font-heading">
