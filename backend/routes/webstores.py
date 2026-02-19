@@ -857,14 +857,22 @@ async def create_job_from_order(
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     
+    # Verify the webstore belongs to this tenant
+    webstore = await db.webstores_v2.find_one(
+        {"id": order["webstore_id"], "tenant_id": current_user.tenant_id}, 
+        {"_id": 0}
+    )
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
     if order.get("job_id"):
         raise HTTPException(status_code=400, detail="Job already created for this order")
     
-    # Get webstore
-    webstore = await db.webstores_v2.find_one({"id": order["webstore_id"]}, {"_id": 0})
-    
-    # Create or find customer
-    customer = await db.customers.find_one({"email": order["customer_email"]}, {"_id": 0})
+    # Create or find customer (tenant-filtered)
+    customer = await db.customers.find_one(
+        {"email": order["customer_email"], "tenant_id": current_user.tenant_id}, 
+        {"_id": 0}
+    )
     if not customer:
         from models import Customer
         customer = Customer(
