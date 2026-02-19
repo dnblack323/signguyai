@@ -25,10 +25,13 @@ export default function LandingPage() {
   ];
 
   const features = [
+    { icon: Bot, title: 'AI Business Assistant', description: 'Chat with your AI assistant to get instant insights, answer questions, and analyze your business data' },
     { icon: Users, title: 'Customer Management', description: 'Full CRM with contact history, status tracking, and customer portal access' },
     { icon: Briefcase, title: 'Job Tracking', description: 'Visual timeline from quote to completion with status updates and time tracking' },
     { icon: Calculator, title: 'Smart Pricing', description: '8 specialized calculators for signs, wraps, banners, and more with AI suggestions' },
+    { icon: TrendingUp, title: 'Pricing Analyzer', description: 'Compare your prices to competitors and get AI recommendations to stay competitive' },
     { icon: Receipt, title: 'Invoicing', description: 'Professional invoices with payment tracking, reminders, and online payments' },
+    { icon: FolderOpen, title: 'Document Library', description: 'Attach questionnaires, inspection forms, and PDFs to jobs. AI summarizes responses for your team', badge: 'Coming Soon' },
     { icon: Clock, title: 'Time Tracking', description: 'Track time per job, per employee with automatic labor cost calculations' },
     { icon: DollarSign, title: 'Payroll & Financials', description: 'Employee pay tracking, profit margins, and financial reporting' },
     { icon: Sparkles, title: '15+ AI Tools', description: 'Logo creator, sign designer, tagline generator, pricing advisor, and more' },
@@ -40,6 +43,8 @@ export default function LandingPage() {
   ];
 
   const aiTools = [
+    { icon: Bot, name: 'AI Business Assistant', generates: 'insights', highlight: true },
+    { icon: TrendingUp, name: 'Pricing Analyzer', generates: 'analysis', highlight: true },
     { icon: Image, name: 'Logo Creator', generates: 'images' },
     { icon: Palette, name: 'Sign Designer', generates: 'images' },
     { icon: Image, name: 'Banner Designer', generates: 'images' },
