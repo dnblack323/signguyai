@@ -283,7 +283,7 @@ class TestTenantIsolation:
             "description": "Security test item",
             "quantity": 1,
             "unit_price": 100.0,
-            "item_type": "sign"
+            "item_type": "other"
         }, headers=headers_a)
         
         assert create_resp.status_code in [200, 201], f"Failed to create job item: {create_resp.text}"
