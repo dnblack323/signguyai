@@ -140,12 +140,17 @@ function App() {
           <AppProvider>
             <BrowserRouter>
               <Routes>
-                {/* Public Landing Page */}
+                {/* Public Landing Page - ROOT URL shows marketing site */}
+                <Route path="/" element={<LandingPage />} />
                 <Route path="/home" element={<LandingPage />} />
                 <Route path="/features" element={<FeaturesPage />} />
                 <Route path="/pricing" element={<PricingPagePublic />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/contact" element={<ContactPage />} />
+                
+                {/* Login Page - Separate from protected routes */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
                 
                 {/* Documentation Routes */}
                 <Route path="/docs" element={<DocsLayout />}>
