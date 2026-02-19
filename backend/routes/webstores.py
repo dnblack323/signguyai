@@ -233,6 +233,64 @@ class WebstoreOrderCreate(BaseModel):
 
 products_router = APIRouter(prefix="/products", tags=["Products"])
 webstores_router = APIRouter(prefix="/webstores/v2", tags=["Webstores"])
+# Public storefront router - no authentication required
+storefront_router = APIRouter(prefix="/storefront", tags=["Storefront (Public)"])
+
+
+# ============== PUBLIC STOREFRONT ROUTES (No Auth) ==============
+
+@storefront_router.get("/{webstore_id}")
+async def get_public_store(webstore_id: str):
+    """Get a public webstore details (no auth required)"""
+    webstore = await db.webstores_v2.find_one(
+        {"id": webstore_id}, 
+        {"_id": 0}
+    )
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Store not found")
+    
+    # Only return if store is public and active
+    if not webstore.get("is_public", True):
+        raise HTTPException(status_code=404, detail="Store not found")
+    
+    return webstore
+
+
+@storefront_router.get("/{webstore_id}/products")
+async def get_public_store_products(webstore_id: str):
+    """Get products for a public webstore (no auth required)"""
+    webstore = await db.webstores_v2.find_one(
+        {"id": webstore_id}, 
+        {"_id": 0}
+    )
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Store not found")
+    
+    # Only return if store is public
+    if not webstore.get("is_public", True):
+        raise HTTPException(status_code=404, detail="Store not found")
+    
+    # Get all enabled product assignments for this webstore
+    assignments = await db.webstore_products.find(
+        {"webstore_id": webstore_id, "is_enabled": True}, 
+        {"_id": 0}
+    ).to_list(500)
+    
+    # Enrich with product details
+    products = []
+    for a in assignments:
+        product = await db.products.find_one({"id": a["product_id"]}, {"_id": 0})
+        if product and product.get("is_active", True):
+            # Structure for storefront consumption
+            enriched = {
+                "product_id": product["id"],
+                "product": product,
+                "price_override": a.get("price_override"),
+                "effective_price": a.get("price_override") or product["retail_price"]
+            }
+            products.append(enriched)
+    
+    return products
 
 
 # ============== PRODUCT ROUTES ==============
