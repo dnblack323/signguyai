@@ -105,12 +105,23 @@
 - [x] Employee Portal with time clock
 - [x] Customer Portal
 - [x] AI Tools suite (15+ tools)
+- [x] AI Business Assistant (chat with AI for insights)
+- [x] Smart Pricing Analyzer (competitor price comparison)
 - [x] Pricing calculators
 - [x] Multi-tenant architecture
 - [x] Role-based access control
 - [x] Marketing website with documentation
 - [x] Stripe billing integration (TEST mode)
 - [x] SendGrid email integration
+
+### Landing Page Updates (Feb 19, 2026)
+- [x] Root URL "/" now shows landing page (not login)
+- [x] Added quick links in hero: See All Features, Our Story, Founder Pricing, Documentation
+- [x] Added AI Business Assistant as featured tool with detailed description
+- [x] Added Smart Pricing Analyzer as featured tool with detailed description
+- [x] Added Document Library "Coming Soon" section with feature preview
+- [x] Added "View All Features" and "Our Story" buttons after features grid
+- [x] Document Library badge on features grid
 
 ---
 
