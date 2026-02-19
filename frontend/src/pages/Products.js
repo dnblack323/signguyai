@@ -331,15 +331,6 @@ export default function Products() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Image URL</Label>
-                  <Input
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                    placeholder="https://..."
-                    data-testid="product-image-input"
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label>Base Cost (Your Cost) *</Label>
                   <Input
                     type="number"
@@ -363,6 +354,53 @@ export default function Products() {
                 </div>
               </div>
 
+              {/* Images Section - Up to 3 */}
+              <div className="space-y-3 border-t border-border pt-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base">Product Images (up to 3)</Label>
+                  <span className="text-xs text-muted-foreground">{formData.images.length}/3</span>
+                </div>
+                
+                {/* Current Images */}
+                {formData.images.length > 0 && (
+                  <div className="flex gap-2 flex-wrap">
+                    {formData.images.map((url, idx) => (
+                      <div key={idx} className="relative group">
+                        <img 
+                          src={url} 
+                          alt={`Product ${idx + 1}`} 
+                          className="w-20 h-20 object-cover rounded-lg border border-border"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-2 -right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleRemoveImage(idx)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Add Image */}
+                {formData.images.length < 3 && (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Image URL (https://...)"
+                      value={newImageUrl}
+                      onChange={(e) => setNewImageUrl(e.target.value)}
+                      data-testid="product-image-input"
+                    />
+                    <Button type="button" onClick={handleAddImage} variant="outline">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+
               {/* Profit Preview */}
               {formData.base_cost > 0 && formData.retail_price > 0 && (
                 <div className="p-3 bg-muted/30 rounded-lg flex justify-between items-center">
@@ -376,7 +414,7 @@ export default function Products() {
               {/* Variants Section */}
               <div className="space-y-3 border-t border-border pt-4">
                 <div className="flex items-center justify-between">
-                  <Label className="text-base">Product Variants (Size/Color)</Label>
+                  <Label className="text-base">Product Variants (Size/Color/Tier)</Label>
                   <Button
                     type="button"
                     variant="ghost"
@@ -389,14 +427,50 @@ export default function Products() {
 
                 {formData.has_variants && (
                   <>
+                    {/* Quick Add Buttons */}
+                    <div className="flex gap-2 flex-wrap">
+                      {formData.category === 'apparel' && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAddApparelVariants}
+                          className="text-xs"
+                        >
+                          <Plus className="h-3 w-3 mr-1" /> Add Apparel Tiers (Economy/Standard/Premium + Sizes)
+                        </Button>
+                      )}
+                      {formData.category === 'decals' && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAddDecalVariants}
+                          className="text-xs"
+                        >
+                          <Plus className="h-3 w-3 mr-1" /> Add Decal Sizes
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setFormData({ ...formData, variants: [] })}
+                        className="text-xs text-destructive"
+                      >
+                        Clear All
+                      </Button>
+                    </div>
+                    
                     {/* Current Variants */}
                     {formData.variants.length > 0 && (
-                      <div className="space-y-2">
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
                         {formData.variants.map((v, idx) => (
                           <div key={v.id || idx} className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg">
                             <span className="flex-1 text-sm">{v.name}</span>
                             {v.size && <Badge variant="outline">{v.size}</Badge>}
                             {v.color && <Badge variant="outline">{v.color}</Badge>}
+                            {v.tier && <Badge variant="secondary">{v.tier}</Badge>}
                             {v.additional_cost > 0 && (
                               <span className="text-xs text-yellow-400">+{formatCurrency(v.additional_cost)}</span>
                             )}
