@@ -57,14 +57,14 @@ export default function Storefront() {
   const loadStore = async () => {
     setLoading(true);
     try {
-      // Fetch store details
-      const storeRes = await fetch(`${API}/api/webstores/v2/${storeId}`);
+      // Fetch store details using public storefront endpoint
+      const storeRes = await fetch(`${API}/api/storefront/${storeId}`);
       if (!storeRes.ok) throw new Error('Store not found');
       const storeData = await storeRes.json();
       setStore(storeData);
       
-      // Fetch store products
-      const productsRes = await fetch(`${API}/api/webstores/v2/${storeId}/products`);
+      // Fetch store products using public storefront endpoint
+      const productsRes = await fetch(`${API}/api/storefront/${storeId}/products`);
       const productsData = await productsRes.json();
       setProducts(productsData);
     } catch (err) {
