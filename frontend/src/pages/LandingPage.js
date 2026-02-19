@@ -811,7 +811,7 @@ export default function LandingPage() {
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>
-            <a href="mailto:support@signguyai.com">
+            <a href="mailto:donnell@signguy-ai.com">
               <Button size="lg" variant="outline" className="border-white/20 text-lg px-8 py-6 h-auto hover:bg-white/10">
                 Contact Us
               </Button>

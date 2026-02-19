@@ -41,8 +41,8 @@ export default function ContactPage() {
       icon: Mail,
       title: 'Email',
       description: 'Send us an email anytime',
-      value: 'support@signguyai.com',
-      action: 'mailto:support@signguyai.com',
+      value: 'donnell@signguy-ai.com',
+      action: 'mailto:donnell@signguy-ai.com',
     },
     {
       icon: MessageSquare,
