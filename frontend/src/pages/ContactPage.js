@@ -89,12 +89,12 @@ export default function ContactPage() {
               <Link to="/features" className="text-gray-300 hover:text-white transition">Features</Link>
               <Link to="/pricing" className="text-gray-300 hover:text-white transition">Pricing</Link>
               <Link to="/about" className="text-gray-300 hover:text-white transition">About</Link>
-              <Link to="/contact" className="text-[#00D4FF] font-medium">Contact</Link>
+              <Link to="/contact" className="text-[#2F8BFB] font-medium">Contact</Link>
               <Link to="/login">
                 <Button variant="ghost" className="text-gray-300 hover:text-white">Log In</Button>
               </Link>
               <Link to="/register">
-                <Button className="bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold">
+                <Button className="bg-[#2F8BFB] hover:bg-[#1E7AF0] text-black font-semibold">
                   Start Free Trial
                 </Button>
               </Link>
@@ -112,10 +112,10 @@ export default function ContactPage() {
               <Link to="/features" className="text-gray-300 hover:text-white">Features</Link>
               <Link to="/pricing" className="text-gray-300 hover:text-white">Pricing</Link>
               <Link to="/about" className="text-gray-300 hover:text-white">About</Link>
-              <Link to="/contact" className="text-[#00D4FF]">Contact</Link>
+              <Link to="/contact" className="text-[#2F8BFB]">Contact</Link>
               <Link to="/login" className="text-gray-300 hover:text-white">Log In</Link>
               <Link to="/register">
-                <Button className="w-full bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold">Start Free Trial</Button>
+                <Button className="w-full bg-[#2F8BFB] hover:bg-[#1E7AF0] text-black font-semibold">Start Free Trial</Button>
               </Link>
             </div>
           </div>
@@ -125,12 +125,12 @@ export default function ContactPage() {
       {/* Hero */}
       <section className="pt-32 pb-12 px-4">
         <div className="max-w-7xl mx-auto text-center">
-          <Badge className="mb-6 bg-[#00D4FF]/20 text-[#00D4FF] border-[#00D4FF]/30 px-4 py-2">
+          <Badge className="mb-6 bg-[#2F8BFB]/20 text-[#2F8BFB] border-[#2F8BFB]/30 px-4 py-2">
             <MessageSquare className="w-4 h-4 mr-2" />
             Get In Touch
           </Badge>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
-            We'd Love to <span className="text-[#00D4FF]">Hear From You</span>
+            We'd Love to <span className="text-[#2F8BFB]">Hear From You</span>
           </h1>
           <p className="text-xl text-gray-400 max-w-3xl mx-auto">
             Have a question, feature request, or just want to say hi? 
@@ -146,17 +146,17 @@ export default function ContactPage() {
             {contactMethods.map((method, index) => (
               <Card key={index} className="bg-[#111111] border-white/10">
                 <CardContent className="p-6 text-center">
-                  <div className="w-12 h-12 bg-[#00D4FF]/20 rounded-xl flex items-center justify-center mx-auto mb-4">
-                    <method.icon className="w-6 h-6 text-[#00D4FF]" />
+                  <div className="w-12 h-12 bg-[#2F8BFB]/20 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <method.icon className="w-6 h-6 text-[#2F8BFB]" />
                   </div>
                   <h3 className="font-semibold text-white mb-1">{method.title}</h3>
                   <p className="text-gray-500 text-sm mb-2">{method.description}</p>
                   {method.action ? (
-                    <a href={method.action} className="text-[#00D4FF] hover:underline">
+                    <a href={method.action} className="text-[#2F8BFB] hover:underline">
                       {method.value}
                     </a>
                   ) : (
-                    <span className="text-[#00D4FF]">{method.value}</span>
+                    <span className="text-[#2F8BFB]">{method.value}</span>
                   )}
                 </CardContent>
               </Card>
@@ -263,7 +263,7 @@ export default function ContactPage() {
                       
                       <Button 
                         type="submit" 
-                        className="w-full bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold"
+                        className="w-full bg-[#2F8BFB] hover:bg-[#1E7AF0] text-black font-semibold"
                         disabled={isSubmitting}
                       >
                         {isSubmitting ? (
@@ -294,14 +294,14 @@ export default function ContactPage() {
                 ))}
               </div>
               
-              <Card className="bg-gradient-to-r from-[#00D4FF]/10 to-blue-600/10 border-[#00D4FF]/30 mt-6">
+              <Card className="bg-gradient-to-r from-[#2F8BFB]/10 to-blue-600/10 border-[#2F8BFB]/30 mt-6">
                 <CardContent className="p-6">
                   <h3 className="font-semibold text-white mb-2">Feature Request?</h3>
                   <p className="text-gray-400 mb-4">
                     As a founding member, your feature requests get priority attention. 
                     We actually build what our users need.
                   </p>
-                  <p className="text-[#00D4FF] text-sm">
+                  <p className="text-[#2F8BFB] text-sm">
                     Just mention "Feature Request" in your message subject.
                   </p>
                 </CardContent>
@@ -321,7 +321,7 @@ export default function ContactPage() {
             Skip the form and jump right in with a free trial.
           </p>
           <Link to="/register">
-            <Button size="lg" className="bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold text-lg px-8 py-6 h-auto">
+            <Button size="lg" className="bg-[#2F8BFB] hover:bg-[#1E7AF0] text-black font-semibold text-lg px-8 py-6 h-auto">
               Start Your Free Trial
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
