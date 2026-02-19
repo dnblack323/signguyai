@@ -462,6 +462,9 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* Onboarding Checklist - Shows for new users */}
+      <OnboardingChecklist />
+
       {/* Overdue Alert */}
       {dashboardStats?.overdue_count > 0 && (
         <div 
