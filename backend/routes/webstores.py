@@ -619,7 +619,7 @@ async def remove_product_from_webstore(
 
 @webstores_router.post("/orders", response_model=WebstoreOrder)
 async def create_webstore_order(input: WebstoreOrderCreate):
-    """Create a new order (public endpoint for customers)"""
+    """Create a new order (public endpoint for customers) - auto-creates a job"""
     # Get webstore
     webstore = await db.webstores_v2.find_one({"id": input.webstore_id}, {"_id": 0})
     if not webstore:
@@ -627,6 +627,8 @@ async def create_webstore_order(input: WebstoreOrderCreate):
     
     if webstore.get("status") != "active":
         raise HTTPException(status_code=400, detail="This store is not accepting orders")
+    
+    tenant_id = webstore.get("tenant_id")
     
     # Process items
     order_items = []
@@ -687,7 +689,53 @@ async def create_webstore_order(input: WebstoreOrderCreate):
         else:
             commission_amount = webstore.get("creator_commission_value", 0)
     
-    # Create order
+    # Auto-create or find customer
+    customer = await db.customers.find_one(
+        {"email": input.customer_email, "tenant_id": tenant_id}, 
+        {"_id": 0}
+    )
+    if not customer:
+        from models import Customer
+        customer = Customer(
+            name=input.customer_name,
+            email=input.customer_email,
+            phone=input.customer_phone,
+            tenant_id=tenant_id
+        )
+        await db.customers.insert_one(customer.model_dump())
+        customer = customer.model_dump()
+    
+    # Auto-create job
+    from models import Job, JobItem
+    job = Job(
+        customer_id=customer["id"],
+        name=f"Webstore Order - {input.customer_name}",
+        description=f"Order from: {webstore['name']}\nCustomer: {input.customer_name}\nEmail: {input.customer_email}",
+        status=JobStatus.APPROVED,
+        tenant_id=tenant_id
+    )
+    await db.jobs.insert_one(job.model_dump())
+    
+    # Create job items from order
+    for order_item in order_items:
+        job_item = JobItem(
+            job_id=job.id,
+            item_type=JobItemType.OTHER,
+            description=f"{order_item.product_name}" + (f" - {order_item.variant_name}" if order_item.variant_name else ""),
+            quantity=order_item.quantity,
+            unit_price=order_item.unit_price,
+            line_total=order_item.item_total,
+            status=JobItemStatus.PENDING
+        )
+        await db.job_items.insert_one(job_item.model_dump())
+    
+    # Update job subtotal
+    await db.jobs.update_one(
+        {"id": job.id},
+        {"$set": {"subtotal": subtotal}}
+    )
+    
+    # Create order with job link
     order = WebstoreOrder(
         webstore_id=input.webstore_id,
         customer_name=input.customer_name,
@@ -698,7 +746,9 @@ async def create_webstore_order(input: WebstoreOrderCreate):
         total_cost=total_cost,
         total_profit=total_profit,
         commission_amount=commission_amount,
-        notes=input.notes
+        notes=input.notes,
+        job_id=job.id,  # Link to auto-created job
+        status="processing"  # Already in processing since job was created
     )
     
     await db.webstore_orders_v2.insert_one(order.model_dump())
@@ -713,6 +763,8 @@ async def create_webstore_order(input: WebstoreOrderCreate):
             "payout_owed": commission_amount
         }}
     )
+    
+    logger.info(f"Order {order.id} created with auto-created job {job.id}")
     
     return order
 
