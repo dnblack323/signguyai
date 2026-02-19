@@ -301,11 +301,21 @@ async def create_payroll_transaction(input: PayrollTransactionCreate):
 async def get_payroll_transactions(
     employee_id: Optional[str] = None,
     start_date: Optional[str] = None,
-    end_date: Optional[str] = None
+    end_date: Optional[str] = None,
+    current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """List payroll transactions with optional filtering"""
-    query = {}
+    """List payroll transactions with optional filtering (tenant-scoped)"""
+    # First get employee IDs for this tenant
+    tenant_employees = await db.employees.find(
+        {"tenant_id": current_user.tenant_id}, 
+        {"id": 1, "_id": 0}
+    ).to_list(1000)
+    tenant_employee_ids = [e["id"] for e in tenant_employees]
+    
+    query = {"employee_id": {"$in": tenant_employee_ids}}
     if employee_id:
+        if employee_id not in tenant_employee_ids:
+            return []
         query["employee_id"] = employee_id
     if start_date and end_date:
         query["date"] = {"$gte": start_date, "$lte": end_date}
@@ -319,9 +329,15 @@ async def get_payroll_transactions(
 
 
 @payroll_router.get("/balance/{employee_id}", response_model=PayrollBalance)
-async def get_payroll_balance(employee_id: str):
-    """Get payroll balance for an employee"""
-    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+async def get_payroll_balance(
+    employee_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Get payroll balance for an employee (tenant-scoped)"""
+    employee = await db.employees.find_one({
+        "id": employee_id,
+        "tenant_id": current_user.tenant_id
+    }, {"_id": 0})
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
     
@@ -345,9 +361,15 @@ async def get_payroll_balance(employee_id: str):
 
 
 @payroll_router.get("/report")
-async def get_payroll_report(start_date: str, end_date: str):
-    """Get payroll report for all employees in a date range"""
-    employees = await db.employees.find({}, {"_id": 0}).to_list(1000)
+async def get_payroll_report(
+    start_date: str, 
+    end_date: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Get payroll report for all employees in a date range (tenant-scoped)"""
+    employees = await db.employees.find({
+        "tenant_id": current_user.tenant_id
+    }, {"_id": 0}).to_list(1000)
     report = []
     
     for emp in employees:
