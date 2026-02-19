@@ -661,7 +661,7 @@ export const MainLayout = ({ children }) => {
           href="/home"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#00D4FF]/20 border border-[#00D4FF]/30 text-[#00D4FF] hover:bg-[#00D4FF]/30 transition-all shadow-lg"
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#2F8BFB]/20 border border-[#2F8BFB]/30 text-[#2F8BFB] hover:bg-[#2F8BFB]/30 transition-all shadow-lg"
           data-testid="marketing-site-link"
         >
           <Globe className="h-4 w-4" />
@@ -669,8 +669,8 @@ export const MainLayout = ({ children }) => {
           <ExternalLink className="h-3 w-3" />
         </a>
 
-        {/* Preview Mode Panel */}
-        {previewOpen ? (
+        {/* Preview Mode Panel - Only visible in dev/preview or for founders */}
+        {showPreviewMode && (previewOpen ? (
           <div className="bg-[var(--sidebar)] border border-[var(--border-dark)] rounded-xl shadow-2xl w-72 overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between p-3 border-b border-[var(--border-dark)] bg-[var(--accent)]/20">
