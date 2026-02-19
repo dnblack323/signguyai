@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
 import { 
   User, Mail, Phone, DollarSign, Briefcase, 
-  Clock, Shield
+  Clock, Shield, Camera, Loader2
 } from 'lucide-react';
 import { EmployeePortalLayout } from './EmployeePortalDashboard';
+import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
