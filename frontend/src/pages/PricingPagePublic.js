@@ -124,7 +124,7 @@ export default function PricingPagePublic() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             <Link to="/home" className="flex items-center gap-3">
-              <img src="/logo.png" alt="TheSignGuy AI" className="h-14 w-auto" />
+              <img src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/k3asaz65_sgai%20long.png" alt="TheSignGuy AI" className="h-14 w-auto" />
             </Link>
             
             <div className="hidden md:flex items-center gap-8">
@@ -449,7 +449,7 @@ export default function PricingPagePublic() {
       <footer className="bg-[#0B0F14] border-t border-white/10 py-8 px-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="TheSignGuy AI" className="h-10 w-auto" />
+            <img src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/k3asaz65_sgai%20long.png" alt="TheSignGuy AI" className="h-10 w-auto" />
           </div>
           <div className="flex items-center gap-6 text-sm text-gray-400">
             <Link to="/home" className="hover:text-white transition">Home</Link>
