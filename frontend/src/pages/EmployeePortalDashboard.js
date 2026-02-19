@@ -34,11 +34,12 @@ const EmployeePortalLayout = ({ children, employeeName }) => {
       >
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div 
-              className="w-10 h-10 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: 'var(--accent)' }}
-            >
-              <HardHat className="h-5 w-5 text-white" />
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
+              <img 
+                src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/zofnt5d0_sgai%20square.png" 
+                alt="SignGuy AI" 
+                className="h-10 w-auto"
+              />
             </div>
             <div>
               <h1 className="font-bold font-heading" style={{ color: 'var(--text-on-dark)' }}>
