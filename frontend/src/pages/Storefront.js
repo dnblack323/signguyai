@@ -511,21 +511,41 @@ export default function Storefront() {
 // Product Card Component
 function ProductCard({ item, onAddToCart, primaryColor }) {
   const [selectedVariant, setSelectedVariant] = useState(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const product = item.product;
   const hasVariants = product.has_variants && product.variants?.length > 0;
+  
+  // Get images array (fallback to image_url for backwards compatibility)
+  const images = product.images?.length > 0 ? product.images : (product.image_url ? [product.image_url] : []);
   
   const effectivePrice = item.effective_price + (selectedVariant?.additional_cost || 0);
 
   return (
     <Card className="overflow-hidden group hover:border-primary/30 transition-colors">
       {/* Product Image */}
-      <div className="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden">
-        {product.image_url ? (
-          <img 
-            src={product.image_url} 
-            alt={product.name} 
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-          />
+      <div className="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden relative">
+        {images.length > 0 ? (
+          <>
+            <img 
+              src={images[currentImageIndex]} 
+              alt={product.name} 
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+            />
+            {/* Image Navigation Dots */}
+            {images.length > 1 && (
+              <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
+                {images.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(idx); }}
+                    className={`w-2 h-2 rounded-full transition-colors ${
+                      idx === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         ) : (
           <Package className="h-16 w-16 text-muted-foreground/50" />
         )}
@@ -557,12 +577,13 @@ function ProductCard({ item, onAddToCart, primaryColor }) {
               }}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select size/color" />
+                <SelectValue placeholder="Select option" />
               </SelectTrigger>
               <SelectContent>
                 {product.variants.filter(v => v.is_available !== false).map((variant) => (
                   <SelectItem key={variant.id} value={variant.id}>
                     {variant.name}
+                    {variant.tier && ` (${variant.tier})`}
                     {variant.additional_cost > 0 && ` (+${formatCurrency(variant.additional_cost)})`}
                   </SelectItem>
                 ))}
