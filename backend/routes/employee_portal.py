@@ -200,8 +200,31 @@ async def get_employee_profile(authorization: str = Header(default="")):
         phone=employee.get("phone"),
         role=employee.get("role", "staff"),
         hourly_rate=employee.get("hourly_rate", 0),
-        tenant_id=employee.get("tenant_id", "")
+        tenant_id=employee.get("tenant_id", ""),
+        profile_image=employee.get("profile_image")
     )
+
+
+class ProfileImageUpdate(BaseModel):
+    profile_image: str  # Base64 encoded image or URL
+
+
+@router.put("/profile/image")
+async def update_profile_image(
+    data: ProfileImageUpdate,
+    authorization: str = Header(default="")
+):
+    """Update employee's profile image"""
+    token = extract_token(authorization)
+    employee = await get_current_employee(token)
+    
+    # Update the employee's profile image
+    await db.employees.update_one(
+        {"id": employee["id"]},
+        {"$set": {"profile_image": data.profile_image}}
+    )
+    
+    return {"message": "Profile image updated successfully", "profile_image": data.profile_image}
 
 
 # ============== TIME CLOCK ROUTES ==============
