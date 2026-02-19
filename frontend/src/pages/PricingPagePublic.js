@@ -388,7 +388,7 @@ export default function PricingPagePublic() {
       </section>
 
       {/* Why Become a Founder */}
-      <section className="px-4 py-16 bg-[#0d0d0d]">
+      <section className="px-4 py-16 bg-[#0B0F14]">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-4">Why Become a Founder?</h2>
           <p className="text-gray-400 text-center mb-12">
@@ -446,7 +446,7 @@ export default function PricingPagePublic() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#0d0d0d] border-t border-white/10 py-8 px-4">
+      <footer className="bg-[#0B0F14] border-t border-white/10 py-8 px-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="TheSignGuy AI" className="h-10 w-auto" />
