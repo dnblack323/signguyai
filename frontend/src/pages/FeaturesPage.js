@@ -296,7 +296,7 @@ export default function FeaturesPage() {
         </div>
 
         {mobileMenuOpen && (
-          <div className="md:hidden bg-[#111111] border-t border-white/10 p-4">
+          <div className="md:hidden bg-[#111826] border-t border-white/10 p-4">
             <div className="flex flex-col gap-4">
               <Link to="/features" className="text-[#2F8BFB]">Features</Link>
               <Link to="/pricing" className="text-gray-300 hover:text-white">Pricing</Link>
@@ -379,7 +379,7 @@ export default function FeaturesPage() {
               
               <div className={`${index % 2 === 1 ? 'lg:order-1' : ''}`}>
                 <div className={`bg-gradient-to-br ${feature.color} p-1 rounded-2xl`}>
-                  <div className="bg-[#111111] rounded-xl p-8 h-full min-h-[300px] flex items-center justify-center">
+                  <div className="bg-[#111826] rounded-xl p-8 h-full min-h-[300px] flex items-center justify-center">
                     <div className="text-center">
                       <feature.icon className="w-24 h-24 text-white/20 mx-auto mb-4" />
                       <p className="text-gray-500">Screenshot coming soon</p>
@@ -393,7 +393,7 @@ export default function FeaturesPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 bg-[#111111]">
+      <section className="py-20 px-4 bg-[#111826]">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-6">
             Ready to Try These Features?

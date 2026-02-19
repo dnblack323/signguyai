@@ -107,7 +107,7 @@ export default function ContactPage() {
         </div>
 
         {mobileMenuOpen && (
-          <div className="md:hidden bg-[#111111] border-t border-white/10 p-4">
+          <div className="md:hidden bg-[#111826] border-t border-white/10 p-4">
             <div className="flex flex-col gap-4">
               <Link to="/features" className="text-gray-300 hover:text-white">Features</Link>
               <Link to="/pricing" className="text-gray-300 hover:text-white">Pricing</Link>
@@ -144,7 +144,7 @@ export default function ContactPage() {
         <div className="max-w-5xl mx-auto">
           <div className="grid md:grid-cols-3 gap-6">
             {contactMethods.map((method, index) => (
-              <Card key={index} className="bg-[#111111] border-white/10">
+              <Card key={index} className="bg-[#111826] border-white/10">
                 <CardContent className="p-6 text-center">
                   <div className="w-12 h-12 bg-[#2F8BFB]/20 rounded-xl flex items-center justify-center mx-auto mb-4">
                     <method.icon className="w-6 h-6 text-[#2F8BFB]" />
@@ -173,7 +173,7 @@ export default function ContactPage() {
               <h2 className="text-2xl font-bold mb-6">Send Us a Message</h2>
               
               {submitted ? (
-                <Card className="bg-[#111111] border-green-500/30">
+                <Card className="bg-[#111826] border-green-500/30">
                   <CardContent className="p-8 text-center">
                     <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                       <CheckCircle2 className="w-8 h-8 text-green-400" />
@@ -195,7 +195,7 @@ export default function ContactPage() {
                   </CardContent>
                 </Card>
               ) : (
-                <Card className="bg-[#111111] border-white/10">
+                <Card className="bg-[#111826] border-white/10">
                   <CardContent className="p-6">
                     <form onSubmit={handleSubmit} className="space-y-6">
                       <div className="grid sm:grid-cols-2 gap-4">
@@ -285,7 +285,7 @@ export default function ContactPage() {
               <h2 className="text-2xl font-bold mb-6">Common Questions</h2>
               <div className="space-y-4">
                 {faqs.map((faq, index) => (
-                  <Card key={index} className="bg-[#111111] border-white/10">
+                  <Card key={index} className="bg-[#111826] border-white/10">
                     <CardContent className="p-6">
                       <h3 className="font-semibold text-white mb-2">{faq.question}</h3>
                       <p className="text-gray-400">{faq.answer}</p>
@@ -312,7 +312,7 @@ export default function ContactPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 px-4 bg-[#111111]">
+      <section className="py-20 px-4 bg-[#111826]">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-6">
             Ready to Get Started?

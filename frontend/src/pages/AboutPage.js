@@ -89,7 +89,7 @@ export default function AboutPage() {
         </div>
 
         {mobileMenuOpen && (
-          <div className="md:hidden bg-[#111111] border-t border-white/10 p-4">
+          <div className="md:hidden bg-[#111826] border-t border-white/10 p-4">
             <div className="flex flex-col gap-4">
               <Link to="/features" className="text-gray-300 hover:text-white">Features</Link>
               <Link to="/pricing" className="text-gray-300 hover:text-white">Pricing</Link>
@@ -151,7 +151,7 @@ export default function AboutPage() {
       </section>
 
       {/* The Problem */}
-      <section className="py-20 px-4 bg-[#111111]">
+      <section className="py-20 px-4 bg-[#111826]">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-6">The Problem With Sign Shop Software</h2>
           <p className="text-xl text-gray-400 text-center mb-12">
@@ -209,7 +209,7 @@ export default function AboutPage() {
           
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {values.map((value, index) => (
-              <Card key={index} className="bg-[#111111] border-white/10">
+              <Card key={index} className="bg-[#111826] border-white/10">
                 <CardContent className="p-6 text-center">
                   <div className="w-12 h-12 bg-[#2F8BFB]/20 rounded-xl flex items-center justify-center mx-auto mb-4">
                     <value.icon className="w-6 h-6 text-[#2F8BFB]" />
@@ -290,7 +290,7 @@ export default function AboutPage() {
               {timeline.map((item, index) => (
                 <div key={index} className={`flex items-center gap-8 ${index % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>
                   <div className={`flex-1 ${index % 2 === 1 ? 'md:text-right' : ''}`}>
-                    <Card className="bg-[#111111] border-white/10">
+                    <Card className="bg-[#111826] border-white/10">
                       <CardContent className="p-6">
                         <div className="text-[#2F8BFB] font-bold mb-2">{item.year}</div>
                         <h3 className="text-lg font-semibold text-white mb-2">{item.title}</h3>
@@ -308,7 +308,7 @@ export default function AboutPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 px-4 bg-[#111111]">
+      <section className="py-20 px-4 bg-[#111826]">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-6">
             Ready to Join the Sign Shop Revolution?

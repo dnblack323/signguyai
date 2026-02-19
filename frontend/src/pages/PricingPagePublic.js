@@ -149,7 +149,7 @@ export default function PricingPagePublic() {
         </div>
 
         {mobileMenuOpen && (
-          <div className="md:hidden bg-[#111111] border-t border-white/10 p-4">
+          <div className="md:hidden bg-[#111826] border-t border-white/10 p-4">
             <div className="flex flex-col gap-4">
               <Link to="/features" className="text-gray-300 hover:text-white">Features</Link>
               <Link to="/pricing" className="text-[#2F8BFB]">Pricing</Link>
@@ -204,7 +204,7 @@ export default function PricingPagePublic() {
               return (
                 <Card
                   key={tier.name}
-                  className={`bg-[#111111] border-white/10 relative overflow-hidden ${
+                  className={`bg-[#111826] border-white/10 relative overflow-hidden ${
                     tier.popular ? 'border-[#2F8BFB] md:scale-105 z-10' : ''
                   }`}
                 >
@@ -285,7 +285,7 @@ export default function PricingPagePublic() {
       {/* Extended Trial */}
       <section className="px-4 pb-12">
         <div className="max-w-3xl mx-auto">
-          <Card className="bg-[#111111] border-green-500/30">
+          <Card className="bg-[#111826] border-green-500/30">
             <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
@@ -398,7 +398,7 @@ export default function PricingPagePublic() {
             {founderBenefits.map((benefit, i) => {
               const Icon = benefit.icon;
               return (
-                <Card key={i} className="bg-[#111111] border-white/10">
+                <Card key={i} className="bg-[#111826] border-white/10">
                   <CardContent className="p-6">
                     <div className="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center mb-3">
                       <Icon className="w-5 h-5 text-yellow-400" />
@@ -419,7 +419,7 @@ export default function PricingPagePublic() {
           <h2 className="text-3xl font-bold text-center mb-12">Frequently Asked Questions</h2>
           <div className="space-y-4">
             {faqs.map((faq, index) => (
-              <Card key={index} className="bg-[#111111] border-white/10">
+              <Card key={index} className="bg-[#111826] border-white/10">
                 <CardContent className="p-6">
                   <h3 className="font-semibold text-white mb-2 flex items-center gap-2">
                     <HelpCircle className="w-5 h-5 text-[#2F8BFB]" />
@@ -436,7 +436,7 @@ export default function PricingPagePublic() {
       {/* Trust Banner */}
       <section className="px-4 pb-16">
         <div className="max-w-3xl mx-auto text-center">
-          <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full border border-white/10 bg-[#111111]">
+          <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full border border-white/10 bg-[#111826]">
             <div className="w-3 h-3 rounded-full bg-green-400"></div>
             <span className="text-gray-300 text-sm">
               Secure payments via Stripe • Cancel anytime • 30-day money-back guarantee

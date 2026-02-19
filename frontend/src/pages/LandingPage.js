@@ -174,7 +174,7 @@ export default function LandingPage() {
 
         {/* Mobile Nav */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-[#111111] border-t border-white/10 p-4">
+          <div className="md:hidden bg-[#111826] border-t border-white/10 p-4">
             <div className="flex flex-col gap-4">
               <a href="#features" className="text-gray-300 hover:text-white">Features</a>
               <a href="#ai-tools" className="text-gray-300 hover:text-white">AI Tools</a>
@@ -315,7 +315,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="bg-[#111111] rounded-2xl border border-white/10 overflow-hidden">
+          <div className="bg-[#111826] rounded-2xl border border-white/10 overflow-hidden">
             {/* Screenshot tabs */}
             <div className="flex border-b border-white/10 overflow-x-auto">
               {screenshots.map((screen, index) => (
@@ -352,7 +352,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features Grid */}
-      <section id="features" className="py-20 px-4 bg-[#111111]">
+      <section id="features" className="py-20 px-4 bg-[#111826]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-blue-500/20 text-blue-400 border-blue-500/30">
