@@ -36,8 +36,8 @@ export default function PricingPagePublic() {
     {
       name: 'Growth Shop',
       icon: Users,
-      iconColor: 'text-[#00D4FF]',
-      bgColor: 'bg-[#00D4FF]/10',
+      iconColor: 'text-[#2F8BFB]',
+      bgColor: 'bg-[#2F8BFB]/10',
       description: 'For growing shops that need more power',
       founderPrice: 129,
       regularPrice: 229,
@@ -129,14 +129,14 @@ export default function PricingPagePublic() {
             
             <div className="hidden md:flex items-center gap-8">
               <Link to="/features" className="text-gray-300 hover:text-white transition">Features</Link>
-              <Link to="/pricing" className="text-[#00D4FF] font-medium">Pricing</Link>
+              <Link to="/pricing" className="text-[#2F8BFB] font-medium">Pricing</Link>
               <Link to="/about" className="text-gray-300 hover:text-white transition">About</Link>
               <Link to="/contact" className="text-gray-300 hover:text-white transition">Contact</Link>
               <Link to="/login">
                 <Button variant="ghost" className="text-gray-300 hover:text-white">Log In</Button>
               </Link>
               <Link to="/register">
-                <Button className="bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold">
+                <Button className="bg-[#2F8BFB] hover:bg-[#00B8E6] text-black font-semibold">
                   Start Free Trial
                 </Button>
               </Link>
@@ -152,12 +152,12 @@ export default function PricingPagePublic() {
           <div className="md:hidden bg-[#111111] border-t border-white/10 p-4">
             <div className="flex flex-col gap-4">
               <Link to="/features" className="text-gray-300 hover:text-white">Features</Link>
-              <Link to="/pricing" className="text-[#00D4FF]">Pricing</Link>
+              <Link to="/pricing" className="text-[#2F8BFB]">Pricing</Link>
               <Link to="/about" className="text-gray-300 hover:text-white">About</Link>
               <Link to="/contact" className="text-gray-300 hover:text-white">Contact</Link>
               <Link to="/login" className="text-gray-300 hover:text-white">Log In</Link>
               <Link to="/register">
-                <Button className="w-full bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold">Start Free Trial</Button>
+                <Button className="w-full bg-[#2F8BFB] hover:bg-[#00B8E6] text-black font-semibold">Start Free Trial</Button>
               </Link>
             </div>
           </div>
@@ -175,7 +175,7 @@ export default function PricingPagePublic() {
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4">
             Lock In
           </h1>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#00D4FF] to-green-400 mb-6">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#2F8BFB] to-green-400 mb-6">
             Founder Pricing Forever
           </h2>
           <p className="text-lg text-gray-400 max-w-3xl mx-auto mb-8">
@@ -185,7 +185,7 @@ export default function PricingPagePublic() {
           {/* Free Trial Button */}
           <div className="flex justify-center mb-12">
             <Link to="/register">
-              <Button className="bg-[#00D4FF]/10 hover:bg-[#00D4FF]/20 border border-[#00D4FF]/30 text-[#00D4FF] px-6 py-3 rounded-full">
+              <Button className="bg-[#2F8BFB]/10 hover:bg-[#2F8BFB]/20 border border-[#2F8BFB]/30 text-[#2F8BFB] px-6 py-3 rounded-full">
                 <Clock className="w-4 h-4 mr-2" />
                 <span>Start with a <span className="text-white">24-hour free trial</span></span>
               </Button>
@@ -205,12 +205,12 @@ export default function PricingPagePublic() {
                 <Card
                   key={tier.name}
                   className={`bg-[#111111] border-white/10 relative overflow-hidden ${
-                    tier.popular ? 'border-[#00D4FF] md:scale-105 z-10' : ''
+                    tier.popular ? 'border-[#2F8BFB] md:scale-105 z-10' : ''
                   }`}
                 >
                   {tier.popular && (
                     <div className="absolute -top-0 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-[#00D4FF] text-black border-0 px-4 py-1 font-semibold rounded-b-lg rounded-t-none">
+                      <Badge className="bg-[#2F8BFB] text-black border-0 px-4 py-1 font-semibold rounded-b-lg rounded-t-none">
                         Most Popular
                       </Badge>
                     </div>
@@ -234,7 +234,7 @@ export default function PricingPagePublic() {
                     {/* Pricing */}
                     <div className="mb-1">
                       <div className="flex items-baseline gap-2">
-                        <span className="text-4xl font-bold text-[#00D4FF]">${tier.founderPrice}</span>
+                        <span className="text-4xl font-bold text-[#2F8BFB]">${tier.founderPrice}</span>
                         <span className="text-gray-500">/month</span>
                       </div>
                       <div className="text-sm text-gray-500 line-through">
@@ -254,7 +254,7 @@ export default function PricingPagePublic() {
                       <Button
                         className={`w-full mb-4 ${
                           tier.popular
-                            ? 'bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold'
+                            ? 'bg-[#2F8BFB] hover:bg-[#00B8E6] text-black font-semibold'
                             : 'bg-white/5 hover:bg-white/10 border border-white/10'
                         }`}
                       >
@@ -264,7 +264,7 @@ export default function PricingPagePublic() {
 
                     {/* Features */}
                     {tier.inheritText && (
-                      <p className="text-sm text-[#00D4FF] mb-2">{tier.inheritText}</p>
+                      <p className="text-sm text-[#2F8BFB] mb-2">{tier.inheritText}</p>
                     )}
                     <ul className="space-y-2">
                       {tier.features.map((feature, i) => (
@@ -422,7 +422,7 @@ export default function PricingPagePublic() {
               <Card key={index} className="bg-[#111111] border-white/10">
                 <CardContent className="p-6">
                   <h3 className="font-semibold text-white mb-2 flex items-center gap-2">
-                    <HelpCircle className="w-5 h-5 text-[#00D4FF]" />
+                    <HelpCircle className="w-5 h-5 text-[#2F8BFB]" />
                     {faq.question}
                   </h3>
                   <p className="text-gray-400 ml-7">{faq.answer}</p>

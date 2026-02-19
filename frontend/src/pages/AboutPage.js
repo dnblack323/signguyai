@@ -70,13 +70,13 @@ export default function AboutPage() {
             <div className="hidden md:flex items-center gap-8">
               <Link to="/features" className="text-gray-300 hover:text-white transition">Features</Link>
               <Link to="/pricing" className="text-gray-300 hover:text-white transition">Pricing</Link>
-              <Link to="/about" className="text-[#00D4FF] font-medium">About</Link>
+              <Link to="/about" className="text-[#2F8BFB] font-medium">About</Link>
               <Link to="/contact" className="text-gray-300 hover:text-white transition">Contact</Link>
               <Link to="/login">
                 <Button variant="ghost" className="text-gray-300 hover:text-white">Log In</Button>
               </Link>
               <Link to="/register">
-                <Button className="bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold">
+                <Button className="bg-[#2F8BFB] hover:bg-[#00B8E6] text-black font-semibold">
                   Start Free Trial
                 </Button>
               </Link>
@@ -93,11 +93,11 @@ export default function AboutPage() {
             <div className="flex flex-col gap-4">
               <Link to="/features" className="text-gray-300 hover:text-white">Features</Link>
               <Link to="/pricing" className="text-gray-300 hover:text-white">Pricing</Link>
-              <Link to="/about" className="text-[#00D4FF]">About</Link>
+              <Link to="/about" className="text-[#2F8BFB]">About</Link>
               <Link to="/contact" className="text-gray-300 hover:text-white">Contact</Link>
               <Link to="/login" className="text-gray-300 hover:text-white">Log In</Link>
               <Link to="/register">
-                <Button className="w-full bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold">Start Free Trial</Button>
+                <Button className="w-full bg-[#2F8BFB] hover:bg-[#00B8E6] text-black font-semibold">Start Free Trial</Button>
               </Link>
             </div>
           </div>
@@ -109,13 +109,13 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <Badge className="mb-6 bg-[#00D4FF]/20 text-[#00D4FF] border-[#00D4FF]/30 px-4 py-2">
+              <Badge className="mb-6 bg-[#2F8BFB]/20 text-[#2F8BFB] border-[#2F8BFB]/30 px-4 py-2">
                 <Heart className="w-4 h-4 mr-2" />
                 Our Story
               </Badge>
               <h1 className="text-4xl sm:text-5xl font-bold mb-6">
                 Built by a Sign Shop,<br />
-                <span className="text-[#00D4FF]">For Sign Shops</span>
+                <span className="text-[#2F8BFB]">For Sign Shops</span>
               </h1>
               <p className="text-xl text-gray-400 mb-6">
                 SignGuy AI wasn't built in a Silicon Valley office by people who've never touched a roll of vinyl. 
@@ -126,17 +126,17 @@ export default function AboutPage() {
                 I decided to build something better. Something that actually makes sense for our industry.
               </p>
               <Link to="/register">
-                <Button className="bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold">
+                <Button className="bg-[#2F8BFB] hover:bg-[#00B8E6] text-black font-semibold">
                   Join the Revolution
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </Link>
             </div>
             <div className="relative">
-              <div className="bg-gradient-to-br from-[#00D4FF]/20 to-blue-600/20 rounded-2xl p-8 border border-white/10">
+              <div className="bg-gradient-to-br from-[#2F8BFB]/20 to-blue-600/20 rounded-2xl p-8 border border-white/10">
                 <div className="text-center">
-                  <div className="w-24 h-24 bg-[#00D4FF]/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Zap className="w-12 h-12 text-[#00D4FF]" />
+                  <div className="w-24 h-24 bg-[#2F8BFB]/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Zap className="w-12 h-12 text-[#2F8BFB]" />
                   </div>
                   <h3 className="text-2xl font-bold mb-2">One Person. One Vision.</h3>
                   <p className="text-gray-400">
@@ -211,8 +211,8 @@ export default function AboutPage() {
             {values.map((value, index) => (
               <Card key={index} className="bg-[#111111] border-white/10">
                 <CardContent className="p-6 text-center">
-                  <div className="w-12 h-12 bg-[#00D4FF]/20 rounded-xl flex items-center justify-center mx-auto mb-4">
-                    <value.icon className="w-6 h-6 text-[#00D4FF]" />
+                  <div className="w-12 h-12 bg-[#2F8BFB]/20 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <value.icon className="w-6 h-6 text-[#2F8BFB]" />
                   </div>
                   <h3 className="font-semibold text-white mb-2">{value.title}</h3>
                   <p className="text-gray-400 text-sm">{value.description}</p>
@@ -224,44 +224,44 @@ export default function AboutPage() {
       </section>
 
       {/* Founder Promise */}
-      <section className="py-20 px-4 bg-gradient-to-r from-[#00D4FF]/10 to-blue-600/10">
+      <section className="py-20 px-4 bg-gradient-to-r from-[#2F8BFB]/10 to-blue-600/10">
         <div className="max-w-4xl mx-auto">
-          <Card className="bg-[#0B0F17] border-[#00D4FF]/30">
+          <Card className="bg-[#0B0F17] border-[#2F8BFB]/30">
             <CardContent className="p-8 md:p-12">
               <div className="flex items-start gap-4 mb-6">
-                <div className="w-12 h-12 bg-[#00D4FF]/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <MessageSquare className="w-6 h-6 text-[#00D4FF]" />
+                <div className="w-12 h-12 bg-[#2F8BFB]/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <MessageSquare className="w-6 h-6 text-[#2F8BFB]" />
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold mb-2">The Founder Promise</h2>
-                  <p className="text-[#00D4FF]">What you get as a founding member</p>
+                  <p className="text-[#2F8BFB]">What you get as a founding member</p>
                 </div>
               </div>
               
               <div className="space-y-4 mb-8">
                 <div className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-[#00D4FF] mt-1 flex-shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 text-[#2F8BFB] mt-1 flex-shrink-0" />
                   <p className="text-gray-300">
                     <strong className="text-white">Your voice matters.</strong> Need a feature? Tell me. 
                     I read every request and build what makes sense for sign shops.
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-[#00D4FF] mt-1 flex-shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 text-[#2F8BFB] mt-1 flex-shrink-0" />
                   <p className="text-gray-300">
                     <strong className="text-white">Locked-in pricing.</strong> Founding members keep their 
                     rate forever. As the product grows, your price stays the same.
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-[#00D4FF] mt-1 flex-shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 text-[#2F8BFB] mt-1 flex-shrink-0" />
                   <p className="text-gray-300">
                     <strong className="text-white">Direct access.</strong> You're not talking to a support 
                     bot or waiting in a queue. I'm here to help.
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-[#00D4FF] mt-1 flex-shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 text-[#2F8BFB] mt-1 flex-shrink-0" />
                   <p className="text-gray-300">
                     <strong className="text-white">Constant improvement.</strong> New features and AI 
                     tools are added regularly. Your subscription keeps getting better.
@@ -292,13 +292,13 @@ export default function AboutPage() {
                   <div className={`flex-1 ${index % 2 === 1 ? 'md:text-right' : ''}`}>
                     <Card className="bg-[#111111] border-white/10">
                       <CardContent className="p-6">
-                        <div className="text-[#00D4FF] font-bold mb-2">{item.year}</div>
+                        <div className="text-[#2F8BFB] font-bold mb-2">{item.year}</div>
                         <h3 className="text-lg font-semibold text-white mb-2">{item.title}</h3>
                         <p className="text-gray-400">{item.description}</p>
                       </CardContent>
                     </Card>
                   </div>
-                  <div className="hidden md:flex w-4 h-4 bg-[#00D4FF] rounded-full flex-shrink-0 relative z-10" />
+                  <div className="hidden md:flex w-4 h-4 bg-[#2F8BFB] rounded-full flex-shrink-0 relative z-10" />
                   <div className="flex-1 hidden md:block" />
                 </div>
               ))}
@@ -318,13 +318,13 @@ export default function AboutPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/register">
-              <Button size="lg" className="bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold text-lg px-8 py-6 h-auto">
+              <Button size="lg" className="bg-[#2F8BFB] hover:bg-[#00B8E6] text-black font-semibold text-lg px-8 py-6 h-auto">
                 Start Your Free Trial
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>
             <Link to="/contact">
-              <Button size="lg" variant="outline" className="border-[#00D4FF]/30 text-[#00D4FF] text-lg px-8 py-6 h-auto hover:bg-[#00D4FF]/10">
+              <Button size="lg" variant="outline" className="border-[#2F8BFB]/30 text-[#2F8BFB] text-lg px-8 py-6 h-auto hover:bg-[#2F8BFB]/10">
                 Get In Touch
               </Button>
             </Link>

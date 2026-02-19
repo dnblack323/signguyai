@@ -275,7 +275,7 @@ export default function FeaturesPage() {
             </Link>
             
             <div className="hidden md:flex items-center gap-8">
-              <Link to="/features" className="text-[#00D4FF] font-medium">Features</Link>
+              <Link to="/features" className="text-[#2F8BFB] font-medium">Features</Link>
               <Link to="/pricing" className="text-gray-300 hover:text-white transition">Pricing</Link>
               <Link to="/about" className="text-gray-300 hover:text-white transition">About</Link>
               <Link to="/contact" className="text-gray-300 hover:text-white transition">Contact</Link>
@@ -283,7 +283,7 @@ export default function FeaturesPage() {
                 <Button variant="ghost" className="text-gray-300 hover:text-white">Log In</Button>
               </Link>
               <Link to="/register">
-                <Button className="bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold">
+                <Button className="bg-[#2F8BFB] hover:bg-[#00B8E6] text-black font-semibold">
                   Start Free Trial
                 </Button>
               </Link>
@@ -298,13 +298,13 @@ export default function FeaturesPage() {
         {mobileMenuOpen && (
           <div className="md:hidden bg-[#111111] border-t border-white/10 p-4">
             <div className="flex flex-col gap-4">
-              <Link to="/features" className="text-[#00D4FF]">Features</Link>
+              <Link to="/features" className="text-[#2F8BFB]">Features</Link>
               <Link to="/pricing" className="text-gray-300 hover:text-white">Pricing</Link>
               <Link to="/about" className="text-gray-300 hover:text-white">About</Link>
               <Link to="/contact" className="text-gray-300 hover:text-white">Contact</Link>
               <Link to="/login" className="text-gray-300 hover:text-white">Log In</Link>
               <Link to="/register">
-                <Button className="w-full bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold">Start Free Trial</Button>
+                <Button className="w-full bg-[#2F8BFB] hover:bg-[#00B8E6] text-black font-semibold">Start Free Trial</Button>
               </Link>
             </div>
           </div>
@@ -314,12 +314,12 @@ export default function FeaturesPage() {
       {/* Hero */}
       <section className="pt-32 pb-16 px-4">
         <div className="max-w-7xl mx-auto text-center">
-          <Badge className="mb-6 bg-[#00D4FF]/20 text-[#00D4FF] border-[#00D4FF]/30 px-4 py-2">
+          <Badge className="mb-6 bg-[#2F8BFB]/20 text-[#2F8BFB] border-[#2F8BFB]/30 px-4 py-2">
             <Layers className="w-4 h-4 mr-2" />
             Everything You Need
           </Badge>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
-            Features That Actually <span className="text-[#00D4FF]">Make Sense</span>
+            Features That Actually <span className="text-[#2F8BFB]">Make Sense</span>
           </h1>
           <p className="text-xl text-gray-400 max-w-3xl mx-auto mb-8">
             Built by a sign shop owner who was tired of software that didn't understand the business. 
@@ -338,7 +338,7 @@ export default function FeaturesPage() {
                 onClick={() => setActiveCategory(cat.id)}
                 className={`px-4 py-2 rounded-full font-medium transition ${
                   activeCategory === cat.id
-                    ? 'bg-[#00D4FF] text-black'
+                    ? 'bg-[#2F8BFB] text-black'
                     : 'bg-white/10 text-gray-300 hover:bg-white/20'
                 }`}
               >
@@ -364,13 +364,13 @@ export default function FeaturesPage() {
                   <feature.icon className="w-8 h-8 text-white" />
                 </div>
                 <h2 className="text-3xl font-bold text-white mb-2">{feature.title}</h2>
-                <p className="text-[#00D4FF] font-medium mb-4">{feature.tagline}</p>
+                <p className="text-[#2F8BFB] font-medium mb-4">{feature.tagline}</p>
                 <p className="text-gray-400 mb-6">{feature.description}</p>
                 
                 <ul className="space-y-2">
                   {feature.capabilities.map((cap, i) => (
                     <li key={i} className="flex items-start gap-2 text-gray-300">
-                      <CheckCircle2 className="w-5 h-5 text-[#00D4FF] flex-shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-5 h-5 text-[#2F8BFB] flex-shrink-0 mt-0.5" />
                       {cap}
                     </li>
                   ))}
@@ -403,13 +403,13 @@ export default function FeaturesPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/register">
-              <Button size="lg" className="bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold text-lg px-8 py-6 h-auto">
+              <Button size="lg" className="bg-[#2F8BFB] hover:bg-[#00B8E6] text-black font-semibold text-lg px-8 py-6 h-auto">
                 Start Your Free Trial
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>
             <Link to="/pricing">
-              <Button size="lg" variant="outline" className="border-[#00D4FF]/30 text-[#00D4FF] text-lg px-8 py-6 h-auto hover:bg-[#00D4FF]/10">
+              <Button size="lg" variant="outline" className="border-[#2F8BFB]/30 text-[#2F8BFB] text-lg px-8 py-6 h-auto hover:bg-[#2F8BFB]/10">
                 View Pricing
               </Button>
             </Link>
