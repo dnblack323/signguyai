@@ -618,8 +618,17 @@ export default function Products() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            {product.image_url ? (
-                              <img src={product.image_url} alt={product.name} className="w-10 h-10 rounded object-cover" />
+                            {(product.images?.length > 0 || product.image_url) ? (
+                              <div className="flex -space-x-2">
+                                {(product.images?.length > 0 ? product.images : [product.image_url]).slice(0, 3).map((img, imgIdx) => (
+                                  <img 
+                                    key={imgIdx} 
+                                    src={img} 
+                                    alt={`${product.name} ${imgIdx + 1}`} 
+                                    className="w-10 h-10 rounded object-cover border-2 border-background"
+                                  />
+                                ))}
+                              </div>
                             ) : (
                               <div className="w-10 h-10 rounded bg-muted/50 flex items-center justify-center">
                                 <Icon className="h-5 w-5 text-muted-foreground" />
@@ -629,6 +638,9 @@ export default function Products() {
                               <p className="font-medium">{product.name}</p>
                               {product.description && (
                                 <p className="text-xs text-muted-foreground line-clamp-1">{product.description}</p>
+                              )}
+                              {product.images?.length > 1 && (
+                                <p className="text-xs text-muted-foreground">{product.images.length} images</p>
                               )}
                             </div>
                           </div>
