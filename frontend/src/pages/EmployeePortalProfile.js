@@ -157,11 +157,46 @@ export default function EmployeePortalProfile() {
         <Card style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)' }}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4 mb-6">
-              <div 
-                className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold"
-                style={{ backgroundColor: 'var(--accent)', color: 'white' }}
-              >
-                {profile?.name?.charAt(0) || 'E'}
+              {/* Profile Image with Upload */}
+              <div className="relative">
+                {profile?.profile_image ? (
+                  <img 
+                    src={profile.profile_image} 
+                    alt={profile?.name}
+                    className="w-20 h-20 rounded-full object-cover"
+                  />
+                ) : (
+                  <div 
+                    className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold"
+                    style={{ backgroundColor: 'var(--accent)', color: 'white' }}
+                  >
+                    {profile?.name?.charAt(0) || 'E'}
+                  </div>
+                )}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageUpload}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-colors"
+                  style={{ 
+                    backgroundColor: 'var(--accent)', 
+                    color: 'white',
+                    border: '2px solid var(--surface)'
+                  }}
+                  title="Change photo"
+                >
+                  {uploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Camera className="h-4 w-4" />
+                  )}
+                </button>
               </div>
               <div>
                 <h3 className="text-xl font-bold" style={{ color: 'var(--text)' }}>
