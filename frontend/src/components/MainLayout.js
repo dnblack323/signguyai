@@ -17,10 +17,10 @@ import { TrialCountdown } from './TrialLockout';
 const navigationCategories = [
   {
     id: 'home',
-    label: 'Home',
+    label: 'Dashboard',
     icon: LayoutDashboard,
     isDirectLink: true,  // Special flag for direct navigation
-    href: '/',
+    href: '/dashboard',
     items: []
   },
   {
