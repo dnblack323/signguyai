@@ -136,7 +136,7 @@ export default function PricingPagePublic() {
                 <Button variant="ghost" className="text-gray-300 hover:text-white">Log In</Button>
               </Link>
               <Link to="/register">
-                <Button className="bg-[#2F8BFB] hover:bg-[#00B8E6] text-black font-semibold">
+                <Button className="bg-[#2F8BFB] hover:bg-[#1E7AF0] text-black font-semibold">
                   Start Free Trial
                 </Button>
               </Link>
@@ -157,7 +157,7 @@ export default function PricingPagePublic() {
               <Link to="/contact" className="text-gray-300 hover:text-white">Contact</Link>
               <Link to="/login" className="text-gray-300 hover:text-white">Log In</Link>
               <Link to="/register">
-                <Button className="w-full bg-[#2F8BFB] hover:bg-[#00B8E6] text-black font-semibold">Start Free Trial</Button>
+                <Button className="w-full bg-[#2F8BFB] hover:bg-[#1E7AF0] text-black font-semibold">Start Free Trial</Button>
               </Link>
             </div>
           </div>
@@ -254,7 +254,7 @@ export default function PricingPagePublic() {
                       <Button
                         className={`w-full mb-4 ${
                           tier.popular
-                            ? 'bg-[#2F8BFB] hover:bg-[#00B8E6] text-black font-semibold'
+                            ? 'bg-[#2F8BFB] hover:bg-[#1E7AF0] text-black font-semibold'
                             : 'bg-white/5 hover:bg-white/10 border border-white/10'
                         }`}
                       >

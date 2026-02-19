@@ -76,7 +76,7 @@ export default function AboutPage() {
                 <Button variant="ghost" className="text-gray-300 hover:text-white">Log In</Button>
               </Link>
               <Link to="/register">
-                <Button className="bg-[#2F8BFB] hover:bg-[#00B8E6] text-black font-semibold">
+                <Button className="bg-[#2F8BFB] hover:bg-[#1E7AF0] text-black font-semibold">
                   Start Free Trial
                 </Button>
               </Link>
@@ -97,7 +97,7 @@ export default function AboutPage() {
               <Link to="/contact" className="text-gray-300 hover:text-white">Contact</Link>
               <Link to="/login" className="text-gray-300 hover:text-white">Log In</Link>
               <Link to="/register">
-                <Button className="w-full bg-[#2F8BFB] hover:bg-[#00B8E6] text-black font-semibold">Start Free Trial</Button>
+                <Button className="w-full bg-[#2F8BFB] hover:bg-[#1E7AF0] text-black font-semibold">Start Free Trial</Button>
               </Link>
             </div>
           </div>
@@ -126,7 +126,7 @@ export default function AboutPage() {
                 I decided to build something better. Something that actually makes sense for our industry.
               </p>
               <Link to="/register">
-                <Button className="bg-[#2F8BFB] hover:bg-[#00B8E6] text-black font-semibold">
+                <Button className="bg-[#2F8BFB] hover:bg-[#1E7AF0] text-black font-semibold">
                   Join the Revolution
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
@@ -318,7 +318,7 @@ export default function AboutPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/register">
-              <Button size="lg" className="bg-[#2F8BFB] hover:bg-[#00B8E6] text-black font-semibold text-lg px-8 py-6 h-auto">
+              <Button size="lg" className="bg-[#2F8BFB] hover:bg-[#1E7AF0] text-black font-semibold text-lg px-8 py-6 h-auto">
                 Start Your Free Trial
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
