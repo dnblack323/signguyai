@@ -88,15 +88,27 @@ export default function PricingPagePublic() {
   const faqs = [
     {
       question: 'What happens after my free trial?',
-      answer: 'After your 24-hour free trial, you can choose a plan that fits your shop. Your data is saved, so you can pick up right where you left off.',
+      answer: 'After your 24-hour free trial, you can purchase an Extended Trial ($19.99 for 14 days) to keep testing, or subscribe to a monthly plan to become a Founder.',
     },
     {
-      question: 'Can I change plans later?',
-      answer: 'Absolutely! You can upgrade or downgrade at any time. Changes take effect on your next billing cycle.',
+      question: 'What is the Extended Trial?',
+      answer: 'The Extended Trial gives you 14 more days to test SignGuy AI for just $19.99. If you then subscribe to a monthly plan, your $19.99 is credited toward your first month!',
+    },
+    {
+      question: 'How do I become a Founder?',
+      answer: 'Subscribe to any monthly plan (Starter, Growth, or Pro). The first 100 paying subscribers become Founders with locked-in pricing forever. Extended Trial purchases do not count toward Founder status.',
     },
     {
       question: 'What is "Founder" pricing?',
-      answer: 'The first 100 shops to sign up get exclusive founder pricing locked in forever. Your rate never increases as long as you maintain your subscription.',
+      answer: 'Founders get their subscription rate locked in forever - your monthly price never increases even when we raise prices. Plus no onboarding fees, early feature access, and direct developer contact.',
+    },
+    {
+      question: 'Do you offer annual billing?',
+      answer: 'Yes! Pay annually and get 1 month free (pay for 11 months, get 12). Annual billing also locks in Founder pricing.',
+    },
+    {
+      question: 'Can I change plans later?',
+      answer: 'Absolutely! You can upgrade or downgrade at any time. Changes take effect on your next billing cycle. Founder pricing applies to whatever tier you choose.',
     },
     {
       question: 'Do you offer refunds?',
@@ -105,10 +117,6 @@ export default function PricingPagePublic() {
     {
       question: 'What payment methods do you accept?',
       answer: 'We accept all major credit cards (Visa, MasterCard, American Express) through our secure Stripe payment processor.',
-    },
-    {
-      question: 'Can I import my existing customer data?',
-      answer: 'Yes! We support CSV import for customers, and our support team can help with data migration from other systems.',
     },
   ];
 
