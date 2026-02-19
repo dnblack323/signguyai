@@ -578,6 +578,15 @@ export const MainLayout = ({ children }) => {
   const [previewTier, setPreviewTier] = useState(() => localStorage.getItem('preview_tier') || 'tier3');
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  
+  // Only show preview mode in development OR for founder accounts
+  // This prevents regular customers from seeing/using the tier selector
+  const isDevelopment = process.env.NODE_ENV === 'development' || 
+                        window.location.hostname.includes('preview.emergentagent.com') ||
+                        window.location.hostname === 'localhost';
+  const isFounder = user?.is_founder === true;
+  const showPreviewMode = isDevelopment || isFounder;
 
   // Save preview tier to localStorage
   useEffect(() => {
