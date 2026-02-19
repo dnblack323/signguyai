@@ -211,8 +211,14 @@ async def update_job(
         else:
             await log_job_activity(job_id, JobActivityType.STATUS_CHANGED, f"Status changed from {old_status} to {new_status}", old_status, new_status)
     
-    await db.jobs.update_one({"id": job_id}, {"$set": update_data})
-    updated_job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    await db.jobs.update_one(
+        {"id": job_id, "tenant_id": current_user.tenant_id}, 
+        {"$set": update_data}
+    )
+    updated_job = await db.jobs.find_one(
+        {"id": job_id, "tenant_id": current_user.tenant_id}, 
+        {"_id": 0}
+    )
     return updated_job
 
 
