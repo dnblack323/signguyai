@@ -30,6 +30,7 @@ class EmployeeBase(BaseModel):
     is_active: bool = True
     tenant_id: Optional[str] = None
     pin: Optional[str] = None  # 4-6 digit PIN for employee portal login
+    profile_image: Optional[str] = None  # URL to profile image
 
 class EmployeeCreate(EmployeeBase):
     pass
