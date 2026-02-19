@@ -318,6 +318,51 @@ Comprehensive document management system for customer communication.
 - **Background Colors:** Standardized dark backgrounds to #0B0F17 and secondary surfaces to #111826
 - **Logo Updates:** Updated to new brand logos:
   - Slant logo on sign-in page
+
+## Webstores Module (Feb 19, 2026) - FULLY TESTED
+Complete webstore system for B2B, Fundraiser, and Creator stores.
+
+### Features Implemented:
+1. **Product Catalog:**
+   - Products support up to 3 images (UI allows adding/removing images)
+   - Apparel tier variants: Economy (+$0), Standard (+$5), Premium (+$12)
+   - Quick-add buttons for apparel/decal size variants
+   - Categories: Apparel, Signs, Decals, Promotional, Other
+   - Variants with size, color, tier, and custom price modifiers
+
+2. **Webstore Management:**
+   - Create Business, Fundraiser, or Creator webstores
+   - Custom branding (logo, primary color)
+   - Add products from catalog to webstores
+   - Track sales, profit, orders per store
+   - Orders tab shows customer info and linked job IDs
+
+3. **Public Storefront:**
+   - Accessible at `/store/{webstore_id}` without login
+   - Shows store name, description, products
+   - Image carousel for multi-image products
+   - Variant selection dropdown (size/color/tier)
+   - Add to cart and checkout flow
+
+4. **Order to Job Pipeline:**
+   - Orders auto-create jobs with status "Approved"
+   - Job named "Webstore Order - {Customer Name}"
+   - Customer auto-created if doesn't exist
+   - Job items created from order line items
+   - Order linked to job via job_id field
+
+### API Endpoints:
+- `POST /api/products` - Create product with images and variants
+- `GET /api/products/defaults/apparel-options` - Get tier/size defaults
+- `GET /api/storefront/{id}` - Public store info (no auth)
+- `GET /api/storefront/{id}/products` - Public products (no auth)
+- `POST /api/webstores/v2/orders` - Create order (auto-creates job)
+- `GET /api/webstores/v2/orders` - List orders (tenant-filtered)
+
+### Test Results:
+- Backend: 16/16 tests passed
+- Frontend: All UI flows verified
+- E2E: Full order flow tested (storefront → order → job)
   - Long logo ("The Sign Guy AI") in marketing headers
   - Square logo in app sidebar and Employee Portal
 - **Promo Codes System:** Admin feature to create discount codes for friends/beta testers
