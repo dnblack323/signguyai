@@ -374,7 +374,12 @@ export default function LandingPage() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {features.map((feature, index) => (
-              <Card key={index} className="bg-white border-gray-200 hover:border-blue-400 hover:shadow-lg transition-all group">
+              <Card key={index} className="bg-white border-gray-200 hover:border-blue-400 hover:shadow-lg transition-all group relative">
+                {feature.badge && (
+                  <Badge className="absolute top-3 right-3 bg-amber-500/20 text-amber-600 border-amber-500/30 text-xs">
+                    {feature.badge}
+                  </Badge>
+                )}
                 <CardContent className="p-6">
                   <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-600 transition">
                     <feature.icon className="w-6 h-6 text-white" />
@@ -384,6 +389,23 @@ export default function LandingPage() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+
+          {/* Links to learn more */}
+          <div className="mt-12 text-center">
+            <p className="text-gray-400 mb-4">Want to see everything in detail?</p>
+            <div className="flex flex-wrap justify-center gap-4">
+              <Link to="/features">
+                <Button variant="outline" className="border-blue-500/50 text-blue-400 hover:bg-blue-500/10">
+                  View All Features <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </Link>
+              <Link to="/about">
+                <Button variant="outline" className="border-gray-500/50 text-gray-400 hover:bg-gray-500/10">
+                  Our Story <Heart className="w-4 h-4 ml-1" />
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </section>
