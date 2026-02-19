@@ -20,6 +20,15 @@
 
 ## 🟠 MEDIUM PRIORITY (P2)
 
+### Webstores
+- [ ] **Webstores Enhancement** - Review and improve webstore functionality
+  - [ ] Test full webstore flow (create store, add products, customer ordering)
+  - [ ] Verify payment processing works correctly
+  - [ ] Check order management and fulfillment workflow
+  - [ ] Ensure store customization options work (branding, colors, etc.)
+  - [ ] Test customer-facing storefront display
+  - [ ] Verify inventory tracking (if applicable)
+
 ### Marketing Site
 - [ ] **Replace "Screenshot coming soon" placeholders** on Features page with real screenshots
 - [ ] **Capture screenshots** for each feature section (Customer Management, Jobs, Invoicing, etc.)
