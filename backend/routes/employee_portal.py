@@ -45,6 +45,7 @@ class EmployeeProfile(BaseModel):
     role: str
     hourly_rate: float
     tenant_id: str
+    profile_image: Optional[str] = None
 
 
 class TimeClockStatus(BaseModel):
