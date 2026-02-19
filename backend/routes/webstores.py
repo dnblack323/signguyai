@@ -775,9 +775,22 @@ async def get_webstore_orders(
     status: Optional[str] = None,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """List webstore orders"""
-    query = {}
+    """List webstore orders for this tenant's webstores"""
+    # Get all webstores for this tenant
+    tenant_webstores = await db.webstores_v2.find(
+        {"tenant_id": current_user.tenant_id},
+        {"id": 1, "_id": 0}
+    ).to_list(500)
+    webstore_ids = [w["id"] for w in tenant_webstores]
+    
+    if not webstore_ids:
+        return []
+    
+    query = {"webstore_id": {"$in": webstore_ids}}
     if webstore_id:
+        # If specific webstore requested, verify it belongs to tenant
+        if webstore_id not in webstore_ids:
+            raise HTTPException(status_code=404, detail="Webstore not found")
         query["webstore_id"] = webstore_id
     if status:
         query["status"] = status
