@@ -296,7 +296,6 @@ Comprehensive document management system for customer communication.
 - `/api/billing/checkout` - POST create Stripe checkout
 
 ## Known Issues
-- Trial lockout TEMPORARILY DISABLED for development/testing
 - "Business" badge in bottom-right is PREVIEW TIER SELECTOR (not a bug)
 
 ## Test Credentials
