@@ -472,6 +472,84 @@ async def get_webstores(
     return webstores
 
 
+# ============== WEBSTORE ORDERS (defined early to prevent route conflict) ==============
+
+@webstores_router.get("/orders", response_model=List[WebstoreOrder])
+async def get_webstore_orders(
+    webstore_id: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """List webstore orders for this tenant's webstores"""
+    # Get all webstores for this tenant
+    tenant_webstores = await db.webstores_v2.find(
+        {"tenant_id": current_user.tenant_id},
+        {"id": 1, "_id": 0}
+    ).to_list(500)
+    webstore_ids = [w["id"] for w in tenant_webstores]
+    
+    if not webstore_ids:
+        return []
+    
+    query = {"webstore_id": {"$in": webstore_ids}}
+    if webstore_id:
+        # If specific webstore requested, verify it belongs to tenant
+        if webstore_id not in webstore_ids:
+            raise HTTPException(status_code=404, detail="Webstore not found")
+        query["webstore_id"] = webstore_id
+    if status:
+        query["status"] = status
+    
+    orders = await db.webstore_orders_v2.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return orders
+
+
+@webstores_router.get("/orders/{order_id}", response_model=WebstoreOrder)
+async def get_webstore_order(
+    order_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Get a specific order"""
+    order = await db.webstore_orders_v2.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Verify access by checking if webstore belongs to tenant
+    webstore = await db.webstores_v2.find_one(
+        {"id": order["webstore_id"], "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
+
+
+@webstores_router.put("/orders/{order_id}/status")
+async def update_order_status(
+    order_id: str,
+    status: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Update order status"""
+    # Verify access first
+    order = await db.webstore_orders_v2.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    webstore = await db.webstores_v2.find_one(
+        {"id": order["webstore_id"], "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    await db.webstore_orders_v2.update_one(
+        {"id": order_id},
+        {"$set": {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    return {"message": "Status updated"}
+
+
 @webstores_router.get("/{webstore_id}", response_model=Webstore)
 async def get_webstore(
     webstore_id: str,
