@@ -304,5 +304,18 @@ Comprehensive document management system for customer communication.
 - **Customer Portal:** customer@test.com
 - **Employee Portal:** john@signshop.com / PIN: 5678
 
+## UI Theme (NON-NEGOTIABLE)
+- Dark shell background: `#0B0F17`
+- Light content cards: `#FFFFFF` or `#F7F8FA`
+- Dark text on cards: `#111827` or `#374151`
+- Blue accents ONLY: `#2F8BFB` (hover: `#1E7AF0`)
+- Secondary dark surfaces: `#111826`
+- This theme has been applied to: Dashboard, LandingPage, FeaturesPage, PricingPagePublic, AboutPage, ContactPage
+
+## Recent Fixes (Feb 19, 2026)
+- **Dashboard Badge Fix:** Status badges in "Today's Schedule" now have high-contrast colors (solid backgrounds with white/black text)
+- **Theme Consistency:** Applied blue accent color (#2F8BFB) across all marketing pages (was using teal #00D4FF)
+- **Background Colors:** Standardized dark backgrounds to #0B0F17 and secondary surfaces to #111826
+
 ## Last Updated
-February 17, 2026
+February 19, 2026
