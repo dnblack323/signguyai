@@ -159,7 +159,7 @@ export default function LandingPage() {
                 <Button variant="ghost" className="text-gray-300 hover:text-white">Log In</Button>
               </Link>
               <Link to="/register">
-                <Button className="bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold">
+                <Button className="bg-[#2F8BFB] hover:bg-[#1E7AF0] text-black font-semibold">
                   Start Free Trial
                 </Button>
               </Link>
@@ -182,7 +182,7 @@ export default function LandingPage() {
               <Link to="/docs" className="text-gray-300 hover:text-white">Docs</Link>
               <Link to="/login" className="text-gray-300 hover:text-white">Log In</Link>
               <Link to="/register">
-                <Button className="w-full bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold">Start Free Trial</Button>
+                <Button className="w-full bg-[#2F8BFB] hover:bg-[#1E7AF0] text-black font-semibold">Start Free Trial</Button>
               </Link>
             </div>
           </div>
@@ -192,19 +192,19 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4 relative overflow-hidden">
         {/* Background effects */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#00D4FF]/10 via-transparent to-transparent" />
-        <div className="absolute top-20 left-1/4 w-96 h-96 bg-[#00D4FF]/15 rounded-full blur-3xl" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#2F8BFB]/10 via-transparent to-transparent" />
+        <div className="absolute top-20 left-1/4 w-96 h-96 bg-[#2F8BFB]/15 rounded-full blur-3xl" />
         <div className="absolute top-40 right-1/4 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl" />
         
         <div className="max-w-7xl mx-auto relative">
           <div className="text-center max-w-4xl mx-auto">
-            <Badge className="mb-6 bg-[#00D4FF]/20 text-[#00D4FF] border-[#00D4FF]/30 px-4 py-2">
+            <Badge className="mb-6 bg-[#2F8BFB]/20 text-[#2F8BFB] border-[#2F8BFB]/30 px-4 py-2">
               <Rocket className="w-4 h-4 mr-2" />
               Founding Member Pricing - Limited Time
             </Badge>
             
             <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold mb-6 leading-tight">
-              The <span className="text-[#00D4FF]">AI-Powered</span> Operating System for{' '}
+              The <span className="text-[#2F8BFB]">AI-Powered</span> Operating System for{' '}
               <span className="text-white">Serious Sign Shops</span>
             </h1>
             
@@ -214,13 +214,13 @@ export default function LandingPage() {
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
               <Link to="/register">
-                <Button size="lg" className="bg-[#00D4FF] hover:bg-[#00B8E6] text-black font-semibold text-lg px-8 py-6 h-auto">
+                <Button size="lg" className="bg-[#2F8BFB] hover:bg-[#1E7AF0] text-black font-semibold text-lg px-8 py-6 h-auto">
                   Start Your Free Trial
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
               <a href="#demo">
-                <Button size="lg" variant="outline" className="border-[#00D4FF]/30 text-[#00D4FF] text-lg px-8 py-6 h-auto hover:bg-[#00D4FF]/10">
+                <Button size="lg" variant="outline" className="border-[#2F8BFB]/30 text-[#2F8BFB] text-lg px-8 py-6 h-auto hover:bg-[#2F8BFB]/10">
                   <Play className="w-5 h-5 mr-2" />
                   Watch Demo
                 </Button>
@@ -230,19 +230,19 @@ export default function LandingPage() {
             {/* Stats Bar */}
             <div className="flex flex-wrap justify-center gap-8 text-center">
               <div>
-                <div className="text-3xl font-bold text-[#00D4FF]">15+</div>
+                <div className="text-3xl font-bold text-[#2F8BFB]">15+</div>
                 <div className="text-gray-500">AI Tools</div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-[#00D4FF]">8</div>
+                <div className="text-3xl font-bold text-[#2F8BFB]">8</div>
                 <div className="text-gray-500">Pricing Calculators</div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-[#00D4FF]">∞</div>
+                <div className="text-3xl font-bold text-[#2F8BFB]">∞</div>
                 <div className="text-gray-500">Possibilities</div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-[#00D4FF]">24hr</div>
+                <div className="text-3xl font-bold text-[#2F8BFB]">24hr</div>
                 <div className="text-gray-500">Free Trial</div>
               </div>
             </div>
@@ -324,7 +324,7 @@ export default function LandingPage() {
                   onClick={() => setActiveScreenshot(index)}
                   className={`px-6 py-4 font-medium whitespace-nowrap transition ${
                     activeScreenshot === index
-                      ? 'bg-[#00D4FF]/20 text-[#00D4FF] border-b-2 border-[#00D4FF]'
+                      ? 'bg-[#2F8BFB]/20 text-[#2F8BFB] border-b-2 border-[#2F8BFB]'
                       : 'text-gray-400 hover:text-white'
                   }`}
                 >
@@ -678,7 +678,7 @@ export default function LandingPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/register">
-              <Button size="lg" className="bg-gradient-to-r from-[#00D4FF] to-[#0066CC] hover:from-[#00B8E6] hover:to-blue-700 text-lg px-8 py-6 h-auto">
+              <Button size="lg" className="bg-gradient-to-r from-[#2F8BFB] to-[#0066CC] hover:from-[#1E7AF0] hover:to-blue-700 text-lg px-8 py-6 h-auto">
                 Start Your Free Trial
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
