@@ -593,7 +593,7 @@ async def send_document_to_portal(
             customer_name=customer.get("name", customer.get("contact_name", "Valued Customer")),
             notification_type="document_ready",
             notification_title=f"New Document: {doc['name']}",
-            notification_message=input.message or f"A new document has been shared with you. Please log in to your portal to view it.",
+            notification_message=input.message or "A new document has been shared with you. Please log in to your portal to view it.",
             portal_link=f"{portal_url}/documents",
             tenant_id=current_user.tenant_id,
             company_name=company_name
