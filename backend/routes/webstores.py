@@ -191,6 +191,13 @@ class WebstoreProduct(BaseModel):
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
+class AddProductToWebstoreRequest(BaseModel):
+    """Request body for adding a product to a webstore"""
+    product_id: str
+    is_enabled: bool = True
+    price_override: Optional[float] = None
+
+
 class WebstoreOrderItem(BaseModel):
     product_id: str
     product_name: str
