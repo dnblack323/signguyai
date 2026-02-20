@@ -4,11 +4,13 @@ Email Service
 This module handles sending emails via SendGrid including:
 - Document delivery to customers
 - Portal notifications
+- Welcome emails
 - General transactional emails
 """
 
 import os
-from typing import Optional, List
+import re
+from typing import Optional, List, Dict
 from datetime import datetime, timezone
 import uuid
 
@@ -24,6 +26,27 @@ except ImportError:
 from server import db, logger
 
 
+def render_template(template_content: str, data: dict) -> str:
+    """Render a template by replacing variables with data"""
+    result = template_content
+    
+    # Replace simple variables
+    for key, value in data.items():
+        result = result.replace("{{" + key + "}}", str(value) if value else "")
+    
+    # Handle {{#if variable}} blocks
+    def replace_if_block(match):
+        var_name = match.group(1)
+        content = match.group(2)
+        if data.get(var_name):
+            return content
+        return ""
+    
+    result = re.sub(r'\{\{#if (\w+)\}\}(.*?)\{\{/if\}\}', replace_if_block, result, flags=re.DOTALL)
+    
+    return result
+
+
 class EmailService:
     """Email service using SendGrid"""
     
@@ -35,6 +58,39 @@ class EmailService:
     def is_configured(self) -> bool:
         """Check if SendGrid is properly configured"""
         return SENDGRID_AVAILABLE and bool(self.api_key)
+    
+    async def get_template(self, template_id: str, tenant_id: str) -> dict:
+        """Get email template (custom or default)"""
+        from routes.email_templates import DEFAULT_TEMPLATES
+        
+        if template_id not in DEFAULT_TEMPLATES:
+            return None
+        
+        default = DEFAULT_TEMPLATES[template_id]
+        
+        # Check for custom version
+        custom = await db.email_templates.find_one(
+            {"tenant_id": tenant_id, "template_id": template_id},
+            {"_id": 0}
+        )
+        
+        return {
+            "subject": custom.get("subject", default["subject"]) if custom else default["subject"],
+            "html_content": custom.get("html_content", default["html_content"]) if custom else default["html_content"]
+        }
+    
+    async def get_tenant_branding(self, tenant_id: str) -> dict:
+        """Get tenant branding info for emails"""
+        tenant = await db.tenants.find_one({"tenant_id": tenant_id}, {"_id": 0})
+        
+        return {
+            "company_name": tenant.get("company_name", "SignGuy AI") if tenant else "SignGuy AI",
+            "logo_url": tenant.get("logo_url", "") if tenant else "",
+            "primary_color": tenant.get("primary_color", "#0D9488") if tenant else "#0D9488",
+            "secondary_color": tenant.get("secondary_color", "#14B8A6") if tenant else "#14B8A6",
+            "portal_url": tenant.get("portal_url", "") if tenant else "",
+            "current_year": str(datetime.now().year)
+        }
     
     async def send_email(
         self,
