@@ -1,169 +1,174 @@
 <analysis>**original_problem_statement:**
-The user's goal is to create a comprehensive SaaS product for sign shops called SignGuy AI. The product has since been launched, and the user is now focused on fixing critical bugs, adding new features, and refining the business logic.
+The user's goal is to create a comprehensive SaaS product for sign shops called SignGuy AI. The product has been launched, and the user is now focused on adding new features, fixing bugs, and refining business logic.
 
 **PRODUCT REQUIREMENTS:**
 - **Core Business Modules:** Customer Management, Quotes/Jobs, Invoicing, Productivity, Financials, Employee Time/Payroll.
-- **Webstores:** Allow shops to create simple e-commerce stores. Orders should automatically become jobs.
-- **Artwork Approval System:** A module for shops to send artwork proofs to customers for approval, including a dashboard to track status.
+- **Webstores:** Allow shops to create simple e-commerce stores. Orders should automatically become jobs. Recent additions include logo and banner image uploads.
+- **Artwork Approval System:** A module for shops to send artwork proofs to customers for approval. This has been moved to the Tools section of the main menu.
+- **Smart Document Library:** A new module for managing, storing, and sending documents (PDFs, forms) to customers via email or the customer portal. It includes a link to an AI Document Composer.
 - **Customer Portal:** A secure portal for customers.
 - **Employee Portal:** A dedicated portal for employees.
-- **AI Tools Suite:** AI tools for design, marketing, and pricing. This now includes a requested **AI Business Assistant**, **Smart Pricing Analyzer**, and **Smart Document Library**.
-- **SaaS Billing & Tiers:** Detailed pricing with trials, add-ons, and promo codes. Recent requests include logic for **annual billing (1 month free)** and crediting the cost of an Extended Trial towards a full subscription.
-- **Onboarding:** A checklist for new users to guide them through setting up the app.
-- **Critical Bug Fix:** A data leak between different tenant accounts was discovered and needs to be completely resolved.
+- **AI Tools Suite:** AI tools for design, marketing, and pricing.
+- **SaaS Billing & Tiers:** Detailed pricing with trials and add-ons.
+- **Onboarding:** A checklist for new users. This is currently being updated to be dynamic and track user progress automatically.
+- **Email Template System:** A new system allowing admins to edit email templates for portal notifications and customer welcome emails.
+- **Customer Import:** An existing feature to import customers from a CSV file.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack SaaS product using FastAPI, React, and MongoDB. The critical data leak between tenants has been fixed after a full security audit. The Webstore functionality has been audited and enhanced to support multiple images, product variants, and automatic job creation from orders. A new Artwork Approval module has been built, allowing shops to upload artwork and send it to customers for approval via their portal. The system is confirmed to be ready for deployment.
+The application is a full-stack SaaS product using FastAPI, React, and MongoDB. In this session, a bug preventing webstore creation was fixed. Several new features were added, including logo and banner uploads for webstores, a complete Document Library module with the ability to send documents to customers via email or a portal, and an admin-editable email template system. The Approvals module was moved to the Tools section as requested. The agent is currently working on making the onboarding checklist dynamic.
 
 **Last working item**:
--   Last item agent was working: The user asked for clarification on whether to use a new or existing database for a production deployment. The agent explained the pros and cons of each approach and recommended starting with a clean, new database for production to avoid clutter from test data.
--   Status: USER VERIFICATION PENDING
--   Agent Testing Done: N/A
--   Which testing method agent to use? N/A (This is a user decision, not a technical task).
--   User Testing Done: N/A
+-   Last item agent was working: Implementing the backend logic for a dynamic onboarding checklist. The agent was creating a new API endpoint  to check the completion status of various setup tasks (e.g., creating a customer, customizing an email template). The file  was just created to house this logic.
+-   Status: IN PROGRESS
+-   Agent Testing Done: N
+-   Which testing method agent to use? backend testing agent
+-   User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   Issue 1: Onboarding checklist is static UI only (P2)
+-   Issue 1: The Onboarding checklist is not yet fully dynamic (P0)
 
 **Issues Detail:**
--   **Issue 1: Onboarding checklist is static UI only**
-    -   **Attempted fixes:** A new component  was created and added to the dashboard. It currently uses hardcoded logic.
+-   **Issue 1: The Onboarding checklist is not yet fully dynamic**
+    -   **Attempted fixes:** A new backend file  was created to house a new endpoint . The frontend component  was updated with a more comprehensive, hardcoded list of tasks.
     -   **Next debug checklist:**
-        1.  Create a new backend model to store the completion status of onboarding steps for each tenant.
-        2.  Create API endpoints to get and update the status of the checklist.
-        3.  Modify the frontend component to fetch the status from the API.
-        4.  Implement logic to automatically mark steps as complete (e.g., after the first customer is created).
-    -   **Why fix this issue and what will be achieved with the fix?** Makes the onboarding checklist a functional feature that improves user activation and retention.
-    -   **Status:** NOT STARTED
+        1.  Complete the implementation of the  endpoint in . The logic should check the database for conditions like .
+        2.  Modify the frontend component  to fetch its state from this new endpoint instead of using hardcoded values.
+        3.  Test the entire flow to ensure the checklist updates automatically as the user completes tasks.
+    -   **Why fix this issue and what will be achieved with the fix?** To make the onboarding checklist a functional feature that guides new users through the setup process, improving user activation and retention.
+    -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on other issue:** None
 
 **In progress Task List**:
--   **Task 1: Implement Backend Logic for Annual Billing & Trial Credit**
-    -   **Where to resume:** The frontend UI is complete. The work needs to start in the backend billing logic, likely in .
-    -   **What will be achieved with this?** Allows users to purchase annual plans at a discount and ensures users who buy an Extended Trial get that amount credited if they upgrade to a monthly plan. This is a core part of the monetization strategy.
-    -   **Status:** NOT STARTED
-    -   **Should Test frontend/backend/both after fix?** backend
+-   **Task 1: Complete Dynamic Onboarding Checklist**
+    -   **Where to resume:** . The file is empty and needs the new  endpoint to be written.
+    -   **What will be achieved with this?** A fully functional, dynamic onboarding checklist that tracks user progress.
+    -   **Status:** IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on something:** None
 
 **Upcoming and Future Tasks**
-Refer to the complete, user-approved checklist at .
-
 **Upcoming Tasks (P1-P2):**
--   **Build AI Tools:**
+-   **Implement Backend Logic for Annual Billing & Trial Credit (P1):** Core monetization feature is pending.
+-   **Build AI Tools (P2):**
     -   Race Number Creator
     -   AI Business Assistant
     -   Smart Pricing Analyzer
--   **Build Smart Document Library:** Allow attaching and managing forms/PDFs for jobs.
--   **Improve Mobile Responsiveness:** Refactor key pages for mobile friendliness.
--   **Replace Placeholders:** Add real screenshots to the Features page.
+-   **Price Calculator Customization (P2):** Allow shops to customize the pricing calculator to their preferences.
+-   **Improve Mobile Responsiveness (P2):** Refactor key pages for mobile friendliness.
+-   **Replace Placeholders (P2):** Add real screenshots to the Features page.
 
 **Future Tasks (Backlog):**
 -   Advanced RaceWrap AI Tool
--   Form/Document Library
+-   Form/Document Library (This can be marked as partially complete, as the base is built)
 -   Efficiency Dashboard
 -   Integrations (BNPL, SMS, QuickBooks)
 -   Custom Domain Support for tenants
 
 **Completed work in this session**
--   **Webstore Feature Enhancement:** Audited and enhanced the webstore module. Implemented public endpoints, support for up to 3 images per product, product variants (size/color), and automatic job creation upon a webstore order.
--   **Critical Security Audit (Data Leak Fix):** Performed a comprehensive audit of all backend database queries. Fixed numerous vulnerabilities where  filtering was missing, including in , , , and . This resolves the critical data leak issue.
--   **Artwork Approval Module:** Built a new full-stack feature for managing artwork approvals. Includes a dashboard with stats, a list of approval requests, and a modal to upload artwork and send it to a specific customer's job.
--   **Deployment Readiness Check:** Performed a health check and confirmed that all services are running correctly and the application is ready for deployment.
+-   **Webstore Creation Bug Fix:** Diagnosed and fixed an authentication issue ( field mismatch in the database) that was preventing webstore creation.
+-   **Webstore Logo & Banner Upload:** Implemented features for users to upload custom logo and banner images (as base64) for their webstores.
+-   **Approvals Module Relocation:** Moved the Artwork Approvals module from the Sales section to the Tools section in the navigation menu.
+-   **Smart Document Library:** Built a new full-stack feature for managing documents. It includes CRUD for documents and categories, file uploads, and a table view.
+-   **AI Tool Integration:** Added a link from the new Document Library to the existing AI Document Composer tool.
+-   **Send Document Feature:** Implemented functionality within the Document Library to send documents to customers, either as an email attachment or as a notification to view it in their portal.
+-   **Email Template System:** Created a new admin section to manage email templates. Implemented two default templates (Portal Notification, Welcome Email) with preview and edit capabilities.
+-   **Automatic Welcome Email:** Integrated the email service to automatically send a welcome email to new customers upon creation.
+-   **Customer Import Feature Rediscovery:** Investigated and confirmed that a customer import feature already exists, avoiding redundant work.
 
 -   **Recently completed:**
-    -   Webstore Functionality Audit & Fix (DONE)
-    -   Critical Tenant Data Leak Security Audit (DONE)
-    -   Artwork Approval System Module (DONE)
-    -   Deployment Readiness Check (DONE)
+    -   Webstore Creation Bug (DONE)
+    -   Webstore Logo & Banner Uploads (DONE)
+    -   Smart Document Library (DONE)
+    -   Send Document Feature (DONE)
+    -   Email Template System (DONE)
 
 **Earlier issues found/mentioned but not fixed**
--   **Onboarding checklist is static UI only:** No backend logic exists to track user progress. This was identified in the previous session and remains pending.
+-   None. All issues raised during the session were addressed or are currently in progress.
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork:** Trial Lockout System.
 -   **Recurrence count:** 3+
--   **Status:** RESOLVED (tentatively). The system was not touched in this session. The founder bypass logic from the previous session is still in place.
+-   **Status:** RESOLVED (tentatively). The system was not touched in this session.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Multi-Tenancy Security:** Completed a full audit, ensuring data isolation by adding  filters to all database queries across multiple route files.
--   **FastAPI Route Ordering:** Resolved a 404 error by reordering routes in  to ensure literal paths () are matched before dynamic paths ().
--   **Public vs. Authenticated Endpoints:** Created separate public-facing API endpoints for the webstore storefront to function without requiring customer login.
--   **Base64 Image Storage:** Storing small proof images directly in MongoDB as Base64 strings to simplify the upload process for the approvals module.
+-   **Backend Auth Debugging:** Resolved a login failure by correcting a database field name mismatch ( vs. ).
+-   **Base64 Image Handling:** Used base64 strings to handle image uploads for webstore logos and banners, storing them directly in MongoDB.
+-   **Service Layer Abstraction:** Created a dedicated  to handle all SendGrid logic, making the routes cleaner.
+-   **Dynamic UI via URL Params:** Updated the AI Tools page to pre-select a tool based on a URL query parameter ().
+-   **Frontend Context Management:** Debugged and fixed a frontend error by exporting the  instance from  to make it available to child components.
+-   **Modular Feature Development:** Built out the Document Library and Email Templates as self-contained full-stack features with their own models, routes, and frontend pages.
 
 **key DB schema**
--   :  changed to 
--   : added  to store base64 image.
--   : now includes  (e.g., webstore) and .
-
-**changes in tech stack**
--   None.
+-   : added , .
+-   : new collection .
+-   : new collection .
 
 **All files of reference**
--   : Heavily modified to add public endpoints, fix order creation, and correct route ordering.
--   : New file containing the logic for the artwork approval module.
--   : New frontend page for the artwork approval dashboard.
--   The following files were all updated with security fixes to enforce tenant isolation: , , , , , .
+-   : NEW. Contains all backend logic for the Document Library.
+-   : NEW. The complete frontend for the Document Library.
+-   : NEW. Centralizes all email-sending logic.
+-   : NEW. The frontend for managing email templates.
+-   : UPDATED. Added UI for logo and banner uploads.
+-   : NEW. Being created for the dynamic onboarding checklist.
 
 **Areas that need refactoring**:
--   **Static Onboarding Logic:** The onboarding checklist logic should be moved to the backend and tracked in the database, not hardcoded on the frontend.
--   **API Route Organization:** While some files like  are well-organized, many routes still reside in the monolithic  and other large route files. These could be broken down further.
+-   **API Route Organization:** Many core routes still reside in large, monolithic files. These could be broken down into smaller, more focused routers like  and .
 
 **key api endpoints**
--   : (Public) Get webstore details.
--   : (Public) Get products for a webstore.
--   : (Public) Create an order from a webstore.
--   : Create a new artwork approval request.
--   : Get all approval requests for the tenant.
--   : Get statistics for the approvals dashboard.
--   : Update the status of a proof.
+-   : Upload a logo for a webstore.
+-   : Upload a banner for a webstore.
+-   : CRUD endpoints for the Document Library.
+-   : CRUD endpoints for document categories.
+-   : Send a document via email.
+-   : Send a document to the customer portal.
+-   : CRUD endpoints for email templates.
 
 **Critical Info for New Agent**
--   **Security Audit Complete:** The critical tenant data leak has been thoroughly audited and fixed. The application is now considered secure regarding tenant data isolation. The  was used to verify this.
--   **User is Considering Deployment:** The user's last query was about deployment. The application has been deemed Ready for Deployment after a health check. The next step is to get the user's decision on using a new vs. existing database.
--   **New Features Added:** Two major user requests were completed: enhancing the webstore functionality and building a new artwork approval system.
--   **Priorities May Shift:** Although the original plan included working on billing and the onboarding checklist, the user has been providing new feature requests. After confirming the deployment database choice, re-align with the user on the next priority.
+-   The user is highly engaged and providing rapid-fire feature requests. Prioritize the user's latest request.
+-   Before implementing a new feature, perform a quick check of the existing codebase. The customer import feature was already present, which saved development time.
+-   The current active task is making the onboarding checklist dynamic. The backend endpoint needs to be finished first, then the frontend needs to be connected to it.
+-   The agent has been self-testing using  for the backend and screenshots for the frontend. No formal testing agent was used in this session.
 
 **documents and test reports created in this job**
--    (updated with Webstore and Artwork Approval features)
--    (Webstore testing)
--    (Security audit testing)
--    (Artwork Approval testing)
+-   None.
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **User:** Asked for clarification on whether to use a new or existing database for deployment. (Status: **PENDING USER RESPONSE**)
-9.  **User:** Requested a deployment readiness check. (Status: **Completed**)
-8.  **User:** Requested a new Artwork Approval System module. (Status: **Completed**)
-7.  **User:** Asked if the changing preview URL name is a problem for their custom domain. (Status: **Completed**, agent clarified it is not a problem).
-6.  **User:** After the webstore feature was completed, requested a complete security audit. (Status: **Completed**)
-5.  **User:** Requested to test and fix the webstores functionality. (Status: **Completed**)
+10. **User:** add configuring the email templates ect to the onboarding list and add price calculator customization and any other things that the shop needs to customize to make the software custom to their preferences and if we havent added the ability to import customer list we need to do that (Status: **In Progress**)
+9.  **User:** CAN we create a template email that can be updated in the admin settings... (Status: **Completed**)
+8.  **User:** There should be an option to create a document and either email it to a customer or send it to them through the portal... (Status: **Completed**)
+7.  **User:** Add a link to the. Document creation AI tool... (Status: **Completed**)
+6.  **User:** create the document librar (Status: **Completed**)
+5.  **User:** they shoild alsohave option to upload a custom banner image... also i dont see the approval module.. it should be in tools section (Status: **Completed**)
+4.  **User:** its working. need option to upload logo for store not just provide a url (Status: **Completed**)
+3.  **User:** ...i kept the database i like the test data it helps and im still building and testing webstores wont create (Status: **Completed**, bug was fixed)
 
 **Project Health Check:**
 -   **Broken:** None.
 -   **Mocked:**
-    -   The onboarding checklist on the dashboard is a static UI and does not track actual user progress.
+    -   The onboarding checklist is partially implemented. The backend logic is in progress.
     -   The Features page on the marketing site still contains Screenshot coming soon placeholders.
 
 **3rd Party Integrations**
 -   **OpenAI:** Used for AI tools via . Uses .
--   **Stripe:** Integrated for subscriptions with TEST keys. Logic for annual plans is still pending.
--   **SendGrid:** Configured for transactional emails.
+-   **Stripe:** Integrated for subscriptions with TEST keys.
+-   **SendGrid:** Configured and actively used for transactional emails, now powered by a templating system.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES (Used for webstores, security audit, and artwork approvals).
+-   **Testing agent used after significant changes:** NO
 -   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:** None, but the testing agent generated comprehensive tests.
--   **Known regressions:** None from this session. The critical data leak was resolved.
+-   **Test files created:** None.
+-   **Known regressions:** None.
 
 **Credentials to test flow:**
--   **Owner/Founder Account:**  (password set by user). This account is marked as .
--   **Test Account:**  with password . Used for testing regular user access and data isolation.
+-   **Owner/Founder Account:**  (password set by user).
+-   **Test Account:**  with password .
 
 **What agent forgot to execute**
-The agent successfully addressed all user requests from this session. The remaining pending tasks (Onboarding Checklist, Annual Billing) are carry-overs from the previous plan and were superseded by the user's new, higher-priority requests for webstore fixes and the approval module.</analysis>
+-   The user's request for price calculator customization was noted but has not been started. It should be added to the upcoming tasks. The agent correctly prioritized finishing the other parts of the user's request first.</analysis>

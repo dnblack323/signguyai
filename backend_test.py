@@ -6,7 +6,7 @@ import json
 from datetime import datetime, date, timedelta
 
 class SignGuyAPITester:
-    def __init__(self, base_url="https://employee-hub-228.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://artwork-approval.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.tests_run = 0
         self.tests_passed = 0

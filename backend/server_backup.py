@@ -4527,7 +4527,7 @@ async def send_order_notification_email(order: dict, store: dict):
                     </div>
                     
                     <p style="text-align: center;">
-                        <a href="{os.environ.get('FRONTEND_URL', 'https://employee-hub-228.preview.emergentagent.com')}/webstores" 
+                        <a href="{os.environ.get('FRONTEND_URL', 'https://artwork-approval.preview.emergentagent.com')}/webstores" 
                            style="background: #2F8BFB; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
                             View Order in Dashboard
                         </a>
