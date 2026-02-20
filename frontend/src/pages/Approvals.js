@@ -291,7 +291,7 @@ export default function Approvals() {
     if (!window.confirm('Are you sure you want to delete this proof?')) return;
     
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       await fetch(`${API}/api/approvals/${proofId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
