@@ -512,6 +512,26 @@ Complete webstore system for B2B, Fundraiser, and Creator stores.
 - **Employee Portal Branding:** Replaced hardhat icon with SignGuy AI square logo
 - **Employee Profile Images:** Employees can now upload their own profile photos via the Profile page
 
+## Webstore & AI Tools Bug Fixes (Feb 20, 2026) - COMPLETE ✅
+
+### Bug 1: Webstore "Failed to Add Products" Error - FIXED
+- **Issue:** Products couldn't be added to webstores, showing "Failed to Add Products" error
+- **Root Cause:** Backend expected JSON body but frontend was sending query parameters
+- **Fix:** Updated `backend/routes/webstores.py` (lines 718-760) to use `AddProductToWebstoreRequest` Pydantic model accepting JSON body `{product_id, is_enabled, price_override}`
+- **Verified:** 10/10 backend tests passed
+
+### Bug 2: Document Composer Blank Result Screen - FIXED
+- **Issue:** After generating a document, the RESULT card showed blank/white
+- **Root Cause:** Frontend (`AITools.js`) was checking `result.output` but API returns `result.content`
+- **Fix:** Updated lines 950-962 to use `result.content || result.output` fallback pattern
+- **Verified:** UI test confirmed result displays properly (1957 chars of generated content)
+
+### Bug 3: Business Copywriter Blank Result Screen - FIXED
+- **Issue:** Same as Document Composer - result screen showed blank after generation
+- **Root Cause:** Same API response field mismatch
+- **Fix:** Same fallback pattern applied
+- **Verified:** UI test confirmed result displays properly (1601 chars of generated content)
+
 ## AI Business Assistant Context-Awareness Fix (Feb 20, 2026) - COMPLETE ✅
 The AI Business Assistant now provides personalized, data-driven insights using the shop's actual data.
 
