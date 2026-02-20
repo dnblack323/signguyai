@@ -458,6 +458,8 @@ async def _activate_subscription(db, session_id: str, metadata: dict):
     tier = metadata.get("tier", "starter")
     is_founder = metadata.get("is_founder", "false") == "true"
     include_ai_addon = metadata.get("include_ai_addon", "false") == "true"
+    billing_interval = metadata.get("billing_interval", "monthly")
+    trial_credits_applied = float(metadata.get("trial_credits_applied", "0"))
     
     if not tenant_id or not plan_str:
         return
@@ -486,40 +488,48 @@ async def _activate_subscription(db, session_id: str, metadata: dict):
             "plan": plan.value,
             "status": SubscriptionStatus.TRIALING.value,
             "tier": "business",  # Full access during trial
+            "billing_interval": "monthly",
             "is_founder": is_founder,
             "has_ai_addon": True,  # Full access during trial
             "trial_start": now.isoformat(),
             "trial_end": trial_end.isoformat(),
             "trial_credits_applied": amount_paid,  # $19.99 credits toward Tier 3
+            "trial_credits_used": False,  # Not yet used
             "extended_trial_paid": True,
+            "amount_paid": amount_paid,
             "created_at": now.isoformat(),
             "updated_at": now.isoformat()
         }
     else:
-        # Regular subscription
-        period_end = now + timedelta(days=30)
+        # Regular subscription - period depends on billing interval
+        if billing_interval == "annual":
+            period_end = now + timedelta(days=365)
+        else:
+            period_end = now + timedelta(days=30)
         
-        # Check if user has trial credits to apply to Tier 3
-        existing_sub = await db.subscriptions.find_one({"tenant_id": tenant_id})
-        trial_credits = 0
-        if existing_sub and plan == SubscriptionPlan.TIER_3:
-            trial_credits = existing_sub.get("trial_credits_applied", 0)
+        # Mark trial credits as used if they were applied
+        mark_credits_used = trial_credits_applied > 0
         
         subscription_data = {
             "tenant_id": tenant_id,
             "plan": plan.value,
             "status": SubscriptionStatus.ACTIVE.value,
             "tier": tier,
+            "billing_interval": billing_interval,
             "is_founder": is_founder,
             "founder_number": founder_number,
             "founder_locked_at": now.isoformat() if is_founder else None,
             "has_ai_addon": include_ai_addon or plan == SubscriptionPlan.AI_ADDON,
             "current_period_start": now.isoformat(),
             "current_period_end": period_end.isoformat(),
-            "trial_credits_applied": trial_credits,
+            "amount_paid": amount_paid,
             "created_at": now.isoformat(),
             "updated_at": now.isoformat()
         }
+        
+        # If trial credits were applied, mark them as used
+        if mark_credits_used:
+            subscription_data["trial_credits_used"] = True
     
     # Upsert subscription
     await db.subscriptions.update_one(
@@ -528,10 +538,19 @@ async def _activate_subscription(db, session_id: str, metadata: dict):
         upsert=True
     )
     
-    # Update tenant tier
+    # Update tenant with tier and founder status
+    tenant_update = {
+        "plan": tier,
+        "is_founder": is_founder,
+        "subscription_status": "active" if plan != SubscriptionPlan.EXTENDED_TRIAL else "trialing",
+        "updated_at": now.isoformat()
+    }
+    if founder_number:
+        tenant_update["founder_number"] = founder_number
+    
     await db.tenants.update_one(
         {"id": tenant_id},
-        {"$set": {"plan": tier}}
+        {"$set": tenant_update}
     )
 
 
