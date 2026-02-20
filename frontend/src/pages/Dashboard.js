@@ -502,19 +502,19 @@ export default function Dashboard() {
       {/* Main Content Grid - responsive */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Left Column - Schedule & Approvals */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <ScheduleWidget schedule={todaysSchedule} />
           <PendingApprovalsWidget approvals={pendingApprovals} />
         </div>
         
         {/* Middle Column - Messages & Clocked In */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <MessagesWidget messages={unreadMessages} />
           <ClockedInWidget employees={clockedInEmployees} />
         </div>
         
         {/* Right Column - Quick Actions */}
-        <div>
+        <div className="lg:block">
           <QuickActions />
         </div>
       </div>
