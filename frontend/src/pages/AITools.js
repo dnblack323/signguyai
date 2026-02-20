@@ -15,13 +15,22 @@ import {
   SelectValue,
 } from '../components/ui/select';
 import { ScrollArea } from '../components/ui/scroll-area';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '../components/ui/dialog';
 import { formatDateTime } from '../lib/utils';
 import { 
   Sparkles, Image, Wand2, Type, Layout, Flag, Box, 
   Palette, FileText, PenTool, Share2, Calendar, Target,
   FileEdit, DollarSign, Loader2, Copy, History, Upload,
   Download, ChevronRight, Check, RefreshCw, ImageIcon,
-  ExternalLink, MessageSquare, ClipboardList
+  ExternalLink, MessageSquare, ClipboardList, Save, Send,
+  FileDown, FolderPlus, Users
 } from 'lucide-react';
 import { toast } from 'sonner';
 
