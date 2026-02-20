@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -35,7 +35,8 @@ import { formatCurrency, formatDate, getStatusColor } from '../lib/utils';
 import { 
   Store, Heart, Building2, User, Plus, ShoppingCart, 
   Eye, Edit2, Trash2, Package, DollarSign, TrendingUp,
-  ExternalLink, Check, X, Settings, Copy, Link2, BarChart3
+  ExternalLink, Check, X, Settings, Copy, Link2, BarChart3,
+  Upload, ImageIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import WebstoreDetailDashboard from '../components/WebstoreDetailDashboard';
