@@ -301,6 +301,23 @@ Comprehensive document management system for customer communication.
 
 ## Recent Updates (Feb 20, 2026)
 
+### Stripe Connect Integration (Tenant Payment Processing)
+- **New Feature:** Sign shops can now connect their own Stripe accounts to accept payments
+- **Platform fees by tier:**
+  - Starter (Tier 1): 3%
+  - Growth (Tier 2): 2%
+  - Pro/Business (Tier 3): 1%
+- **Invoice Payments:** Added "Pay Link" button to invoices - creates Stripe checkout session
+- **Webstore Checkout:** Updated to process real payments via connected Stripe account
+- **Payment Settings page:** `/admin/payments` for shops to connect/manage Stripe
+- **Auto order creation:** When webstore payment succeeds, order is created with "paid" status
+- **Fallback:** If Stripe not connected, webstore creates order with "pending" payment status
+- **New endpoints:**
+  - `GET /api/stripe-connect/status` - Check connection status
+  - `POST /api/stripe-connect/create-account` - Start Stripe onboarding
+  - `POST /api/stripe-connect/invoice/{id}/pay` - Create invoice payment link
+  - `POST /api/stripe-connect/webstore/{id}/checkout` - Process webstore checkout
+
 ### Webstore Fixes
 - **Product toggle persistence:** Fixed issue where enabling products in Products tab wouldn't persist. Now uses `is_enabled` flag update instead of removing/re-adding products
 - **Added PUT endpoint:** `PUT /api/webstores/v2/{webstore_id}/products/{product_id}` to update product enabled status
