@@ -181,7 +181,11 @@ export default function Quotes() {
   };
 
   const calculateTotal = () => {
-    return formData.line_items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+    return formData.line_items.reduce((sum, item) => {
+      const qty = parseFloat(item.quantity) || 0;
+      const price = parseFloat(item.unit_price) || 0;
+      return sum + (qty * price);
+    }, 0);
   };
 
   const resetForm = () => {
