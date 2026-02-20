@@ -69,6 +69,7 @@ FOUNDER_PRICING = {
     SubscriptionPlan.EXTENDED_TRIAL: {
         "name": "14-Day Extended Trial",
         "amount": 19.99,
+        "amount_annual": 19.99,  # One-time, no annual
         "description": "Full platform access for 14 days. Credits toward Tier 3!",
         "trial_days": 14,
         "tier": "tier_3",  # Gets full Tier 3 access during trial
@@ -78,40 +79,52 @@ FOUNDER_PRICING = {
         "name": "Tier 1 – Founder",
         "display_name": "Starter Shop",
         "amount": 79.00,
+        "amount_annual": 790.00,  # 10 months (save 2 months)
+        "annual_savings": 158.00,  # 2 months saved
         "description": "Essential tools for small sign shops",
         "interval": "month",
         "tier": "starter",
         "standard_price": 129.00,
+        "standard_price_annual": 1290.00,
         "onboarding_fee": 0,  # Founders never pay
     },
     SubscriptionPlan.TIER_2: {
         "name": "Tier 2 – Founder",
         "display_name": "Growth Shop",
         "amount": 129.00,
+        "amount_annual": 1290.00,  # 10 months (save 2 months)
+        "annual_savings": 258.00,
         "description": "Advanced features for growing businesses",
         "interval": "month",
         "tier": "pro",
         "standard_price": 229.00,
+        "standard_price_annual": 2290.00,
         "onboarding_fee": 0,
     },
     SubscriptionPlan.TIER_3: {
         "name": "Tier 3 – Founder",
         "display_name": "Pro Shop",
         "amount": 199.00,
+        "amount_annual": 1990.00,  # 10 months (save 2 months)
+        "annual_savings": 398.00,
         "description": "Everything unlimited. Full power.",
         "interval": "month",
         "tier": "business",
         "standard_price": 379.00,
+        "standard_price_annual": 3790.00,
         "onboarding_fee": 0,
     },
     SubscriptionPlan.AI_ADDON: {
         "name": "AI Tools Add-On – Founder",
         "display_name": "AI Tools Pack",
         "amount": 49.00,
+        "amount_annual": 490.00,  # 10 months (save 2 months)
+        "annual_savings": 98.00,
         "description": "All AI tools for shops using other systems",
         "interval": "month",
         "tier": "ai_addon",
         "standard_price": 89.00,
+        "standard_price_annual": 890.00,
         "is_addon": True,
     },
 }
