@@ -70,6 +70,30 @@ class PaymentResponse(BaseModel):
     session_id: str
 
 
+class WebstoreCheckoutItem(BaseModel):
+    """Item in webstore checkout"""
+    product_id: str
+    variant_id: Optional[str] = None
+    variant_name: Optional[str] = None
+    quantity: int = 1
+    price: float = 0
+
+
+class WebstoreCustomerInfo(BaseModel):
+    """Customer info for webstore checkout"""
+    name: str
+    email: str
+    phone: Optional[str] = None
+    shipping_address: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class WebstoreCheckoutRequest(BaseModel):
+    """Request body for webstore checkout"""
+    items: list[WebstoreCheckoutItem]
+    customer_info: WebstoreCustomerInfo
+
+
 def get_platform_fee_percent(tier: str) -> float:
     """Get platform fee percentage for a tier"""
     return PLATFORM_FEES.get(tier, 0.03)  # Default to 3%
