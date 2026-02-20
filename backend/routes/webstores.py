@@ -631,7 +631,7 @@ async def upload_webstore_logo(
     if file.content_type not in allowed_types:
         raise HTTPException(
             status_code=400, 
-            detail=f"Invalid file type. Allowed: PNG, JPEG, WebP, GIF"
+            detail="Invalid file type. Allowed: PNG, JPEG, WebP, GIF"
         )
     
     # Read and encode the file
