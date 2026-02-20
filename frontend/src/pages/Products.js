@@ -114,13 +114,13 @@ export default function Products() {
       name: '',
       description: '',
       category: 'other',
-      base_cost: 0,
-      retail_price: 0,
+      base_cost: '',
+      retail_price: '',
       images: [],
       has_variants: false,
       variants: []
     });
-    setNewVariant({ name: '', size: '', color: '', tier: '', additional_cost: 0 });
+    setNewVariant({ name: '', size: '', color: '', tier: 'none', additional_cost: '' });
     setNewImageUrl('');
     setEditingProduct(null);
   };
@@ -132,8 +132,8 @@ export default function Products() {
         name: product.name,
         description: product.description || '',
         category: product.category,
-        base_cost: product.base_cost,
-        retail_price: product.retail_price,
+        base_cost: product.base_cost || '',
+        retail_price: product.retail_price || '',
         images: product.images || (product.image_url ? [product.image_url] : []),
         has_variants: product.has_variants,
         variants: product.variants || []
@@ -142,6 +142,40 @@ export default function Products() {
       resetForm();
     }
     setIsDialogOpen(true);
+  };
+
+  // Convert file to base64
+  const handleFileUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (formData.images.length + files.length > 3) {
+      toast.error('Maximum 3 images allowed');
+      return;
+    }
+
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please upload image files only');
+        continue;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image must be less than 5MB');
+        continue;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        setFormData(prev => ({
+          ...prev,
+          images: [...prev.images, reader.result]
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+    
+    // Reset the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleAddImage = () => {
