@@ -859,18 +859,146 @@ class AIAssistantRequest(BaseModel):
     conversation_history: Optional[List[Dict[str, str]]] = None
 
 
+async def get_shop_context(tenant_id: str) -> dict:
+    """Fetch comprehensive shop data for AI context"""
+    from datetime import datetime, timedelta, timezone
+    
+    now = datetime.now(timezone.utc)
+    thirty_days_ago = now - timedelta(days=30)
+    ninety_days_ago = now - timedelta(days=90)
+    
+    # Get tenant info
+    tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    company_name = tenant.get("company_name", "Your Shop") if tenant else "Your Shop"
+    
+    # Get customer stats
+    total_customers = await db.customers.count_documents({"tenant_id": tenant_id})
+    new_customers_30d = await db.customers.count_documents({
+        "tenant_id": tenant_id,
+        "created_at": {"$gte": thirty_days_ago.isoformat()}
+    })
+    
+    # Get job stats
+    total_jobs = await db.jobs.count_documents({"tenant_id": tenant_id})
+    active_jobs = await db.jobs.count_documents({"tenant_id": tenant_id, "status": {"$in": ["pending", "in_progress", "production"]}})
+    completed_jobs_30d = await db.jobs.count_documents({
+        "tenant_id": tenant_id, 
+        "status": "completed",
+        "updated_at": {"$gte": thirty_days_ago.isoformat()}
+    })
+    
+    # Get revenue from invoices
+    paid_invoices = await db.invoices.find({
+        "tenant_id": tenant_id,
+        "status": "paid"
+    }, {"_id": 0, "total": 1, "paid_at": 1, "created_at": 1}).to_list(1000)
+    
+    total_revenue = sum(inv.get("total", 0) for inv in paid_invoices)
+    revenue_30d = sum(inv.get("total", 0) for inv in paid_invoices 
+                      if inv.get("paid_at", inv.get("created_at", "")) >= thirty_days_ago.isoformat())
+    
+    # Get pending invoices
+    pending_invoices = await db.invoices.find({
+        "tenant_id": tenant_id,
+        "status": {"$in": ["sent", "draft", "overdue"]}
+    }, {"_id": 0, "total": 1}).to_list(500)
+    pending_revenue = sum(inv.get("total", 0) for inv in pending_invoices)
+    
+    # Get quote stats
+    total_quotes = await db.quotes.count_documents({"tenant_id": tenant_id})
+    quotes_30d = await db.quotes.count_documents({
+        "tenant_id": tenant_id,
+        "created_at": {"$gte": thirty_days_ago.isoformat()}
+    })
+    accepted_quotes = await db.quotes.count_documents({"tenant_id": tenant_id, "status": "accepted"})
+    quote_conversion_rate = (accepted_quotes / total_quotes * 100) if total_quotes > 0 else 0
+    
+    # Get job categories/types breakdown
+    jobs_pipeline = [
+        {"$match": {"tenant_id": tenant_id}},
+        {"$group": {"_id": "$category", "count": {"$sum": 1}, "total_value": {"$sum": "$total"}}},
+        {"$sort": {"total_value": -1}},
+        {"$limit": 10}
+    ]
+    job_categories = await db.jobs.aggregate(jobs_pipeline).to_list(10)
+    
+    # Get top customers by revenue
+    customer_pipeline = [
+        {"$match": {"tenant_id": tenant_id, "status": "paid"}},
+        {"$group": {"_id": "$customer_id", "total_spent": {"$sum": "$total"}, "invoice_count": {"$sum": 1}}},
+        {"$sort": {"total_spent": -1}},
+        {"$limit": 5}
+    ]
+    top_customers_data = await db.invoices.aggregate(customer_pipeline).to_list(5)
+    
+    # Enrich with customer names
+    top_customers = []
+    for tc in top_customers_data:
+        customer = await db.customers.find_one({"id": tc["_id"]}, {"_id": 0, "name": 1})
+        if customer:
+            top_customers.append({
+                "name": customer.get("name", "Unknown"),
+                "total_spent": tc["total_spent"],
+                "orders": tc["invoice_count"]
+            })
+    
+    # Get employee count
+    employee_count = await db.employees.count_documents({"tenant_id": tenant_id})
+    
+    # Get webstore stats
+    webstore_count = await db.webstores_v2.count_documents({"tenant_id": tenant_id})
+    webstore_orders = await db.webstore_orders.count_documents({"tenant_id": tenant_id})
+    
+    # Calculate average job value
+    avg_job_value = total_revenue / total_jobs if total_jobs > 0 else 0
+    
+    return {
+        "company_name": company_name,
+        "customers": {
+            "total": total_customers,
+            "new_last_30_days": new_customers_30d
+        },
+        "jobs": {
+            "total": total_jobs,
+            "active": active_jobs,
+            "completed_last_30_days": completed_jobs_30d,
+            "average_value": round(avg_job_value, 2)
+        },
+        "revenue": {
+            "total_all_time": round(total_revenue, 2),
+            "last_30_days": round(revenue_30d, 2),
+            "pending": round(pending_revenue, 2)
+        },
+        "quotes": {
+            "total": total_quotes,
+            "last_30_days": quotes_30d,
+            "conversion_rate": round(quote_conversion_rate, 1)
+        },
+        "job_categories": [{"category": jc["_id"] or "Uncategorized", "count": jc["count"], "revenue": round(jc.get("total_value", 0), 2)} for jc in job_categories],
+        "top_customers": top_customers,
+        "team_size": employee_count,
+        "webstores": {
+            "count": webstore_count,
+            "total_orders": webstore_orders
+        }
+    }
+
+
 @router.post("/assistant")
 async def ai_business_assistant(
     request: AIAssistantRequest,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """AI Business Assistant - Chat interface for sign shop operations"""
+    """AI Business Assistant - Chat interface for sign shop operations with real shop data"""
     from emergentintegrations.llm.chat import LlmChat, UserMessage
     
     if not EMERGENT_LLM_KEY:
         raise HTTPException(status_code=500, detail="AI service not configured")
     
     try:
+        # Fetch real shop data
+        shop_data = await get_shop_context(current_user.tenant_id)
+        
         # Build conversation context from history
         context_messages = ""
         if request.conversation_history:
@@ -878,22 +1006,64 @@ async def ai_business_assistant(
                 role = "User" if msg.get("role") == "user" else "Assistant"
                 context_messages += f"{role}: {msg.get('content', '')}\n\n"
         
-        system_message = """You are an expert AI Business Assistant for sign shop owners and operators. You have deep knowledge of:
+        # Format shop data for the prompt
+        shop_summary = f"""
+## Current Shop Data for {shop_data['company_name']}:
 
+### Customers & Sales
+- Total Customers: {shop_data['customers']['total']}
+- New Customers (30 days): {shop_data['customers']['new_last_30_days']}
+- Quote Conversion Rate: {shop_data['quotes']['conversion_rate']}%
+
+### Jobs
+- Total Jobs: {shop_data['jobs']['total']}
+- Active Jobs: {shop_data['jobs']['active']}
+- Completed (30 days): {shop_data['jobs']['completed_last_30_days']}
+- Average Job Value: ${shop_data['jobs']['average_value']:,.2f}
+
+### Revenue
+- All-Time Revenue: ${shop_data['revenue']['total_all_time']:,.2f}
+- Last 30 Days: ${shop_data['revenue']['last_30_days']:,.2f}
+- Pending Invoices: ${shop_data['revenue']['pending']:,.2f}
+
+### Top Job Categories by Revenue:
+{chr(10).join([f"- {cat['category']}: {cat['count']} jobs, ${cat['revenue']:,.2f}" for cat in shop_data['job_categories'][:5]]) if shop_data['job_categories'] else '- No job data yet'}
+
+### Top Customers:
+{chr(10).join([f"- {c['name']}: ${c['total_spent']:,.2f} ({c['orders']} orders)" for c in shop_data['top_customers']]) if shop_data['top_customers'] else '- No customer revenue data yet'}
+
+### Team & Operations
+- Employees: {shop_data['team_size']}
+- Webstores: {shop_data['webstores']['count']} ({shop_data['webstores']['total_orders']} total orders)
+"""
+        
+        system_message = f"""You are the AI Business Assistant for SignGuy AI, a comprehensive sign shop management platform. You are chatting with {current_user.full_name or 'the owner'} from {shop_data['company_name']}.
+
+## Your Role
+You have FULL ACCESS to this shop's real business data (shown below). Use this data to give SPECIFIC, PERSONALIZED answers - never generic advice.
+
+{shop_summary}
+
+## Your Knowledge
 - **Sign Industry Operations**: Vehicle wraps, channel letters, monument signs, banners, vinyl graphics, dimensional letters, LED signs, A-frames, window graphics, wall wraps, trade show displays
 - **Materials & Production**: Vinyl types (cast, calendered, reflective), substrates (ACM, PVC, MDO), laminates, print technologies, installation techniques
 - **Business Management**: Pricing strategies, profit margins (industry standard 40-60%), job costing, time tracking, workflow optimization
-- **Sales & Customer Service**: Quote follow-ups, handling objections, upselling, managing difficult customers, building relationships
-- **Marketing**: Social media for sign shops, portfolio presentation, local SEO, referral programs
-- **Industry Standards**: Typical production times, installation best practices, warranty policies
+- **SignGuy AI Features**: You know this platform has Quotes, Jobs, Invoices, Customers, Time Tracking, Webstores, Employee Portal, AI Tools, and more
 
-Your personality:
-- Friendly and conversational, like a knowledgeable mentor
-- Practical and actionable advice, not theoretical
-- Direct answers with specific numbers when possible
-- Acknowledge you're AI but provide genuinely useful industry insights
+## How to Respond
+1. ALWAYS use the shop's actual data when answering questions about their business
+2. Reference specific numbers: "Your average job is ${shop_data['jobs']['average_value']:,.2f}" not "typically shops charge..."
+3. Identify their best-performing categories and customers from the data
+4. If asked about profit margins, calculate using THEIR data
+5. Be conversational but data-driven
+6. For questions about features, explain how to use SignGuy AI
 
-Always be helpful, specific, and sign-industry focused. When giving pricing advice, remind users that rates vary by market and to verify with local competitors."""
+## Examples of Good Responses
+- "Looking at your data, your top category is [X] with ${Y} in revenue. Here's how to grow it..."
+- "Your quote conversion rate is {shop_data['quotes']['conversion_rate']}% - here are 3 ways to improve it..."
+- "Based on your {shop_data['jobs']['active']} active jobs, here's how to optimize workflow..."
+
+Never say "if you upload your data" or "tell me what software you use" - you already have their data!"""
         
         # Initialize chat with the session
         chat = LlmChat(
@@ -910,6 +1080,14 @@ Always be helpful, specific, and sign-industry focused. When giving pricing advi
         
         # Send message and get response
         response = await chat.send_message(UserMessage(text=full_prompt))
+        
+        # Log AI usage
+        await db.ai_usage_logs.insert_one({
+            "tenant_id": current_user.tenant_id,
+            "user_id": current_user.id,
+            "tool": "business_assistant",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
         
         return {"response": response}
         
