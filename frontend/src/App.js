@@ -146,6 +146,7 @@ function App() {
         <TierProvider>
           <AppProvider>
             <BrowserRouter>
+              <ScrollToTop />
               <Routes>
                 {/* Public Landing Page - ROOT URL shows marketing site */}
                 <Route path="/" element={<LandingPage />} />
