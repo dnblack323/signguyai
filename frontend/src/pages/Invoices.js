@@ -236,8 +236,9 @@ export default function Invoices() {
                   <Input
                     type="number"
                     step="0.01"
+                    placeholder="0.00"
                     value={formData.total}
-                    onChange={(e) => setFormData({ ...formData, total: parseFloat(e.target.value) || 0 })}
+                    onChange={(e) => setFormData({ ...formData, total: e.target.value })}
                     data-testid="invoice-total-input"
                   />
                 </div>
