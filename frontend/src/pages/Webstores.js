@@ -243,7 +243,6 @@ export default function Webstores() {
     } catch (err) {
       toast.error('Failed to create webstore');
     }
-    }
   };
 
   const handleViewStore = async (store) => {
