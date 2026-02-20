@@ -32,6 +32,7 @@ import Pricing from "./pages/Pricing";
 import PricingSettings from "./pages/PricingSettings";
 import CompanySettings from "./pages/CompanySettings";
 import PromoCodes from "./pages/PromoCodes";
+import EmailTemplates from "./pages/EmailTemplates";
 
 // Customer Portal Pages
 import PortalLogin from "./pages/PortalLogin";
