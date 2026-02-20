@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -32,7 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { formatCurrency } from '../lib/utils';
 import { 
   Plus, Package, Shirt, SignpostBig, Sticker, Gift, 
-  Edit2, Trash2, X, ChevronDown, ChevronUp 
+  Edit2, Trash2, X, ChevronDown, ChevronUp, Upload, Link as LinkIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 
