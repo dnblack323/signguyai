@@ -95,7 +95,7 @@ export default function Approvals() {
 
   const loadApprovals = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       if (!token) return;
       
       let url = `${API}/api/approvals`;
