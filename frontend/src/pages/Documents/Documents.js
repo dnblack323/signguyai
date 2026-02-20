@@ -74,7 +74,7 @@ const getCategoryInfo = (category) => {
 };
 
 export default function Documents() {
-  const { api } = useApp();
+  const { api, customers, fetchCustomers } = useApp();
   const navigate = useNavigate();
   
   const [loading, setLoading] = useState(true);
@@ -101,6 +101,16 @@ export default function Documents() {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [viewLoading, setViewLoading] = useState(false);
+  
+  // Send dialog
+  const [isSendOpen, setIsSendOpen] = useState(false);
+  const [sendDoc, setSendDoc] = useState(null);
+  const [sendMethod, setSendMethod] = useState('email'); // 'email' or 'portal'
+  const [sendCustomerId, setSendCustomerId] = useState('');
+  const [sendMessage, setSendMessage] = useState('');
+  const [sendIncludeAttachment, setSendIncludeAttachment] = useState(true);
+  const [sendNotifyCustomer, setSendNotifyCustomer] = useState(true);
+  const [sending, setSending] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
