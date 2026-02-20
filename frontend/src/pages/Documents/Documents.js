@@ -75,6 +75,7 @@ const getCategoryInfo = (category) => {
 
 export default function Documents() {
   const { api } = useApp();
+  const navigate = useNavigate();
   
   const [loading, setLoading] = useState(true);
   const [documents, setDocuments] = useState([]);
