@@ -565,6 +565,16 @@ export const AppProvider = ({ children }) => {
     return res.data;
   };
 
+  // Webstore Banner Upload
+  const uploadWebstoreBanner = async (webstoreId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await api.post(`/webstores/v2/${webstoreId}/upload-banner`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return res.data;
+  };
+
   // Webstore Analytics
   const getWebstoreAnalytics = async (webstoreId) => {
     const res = await api.get(`/webstores/v2/${webstoreId}/analytics`);
