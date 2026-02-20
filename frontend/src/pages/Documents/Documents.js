@@ -751,7 +751,143 @@ export default function Documents() {
                 <Button variant="outline" onClick={() => handleDownload(selectedDoc)}>
                   <Download className="h-4 w-4 mr-2" /> Download
                 </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsViewOpen(false);
+                    handleSendDocument(selectedDoc);
+                  }}
+                >
+                  <Send className="h-4 w-4 mr-2" /> Send
+                </Button>
                 <Button onClick={() => setIsViewOpen(false)}>Close</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Document Dialog */}
+      <Dialog open={isSendOpen} onOpenChange={setIsSendOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="font-heading uppercase">Send Document</DialogTitle>
+          </DialogHeader>
+          
+          {sendDoc && (
+            <div className="space-y-4">
+              {/* Document info */}
+              <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30">
+                <FileText className="h-8 w-8 text-primary" />
+                <div>
+                  <p className="font-medium">{sendDoc.name}</p>
+                  <p className="text-xs text-muted-foreground">{sendDoc.original_filename}</p>
+                </div>
+              </div>
+              
+              {/* Send method selection */}
+              <div className="space-y-2">
+                <Label>Send Method</Label>
+                <Tabs value={sendMethod} onValueChange={setSendMethod}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="email" className="flex items-center gap-2">
+                      <Mail className="h-4 w-4" /> Email
+                    </TabsTrigger>
+                    <TabsTrigger value="portal" className="flex items-center gap-2">
+                      <Globe className="h-4 w-4" /> Customer Portal
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+              
+              {/* Customer selection */}
+              <div className="space-y-2">
+                <Label>Select Customer *</Label>
+                <Select value={sendCustomerId} onValueChange={setSendCustomerId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a customer..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers?.map(customer => (
+                      <SelectItem key={customer.id} value={customer.id}>
+                        {customer.name || customer.contact_name} 
+                        {customer.email && ` (${customer.email})`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Message */}
+              <div className="space-y-2">
+                <Label>Message (optional)</Label>
+                <Textarea
+                  value={sendMessage}
+                  onChange={(e) => setSendMessage(e.target.value)}
+                  placeholder="Add a personal message to the customer..."
+                  rows={3}
+                />
+              </div>
+              
+              {/* Method-specific options */}
+              {sendMethod === 'email' ? (
+                <div className="flex items-center justify-between p-3 rounded-lg border border-border">
+                  <div>
+                    <Label>Include as Attachment</Label>
+                    <p className="text-xs text-muted-foreground">Attach the file to the email</p>
+                  </div>
+                  <Switch
+                    checked={sendIncludeAttachment}
+                    onCheckedChange={setSendIncludeAttachment}
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center justify-between p-3 rounded-lg border border-border">
+                  <div>
+                    <Label>Send Email Notification</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Email customer that a document is ready in their portal
+                    </p>
+                  </div>
+                  <Switch
+                    checked={sendNotifyCustomer}
+                    onCheckedChange={setSendNotifyCustomer}
+                  />
+                </div>
+              )}
+              
+              {/* Info box */}
+              <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                <p className="text-sm">
+                  {sendMethod === 'email' ? (
+                    <>
+                      <Mail className="h-4 w-4 inline mr-2" />
+                      The document will be sent directly to the customer&apos;s email address.
+                    </>
+                  ) : (
+                    <>
+                      <Globe className="h-4 w-4 inline mr-2" />
+                      The document will be added to the customer&apos;s portal. 
+                      {sendNotifyCustomer && ' They will receive an email notification.'}
+                    </>
+                  )}
+                </p>
+              </div>
+              
+              <Separator />
+              
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsSendOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSend} disabled={sending || !sendCustomerId}>
+                  {sending ? 'Sending...' : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" /> 
+                      {sendMethod === 'email' ? 'Send Email' : 'Send to Portal'}
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           )}
