@@ -144,7 +144,7 @@ export default function Invoices() {
     setFormData({
       customer_id: '',
       job_id: '',
-      total: 0,
+      total: '',
       status: 'draft',
       due_date: '',
       notes: ''
