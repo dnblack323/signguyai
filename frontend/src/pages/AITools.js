@@ -937,7 +937,7 @@ export default function AITools() {
 
           {/* Text Result - Only show for non-image tools */}
           {result && !selectedTool.generatesImages && (
-            <Card className="bg-card border-border/50 border-primary/30">
+            <Card className="bg-card border-border/50 border-primary/30" data-testid="result-card">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="font-heading uppercase text-sm text-primary">
