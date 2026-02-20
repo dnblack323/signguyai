@@ -603,7 +603,7 @@ export default function Products() {
                           <SelectValue placeholder="Tier" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">No Tier</SelectItem>
+                          <SelectItem value="none">No Tier</SelectItem>
                           <SelectItem value="economy">Economy</SelectItem>
                           <SelectItem value="standard">Standard</SelectItem>
                           <SelectItem value="premium">Premium</SelectItem>
@@ -614,8 +614,8 @@ export default function Products() {
                           type="number"
                           step="0.01"
                           placeholder="+$"
-                          value={newVariant.additional_cost || ''}
-                          onChange={(e) => setNewVariant({ ...newVariant, additional_cost: parseFloat(e.target.value) || 0 })}
+                          value={newVariant.additional_cost}
+                          onChange={(e) => setNewVariant({ ...newVariant, additional_cost: e.target.value })}
                           className="w-16"
                         />
                         <Button type="button" size="icon" onClick={handleAddVariant}>
