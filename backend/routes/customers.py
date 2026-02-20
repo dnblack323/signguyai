@@ -50,11 +50,32 @@ async def create_customer(
     input: CustomerCreate,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Create a new customer"""
+    """Create a new customer and optionally send welcome email"""
     customer = Customer(**input.model_dump())
     customer.tenant_id = current_user.tenant_id
     doc = customer.model_dump()
     await db.customers.insert_one(doc)
+    
+    # Check tenant settings for auto-welcome email
+    tenant = await db.tenants.find_one(
+        {"tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    
+    # Send welcome email if enabled and customer has email
+    if tenant and tenant.get("auto_welcome_email", True) and customer.email:
+        try:
+            from services.email_service import email_service
+            await email_service.send_welcome_email(
+                customer_email=customer.email,
+                customer_name=customer.name or customer.contact_name or "Valued Customer",
+                tenant_id=current_user.tenant_id
+            )
+            logger.info(f"Welcome email sent to new customer {customer.email}")
+        except Exception as e:
+            # Don't fail customer creation if email fails
+            logger.error(f"Failed to send welcome email: {str(e)}")
+    
     return customer
 
 
