@@ -1,0 +1,112 @@
+{
+  "summary": "Iteration 32: Testing Portal Documents feature, AI Business Assistant, and Portal login page. All features verified working correctly. Fixed 1 bug in send-to-portal endpoint.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [],
+    "fixed": [
+      {
+        "endpoint": "POST /api/documents/{id}/send-to-portal",
+        "issue": "500 Internal Server Error when tenant is None",
+        "root_cause": "Line 589 in documents.py called tenant.get() without checking if tenant is None first",
+        "fix_applied": "Added null check: portal_url = tenant.get('portal_url', ...) if tenant else default_url",
+        "file_modified": "/app/backend/routes/documents.py"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results": {
+    "backend_api_tests": {
+      "total": 11,
+      "passed": 11,
+      "failed": 0,
+      "test_file": "/app/backend/tests/test_portal_documents_ai.py",
+      "tests": [
+        "test_ai_assistant_returns_response - PASS (AI returns context-aware response)",
+        "test_ai_assistant_context_awareness - PASS (Response includes shop-specific data)",
+        "test_ai_assistant_with_conversation_history - PASS (Handles conversation context)",
+        "test_create_test_customer_with_portal - PASS",
+        "test_upload_test_document - PASS",
+        "test_send_document_to_portal - PASS (After fix applied)",
+        "test_portal_documents_endpoint_returns_list - PASS",
+        "test_portal_documents_requires_auth - PASS (401 without token)",
+        "test_portal_login - PASS",
+        "test_api_health - PASS",
+        "test_auth_endpoint - PASS"
+      ]
+    },
+    "frontend_ui_tests": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "tests": [
+        "Portal login page - PASS (Only 2 tabs: Sign In and Register, no extra buttons)",
+        "AI Business Assistant - PASS (Returns context-aware response with actual shop data)",
+        "Portal Dashboard login - PASS (Successfully logged in via portal)",
+        "Portal Documents tab navigation - PASS (Documents tab visible in portal nav)",
+        "Portal Documents page - PASS (Page loads with correct title and empty state message)"
+      ]
+    }
+  },
+  "features_verified": {
+    "ai_business_assistant": {
+      "status": "WORKING",
+      "details": "AI Assistant returns context-aware responses using real shop data (revenue, jobs, customers, etc.)",
+      "screenshot": ".screenshots/ai_assistant_response.png"
+    },
+    "portal_documents_tab": {
+      "status": "WORKING",
+      "details": "Documents tab appears in portal navigation between Invoices and Messages",
+      "screenshot": ".screenshots/portal_documents.png"
+    },
+    "portal_documents_endpoint": {
+      "status": "WORKING",
+      "details": "GET /api/portal/documents returns list of documents shared with customer"
+    },
+    "document_send_to_portal": {
+      "status": "WORKING (after fix)",
+      "details": "POST /api/documents/{id}/send-to-portal creates portal_document entry and notification"
+    },
+    "portal_login_page": {
+      "status": "WORKING",
+      "details": "Only 2 tabs visible (Sign In, Register) - no extra buttons. Submit button is inside form."
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_portal_documents_ai.py",
+    "/app/test_reports/pytest/portal_documents_ai_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fixed null check in documents.py line 589 for tenant.get() call",
+    "Portal navigation correctly includes Documents tab",
+    "AI Assistant uses real shop data via get_shop_context() function"
+  ],
+  "updated_files": [
+    "/app/backend/routes/documents.py",
+    "/app/backend/tests/test_portal_documents_ai.py"
+  ],
+  "success_rate": {
+    "backend": "100% (11/11 tests passed)",
+    "frontend": "100% (5/5 tests passed)"
+  },
+  "test_credentials": {
+    "admin": "test_ai@test.com / password123",
+    "portal_customer": "portal_test_9ad70f33@test.com / testpass123"
+  },
+  "seed_data_creation": "Multiple test customers created with portal_enabled=True",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Portal Documents feature is fully working. AI Business Assistant returns context-aware responses with actual shop data. Portal login page has correct layout (Sign In + Register tabs only). Send-to-portal endpoint had a bug that was fixed (null check for tenant).",
+  "rca_of_issues": {
+    "send_to_portal_500_error": {
+      "bug": "POST /api/documents/{id}/send-to-portal returns 500 Internal Server Error",
+      "root_cause": "In documents.py line 589, when notify_customer is True and customer has email, code tries to call tenant.get('portal_url', ...) but tenant can be None if not found in database",
+      "fix": "Added conditional check: portal_url = tenant.get('portal_url', 'https://signguy.ai/customer-portal') if tenant else 'https://signguy.ai/customer-portal'",
+      "verification": "Test now passes - document sent to portal successfully"
+    }
+  }
+}
