@@ -518,3 +518,59 @@ async def respond_to_proof(
     await db.customer_notifications.insert_one(notification.model_dump())
     
     return {"message": f"Proof {status_text}", "status": input.status.value}
+
+
+# ============== PORTAL DOCUMENTS ==============
+
+@router.get("/documents")
+async def get_portal_documents(
+    customer: dict = Depends(get_current_portal_customer)
+):
+    """Get all documents shared with the customer via portal"""
+    portal_docs = await db.portal_documents.find(
+        {"customer_id": customer["id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    # Enrich with document info
+    for portal_doc in portal_docs:
+        doc = await db.documents.find_one(
+            {"id": portal_doc.get("document_id")},
+            {"_id": 0, "id": 1, "name": 1, "file_type": 1, "file_size": 1, "file_url": 1, "category": 1}
+        )
+        if doc:
+            portal_doc["document"] = doc
+    
+    return portal_docs
+
+
+@router.get("/documents/{document_id}")
+async def get_portal_document_detail(
+    document_id: str,
+    customer: dict = Depends(get_current_portal_customer)
+):
+    """Get a specific document shared with the customer"""
+    portal_doc = await db.portal_documents.find_one(
+        {"id": document_id, "customer_id": customer["id"]},
+        {"_id": 0}
+    )
+    if not portal_doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Get full document info
+    doc = await db.documents.find_one(
+        {"id": portal_doc.get("document_id")},
+        {"_id": 0}
+    )
+    if doc:
+        portal_doc["document"] = doc
+    
+    # Mark as viewed
+    if not portal_doc.get("viewed_at"):
+        await db.portal_documents.update_one(
+            {"id": document_id},
+            {"$set": {"viewed_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    
+    return portal_doc
+
