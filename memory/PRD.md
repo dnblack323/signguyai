@@ -272,6 +272,7 @@ Comprehensive document management system for customer communication.
 - `/api/dashboard/unread-messages` - GET unread customer messages
 - `/api/dashboard/clocked-in` - GET employees currently clocked in
 - `/api/dashboard/todays-schedule` - GET jobs due today
+- `/api/dashboard/onboarding-status` - GET onboarding checklist status (NEW)
 
 ### Tasks (NEW)
 - `/api/tasks` - GET/POST tasks
