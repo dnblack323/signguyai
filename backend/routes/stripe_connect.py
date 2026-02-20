@@ -463,7 +463,7 @@ async def create_webstore_checkout(
             mode="payment",
             success_url=f"{origin_url}/store/{webstore_id}?payment=success&session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{origin_url}/store/{webstore_id}?payment=cancelled",
-            customer_email=customer_info.get("email"),
+            customer_email=customer_info.email,
             payment_intent_data={
                 "application_fee_amount": platform_fee_cents,
                 "transfer_data": {
@@ -474,10 +474,10 @@ async def create_webstore_checkout(
                 "type": "webstore_order",
                 "webstore_id": webstore_id,
                 "tenant_id": tenant_id,
-                "customer_name": customer_info.get("name", ""),
-                "customer_email": customer_info.get("email", ""),
-                "customer_phone": customer_info.get("phone", ""),
-                "shipping_address": customer_info.get("shipping_address", ""),
+                "customer_name": customer_info.name or "",
+                "customer_email": customer_info.email or "",
+                "customer_phone": customer_info.phone or "",
+                "shipping_address": customer_info.shipping_address or "",
                 "platform_fee_percent": str(fee_percent * 100)
             }
         )
@@ -494,8 +494,8 @@ async def create_webstore_checkout(
             "status": "pending",
             "stripe_session_id": session.id,
             "connected_account_id": account_id,
-            "customer_info": customer_info,
-            "items": items,
+            "customer_info": customer_info.model_dump(),
+            "items": [item.model_dump() for item in items],
             "created_at": datetime.now(timezone.utc).isoformat()
         })
         
