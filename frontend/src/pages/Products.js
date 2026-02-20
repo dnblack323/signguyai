@@ -436,18 +436,58 @@ export default function Products() {
                   </div>
                 )}
                 
-                {/* Add Image */}
+                {/* Add Image - Toggle between upload and URL */}
                 {formData.images.length < 3 && (
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Image URL (https://...)"
-                      value={newImageUrl}
-                      onChange={(e) => setNewImageUrl(e.target.value)}
-                      data-testid="product-image-input"
-                    />
-                    <Button type="button" onClick={handleAddImage} variant="outline">
-                      <Plus className="h-4 w-4" />
-                    </Button>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant={imageInputMode === 'upload' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setImageInputMode('upload')}
+                      >
+                        <Upload className="h-4 w-4 mr-1" /> Upload
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={imageInputMode === 'url' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setImageInputMode('url')}
+                      >
+                        <LinkIcon className="h-4 w-4 mr-1" /> URL
+                      </Button>
+                    </div>
+                    
+                    {imageInputMode === 'upload' ? (
+                      <div 
+                        className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">Click to upload image</p>
+                        <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 5MB</p>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleFileUpload}
+                          className="hidden"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Image URL (https://...)"
+                          value={newImageUrl}
+                          onChange={(e) => setNewImageUrl(e.target.value)}
+                          data-testid="product-image-input"
+                        />
+                        <Button type="button" onClick={handleAddImage} variant="outline">
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
