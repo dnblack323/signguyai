@@ -243,17 +243,12 @@ async def get_stripe_dashboard_link(current_user: UserInDB = Depends(get_current
     if not tenant or not tenant.get("stripe_connect_account_id"):
         raise HTTPException(status_code=400, detail="No Stripe account connected")
     
-    account_id = tenant["stripe_connect_account_id"]
-    
-    try:
-        # For Standard accounts, they access their own dashboard
-        # Return the Stripe login URL
-        return {
-            "url": "https://dashboard.stripe.com/",
-            "message": "Log in to your Stripe Dashboard to manage payments"
-        }
-    except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    # For Standard accounts, they access their own dashboard
+    # Return the Stripe login URL
+    return {
+        "url": "https://dashboard.stripe.com/",
+        "message": "Log in to your Stripe Dashboard to manage payments"
+    }
 
 
 # ============== INVOICE PAYMENTS ==============
