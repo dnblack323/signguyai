@@ -378,10 +378,8 @@ async def create_invoice_payment(
 @router.post("/webstore/{webstore_id}/checkout", response_model=PaymentResponse)
 async def create_webstore_checkout(
     webstore_id: str,
-    request: Request,
-    origin_url: str,
-    items: list,  # List of {product_id, variant_id, quantity, price}
-    customer_info: dict  # {name, email, phone, shipping_address}
+    checkout_data: WebstoreCheckoutRequest,
+    origin_url: str
 ):
     """Create a payment session for webstore checkout (public endpoint)"""
     webstore = await db.webstores_v2.find_one(
@@ -414,6 +412,10 @@ async def create_webstore_checkout(
     # Get platform fee
     tier = await get_tenant_tier(tenant_id)
     fee_percent = get_platform_fee_percent(tier)
+    
+    # Extract items and customer_info from request body
+    items = checkout_data.items
+    customer_info = checkout_data.customer_info
     
     # Calculate total from server-side prices (don't trust frontend prices)
     line_items = []
