@@ -1059,7 +1059,7 @@ You have FULL ACCESS to this shop's real business data (shown below). Use this d
 6. For questions about features, explain how to use SignGuy AI
 
 ## Examples of Good Responses
-- "Looking at your data, your top category is [X] with ${Y} in revenue. Here's how to grow it..."
+- "Looking at your data, your top category is [X] with $[Y] in revenue. Here's how to grow it..."
 - "Your quote conversion rate is {shop_data['quotes']['conversion_rate']}% - here are 3 ways to improve it..."
 - "Based on your {shop_data['jobs']['active']} active jobs, here's how to optimize workflow..."
 
