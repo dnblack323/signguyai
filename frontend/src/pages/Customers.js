@@ -689,87 +689,157 @@ export default function Customers() {
               </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCustomers.map((customer, idx) => (
-                  <TableRow 
-                    key={customer.id} 
-                    className={`cursor-pointer transition-colors ${idx % 2 === 0 ? 'bg-transparent' : 'bg-muted/30'} hover:bg-muted/50`}
-                    data-testid={`customer-row-${customer.id}`}
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredCustomers.map((customer, idx) => (
+                      <TableRow 
+                        key={customer.id} 
+                        className={`cursor-pointer transition-colors ${idx % 2 === 0 ? 'bg-transparent' : 'bg-muted/30'} hover:bg-muted/50`}
+                        data-testid={`customer-row-${customer.id}`}
+                        onClick={() => handleViewCustomer(customer)}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                              <span className="text-primary font-bold text-sm">
+                                {getInitials(customer.name)}
+                              </span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium truncate">{customer.name}</p>
+                              {customer.company && (
+                                <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
+                                  <Building className="h-3 w-3 flex-shrink-0" /> {customer.company}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            {customer.email && (
+                              <p className="text-sm flex items-center gap-1 truncate max-w-[200px]">
+                                <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" /> {customer.email}
+                              </p>
+                            )}
+                            {customer.phone && (
+                              <p className="text-sm flex items-center gap-1">
+                                <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" /> {customer.phone}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(customer.status)}>
+                            {customer.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {formatDate(customer.created_at)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(customer)}
+                              data-testid={`edit-customer-${customer.id}`}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(customer.id)}
+                              data-testid={`delete-customer-${customer.id}`}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden divide-y divide-border">
+                {filteredCustomers.map((customer) => (
+                  <div 
+                    key={customer.id}
+                    className="p-4 cursor-pointer hover:bg-muted/30 transition-colors"
                     onClick={() => handleViewCustomer(customer)}
+                    data-testid={`customer-card-${customer.id}`}
                   >
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                           <span className="text-primary font-bold text-sm">
                             {getInitials(customer.name)}
                           </span>
                         </div>
-                        <div>
-                          <p className="font-medium">{customer.name}</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium truncate">{customer.name}</p>
                           {customer.company && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Building className="h-3 w-3" /> {customer.company}
-                            </p>
+                            <p className="text-xs text-muted-foreground truncate">{customer.company}</p>
                           )}
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        {customer.email && (
-                          <p className="text-sm flex items-center gap-1">
-                            <Mail className="h-3 w-3 text-muted-foreground" /> {customer.email}
-                          </p>
-                        )}
-                        {customer.phone && (
-                          <p className="text-sm flex items-center gap-1">
-                            <Phone className="h-3 w-3 text-muted-foreground" /> {customer.phone}
-                          </p>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(customer.status)}>
+                      <Badge className={`${getStatusColor(customer.status)} flex-shrink-0`}>
                         {customer.status}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {formatDate(customer.created_at)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                      {customer.email && (
+                        <span className="flex items-center gap-1 truncate max-w-full">
+                          <Mail className="h-3 w-3 flex-shrink-0" /> 
+                          <span className="truncate">{customer.email}</span>
+                        </span>
+                      )}
+                      {customer.phone && (
+                        <span className="flex items-center gap-1">
+                          <Phone className="h-3 w-3 flex-shrink-0" /> {customer.phone}
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-3 flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(customer.created_at)}
+                      </span>
+                      <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                         <Button
                           variant="ghost"
-                          size="icon"
+                          size="sm"
                           onClick={() => handleEdit(customer)}
-                          data-testid={`edit-customer-${customer.id}`}
                         >
                           <Edit2 className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
-                          size="icon"
+                          size="sm"
                           onClick={() => handleDelete(customer.id)}
-                          data-testid={`delete-customer-${customer.id}`}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
