@@ -25,6 +25,7 @@ import Webstores from "./pages/Webstores";
 import Products from "./pages/Products";
 import Storefront from "./pages/Storefront";
 import Approvals from "./pages/Approvals";
+import Documents from "./pages/Documents/Documents";
 import Login from "./pages/Login";
 import UserManagement from "./pages/UserManagement";
 import Pricing from "./pages/Pricing";
