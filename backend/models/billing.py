@@ -333,7 +333,9 @@ class CheckoutRequest(BaseModel):
     """Request to create checkout session"""
     plan: SubscriptionPlan
     include_ai_addon: bool = False
+    billing_interval: str = "monthly"  # monthly or annual
     origin_url: str
+    apply_trial_credits: bool = True  # Auto-apply $19.99 credit if available
 
 
 class CheckoutResponse(BaseModel):
