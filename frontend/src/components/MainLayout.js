@@ -61,6 +61,7 @@ const navigationCategories = [
     items: [
       { name: 'AI Tools', href: '/ai-tools', icon: Sparkles },
       { name: 'Approvals', href: '/approvals', icon: ImageIcon, permission: Permission.JOBS_VIEW },
+      { name: 'Documents', href: '/documents', icon: FileText },
       { name: 'Pricing Calculator', href: '/pricing-calculator', icon: DollarSign },
     ]
   },
