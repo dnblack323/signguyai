@@ -168,7 +168,8 @@ export default function Quotes() {
 
   const updateLineItem = (index, field, value) => {
     const newItems = [...formData.line_items];
-    newItems[index][field] = field === 'quantity' || field === 'unit_price' ? parseFloat(value) || 0 : value;
+    // Store as string to avoid prepending zeros, convert on submit
+    newItems[index][field] = value;
     setFormData({ ...formData, line_items: newItems });
   };
 
