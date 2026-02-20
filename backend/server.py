@@ -941,6 +941,7 @@ from routes.ai import router as ai_router
 from routes.job_time import router as job_time_router
 from routes.promo_codes import router as promo_codes_router
 from routes.approvals import router as approvals_router
+from routes.documents import router as documents_router
 
 # Include all routers in the api_router
 api_router.include_router(auth_router)
@@ -968,6 +969,7 @@ api_router.include_router(ai_router)
 api_router.include_router(job_time_router)
 api_router.include_router(promo_codes_router)
 api_router.include_router(approvals_router)
+api_router.include_router(documents_router)
 
 # Include the api_router in the main app
 app.include_router(api_router)
