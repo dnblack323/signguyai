@@ -308,7 +308,7 @@ async def create_invoice_payment(
                     "unit_amount": amount_cents,
                     "product_data": {
                         "name": f"Invoice #{invoice.get('invoice_number', invoice_id[:8])}",
-                        "description": f"Payment for services"
+                        "description": "Payment for services"
                     }
                 },
                 "quantity": 1
