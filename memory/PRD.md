@@ -301,6 +301,14 @@ Comprehensive document management system for customer communication.
 
 ## Recent Updates (Feb 20, 2026)
 
+### Mobile Responsiveness Improvements
+- **Dashboard:** 2-column stat grid on mobile, responsive header with stacked layout, smaller padding
+- **Customer List:** Card view on mobile (hides table, shows cards), truncated text for long emails
+- **Documentation:** Mobile hamburger menu, slide-out sidebar, mobile search bar
+- **MainLayout:** Responsive padding (3px mobile, 6px tablet, 8px desktop)
+- **CSS Utilities:** Added `.hide-mobile`, `.show-mobile-only`, `.flex-col-mobile` classes
+- **Quick Actions:** Responsive button grid with smaller text on mobile
+
 ### Annual Billing & Trial Credits
 - Added annual billing option (save 2 months - pay for 10 months, get 12)
 - Billing interval toggle (Monthly/Annual) on pricing page
