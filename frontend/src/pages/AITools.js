@@ -606,6 +606,108 @@ export default function AITools() {
     toast.success('Copied to clipboard');
   };
 
+  // Generate PDF from document content
+  const handleGeneratePdf = async () => {
+    const content = result?.content || result?.output;
+    if (!content) return;
+    
+    setGeneratingPdf(true);
+    try {
+      const response = await api.post('/documents/generate-pdf', {
+        content: content,
+        title: `${selectedTool.name} - ${new Date().toLocaleDateString()}`,
+        tool_id: selectedTool.id
+      });
+      
+      // Download the PDF
+      const { pdf_data, filename } = response.data;
+      const byteCharacters = atob(pdf_data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/pdf' });
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename || `${selectedTool.id}_document.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast.success('PDF downloaded successfully');
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      toast.error(err.response?.data?.detail || 'Failed to generate PDF');
+    }
+    setGeneratingPdf(false);
+  };
+
+  // Save document to library
+  const handleSaveToLibrary = async () => {
+    const content = result?.content || result?.output;
+    if (!content) return;
+    
+    setSavingToLibrary(true);
+    try {
+      await api.post('/documents/from-ai', {
+        content: content,
+        name: `${selectedTool.name} - ${new Date().toLocaleDateString()}`,
+        tool_id: selectedTool.id,
+        category: selectedTool.category === 'business' ? 'contract' : 'other',
+        input_data: formData
+      });
+      
+      toast.success('Document saved to library');
+    } catch (err) {
+      console.error('Save to library error:', err);
+      toast.error(err.response?.data?.detail || 'Failed to save document');
+    }
+    setSavingToLibrary(false);
+  };
+
+  // Send document directly to customer portal
+  const handleSendToPortal = async () => {
+    if (!selectedCustomerId) {
+      toast.error('Please select a customer');
+      return;
+    }
+    
+    const content = result?.content || result?.output;
+    if (!content) return;
+    
+    setSendingToPortal(true);
+    try {
+      // First save to library, then send to portal
+      const docResponse = await api.post('/documents/from-ai', {
+        content: content,
+        name: `${selectedTool.name} - ${new Date().toLocaleDateString()}`,
+        tool_id: selectedTool.id,
+        category: selectedTool.category === 'business' ? 'contract' : 'other',
+        input_data: formData
+      });
+      
+      // Send to customer portal
+      await api.post(`/documents/${docResponse.data.id}/send-to-portal`, {
+        customer_id: selectedCustomerId,
+        message: sendMessage,
+        notify_customer: notifyCustomer
+      });
+      
+      toast.success('Document sent to customer portal');
+      setShowSendDialog(false);
+      setSelectedCustomerId('');
+      setSendMessage('');
+    } catch (err) {
+      console.error('Send to portal error:', err);
+      toast.error(err.response?.data?.detail || 'Failed to send document');
+    }
+    setSendingToPortal(false);
+  };
+
   const downloadImage = (imageUrl, index) => {
     const link = document.createElement('a');
     link.href = imageUrl;
