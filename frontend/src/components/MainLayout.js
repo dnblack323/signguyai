@@ -32,7 +32,6 @@ const navigationCategories = [
       { name: 'Quotes', href: '/quotes', icon: FileText, permission: Permission.QUOTES_VIEW },
       { name: 'Jobs', href: '/jobs', icon: Briefcase, permission: Permission.JOBS_VIEW },
       { name: 'Invoices', href: '/invoices', icon: Receipt, permission: Permission.INVOICES_VIEW },
-      { name: 'Approvals', href: '/approvals', icon: ImageIcon, permission: Permission.JOBS_VIEW },
     ]
   },
   {
