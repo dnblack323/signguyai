@@ -512,6 +512,30 @@ Complete webstore system for B2B, Fundraiser, and Creator stores.
 - **Employee Portal Branding:** Replaced hardhat icon with SignGuy AI square logo
 - **Employee Profile Images:** Employees can now upload their own profile photos via the Profile page
 
+## Portal Documents Feature & Bug Fixes (Feb 20, 2026) - COMPLETE ✅
+
+### New Feature: Portal Documents Tab
+- Added "Documents" tab to customer portal navigation (between Invoices and Messages)
+- Created `/app/frontend/src/pages/PortalDocuments.js` for customer document viewing
+- Added `/api/portal/documents` endpoint for customers to fetch their documents
+- Added `/api/portal/documents/{id}` endpoint with automatic "viewed" tracking
+- Documents show as "New" badge until customer views them
+
+### Bug Fix: Send Document to Portal
+- **Issue:** `POST /api/documents/{id}/send-to-portal` returned 500 error
+- **Root Cause:** `tenant.get('portal_url', ...)` called on None when tenant not found
+- **Fix:** Added null check in `documents.py` line 589
+
+### Verified Features:
+- AI Business Assistant: WORKING (returns context-aware shop data)
+- Portal Documents Tab: WORKING (visible in navigation)
+- Portal Login Page: WORKING (only Sign In + Register tabs, no extra buttons)
+- Document Send to Portal: WORKING (creates portal_document entry and notification)
+
+### Test Results:
+- Backend: 11/11 tests passed (100%)
+- Frontend: 5/5 tests passed (100%)
+
 ## Webstore & AI Tools Bug Fixes (Feb 20, 2026) - COMPLETE ✅
 
 ### Bug 1: Webstore "Failed to Add Products" Error - FIXED
