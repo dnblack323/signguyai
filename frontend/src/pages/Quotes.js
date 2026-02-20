@@ -115,16 +115,24 @@ export default function Quotes() {
       toast.error('Please select a customer');
       return;
     }
+    
+    // Convert line items to proper numbers before submit
+    const cleanedLineItems = formData.line_items.map(item => ({
+      ...item,
+      quantity: parseFloat(item.quantity) || 0,
+      unit_price: parseFloat(item.unit_price) || 0
+    }));
+    
     try {
       if (editingQuote) {
         await updateQuote(editingQuote.id, {
-          line_items: formData.line_items,
+          line_items: cleanedLineItems,
           notes: formData.notes,
           status: formData.status
         });
         toast.success('Quote updated');
       } else {
-        await createQuote(formData);
+        await createQuote({ ...formData, line_items: cleanedLineItems });
         toast.success('Quote created');
       }
       resetForm();
