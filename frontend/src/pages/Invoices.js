@@ -166,6 +166,30 @@ export default function Invoices() {
     return job?.name || 'Unknown';
   };
 
+  const handleCreatePaymentLink = async (invoiceId) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await axios.post(
+        `${API_URL}/api/stripe-connect/invoice/${invoiceId}/pay`,
+        null,
+        {
+          params: { origin_url: window.location.origin },
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      
+      // Open payment page in new tab
+      window.open(response.data.url, '_blank');
+      toast.success('Payment link opened');
+    } catch (err) {
+      if (err.response?.data?.detail?.includes('not connected')) {
+        toast.error('Please connect your Stripe account in Payment Settings');
+      } else {
+        toast.error(err.response?.data?.detail || 'Failed to create payment link');
+      }
+    }
+  };
+
   // Calculate totals
   const totals = invoices.reduce((acc, inv) => {
     acc.all += inv.total;
