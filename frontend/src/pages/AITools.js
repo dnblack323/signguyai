@@ -420,6 +420,22 @@ export default function AITools() {
   const [uploadedImagePreview, setUploadedImagePreview] = useState(null);
   const fileInputRef = useRef(null);
 
+  // Handle URL query parameter for tool selection
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const toolParam = params.get('tool');
+    if (toolParam) {
+      const tool = aiTools.find(t => t.id === toolParam);
+      if (tool) {
+        setSelectedTool(tool);
+        setSelectedCategory(tool.category);
+        setFormData({});
+        setResult(null);
+        setGeneratedImages([]);
+      }
+    }
+  }, []);
+
   const filteredTools = selectedCategory === 'all' 
     ? aiTools 
     : aiTools.filter(t => t.category === selectedCategory);
