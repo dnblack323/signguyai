@@ -437,15 +437,26 @@ export default function Invoices() {
                           <Eye className="h-4 w-4 mr-1" /> View
                         </Button>
                         {invoice.status !== 'paid' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleMarkPaid(invoice.id)}
-                            data-testid={`mark-paid-${invoice.id}`}
-                            className="text-green-400 border-green-400/50"
-                          >
-                            <CheckCircle className="h-4 w-4 mr-1" /> Mark Paid
-                          </Button>
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleCreatePaymentLink(invoice.id)}
+                              data-testid={`pay-invoice-${invoice.id}`}
+                              className="text-primary border-primary/50"
+                            >
+                              <CreditCard className="h-4 w-4 mr-1" /> Pay Link
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleMarkPaid(invoice.id)}
+                              data-testid={`mark-paid-${invoice.id}`}
+                              className="text-green-400 border-green-400/50"
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" /> Mark Paid
+                            </Button>
+                          </>
                         )}
                         <Button
                           variant="ghost"
