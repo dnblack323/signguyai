@@ -301,6 +301,12 @@ Comprehensive document management system for customer communication.
 
 ## Recent Updates (Feb 20, 2026)
 
+### Product/Webstore Bug Fixes & Improvements
+- **Fixed variant tier select error:** Changed empty string "" to "none" as default value to prevent React Select error
+- **Added product image file upload:** New Upload/URL toggle with drag-and-drop image upload area (base64 encoding)
+- **Fixed dollar amount input "0" issue:** Changed from value-based to placeholder-based approach - inputs now start empty with "0.00" as placeholder, values are only converted to numbers on submit
+- Affected pages: Products.js, Quotes.js, Invoices.js
+
 ### Mobile Responsiveness Improvements
 - **Dashboard:** 2-column stat grid on mobile, responsive header with stacked layout, smaller padding
 - **Customer List:** Card view on mobile (hides table, shows cards), truncated text for long emails
