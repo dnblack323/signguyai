@@ -272,17 +272,24 @@ export default function Products() {
       toast.error('Product name is required');
       return;
     }
-    if (formData.base_cost <= 0 || formData.retail_price <= 0) {
+    const baseCost = parseFloat(formData.base_cost) || 0;
+    const retailPrice = parseFloat(formData.retail_price) || 0;
+    if (baseCost <= 0 || retailPrice <= 0) {
       toast.error('Costs must be greater than 0');
       return;
     }
 
     try {
+      const submitData = {
+        ...formData,
+        base_cost: baseCost,
+        retail_price: retailPrice
+      };
       if (editingProduct) {
-        await updateProduct(editingProduct.id, formData);
+        await updateProduct(editingProduct.id, submitData);
         toast.success('Product updated');
       } else {
-        await createProduct(formData);
+        await createProduct(submitData);
         toast.success('Product created');
       }
       setIsDialogOpen(false);
