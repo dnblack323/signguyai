@@ -75,7 +75,8 @@ export default function Webstores() {
     getWebstores, createWebstore, updateWebstore, deleteWebstore,
     getWebstoreOrdersV2, getProducts, getWebstoreProducts,
     assignProductToWebstore, removeProductFromWebstore,
-    createJobFromOrder, recordPayout, getWebstorePayouts
+    createJobFromOrder, recordPayout, getWebstorePayouts,
+    uploadWebstoreLogo
   } = useApp();
   
   const [loading, setLoading] = useState(true);
@@ -92,6 +93,12 @@ export default function Webstores() {
   const [storeProducts, setStoreProducts] = useState([]);
   const [storePayouts, setStorePayouts] = useState([]);
   const [detailTab, setDetailTab] = useState('dashboard');
+  
+  // Logo upload states
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [logoFile, setLogoFile] = useState(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef(null);
   
   // Form state
   const [formData, setFormData] = useState({
