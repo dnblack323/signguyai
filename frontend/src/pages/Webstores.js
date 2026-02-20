@@ -749,6 +749,89 @@ export default function Webstores() {
                       Button Preview
                     </div>
                   </div>
+                  
+                  {/* Banner Image Upload */}
+                  <div className="space-y-3 col-span-2">
+                    <Label>Store Banner</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Add a custom banner image to personalize the storefront header
+                    </p>
+                    
+                    {/* Banner Preview */}
+                    {(bannerPreview || formData.branding?.banner_url) && (
+                      <div className="relative rounded-lg border border-border overflow-hidden">
+                        <img 
+                          src={bannerPreview || formData.branding?.banner_url} 
+                          alt="Banner preview" 
+                          className="w-full h-32 object-cover"
+                        />
+                        {bannerPreview && (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="absolute top-2 right-2"
+                            onClick={() => {
+                              setBannerPreview(null);
+                              setBannerFile(null);
+                              if (bannerInputRef.current) bannerInputRef.current.value = '';
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Upload Button */}
+                    <div className="flex gap-2">
+                      <input
+                        ref={bannerInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                        onChange={handleBannerSelect}
+                        className="hidden"
+                        data-testid="store-banner-file-input"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => bannerInputRef.current?.click()}
+                        className="flex-1"
+                        data-testid="store-banner-upload-btn"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        {bannerPreview ? 'Change Banner' : 'Upload Banner'}
+                      </Button>
+                    </div>
+                    
+                    {/* Or use URL */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-px bg-border" />
+                      <span className="text-xs text-muted-foreground">or enter URL</span>
+                      <div className="flex-1 h-px bg-border" />
+                    </div>
+                    
+                    <Input
+                      value={formData.branding?.banner_url || ''}
+                      onChange={(e) => {
+                        setFormData({ 
+                          ...formData, 
+                          branding: { ...formData.branding, banner_url: e.target.value } 
+                        });
+                        // Clear file upload if URL is entered
+                        if (e.target.value) {
+                          setBannerPreview(null);
+                          setBannerFile(null);
+                        }
+                      }}
+                      placeholder="https://example.com/banner.jpg"
+                      data-testid="store-banner-input"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Recommended size: 1200x300px. Max file size: 5MB
+                    </p>
+                  </div>
                 </div>
               </div>
 
