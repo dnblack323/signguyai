@@ -16,7 +16,7 @@ import os
 import jwt
 
 from models.billing import (
-    SubscriptionPlan, SubscriptionStatus, PaymentStatus,
+    SubscriptionPlan, SubscriptionStatus, PaymentStatus, BillingInterval,
     FOUNDER_PRICING, STANDARD_PRICING, MAX_FOUNDER_ACCOUNTS,
     TIER_FEATURES, FOUNDER_BENEFITS,
     Subscription, FounderCounter, PaymentTransaction,
