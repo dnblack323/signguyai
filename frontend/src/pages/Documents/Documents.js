@@ -36,7 +36,7 @@ import {
   Download, Trash2, Eye, Link2, Tag, Clock,
   FileImage, FileSpreadsheet, File, Plus, X,
   Archive, MoreVertical, CheckCircle2, HardDrive,
-  Sparkles, Wand2
+  Sparkles, Wand2, Send, Mail, Globe
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDate } from '../../lib/utils';
