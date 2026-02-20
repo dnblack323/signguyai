@@ -917,7 +917,7 @@ export default function AITools() {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        onClick={() => copyToClipboard(result.output)}
+                        onClick={() => copyToClipboard(result.content || result.output)}
                       >
                         <Copy className="h-4 w-4 mr-2" /> Copy
                       </Button>
@@ -925,7 +925,7 @@ export default function AITools() {
                     <ScrollArea className="h-[300px]">
                       <div className="prose prose-invert max-w-none">
                         <pre className="whitespace-pre-wrap text-sm font-sans bg-muted/30 p-4 rounded-lg">
-                          {result.output}
+                          {result.content || result.output}
                         </pre>
                       </div>
                     </ScrollArea>
