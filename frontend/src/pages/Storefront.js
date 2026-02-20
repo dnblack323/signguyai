@@ -128,36 +128,78 @@ export default function Storefront() {
     }
 
     try {
-      const orderData = {
-        webstore_id: storeId,
-        customer_name: customerInfo.name,
-        customer_email: customerInfo.email,
-        customer_phone: customerInfo.phone,
-        shipping_address: customerInfo.shipping_address,
+      // Try to create a Stripe checkout session first
+      const checkoutPayload = {
+        origin_url: window.location.origin,
         items: cart.map(item => ({
           product_id: item.product_id,
           variant_id: item.variant_id,
-          quantity: item.quantity
+          variant_name: item.variant_name,
+          quantity: item.quantity,
+          price: item.price
         })),
-        tax: 0,
-        shipping: 0,
-        notes: customerInfo.notes
+        customer_info: {
+          name: customerInfo.name,
+          email: customerInfo.email,
+          phone: customerInfo.phone,
+          shipping_address: customerInfo.shipping_address,
+          notes: customerInfo.notes
+        }
       };
 
-      const res = await fetch(`${API}/api/webstores/v2/orders`, {
+      const paymentRes = await fetch(`${API}/api/stripe-connect/webstore/${storeId}/checkout?origin_url=${encodeURIComponent(window.location.origin)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData)
+        body: JSON.stringify(checkoutPayload)
       });
 
-      if (!res.ok) throw new Error('Failed to place order');
-      
-      setOrderPlaced(true);
-      setCart([]);
-      setIsCheckoutOpen(false);
-      toast.success('Order placed successfully!');
+      if (paymentRes.ok) {
+        const paymentData = await paymentRes.json();
+        // Redirect to Stripe checkout
+        window.location.href = paymentData.url;
+        return;
+      }
+
+      // If Stripe fails (not connected), fall back to order-only
+      const errorData = await paymentRes.json();
+      if (errorData.detail?.includes('not connected') || errorData.detail?.includes('cannot accept')) {
+        // Store doesn't have Stripe connected, create order without payment
+        const orderData = {
+          webstore_id: storeId,
+          customer_name: customerInfo.name,
+          customer_email: customerInfo.email,
+          customer_phone: customerInfo.phone,
+          shipping_address: customerInfo.shipping_address,
+          items: cart.map(item => ({
+            product_id: item.product_id,
+            variant_id: item.variant_id,
+            quantity: item.quantity
+          })),
+          tax: 0,
+          shipping: 0,
+          notes: customerInfo.notes,
+          payment_status: 'pending'  // Payment to be collected offline
+        };
+
+        const res = await fetch(`${API}/api/webstores/v2/orders`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orderData)
+        });
+
+        if (!res.ok) throw new Error('Failed to place order');
+        
+        setOrderPlaced(true);
+        setCart([]);
+        setIsCheckoutOpen(false);
+        toast.success('Order placed! The shop will contact you for payment.');
+        return;
+      }
+
+      throw new Error(errorData.detail || 'Failed to process checkout');
     } catch (err) {
-      toast.error('Failed to place order');
+      console.error('Checkout error:', err);
+      toast.error(err.message || 'Failed to place order');
     }
   };
 
