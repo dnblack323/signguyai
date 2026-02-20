@@ -1196,8 +1196,8 @@ export default function Webstores() {
                   </p>
                   <div className="space-y-2 max-h-[400px] overflow-y-auto">
                     {products.map(product => {
-                      const assigned = storeProducts.find(sp => sp.product_id === product.id);
-                      const isEnabled = assigned?.is_enabled;
+                      const assigned = storeProducts.find(sp => sp.id === product.id);
+                      const isEnabled = assigned?.is_enabled ?? false;
                       return (
                         <div 
                           key={product.id}
