@@ -53,7 +53,7 @@ export default function Invoices() {
   const [formData, setFormData] = useState({
     customer_id: '',
     job_id: '',
-    total: 0,
+    total: '',
     status: 'draft',
     due_date: '',
     notes: ''
