@@ -556,19 +556,87 @@ export default function Webstores() {
               <div className="space-y-4">
                 <h4 className="font-medium">Store Branding</h4>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2 col-span-2">
-                    <Label>Company Logo URL</Label>
+                  <div className="space-y-3 col-span-2">
+                    <Label>Company Logo</Label>
+                    
+                    {/* Logo Preview */}
+                    {(logoPreview || formData.branding?.logo_url) && (
+                      <div className="flex items-center gap-4 p-3 rounded-lg border border-border bg-muted/30">
+                        <img 
+                          src={logoPreview || formData.branding?.logo_url} 
+                          alt="Logo preview" 
+                          className="h-16 w-auto object-contain rounded"
+                        />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">Logo Preview</p>
+                          <p className="text-xs text-muted-foreground">
+                            {logoFile ? logoFile.name : 'Current logo'}
+                          </p>
+                        </div>
+                        {logoPreview && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setLogoPreview(null);
+                              setLogoFile(null);
+                              if (logoInputRef.current) logoInputRef.current.value = '';
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Upload Button */}
+                    <div className="flex gap-2">
+                      <input
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                        onChange={handleLogoSelect}
+                        className="hidden"
+                        data-testid="store-logo-file-input"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => logoInputRef.current?.click()}
+                        className="flex-1"
+                        data-testid="store-logo-upload-btn"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        {logoPreview ? 'Change Logo' : 'Upload Logo'}
+                      </Button>
+                    </div>
+                    
+                    {/* Or use URL */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-px bg-border" />
+                      <span className="text-xs text-muted-foreground">or enter URL</span>
+                      <div className="flex-1 h-px bg-border" />
+                    </div>
+                    
                     <Input
                       value={formData.branding?.logo_url || ''}
-                      onChange={(e) => setFormData({ 
-                        ...formData, 
-                        branding: { ...formData.branding, logo_url: e.target.value } 
-                      })}
+                      onChange={(e) => {
+                        setFormData({ 
+                          ...formData, 
+                          branding: { ...formData.branding, logo_url: e.target.value } 
+                        });
+                        // Clear file upload if URL is entered
+                        if (e.target.value) {
+                          setLogoPreview(null);
+                          setLogoFile(null);
+                        }
+                      }}
                       placeholder="https://example.com/logo.png"
                       data-testid="store-logo-input"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Enter a URL to the customer&apos;s logo (appears on their storefront)
+                      Upload an image or enter a URL. Max file size: 2MB
                     </p>
                   </div>
                   <div className="space-y-2">
