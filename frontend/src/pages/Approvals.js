@@ -118,7 +118,7 @@ export default function Approvals() {
 
   const loadJobs = async (customerId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const res = await fetch(`${API}/api/approvals/jobs/list?customer_id=${customerId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
