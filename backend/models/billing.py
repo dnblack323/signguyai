@@ -259,6 +259,7 @@ class Subscription(BaseModel):
     plan: SubscriptionPlan
     status: SubscriptionStatus = SubscriptionStatus.TRIALING
     tier: str = "starter"
+    billing_interval: str = "monthly"  # monthly or annual
     
     # Stripe IDs
     stripe_customer_id: Optional[str] = None
@@ -276,12 +277,14 @@ class Subscription(BaseModel):
     trial_start: Optional[str] = None
     trial_end: Optional[str] = None
     trial_credits_applied: float = 0
+    trial_credits_used: bool = False  # Track if credits were applied
     extended_trial_paid: bool = False
     
     # Billing
     current_period_start: Optional[str] = None
     current_period_end: Optional[str] = None
     cancel_at_period_end: bool = False
+    amount_paid: float = 0  # Last payment amount
     
     # Timestamps
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
