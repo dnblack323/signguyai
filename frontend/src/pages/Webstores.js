@@ -253,6 +253,35 @@ export default function Webstores() {
     setUploadingLogo(false);
   };
 
+  // Upload banner for existing store
+  const handleUploadBanner = async (storeId = null) => {
+    if (!bannerFile) return;
+    
+    const targetId = storeId || selectedStore?.id;
+    if (!targetId) return;
+    
+    setUploadingBanner(true);
+    try {
+      const result = await uploadWebstoreBanner(targetId, bannerFile);
+      toast.success('Banner uploaded successfully');
+      
+      // Update local state
+      if (selectedStore) {
+        setSelectedStore({
+          ...selectedStore,
+          branding: { ...selectedStore.branding, banner_url: result.banner_url }
+        });
+      }
+      
+      setBannerFile(null);
+      setBannerPreview(null);
+      await loadData();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to upload banner');
+    }
+    setUploadingBanner(false);
+  };
+
   const handleCreateStore = async (e) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.owner_name.trim()) {
@@ -269,6 +298,16 @@ export default function Webstores() {
         } catch (uploadErr) {
           console.error('Logo upload failed:', uploadErr);
           toast.warning('Store created but logo upload failed');
+        }
+      }
+      
+      // If a banner file was selected, upload it to the new store
+      if (bannerFile && newStore?.id) {
+        try {
+          await uploadWebstoreBanner(newStore.id, bannerFile);
+        } catch (uploadErr) {
+          console.error('Banner upload failed:', uploadErr);
+          toast.warning('Store created but banner upload failed');
         }
       }
       
