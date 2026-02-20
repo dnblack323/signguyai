@@ -1300,6 +1300,87 @@ export default function Webstores() {
                           Upload an image or enter a URL. Max file size: 2MB
                         </p>
                       </div>
+                      
+                      {/* Banner Image Upload */}
+                      <div className="space-y-3">
+                        <Label>Store Banner</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Add a custom banner image to personalize the storefront header
+                        </p>
+                        
+                        {/* Current Banner Preview */}
+                        {(bannerPreview || selectedStore.branding?.banner_url) && (
+                          <div className="relative rounded-lg border border-border overflow-hidden">
+                            <img 
+                              src={bannerPreview || selectedStore.branding?.banner_url} 
+                              alt="Banner preview" 
+                              className="w-full h-32 object-cover"
+                            />
+                            {bannerPreview && (
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                className="absolute top-2 right-2"
+                                onClick={() => {
+                                  setBannerPreview(null);
+                                  setBannerFile(null);
+                                }}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Upload Button */}
+                        <div className="flex gap-2">
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                            onChange={handleBannerSelect}
+                            className="hidden"
+                            id="edit-banner-file-input"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => document.getElementById('edit-banner-file-input')?.click()}
+                            className="flex-1"
+                            disabled={uploadingBanner}
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            {bannerPreview ? 'Change Banner' : 'Upload Banner'}
+                          </Button>
+                          {bannerFile && (
+                            <Button
+                              type="button"
+                              onClick={() => handleUploadBanner()}
+                              disabled={uploadingBanner}
+                            >
+                              {uploadingBanner ? 'Uploading...' : 'Save Banner'}
+                            </Button>
+                          )}
+                        </div>
+                        
+                        {/* Or use URL */}
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-px bg-border" />
+                          <span className="text-xs text-muted-foreground">or enter URL</span>
+                          <div className="flex-1 h-px bg-border" />
+                        </div>
+                        
+                        <Input
+                          value={selectedStore.branding?.banner_url || ''}
+                          onChange={(e) => handleUpdateBranding('banner_url', e.target.value)}
+                          placeholder="https://example.com/banner.jpg"
+                          data-testid="edit-banner-input"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Recommended size: 1200x300px. Max file size: 5MB
+                        </p>
+                      </div>
+                      
                       <div className="space-y-2">
                         <Label>Accent Color</Label>
                         <div className="flex gap-2 items-center">
