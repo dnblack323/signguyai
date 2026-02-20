@@ -550,7 +550,7 @@ async def get_payment_status(session_id: str):
 async def stripe_connect_webhook(request: Request):
     """Handle Stripe Connect webhooks"""
     payload = await request.body()
-    sig_header = request.headers.get("stripe-signature")
+    # Note: In production, verify webhook signature with stripe-signature header
     
     # For testing without webhook secret, just parse the event
     try:
