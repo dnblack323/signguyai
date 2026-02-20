@@ -416,3 +416,228 @@ async def get_categories():
         {"value": "internal", "label": "Internal"},
         {"value": "other", "label": "Other"},
     ]
+
+
+# ============== DOCUMENT DELIVERY ==============
+
+class SendDocumentEmail(BaseModel):
+    customer_id: str
+    subject: Optional[str] = None
+    message: Optional[str] = None
+    include_attachment: bool = True
+
+
+class SendToPortal(BaseModel):
+    customer_id: str
+    notify_customer: bool = True
+    message: Optional[str] = None
+
+
+@router.post("/{document_id}/send-email")
+async def send_document_via_email(
+    document_id: str,
+    input: SendDocumentEmail,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Send a document to a customer via email"""
+    from services.email_service import email_service
+    
+    # Get the document
+    doc = await db.documents.find_one(
+        {"id": document_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Get the customer
+    customer = await db.customers.find_one(
+        {"id": input.customer_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    if not customer.get("email"):
+        raise HTTPException(status_code=400, detail="Customer does not have an email address")
+    
+    # Get tenant info for company name
+    tenant = await db.tenants.find_one({"tenant_id": current_user.tenant_id}, {"_id": 0})
+    company_name = tenant.get("company_name", "SignGuy AI") if tenant else "SignGuy AI"
+    
+    # Prepare attachment if requested
+    attachment = None
+    if input.include_attachment and doc.get("file_data"):
+        attachment = {
+            "filename": doc.get("original_filename", f"{doc['name']}.pdf"),
+            "content": doc["file_data"],
+            "type": doc.get("file_type", "application/octet-stream")
+        }
+    
+    # Send the email
+    result = await email_service.send_document_to_customer(
+        customer_email=customer["email"],
+        customer_name=customer.get("name", customer.get("contact_name", "Valued Customer")),
+        document_name=doc["name"],
+        document_content=input.message or doc.get("description", "Please review the attached document."),
+        document_attachment=attachment,
+        tenant_id=current_user.tenant_id,
+        company_name=company_name
+    )
+    
+    if result["success"]:
+        # Link document to customer if not already linked
+        await db.documents.update_one(
+            {"id": document_id},
+            {
+                "$addToSet": {"linked_customers": input.customer_id},
+                "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}
+            }
+        )
+        
+        # Log the send activity
+        activity = {
+            "id": str(uuid.uuid4()),
+            "tenant_id": current_user.tenant_id,
+            "document_id": document_id,
+            "customer_id": input.customer_id,
+            "action": "emailed",
+            "performed_by": current_user.id,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.document_activities.insert_one(activity)
+        
+        return {"message": "Document sent via email successfully", "email": customer["email"]}
+    else:
+        raise HTTPException(status_code=500, detail=f"Failed to send email: {result.get('error', 'Unknown error')}")
+
+
+@router.post("/{document_id}/send-to-portal")
+async def send_document_to_portal(
+    document_id: str,
+    input: SendToPortal,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Send a document to a customer's portal and optionally notify them"""
+    from services.email_service import email_service
+    
+    # Get the document
+    doc = await db.documents.find_one(
+        {"id": document_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Get the customer
+    customer = await db.customers.find_one(
+        {"id": input.customer_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    # Check if customer has portal access
+    if not customer.get("portal_enabled"):
+        raise HTTPException(status_code=400, detail="Customer does not have portal access enabled")
+    
+    # Get tenant info
+    tenant = await db.tenants.find_one({"tenant_id": current_user.tenant_id}, {"_id": 0})
+    company_name = tenant.get("company_name", "SignGuy AI") if tenant else "SignGuy AI"
+    
+    # Create a portal document entry
+    portal_doc = {
+        "id": str(uuid.uuid4()),
+        "tenant_id": current_user.tenant_id,
+        "customer_id": input.customer_id,
+        "document_id": document_id,
+        "document_name": doc["name"],
+        "document_category": doc.get("category", "other"),
+        "message": input.message,
+        "status": "unread",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": current_user.id
+    }
+    await db.portal_documents.insert_one(portal_doc)
+    
+    # Link document to customer
+    await db.documents.update_one(
+        {"id": document_id},
+        {
+            "$addToSet": {"linked_customers": input.customer_id},
+            "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}
+        }
+    )
+    
+    # Create notification for customer
+    notification = {
+        "id": str(uuid.uuid4()),
+        "tenant_id": current_user.tenant_id,
+        "customer_id": input.customer_id,
+        "notification_type": "document_ready",
+        "title": f"New Document: {doc['name']}",
+        "message": input.message or f"A new document '{doc['name']}' has been shared with you.",
+        "link": f"/portal/documents/{portal_doc['id']}",
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.customer_notifications.insert_one(notification)
+    
+    # Send email notification if requested
+    email_sent = False
+    if input.notify_customer and customer.get("email"):
+        portal_url = tenant.get("portal_url", "https://signguy.ai/customer-portal")
+        
+        result = await email_service.send_portal_notification(
+            customer_email=customer["email"],
+            customer_name=customer.get("name", customer.get("contact_name", "Valued Customer")),
+            notification_type="document_ready",
+            notification_title=f"New Document: {doc['name']}",
+            notification_message=input.message or f"A new document has been shared with you. Please log in to your portal to view it.",
+            portal_link=f"{portal_url}/documents",
+            tenant_id=current_user.tenant_id,
+            company_name=company_name
+        )
+        email_sent = result.get("success", False)
+    
+    # Log the activity
+    activity = {
+        "id": str(uuid.uuid4()),
+        "tenant_id": current_user.tenant_id,
+        "document_id": document_id,
+        "customer_id": input.customer_id,
+        "action": "sent_to_portal",
+        "email_notification_sent": email_sent,
+        "performed_by": current_user.id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.document_activities.insert_one(activity)
+    
+    return {
+        "message": "Document sent to customer portal",
+        "portal_document_id": portal_doc["id"],
+        "notification_sent": email_sent
+    }
+
+
+@router.get("/portal/{customer_id}")
+async def get_customer_portal_documents(
+    customer_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Get all documents shared with a customer via portal"""
+    # Verify customer belongs to tenant
+    customer = await db.customers.find_one(
+        {"id": customer_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    portal_docs = await db.portal_documents.find(
+        {"customer_id": customer_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    return portal_docs
+
