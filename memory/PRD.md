@@ -292,9 +292,12 @@ Comprehensive document management system for customer communication.
 - `/api/pricing/calculate` - POST calculate pricing with profit/margin
 
 ### Billing
-- `/api/billing/pricing` - GET available plans
+- `/api/billing/pricing` - GET available plans with annual pricing
 - `/api/billing/trial-status` - GET user's trial status
-- `/api/billing/checkout` - POST create Stripe checkout
+- `/api/billing/trial-credits` - GET available trial credits (NEW)
+- `/api/billing/checkout` - POST create Stripe checkout (supports annual billing)
+- `/api/billing/subscription` - GET current subscription with billing interval
+- `/api/billing/founder-status` - GET founder availability
 
 ## Recent Updates (Feb 20, 2026)
 
