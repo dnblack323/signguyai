@@ -512,5 +512,36 @@ Complete webstore system for B2B, Fundraiser, and Creator stores.
 - **Employee Portal Branding:** Replaced hardhat icon with SignGuy AI square logo
 - **Employee Profile Images:** Employees can now upload their own profile photos via the Profile page
 
+## AI Business Assistant Context-Awareness Fix (Feb 20, 2026) - COMPLETE ✅
+The AI Business Assistant now provides personalized, data-driven insights using the shop's actual data.
+
+### Bug Fixed:
+- **Issue:** AI Assistant was giving generic advice instead of context-aware insights using shop data
+- **Root Cause:** Line 1062 in `/app/backend/routes/ai.py` had `${Y}` inside an f-string, causing Python to try evaluating a variable `Y` which didn't exist
+- **Fix Applied:** Changed `${Y}` to `$[Y]` to escape the curly brace while keeping the placeholder visible in examples
+
+### How It Works Now:
+1. When user asks a question, the backend fetches comprehensive shop data via `get_shop_context()`:
+   - Customer stats (total, new in 30 days)
+   - Job stats (total, active, completed, average value)
+   - Revenue (all-time, last 30 days, pending invoices)
+   - Quote conversion rate
+   - Top job categories by revenue
+   - Top customers by spend
+   - Employee count & webstore stats
+
+2. This data is injected into the AI system prompt with specific numbers
+3. AI responds with actual shop data like "Your revenue for the last 30 days is $X.XX" instead of generic advice
+
+### Verified Features:
+- Document Composer: Generates professional business documents (NOT producing white screen)
+- Business Copywriter: Generates marketing copy (NOT producing white screen)  
+- AI Business Assistant: Context-aware with shop data
+
+### Test Results:
+- Backend: 11/11 API tests passed
+- Frontend: 7/7 UI tests passed
+- All AI tools functional
+
 ## Last Updated
-February 19, 2026
+February 20, 2026
