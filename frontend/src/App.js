@@ -6,6 +6,7 @@ import { TierProvider } from "./context/TierContext";
 import { MainLayout } from "./components/MainLayout";
 import { UpgradeModal } from "./components/UpgradeModal";
 import { TrialLockout } from "./components/TrialLockout";
+import ScrollToTop from "./components/ScrollToTop";
 import { Toaster } from "./components/ui/sonner";
 import { Loader2 } from "lucide-react";
 
