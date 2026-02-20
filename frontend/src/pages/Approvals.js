@@ -229,7 +229,7 @@ export default function Approvals() {
     setUploading(true);
     
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       
       // Create the approval with base64 image
       const approvalRes = await fetch(`${API}/api/approvals`, {
