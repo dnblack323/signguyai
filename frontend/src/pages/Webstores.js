@@ -356,11 +356,11 @@ export default function Webstores() {
     if (!selectedStore) return;
     try {
       if (currentlyEnabled) {
-        // Instead of removing, update to disabled
+        // Update to disabled
         await updateWebstoreProductStatus(selectedStore.id, productId, false);
       } else {
         // Check if product is already assigned but disabled
-        const existing = storeProducts.find(sp => sp.product_id === productId);
+        const existing = storeProducts.find(sp => sp.id === productId);
         if (existing) {
           // Update to enabled
           await updateWebstoreProductStatus(selectedStore.id, productId, true);
