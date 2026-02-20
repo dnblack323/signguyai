@@ -62,7 +62,7 @@ export default function Approvals() {
 
   const loadData = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       if (!token) {
         setLoading(false);
         return;
