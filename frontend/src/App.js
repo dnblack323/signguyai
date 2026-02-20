@@ -197,6 +197,7 @@ function App() {
                 <Route path="/customer-portal/orders/:orderId" element={<PortalOrderDetail />} />
                 <Route path="/customer-portal/quotes" element={<PortalQuotes />} />
                 <Route path="/customer-portal/invoices" element={<PortalInvoices />} />
+                <Route path="/customer-portal/documents" element={<PortalDocuments />} />
                 <Route path="/customer-portal/messages" element={<PortalMessages />} />
                 <Route path="/customer-portal/messages/:conversationId" element={<PortalConversation />} />
                 <Route path="/customer-portal/proofs" element={<PortalProofs />} />
