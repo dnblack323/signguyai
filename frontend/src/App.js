@@ -43,6 +43,7 @@ import { PortalOrders, PortalOrderDetail } from "./pages/PortalOrders";
 import { PortalProofs, PortalProofDetail } from "./pages/PortalProofs";
 import { PortalMessages, PortalConversation } from "./pages/PortalMessages";
 import PortalProfile from "./pages/PortalProfile";
+import PortalDocuments from "./pages/PortalDocuments";
 import { PortalQuotes, PortalInvoices, PortalAppointments } from "./pages/PortalPages";
 
 // Employee Portal Pages
