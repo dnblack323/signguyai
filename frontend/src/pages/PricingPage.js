@@ -189,7 +189,7 @@ export default function PricingPage() {
           </p>
 
           {/* Free Trial Banner */}
-          <div className="flex justify-center mb-12">
+          <div className="flex justify-center mb-8">
             <div className="inline-flex items-center gap-4 px-6 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
               <Clock className="w-5 h-5 text-emerald-500" />
               <div className="text-left">
@@ -198,6 +198,52 @@ export default function PricingPage() {
               </div>
             </div>
           </div>
+
+          {/* Billing Interval Toggle */}
+          <div className="flex justify-center mb-12">
+            <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)]">
+              <button
+                onClick={() => setBillingInterval('monthly')}
+                className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                  billingInterval === 'monthly'
+                    ? 'bg-[var(--card-bg)] text-[var(--text-primary)] shadow-sm'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setBillingInterval('annual')}
+                className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 ${
+                  billingInterval === 'annual'
+                    ? 'bg-[var(--card-bg)] text-[var(--text-primary)] shadow-sm'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                Annual
+                <span className="px-2 py-0.5 rounded-full bg-green-500/20 text-green-500 text-xs">
+                  Save 2 months
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Trial Credits Banner */}
+          {trialCredits?.has_credits && (
+            <div className="flex justify-center mb-8">
+              <div className="inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                <Gift className="w-5 h-5 text-amber-500" />
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-amber-500">
+                    ${trialCredits.credits_amount.toFixed(2)} credit available!
+                  </p>
+                  <p className="text-xs text-[var(--text-secondary)]">
+                    Will be automatically applied to Tier 3 subscription
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
