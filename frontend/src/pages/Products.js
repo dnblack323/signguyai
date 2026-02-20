@@ -385,8 +385,9 @@ export default function Products() {
                     type="number"
                     step="0.01"
                     min="0"
+                    placeholder="0.00"
                     value={formData.base_cost}
-                    onChange={(e) => setFormData({ ...formData, base_cost: parseFloat(e.target.value) || 0 })}
+                    onChange={(e) => setFormData({ ...formData, base_cost: e.target.value })}
                     data-testid="product-cost-input"
                   />
                 </div>
@@ -396,8 +397,9 @@ export default function Products() {
                     type="number"
                     step="0.01"
                     min="0"
+                    placeholder="0.00"
                     value={formData.retail_price}
-                    onChange={(e) => setFormData({ ...formData, retail_price: parseFloat(e.target.value) || 0 })}
+                    onChange={(e) => setFormData({ ...formData, retail_price: e.target.value })}
                     data-testid="product-price-input"
                   />
                 </div>
