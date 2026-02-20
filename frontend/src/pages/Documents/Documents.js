@@ -504,6 +504,15 @@ export default function Documents() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            onClick={() => handleSendDocument(doc)}
+                            title="Send to customer"
+                            className="text-primary hover:text-primary"
+                          >
+                            <Send className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => handleDownload(doc)}
                             title="Download"
                           >
