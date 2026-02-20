@@ -276,7 +276,7 @@ export default function Approvals() {
 
   const handleResend = async (proofId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       await fetch(`${API}/api/approvals/${proofId}/resend`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
