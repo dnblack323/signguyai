@@ -33,6 +33,12 @@ class SubscriptionPlan(str, Enum):
     AI_ADDON = "ai_addon"               # Founder: $49/mo, Standard: $89/mo
 
 
+class BillingInterval(str, Enum):
+    """Billing intervals"""
+    MONTHLY = "monthly"
+    ANNUAL = "annual"
+
+
 class SubscriptionStatus(str, Enum):
     """Subscription statuses"""
     TRIALING = "trialing"
