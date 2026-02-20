@@ -300,46 +300,50 @@ const ScheduleWidget = ({ schedule }) => {
 
 const QuickActions = () => (
   <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
-    <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--border-light)' }}>
-      <h2 className="font-heading text-base font-semibold" style={{ color: 'var(--text)' }}>
+    <div className="px-4 sm:px-6 py-3 sm:py-4" style={{ borderBottom: '1px solid var(--border-light)' }}>
+      <h2 className="font-heading text-sm sm:text-base font-semibold" style={{ color: 'var(--text)' }}>
         Quick Actions
       </h2>
     </div>
-    <div className="p-4 grid grid-cols-2 gap-3">
+    <div className="p-3 sm:p-4 grid grid-cols-2 gap-2 sm:gap-3">
       <Link to="/customers">
         <button 
-          className="w-full flex items-center justify-start gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150 hover:shadow-sm"
+          className="w-full flex items-center justify-start gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 hover:shadow-sm"
           style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
           data-testid="quick-add-customer"
         >
-          <Plus className="h-4 w-4" style={{ color: 'var(--accent)' }} /> New Customer
+          <Plus className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" style={{ color: 'var(--accent)' }} /> 
+          <span className="truncate">New Customer</span>
         </button>
       </Link>
       <Link to="/quotes">
         <button 
-          className="w-full flex items-center justify-start gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150 hover:shadow-sm"
+          className="w-full flex items-center justify-start gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 hover:shadow-sm"
           style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
           data-testid="quick-add-quote"
         >
-          <Plus className="h-4 w-4" style={{ color: 'var(--accent)' }} /> New Quote
+          <Plus className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" style={{ color: 'var(--accent)' }} /> 
+          <span className="truncate">New Quote</span>
         </button>
       </Link>
       <Link to="/jobs">
         <button 
-          className="w-full flex items-center justify-start gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150 hover:shadow-sm"
+          className="w-full flex items-center justify-start gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 hover:shadow-sm"
           style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
           data-testid="quick-add-job"
         >
-          <Plus className="h-4 w-4" style={{ color: 'var(--accent)' }} /> New Job
+          <Plus className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" style={{ color: 'var(--accent)' }} /> 
+          <span className="truncate">New Job</span>
         </button>
       </Link>
       <Link to="/timeclock">
         <button 
-          className="w-full flex items-center justify-start gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150 hover:shadow-sm"
+          className="w-full flex items-center justify-start gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 hover:shadow-sm"
           style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
           data-testid="quick-clock-in"
         >
-          <Clock className="h-4 w-4" style={{ color: 'var(--accent)' }} /> Time Clock
+          <Clock className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" style={{ color: 'var(--accent)' }} /> 
+          <span className="truncate">Time Clock</span>
         </button>
       </Link>
     </div>
