@@ -410,21 +410,21 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-8 animate-fade-in" data-testid="dashboard">
+    <div className="space-y-6 sm:space-y-8 animate-fade-in" data-testid="dashboard">
       {/* Personalized Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-3 mb-1">
-            <GreetingIcon className={`h-7 w-7 ${greeting.color}`} />
-            <h1 className="text-3xl font-bold font-heading tracking-tight" style={{ color: 'var(--text)' }}>
+          <div className="flex items-center gap-2 sm:gap-3 mb-1">
+            <GreetingIcon className={`h-6 w-6 sm:h-7 sm:w-7 ${greeting.color}`} />
+            <h1 className="text-2xl sm:text-3xl font-bold font-heading tracking-tight" style={{ color: 'var(--text)' }}>
               {greeting.text}, {user?.full_name?.split(' ')[0] || 'there'}!
             </h1>
           </div>
-          <p className="ml-10" style={{ color: 'var(--text-muted)' }}>
+          <p className="ml-8 sm:ml-10 text-sm sm:text-base" style={{ color: 'var(--text-muted)' }}>
             Here's what's happening at {user?.company_name || 'your shop'} today
           </p>
         </div>
-        <div className="text-right">
+        <div className="text-left sm:text-right ml-8 sm:ml-0">
           <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
@@ -435,7 +435,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         <StatCard
           title="Total Customers"
           value={dashboardStats?.total_customers || 0}
