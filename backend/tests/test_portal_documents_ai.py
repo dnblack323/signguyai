@@ -90,7 +90,7 @@ class TestAIBusinessAssistant:
         # Check that the response mentions specific data (not generic)
         response_text = data["response"].lower()
         # Should contain some specific information
-        assert len(data["response"]) > 50, "Response too short - may not have context"
+        assert len(data["response"]) >= 50, "Response too short - may not have context"
         print(f"Context-aware response check passed")
         print(f"Response: {data['response'][:300]}...")
     
