@@ -1070,7 +1070,7 @@ export default function AITools() {
                   <CardTitle className="font-heading uppercase text-sm text-primary">
                     {selectedTool.generatesImages ? 'Design Notes & Guidance' : 'Result'}
                   </CardTitle>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap justify-end">
                     <Button 
                       variant="ghost" 
                       size="sm" 
@@ -1078,6 +1078,36 @@ export default function AITools() {
                       data-testid="copy-result-btn"
                     >
                       <Copy className="h-4 w-4 mr-2" /> Copy
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={handleGeneratePdf}
+                      disabled={generatingPdf}
+                      data-testid="download-pdf-btn"
+                    >
+                      {generatingPdf ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileDown className="h-4 w-4 mr-2" />}
+                      Download PDF
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={handleSaveToLibrary}
+                      disabled={savingToLibrary}
+                      data-testid="save-to-library-btn"
+                    >
+                      {savingToLibrary ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FolderPlus className="h-4 w-4 mr-2" />}
+                      Save to Library
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setShowSendDialog(true)}
+                      className="border-primary text-primary hover:bg-primary/10"
+                      data-testid="send-to-portal-btn"
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      Send to Customer
                     </Button>
                   </div>
                 </div>
