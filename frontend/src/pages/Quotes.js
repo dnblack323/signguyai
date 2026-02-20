@@ -170,7 +170,7 @@ export default function Quotes() {
   const addLineItem = () => {
     setFormData({
       ...formData,
-      line_items: [...formData.line_items, { description: '', quantity: 1, unit_price: 0 }]
+      line_items: [...formData.line_items, { description: '', quantity: '', unit_price: '' }]
     });
   };
 
