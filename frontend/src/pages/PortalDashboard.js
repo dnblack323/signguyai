@@ -28,6 +28,7 @@ function PortalLayout({ children, activeNav, customerName }) {
     { id: 'orders', label: 'Orders', icon: Briefcase, path: '/customer-portal/orders' },
     { id: 'quotes', label: 'Quotes', icon: FileText, path: '/customer-portal/quotes' },
     { id: 'invoices', label: 'Invoices', icon: Receipt, path: '/customer-portal/invoices' },
+    { id: 'documents', label: 'Documents', icon: FileText, path: '/customer-portal/documents' },
     { id: 'messages', label: 'Messages', icon: MessageSquare, path: '/customer-portal/messages' },
     { id: 'proofs', label: 'Artwork Approvals', icon: Image, path: '/customer-portal/proofs' },
     { id: 'appointments', label: 'Appointments', icon: Calendar, path: '/customer-portal/appointments' },
