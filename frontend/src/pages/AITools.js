@@ -416,7 +416,7 @@ const categories = [
 
 export default function AITools() {
   const navigate = useNavigate();
-  const { generateAIContent, fetchAIHistory, generateAIImages } = useApp();
+  const { generateAIContent, fetchAIHistory, generateAIImages, api, customers, fetchCustomers } = useApp();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedTool, setSelectedTool] = useState(aiTools[0]);
   const [formData, setFormData] = useState({});
@@ -428,6 +428,22 @@ export default function AITools() {
   const [showHistory, setShowHistory] = useState(false);
   const [uploadedImagePreview, setUploadedImagePreview] = useState(null);
   const fileInputRef = useRef(null);
+  
+  // Document action states
+  const [savingToLibrary, setSavingToLibrary] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [showSendDialog, setShowSendDialog] = useState(false);
+  const [sendingToPortal, setSendingToPortal] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState('');
+  const [sendMessage, setSendMessage] = useState('');
+  const [notifyCustomer, setNotifyCustomer] = useState(true);
+
+  // Load customers when needed
+  useEffect(() => {
+    if (showSendDialog && (!customers || customers.length === 0)) {
+      fetchCustomers();
+    }
+  }, [showSendDialog, customers, fetchCustomers]);
 
   // Handle URL query parameter for tool selection
   useEffect(() => {
