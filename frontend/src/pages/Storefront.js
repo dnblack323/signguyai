@@ -52,6 +52,19 @@ export default function Storefront() {
 
   useEffect(() => {
     loadStore();
+    
+    // Handle payment success/cancel from URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('payment') === 'success') {
+      setOrderPlaced(true);
+      setCart([]);
+      toast.success('Payment successful! Thank you for your order.');
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (urlParams.get('payment') === 'cancelled') {
+      toast.info('Payment cancelled. Your cart is still saved.');
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }, [storeId]);
 
   const loadStore = async () => {
