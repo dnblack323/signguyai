@@ -587,5 +587,39 @@ The AI Business Assistant now provides personalized, data-driven insights using 
 - Frontend: 7/7 UI tests passed
 - All AI tools functional
 
+## AI Document Workflow Enhancements (Feb 20, 2026) - COMPLETE ✅
+
+### New Features Added:
+
+1. **Download PDF Button**
+   - Added to AI Tools result card
+   - Uses reportlab library for PDF generation
+   - Endpoint: `POST /api/documents/generate-pdf`
+   - Converts markdown-style headers to proper PDF formatting
+
+2. **Save to Library Button**
+   - One-click save AI-generated content to Document Library
+   - Endpoint: `POST /api/documents/from-ai`
+   - Auto-tags with "ai-generated" and tool ID
+   - Saves as text file with original content
+
+3. **Send to Customer Button**
+   - Opens dialog with customer selection (filtered by portal_enabled)
+   - Optional message field
+   - Email notification checkbox
+   - Saves to library AND sends to portal in one action
+
+4. **Document Library View Button**
+   - Added Eye icon button in document list
+   - Opens details dialog with "Open in New Tab" button
+   - Direct viewing without download
+
+5. **Pricing Settings Navigation Fix**
+   - Fixed link from `/pricing/settings` to `/pricing-calculator/settings`
+
+### Test Results:
+- Backend: 13/13 tests passed (100%)
+- Frontend: 6/6 tests passed (100%)
+
 ## Last Updated
 February 20, 2026
