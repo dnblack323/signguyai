@@ -295,6 +295,26 @@ Comprehensive document management system for customer communication.
 - `/api/billing/trial-status` - GET user's trial status
 - `/api/billing/checkout` - POST create Stripe checkout
 
+## Recent Updates (Feb 20, 2026)
+
+### Dynamic Onboarding Checklist
+- Added `GET /api/dashboard/onboarding-status` endpoint to dynamically track user setup progress
+- Tracks: company info, pricing config, email templates, customers, imported customers, employees, quotes, webstores, documents, AI usage
+- Frontend `OnboardingChecklist.js` now fetches status from the dedicated endpoint (single API call vs multiple)
+- Shows "X of 10 completed" with real-time progress
+
+### Scroll-to-Top Navigation Fix
+- Added `ScrollToTop.js` component that scrolls to top on route changes
+- Fixes issue where navigating to pages (especially docs) started users in the middle of content
+- Integrated into App.js router
+
+### Completed in Previous Session
+- Webstore creation bug fix
+- Logo & banner uploads for webstores
+- Smart Document Library with send-to-email/portal
+- Email Template System (admin-editable)
+- "Approvals" module moved to Tools section
+
 ## Known Issues
 - "Business" badge in bottom-right is PREVIEW TIER SELECTOR (not a bug)
 
