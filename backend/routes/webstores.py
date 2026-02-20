@@ -662,6 +662,57 @@ async def upload_webstore_logo(
     return {"message": "Logo uploaded successfully", "logo_url": logo_data_url}
 
 
+@webstores_router.post("/{webstore_id}/upload-banner")
+async def upload_webstore_banner(
+    webstore_id: str,
+    file: UploadFile = File(...),
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Upload a banner image for a webstore"""
+    # Verify webstore exists and belongs to tenant
+    webstore = await db.webstores_v2.find_one(
+        {"id": webstore_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+    
+    # Validate file type
+    allowed_types = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400, 
+            detail="Invalid file type. Allowed: PNG, JPEG, WebP, GIF"
+        )
+    
+    # Read and encode the file
+    contents = await file.read()
+    
+    # Check file size (max 5MB for banners - they're typically larger)
+    if len(contents) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large. Maximum size is 5MB")
+    
+    # Convert to base64 data URL
+    base64_encoded = base64.b64encode(contents).decode('utf-8')
+    banner_data_url = f"data:{file.content_type};base64,{base64_encoded}"
+    
+    # Update the webstore branding with the banner
+    current_branding = webstore.get("branding", {})
+    current_branding["banner_url"] = banner_data_url
+    
+    await db.webstores_v2.update_one(
+        {"id": webstore_id, "tenant_id": current_user.tenant_id},
+        {"$set": {
+            "branding": current_branding,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    logger.info(f"Banner uploaded for webstore {webstore_id}")
+    
+    return {"message": "Banner uploaded successfully", "banner_url": banner_data_url}
+
+
 # ============== WEBSTORE PRODUCT ASSIGNMENTS ==============
 
 @webstores_router.post("/{webstore_id}/products")
