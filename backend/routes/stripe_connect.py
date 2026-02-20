@@ -424,19 +424,19 @@ async def create_webstore_checkout(
     for item in items:
         # Get actual product price from database
         product = await db.products.find_one(
-            {"id": item.get("product_id")},
+            {"id": item.product_id},
             {"_id": 0}
         )
         if not product:
             continue
         
         price = float(product.get("retail_price", 0))
-        quantity = int(item.get("quantity", 1))
+        quantity = item.quantity
         total_amount += price * quantity
         
         product_name = product.get("name", "Product")
-        if item.get("variant_name"):
-            product_name += f" - {item.get('variant_name')}"
+        if item.variant_name:
+            product_name += f" - {item.variant_name}"
         
         line_items.append({
             "price_data": {
