@@ -293,13 +293,27 @@ export default function PricingPage() {
                   <div className="mb-6">
                     <div className="flex items-baseline gap-2">
                       <span className="text-4xl font-bold text-[var(--text-primary)]">
-                        ${plan.amount}
+                        ${getDisplayPrice(plan)}
                       </span>
                       <span className="text-[var(--text-secondary)]">/month</span>
                     </div>
                     
+                    {/* Annual billing note */}
+                    {billingInterval === 'annual' && plan.amount_annual && (
+                      <div className="text-xs text-[var(--text-secondary)] mt-1">
+                        Billed ${plan.amount_annual}/year
+                      </div>
+                    )}
+                    
+                    {/* Annual Savings */}
+                    {billingInterval === 'annual' && getAnnualSavings(plan) > 0 && (
+                      <p className="text-sm font-semibold text-green-500 mt-1">
+                        Save ${getAnnualSavings(plan)}/year (2 months free)
+                      </p>
+                    )}
+                    
                     {/* Standard Price */}
-                    {plan.standard_price && is_founder_pricing && (
+                    {plan.standard_price && is_founder_pricing && billingInterval === 'monthly' && (
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-sm text-[var(--text-secondary)] line-through">
                           ${plan.standard_price}/mo after founder phase
@@ -308,7 +322,7 @@ export default function PricingPage() {
                     )}
 
                     {/* Savings */}
-                    {plan.savings && plan.savings > 0 && is_founder_pricing && (
+                    {plan.savings && plan.savings > 0 && is_founder_pricing && billingInterval === 'monthly' && (
                       <p className="text-sm font-semibold text-green-500 mt-1">
                         Save ${plan.savings}/month forever
                       </p>
@@ -319,6 +333,14 @@ export default function PricingPage() {
                       <p className="text-xs text-amber-500 mt-2 flex items-center gap-1">
                         <Gift className="w-3 h-3" />
                         No onboarding fee (saves up to $599)
+                      </p>
+                    )}
+                    
+                    {/* Trial credits note for Tier 3 */}
+                    {plan.id === 'tier_3' && trialCredits?.has_credits && (
+                      <p className="text-xs text-amber-500 mt-2 flex items-center gap-1">
+                        <Gift className="w-3 h-3" />
+                        ${trialCredits.credits_amount.toFixed(2)} credit will be applied!
                       </p>
                     )}
                   </div>
