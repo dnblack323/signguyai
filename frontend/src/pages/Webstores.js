@@ -356,14 +356,24 @@ export default function Webstores() {
     if (!selectedStore) return;
     try {
       if (currentlyEnabled) {
-        await removeProductFromWebstore(selectedStore.id, productId);
+        // Instead of removing, update to disabled
+        await updateWebstoreProductStatus(selectedStore.id, productId, false);
       } else {
-        await assignProductToWebstore(selectedStore.id, { 
-          webstore_id: selectedStore.id,
-          product_id: productId, 
-          is_enabled: true 
-        });
+        // Check if product is already assigned but disabled
+        const existing = storeProducts.find(sp => sp.product_id === productId);
+        if (existing) {
+          // Update to enabled
+          await updateWebstoreProductStatus(selectedStore.id, productId, true);
+        } else {
+          // Assign new product
+          await assignProductToWebstore(selectedStore.id, { 
+            webstore_id: selectedStore.id,
+            product_id: productId, 
+            is_enabled: true 
+          });
+        }
       }
+      // Reload all products with their status
       const prods = await getWebstoreProducts(selectedStore.id, true);
       setStoreProducts(prods);
       toast.success(currentlyEnabled ? 'Product disabled' : 'Product enabled');
