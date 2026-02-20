@@ -63,25 +63,32 @@ export default function Approvals() {
   const loadData = async () => {
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
       
       // Load stats
       const statsRes = await fetch(`${API}/api/approvals/stats`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const statsData = await statsRes.json();
-      setStats(statsData);
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setStats(statsData);
+      }
       
       // Load customers
       const customersRes = await fetch(`${API}/api/approvals/customers/list`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const customersData = await customersRes.json();
-      setCustomers(customersData);
+      if (customersRes.ok) {
+        const customersData = await customersRes.json();
+        setCustomers(customersData);
+      }
       
       await loadApprovals();
     } catch (err) {
       console.error('Error loading data:', err);
-      toast.error('Failed to load data');
     }
     setLoading(false);
   };
@@ -89,6 +96,8 @@ export default function Approvals() {
   const loadApprovals = async () => {
     try {
       const token = localStorage.getItem('token');
+      if (!token) return;
+      
       let url = `${API}/api/approvals`;
       
       if (filter !== 'all') {
@@ -98,8 +107,10 @@ export default function Approvals() {
       const res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const data = await res.json();
-      setApprovals(data);
+      if (res.ok) {
+        const data = await res.json();
+        setApprovals(data);
+      }
     } catch (err) {
       console.error('Error loading approvals:', err);
     }
