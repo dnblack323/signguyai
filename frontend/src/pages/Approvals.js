@@ -231,26 +231,7 @@ export default function Approvals() {
     try {
       const token = localStorage.getItem('token');
       
-      // First upload the watermarked image
-      const formData = new FormData();
-      
-      // Convert watermarked base64 to blob
-      const watermarkedBlob = await fetch(watermarkedUrl).then(r => r.blob());
-      formData.append('file', watermarkedBlob, uploadedFile.name);
-      
-      const uploadRes = await fetch(`${API}/api/upload`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
-      
-      if (!uploadRes.ok) {
-        throw new Error('Failed to upload file');
-      }
-      
-      const uploadData = await uploadRes.json();
-      
-      // Create the approval
+      // Create the approval with base64 image
       const approvalRes = await fetch(`${API}/api/approvals`, {
         method: 'POST',
         headers: {
@@ -260,15 +241,15 @@ export default function Approvals() {
         body: JSON.stringify({
           customer_id: selectedCustomer,
           job_id: selectedJob,
-          file_url: uploadData.url,
+          file_url: watermarkedUrl, // Store watermarked version
           file_name: uploadedFile.name,
-          description: description,
-          watermarked_url: uploadData.url
+          description: description
         })
       });
       
       if (!approvalRes.ok) {
-        throw new Error('Failed to create approval');
+        const errData = await approvalRes.json();
+        throw new Error(errData.detail || 'Failed to create approval');
       }
       
       toast.success('Artwork sent for approval!');
@@ -277,7 +258,7 @@ export default function Approvals() {
       loadData();
     } catch (err) {
       console.error('Error:', err);
-      toast.error('Failed to send artwork for approval');
+      toast.error(err.message || 'Failed to send artwork for approval');
     }
     
     setUploading(false);
