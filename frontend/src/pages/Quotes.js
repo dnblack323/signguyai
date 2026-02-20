@@ -201,7 +201,7 @@ export default function Quotes() {
       customer_id: '',
       notes: '',
       status: 'draft',
-      line_items: [{ description: '', quantity: 1, unit_price: 0 }]
+      line_items: [{ description: '', quantity: '', unit_price: '' }]
     });
     setEditingQuote(null);
     setIsDialogOpen(false);
