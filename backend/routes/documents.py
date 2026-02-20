@@ -121,7 +121,7 @@ async def upload_document(
     if file.content_type not in ALLOWED_FILE_TYPES:
         raise HTTPException(
             status_code=400,
-            detail=f"File type not allowed. Supported types: PDF, Images, Word, Excel, Text, CSV"
+            detail="File type not allowed. Supported types: PDF, Images, Word, Excel, Text, CSV"
         )
     
     # Read file content
