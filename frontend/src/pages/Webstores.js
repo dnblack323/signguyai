@@ -156,6 +156,65 @@ export default function Webstores() {
       creator_commission_type: 'percentage',
       creator_commission_value: 20,
     });
+    setLogoPreview(null);
+    setLogoFile(null);
+  };
+
+  // Handle logo file selection
+  const handleLogoSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Please select a valid image file (PNG, JPEG, WebP, or GIF)');
+      return;
+    }
+    
+    // Validate file size (2MB max)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image must be less than 2MB');
+      return;
+    }
+    
+    setLogoFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setLogoPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Upload logo for existing store
+  const handleUploadLogo = async (storeId = null) => {
+    if (!logoFile) return;
+    
+    const targetId = storeId || selectedStore?.id;
+    if (!targetId) return;
+    
+    setUploadingLogo(true);
+    try {
+      const result = await uploadWebstoreLogo(targetId, logoFile);
+      toast.success('Logo uploaded successfully');
+      
+      // Update local state
+      if (selectedStore) {
+        setSelectedStore({
+          ...selectedStore,
+          branding: { ...selectedStore.branding, logo_url: result.logo_url }
+        });
+      }
+      
+      setLogoFile(null);
+      setLogoPreview(null);
+      await loadData();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to upload logo');
+    }
+    setUploadingLogo(false);
   };
 
   const handleCreateStore = async (e) => {
@@ -165,13 +224,25 @@ export default function Webstores() {
       return;
     }
     try {
-      await createWebstore(formData);
+      const newStore = await createWebstore(formData);
+      
+      // If a logo file was selected, upload it to the new store
+      if (logoFile && newStore?.id) {
+        try {
+          await uploadWebstoreLogo(newStore.id, logoFile);
+        } catch (uploadErr) {
+          console.error('Logo upload failed:', uploadErr);
+          toast.warning('Store created but logo upload failed');
+        }
+      }
+      
       toast.success('Webstore created');
       setIsCreateDialogOpen(false);
       resetForm();
       await loadData();
     } catch (err) {
       toast.error('Failed to create webstore');
+    }
     }
   };
 
