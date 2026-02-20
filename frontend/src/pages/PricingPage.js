@@ -54,10 +54,15 @@ export default function PricingPage() {
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(null);
   const [selectedAddons, setSelectedAddons] = useState({});
+  const [billingInterval, setBillingInterval] = useState('monthly');
+  const [trialCredits, setTrialCredits] = useState(null);
 
   useEffect(() => {
     fetchPricing();
-  }, []);
+    if (isAuthenticated) {
+      fetchTrialCredits();
+    }
+  }, [isAuthenticated]);
 
   const fetchPricing = async () => {
     try {
@@ -68,6 +73,17 @@ export default function PricingPage() {
       toast.error('Failed to load pricing');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTrialCredits = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/billing/trial-credits`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setTrialCredits(response.data);
+    } catch (error) {
+      console.error('Failed to fetch trial credits:', error);
     }
   };
 
@@ -85,6 +101,8 @@ export default function PricingPage() {
         {
           plan: planId,
           include_ai_addon: includeAddon || selectedAddons[planId],
+          billing_interval: billingInterval,
+          apply_trial_credits: true,
           origin_url: window.location.origin
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -96,6 +114,20 @@ export default function PricingPage() {
       toast.error('Failed to start checkout. Please try again.');
       setCheckoutLoading(null);
     }
+  };
+
+  const getDisplayPrice = (plan) => {
+    if (billingInterval === 'annual' && plan.amount_annual) {
+      return (plan.amount_annual / 12).toFixed(0);
+    }
+    return plan.amount;
+  };
+
+  const getAnnualSavings = (plan) => {
+    if (plan.annual_savings) {
+      return plan.annual_savings;
+    }
+    return 0;
   };
 
   if (loading) {
