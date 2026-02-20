@@ -586,7 +586,7 @@ async def send_document_to_portal(
     # Send email notification if requested
     email_sent = False
     if input.notify_customer and customer.get("email"):
-        portal_url = tenant.get("portal_url", "https://signguy.ai/customer-portal")
+        portal_url = tenant.get("portal_url", "https://signguy.ai/customer-portal") if tenant else "https://signguy.ai/customer-portal"
         
         result = await email_service.send_portal_notification(
             customer_email=customer["email"],
