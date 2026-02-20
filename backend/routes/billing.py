@@ -654,6 +654,39 @@ async def get_founder_status(db = Depends(get_db)):
     }
 
 
+@router.get("/trial-credits")
+async def get_trial_credits(
+    db = Depends(get_db),
+    current_user: UserInDB = Depends(get_current_user_billing)
+):
+    """Get available trial credits for the current user"""
+    subscription = await db.subscriptions.find_one(
+        {"tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    
+    if not subscription:
+        return {
+            "has_credits": False,
+            "credits_amount": 0,
+            "credits_used": False,
+            "eligible_for_tier3": False
+        }
+    
+    credits = subscription.get("trial_credits_applied", 0)
+    credits_used = subscription.get("trial_credits_used", False)
+    extended_paid = subscription.get("extended_trial_paid", False)
+    
+    return {
+        "has_credits": credits > 0 and not credits_used,
+        "credits_amount": credits,
+        "credits_used": credits_used,
+        "extended_trial_paid": extended_paid,
+        "eligible_for_tier3": credits > 0 and not credits_used,
+        "message": f"${credits:.2f} credit available towards Tier 3" if credits > 0 and not credits_used else None
+    }
+
+
 @router.get("/payment-history")
 async def get_payment_history(
     db = Depends(get_db),
