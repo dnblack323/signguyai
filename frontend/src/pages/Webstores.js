@@ -1061,8 +1061,78 @@ export default function Webstores() {
                   <div className="space-y-4">
                     <h4 className="font-medium">Store Branding</h4>
                     <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>Company Logo URL</Label>
+                      <div className="space-y-3">
+                        <Label>Company Logo</Label>
+                        
+                        {/* Current Logo Preview */}
+                        {(logoPreview || selectedStore.branding?.logo_url) && (
+                          <div className="flex items-center gap-4 p-3 rounded-lg border border-border bg-muted/30">
+                            <img 
+                              src={logoPreview || selectedStore.branding?.logo_url} 
+                              alt="Logo preview" 
+                              className="h-16 w-auto object-contain rounded"
+                            />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">
+                                {logoFile ? 'New Logo' : 'Current Logo'}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {logoFile ? logoFile.name : 'Uploaded logo'}
+                              </p>
+                            </div>
+                            {logoPreview && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setLogoPreview(null);
+                                  setLogoFile(null);
+                                }}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Upload Button */}
+                        <div className="flex gap-2">
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                            onChange={handleLogoSelect}
+                            className="hidden"
+                            id="edit-logo-file-input"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => document.getElementById('edit-logo-file-input')?.click()}
+                            className="flex-1"
+                            disabled={uploadingLogo}
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            {logoPreview ? 'Change Logo' : 'Upload Logo'}
+                          </Button>
+                          {logoFile && (
+                            <Button
+                              type="button"
+                              onClick={() => handleUploadLogo()}
+                              disabled={uploadingLogo}
+                            >
+                              {uploadingLogo ? 'Uploading...' : 'Save Logo'}
+                            </Button>
+                          )}
+                        </div>
+                        
+                        {/* Or use URL */}
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-px bg-border" />
+                          <span className="text-xs text-muted-foreground">or enter URL</span>
+                          <div className="flex-1 h-px bg-border" />
+                        </div>
+                        
                         <Input
                           value={selectedStore.branding?.logo_url || ''}
                           onChange={(e) => handleUpdateBranding('logo_url', e.target.value)}
@@ -1070,7 +1140,7 @@ export default function Webstores() {
                           data-testid="edit-logo-input"
                         />
                         <p className="text-xs text-muted-foreground">
-                          Enter a URL to the customer&apos;s logo
+                          Upload an image or enter a URL. Max file size: 2MB
                         </p>
                       </div>
                       <div className="space-y-2">
