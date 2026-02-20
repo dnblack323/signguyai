@@ -80,8 +80,10 @@ export default function Products() {
     variants: []
   });
 
-  const [newVariant, setNewVariant] = useState({ name: '', size: '', color: '', tier: '', additional_cost: 0 });
+  const [newVariant, setNewVariant] = useState({ name: '', size: '', color: '', tier: 'none', additional_cost: '' });
   const [newImageUrl, setNewImageUrl] = useState('');
+  const [imageInputMode, setImageInputMode] = useState('upload'); // 'upload' or 'url'
+  const fileInputRef = useRef(null);
 
   // Default apparel options
   const apparelTiers = [
