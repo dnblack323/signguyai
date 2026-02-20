@@ -591,6 +591,7 @@ async def get_subscription(
             plan_name="24-Hour Free Trial",
             status=status,
             tier="business",  # Full access during trial
+            billing_interval="monthly",
             is_founder=await is_founder_pricing_available(db),
             trial_end=trial_end,
             features=TIER_FEATURES["business"]
@@ -605,11 +606,28 @@ async def get_subscription(
     plan_info = pricing.get(sub.plan, {})
     plan_name = plan_info.get("name", sub.plan)
     
+    # Calculate next billing amount
+    next_billing = None
+    if sub.status == SubscriptionStatus.ACTIVE:
+        billing_interval = getattr(sub, 'billing_interval', 'monthly')
+        if billing_interval == "annual":
+            next_billing = plan_info.get("amount_annual", plan_info.get("amount", 0))
+        else:
+            next_billing = plan_info.get("amount", 0)
+    
+    # Check if trial credits are available (paid but not used)
+    trial_credits_available = (
+        sub.extended_trial_paid and 
+        sub.trial_credits_applied > 0 and 
+        not getattr(sub, 'trial_credits_used', False)
+    )
+    
     return SubscriptionResponse(
         plan=sub.plan.value if isinstance(sub.plan, SubscriptionPlan) else sub.plan,
         plan_name=plan_name,
         status=sub.status.value if isinstance(sub.status, SubscriptionStatus) else sub.status,
         tier=sub.tier,
+        billing_interval=getattr(sub, 'billing_interval', 'monthly'),
         is_founder=sub.is_founder,
         founder_number=sub.founder_number,
         has_ai_addon=sub.has_ai_addon,
@@ -617,6 +635,9 @@ async def get_subscription(
         current_period_end=sub.current_period_end,
         cancel_at_period_end=sub.cancel_at_period_end,
         trial_credits=sub.trial_credits_applied,
+        trial_credits_available=trial_credits_available,
+        amount_paid=getattr(sub, 'amount_paid', 0),
+        next_billing_amount=next_billing,
         features=tier_features
     )
 
