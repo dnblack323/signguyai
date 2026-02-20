@@ -6,60 +6,108 @@ import { Progress } from '../components/ui/progress';
 import {
   CheckCircle2, Circle, ChevronRight, X,
   Building2, Users, Calculator, Briefcase, 
-  Clock, UserPlus, Palette, Sparkles
+  Clock, UserPlus, Palette, Sparkles, Mail,
+  Store, FileText, Upload, DollarSign, Settings
 } from 'lucide-react';
 import axios from 'axios';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const checklistItems = [
+  // Essential Setup
   {
     id: 'company_info',
     title: 'Set up your company info',
     description: 'Add your business name, logo, and contact details',
     link: '/settings',
     icon: Building2,
-    checkKey: 'has_company_info'
+    checkKey: 'has_company_info',
+    category: 'essential'
   },
   {
     id: 'pricing',
-    title: 'Configure pricing settings',
+    title: 'Configure pricing calculator',
     description: 'Set your material costs, labor rates, and markups',
     link: '/pricing-calculator/settings',
     icon: Calculator,
-    checkKey: 'has_pricing_config'
+    checkKey: 'has_pricing_config',
+    category: 'essential'
   },
+  {
+    id: 'email_templates',
+    title: 'Customize email templates',
+    description: 'Personalize emails sent to your customers',
+    link: '/settings/email-templates',
+    icon: Mail,
+    checkKey: 'has_email_templates',
+    category: 'essential'
+  },
+  // Customer Setup
   {
     id: 'first_customer',
     title: 'Add your first customer',
     description: 'Start building your customer database',
     link: '/customers',
     icon: Users,
-    checkKey: 'has_customers'
+    checkKey: 'has_customers',
+    category: 'customers'
   },
+  {
+    id: 'import_customers',
+    title: 'Import existing customers',
+    description: 'Upload a CSV to import your customer list',
+    link: '/customers?import=true',
+    icon: Upload,
+    checkKey: 'has_imported_customers',
+    category: 'customers'
+  },
+  // Team Setup
   {
     id: 'first_employee',
     title: 'Add an employee',
-    description: 'Set up team members for time tracking',
+    description: 'Set up team members for time tracking and payroll',
     link: '/employees',
     icon: UserPlus,
-    checkKey: 'has_employees'
+    checkKey: 'has_employees',
+    category: 'team'
   },
+  // Business Operations
   {
     id: 'first_quote',
     title: 'Create your first quote',
     description: 'Use the pricing calculators to build a quote',
     link: '/quotes/new',
     icon: Briefcase,
-    checkKey: 'has_quotes'
+    checkKey: 'has_quotes',
+    category: 'operations'
   },
+  {
+    id: 'setup_webstore',
+    title: 'Create a webstore',
+    description: 'Set up an online store for customers or fundraisers',
+    link: '/webstores',
+    icon: Store,
+    checkKey: 'has_webstores',
+    category: 'operations'
+  },
+  {
+    id: 'upload_documents',
+    title: 'Upload document templates',
+    description: 'Add contracts, forms, and templates to your library',
+    link: '/documents',
+    icon: FileText,
+    checkKey: 'has_documents',
+    category: 'operations'
+  },
+  // Explore Features
   {
     id: 'explore_ai',
     title: 'Try the AI tools',
     description: 'Generate logos, designs, and business content',
     link: '/ai-tools',
     icon: Sparkles,
-    checkKey: 'has_used_ai'
+    checkKey: 'has_used_ai',
+    category: 'explore'
   }
 ];
 
