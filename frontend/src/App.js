@@ -130,6 +130,7 @@ function ProtectedRoutes() {
           <Route path="/users" element={<UserManagement />} />
           <Route path="/settings" element={<CompanySettings />} />
           <Route path="/settings/email-templates" element={<EmailTemplates />} />
+          <Route path="/admin/payments" element={<PaymentSettings />} />
           <Route path="/promo-codes" element={<PromoCodes />} />
           <Route path="/pricing-calculator" element={<Pricing />} />
           <Route path="/pricing-calculator/settings" element={<PricingSettings />} />
