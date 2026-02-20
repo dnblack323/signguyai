@@ -94,17 +94,22 @@ export default function Invoices() {
       toast.error('Please select a customer');
       return;
     }
+    const totalAmount = parseFloat(formData.total) || 0;
+    if (totalAmount <= 0) {
+      toast.error('Total amount must be greater than 0');
+      return;
+    }
     try {
       if (editingInvoice) {
         await updateInvoice(editingInvoice.id, {
-          total: formData.total,
+          total: totalAmount,
           status: formData.status,
           due_date: formData.due_date || null,
           notes: formData.notes
         });
         toast.success('Invoice updated');
       } else {
-        await createInvoice(formData);
+        await createInvoice({ ...formData, total: totalAmount });
         toast.success('Invoice created');
       }
       resetForm();
