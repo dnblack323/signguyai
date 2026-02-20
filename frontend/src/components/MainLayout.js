@@ -649,9 +649,9 @@ export const MainLayout = ({ children }) => {
 
       {/* Main Content */}
       <main className="lg:pl-16 pt-16 lg:pt-0 min-h-screen">
-        <div className="p-6 lg:p-8">
+        <div className="p-3 sm:p-6 lg:p-8">
           {/* Content wrapper with light surface */}
-          <div className="bg-[var(--surface)] rounded-2xl p-6 lg:p-8 min-h-[calc(100vh-4rem)] shadow-sm">
+          <div className="bg-[var(--surface)] rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-4rem)] shadow-sm">
             {children}
           </div>
         </div>
