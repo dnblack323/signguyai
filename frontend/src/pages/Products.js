@@ -206,11 +206,17 @@ export default function Products() {
       toast.error('Variant name is required');
       return;
     }
+    const variantToAdd = {
+      ...newVariant,
+      id: `temp-${Date.now()}`,
+      tier: newVariant.tier === 'none' ? '' : newVariant.tier,
+      additional_cost: parseFloat(newVariant.additional_cost) || 0
+    };
     setFormData({
       ...formData,
-      variants: [...formData.variants, { ...newVariant, id: `temp-${Date.now()}` }]
+      variants: [...formData.variants, variantToAdd]
     });
-    setNewVariant({ name: '', size: '', color: '', tier: '', additional_cost: 0 });
+    setNewVariant({ name: '', size: '', color: '', tier: 'none', additional_cost: '' });
   };
 
   // Quick add variants for apparel with tiers
