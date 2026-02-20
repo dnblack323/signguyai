@@ -805,6 +805,23 @@ async def remove_product_from_webstore(
     return {"message": "Product removed from webstore"}
 
 
+@webstores_router.put("/{webstore_id}/products/{product_id}")
+async def update_webstore_product_status(
+    webstore_id: str,
+    product_id: str,
+    is_enabled: bool = True,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Update a product's enabled status in a webstore"""
+    result = await db.webstore_products.update_one(
+        {"webstore_id": webstore_id, "product_id": product_id},
+        {"$set": {"is_enabled": is_enabled, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Product assignment not found")
+    return {"message": "Product status updated", "is_enabled": is_enabled}
+
+
 # ============== WEBSTORE ORDERS ==============
 
 @webstores_router.post("/orders", response_model=WebstoreOrder)
