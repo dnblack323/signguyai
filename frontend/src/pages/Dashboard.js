@@ -472,16 +472,16 @@ export default function Dashboard() {
       {/* Overdue Alert */}
       {dashboardStats?.overdue_count > 0 && (
         <div 
-          className="rounded-xl p-4 flex items-center justify-between"
+          className="rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
           style={{ backgroundColor: 'var(--danger-soft)', border: '1px solid var(--danger)' }}
         >
           <div className="flex items-center gap-3">
-            <AlertTriangle className="h-5 w-5" style={{ color: 'var(--danger)' }} />
+            <AlertTriangle className="h-5 w-5 flex-shrink-0" style={{ color: 'var(--danger)' }} />
             <div>
-              <p className="font-medium" style={{ color: 'var(--text)' }}>
+              <p className="font-medium text-sm sm:text-base" style={{ color: 'var(--text)' }}>
                 {dashboardStats.overdue_count} Overdue Invoice{dashboardStats.overdue_count > 1 ? 's' : ''}
               </p>
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-xs sm:text-sm" style={{ color: 'var(--text-muted)' }}>
                 Total: {formatCurrency(dashboardStats.overdue_total)}
               </p>
             </div>
@@ -490,7 +490,7 @@ export default function Dashboard() {
             <Button 
               size="sm" 
               data-testid="view-overdue"
-              className="text-white"
+              className="text-white w-full sm:w-auto"
               style={{ backgroundColor: 'var(--danger)' }}
             >
               View Overdue
@@ -499,8 +499,8 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Main Content Grid - 3 columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Main Content Grid - responsive */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Left Column - Schedule & Approvals */}
         <div className="space-y-6">
           <ScheduleWidget schedule={todaysSchedule} />
