@@ -131,23 +131,15 @@ export default function OnboardingChecklist({ onDismiss }) {
   const fetchChecklistStatus = async () => {
     try {
       const token = localStorage.getItem('auth_token');
-      const [customers, employees, quotes, settings] = await Promise.all([
-        axios.get(`${API}/api/customers`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${API}/api/employees`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${API}/api/quotes`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${API}/api/settings/company`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: null }))
-      ]);
-
-      setChecklist({
-        has_customers: customers.data?.length > 0,
-        has_employees: employees.data?.length > 0,
-        has_quotes: quotes.data?.length > 0,
-        has_company_info: settings.data?.name && settings.data?.name !== 'My Sign Shop',
-        has_pricing_config: true, // Default pricing exists
-        has_used_ai: localStorage.getItem('has_used_ai') === 'true'
+      const response = await axios.get(`${API}/api/dashboard/onboarding-status`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
+      
+      setChecklist(response.data);
     } catch (err) {
       console.error('Error fetching checklist status:', err);
+      // Fallback to empty state
+      setChecklist({});
     } finally {
       setLoading(false);
     }
