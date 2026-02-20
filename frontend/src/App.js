@@ -113,6 +113,7 @@ function ProtectedRoutes() {
           <Route path="/jobs" element={<Jobs />} />
           <Route path="/jobs/:id" element={<JobDetails />} />
           <Route path="/invoices" element={<Invoices />} />
+          <Route path="/approvals" element={<Approvals />} />
           <Route path="/timeclock" element={<TimeClock />} />
           <Route path="/payroll" element={<Payroll />} />
           <Route path="/productivity" element={<Productivity />} />
