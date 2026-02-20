@@ -64,6 +64,20 @@ class ScheduleItem(BaseModel):
     priority: str = "normal"
 
 
+class OnboardingStatus(BaseModel):
+    """Status of onboarding checklist items"""
+    has_company_info: bool = False
+    has_pricing_config: bool = False
+    has_email_templates: bool = False
+    has_customers: bool = False
+    has_imported_customers: bool = False
+    has_employees: bool = False
+    has_quotes: bool = False
+    has_webstores: bool = False
+    has_documents: bool = False
+    has_used_ai: bool = False
+
+
 @router.get("/stats", response_model=DashboardStats)
 async def get_dashboard_stats(current_user: UserInDB = Depends(get_current_active_user)):
     """Get main dashboard statistics"""
