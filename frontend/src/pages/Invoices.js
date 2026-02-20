@@ -30,10 +30,12 @@ import {
   TableRow,
 } from '../components/ui/table';
 import { formatCurrency, formatDate, getStatusColor } from '../lib/utils';
-import { Plus, Edit2, CheckCircle, AlertTriangle, Eye } from 'lucide-react';
+import { Plus, Edit2, CheckCircle, AlertTriangle, Eye, CreditCard, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
+import axios from 'axios';
 
+const API_URL = process.env.REACT_APP_BACKEND_URL;
 const statusOptions = ['draft', 'sent', 'paid', 'overdue'];
 
 export default function Invoices() {
