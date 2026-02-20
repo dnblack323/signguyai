@@ -593,6 +593,8 @@ export const AppProvider = ({ children }) => {
   };
 
   const value = {
+    // Raw API instance for custom calls
+    api,
     // State
     customers, quotes, jobs, invoices, employees, tasks, dashboardStats, loading,
     setLoading,
