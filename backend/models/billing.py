@@ -134,6 +134,7 @@ STANDARD_PRICING = {
     SubscriptionPlan.EXTENDED_TRIAL: {
         "name": "14-Day Extended Trial",
         "amount": 19.99,
+        "amount_annual": 19.99,
         "description": "Full platform access for 14 days",
         "trial_days": 14,
         "tier": "tier_3",
@@ -142,6 +143,8 @@ STANDARD_PRICING = {
         "name": "Shop Core",
         "display_name": "Shop Core",
         "amount": 129.00,
+        "amount_annual": 1290.00,  # 10 months
+        "annual_savings": 258.00,
         "description": "Essential tools for small sign shops",
         "interval": "month",
         "tier": "starter",
@@ -151,6 +154,8 @@ STANDARD_PRICING = {
         "name": "Growth Shop",
         "display_name": "Growth Shop",
         "amount": 229.00,
+        "amount_annual": 2290.00,  # 10 months
+        "annual_savings": 458.00,
         "description": "Advanced features for growing businesses",
         "interval": "month",
         "tier": "pro",
@@ -160,6 +165,8 @@ STANDARD_PRICING = {
         "name": "Pro Shop",
         "display_name": "Pro Shop",
         "amount": 379.00,
+        "amount_annual": 3790.00,  # 10 months
+        "annual_savings": 758.00,
         "description": "Everything unlimited. Full power.",
         "interval": "month",
         "tier": "business",
@@ -169,6 +176,8 @@ STANDARD_PRICING = {
         "name": "AI Tools Add-On",
         "display_name": "AI Tools Pack",
         "amount": 89.00,
+        "amount_annual": 890.00,  # 10 months
+        "annual_savings": 178.00,
         "description": "All AI tools for shops using other systems",
         "interval": "month",
         "tier": "ai_addon",
