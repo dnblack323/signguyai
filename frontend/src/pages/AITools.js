@@ -1169,6 +1169,96 @@ export default function AITools() {
           )}
         </div>
       </div>
+
+      {/* Send to Customer Portal Dialog */}
+      <Dialog open={showSendDialog} onOpenChange={setShowSendDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5 text-primary" />
+              Send to Customer Portal
+            </DialogTitle>
+            <DialogDescription>
+              Save this document and send it directly to a customer's portal.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Select Customer</Label>
+              <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a customer..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {customers?.filter(c => c.portal_enabled).map((customer) => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        {customer.name}
+                        {customer.company && <span className="text-muted-foreground">({customer.company})</span>}
+                      </div>
+                    </SelectItem>
+                  ))}
+                  {customers?.filter(c => c.portal_enabled).length === 0 && (
+                    <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                      No customers with portal access enabled.
+                      <br />
+                      <span className="text-xs">Enable portal access in customer settings.</span>
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Message (optional)</Label>
+              <Textarea
+                value={sendMessage}
+                onChange={(e) => setSendMessage(e.target.value)}
+                placeholder="Add a message for your customer..."
+                rows={3}
+              />
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="notify-customer"
+                checked={notifyCustomer}
+                onChange={(e) => setNotifyCustomer(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              <Label htmlFor="notify-customer" className="text-sm font-normal cursor-pointer">
+                Send email notification to customer
+              </Label>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSendDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSendToPortal}
+              disabled={sendingToPortal || !selectedCustomerId}
+              className="bg-primary"
+            >
+              {sendingToPortal ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Send to Portal
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
