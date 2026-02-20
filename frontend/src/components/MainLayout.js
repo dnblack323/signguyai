@@ -4,7 +4,7 @@ import { cn } from '../lib/utils';
 import {
   LayoutDashboard, Users, FileText, Briefcase, Receipt, 
   Clock, DollarSign, CalendarDays, Sparkles, Store,
-  Package, LogOut, User, Shield, ChevronRight, Menu, X, Crown, Building2, Settings,
+  Package, LogOut, User, Shield, ChevronRight, Menu, X, Crown, Building2, Settings, CreditCard,
   Eye, ExternalLink, ChevronDown, Lock, Zap, Globe, Ticket, Image as ImageIcon, Mail
 } from 'lucide-react';
 import { Button } from './ui/button';
