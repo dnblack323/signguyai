@@ -756,6 +756,28 @@ export default function Documents() {
               <Separator />
               
               <div className="flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={async () => {
+                    try {
+                      const res = await api.get(`/documents/${selectedDoc.id}/download`);
+                      const { file_data, file_type } = res.data;
+                      const byteCharacters = atob(file_data);
+                      const byteNumbers = new Array(byteCharacters.length);
+                      for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                      }
+                      const byteArray = new Uint8Array(byteNumbers);
+                      const blob = new Blob([byteArray], { type: file_type });
+                      const url = window.URL.createObjectURL(blob);
+                      window.open(url, '_blank');
+                    } catch (err) {
+                      toast.error('Failed to open document');
+                    }
+                  }}
+                >
+                  <Eye className="h-4 w-4 mr-2" /> Open in New Tab
+                </Button>
                 <Button variant="outline" onClick={() => handleDownload(selectedDoc)}>
                   <Download className="h-4 w-4 mr-2" /> Download
                 </Button>
