@@ -301,6 +301,13 @@ Comprehensive document management system for customer communication.
 
 ## Recent Updates (Feb 20, 2026)
 
+### Webstore Fixes
+- **Product toggle persistence:** Fixed issue where enabling products in Products tab wouldn't persist. Now uses `is_enabled` flag update instead of removing/re-adding products
+- **Added PUT endpoint:** `PUT /api/webstores/v2/{webstore_id}/products/{product_id}` to update product enabled status
+- **Fixed product status tracking:** Backend now returns `is_enabled` field for each product, frontend properly tracks state
+- **Logo display on storefront:** Now correctly shows uploaded logo from `branding.logo_url` or `logo_image_data`
+- **Banner display on storefront:** Added banner image section at top of storefront when banner_url is set
+
 ### Product/Webstore Bug Fixes & Improvements
 - **Fixed variant tier select error:** Changed empty string "" to "none" as default value to prevent React Select error
 - **Added product image file upload:** New Upload/URL toggle with drag-and-drop image upload area (base64 encoding)
