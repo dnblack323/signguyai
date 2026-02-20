@@ -342,6 +342,52 @@ Comprehensive security audit completed to ensure complete data isolation between
 - No data leaks possible between tenants
 - Test file: `/app/backend/tests/test_tenant_isolation_security.py`
 
+## Artwork Approvals Module (Feb 20, 2026) - COMPLETE ✅
+Full artwork proof approval system for managing customer artwork reviews.
+
+### Features:
+1. **Dashboard with Stats Cards:**
+   - Total Proofs count
+   - Awaiting Approval count (yellow)
+   - Approved count (green)
+   - Needs Revisions count (orange)
+   - Clickable cards filter the main list
+
+2. **Approval Request Creation:**
+   - Select customer from dropdown
+   - Select job (filtered by customer)
+   - Upload artwork file (PNG, JPG)
+   - Add notes for customer
+   - Client-side watermarking with:
+     - Diagonal company name pattern
+     - Bottom disclaimer: "PROOF ONLY - Artwork remains property of [Company] until final payment is received"
+
+3. **Approval Management:**
+   - View proof preview
+   - Track version numbers
+   - See customer feedback
+   - Resend notifications
+   - Delete proofs
+
+4. **Customer Portal Integration:**
+   - Proofs sent to customer portal
+   - Notifications created automatically
+   - Customer can approve/request revisions
+
+### API Endpoints:
+- `GET /api/approvals/stats` - Dashboard statistics
+- `GET /api/approvals` - List proofs (filterable by status)
+- `POST /api/approvals` - Create new proof
+- `GET /api/approvals/{id}` - Get single proof
+- `DELETE /api/approvals/{id}` - Delete proof
+- `POST /api/approvals/{id}/resend` - Resend notification
+- `GET /api/approvals/customers/list` - Customers for dropdown
+- `GET /api/approvals/jobs/list` - Jobs for dropdown
+
+### Test Results:
+- Backend: 27/27 tests passed
+- Frontend: 14/14 tests passed
+
 ## Webstores Module (Feb 19, 2026) - FULLY TESTED
 Complete webstore system for B2B, Fundraiser, and Creator stores.
 
