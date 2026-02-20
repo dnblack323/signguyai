@@ -122,7 +122,8 @@ export default function Documents() {
       
       const [docsRes, statsRes] = await Promise.all([
         api.get(`/documents?${params.toString()}`),
-        api.get('/documents/stats')
+        api.get('/documents/stats'),
+        fetchCustomers()
       ]);
       
       setDocuments(docsRes.data);
@@ -137,6 +138,48 @@ export default function Documents() {
   useEffect(() => {
     loadData();
   }, [selectedCategory, showTemplatesOnly, searchQuery]);
+
+  // Handle opening send dialog
+  const handleSendDocument = (doc) => {
+    setSendDoc(doc);
+    setSendMethod('email');
+    setSendCustomerId('');
+    setSendMessage('');
+    setSendIncludeAttachment(true);
+    setSendNotifyCustomer(true);
+    setIsSendOpen(true);
+  };
+
+  // Handle sending document
+  const handleSend = async () => {
+    if (!sendCustomerId) {
+      toast.error('Please select a customer');
+      return;
+    }
+    
+    setSending(true);
+    try {
+      if (sendMethod === 'email') {
+        await api.post(`/documents/${sendDoc.id}/send-email`, {
+          customer_id: sendCustomerId,
+          message: sendMessage,
+          include_attachment: sendIncludeAttachment
+        });
+        toast.success('Document sent via email');
+      } else {
+        await api.post(`/documents/${sendDoc.id}/send-to-portal`, {
+          customer_id: sendCustomerId,
+          message: sendMessage,
+          notify_customer: sendNotifyCustomer
+        });
+        toast.success('Document sent to customer portal');
+      }
+      setIsSendOpen(false);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to send document');
+    }
+    setSending(false);
+  };
 
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
