@@ -8,11 +8,12 @@ This module contains all routes related to:
 - Webstore orders (public ordering)
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field, ConfigDict
 import uuid
+import base64
 from enum import Enum
 
 # Import from server module
