@@ -76,7 +76,7 @@ export default function Webstores() {
     getWebstoreOrdersV2, getProducts, getWebstoreProducts,
     assignProductToWebstore, removeProductFromWebstore,
     createJobFromOrder, recordPayout, getWebstorePayouts,
-    uploadWebstoreLogo
+    uploadWebstoreLogo, uploadWebstoreBanner
   } = useApp();
   
   const [loading, setLoading] = useState(true);
@@ -99,6 +99,12 @@ export default function Webstores() {
   const [logoFile, setLogoFile] = useState(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef(null);
+  
+  // Banner upload states
+  const [bannerPreview, setBannerPreview] = useState(null);
+  const [bannerFile, setBannerFile] = useState(null);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const bannerInputRef = useRef(null);
   
   // Form state
   const [formData, setFormData] = useState({
