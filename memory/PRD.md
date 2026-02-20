@@ -298,6 +298,15 @@ Comprehensive document management system for customer communication.
 
 ## Recent Updates (Feb 20, 2026)
 
+### Annual Billing & Trial Credits
+- Added annual billing option (save 2 months - pay for 10 months, get 12)
+- Billing interval toggle (Monthly/Annual) on pricing page
+- Extended trial $19.99 now creates credit that auto-applies to Tier 3 subscription
+- Trial credits tracked in subscription record (`trial_credits_applied`, `trial_credits_used`)
+- New endpoint: `GET /api/billing/trial-credits` to check available credits
+- Pricing card dynamically shows monthly equivalent when annual is selected
+- Added `amount_annual`, `annual_savings` to all pricing plans
+
 ### Dynamic Onboarding Checklist
 - Added `GET /api/dashboard/onboarding-status` endpoint to dynamically track user setup progress
 - Tracks: company info, pricing config, email templates, customers, imported customers, employees, quotes, webstores, documents, AI usage
