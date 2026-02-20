@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -34,7 +35,8 @@ import {
   FileText, Upload, Search, Filter, FolderOpen, 
   Download, Trash2, Eye, Link2, Tag, Clock,
   FileImage, FileSpreadsheet, File, Plus, X,
-  Archive, MoreVertical, CheckCircle2, HardDrive
+  Archive, MoreVertical, CheckCircle2, HardDrive,
+  Sparkles, Wand2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDate } from '../../lib/utils';
