@@ -255,64 +255,82 @@ class EmailService:
         tenant_id: Optional[str] = None,
         company_name: str = "SignGuy AI"
     ) -> dict:
-        """Send notification email about something in the portal"""
+        """Send notification email about something in the portal using template"""
         
-        subject_map = {
-            "document_ready": f"New Document Available - {company_name}",
-            "proof_ready": f"Artwork Proof Ready for Review - {company_name}",
-            "invoice_ready": f"New Invoice Available - {company_name}",
-            "quote_ready": f"New Quote Available - {company_name}",
-            "message": f"New Message - {company_name}",
-            "job_update": f"Job Update - {company_name}",
+        # Get template
+        template = await self.get_template("portal_notification", tenant_id) if tenant_id else None
+        branding = await self.get_tenant_branding(tenant_id) if tenant_id else {}
+        
+        # Prepare template data
+        data = {
+            "customer_name": customer_name,
+            "customer_email": customer_email,
+            "company_name": branding.get("company_name", company_name),
+            "logo_url": branding.get("logo_url", ""),
+            "primary_color": branding.get("primary_color", "#0D9488"),
+            "secondary_color": branding.get("secondary_color", "#14B8A6"),
+            "portal_link": portal_link or branding.get("portal_url", ""),
+            "notification_title": notification_title,
+            "notification_message": notification_message,
+            "item_type": notification_type.replace("_", " ").title(),
+            "current_year": str(datetime.now().year)
         }
         
-        subject = subject_map.get(notification_type, f"Notification from {company_name}")
+        if template:
+            subject = render_template(template["subject"], data)
+            html_content = render_template(template["html_content"], data)
+        else:
+            # Fallback to simple email
+            subject = f"{notification_title} - {data['company_name']}"
+            html_content = f"""
+            <h2>{notification_title}</h2>
+            <p>Hi {customer_name},</p>
+            <p>{notification_message}</p>
+            <p><a href="{portal_link}">View in Portal</a></p>
+            """
         
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-                .header {{ background: linear-gradient(135deg, #0D9488 0%, #14B8A6 100%); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }}
-                .content {{ background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; }}
-                .notification-box {{ background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #0D9488; }}
-                .footer {{ text-align: center; padding: 20px; color: #6b7280; font-size: 12px; }}
-                .btn {{ display: inline-block; background: #0D9488; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 15px; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <h1>{company_name}</h1>
-                </div>
-                <div class="content">
-                    <p>Hi {customer_name},</p>
-                    
-                    <div class="notification-box">
-                        <h3>{notification_title}</h3>
-                        <p>{notification_message}</p>
-                    </div>
-                    
-                    <p>Please log in to your customer portal to view and take action:</p>
-                    
-                    <p style="text-align: center;">
-                        <a href="{portal_link}" class="btn">View in Portal</a>
-                    </p>
-                    
-                    <p>If you have any questions, please don't hesitate to reach out.</p>
-                    
-                    <p>Best regards,<br>{company_name} Team</p>
-                </div>
-                <div class="footer">
-                    <p>This email was sent by {company_name}</p>
-                    <p>If you did not expect this email, please contact us.</p>
-                </div>
-            </div>
-        </body>
-        </html>
-        """
+        return await self.send_email(
+            to_email=customer_email,
+            subject=subject,
+            html_content=html_content,
+            tenant_id=tenant_id
+        )
+    
+    async def send_welcome_email(
+        self,
+        customer_email: str,
+        customer_name: str,
+        tenant_id: str
+    ) -> dict:
+        """Send welcome/invitation email to new customer"""
+        
+        # Get template
+        template = await self.get_template("portal_welcome", tenant_id)
+        branding = await self.get_tenant_branding(tenant_id)
+        
+        # Prepare template data
+        data = {
+            "customer_name": customer_name,
+            "customer_email": customer_email,
+            "company_name": branding.get("company_name", "SignGuy AI"),
+            "logo_url": branding.get("logo_url", ""),
+            "primary_color": branding.get("primary_color", "#0D9488"),
+            "secondary_color": branding.get("secondary_color", "#14B8A6"),
+            "portal_link": branding.get("portal_url", ""),
+            "current_year": str(datetime.now().year)
+        }
+        
+        if template:
+            subject = render_template(template["subject"], data)
+            html_content = render_template(template["html_content"], data)
+        else:
+            # Fallback
+            subject = f"Welcome to {data['company_name']}!"
+            html_content = f"""
+            <h2>Welcome!</h2>
+            <p>Hi {customer_name},</p>
+            <p>Welcome to {data['company_name']}. Your customer portal is ready.</p>
+            """
         
         return await self.send_email(
             to_email=customer_email,
