@@ -514,6 +514,13 @@ export const AppProvider = ({ children }) => {
     return res.data;
   };
 
+  const updateWebstoreProductStatus = async (webstoreId, productId, isEnabled) => {
+    const res = await api.put(`/webstores/v2/${webstoreId}/products/${productId}`, null, {
+      params: { is_enabled: isEnabled }
+    });
+    return res.data;
+  };
+
   // Webstore Orders V2
   const createWebstoreOrderV2 = async (data) => {
     const res = await api.post(`/webstores/v2/orders`, data);
