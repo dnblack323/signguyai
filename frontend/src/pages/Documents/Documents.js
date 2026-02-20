@@ -513,6 +513,14 @@ export default function Documents() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            onClick={() => handleView(doc)}
+                            title="View document"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => handleDownload(doc)}
                             title="Download"
                           >
