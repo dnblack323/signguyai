@@ -641,7 +641,7 @@ export const AppProvider = ({ children }) => {
     // Webstores V2
     createWebstore, getWebstores, getWebstore, updateWebstore, deleteWebstore,
     // Webstore Products
-    assignProductToWebstore, getWebstoreProducts, removeProductFromWebstore,
+    assignProductToWebstore, getWebstoreProducts, removeProductFromWebstore, updateWebstoreProductStatus,
     // Webstore Orders V2
     createWebstoreOrderV2, getWebstoreOrdersV2, getWebstoreOrderV2, updateOrderStatus, createJobFromOrder,
     // Payouts
