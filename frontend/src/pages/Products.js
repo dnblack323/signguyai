@@ -493,11 +493,11 @@ export default function Products() {
               </div>
 
               {/* Profit Preview */}
-              {formData.base_cost > 0 && formData.retail_price > 0 && (
+              {parseFloat(formData.base_cost) > 0 && parseFloat(formData.retail_price) > 0 && (
                 <div className="p-3 bg-muted/30 rounded-lg flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Profit per unit:</span>
                   <span className="font-bold text-green-400">
-                    {formatCurrency(formData.retail_price - formData.base_cost)} ({profitMargin(formData.retail_price, formData.base_cost)}%)
+                    {formatCurrency(parseFloat(formData.retail_price) - parseFloat(formData.base_cost))} ({profitMargin(parseFloat(formData.retail_price), parseFloat(formData.base_cost))}%)
                   </span>
                 </div>
               )}
