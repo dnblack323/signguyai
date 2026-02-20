@@ -350,6 +350,7 @@ class SubscriptionResponse(BaseModel):
     plan_name: str
     status: str
     tier: str
+    billing_interval: str = "monthly"
     is_founder: bool
     founder_number: Optional[int] = None
     has_ai_addon: bool = False
@@ -357,6 +358,9 @@ class SubscriptionResponse(BaseModel):
     current_period_end: Optional[str] = None
     cancel_at_period_end: bool = False
     trial_credits: float = 0
+    trial_credits_available: bool = False  # Credits not yet used
+    amount_paid: float = 0
+    next_billing_amount: Optional[float] = None
     features: List[str] = []
 
 
