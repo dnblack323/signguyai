@@ -101,6 +101,14 @@ export default function Customers() {
     fetchJobs();
     fetchInvoices();
     fetchQuotes();
+    
+    // Check URL params for auto-open import dialog
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('import') === 'true') {
+      setIsImportOpen(true);
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }, []);
 
   const loadCustomers = async () => {
