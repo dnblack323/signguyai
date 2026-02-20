@@ -294,3 +294,76 @@ async def get_todays_schedule(current_user: UserInDB = Depends(get_current_activ
         ))
     
     return schedule
+
+
+@router.get("/onboarding-status", response_model=OnboardingStatus)
+async def get_onboarding_status(current_user: UserInDB = Depends(get_current_active_user)):
+    """Get the status of onboarding checklist items for the current tenant"""
+    tenant_id = current_user.tenant_id
+    
+    # Check for customers
+    customer_count = await db.customers.count_documents({"tenant_id": tenant_id})
+    has_customers = customer_count > 0
+    
+    # Check if any customers were imported (look for imported_at field or bulk creation)
+    imported_count = await db.customers.count_documents({
+        "tenant_id": tenant_id,
+        "$or": [
+            {"imported_at": {"$exists": True}},
+            {"source": "import"}
+        ]
+    })
+    has_imported_customers = imported_count > 0
+    
+    # Check for employees
+    employee_count = await db.employees.count_documents({"tenant_id": tenant_id})
+    has_employees = employee_count > 0
+    
+    # Check for quotes
+    quote_count = await db.quotes.count_documents({"tenant_id": tenant_id})
+    has_quotes = quote_count > 0
+    
+    # Check company info - look for customized settings
+    tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    has_company_info = False
+    if tenant:
+        # Check if company name has been customized (not default)
+        company_name = tenant.get("company_name", "")
+        default_names = ["My Sign Shop", "New Sign Shop", "", None]
+        has_company_info = company_name not in default_names
+    
+    # Check pricing configuration
+    pricing_config = await db.pricing_configuration.find_one({"tenant_id": tenant_id})
+    has_pricing_config = pricing_config is not None
+    
+    # Check email templates - see if any have been customized
+    custom_templates = await db.email_templates.count_documents({
+        "tenant_id": tenant_id,
+        "is_default": False
+    })
+    has_email_templates = custom_templates > 0
+    
+    # Check for webstores
+    webstore_count = await db.webstores.count_documents({"tenant_id": tenant_id})
+    has_webstores = webstore_count > 0
+    
+    # Check for documents
+    document_count = await db.documents.count_documents({"tenant_id": tenant_id})
+    has_documents = document_count > 0
+    
+    # Check AI usage - look for AI-generated content or logs
+    ai_usage = await db.ai_usage_logs.count_documents({"tenant_id": tenant_id})
+    has_used_ai = ai_usage > 0
+    
+    return OnboardingStatus(
+        has_company_info=has_company_info,
+        has_pricing_config=has_pricing_config,
+        has_email_templates=has_email_templates,
+        has_customers=has_customers,
+        has_imported_customers=has_imported_customers,
+        has_employees=has_employees,
+        has_quotes=has_quotes,
+        has_webstores=has_webstores,
+        has_documents=has_documents,
+        has_used_ai=has_used_ai
+    )
