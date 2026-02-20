@@ -323,12 +323,34 @@ async def create_checkout_session(
         raise HTTPException(status_code=400, detail="Invalid plan")
     
     plan_info = pricing[request.plan]
-    amount = float(plan_info["amount"])
+    is_annual = request.billing_interval == "annual"
+    
+    # Get the correct amount based on billing interval
+    if is_annual and plan_info.get("amount_annual"):
+        amount = float(plan_info["amount_annual"])
+    else:
+        amount = float(plan_info["amount"])
     
     # Add AI addon if requested
     if request.include_ai_addon and request.plan != SubscriptionPlan.AI_ADDON:
         ai_info = pricing[SubscriptionPlan.AI_ADDON]
-        amount += float(ai_info["amount"])
+        if is_annual and ai_info.get("amount_annual"):
+            amount += float(ai_info["amount_annual"])
+        else:
+            amount += float(ai_info["amount"])
+    
+    # Check for trial credits to apply (only for Tier 3)
+    trial_credits = 0
+    if request.apply_trial_credits and request.plan == SubscriptionPlan.TIER_3:
+        existing_sub = await db.subscriptions.find_one({
+            "tenant_id": current_user.tenant_id,
+            "extended_trial_paid": True,
+            "trial_credits_used": {"$ne": True}
+        })
+        if existing_sub:
+            trial_credits = existing_sub.get("trial_credits_applied", 0)
+            if trial_credits > 0:
+                amount = max(0, amount - trial_credits)
     
     # Build URLs
     origin = request.origin_url.rstrip('/')
@@ -351,7 +373,9 @@ async def create_checkout_session(
             "plan": request.plan.value,
             "tier": plan_info["tier"],
             "is_founder": str(is_founder).lower(),
-            "include_ai_addon": str(request.include_ai_addon).lower()
+            "include_ai_addon": str(request.include_ai_addon).lower(),
+            "billing_interval": request.billing_interval,
+            "trial_credits_applied": str(trial_credits)
         }
     )
     
@@ -371,7 +395,9 @@ async def create_checkout_session(
         metadata={
             "plan_name": plan_info["name"],
             "tier": plan_info["tier"],
-            "include_ai_addon": request.include_ai_addon
+            "include_ai_addon": request.include_ai_addon,
+            "billing_interval": request.billing_interval,
+            "trial_credits_applied": trial_credits
         }
     )
     
