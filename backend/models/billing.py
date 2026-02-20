@@ -370,7 +370,10 @@ class PricingPlan(BaseModel):
     name: str
     display_name: str
     amount: float
+    amount_annual: Optional[float] = None
+    annual_savings: Optional[float] = None
     standard_price: Optional[float] = None
+    standard_price_annual: Optional[float] = None
     savings: Optional[float] = None
     description: str
     interval: Optional[str] = None
