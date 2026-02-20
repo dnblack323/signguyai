@@ -725,8 +725,7 @@ async def upload_webstore_banner(
 @webstores_router.post("/{webstore_id}/products")
 async def add_product_to_webstore(
     webstore_id: str,
-    product_id: str,
-    price_override: Optional[float] = None,
+    request: AddProductToWebstoreRequest,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Assign a product to a webstore"""
@@ -739,28 +738,29 @@ async def add_product_to_webstore(
         raise HTTPException(status_code=404, detail="Webstore not found")
     
     # Verify product exists
-    product = await db.products.find_one({"id": product_id}, {"_id": 0})
+    product = await db.products.find_one({"id": request.product_id}, {"_id": 0})
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     
     # Check if already assigned
     existing = await db.webstore_products.find_one({
         "webstore_id": webstore_id, 
-        "product_id": product_id
+        "product_id": request.product_id
     })
     if existing:
-        # Update price override
+        # Update price override and enabled status
         await db.webstore_products.update_one(
             {"id": existing["id"]},
-            {"$set": {"price_override": price_override, "is_enabled": True}}
+            {"$set": {"price_override": request.price_override, "is_enabled": request.is_enabled}}
         )
         return {"message": "Product assignment updated"}
     
     # Create assignment
     assignment = WebstoreProduct(
         webstore_id=webstore_id,
-        product_id=product_id,
-        price_override=price_override
+        product_id=request.product_id,
+        is_enabled=request.is_enabled,
+        price_override=request.price_override
     )
     await db.webstore_products.insert_one(assignment.model_dump())
     return {"message": "Product added to webstore"}
