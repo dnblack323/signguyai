@@ -16,8 +16,11 @@ from datetime import datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel, Field
-from auth import get_current_active_user, UserInDB
-from database import db
+
+# Get auth and database from server (same as other routes)
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from server import get_current_active_user, UserInDB, db
 
 router = APIRouter(prefix="/stripe-connect", tags=["Stripe Connect"])
 
