@@ -74,7 +74,7 @@ export default function Webstores() {
   const { 
     getWebstores, createWebstore, updateWebstore, deleteWebstore,
     getWebstoreOrdersV2, getProducts, getWebstoreProducts,
-    assignProductToWebstore, removeProductFromWebstore,
+    assignProductToWebstore, removeProductFromWebstore, updateWebstoreProductStatus,
     createJobFromOrder, recordPayout, getWebstorePayouts,
     uploadWebstoreLogo, uploadWebstoreBanner
   } = useApp();
