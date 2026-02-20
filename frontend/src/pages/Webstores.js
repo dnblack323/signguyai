@@ -164,6 +164,8 @@ export default function Webstores() {
     });
     setLogoPreview(null);
     setLogoFile(null);
+    setBannerPreview(null);
+    setBannerFile(null);
   };
 
   // Handle logo file selection
@@ -190,6 +192,34 @@ export default function Webstores() {
     const reader = new FileReader();
     reader.onloadend = () => {
       setLogoPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Handle banner file selection
+  const handleBannerSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Please select a valid image file (PNG, JPEG, WebP, or GIF)');
+      return;
+    }
+    
+    // Validate file size (5MB max for banners)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Banner image must be less than 5MB');
+      return;
+    }
+    
+    setBannerFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setBannerPreview(reader.result);
     };
     reader.readAsDataURL(file);
   };
