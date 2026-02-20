@@ -26,25 +26,25 @@ const getGreeting = () => {
 
 const StatCard = ({ title, value, icon: Icon, subtitle, href, accentColor = 'var(--accent)' }) => (
   <div 
-    className="rounded-xl p-6 transition-all duration-200 hover:shadow-md group"
+    className="rounded-xl p-4 sm:p-6 transition-all duration-200 hover:shadow-md group"
     style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}
   >
     <div className="flex items-start justify-between">
-      <div className="space-y-2">
-        <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>{title}</p>
-        <p className="text-3xl font-bold font-heading tracking-tight" style={{ color: 'var(--text)' }}>{value}</p>
+      <div className="space-y-1 sm:space-y-2 flex-1 min-w-0">
+        <p className="text-xs sm:text-sm font-medium truncate" style={{ color: 'var(--text-muted)' }}>{title}</p>
+        <p className="text-2xl sm:text-3xl font-bold font-heading tracking-tight" style={{ color: 'var(--text)' }}>{value}</p>
         {subtitle && (
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>
+          <p className="text-xs hidden sm:block" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>
         )}
       </div>
-      <div className="p-3 rounded-lg transition-transform group-hover:scale-110" style={{ backgroundColor: `${accentColor}15` }}>
-        <Icon className="h-6 w-6" style={{ color: accentColor }} />
+      <div className="p-2 sm:p-3 rounded-lg transition-transform group-hover:scale-110 flex-shrink-0 ml-2" style={{ backgroundColor: `${accentColor}15` }}>
+        <Icon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: accentColor }} />
       </div>
     </div>
     {href && (
       <Link to={href}>
-        <button className="mt-4 flex items-center text-sm font-medium hover:opacity-80 transition-opacity" style={{ color: accentColor }}>
-          View all <ArrowRight className="ml-1 h-4 w-4" />
+        <button className="mt-3 sm:mt-4 flex items-center text-xs sm:text-sm font-medium hover:opacity-80 transition-opacity" style={{ color: accentColor }}>
+          View all <ArrowRight className="ml-1 h-3 w-3 sm:h-4 sm:w-4" />
         </button>
       </Link>
     )}
