@@ -259,13 +259,22 @@ export default function Documents() {
             Manage contracts, templates, and files
           </p>
         </div>
-        <Button 
-          className="neon-glow" 
-          onClick={() => { resetUploadForm(); setIsUploadOpen(true); }}
-          data-testid="upload-document-btn"
-        >
-          <Upload className="h-4 w-4 mr-2" /> Upload Document
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => navigate('/ai-tools?tool=document_composer')}
+            data-testid="ai-create-document-btn"
+          >
+            <Wand2 className="h-4 w-4 mr-2" /> AI Document Creator
+          </Button>
+          <Button 
+            className="neon-glow" 
+            onClick={() => { resetUploadForm(); setIsUploadOpen(true); }}
+            data-testid="upload-document-btn"
+          >
+            <Upload className="h-4 w-4 mr-2" /> Upload Document
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
