@@ -762,6 +762,7 @@ async def add_product_to_webstore(
 @webstores_router.get("/{webstore_id}/products")
 async def get_webstore_products(
     webstore_id: str,
+    include_disabled: bool = False,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Get all products assigned to a webstore"""
@@ -772,10 +773,12 @@ async def get_webstore_products(
     if not webstore:
         raise HTTPException(status_code=404, detail="Webstore not found")
     
-    assignments = await db.webstore_products.find(
-        {"webstore_id": webstore_id, "is_enabled": True}, 
-        {"_id": 0}
-    ).to_list(500)
+    # Build query - include disabled if requested
+    query = {"webstore_id": webstore_id}
+    if not include_disabled:
+        query["is_enabled"] = True
+    
+    assignments = await db.webstore_products.find(query, {"_id": 0}).to_list(500)
     
     # Enrich with product details
     products = []
@@ -784,6 +787,8 @@ async def get_webstore_products(
         if product:
             product["price_override"] = a.get("price_override")
             product["effective_price"] = a.get("price_override") or product["retail_price"]
+            product["is_enabled"] = a.get("is_enabled", True)
+            product["webstore_product_id"] = a.get("id")
             products.append(product)
     
     return products
