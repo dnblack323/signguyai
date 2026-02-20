@@ -229,9 +229,22 @@ export default function Storefront() {
 
   const StoreIcon = getStoreTypeIcon(store.store_type);
   const primaryColor = store.branding?.primary_color || '#0D9488';
+  const bannerUrl = store.branding?.banner_url || store.banner_image_data;
+  const logoUrl = store.branding?.logo_url || store.logo_image_data;
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Banner Image */}
+      {bannerUrl && (
+        <div className="w-full h-48 sm:h-64 overflow-hidden">
+          <img 
+            src={bannerUrl} 
+            alt={`${store.name} banner`} 
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
+
       {/* Header */}
       <header 
         className="border-b border-border sticky top-0 z-40 bg-card"
@@ -239,8 +252,8 @@ export default function Storefront() {
       >
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {store.branding?.logo_url ? (
-              <img src={store.branding.logo_url} alt={store.name} className="h-10 w-auto" />
+            {logoUrl ? (
+              <img src={logoUrl} alt={store.name} className="h-10 w-auto rounded" />
             ) : (
               <div 
                 className="w-10 h-10 rounded-lg flex items-center justify-center"
