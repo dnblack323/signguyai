@@ -370,7 +370,7 @@ async def get_onboarding_status(current_user: UserInDB = Depends(get_current_act
 
 
 
-@dashboard_router.get("/recent-ai-documents")
+@router.get("/recent-ai-documents")
 async def get_recent_ai_documents(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
