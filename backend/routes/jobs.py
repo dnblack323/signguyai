@@ -21,11 +21,20 @@ from models import (
     UserInDB, Permission
 )
 
-# Import from server module
-from server import (
-    db, logger,
-    get_current_active_user, has_permission
-)
+# Import from server module - using late import to avoid circular dependency
+from core.auth_deps import get_current_active_user
+
+def get_db():
+    from server import db
+    return db
+
+def get_logger():
+    from server import logger
+    return logger
+
+def get_has_permission():
+    from server import has_permission
+    return has_permission
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
 
