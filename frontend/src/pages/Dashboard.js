@@ -362,6 +362,7 @@ export default function Dashboard() {
   const [unreadMessages, setUnreadMessages] = useState([]);
   const [clockedInEmployees, setClockedInEmployees] = useState([]);
   const [todaysSchedule, setTodaysSchedule] = useState([]);
+  const [recentAIDocs, setRecentAIDocs] = useState([]);
   
   // Invoice preview modal state
   const [previewInvoiceId, setPreviewInvoiceId] = useState(null);
