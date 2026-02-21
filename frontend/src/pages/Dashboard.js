@@ -299,6 +299,146 @@ const ScheduleWidget = ({ schedule }) => {
   );
 };
 
+// Recent AI Documents Widget
+const RecentAIDocumentsWidget = ({ documents }) => {
+  const handleDownload = async (doc) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const res = await axios.get(`${API}/documents/${doc.id}/download`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const { file_data, file_type, original_filename } = res.data;
+      
+      const byteCharacters = atob(file_data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: file_type });
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = original_filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('Document downloaded');
+    } catch (err) {
+      toast.error('Failed to download');
+    }
+  };
+
+  const handleView = async (doc) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const res = await axios.get(`${API}/documents/${doc.id}/download`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const { file_data, file_type } = res.data;
+      
+      const byteCharacters = atob(file_data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: file_type });
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (err) {
+      toast.error('Failed to open document');
+    }
+  };
+
+  const getToolName = (tags) => {
+    const toolTag = tags?.find(t => t !== 'ai-generated');
+    const toolNames = {
+      'document_composer': 'Document Composer',
+      'business_copywriter': 'Business Copywriter',
+      'blog_creator': 'Blog Creator',
+      'email_template': 'Email Generator',
+      'job_post_creator': 'Job Post Creator',
+      'social_media_creator': 'Social Media Creator'
+    };
+    return toolNames[toolTag] || 'AI Tool';
+  };
+
+  return (
+    <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+      <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-purple-500" />
+          <h2 className="font-heading text-base font-semibold" style={{ color: 'var(--text)' }}>
+            Recent AI Documents
+          </h2>
+        </div>
+        <Link to="/ai-tools">
+          <span className="text-xs text-purple-500 hover:underline flex items-center gap-1">
+            Create new <ArrowRight className="h-3 w-3" />
+          </span>
+        </Link>
+      </div>
+      <div className="p-4">
+        {(!documents || documents.length === 0) ? (
+          <div className="text-center py-6">
+            <Sparkles className="h-8 w-8 mx-auto mb-2 text-purple-500/30" />
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No AI documents yet</p>
+            <Link to="/ai-tools">
+              <Button size="sm" variant="outline" className="mt-3 text-purple-500 border-purple-500/30">
+                <Plus className="h-3 w-3 mr-1" /> Create Document
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {documents.map(doc => (
+              <div 
+                key={doc.id}
+                className="flex items-center justify-between p-3 rounded-lg transition-all duration-150 hover:shadow-sm"
+                style={{ backgroundColor: 'var(--surface-2)', border: '1px solid transparent' }}
+              >
+                <div className="flex-1 min-w-0 mr-3">
+                  <p className="font-medium text-sm truncate" style={{ color: 'var(--text)' }}>{doc.name}</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    {getToolName(doc.tags)} • {formatDate(doc.created_at)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button 
+                    onClick={() => handleView(doc)}
+                    className="p-1.5 rounded-md hover:bg-purple-500/10 transition-colors"
+                    title="View"
+                  >
+                    <Eye className="h-4 w-4 text-purple-500" />
+                  </button>
+                  <button 
+                    onClick={() => handleDownload(doc)}
+                    className="p-1.5 rounded-md hover:bg-purple-500/10 transition-colors"
+                    title="Download"
+                  >
+                    <Download className="h-4 w-4 text-purple-500" />
+                  </button>
+                  <Link to="/documents">
+                    <button 
+                      className="p-1.5 rounded-md hover:bg-purple-500/10 transition-colors"
+                      title="Send to customer"
+                    >
+                      <Send className="h-4 w-4 text-purple-500" />
+                    </button>
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const QuickActions = () => (
   <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
     <div className="px-4 sm:px-6 py-3 sm:py-4" style={{ borderBottom: '1px solid var(--border-light)' }}>
