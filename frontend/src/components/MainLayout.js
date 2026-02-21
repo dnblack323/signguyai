@@ -371,12 +371,16 @@ export const MobileNav = ({ isOpen, onClose }) => {
   // Filter navigation based on permissions
   const filteredNavigation = useMemo(() => {
     return navigationCategories.map(category => {
+      // Keep direct link items (like Dashboard) as-is
+      if (category.isDirectLink) {
+        return category;
+      }
       const filteredItems = category.items.filter(item => {
         if (!item.permission) return true;
         return hasPermission(item.permission);
       });
       return { ...category, items: filteredItems };
-    }).filter(category => category.items.length > 0);
+    }).filter(category => category.isDirectLink || category.items.length > 0);
   }, [hasPermission]);
 
   // Close on navigation
