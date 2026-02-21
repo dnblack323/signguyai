@@ -394,6 +394,7 @@ export default function Dashboard() {
           axios.get(`${API}/dashboard/unread-messages`, { headers }).then(res => setUnreadMessages(res.data)).catch(() => {}),
           axios.get(`${API}/dashboard/clocked-in`, { headers }).then(res => setClockedInEmployees(res.data)).catch(() => {}),
           axios.get(`${API}/dashboard/todays-schedule`, { headers }).then(res => setTodaysSchedule(res.data)).catch(() => {}),
+          axios.get(`${API}/dashboard/recent-ai-documents`, { headers }).then(res => setRecentAIDocs(res.data)).catch(() => {}),
         ]);
       } catch (err) {
         console.error('Error loading dashboard:', err);
