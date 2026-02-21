@@ -103,7 +103,6 @@ export const Sidebar = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeCategory, setActiveCategory] = useState(null);
   const [flyoutPosition, setFlyoutPosition] = useState({ top: 0 });
-  const hoverTimeoutRef = useRef(null);
   const navRef = useRef(null);
   const categoryRefs = useRef({});
 
@@ -145,33 +144,16 @@ export const Sidebar = () => {
 
   const currentActiveCategory = findActiveCategory();
 
-  // Handle mouse enter on nav
-  const handleNavEnter = () => {
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-    }
-    hoverTimeoutRef.current = setTimeout(() => {
-      setIsExpanded(true);
-    }, 150);
-  };
-
-  // Handle mouse leave on nav
-  const handleNavLeave = () => {
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-    }
-    hoverTimeoutRef.current = setTimeout(() => {
-      setIsExpanded(false);
+  // Toggle sidebar expansion on click
+  const toggleSidebar = () => {
+    setIsExpanded(!isExpanded);
+    if (isExpanded) {
       setActiveCategory(null);
-    }, 200);
+    }
   };
 
-  // Handle category hover
-  const handleCategoryEnter = (categoryId) => {
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-    }
-    
+  // Handle category click to show flyout
+  const handleCategoryClick = (categoryId) => {
     // Calculate flyout position
     const categoryEl = categoryRefs.current[categoryId];
     if (categoryEl && navRef.current) {
@@ -182,24 +164,13 @@ export const Sidebar = () => {
       });
     }
     
-    setActiveCategory(categoryId);
-  };
-
-  // Handle flyout mouse enter
-  const handleFlyoutEnter = () => {
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
+    // Toggle category
+    if (activeCategory === categoryId) {
+      setActiveCategory(null);
+    } else {
+      setActiveCategory(categoryId);
     }
   };
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current);
-      }
-    };
-  }, []);
 
   // Close flyout on navigation
   useEffect(() => {
