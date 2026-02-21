@@ -587,6 +587,26 @@ The AI Business Assistant now provides personalized, data-driven insights using 
 - Frontend: 7/7 UI tests passed
 - All AI tools functional
 
+## Customizable Quick Toolbar (Feb 21, 2026) - COMPLETE ✅
+
+### New Feature:
+- Added a horizontal quick-access toolbar at the top of the app (desktop only)
+- Shows customizable shortcut icons for fast navigation
+
+### Features:
+1. **Shortcut Icons**: Colorful icons representing different tools/pages
+2. **Customizable**: Click the gear icon to select up to 10 shortcuts
+3. **Size Options**: Small (S), Medium (M), or Large (L) icon sizes
+4. **Persistent**: Preferences saved to localStorage
+5. **18 Available Shortcuts**: Dashboard, Customers, Quotes, Jobs, Invoices, Time Clock, Payroll, Productivity, Financials, AI Tools, AI Assistant, Webstores, Products, Documents, Approvals, Calculator, Users, Settings
+
+### Default Shortcuts:
+Dashboard, Customers, Quotes, Jobs, Invoices, AI Tools
+
+### Files:
+- `/app/frontend/src/components/QuickToolbar.js` - New component
+- `/app/frontend/src/components/MainLayout.js` - Updated to include toolbar
+
 ## Recent AI Documents Dashboard Widget (Feb 20, 2026) - COMPLETE ✅
 
 ### New Feature:
