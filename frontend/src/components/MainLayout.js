@@ -194,13 +194,14 @@ export const Sidebar = () => {
         "fixed left-0 top-0 z-40 h-screen transition-all duration-300 ease-out nav-shell",
         isExpanded ? "w-64" : "w-16"
       )}
-      onMouseEnter={handleNavEnter}
-      onMouseLeave={handleNavLeave}
       data-testid="sidebar"
     >
       <div className="flex h-full flex-col">
-        {/* Logo */}
-        <div className="flex h-16 items-center px-4 border-b border-[var(--border-dark)]">
+        {/* Logo - clickable to toggle sidebar */}
+        <div 
+          className="flex h-16 items-center px-4 border-b border-[var(--border-dark)] cursor-pointer hover:bg-[var(--sidebar-hover)] transition-colors"
+          onClick={toggleSidebar}
+        >
           <div className={cn(
             "flex items-center transition-all duration-300",
             isExpanded ? "gap-3" : "justify-center w-full"
