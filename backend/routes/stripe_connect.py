@@ -26,7 +26,7 @@ db = client[DB_NAME]
 
 # Import auth dependencies
 from models import UserInDB
-from server import get_current_active_user
+from core.auth_deps import get_current_active_user
 
 router = APIRouter(prefix="/stripe-connect", tags=["Stripe Connect"])
 
