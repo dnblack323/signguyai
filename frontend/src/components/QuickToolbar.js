@@ -17,7 +17,7 @@ import {
 } from './ui/dialog';
 import { toast } from 'sonner';
 
-// All available shortcuts organized by category - matching sidebar icons
+// All available shortcuts organized by category
 const shortcutCategories = [
   {
     id: 'core',
@@ -134,12 +134,12 @@ export default function QuickToolbar() {
 
   return (
     <>
-      {/* Toolbar - Dark theme matching sidebar */}
+      {/* Toolbar - Dark theme, ICONS ONLY */}
       <div 
-        className="hidden lg:flex fixed top-0 left-16 right-0 h-12 z-30 items-center px-4 gap-2 nav-shell border-b border-[var(--border-dark)]"
+        className="hidden lg:flex fixed top-0 left-48 right-0 h-12 z-30 items-center px-4 gap-1 nav-shell border-b border-[var(--border-dark)]"
         data-testid="quick-toolbar"
       >
-        {/* Shortcuts */}
+        {/* Shortcuts - Icons Only */}
         <div className="flex items-center gap-1 overflow-x-auto">
           {shortcuts.map((item, index) => {
             // Render separator
@@ -152,7 +152,7 @@ export default function QuickToolbar() {
               );
             }
             
-            // Render shortcut
+            // Render shortcut - ICON ONLY
             const shortcut = allShortcuts.find(s => s.id === item);
             if (!shortcut) return null;
             
@@ -165,14 +165,13 @@ export default function QuickToolbar() {
                 to={shortcut.href}
                 title={shortcut.name}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 flex-shrink-0",
+                  "flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 flex-shrink-0",
                   isActive 
                     ? "bg-[var(--accent)] text-white" 
                     : "text-[var(--text-muted-on-dark)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-on-dark)]"
                 )}
               >
-                <Icon className="h-4 w-4" />
-                <span className="text-xs font-medium">{shortcut.name}</span>
+                <Icon className="h-5 w-5" />
               </Link>
             );
           })}
@@ -181,14 +180,13 @@ export default function QuickToolbar() {
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Customize Button */}
+        {/* Customize Button - Icon Only */}
         <button
           onClick={openCustomize}
           title="Customize toolbar"
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[var(--text-muted-on-dark)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-on-dark)] transition-all duration-200"
+          className="flex items-center justify-center w-9 h-9 rounded-lg text-[var(--text-muted-on-dark)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-on-dark)] transition-all duration-200"
         >
-          <Settings className="h-4 w-4" />
-          <span className="text-xs font-medium">Customize</span>
+          <Settings className="h-5 w-5" />
         </button>
       </div>
 
