@@ -24,17 +24,38 @@ from models import (
 # Import from server module - using late import to avoid circular dependency
 from core.auth_deps import get_current_active_user
 
-def get_db():
-    from server import db
-    return db
+# Lazy imports to avoid circular dependency
+_db = None
+_logger = None
+_has_permission = None
 
-def get_logger():
-    from server import logger
-    return logger
+def _get_db():
+    global _db
+    if _db is None:
+        from server import db
+        _db = db
+    return _db
 
-def get_has_permission():
-    from server import has_permission
-    return has_permission
+def _get_logger():
+    global _logger
+    if _logger is None:
+        from server import logger
+        _logger = logger
+    return _logger
+
+def _get_has_permission():
+    global _has_permission
+    if _has_permission is None:
+        from server import has_permission
+        _has_permission = has_permission
+    return _has_permission
+
+# Create property-like accessors
+class LazyDB:
+    def __getattr__(self, name):
+        return getattr(_get_db(), name)
+
+db = LazyDB()
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
 
