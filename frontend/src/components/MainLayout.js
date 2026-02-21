@@ -622,6 +622,9 @@ export const MainLayout = ({ children }) => {
         <Sidebar />
       </div>
 
+      {/* Quick Toolbar - Desktop Only */}
+      <QuickToolbar />
+
       {/* Mobile Navigation */}
       <MobileNav isOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
