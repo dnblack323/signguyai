@@ -100,7 +100,6 @@ export const Sidebar = () => {
   const { user, logout, hasPermission } = useAuth();
   const { checkFeature, requireFeature, tier } = useTier();
   const location = useLocation();
-  const [isExpanded, setIsExpanded] = useState(false);
   const [activeCategory, setActiveCategory] = useState(null);
   const [flyoutPosition, setFlyoutPosition] = useState({ top: 0 });
   const navRef = useRef(null);
@@ -144,15 +143,7 @@ export const Sidebar = () => {
 
   const currentActiveCategory = findActiveCategory();
 
-  // Toggle sidebar expansion on click
-  const toggleSidebar = () => {
-    setIsExpanded(!isExpanded);
-    if (isExpanded) {
-      setActiveCategory(null);
-    }
-  };
-
-  // Handle category click to show flyout
+  // Handle category click to show flyout submenu
   const handleCategoryClick = (categoryId) => {
     // Calculate flyout position
     const categoryEl = categoryRefs.current[categoryId];
@@ -175,8 +166,18 @@ export const Sidebar = () => {
   // Close flyout on navigation
   useEffect(() => {
     setActiveCategory(null);
-    setIsExpanded(false);
   }, [location.pathname]);
+
+  // Close flyout when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (navRef.current && !navRef.current.contains(event.target)) {
+        setActiveCategory(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const activeCategoryData = filteredNavigation.find(c => c.id === activeCategory);
 
@@ -190,107 +191,67 @@ export const Sidebar = () => {
   return (
     <aside
       ref={navRef}
-      className={cn(
-        "fixed left-0 top-0 z-40 h-screen transition-all duration-300 ease-out nav-shell",
-        isExpanded ? "w-64" : "w-16"
-      )}
+      className="fixed left-0 top-0 z-40 h-screen w-48 nav-shell"
       data-testid="sidebar"
     >
       <div className="flex h-full flex-col">
-        {/* Logo - clickable to toggle sidebar */}
-        <div 
-          className="flex h-16 items-center px-4 border-b border-[var(--border-dark)] cursor-pointer hover:bg-[var(--sidebar-hover)] transition-colors"
-          onClick={toggleSidebar}
-        >
-          <div className={cn(
-            "flex items-center transition-all duration-300",
-            isExpanded ? "gap-3" : "justify-center w-full"
-          )}>
-            {isExpanded ? (
-              /* Long logo when expanded */
-              <img 
-                src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/k3asaz65_sgai%20long.png" 
-                alt="SignGuy AI" 
-                className="h-10 w-auto object-contain"
-              />
-            ) : (
-              /* Square logo when collapsed */
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
-                <img 
-                  src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/zofnt5d0_sgai%20square.png" 
-                  alt="SG" 
-                  className="h-8 w-auto object-contain"
-                />
-              </div>
-            )}
-          </div>
+        {/* Logo */}
+        <div className="flex h-16 items-center px-3 border-b border-[var(--border-dark)]">
+          <img 
+            src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/k3asaz65_sgai%20long.png" 
+            alt="SignGuy AI" 
+            className="h-9 w-auto object-contain"
+          />
         </div>
 
-        {/* Navigation Categories */}
-        <nav className="flex-1 py-4 overflow-y-auto">
-          <div className="space-y-1 px-2">
+        {/* Navigation Categories - Always show icons + labels */}
+        <nav className="flex-1 py-3 overflow-y-auto">
+          <div className="space-y-0.5 px-2">
             {filteredNavigation.map((category) => {
               const Icon = category.icon;
               const isActive = currentActiveCategory === category.id || (category.isDirectLink && location.pathname === category.href);
-              const isHovered = activeCategory === category.id;
+              const isOpen = activeCategory === category.id;
               
-              // Handle direct link items (like Home)
+              // Handle direct link items (like Dashboard)
               if (category.isDirectLink) {
                 return (
-                  <Tooltip 
-                    key={category.id} 
-                    content={category.label}
-                    show={!isExpanded}
+                  <NavLink
+                    key={category.id}
+                    to={category.href}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200",
+                      isActive && "bg-[var(--accent)] text-white",
+                      !isActive && "text-[var(--text-muted-on-dark)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-on-dark)]"
+                    )}
+                    data-testid={`nav-${category.id}`}
                   >
-                    <NavLink
-                      to={category.href}
-                      className={cn(
-                        "flex items-center rounded-lg cursor-pointer transition-all duration-200",
-                        isExpanded ? "px-3 py-2.5 gap-3" : "justify-center py-2.5",
-                        isActive && "bg-[var(--accent)] text-white",
-                        !isActive && "text-[var(--text-muted-on-dark)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-on-dark)]"
-                      )}
-                      data-testid={`nav-${category.id}`}
-                    >
-                      <Icon className="h-5 w-5 flex-shrink-0" />
-                      {isExpanded && (
-                        <span className="flex-1 font-medium text-sm">{category.label}</span>
-                      )}
-                    </NavLink>
-                  </Tooltip>
+                    <Icon className="h-5 w-5 flex-shrink-0" />
+                    <span className="font-medium text-sm">{category.label}</span>
+                  </NavLink>
                 );
               }
               
+              // Category with submenu
               return (
-                <Tooltip 
-                  key={category.id} 
-                  content={category.label}
-                  show={!isExpanded}
+                <div
+                  key={category.id}
+                  ref={el => categoryRefs.current[category.id] = el}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200",
+                    isActive && !isOpen && "bg-[var(--accent)] text-white",
+                    isOpen && "bg-[var(--sidebar-hover)] text-[var(--text-on-dark)]",
+                    !isActive && !isOpen && "text-[var(--text-muted-on-dark)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-on-dark)]"
+                  )}
+                  onClick={() => handleCategoryClick(category.id)}
+                  data-testid={`nav-category-${category.id}`}
                 >
-                  <div
-                    ref={el => categoryRefs.current[category.id] = el}
-                    className={cn(
-                      "flex items-center rounded-lg cursor-pointer transition-all duration-200",
-                      isExpanded ? "px-3 py-2.5 gap-3" : "justify-center py-2.5",
-                      isActive && !isHovered && "bg-[var(--accent)] text-white",
-                      isHovered && "bg-[var(--sidebar-hover)] text-[var(--text-on-dark)]",
-                      !isActive && !isHovered && "text-[var(--text-muted-on-dark)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-on-dark)]"
-                    )}
-                    onClick={() => isExpanded && handleCategoryClick(category.id)}
-                    data-testid={`nav-category-${category.id}`}
-                  >
-                    <Icon className="h-5 w-5 flex-shrink-0" />
-                    {isExpanded && (
-                      <>
-                        <span className="flex-1 font-medium text-sm">{category.label}</span>
-                        <ChevronRight className={cn(
-                          "h-4 w-4 transition-transform duration-200",
-                          isHovered && "rotate-90"
-                        )} />
-                      </>
-                    )}
-                  </div>
-                </Tooltip>
+                  <Icon className="h-5 w-5 flex-shrink-0" />
+                  <span className="flex-1 font-medium text-sm">{category.label}</span>
+                  <ChevronRight className={cn(
+                    "h-4 w-4 transition-transform duration-200",
+                    isOpen && "rotate-90"
+                  )} />
+                </div>
               );
             })}
           </div>
