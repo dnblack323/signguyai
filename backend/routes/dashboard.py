@@ -367,3 +367,22 @@ async def get_onboarding_status(current_user: UserInDB = Depends(get_current_act
         has_documents=has_documents,
         has_used_ai=has_used_ai
     )
+
+
+
+@dashboard_router.get("/recent-ai-documents")
+async def get_recent_ai_documents(
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Get the 5 most recent AI-generated documents"""
+    # Find documents with ai-generated tag
+    recent_docs = await db.documents.find(
+        {
+            "tenant_id": current_user.tenant_id,
+            "tags": "ai-generated",
+            "status": "active"
+        },
+        {"_id": 0, "file_data": 0}  # Exclude file_data for efficiency
+    ).sort("created_at", -1).limit(5).to_list(5)
+    
+    return recent_docs
