@@ -110,13 +110,17 @@ export default function PortalLogin() {
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2 bg-slate-700/50">
-                <TabsTrigger value="login" className="data-[state=active]:bg-teal-500 data-[state=active]:text-white">
-                  <LogIn className="h-4 w-4 mr-2" />
+              <TabsList className="grid w-full grid-cols-2 bg-transparent border-b border-slate-600 rounded-none h-auto p-0">
+                <TabsTrigger 
+                  value="login" 
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-teal-500 data-[state=active]:bg-transparent data-[state=active]:text-teal-400 text-slate-400 hover:text-slate-200 py-3"
+                >
                   Sign In
                 </TabsTrigger>
-                <TabsTrigger value="register" className="data-[state=active]:bg-teal-500 data-[state=active]:text-white">
-                  <UserPlus className="h-4 w-4 mr-2" />
+                <TabsTrigger 
+                  value="register" 
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-teal-500 data-[state=active]:bg-transparent data-[state=active]:text-teal-400 text-slate-400 hover:text-slate-200 py-3"
+                >
                   Register
                 </TabsTrigger>
               </TabsList>
