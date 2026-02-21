@@ -7,12 +7,13 @@ import {
   Users, FileText, Briefcase, Receipt, TrendingUp, 
   AlertTriangle, Plus, ArrowRight, Clock, MessageSquare,
   CheckCircle, Calendar, UserCheck, Coffee, Sun, Sunset, Moon,
-  ChevronRight, Eye
+  ChevronRight, Eye, Sparkles, Download, Send, ExternalLink
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
 import OnboardingChecklist from '../components/OnboardingChecklist';
 import axios from 'axios';
+import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
