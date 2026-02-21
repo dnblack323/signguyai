@@ -111,6 +111,10 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
   - Complexity slider now affects all calculator prices (1.0x to 2.0x multiplier)
   - Setup fee charged once per order (not per item)
   - Fixed Payroll report.map error (handles backend response format)
+- [x] **Bug Fixes Batch 4 (Feb 21, 2026):**
+  - Fixed Customer Portal Login UI - tabs now appear as text links with underline indicator (not button-style) to avoid "two Sign In buttons" confusion
+  - Fixed Stripe Connect API 404 - created `/app/backend/core/auth_deps.py` to break circular import between `server.py` and `routes/stripe_connect.py`
+  - All 22 Stripe Connect tests passing
 - [x] **AI Tools Suite (Feb 17, 2026):**
   - Created /api/ai/generate endpoint for text generation
   - Created /api/ai/generate-images endpoint for image generation
