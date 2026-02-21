@@ -587,6 +587,19 @@ The AI Business Assistant now provides personalized, data-driven insights using 
 - Frontend: 7/7 UI tests passed
 - All AI tools functional
 
+## Recent AI Documents Dashboard Widget (Feb 20, 2026) - COMPLETE ✅
+
+### New Feature:
+- Added "Recent AI Documents" widget to Dashboard (right column, below Quick Actions)
+- Shows last 5 AI-generated documents with:
+  - Document name
+  - Tool used (Document Composer, Business Copywriter, etc.)
+  - Creation date
+  - Quick action buttons: View, Download, Send
+- "Create new →" link to AI Tools
+- Empty state with "Create Document" button for new users
+- Endpoint: `GET /api/dashboard/recent-ai-documents`
+
 ## AI Document Workflow Enhancements (Feb 20, 2026) - COMPLETE ✅
 
 ### New Features Added:
