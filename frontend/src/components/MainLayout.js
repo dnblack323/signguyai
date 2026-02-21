@@ -276,7 +276,7 @@ export const Sidebar = () => {
                       isHovered && "bg-[var(--sidebar-hover)] text-[var(--text-on-dark)]",
                       !isActive && !isHovered && "text-[var(--text-muted-on-dark)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-on-dark)]"
                     )}
-                    onMouseEnter={() => isExpanded && handleCategoryEnter(category.id)}
+                    onClick={() => isExpanded && handleCategoryClick(category.id)}
                     data-testid={`nav-category-${category.id}`}
                   >
                     <Icon className="h-5 w-5 flex-shrink-0" />
