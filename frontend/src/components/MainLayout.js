@@ -260,25 +260,13 @@ export const Sidebar = () => {
         {/* User Section */}
         <div className="border-t border-[var(--border-dark)] p-3 space-y-2">
           {/* Tier Badge */}
-          {isExpanded && (
-            <div className="px-1 pb-2">
-              <TierBadge size="sm" />
-            </div>
-          )}
-          {!isExpanded && (
-            <Tooltip content={`${tier?.charAt(0).toUpperCase() + tier?.slice(1) || 'Starter'} Plan`} show={true}>
-              <div className="flex justify-center py-1">
-                <Zap className="w-4 h-4 text-blue-400" />
-              </div>
-            </Tooltip>
-          )}
+          <div className="px-1 pb-2">
+            <TierBadge size="sm" />
+          </div>
           
           {user && (
             <>
-              <div className={cn(
-                "flex items-center rounded-lg bg-[var(--sidebar-hover)] transition-all duration-200",
-                isExpanded ? "gap-3 px-3 py-2" : "justify-center py-2"
-              )}>
+              <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[var(--sidebar-hover)]">
                 <div className="w-8 h-8 rounded-full bg-[var(--accent)]/20 flex items-center justify-center flex-shrink-0">
                   {user.role === 'owner' ? (
                     <Crown className="w-4 h-4" style={{ color: '#d97706' }} />
@@ -286,51 +274,44 @@ export const Sidebar = () => {
                     <User className="w-4 h-4 text-[var(--accent)]" />
                   )}
                 </div>
-                {isExpanded && (
-                  <div className="flex-1 min-w-0 animate-fade-in">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-[var(--text-on-dark)] truncate" data-testid="user-name">
-                        {user.full_name}
-                      </p>
-                      <span 
-                        className="text-[10px] px-1.5 py-0.5 rounded uppercase font-semibold"
-                        style={{ 
-                          backgroundColor: `${getRoleBadgeColor()}20`,
-                          color: getRoleBadgeColor()
-                        }}
-                      >
-                        {user.role}
-                      </span>
-                    </div>
-                    <p className="text-xs text-[var(--text-muted-on-dark)] truncate">
-                      {user.company_name || user.email}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-[var(--text-on-dark)] truncate" data-testid="user-name">
+                      {user.full_name}
                     </p>
+                    <span 
+                      className="text-[10px] px-1.5 py-0.5 rounded uppercase font-semibold"
+                      style={{ 
+                        backgroundColor: `${getRoleBadgeColor()}20`,
+                        color: getRoleBadgeColor()
+                      }}
+                    >
+                      {user.role}
+                    </span>
                   </div>
-                )}
+                  <p className="text-xs text-[var(--text-muted-on-dark)] truncate">
+                    {user.company_name || user.email}
+                  </p>
+                </div>
               </div>
               
-              <Tooltip content="Sign Out" show={!isExpanded}>
-                <button
-                  onClick={logout}
-                  data-testid="logout-btn"
-                  className={cn(
-                    "flex items-center rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-200 w-full",
-                    isExpanded ? "gap-3 px-3 py-2" : "justify-center py-2"
-                  )}
-                >
-                  <LogOut className="h-5 w-5 flex-shrink-0" />
-                  {isExpanded && <span className="font-medium text-sm">Sign Out</span>}
-                </button>
-              </Tooltip>
+              <button
+                onClick={logout}
+                data-testid="logout-btn"
+                className="flex items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-200 w-full"
+              >
+                <LogOut className="h-5 w-5 flex-shrink-0" />
+                <span className="font-medium text-sm">Sign Out</span>
+              </button>
             </>
           )}
         </div>
       </div>
 
       {/* Flyout Submenu */}
-      {isExpanded && activeCategory && activeCategoryData && (
+      {activeCategory && activeCategoryData && (
         <div
-          className="absolute left-64 w-56 bg-[var(--sidebar-hover)] rounded-lg shadow-xl border border-[var(--border-dark)] overflow-hidden animate-slide-in"
+          className="absolute left-48 w-56 bg-[var(--sidebar-hover)] rounded-lg shadow-xl border border-[var(--border-dark)] overflow-hidden animate-slide-in"
           style={{ top: flyoutPosition.top }}
         >
           <div className="py-2">
