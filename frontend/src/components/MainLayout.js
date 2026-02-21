@@ -385,8 +385,11 @@ export const MobileNav = ({ isOpen, onClose }) => {
 
   // Close on navigation
   useEffect(() => {
-    onClose();
-  }, [location.pathname, onClose]);
+    if (isOpen) {
+      onClose();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   return (
     <>
