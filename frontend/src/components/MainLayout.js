@@ -647,8 +647,8 @@ export const MainLayout = ({ children }) => {
         <TrialCountdown />
       </header>
 
-      {/* Desktop Trial Countdown - Fixed top right */}
-      <div className="hidden lg:block fixed top-4 right-4 z-40">
+      {/* Desktop Trial Countdown - Fixed top right, below toolbar */}
+      <div className="hidden lg:block fixed top-14 right-4 z-40">
         <TrialCountdown />
       </div>
 
