@@ -926,7 +926,7 @@ async def update_tenant_info(
 from routes.auth import router as auth_router, users_router, admin_router
 from routes.customers import router as customers_router
 from routes.quotes import router as quotes_router
-from routes.jobs import router as jobs_router
+from routes.jobs import router as jobs_router, job_items_router, job_notes_router
 from routes.invoices import router as invoices_router
 from routes.employees import employees_router, timeclock_router, payroll_router
 from routes.pricing import router as pricing_router
