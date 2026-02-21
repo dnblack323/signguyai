@@ -656,8 +656,10 @@ export default function Dashboard() {
           <ClockedInWidget employees={clockedInEmployees} />
         </div>
         
-        {/* Right Column - Quick Actions */}
-        <div className="lg:block">
+        {/* Right Column - Quick Actions & Recent AI Docs */}
+        <div className="space-y-4 sm:space-y-6">
+          <QuickActions />
+          <RecentAIDocumentsWidget documents={recentAIDocs} />
           <QuickActions />
         </div>
       </div>
