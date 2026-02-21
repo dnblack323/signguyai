@@ -371,8 +371,6 @@ export const Sidebar = () => {
         <div
           className="absolute left-64 w-56 bg-[var(--sidebar-hover)] rounded-lg shadow-xl border border-[var(--border-dark)] overflow-hidden animate-slide-in"
           style={{ top: flyoutPosition.top }}
-          onMouseEnter={handleFlyoutEnter}
-          onMouseLeave={handleNavLeave}
         >
           <div className="py-2">
             <div className="px-4 py-2 border-b border-[var(--border-dark)]">
