@@ -428,37 +428,62 @@ export const MobileNav = ({ isOpen, onClose }) => {
 
           {/* Navigation */}
           <nav className="flex-1 py-4 overflow-y-auto">
-            {filteredNavigation.map((category) => (
-              <div key={category.id} className="mb-4">
-                <div className="px-4 py-2">
-                  <span className="text-xs font-semibold text-[var(--text-muted-on-dark)] uppercase tracking-wider">
-                    {category.label}
-                  </span>
+            {filteredNavigation.map((category) => {
+              // Handle direct link items (like Dashboard)
+              if (category.isDirectLink) {
+                const Icon = category.icon;
+                const isActive = location.pathname === category.href;
+                return (
+                  <div key={category.id} className="mb-2 px-2">
+                    <NavLink
+                      to={category.href}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                        isActive 
+                          ? "bg-[var(--accent)] text-white" 
+                          : "text-[var(--text-muted-on-dark)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-on-dark)]"
+                      )}
+                    >
+                      <Icon className="h-5 w-5" />
+                      <span>{category.label}</span>
+                    </NavLink>
+                  </div>
+                );
+              }
+
+              // Regular category with items
+              return (
+                <div key={category.id} className="mb-4">
+                  <div className="px-4 py-2">
+                    <span className="text-xs font-semibold text-[var(--text-muted-on-dark)] uppercase tracking-wider">
+                      {category.label}
+                    </span>
+                  </div>
+                  <div className="space-y-1 px-2">
+                    {category.items.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = location.pathname === item.href;
+                      
+                      return (
+                        <NavLink
+                          key={item.href}
+                          to={item.href}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                            isActive 
+                              ? "bg-[var(--accent)] text-white" 
+                              : "text-[var(--text-muted-on-dark)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-on-dark)]"
+                          )}
+                        >
+                          <Icon className="h-5 w-5" />
+                          <span>{item.name}</span>
+                        </NavLink>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="space-y-1 px-2">
-                  {category.items.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = location.pathname === item.href;
-                    
-                    return (
-                      <NavLink
-                        key={item.href}
-                        to={item.href}
-                        className={cn(
-                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                          isActive 
-                            ? "bg-[var(--accent)] text-white" 
-                            : "text-[var(--text-muted-on-dark)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-on-dark)]"
-                        )}
-                      >
-                        <Icon className="h-5 w-5" />
-                        <span>{item.name}</span>
-                      </NavLink>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </nav>
 
           {/* User Section */}
