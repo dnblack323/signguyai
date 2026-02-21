@@ -16,11 +16,17 @@ from datetime import datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel, Field
+from motor.motor_asyncio import AsyncIOMotorClient
 
-# Get auth and database from server (same as other routes)
-import sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from server import get_current_active_user, UserInDB, db
+# Database connection
+MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+DB_NAME = os.environ.get('DB_NAME', 'signage_erp')
+client = AsyncIOMotorClient(MONGO_URL)
+db = client[DB_NAME]
+
+# Import auth dependencies from models
+from models import UserInDB
+from routes.auth import get_current_active_user
 
 router = APIRouter(prefix="/stripe-connect", tags=["Stripe Connect"])
 
