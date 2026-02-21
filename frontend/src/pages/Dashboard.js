@@ -663,6 +663,9 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Onboarding Checklist - Shows for new users */}
+      <OnboardingChecklist />
+
       {/* Invoice Preview Modal */}
       <InvoicePreviewModal
         invoiceId={previewInvoiceId}
