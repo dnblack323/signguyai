@@ -24,9 +24,9 @@ DB_NAME = os.environ.get('DB_NAME', 'signage_erp')
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
 
-# Import auth dependencies from models
+# Import auth dependencies
 from models import UserInDB
-from routes.auth import get_current_active_user
+from server import get_current_active_user
 
 router = APIRouter(prefix="/stripe-connect", tags=["Stripe Connect"])
 
