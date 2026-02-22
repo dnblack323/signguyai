@@ -77,7 +77,7 @@ def require_founder(user: UserInDB):
 @router.get("", response_model=List[PromoCodeResponse])
 async def list_promo_codes(current_user: UserInDB = Depends(get_current_active_user)):
     """List all promo codes (admin only)"""
-    require_admin(current_user)
+    require_founder(current_user)
     
     codes = await db.promo_codes.find(
         {"tenant_id": current_user.tenant_id},
@@ -93,7 +93,7 @@ async def create_promo_code(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Create a new promo code (admin only)"""
-    require_admin(current_user)
+    require_founder(current_user)
     
     # Check if code already exists
     existing = await db.promo_codes.find_one({
@@ -135,7 +135,7 @@ async def update_promo_code(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Update a promo code (admin only)"""
-    require_admin(current_user)
+    require_founder(current_user)
     
     # Find existing code
     existing = await db.promo_codes.find_one({
@@ -165,7 +165,7 @@ async def delete_promo_code(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Delete a promo code (admin only)"""
-    require_admin(current_user)
+    require_founder(current_user)
     
     result = await db.promo_codes.delete_one({
         "id": code_id,
