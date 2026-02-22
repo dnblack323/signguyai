@@ -73,8 +73,8 @@ export default function Products() {
     name: '',
     description: '',
     category: 'other',
-    base_cost: 0,
-    retail_price: 0,
+    base_cost: '',
+    retail_price: '',
     images: [],  // Support up to 3 images
     has_variants: false,
     variants: []
