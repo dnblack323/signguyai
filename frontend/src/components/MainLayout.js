@@ -75,7 +75,7 @@ const navigationCategories = [
       { name: 'Company Settings', href: '/settings', icon: Building2, permission: Permission.SETTINGS_VIEW },
       { name: 'Payment Settings', href: '/admin/payments', icon: CreditCard, permission: Permission.SETTINGS_VIEW },
       { name: 'Email Templates', href: '/settings/email-templates', icon: Mail, permission: Permission.SETTINGS_VIEW },
-      { name: 'Promo Codes', href: '/promo-codes', icon: Ticket, permission: Permission.SETTINGS_VIEW },
+      { name: 'Promo Codes', href: '/promo-codes', icon: Ticket, founderOnly: true },
       { name: 'Pricing Settings', href: '/pricing-calculator/settings', icon: DollarSign, permission: Permission.SETTINGS_VIEW },
     ]
   },
