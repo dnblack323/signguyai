@@ -483,6 +483,65 @@ export default function Webstores() {
   const totalOwed = webstores.reduce((sum, s) => sum + (s.payout_owed || 0), 0);
   const pendingOrders = orders.filter(o => o.status === 'pending').length;
 
+  // Show Stripe Connect required message if not connected
+  if (stripeConnected === false) {
+    return (
+      <div className="space-y-6 animate-fade-in" data-testid="webstores-page">
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-full p-6 mb-6">
+            <CreditCard className="h-16 w-16 text-amber-500" />
+          </div>
+          <h1 className="text-3xl font-bold font-heading mb-3">Connect Stripe to Use Webstores</h1>
+          <p className="text-muted-foreground max-w-md mb-6">
+            Webstores require Stripe payment processing to accept customer orders. 
+            Connect your Stripe account to start selling online.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button 
+              size="lg" 
+              className="neon-glow"
+              onClick={handleConnectStripe}
+              disabled={connectingStripe}
+            >
+              {connectingStripe ? (
+                <>
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="h-5 w-5 mr-2" />
+                  Connect Stripe Account
+                </>
+              )}
+            </Button>
+          </div>
+          <div className="mt-8 p-4 bg-[var(--surface-2)] rounded-lg max-w-md">
+            <h3 className="font-semibold mb-2 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              Why is Stripe required?
+            </h3>
+            <ul className="text-sm text-muted-foreground space-y-1 text-left">
+              <li>• Accept credit card payments from customers</li>
+              <li>• Automatic order processing and confirmation</li>
+              <li>• Orders automatically added to your Jobs list</li>
+              <li>• Secure, PCI-compliant payment handling</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading while checking Stripe status
+  if (stripeConnected === null) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in" data-testid="webstores-page">
       {/* Header */}
