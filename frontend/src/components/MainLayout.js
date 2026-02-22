@@ -114,6 +114,8 @@ export const Sidebar = () => {
       }
       
       const filteredItems = category.items.filter(item => {
+        // Founder-only items
+        if (item.founderOnly && !user?.is_founder) return false;
         // If no permission required, show the item
         if (!item.permission) return true;
         // Check if user has the permission
@@ -129,7 +131,7 @@ export const Sidebar = () => {
       
       return { ...category, items: filteredItems };
     }).filter(category => category.isDirectLink || category.items.length > 0); // Keep direct links and non-empty categories
-  }, [hasPermission, checkFeature]);
+  }, [hasPermission, checkFeature, user?.is_founder]);
 
   // Find active category based on current path
   const findActiveCategory = () => {
