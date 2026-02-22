@@ -599,6 +599,17 @@ export const AppProvider = ({ children }) => {
     return res.data;
   };
 
+  // Stripe Connect
+  const getStripeConnectStatus = async () => {
+    const res = await api.get(`/stripe-connect/status`);
+    return res.data;
+  };
+
+  const createStripeConnectAccount = async () => {
+    const res = await api.post(`/stripe-connect/create-account`);
+    return res.data;
+  };
+
   const value = {
     // Raw API instance for custom calls
     api,
