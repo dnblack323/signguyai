@@ -76,10 +76,13 @@ export default function Webstores() {
     getWebstoreOrdersV2, getProducts, getWebstoreProducts,
     assignProductToWebstore, removeProductFromWebstore, updateWebstoreProductStatus,
     createJobFromOrder, recordPayout, getWebstorePayouts,
-    uploadWebstoreLogo, uploadWebstoreBanner
+    uploadWebstoreLogo, uploadWebstoreBanner,
+    getStripeConnectStatus, createStripeConnectAccount
   } = useApp();
   
   const [loading, setLoading] = useState(true);
+  const [stripeConnected, setStripeConnected] = useState(null); // null = loading, true/false = status
+  const [connectingStripe, setConnectingStripe] = useState(false);
   const [webstores, setWebstores] = useState([]);
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
