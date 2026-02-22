@@ -503,7 +503,7 @@ export function JobDetails() {
     item_type: 'other',
     description: '',
     quantity: 1,
-    unit_price: 0,
+    unit_price: '',
     status: 'pending',
     notes: ''
   });
@@ -804,7 +804,7 @@ export function JobDetails() {
       item_type: 'other',
       description: '',
       quantity: 1,
-      unit_price: 0,
+      unit_price: '',
       status: 'pending',
       notes: ''
     });
