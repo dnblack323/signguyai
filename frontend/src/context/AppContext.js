@@ -662,7 +662,9 @@ export const AppProvider = ({ children }) => {
     // Webstore Analytics
     getWebstoreAnalytics,
     // Tenant / Company Settings
-    getTenant, updateTenant
+    getTenant, updateTenant,
+    // Stripe Connect
+    getStripeConnectStatus, createStripeConnectAccount
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
