@@ -144,7 +144,33 @@ export default function Webstores() {
     setLoading(false);
   };
 
+  // Check Stripe Connect status first
+  const checkStripeStatus = async () => {
+    try {
+      const status = await getStripeConnectStatus();
+      setStripeConnected(status.connected && status.charges_enabled);
+    } catch (err) {
+      console.error('Error checking Stripe status:', err);
+      setStripeConnected(false);
+    }
+  };
+
+  const handleConnectStripe = async () => {
+    setConnectingStripe(true);
+    try {
+      const result = await createStripeConnectAccount();
+      if (result.url) {
+        window.location.href = result.url;
+      }
+    } catch (err) {
+      console.error('Error connecting Stripe:', err);
+      toast.error('Failed to start Stripe connection');
+    }
+    setConnectingStripe(false);
+  };
+
   useEffect(() => {
+    checkStripeStatus();
     loadData();
   }, []);
 
