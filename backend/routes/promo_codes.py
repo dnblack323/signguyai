@@ -68,10 +68,10 @@ class PromoCodeValidationResponse(BaseModel):
     trial_days: Optional[int] = None
 
 
-# Helper to check if user is admin/owner
-def require_admin(user: UserInDB):
-    if user.role not in ['owner', 'admin']:
-        raise HTTPException(status_code=403, detail="Admin access required")
+# Helper to check if user is platform founder (only founder can manage promo codes)
+def require_founder(user: UserInDB):
+    if not getattr(user, 'is_founder', False):
+        raise HTTPException(status_code=403, detail="Platform founder access required")
 
 
 @router.get("", response_model=List[PromoCodeResponse])
