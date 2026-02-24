@@ -634,7 +634,7 @@ export const AppProvider = ({ children }) => {
     fetchQuotes, createQuote, updateQuote, convertQuoteToJob,
     // Job actions
     fetchJobs, createJob, updateJob, deleteJob,
-    getJobDetails, archiveJob, unarchiveJob, completeJob,
+    getJobDetails, archiveJob, unarchiveJob, approveJob, sendJobQuote, completeJob,
     // Job Notes & Activities
     createJobNote, getJobNotes, deleteJobNote, getJobActivities,
     // Job Item actions
