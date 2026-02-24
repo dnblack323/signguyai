@@ -2,9 +2,17 @@
 SaaS Tier Configuration Models
 
 Defines the feature access rules for each subscription tier:
-- Tier 1 (Starter/Free): Basic features for small shops
-- Tier 2 (Pro): Full features for growing businesses  
-- Tier 3 (Business): Everything unlimited
+- Starter: Basic features for small shops
+- Pro: Full features for growing businesses  
+- Business: Everything unlimited
+
+Canonical Tier Keys (single source of truth):
+- starter
+- pro
+- business
+
+IMPORTANT: Never use tier_1/tier_2/tier_3 for feature gating.
+Those are billing plan IDs, not tier keys.
 """
 
 from pydantic import BaseModel, Field
