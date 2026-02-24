@@ -269,7 +269,16 @@ async def update_job(
     input: JobUpdate,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Update a job"""
+    """
+    Update a job.
+    
+    Status transitions:
+    - quote -> approved: Quote approved, ready for production
+    - approved -> in_progress: Production started
+    - in_progress -> completed: Job finished
+    - completed -> invoiced: Invoice created
+    - Any -> archived: Job archived
+    """
     job = await db.jobs.find_one(
         {"id": job_id, "tenant_id": current_user.tenant_id}, 
         {"_id": 0}
@@ -278,17 +287,38 @@ async def update_job(
         raise HTTPException(status_code=404, detail="Job not found")
     
     update_data = {k: v for k, v in input.model_dump().items() if v is not None}
+    
+    # Handle line_items update - recalculate total
+    if "line_items" in update_data and update_data["line_items"]:
+        total = 0
+        processed_items = []
+        for item in update_data["line_items"]:
+            item_dict = item.model_dump() if hasattr(item, 'model_dump') else item
+            item_total = item_dict.get("quantity", 1) * item_dict.get("unit_price", 0)
+            item_dict["total"] = item_total
+            processed_items.append(item_dict)
+            total += item_total
+        update_data["line_items"] = processed_items
+        update_data["total"] = total
+        update_data["subtotal"] = total
+    
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     
-    # Log status change
+    # Log status change with proper descriptions
     if input.status and input.status.value != job.get("status"):
         old_status = job.get("status")
         new_status = input.status.value
         
-        if new_status == JobStatus.COMPLETE.value:
-            await log_job_activity(job_id, JobActivityType.COMPLETED, f"Job marked as complete", old_status, new_status)
+        # Set approved_at timestamp when moving from quote to approved
+        if old_status == JobStatus.QUOTE.value and new_status == JobStatus.APPROVED.value:
+            update_data["approved_at"] = datetime.now(timezone.utc).isoformat()
+            await log_job_activity(job_id, JobActivityType.STATUS_CHANGED, "Quote approved - ready for production", old_status, new_status)
+        elif new_status == JobStatus.COMPLETED.value:
+            await log_job_activity(job_id, JobActivityType.COMPLETED, "Job marked as complete", old_status, new_status)
+        elif new_status == JobStatus.INVOICED.value:
+            await log_job_activity(job_id, JobActivityType.STATUS_CHANGED, "Job invoiced", old_status, new_status)
         elif new_status == JobStatus.ARCHIVED.value:
-            await log_job_activity(job_id, JobActivityType.ARCHIVED, f"Job archived", old_status, new_status)
+            await log_job_activity(job_id, JobActivityType.ARCHIVED, "Job archived", old_status, new_status)
         else:
             await log_job_activity(job_id, JobActivityType.STATUS_CHANGED, f"Status changed from {old_status} to {new_status}", old_status, new_status)
     
