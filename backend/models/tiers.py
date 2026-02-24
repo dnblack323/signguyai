@@ -23,9 +23,9 @@ import uuid
 
 
 class TierLevel(str, Enum):
-    STARTER = "starter"  # Tier 1 - Free
-    PRO = "pro"          # Tier 2
-    BUSINESS = "business" # Tier 3
+    STARTER = "starter"    # Starter tier
+    PRO = "pro"            # Pro tier
+    BUSINESS = "business"  # Business tier
 
 
 class FeatureStatus(str, Enum):
