@@ -763,5 +763,77 @@ quote → approved → in_progress → completed → invoiced → archived
 - Frontend: 5/5 UI tests passed
 - All webstore-related bug fixes verified
 
+## Billing & Webstore System Overhaul (Dec 1, 2025) - COMPLETE ✅
+
+Major refactor of billing and webstore systems based on user specifications.
+
+### 1. Stripe Subscription Conversion
+- **Checkout endpoint** (`POST /api/billing/checkout`) now uses:
+  - `mode="subscription"` for regular plans (tier_1, tier_2, tier_3, ai_addon)
+  - `mode="payment"` for extended_trial (one-time, not recurring)
+- **Stripe Price IDs** configured in environment variables (placeholders until real IDs created):
+  - `STRIPE_PRICE_STARTER_MONTHLY`, `STRIPE_PRICE_STARTER_ANNUAL`
+  - `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_PRICE_PRO_ANNUAL`
+  - `STRIPE_PRICE_BUSINESS_MONTHLY`, `STRIPE_PRICE_BUSINESS_ANNUAL`
+  - `STRIPE_PRICE_AI_ADDON_MONTHLY`, `STRIPE_PRICE_AI_ADDON_ANNUAL`
+  - `STRIPE_PRICE_EXTENDED_TRIAL`
+- **Fallback**: If Price ID is placeholder, creates `price_data` dynamically
+- **Webhook events** handled: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_succeeded`, `invoice.payment_failed`
+- **`current_period_end`** now sourced from Stripe (not calculated in backend)
+
+### 2. Webstore Security + Tenant Isolation
+- **Public storefront** (`GET /api/storefront/{id}`) returns sanitized response:
+  - **EXPOSED**: id, name, store_type, owner_name, description, status, is_public, branding, total_sales, total_orders, fundraiser_goal/dates
+  - **HIDDEN**: tenant_id, payout_owed, payout_paid, total_profit, owner_email, owner_phone
+- **Product lookup** tenant-safe: products fetched with `tenant_id` filter
+- **Product assignment** validates: product.tenant_id == webstore.tenant_id
+
+### 3. Order Flow Validation
+- **Invalid products** rejected with 400 and list of invalid product_ids
+- **Assignment validation**: product must be assigned AND enabled in webstore
+- **Variant validation**: variant must exist and be available
+- **Quantity validation**: must be >= 1 (zero/negative rejected)
+- **Price validation**: cannot be negative
+
+### 4. Order-to-Job Consistency
+- **create-job endpoint** is **idempotent**: returns existing job_id if already created
+- **Product category → Job item type mapping**:
+  - apparel → other
+  - signs → banner
+  - decals → decal
+  - promotional → other
+  - other → other
+- **Back-references** added to job items:
+  - `webstore_order_id`
+  - `webstore_order_item_product_id`
+  - `variant_id`
+
+### 5. Payout Math Fixes
+- **Commission calculation** separated by store type:
+  - FUNDRAISER: uses `fundraiser_profit_percent`
+  - CREATOR: uses `creator_commission_type/value`
+  - BUSINESS: no commission (shop keeps all profit)
+- **payout_owed** incremented when order created
+
+### 6. API Hygiene
+- **Query parameter enums** enforced:
+  - `GET /api/products?category=` accepts `ProductCategory` enum
+  - `GET /api/webstores/v2?store_type=` accepts `WebstoreType` enum
+  - `GET /api/webstores/v2?status=` accepts `WebstoreStatus` enum
+- **`updated_at`** timestamp set on every product update
+- **MongoDB indexes** created for performance:
+  - products: (tenant_id, category, is_active)
+  - webstores_v2: (tenant_id, store_type, status)
+  - webstore_products: (webstore_id, product_id) UNIQUE
+  - webstore_orders_v2: (webstore_id, created_at)
+  - subscriptions: (stripe_subscription_id), (tenant_id) UNIQUE
+
+### Test Results:
+- Backend: 14/14 API tests passed
+- All billing and webstore features verified working
+
+### Migration Files Created:
+- `/app/backend/migrations/2025_12_01_add_webstore_indexes.py`
+
 ## Last Updated
-February 24, 2026
+December 1, 2025
