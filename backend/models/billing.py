@@ -97,6 +97,7 @@ class SubscriptionStatus(str, Enum):
     CANCELLED = "cancelled"
     EXPIRED = "expired"
     LOCKED = "locked"
+    PENDING = "pending"  # For incomplete checkout sessions
 
 
 class PaymentStatus(str, Enum):
