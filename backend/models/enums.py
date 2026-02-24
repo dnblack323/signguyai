@@ -192,9 +192,10 @@ class UserRole(str, Enum):
     STAFF = "staff"
 
 class TenantPlan(str, Enum):
-    FREE = "free"
-    PRO = "pro"
-    BUSINESS = "business"
+    """Tenant plan - maps to tier for feature gating"""
+    STARTER = "starter"    # Starter tier
+    PRO = "pro"            # Pro tier
+    BUSINESS = "business"  # Business tier
 
 class PaymentMethod(str, Enum):
     CASH = "cash"
