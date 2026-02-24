@@ -247,9 +247,25 @@ storefront_router = APIRouter(prefix="/storefront", tags=["Storefront (Public)"]
 
 # ============== PUBLIC STOREFRONT ROUTES (No Auth) ==============
 
+# Safe fields to expose publicly for webstores
+WEBSTORE_PUBLIC_FIELDS = [
+    "id", "name", "store_type", "owner_name", "description", 
+    "status", "is_public", "branding",
+    "fundraiser_goal", "fundraiser_start_date", "fundraiser_end_date",
+    "total_sales", "total_orders"  # Allow for fundraiser progress display
+]
+
+def sanitize_webstore_for_public(webstore: dict) -> dict:
+    """Return only safe fields for public consumption"""
+    return {k: webstore.get(k) for k in WEBSTORE_PUBLIC_FIELDS if k in webstore}
+
+
 @storefront_router.get("/{webstore_id}")
 async def get_public_store(webstore_id: str):
-    """Get a public webstore details (no auth required)"""
+    """
+    Get a public webstore details (no auth required).
+    Returns only safe/public fields - never exposes tenant_id, payout info, etc.
+    """
     webstore = await db.webstores_v2.find_one(
         {"id": webstore_id}, 
         {"_id": 0}
@@ -261,7 +277,11 @@ async def get_public_store(webstore_id: str):
     if not webstore.get("is_public", True):
         raise HTTPException(status_code=404, detail="Store not found")
     
-    return webstore
+    if webstore.get("status") != "active":
+        raise HTTPException(status_code=404, detail="Store is not currently available")
+    
+    # Return sanitized response
+    return sanitize_webstore_for_public(webstore)
 
 
 @storefront_router.get("/{webstore_id}/products")
