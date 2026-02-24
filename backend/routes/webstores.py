@@ -403,6 +403,18 @@ async def update_product(
         raise HTTPException(status_code=404, detail="Product not found")
     
     update_data = {k: v for k, v in input.model_dump().items() if v is not None}
+    
+    # Handle images - limit to 3 and maintain consistency with image_url
+    if "images" in update_data:
+        images = update_data["images"][:3] if update_data["images"] else []
+        update_data["images"] = images
+        # Keep legacy image_url field in sync
+        update_data["image_url"] = images[0] if images else None
+    elif "image_url" in update_data and update_data["image_url"]:
+        # If only image_url is provided, add it to images array
+        if not update_data.get("images"):
+            update_data["images"] = [update_data["image_url"]]
+    
     if "variants" in update_data and update_data["variants"]:
         variants = []
         for v in update_data["variants"]:
