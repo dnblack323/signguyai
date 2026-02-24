@@ -483,11 +483,11 @@ async def complete_job(
     await db.jobs.update_one(
         {"id": job_id}, 
         {"$set": {
-            "status": JobStatus.COMPLETE.value, 
+            "status": JobStatus.COMPLETED.value, 
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
-    await log_job_activity(job_id, JobActivityType.COMPLETED, "Job marked as complete", old_status, JobStatus.COMPLETE.value)
+    await log_job_activity(job_id, JobActivityType.COMPLETED, "Job marked as complete", old_status, JobStatus.COMPLETED.value)
     
     return {"message": "Job marked as complete"}
 
