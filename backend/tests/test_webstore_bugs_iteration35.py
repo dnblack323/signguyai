@@ -228,7 +228,9 @@ class TestWebstoreCreation:
         webstore_data = {
             "name": "TEST_Webstore_Branding",
             "description": "Test webstore with custom branding",
-            "type": "business",
+            "store_type": "business",  # Correct field name
+            "owner_name": "Test Owner",  # Required field
+            "owner_email": "testowner@test.com",
             "branding": {
                 "primary_color": "#FF5733",
                 "logo_url": None
@@ -249,8 +251,6 @@ class TestWebstoreCreation:
         assert data["name"] == "TEST_Webstore_Branding"
         assert "branding" in data
         assert data["branding"]["primary_color"] == "#FF5733", "Primary color should be saved"
-        
-        return data["id"]
     
     def test_update_webstore_color(self, auth_token):
         """Test updating webstore branding color"""
@@ -260,7 +260,8 @@ class TestWebstoreCreation:
         create_data = {
             "name": "TEST_Webstore_Color_Update",
             "description": "Test webstore for color update",
-            "type": "business",
+            "store_type": "business",  # Correct field name
+            "owner_name": "Test Owner 2",  # Required field
             "branding": {
                 "primary_color": "#0D9488"
             }
@@ -271,7 +272,7 @@ class TestWebstoreCreation:
             headers=headers,
             json=create_data
         )
-        assert create_response.status_code == 200
+        assert create_response.status_code == 200, f"Create webstore failed: {create_response.text}"
         webstore_id = create_response.json()["id"]
         
         # Update color
@@ -290,8 +291,6 @@ class TestWebstoreCreation:
         assert update_response.status_code == 200, f"Update webstore failed: {update_response.text}"
         updated_data = update_response.json()
         assert updated_data["branding"]["primary_color"] == "#E91E63", "Color should be updated"
-        
-        return webstore_id
 
 
 class TestWebstoreCheckoutStripeGate:
