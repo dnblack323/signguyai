@@ -1,0 +1,138 @@
+{
+  "summary": "Iteration 37: Major billing & webstore refactor - All 10 features verified working. Stripe checkout uses mode='subscription' for plans and mode='payment' for extended_trial. Public storefront properly sanitized. Order validation working with proper error messages.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results": {
+    "backend_api_tests": {
+      "total": 14,
+      "passed": 14,
+      "failed": 0,
+      "test_file": "/app/backend/tests/test_billing_webstore_refactor.py",
+      "key_verifications": [
+        "✅ POST /api/billing/checkout with plan=tier_1 creates Stripe subscription session",
+        "✅ POST /api/billing/checkout with plan=extended_trial creates one-time payment session",
+        "✅ GET /api/storefront/{id} does NOT return tenant_id, payout_owed, payout_paid, or total_profit",
+        "✅ POST /api/webstores/v2/orders rejects invalid product IDs with 400 and clear error",
+        "✅ POST /api/webstores/v2/orders rejects zero quantity with 400 error",
+        "✅ POST /api/webstores/v2/orders rejects negative quantities with 400 error",
+        "✅ POST /api/webstores/v2/orders/{id}/create-job is idempotent - returns existing job_id",
+        "✅ GET /api/products accepts all category enum values (apparel, signs, decals, promotional, other)",
+        "✅ GET /api/products returns 422 for invalid category values",
+        "✅ GET /api/webstores/v2 accepts all store_type enum values (business, fundraiser, creator)",
+        "✅ PUT /api/products/{id} sets updated_at timestamp on every update",
+        "✅ Order creation auto-creates job with back-references to order items"
+      ]
+    }
+  },
+  "features_verified": {
+    "stripe_subscription_checkout": {
+      "status": "WORKING",
+      "description": "POST /api/billing/checkout with tier_1, tier_2, tier_3 creates Stripe sessions with mode='subscription'. Returns checkout URL and session_id.",
+      "checkout_modes": {
+        "tier_1": "subscription",
+        "tier_2": "subscription",
+        "tier_3": "subscription",
+        "ai_addon": "subscription",
+        "extended_trial": "payment (one-time)"
+      }
+    },
+    "extended_trial_payment": {
+      "status": "WORKING",
+      "description": "POST /api/billing/checkout with plan=extended_trial creates Stripe session with mode='payment' (one-time, not recurring)."
+    },
+    "storefront_sanitization": {
+      "status": "WORKING",
+      "description": "GET /api/storefront/{id} returns only safe public fields. Sensitive fields NOT exposed.",
+      "fields_hidden": ["tenant_id", "payout_owed", "payout_paid", "total_profit", "owner_email", "owner_phone"],
+      "fields_exposed": ["id", "name", "store_type", "owner_name", "description", "status", "is_public", "branding", "total_sales", "total_orders", "fundraiser_goal", "fundraiser_start_date", "fundraiser_end_date"]
+    },
+    "order_validation": {
+      "status": "WORKING",
+      "validations_implemented": [
+        "Invalid product IDs rejected with 400",
+        "Products must be active (is_active=true)",
+        "Products must be assigned AND enabled in webstore",
+        "Quantity must be >= 1 (zero/negative rejected)",
+        "Invalid variants rejected"
+      ],
+      "error_format": {"message": "Order validation failed", "errors": ["list of specific errors"]}
+    },
+    "idempotent_create_job": {
+      "status": "WORKING",
+      "description": "POST /api/webstores/v2/orders/{id}/create-job returns existing job_id if job already exists instead of error",
+      "response_when_exists": {"message": "Job already exists for this order", "job_id": "existing-uuid"}
+    },
+    "enum_query_parameters": {
+      "status": "WORKING",
+      "products_category": ["apparel", "signs", "decals", "promotional", "other"],
+      "webstores_store_type": ["business", "fundraiser", "creator"],
+      "invalid_values": "Return 422 with Pydantic validation error"
+    },
+    "product_updated_at": {
+      "status": "WORKING",
+      "description": "PUT /api/products/{id} always sets updated_at to current timestamp"
+    },
+    "job_item_back_references": {
+      "status": "WORKING",
+      "fields_added": ["webstore_order_id", "webstore_order_item_product_id", "variant_id"],
+      "description": "Job items created from orders include back-references to trace origin"
+    },
+    "category_to_item_type_mapping": {
+      "status": "IMPLEMENTED",
+      "mapping": {
+        "apparel": "other",
+        "signs": "banner",
+        "decals": "decal",
+        "promotional": "other",
+        "other": "other"
+      }
+    }
+  },
+  "code_review": {
+    "billing.py": "Correctly implements mode='subscription' for regular plans with Stripe Price IDs, mode='payment' for extended_trial with price_data",
+    "webstores.py": {
+      "sanitize_webstore_for_public": "Properly filters fields using WEBSTORE_PUBLIC_FIELDS whitelist",
+      "order_validation": "Comprehensive validation in create_webstore_order() - checks product existence, tenant ownership, assignment status, variant availability, quantity >= 1",
+      "idempotent_create_job": "Returns existing job_id instead of error when job already exists"
+    },
+    "models/billing.py": "get_stripe_price_id() correctly returns None for placeholder values, allowing fallback to price_data"
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_billing_webstore_refactor.py",
+    "/app/test_reports/pytest/billing_webstore_refactor_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_billing_webstore_refactor.py"
+  ],
+  "success_rate": {
+    "backend": "100% (14/14 tests passed)"
+  },
+  "test_credentials": {
+    "test_user": "testuser123@test.com / Test123!"
+  },
+  "seed_data_creation": "Created and cleaned up: TEST_Storefront_Sanitization webstore, TEST_Order_Validation_Product, TEST_UpdatedAt_Product",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Major billing & webstore refactor complete. All features working: 1) Stripe subscriptions use mode='subscription' with Price IDs (fallback to price_data), 2) Extended trial uses mode='payment' (one-time), 3) Public storefront sanitized (no tenant_id/payout info), 4) Order validation strict (checks products, assignments, variants, quantities), 5) create-job is idempotent, 6) Enums enforced on query params, 7) updated_at set on product updates, 8) Job items have back-references to orders.",
+  "api_endpoints_tested": {
+    "POST /api/billing/checkout (tier_1)": "Working - returns Stripe checkout URL (mode=subscription)",
+    "POST /api/billing/checkout (extended_trial)": "Working - returns Stripe checkout URL (mode=payment)",
+    "GET /api/storefront/{id}": "Working - sanitized response",
+    "POST /api/webstores/v2/orders (invalid product)": "Working - returns 400",
+    "POST /api/webstores/v2/orders (zero qty)": "Working - returns 400",
+    "POST /api/webstores/v2/orders (negative qty)": "Working - returns 400",
+    "POST /api/webstores/v2/orders/{id}/create-job": "Working - idempotent",
+    "GET /api/products?category=enum": "Working - all enum values accepted, invalid rejected",
+    "GET /api/webstores/v2?store_type=enum": "Working - all enum values accepted",
+    "PUT /api/products/{id}": "Working - sets updated_at"
+  }
+}
