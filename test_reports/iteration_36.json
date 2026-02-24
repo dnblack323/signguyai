@@ -98,7 +98,8 @@
     "The jobs.py routes file has a duplicate 'return jobs' statement at lines 188-189 - minor cleanup needed"
   ],
   "updated_files": [
-    "/app/backend/tests/test_unified_jobs_iteration36.py"
+    "/app/backend/tests/test_unified_jobs_iteration36.py",
+    "/app/backend/routes/jobs.py (fixed duplicate return statement)"
   ],
   "success_rate": {
     "backend": "100% (10/10 tests passed)",
