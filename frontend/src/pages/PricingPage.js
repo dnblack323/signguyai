@@ -257,7 +257,7 @@ export default function PricingPage() {
                     ${trialCredits.credits_amount.toFixed(2)} credit available!
                   </p>
                   <p className="text-xs text-[var(--text-secondary)]">
-                    Will be automatically applied to Tier 3 subscription
+                    Will be automatically applied to Business subscription
                   </p>
                 </div>
               </div>
