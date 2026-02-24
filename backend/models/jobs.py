@@ -43,31 +43,49 @@ class Quote(QuoteBase):
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
+# ============== JOB LINE ITEM (for quote stage) ==============
+class JobLineItem(BaseModel):
+    """Line item used in quote stage before conversion to JobItem"""
+    description: str
+    quantity: float = 1
+    unit_price: float = 0
+    total: float = 0
+
+
 # ============== JOB MODELS ==============
 class JobBase(BaseModel):
     customer_id: str
     name: str
     description: Optional[str] = None
-    status: JobStatus = JobStatus.QUOTED
+    status: JobStatus = JobStatus.QUOTE
     due_date: Optional[str] = None
+    # Quote-stage fields
+    line_items: List[JobLineItem] = []  # Used in quote stage
+    notes: Optional[str] = None
 
 class JobCreate(JobBase):
-    quote_id: Optional[str] = None
+    pass
 
 class JobUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     status: Optional[JobStatus] = None
     due_date: Optional[str] = None
+    line_items: Optional[List[JobLineItem]] = None
+    notes: Optional[str] = None
 
 class Job(JobBase):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: Optional[str] = None
-    quote_id: Optional[str] = None
     invoice_id: Optional[str] = None
     subtotal: float = 0
+    total: float = 0  # For quote stage compatibility
     is_archived: bool = False
+    sent_at: Optional[str] = None  # When quote was sent
+    approved_at: Optional[str] = None  # When quote was approved
+    # Legacy field for backward compatibility
+    quote_id: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
