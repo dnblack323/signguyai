@@ -793,8 +793,11 @@ async def add_product_to_webstore(
     request: AddProductToWebstoreRequest,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Assign a product to a webstore"""
-    # Verify webstore exists
+    """
+    Assign a product to a webstore.
+    Validates that both webstore and product belong to the same tenant.
+    """
+    # Verify webstore exists and belongs to tenant
     webstore = await db.webstores_v2.find_one(
         {"id": webstore_id, "tenant_id": current_user.tenant_id}, 
         {"_id": 0}
@@ -802,10 +805,17 @@ async def add_product_to_webstore(
     if not webstore:
         raise HTTPException(status_code=404, detail="Webstore not found")
     
-    # Verify product exists
-    product = await db.products.find_one({"id": request.product_id}, {"_id": 0})
+    # Verify product exists AND belongs to same tenant
+    product = await db.products.find_one(
+        {"id": request.product_id, "tenant_id": current_user.tenant_id}, 
+        {"_id": 0}
+    )
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Double-check tenant match (should be guaranteed by queries above, but be explicit)
+    if product.get("tenant_id") != webstore.get("tenant_id"):
+        raise HTTPException(status_code=403, detail="Product does not belong to the same tenant as webstore")
     
     # Check if already assigned
     existing = await db.webstore_products.find_one({
@@ -816,9 +826,13 @@ async def add_product_to_webstore(
         # Update price override and enabled status
         await db.webstore_products.update_one(
             {"id": existing["id"]},
-            {"$set": {"price_override": request.price_override, "is_enabled": request.is_enabled}}
+            {"$set": {
+                "price_override": request.price_override, 
+                "is_enabled": request.is_enabled,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
         )
-        return {"message": "Product assignment updated"}
+        return {"message": "Product assignment updated", "assignment_id": existing["id"]}
     
     # Create assignment
     assignment = WebstoreProduct(
@@ -828,7 +842,7 @@ async def add_product_to_webstore(
         price_override=request.price_override
     )
     await db.webstore_products.insert_one(assignment.model_dump())
-    return {"message": "Product added to webstore"}
+    return {"message": "Product added to webstore", "assignment_id": assignment.id}
 
 
 @webstores_router.get("/{webstore_id}/products")
