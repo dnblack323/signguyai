@@ -925,6 +925,7 @@ async def stripe_webhook(request: Request, db = Depends(get_db)):
             session_id = event_data.id
             metadata = event_data.metadata or {}
             payment_status = event_data.payment_status
+            checkout_mode = event_data.mode  # "subscription" or "payment"
             
             # Update transaction record
             await db.payment_transactions.update_one(
@@ -939,13 +940,25 @@ async def stripe_webhook(request: Request, db = Depends(get_db)):
             )
             
             if payment_status == "paid":
+                # For subscription checkouts, fetch the subscription to get current_period_end
+                current_period_end = None
+                if checkout_mode == "subscription" and event_data.subscription:
+                    try:
+                        stripe_sub = stripe.Subscription.retrieve(event_data.subscription)
+                        current_period_end = datetime.fromtimestamp(
+                            stripe_sub.current_period_end, tz=timezone.utc
+                        ).isoformat()
+                    except stripe.error.StripeError:
+                        pass  # Will be updated by subscription.created webhook
+                
                 # Activate subscription and store Stripe IDs
                 await _activate_subscription_v2(
                     db, 
                     session_id=session_id,
                     metadata=metadata,
                     stripe_customer_id=event_data.customer,
-                    stripe_subscription_id=event_data.subscription
+                    stripe_subscription_id=event_data.subscription,
+                    current_period_end=current_period_end
                 )
         
         # ==================== SUBSCRIPTION CREATED ====================
