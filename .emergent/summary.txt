@@ -1,174 +1,259 @@
 <analysis>**original_problem_statement:**
-The user's goal is to create a comprehensive SaaS product for sign shops called SignGuy AI. The product has been launched, and the user is now focused on adding new features, fixing bugs, and refining business logic.
+The user's goal is to build a comprehensive SaaS product for sign shops called SignGuy AI. The user is now focused on fixing a wide range of bugs and adding new features.
 
-**PRODUCT REQUIREMENTS:**
-- **Core Business Modules:** Customer Management, Quotes/Jobs, Invoicing, Productivity, Financials, Employee Time/Payroll.
-- **Webstores:** Allow shops to create simple e-commerce stores. Orders should automatically become jobs. Recent additions include logo and banner image uploads.
-- **Artwork Approval System:** A module for shops to send artwork proofs to customers for approval. This has been moved to the Tools section of the main menu.
-- **Smart Document Library:** A new module for managing, storing, and sending documents (PDFs, forms) to customers via email or the customer portal. It includes a link to an AI Document Composer.
-- **Customer Portal:** A secure portal for customers.
-- **Employee Portal:** A dedicated portal for employees.
-- **AI Tools Suite:** AI tools for design, marketing, and pricing.
-- **SaaS Billing & Tiers:** Detailed pricing with trials and add-ons.
-- **Onboarding:** A checklist for new users. This is currently being updated to be dynamic and track user progress automatically.
-- **Email Template System:** A new system allowing admins to edit email templates for portal notifications and customer welcome emails.
-- **Customer Import:** An existing feature to import customers from a CSV file.
+Key issues reported in this session:
+*   **UI/UX:** The customer portal login page had confusing buttons. The main app's top toolbar and sidebar were not styled consistently and had usability issues (hover-to-open). The mobile menu was completely non-functional.
+*   **Bugs:**
+    *   Updating the status on quote/job line items was failing.
+    *   The production app was inaccessible (Network Error) after a deployment, caused by a circular dependency.
+    *   Other accounts could access the founder's promo code creator.
+    *   Webstore product images were not uploading.
+    *   The Place Order button in the webstore was failing.
+    *   Price input fields had an annoying 0 placeholder that made data entry difficult (e.g., typing 4 resulted in 04.00).
+    *   The webstore color picker was broken.
+    *   The user is confused by inconsistent interfaces for adding line items in Quotes vs. Jobs.
+*   **Feature Requests:**
+    *   Gate the webstore feature entirely; users must connect Stripe to use it.
+    *   The webstore checkout should be a seamless flow: Cart -> Stripe Checkout -> Payment -> Automatically create a Job.
+    *   Add an inline AI generator for product descriptions.
+    *   Add fields for a custom title and description for each webstore.
+    *   Simplify the webstore creation UI and merge the redundant Settings and Branding tabs.
+    *   The user has provided a detailed professional-grade specification for a future Vehicle Wrap AI Tool and asked for it to be saved.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack SaaS product using FastAPI, React, and MongoDB. In this session, a bug preventing webstore creation was fixed. Several new features were added, including logo and banner uploads for webstores, a complete Document Library module with the ability to send documents to customers via email or a portal, and an admin-editable email template system. The Approvals module was moved to the Tools section as requested. The agent is currently working on making the onboarding checklist dynamic.
+The application is a full-stack SaaS product (React, FastAPI, MongoDB) for sign shops. In this session, the agent addressed numerous critical bugs and UI/UX issues. The agent fixed backend circular dependencies that were breaking both the Stripe Connect API and the production deployment. It redesigned the main application layout, implementing a new click-to-open sidebar and a matching dark-themed top toolbar. The broken mobile menu was also fixed. On the feature front, the agent implemented a gate requiring users to connect their Stripe account before they can access the webstore functionality. Security was enhanced by restricting the promo code management page to founder-level accounts only. A fix was also implemented for a persistent UI bug in price input fields. The agent is currently clarifying UI inconsistencies with the user.
 
 **Last working item**:
--   Last item agent was working: Implementing the backend logic for a dynamic onboarding checklist. The agent was creating a new API endpoint  to check the completion status of various setup tasks (e.g., creating a customer, customizing an email template). The file  was just created to house this logic.
--   Status: IN PROGRESS
--   Agent Testing Done: N
--   Which testing method agent to use? backend testing agent
+-   Last item agent was working: The agent was addressing the user's confusion about the inconsistent UI for adding line items. The form on the Jobs page is detailed with categories and a calculator, while the Quotes page has a simpler inline form. The agent explained the discrepancy and asked the user for their preference on how to unify the two interfaces.
+-   Status: USER VERIFICATION PENDING
+-   Agent Testing Done: N/A
+-   Which testing method agent to use? NA
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   Issue 1: The Onboarding checklist is not yet fully dynamic (P0)
+-   Issue 1: Webstore Checkout Flow is broken (P0)
+-   Issue 2: Inconsistent Line Item Forms between Quotes and Jobs (P0)
+-   Issue 3: Webstore product images do not upload (P1)
+-   Issue 4: The webstore color picker is broken (P1)
+-   Issue 5: Price input placeholder issue (/bin/bash4.00 bug) (P1)
+-   Issue 6: Production site may not be in live Stripe mode (P2)
+-   Issue 7: AI Assistant failure was reported in a previous session but not fully resolved (P2)
 
 **Issues Detail:**
--   **Issue 1: The Onboarding checklist is not yet fully dynamic**
-    -   **Attempted fixes:** A new backend file  was created to house a new endpoint . The frontend component  was updated with a more comprehensive, hardcoded list of tasks.
+-   **Issue 1: Webstore Checkout Flow is broken**
+    -   **Attempted fixes:** The agent confirmed the checkout endpoint exists. The initial investigation pointed to webstores in the DB missing a , which would break the Stripe Connect payment flow. The agent implemented a feature gate to block access to webstores without Stripe Connect but did not test the full end-to-end checkout flow for a user who *is* connected.
     -   **Next debug checklist:**
-        1.  Complete the implementation of the  endpoint in . The logic should check the database for conditions like .
-        2.  Modify the frontend component  to fetch its state from this new endpoint instead of using hardcoded values.
-        3.  Test the entire flow to ensure the checklist updates automatically as the user completes tasks.
-    -   **Why fix this issue and what will be achieved with the fix?** To make the onboarding checklist a functional feature that guides new users through the setup process, improving user activation and retention.
+        1.  Log in as a tenant user with Stripe Connect enabled.
+        2.  Add items to a webstore cart.
+        3.  Click Place Order.
+        4.  Trace the  function in .
+        5.  Verify the API call to  is successful and returns a valid Stripe session URL.
+        6.  Ensure the browser redirects to the Stripe checkout page.
+    -   **Why fix this issue and what will be achieved with the fix?** This is the core function of the webstore feature. Fixing it will allow tenants to receive payments from their customers.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on other issue:** None
 
+-   **Issue 2: Inconsistent Line Item Forms between Quotes and Jobs**
+    -   **Attempted fixes:** The agent identified that the two pages ( and ) use different components and logic for adding line items. The agent explained this to the user and is waiting for their direction.
+    -   **Next debug checklist:**
+        1.  Wait for the user to decide if the Quotes form should be simple or match the detailed Jobs form.
+        2.  Based on the user's choice, refactor  to either use the same dialog component as  or add a Use Calculator button to the existing simple form.
+    -   **Why fix this issue and what will be achieved with the fix?** To create a consistent and intuitive user experience for one of the app's core workflows.
+    -   **Status:** BLOCKED (Awaiting user feedback)
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Blocked on other issue:** None
+
+-   **Issue 3: Webstore product images do not upload**
+    -   **Attempted fixes:** The agent investigated the code in  and confirmed it uses a base64 upload strategy. The agent took a screenshot showing the upload UI and a successfully uploaded thumbnail in the preview environment, concluding it was working. However, the user insists it is not.
+    -   **Next debug checklist:**
+        1.  Re-evaluate. Ask the user for the exact steps they are taking.
+        2.  Check the browser's developer console for any JavaScript errors during the file selection or upload process on the user's end.
+        3.  Add logging to the  and  functions in  to see the payload being sent.
+        4.  Verify there are no size limits being hit that would cause a silent failure.
+    -   **Why fix this issue and what will be achieved with the fix?** Product images are essential for a functional webstore.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?** both
+    -   **Blocked on other issue:** None
+
+-   **Issue 4: The webstore color picker is broken**
+    -   **Attempted fixes:** None. This is a newly reported issue.
+    -   **Next debug checklist:**
+        1.  Locate the color picker component in the webstore settings/branding page ().
+        2.  Inspect the component being used (likely a third-party library or a custom input).
+        3.  Check for console errors when the component is rendered or interacted with.
+        4.  Verify that the component's props and state are being handled correctly. It's possible a recent library update or code change broke it.
+    -   **Why fix this issue and what will be achieved with the fix?** To restore tenant's ability to customize their webstore's appearance.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Blocked on other issue:** None
+
+-   **Issue 5: Price input placeholder issue (/bin/bash4.00 bug)**
+    -   **Attempted fixes:** The agent identified that using  as the initial state for price inputs caused the issue. The agent performed a search-and-replace to change the initial state to  (empty string) in , , and .
+    -   **Next debug checklist:**
+        1.  Requires user verification after deployment.
+        2.  Manually test all price input fields across the application (Products, Jobs, Quotes, Pricing Calculator) to confirm the fix works and doesn't introduce side effects.
+    -   **Why fix this issue and what will be achieved with the fix?** Improves user experience by removing a frustrating data entry quirk.
+    -   **Status:** USER VERIFICATION PENDING
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Blocked on other issue:** None
+
+-   **Issue 6: Production site may not be in live Stripe mode**
+    -   **Attempted fixes:** The agent updated the  file with live keys. However, the user was still able to use a test card on the deployed site, indicating the live keys were not active in production. The agent provided the user with steps to check for themselves.
+    -   **Next debug checklist:**
+        1.  Wait for the user to confirm the status after their latest deployment.
+        2.  If the test card still works, this is a deployment configuration issue. The user's deployment process is not updating the  file. The agent should advise the user to check their deployment service's documentation for managing environment variables.
+    -   **Why fix this issue and what will be achieved with the fix?** Critical for the user to be able to accept real payments.
+    -   **Status:** USER VERIFICATION PENDING
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** both
+    -   **Blocked on other issue:** None
+
+-   **Issue 7: AI Assistant failure was reported in a previous session but not fully resolved**
+    -   **Attempted fixes:** Agent could not reproduce the issue.
+    -   **Next debug checklist:** Ask user for specific prompts that cause the failure and check backend logs at the time of the error.
+    -   **Why fix this issue and what will be achieved with the fix?** This is a core feature that the user perceives as broken.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?** both
+    -   **Blocked on other issue:** None
+
 **In progress Task List**:
--   **Task 1: Complete Dynamic Onboarding Checklist**
-    -   **Where to resume:** . The file is empty and needs the new  endpoint to be written.
-    -   **What will be achieved with this?** A fully functional, dynamic onboarding checklist that tracks user progress.
+-   **Task 1: Resolve Webstore Issues**
+    -   **Where to resume:** Start by fixing the highest priority webstore bugs: the checkout flow, product image upload, and color picker. Then implement the user's requested improvements.
+    -   **What will be achieved with this?** A fully functional, user-friendly webstore module.
     -   **Status:** IN PROGRESS
     -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on something:** None
+    -   **Blocked on something:** Awaiting user feedback on Issue 2 to proceed with UI consistency changes.
 
 **Upcoming and Future Tasks**
-**Upcoming Tasks (P1-P2):**
--   **Implement Backend Logic for Annual Billing & Trial Credit (P1):** Core monetization feature is pending.
--   **Build AI Tools (P2):**
-    -   Race Number Creator
-    -   AI Business Assistant
-    -   Smart Pricing Analyzer
--   **Price Calculator Customization (P2):** Allow shops to customize the pricing calculator to their preferences.
--   **Improve Mobile Responsiveness (P2):** Refactor key pages for mobile friendliness.
--   **Replace Placeholders (P2):** Add real screenshots to the Features page.
+**Upcoming Tasks:**
+*   **Webstore Simplification (P1):**
+    *   Merge the Settings and Branding tabs in the webstore section.
+    *   Simplify the initial store creation form.
+*   **Webstore Feature Additions (P1):**
+    *   Implement an inline AI-powered product description generator.
+    *   Add fields for a custom title and description to each store.
+*   **Racing-Specific Module (P2):**
+    *   Build the Race Number & Name generators with vector export functionality.
+    *   Build the Wrap Cost Calculator.
+    *   Add Wrap Inspiration as a standard AI tool (using image generation for concepts).
+*   **Dynamic Questionnaire Creator (P2):**
+    *   Build a tool for shop owners to create custom intake forms and send them to customers.
 
-**Future Tasks (Backlog):**
--   Advanced RaceWrap AI Tool
--   Form/Document Library (This can be marked as partially complete, as the base is built)
--   Efficiency Dashboard
--   Integrations (BNPL, SMS, QuickBooks)
--   Custom Domain Support for tenants
+**Future Tasks:**
+*   **Vehicle Wrap AI Tool (Full Spec):** Implement the professional-grade vector-based wrap design tool as specified by the user in .
+*   Advanced RaceWrap AI Tool
+*   Efficiency Dashboard
+*   Integrations (BNPL, SMS, QuickBooks)
+*   Custom Domain Support for tenants
 
 **Completed work in this session**
--   **Webstore Creation Bug Fix:** Diagnosed and fixed an authentication issue ( field mismatch in the database) that was preventing webstore creation.
--   **Webstore Logo & Banner Upload:** Implemented features for users to upload custom logo and banner images (as base64) for their webstores.
--   **Approvals Module Relocation:** Moved the Artwork Approvals module from the Sales section to the Tools section in the navigation menu.
--   **Smart Document Library:** Built a new full-stack feature for managing documents. It includes CRUD for documents and categories, file uploads, and a table view.
--   **AI Tool Integration:** Added a link from the new Document Library to the existing AI Document Composer tool.
--   **Send Document Feature:** Implemented functionality within the Document Library to send documents to customers, either as an email attachment or as a notification to view it in their portal.
--   **Email Template System:** Created a new admin section to manage email templates. Implemented two default templates (Portal Notification, Welcome Email) with preview and edit capabilities.
--   **Automatic Welcome Email:** Integrated the email service to automatically send a welcome email to new customers upon creation.
--   **Customer Import Feature Rediscovery:** Investigated and confirmed that a customer import feature already exists, avoiding redundant work.
-
--   **Recently completed:**
-    -   Webstore Creation Bug (DONE)
-    -   Webstore Logo & Banner Uploads (DONE)
-    -   Smart Document Library (DONE)
-    -   Send Document Feature (DONE)
-    -   Email Template System (DONE)
+-   **UI Redesign:**
+    -   Fixed confusing two buttons UI on the Customer Portal login page.
+    -   Redesigned the main app layout: the top toolbar is now dark-themed with icons only, and the sidebar is always expanded with icons and labels, using a click-to-open flyout for submenus.
+-   **Bug Fixes:**
+    -   **Critical:** Resolved a circular import between  and  that was breaking Stripe Connect APIs.
+    -   **Critical:** Resolved a second circular import in  that was causing the user's production deployment to crash with a Network Error.
+    -   Fixed the non-functional mobile menu.
+    -   Fixed a bug where the API router for updating job item status was not included in , causing updates to fail.
+    -   Attempted fix for the /bin/bash4.00 price input bug by changing initial state values from  to .
+-   **Feature & Security Enhancements:**
+    -   Updated the backend  file to use the user's **live** Stripe keys.
+    -   Restricted the Promo Codes page and API to founder-level accounts only, preventing tenants from accessing it.
+    -   Implemented a feature gate on the Webstores page, requiring users to connect their Stripe account before accessing the feature.
 
 **Earlier issues found/mentioned but not fixed**
--   None. All issues raised during the session were addressed or are currently in progress.
+-   All issues identified have been captured in the All Pending/In progress Issue list.
 
 **Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork:** Trial Lockout System.
--   **Recurrence count:** 3+
--   **Status:** RESOLVED (tentatively). The system was not touched in this session.
+-   The user has intermittently reported that the AI assistant fails to get a response. This was reported in a prior session and again in this one. The agent has been unable to reproduce it, suggesting it might be context-specific or related to a particular user input.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Backend Auth Debugging:** Resolved a login failure by correcting a database field name mismatch ( vs. ).
--   **Base64 Image Handling:** Used base64 strings to handle image uploads for webstore logos and banners, storing them directly in MongoDB.
--   **Service Layer Abstraction:** Created a dedicated  to handle all SendGrid logic, making the routes cleaner.
--   **Dynamic UI via URL Params:** Updated the AI Tools page to pre-select a tool based on a URL query parameter ().
--   **Frontend Context Management:** Debugged and fixed a frontend error by exporting the  instance from  to make it available to child components.
--   **Modular Feature Development:** Built out the Document Library and Email Templates as self-contained full-stack features with their own models, routes, and frontend pages.
+-   **Circular Dependency Resolution:** Refactored backend code to resolve multiple critical circular import issues by moving shared dependencies (like ) into a central  file and using dependency injection. This was key to fixing API and deployment failures.
+-   **Feature Gating:** Implemented a feature gate in the frontend by checking the status of an external dependency () before rendering a major feature (Webstores).
+-   **Role-Based Access Control (RBAC):** Enhanced security by creating a  dependency in the backend and a  flag in the frontend navigation data to restrict access to sensitive pages/APIs.
+-   **React State and Component Refactoring:** Completely rewrote the  component to change its behavior from a collapsible hover-to-open menu to a fixed-width, always-visible navigation bar with click-to-open flyout submenus, simplifying state management.
 
 **key DB schema**
--   : added , .
--   : new collection .
--   : new collection .
+-   : A boolean field  was leveraged to distinguish the platform owner from regular tenant admins for permissioning.
 
 **All files of reference**
--   : NEW. Contains all backend logic for the Document Library.
--   : NEW. The complete frontend for the Document Library.
--   : NEW. Centralizes all email-sending logic.
--   : NEW. The frontend for managing email templates.
--   : UPDATED. Added UI for logo and banner uploads.
--   : NEW. Being created for the dynamic onboarding checklist.
+-    & : These files have inconsistent UI for adding line items, which is the current user-facing issue.
+-   : Contains the new Stripe Connect gate and is the hub for many of the user's recently reported bugs.
+-   : Was modified multiple times to fix routers and circular dependencies. It's a critical file for backend stability.
+-   : Contains the user's detailed requirements for a major future feature.
 
 **Areas that need refactoring**:
--   **API Route Organization:** Many core routes still reside in large, monolithic files. These could be broken down into smaller, more focused routers like  and .
+-   The user requested to merge the Settings and Branding tabs within the Webstores section to eliminate redundancy.
+-   The line item forms in  and  need to be unified for a consistent user experience.
 
 **key api endpoints**
--   : Upload a logo for a webstore.
--   : Upload a banner for a webstore.
--   : CRUD endpoints for the Document Library.
--   : CRUD endpoints for document categories.
--   : Send a document via email.
--   : Send a document to the customer portal.
--   : CRUD endpoints for email templates.
+-   : Now functional after its router was correctly added to .
+-   : New endpoint used to gate the webstore feature.
+-   : These endpoints are now protected by a  dependency, restricting them to the platform owner.
+-   : The endpoint for webstore customer checkout. It's the focus of the current Place Order bug.
 
 **Critical Info for New Agent**
--   The user is highly engaged and providing rapid-fire feature requests. Prioritize the user's latest request.
--   Before implementing a new feature, perform a quick check of the existing codebase. The customer import feature was already present, which saved development time.
--   The current active task is making the onboarding checklist dynamic. The backend endpoint needs to be finished first, then the frontend needs to be connected to it.
--   The agent has been self-testing using  for the backend and screenshots for the frontend. No formal testing agent was used in this session.
+-   **User Frustration is High:** The user is experiencing significant frustration with features breaking or changing unexpectedly after deployments. Prioritize clear communication, explain *why* changes are being made, and verify fixes thoroughly.
+-   **Production vs. Preview Environment:** There is a disconnect between the code in the preview environment and what the user sees on their deployed production site (). The user's deployment process might not be updating  files or could have caching issues. Always remind the user to re-deploy to see fixes and guide them to test on their live site.
+-   **Prioritize Webstore Fixes:** The webstore module is a key feature but is plagued with bugs (checkout, image uploads, color picker). This should be the main focus. Start with the Place Order button fix.
+-   **Get User Feedback First:** Do not proceed with unifying the Jobs/Quotes line item UI until the user provides their preference. This is the current blocker.
 
 **documents and test reports created in this job**
--   None.
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **User:** add configuring the email templates ect to the onboarding list and add price calculator customization and any other things that the shop needs to customize to make the software custom to their preferences and if we havent added the ability to import customer list we need to do that (Status: **In Progress**)
-9.  **User:** CAN we create a template email that can be updated in the admin settings... (Status: **Completed**)
-8.  **User:** There should be an option to create a document and either email it to a customer or send it to them through the portal... (Status: **Completed**)
-7.  **User:** Add a link to the. Document creation AI tool... (Status: **Completed**)
-6.  **User:** create the document librar (Status: **Completed**)
-5.  **User:** they shoild alsohave option to upload a custom banner image... also i dont see the approval module.. it should be in tools section (Status: **Completed**)
-4.  **User:** its working. need option to upload logo for store not just provide a url (Status: **Completed**)
-3.  **User:** ...i kept the database i like the test data it helps and im still building and testing webstores wont create (Status: **Completed**, bug was fixed)
+10. **User:** Was confused about why Jobs and Quotes line item forms are different. (Status: **Pending Agent Action**, agent asked for clarification)
+9.  **User:** Reported that the Jobs/Quotes forms are broken, items are gone, and the calculator is missing. (Status: **Clarified**, user was looking at two different UIs)
+8.  **User:** Reported that Place Order fails, price inputs have an annoying 0 placeholder, and product images don't upload. Also requested several new webstore features and a consolidation of settings tabs. (Status: **In Progress**)
+7.  **User:** Confirmed that other user accounts can see the promo code creator, which should be founder-only. (Status: **Completed**)
+6.  **User:** Stated their deployment is in progress. (Status: **Completed**)
+5.  **User:** Stated they already set up the Stripe webhook. (Status: **Noted**)
+4.  **User:** Confirmed their mobile menu is not working. (Status: **Completed**, fix needs deployment)
+3.  **User:** Stated that their deployed app is now in test mode, even after deploying with live keys. (Status: **Pending User Verification**)
+2.  **User:** Asked for the Stripe test card information again. (Status: **Completed**)
+1.  **User:** Stated the app was working for days, so the Network Error on production is a new issue. (Status: **Completed**, fix needs deployment)
 
 **Project Health Check:**
--   **Broken:** None.
+-   **Broken:**
+    -   Webstore checkout flow (Place Order button).
+    -   Webstore product image upload (user-reported).
+    -   Webstore color picker (user-reported).
 -   **Mocked:**
-    -   The onboarding checklist is partially implemented. The backend logic is in progress.
-    -   The Features page on the marketing site still contains Screenshot coming soon placeholders.
+    -   The marketing site's Features page still contains placeholder images.
 
 **3rd Party Integrations**
--   **OpenAI:** Used for AI tools via . Uses .
--   **Stripe:** Integrated for subscriptions with TEST keys.
--   **SendGrid:** Configured and actively used for transactional emails, now powered by a templating system.
+-   **OpenAI:** Used for AI tools (Business Assistant, Document Composer). Uses . Also tested GPT Image 1 for wrap concepts.
+-   **Stripe:** Used for the main SaaS subscription billing. The agent has updated the  to use live keys, but the production environment seems to still be using test keys.
+-   **Stripe Connect:** Integrated for tenant payments. API is now functional after fixing a circular import. The webstore feature is now gated by it.
+-   **SendGrid:** Used for transactional emails.
+-   **reportlab:** Used in the backend for PDF generation.
 
 **Testing status**
--   **Testing agent used after significant changes:** NO
+-   **Testing agent used after significant changes:** YES, used to verify the Stripe Connect API fix after resolving the circular dependency.
 -   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:** None.
--   **Known regressions:** None.
+-   **Test files created:** None
+-   **Known regressions:** The user feels that the Jobs/Quotes page functionality has disappeared or changed for the worse, which was a result of the agent fixing a price input bug and the user's confusion over two different UIs. This highlights a need for better regression checking and communication.
 
 **Credentials to test flow:**
--   **Owner/Founder Account:**  (password set by user).
+-   **Owner/Founder Account:**  (password set by user)
 -   **Test Account:**  with password .
+-   **New User Test Account:** The user created a new account for testing on their production site. Login details are unknown but it's important to remember that different permission levels may apply.
 
 **What agent forgot to execute**
--   The user's request for price calculator customization was noted but has not been started. It should be added to the upcoming tasks. The agent correctly prioritized finishing the other parts of the user's request first.</analysis>
+-   The agent did not investigate the user's report of a broken color picker in the webstore settings.
+-   The agent did not start work on merging the redundant webstore Settings and Branding tabs.
+-   The agent has not implemented the requested inline AI product description generator.
+-   The agent concluded the product image upload feature was working based on a single successful test in the preview environment, dismissing the user's repeated claims that it was broken. A more thorough investigation is needed.</analysis>
