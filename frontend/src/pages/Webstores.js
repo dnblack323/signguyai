@@ -1494,13 +1494,25 @@ export default function Webstores() {
                       <div className="space-y-2">
                         <Label>Accent Color</Label>
                         <div className="flex gap-2 items-center">
-                          <input
-                            type="color"
-                            value={selectedStore.branding?.primary_color || '#0D9488'}
-                            onChange={(e) => handleUpdateBranding('primary_color', e.target.value)}
-                            className="w-12 h-10 rounded border border-border cursor-pointer"
-                            data-testid="edit-color-input"
-                          />
+                          <div className="relative w-12 h-10 rounded border border-border overflow-hidden cursor-pointer">
+                            <input
+                              type="color"
+                              value={selectedStore.branding?.primary_color || '#0D9488'}
+                              onChange={(e) => handleUpdateBranding('primary_color', e.target.value)}
+                              className="absolute inset-0 w-full h-full cursor-pointer border-0 p-0"
+                              style={{ 
+                                WebkitAppearance: 'none',
+                                MozAppearance: 'none',
+                                appearance: 'none',
+                                backgroundColor: 'transparent'
+                              }}
+                              data-testid="edit-color-input"
+                            />
+                            <div 
+                              className="absolute inset-0 pointer-events-none"
+                              style={{ backgroundColor: selectedStore.branding?.primary_color || '#0D9488' }}
+                            />
+                          </div>
                           <Input
                             value={selectedStore.branding?.primary_color || '#0D9488'}
                             onChange={(e) => handleUpdateBranding('primary_color', e.target.value)}
