@@ -1240,11 +1240,12 @@ async def create_job_from_order(
     
     # Helper to map product category to job item type
     def map_category_to_item_type(category: str) -> JobItemType:
+        """Map webstore product category to job item type"""
         category_map = {
-            "apparel": JobItemType.APPAREL,
-            "signs": JobItemType.SIGN,
+            "apparel": JobItemType.OTHER,  # No direct apparel type
+            "signs": JobItemType.BANNER,   # Use banner as closest match
             "decals": JobItemType.DECAL,
-            "promotional": JobItemType.PROMO,
+            "promotional": JobItemType.OTHER,
             "other": JobItemType.OTHER,
         }
         return category_map.get(category, JobItemType.OTHER)
