@@ -16,11 +16,11 @@ class QuoteStatus(str, Enum):
     DECLINED = "declined"
 
 class JobStatus(str, Enum):
-    QUOTED = "quoted"
-    APPROVED = "approved"
-    IN_PRODUCTION = "in_production"
-    INSTALLED = "installed"
-    COMPLETE = "complete"
+    QUOTE = "quote"           # Pipeline stage - not approved yet
+    APPROVED = "approved"     # Ready to produce
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    INVOICED = "invoiced"
     ARCHIVED = "archived"
 
 class JobActivityType(str, Enum):
