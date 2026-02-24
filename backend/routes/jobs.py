@@ -142,27 +142,50 @@ async def create_job(
 async def get_jobs(
     customer_id: Optional[str] = None,
     status: Optional[JobStatus] = None,
-    filter_type: Optional[str] = None,
+    filter_type: Optional[str] = Query(None, description="Filter: all, quotes, active, completed, invoiced, archived"),
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """List all jobs with optional filtering"""
+    """
+    List all jobs with optional filtering.
+    
+    Filter types:
+    - all: All jobs (excludes archived by default)
+    - quotes: Only jobs in quote stage (status=quote)
+    - active: Jobs in production (approved, in_progress)
+    - completed: Completed jobs
+    - invoiced: Invoiced jobs
+    - archived: Archived jobs only
+    """
     query = {"tenant_id": current_user.tenant_id}
     if customer_id:
         query["customer_id"] = customer_id
     
     # Handle filter types
-    if filter_type == "active":
-        query["status"] = {"$nin": [JobStatus.COMPLETE.value, JobStatus.ARCHIVED.value]}
+    if filter_type == "quotes":
+        query["status"] = JobStatus.QUOTE.value
+        query["is_archived"] = {"$ne": True}
+    elif filter_type == "active":
+        # Active = approved or in_progress (production stage)
+        query["status"] = {"$in": [JobStatus.APPROVED.value, JobStatus.IN_PROGRESS.value]}
         query["is_archived"] = {"$ne": True}
     elif filter_type == "completed":
-        query["status"] = JobStatus.COMPLETE.value
+        query["status"] = JobStatus.COMPLETED.value
+        query["is_archived"] = {"$ne": True}
+    elif filter_type == "invoiced":
+        query["status"] = JobStatus.INVOICED.value
         query["is_archived"] = {"$ne": True}
     elif filter_type == "archived":
         query["$or"] = [{"is_archived": True}, {"status": JobStatus.ARCHIVED.value}]
+    elif filter_type == "all" or filter_type is None:
+        # Show all non-archived jobs by default
+        query["is_archived"] = {"$ne": True}
+        query["status"] = {"$ne": JobStatus.ARCHIVED.value}
     elif status:
+        # Direct status filter
         query["status"] = status.value
     
     jobs = await db.jobs.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return jobs
     return jobs
 
 
