@@ -724,48 +724,320 @@ async def get_payment_history(
 
 @webhook_router.post("/webhook/stripe")
 async def stripe_webhook(request: Request, db = Depends(get_db)):
-    """Handle Stripe webhook events"""
-    from emergentintegrations.payments.stripe.checkout import StripeCheckout
+    """
+    Handle Stripe webhook events.
+    
+    Supported events:
+    - checkout.session.completed: Initial payment success
+    - customer.subscription.created: New subscription created
+    - customer.subscription.updated: Subscription modified (upgrade/downgrade/renewal)
+    - customer.subscription.deleted: Subscription cancelled
+    - invoice.payment_succeeded: Recurring payment success
+    - invoice.payment_failed: Payment failed (card declined, etc.)
+    """
+    import stripe
     
     api_key = os.environ.get('STRIPE_SECRET_KEY')
+    webhook_secret = os.environ.get('STRIPE_WEBHOOK_SECRET')
+    
     if not api_key:
         raise HTTPException(status_code=500, detail="Stripe not configured")
     
+    stripe.api_key = api_key
     body = await request.body()
     signature = request.headers.get("Stripe-Signature")
     
-    stripe_checkout = StripeCheckout(api_key=api_key, webhook_url="")
-    
     try:
-        event = await stripe_checkout.handle_webhook(body, signature)
+        # Verify webhook signature if secret is configured
+        if webhook_secret:
+            event = stripe.Webhook.construct_event(body, signature, webhook_secret)
+        else:
+            # Fallback for development without webhook secret
+            import json
+            event = stripe.Event.construct_from(json.loads(body), api_key)
         
-        if event.event_type == "checkout.session.completed":
-            if event.payment_status == "paid":
-                await db.payment_transactions.update_one(
-                    {"stripe_session_id": event.session_id},
-                    {
-                        "$set": {
-                            "payment_status": PaymentStatus.PAID.value,
-                            "paid_at": datetime.now(timezone.utc).isoformat(),
-                            "updated_at": datetime.now(timezone.utc).isoformat()
-                        }
-                    }
-                )
-                await _activate_subscription(db, event.session_id, event.metadata)
+        event_type = event.type
+        event_data = event.data.object
         
-        elif event.event_type == "payment_intent.payment_failed":
+        now = datetime.now(timezone.utc)
+        
+        # ==================== CHECKOUT SESSION COMPLETED ====================
+        if event_type == "checkout.session.completed":
+            session_id = event_data.id
+            metadata = event_data.metadata or {}
+            payment_status = event_data.payment_status
+            
+            # Update transaction record
             await db.payment_transactions.update_one(
-                {"stripe_session_id": event.session_id},
-                {
-                    "$set": {
-                        "payment_status": PaymentStatus.FAILED.value,
-                        "updated_at": datetime.now(timezone.utc).isoformat()
-                    }
-                }
+                {"stripe_session_id": session_id},
+                {"$set": {
+                    "payment_status": PaymentStatus.PAID.value if payment_status == "paid" else PaymentStatus.PENDING.value,
+                    "paid_at": now.isoformat() if payment_status == "paid" else None,
+                    "updated_at": now.isoformat(),
+                    "stripe_customer_id": event_data.customer,
+                    "stripe_subscription_id": event_data.subscription
+                }}
+            )
+            
+            if payment_status == "paid":
+                # Activate subscription and store Stripe IDs
+                await _activate_subscription_v2(
+                    db, 
+                    session_id=session_id,
+                    metadata=metadata,
+                    stripe_customer_id=event_data.customer,
+                    stripe_subscription_id=event_data.subscription
+                )
+        
+        # ==================== SUBSCRIPTION CREATED ====================
+        elif event_type == "customer.subscription.created":
+            subscription_id = event_data.id
+            customer_id = event_data.customer
+            status = event_data.status
+            current_period_end = datetime.fromtimestamp(event_data.current_period_end, tz=timezone.utc)
+            
+            # Update subscription record with Stripe data
+            await db.subscriptions.update_one(
+                {"stripe_subscription_id": subscription_id},
+                {"$set": {
+                    "status": _map_stripe_status(status),
+                    "current_period_end": current_period_end.isoformat(),
+                    "updated_at": now.isoformat()
+                }}
             )
         
-        return {"status": "success", "event_type": event.event_type}
+        # ==================== SUBSCRIPTION UPDATED ====================
+        elif event_type == "customer.subscription.updated":
+            subscription_id = event_data.id
+            status = event_data.status
+            current_period_end = datetime.fromtimestamp(event_data.current_period_end, tz=timezone.utc)
+            cancel_at_period_end = event_data.cancel_at_period_end
+            
+            update_data = {
+                "status": _map_stripe_status(status),
+                "current_period_end": current_period_end.isoformat(),
+                "cancel_at_period_end": cancel_at_period_end,
+                "updated_at": now.isoformat()
+            }
+            
+            # If subscription is renewed, clear any past_due status
+            if status == "active":
+                update_data["status"] = SubscriptionStatus.ACTIVE.value
+            
+            await db.subscriptions.update_one(
+                {"stripe_subscription_id": subscription_id},
+                {"$set": update_data}
+            )
+            
+            # Also update tenant status
+            sub = await db.subscriptions.find_one({"stripe_subscription_id": subscription_id}, {"_id": 0})
+            if sub:
+                await db.tenants.update_one(
+                    {"id": sub["tenant_id"]},
+                    {"$set": {"subscription_status": _map_stripe_status(status), "updated_at": now.isoformat()}}
+                )
+        
+        # ==================== SUBSCRIPTION DELETED/CANCELLED ====================
+        elif event_type == "customer.subscription.deleted":
+            subscription_id = event_data.id
+            
+            await db.subscriptions.update_one(
+                {"stripe_subscription_id": subscription_id},
+                {"$set": {
+                    "status": SubscriptionStatus.CANCELLED.value,
+                    "cancelled_at": now.isoformat(),
+                    "updated_at": now.isoformat()
+                }}
+            )
+            
+            # Update tenant status
+            sub = await db.subscriptions.find_one({"stripe_subscription_id": subscription_id}, {"_id": 0})
+            if sub:
+                await db.tenants.update_one(
+                    {"id": sub["tenant_id"]},
+                    {"$set": {"subscription_status": "cancelled", "updated_at": now.isoformat()}}
+                )
+        
+        # ==================== INVOICE PAYMENT SUCCEEDED ====================
+        elif event_type == "invoice.payment_succeeded":
+            subscription_id = event_data.subscription
+            
+            if subscription_id:
+                # Successful renewal payment
+                await db.subscriptions.update_one(
+                    {"stripe_subscription_id": subscription_id},
+                    {"$set": {
+                        "status": SubscriptionStatus.ACTIVE.value,
+                        "last_payment_at": now.isoformat(),
+                        "updated_at": now.isoformat()
+                    }}
+                )
+                
+                # Record payment in transactions
+                await db.payment_transactions.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "stripe_invoice_id": event_data.id,
+                    "stripe_subscription_id": subscription_id,
+                    "amount": event_data.amount_paid / 100,  # Convert from cents
+                    "currency": event_data.currency,
+                    "payment_status": PaymentStatus.PAID.value,
+                    "paid_at": now.isoformat(),
+                    "created_at": now.isoformat(),
+                    "metadata": {"event_type": "invoice.payment_succeeded"}
+                })
+        
+        # ==================== INVOICE PAYMENT FAILED ====================
+        elif event_type == "invoice.payment_failed":
+            subscription_id = event_data.subscription
+            
+            if subscription_id:
+                await db.subscriptions.update_one(
+                    {"stripe_subscription_id": subscription_id},
+                    {"$set": {
+                        "status": SubscriptionStatus.PAST_DUE.value,
+                        "payment_failed_at": now.isoformat(),
+                        "updated_at": now.isoformat()
+                    }}
+                )
+                
+                # Update tenant
+                sub = await db.subscriptions.find_one({"stripe_subscription_id": subscription_id}, {"_id": 0})
+                if sub:
+                    await db.tenants.update_one(
+                        {"id": sub["tenant_id"]},
+                        {"$set": {"subscription_status": "past_due", "updated_at": now.isoformat()}}
+                    )
+        
+        return {"status": "success", "event_type": event_type}
     
+    except stripe.error.SignatureVerificationError as e:
+        print(f"Webhook signature verification failed: {e}")
+        raise HTTPException(status_code=400, detail="Invalid signature")
     except Exception as e:
         print(f"Webhook error: {e}")
         return {"status": "error", "message": str(e)}
+
+
+def _map_stripe_status(stripe_status: str) -> str:
+    """Map Stripe subscription status to our internal status"""
+    status_map = {
+        "active": SubscriptionStatus.ACTIVE.value,
+        "past_due": SubscriptionStatus.PAST_DUE.value,
+        "canceled": SubscriptionStatus.CANCELLED.value,
+        "cancelled": SubscriptionStatus.CANCELLED.value,
+        "unpaid": SubscriptionStatus.PAST_DUE.value,
+        "trialing": SubscriptionStatus.TRIALING.value,
+        "incomplete": SubscriptionStatus.PENDING.value,
+        "incomplete_expired": SubscriptionStatus.EXPIRED.value,
+    }
+    return status_map.get(stripe_status, SubscriptionStatus.ACTIVE.value)
+
+
+async def _activate_subscription_v2(
+    db, 
+    session_id: str, 
+    metadata: dict,
+    stripe_customer_id: str = None,
+    stripe_subscription_id: str = None
+):
+    """Activate subscription after successful checkout - stores Stripe IDs"""
+    tenant_id = metadata.get("tenant_id")
+    plan_str = metadata.get("plan")
+    tier = metadata.get("tier", "starter")
+    is_founder = metadata.get("is_founder", "false") == "true"
+    include_ai_addon = metadata.get("include_ai_addon", "false") == "true"
+    billing_interval = metadata.get("billing_interval", "monthly")
+    trial_credits_applied = float(metadata.get("trial_credits_applied", "0"))
+    
+    if not tenant_id or not plan_str:
+        return
+    
+    try:
+        plan = SubscriptionPlan(plan_str)
+    except ValueError:
+        return
+    
+    now = datetime.now(timezone.utc)
+    founder_number = None
+    
+    # Assign founder number if applicable
+    if is_founder and plan != SubscriptionPlan.EXTENDED_TRIAL:
+        founder_number = await increment_founder_count(db)
+    
+    # Get transaction for amount
+    transaction = await db.payment_transactions.find_one({"stripe_session_id": session_id})
+    amount_paid = transaction.get("amount", 0) if transaction else 0
+    
+    if plan == SubscriptionPlan.EXTENDED_TRIAL:
+        # 14-day extended trial - NOT a recurring subscription
+        trial_end = now + timedelta(days=14)
+        subscription_data = {
+            "tenant_id": tenant_id,
+            "plan": plan.value,
+            "status": SubscriptionStatus.TRIALING.value,
+            "tier": "business",  # Full access during trial
+            "billing_interval": "monthly",
+            "is_founder": is_founder,
+            "has_ai_addon": True,  # Full access during trial
+            "trial_start": now.isoformat(),
+            "trial_end": trial_end.isoformat(),
+            "trial_credits_applied": amount_paid,
+            "trial_credits_used": False,
+            "extended_trial_paid": True,
+            "amount_paid": amount_paid,
+            "stripe_customer_id": stripe_customer_id,
+            # No subscription_id for extended trial (one-time payment)
+            "created_at": now.isoformat(),
+            "updated_at": now.isoformat()
+        }
+    else:
+        # Real subscription - Stripe manages period_end
+        subscription_data = {
+            "tenant_id": tenant_id,
+            "plan": plan.value,
+            "status": SubscriptionStatus.ACTIVE.value,
+            "tier": tier,
+            "billing_interval": billing_interval,
+            "is_founder": is_founder,
+            "founder_number": founder_number,
+            "founder_locked_at": now.isoformat() if is_founder else None,
+            "has_ai_addon": include_ai_addon or plan == SubscriptionPlan.AI_ADDON,
+            "current_period_start": now.isoformat(),
+            # Let Stripe webhook update current_period_end from subscription data
+            "amount_paid": amount_paid,
+            "stripe_customer_id": stripe_customer_id,
+            "stripe_subscription_id": stripe_subscription_id,
+            "created_at": now.isoformat(),
+            "updated_at": now.isoformat()
+        }
+        
+        if trial_credits_applied > 0:
+            subscription_data["trial_credits_used"] = True
+    
+    # Upsert subscription
+    await db.subscriptions.update_one(
+        {"tenant_id": tenant_id},
+        {"$set": subscription_data},
+        upsert=True
+    )
+    
+    # Update tenant with tier and founder status
+    tenant_update = {
+        "plan": tier,
+        "is_founder": is_founder,
+        "subscription_status": "active" if plan != SubscriptionPlan.EXTENDED_TRIAL else "trialing",
+        "updated_at": now.isoformat()
+    }
+    if founder_number:
+        tenant_update["founder_number"] = founder_number
+    
+    await db.tenants.update_one(
+        {"id": tenant_id},
+        {"$set": tenant_update}
+    )
+
+
+# Keep old function for backwards compatibility
+async def _activate_subscription(db, session_id: str, metadata: dict):
+    """Legacy activation function - redirects to v2"""
+    await _activate_subscription_v2(db, session_id, metadata)
