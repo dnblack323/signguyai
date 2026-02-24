@@ -964,7 +964,6 @@ async def stripe_webhook(request: Request, db = Depends(get_db)):
         # ==================== SUBSCRIPTION CREATED ====================
         elif event_type == "customer.subscription.created":
             subscription_id = event_data.id
-            customer_id = event_data.customer
             status = event_data.status
             current_period_end = datetime.fromtimestamp(event_data.current_period_end, tz=timezone.utc)
             
@@ -972,6 +971,7 @@ async def stripe_webhook(request: Request, db = Depends(get_db)):
             await db.subscriptions.update_one(
                 {"stripe_subscription_id": subscription_id},
                 {"$set": {
+                    "stripe_customer_id": event_data.customer,
                     "status": _map_stripe_status(status),
                     "current_period_end": current_period_end.isoformat(),
                     "updated_at": now.isoformat()
