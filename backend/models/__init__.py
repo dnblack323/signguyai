@@ -28,7 +28,7 @@ from .customer import (
 # Jobs, Quotes, Invoices models
 from .jobs import (
     QuoteLineItem, QuoteBase, QuoteCreate, QuoteUpdate, Quote,
-    JobBase, JobCreate, JobUpdate, Job,
+    JobLineItem, JobBase, JobCreate, JobUpdate, Job,
     JobNoteBase, JobNoteCreate, JobNote,
     JobActivity, JobItemBase, JobItemCreate, JobItemUpdate, JobItem,
     InvoiceLineItem, InvoiceBase, InvoiceCreate, InvoiceUpdate, Invoice,
