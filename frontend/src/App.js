@@ -13,7 +13,7 @@ import { Loader2 } from "lucide-react";
 // Pages
 import Dashboard from "./pages/Dashboard";
 import Customers from "./pages/Customers";
-import Quotes from "./pages/Quotes";
+// Quotes page deprecated - quotes are now jobs with status=quote
 import Jobs, { JobDetails } from "./pages/Jobs";
 import Invoices from "./pages/Invoices";
 import TimeClock from "./pages/TimeClock";
