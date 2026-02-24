@@ -297,10 +297,10 @@ export function JobsList() {
     return customer?.name || 'Unknown';
   };
 
-  const filterCounts = {
-    active: jobs.filter(j => activeStatuses.includes(j.status) && !j.is_archived).length,
-    completed: jobs.filter(j => j.status === 'complete' && !j.is_archived).length,
-    archived: jobs.filter(j => j.is_archived || j.status === 'archived').length
+  // Count jobs by filter type for display
+  const getFilterLabel = (filter) => {
+    const option = filterOptions.find(f => f.value === filter);
+    return option?.label || 'All Jobs';
   };
 
   return (
@@ -309,19 +309,100 @@ export function JobsList() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-4xl font-bold font-heading uppercase tracking-tight" style={{ color: 'var(--text)' }}>Jobs</h1>
-          <p className="text-muted-foreground mt-1">{jobs.length} jobs</p>
+          <p className="text-muted-foreground mt-1">{jobs.length} {getFilterLabel(filterType).toLowerCase()}</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="neon-glow" data-testid="add-job-btn">
-              <Plus className="h-4 w-4 mr-2" /> New Job
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle className="font-heading uppercase">New Job</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="flex gap-2">
+          {/* New Quote / New Job dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="neon-glow" data-testid="add-job-btn">
+                <Plus className="h-4 w-4 mr-2" /> Create New
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem 
+                onClick={() => { setCreateMode('quote'); resetForm(); setIsDialogOpen(true); }}
+                data-testid="new-quote-option"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                New Quote
+                <span className="text-xs text-muted-foreground ml-2">(Pipeline)</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => { setCreateMode('job'); resetForm(); setFormData(prev => ({ ...prev, status: 'approved' })); setIsDialogOpen(true); }}
+                data-testid="new-job-option"
+              >
+                <Package className="h-4 w-4 mr-2" />
+                New Job
+                <span className="text-xs text-muted-foreground ml-2">(Ready for production)</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {/* Filter Bar */}
+      <Card className="bg-card border-border/50">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-[200px]" data-testid="job-filter-select">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {filterOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {/* Quick filter badges */}
+            <div className="hidden md:flex gap-2 ml-4">
+              {filterOptions.slice(1).map((opt) => (
+                <Badge 
+                  key={opt.value}
+                  variant={filterType === opt.value ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => setFilterType(opt.value)}
+                >
+                  {opt.label}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Create Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-heading uppercase flex items-center gap-2">
+              {createMode === 'quote' ? (
+                <><FileText className="h-5 w-5" /> New Quote</>
+              ) : (
+                <><Package className="h-5 w-5" /> New Job</>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Mode indicator */}
+            <div className={cn(
+              "p-3 rounded-lg border text-sm",
+              createMode === 'quote' 
+                ? "bg-amber-50 border-amber-200 text-amber-800"
+                : "bg-green-50 border-green-200 text-green-800"
+            )}>
+              {createMode === 'quote' ? (
+                <p><strong>Quote Mode:</strong> This will create a job in the pipeline (quote stage). Approve it later to move to production.</p>
+              ) : (
+                <p><strong>Job Mode:</strong> This will create a job ready for production (approved status).</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Customer *</Label>
                 <Select
@@ -338,6 +419,26 @@ export function JobsList() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>Due Date</Label>
+                <Input
+                  type="date"
+                  value={formData.due_date}
+                  onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                  data-testid="job-due-date-input"
+                />
+              </div>
+            </div>
+              
+            <div className="space-y-2">
+              <Label>Job Name *</Label>
+              <Input
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., Main Street Banner Project"
+                data-testid="job-name-input"
+              />
+            </div>
               <div className="space-y-2">
                 <Label>Job Name *</Label>
                 <Input
