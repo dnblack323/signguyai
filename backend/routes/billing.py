@@ -687,8 +687,8 @@ async def get_trial_credits(
         "credits_amount": credits,
         "credits_used": credits_used,
         "extended_trial_paid": extended_paid,
-        "eligible_for_tier3": credits > 0 and not credits_used,
-        "message": f"${credits:.2f} credit available towards Tier 3" if credits > 0 and not credits_used else None
+        "eligible_for_business": credits > 0 and not credits_used,
+        "message": f"${credits:.2f} credit available towards Business subscription" if credits > 0 and not credits_used else None
     }
 
 
