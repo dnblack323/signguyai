@@ -186,7 +186,6 @@ async def get_jobs(
     
     jobs = await db.jobs.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
     return jobs
-    return jobs
 
 
 @router.get("/{job_id}", response_model=Job)
