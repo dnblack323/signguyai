@@ -203,7 +203,7 @@ async def get_pricing_plans(db = Depends(get_db)):
             "All features unlocked",
             "Live support access",
             "Onboarding assistance",
-            "$19.99 credits to Tier 3 subscription"
+            "$19.99 credits to Business subscription"
         ]
     )
     
