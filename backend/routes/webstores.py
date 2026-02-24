@@ -411,14 +411,14 @@ async def get_apparel_defaults():
 
 @products_router.get("", response_model=List[Product])
 async def get_products(
-    category: Optional[str] = None,
+    category: Optional[ProductCategory] = None,
     is_active: Optional[bool] = None,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """List all products in the master catalog"""
     query = {"tenant_id": current_user.tenant_id}
     if category:
-        query["category"] = category
+        query["category"] = category.value
     if is_active is not None:
         query["is_active"] = is_active
     products = await db.products.find(query, {"_id": 0}).to_list(500)
