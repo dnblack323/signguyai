@@ -110,7 +110,7 @@ async def get_pricing_plans(db = Depends(get_db)):
     
     plans = []
     
-    # Tier 1
+    # Starter
     t1 = pricing[SubscriptionPlan.TIER_1]
     plans.append(PricingPlan(
         id=SubscriptionPlan.TIER_1.value,
@@ -130,7 +130,7 @@ async def get_pricing_plans(db = Depends(get_db)):
         is_popular=False
     ))
     
-    # Tier 2
+    # Pro
     t2 = pricing[SubscriptionPlan.TIER_2]
     plans.append(PricingPlan(
         id=SubscriptionPlan.TIER_2.value,
@@ -150,7 +150,7 @@ async def get_pricing_plans(db = Depends(get_db)):
         is_popular=True
     ))
     
-    # Tier 3
+    # Business
     t3 = pricing[SubscriptionPlan.TIER_3]
     plans.append(PricingPlan(
         id=SubscriptionPlan.TIER_3.value,
