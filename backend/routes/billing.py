@@ -344,7 +344,7 @@ async def create_checkout_session(
         else:
             amount += float(ai_info["amount"])
     
-    # Check for trial credits to apply (only for Tier 3)
+    # Check for trial credits to apply (only for Business tier)
     trial_credits = 0
     if request.apply_trial_credits and request.plan == SubscriptionPlan.TIER_3:
         existing_sub = await db.subscriptions.find_one({
