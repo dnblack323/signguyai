@@ -415,7 +415,7 @@ def get_pro_tier() -> TierConfig:
 
 
 def get_business_tier() -> TierConfig:
-    """Tier 3 - Business: Everything ON. For shops that outgrew everyone else."""
+    """Business Tier: Everything ON. For shops that outgrew everyone else."""
     return TierConfig(
         name="business",
         level=TierLevel.BUSINESS,
