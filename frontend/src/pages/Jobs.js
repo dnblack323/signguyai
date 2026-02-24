@@ -598,6 +598,18 @@ export function JobsList() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* Show Approve button for quotes */}
+                      {job.status === 'quote' && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={(e) => { e.stopPropagation(); handleApprove(job.id); }}
+                          data-testid={`approve-job-${job.id}`}
+                        >
+                          <ArrowRightCircle className="h-4 w-4 mr-1" /> Approve
+                        </Button>
+                      )}
                       <Button
                         variant="default"
                         size="sm"
@@ -617,7 +629,13 @@ export function JobsList() {
                           <DropdownMenuItem onClick={() => navigate(`/jobs/${job.id}`)}>
                             <Eye className="h-4 w-4 mr-2" /> View Details
                           </DropdownMenuItem>
-                          {job.status !== 'complete' && job.status !== 'archived' && (
+                          {/* Approve option for quotes */}
+                          {job.status === 'quote' && (
+                            <DropdownMenuItem onClick={() => handleApprove(job.id)}>
+                              <ArrowRightCircle className="h-4 w-4 mr-2 text-green-600" /> Approve Quote
+                            </DropdownMenuItem>
+                          )}
+                          {job.status !== 'completed' && job.status !== 'archived' && job.status !== 'quote' && (
                             <DropdownMenuItem onClick={() => handleComplete(job.id)}>
                               <CheckCircle className="h-4 w-4 mr-2" /> Mark Complete
                             </DropdownMenuItem>
