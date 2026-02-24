@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -45,14 +45,16 @@ import {
   MoreHorizontal, CheckCircle, Archive, ArchiveRestore, Clock,
   FileText, MessageSquare, Activity, DollarSign, User, ExternalLink,
   ChevronRight, Send, CalendarPlus, Calculator, Play, Square, Timer, Loader2,
-  GitBranch, ArrowRight
+  GitBranch, ArrowRight, ArrowRightCircle, Filter
 } from 'lucide-react';
 import { toast } from 'sonner';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
 import PricingCalculatorModal, { PricingCalculatorButton } from '../components/PricingCalculatorModal';
 
-const statusOptions = ['quoted', 'approved', 'in_production', 'installed', 'complete', 'archived'];
-const activeStatuses = ['quoted', 'approved', 'in_production', 'installed'];
+// Updated status options for unified system
+const statusOptions = ['quote', 'approved', 'in_progress', 'completed', 'invoiced', 'archived'];
+const activeStatuses = ['approved', 'in_progress'];  // Only these count as "active" production
+const quoteStatuses = ['quote'];  // Pipeline stage
 const taskTypes = [
   { value: 'design', label: 'Design' },
   { value: 'production', label: 'Production' },
@@ -61,22 +63,32 @@ const taskTypes = [
 ];
 
 const statusLabels = {
-  quoted: 'Quoted',
+  quote: 'Quote',
   approved: 'Approved',
-  in_production: 'In Production',
-  installed: 'Installed',
-  complete: 'Complete',
+  in_progress: 'In Progress',
+  completed: 'Completed',
+  invoiced: 'Invoiced',
   archived: 'Archived'
 };
 
 const statusColors = {
-  quoted: 'bg-gray-200 text-gray-800 border-gray-300',
+  quote: 'bg-amber-200 text-amber-800 border-amber-300',
   approved: 'bg-green-200 text-green-800 border-green-300',
-  in_production: 'bg-yellow-200 text-yellow-800 border-yellow-300',
-  installed: 'bg-purple-200 text-purple-800 border-purple-300',
-  complete: 'bg-blue-200 text-blue-800 border-blue-300',
+  in_progress: 'bg-yellow-200 text-yellow-800 border-yellow-300',
+  completed: 'bg-blue-200 text-blue-800 border-blue-300',
+  invoiced: 'bg-purple-200 text-purple-800 border-purple-300',
   archived: 'bg-slate-200 text-slate-800 border-slate-300'
 };
+
+// Filter options for the job board
+const filterOptions = [
+  { value: 'all', label: 'All Jobs' },
+  { value: 'quotes', label: 'Quotes (Pipeline)' },
+  { value: 'active', label: 'Active (Production)' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'invoiced', label: 'Invoiced' },
+  { value: 'archived', label: 'Archived' }
+];
 
 const itemTypes = [
   'banner', 'yard_sign', 'decal', 'wrap', 'install', 'design',
