@@ -1,20 +1,25 @@
 """
-Job Management Routes
+Job Management Routes (Unified with Quotes)
 
 This module contains all routes related to:
-- Job CRUD operations
+- Job CRUD operations (including quote stage)
 - Job items (line items)
 - Job notes
 - Job activities (audit log)
 - Job status management (archive, complete, etc.)
+
+IMPORTANT: Quotes are now jobs with status="quote"
+- Creating a "quote" = creating a job with status="quote"
+- Approving a quote = updating job status to "approved"
+- No separate quote storage or collection
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional
 from datetime import datetime, timezone
 
 from models import (
-    Job, JobCreate, JobUpdate, JobStatus,
+    Job, JobCreate, JobUpdate, JobStatus, JobLineItem,
     JobItem, JobItemCreate, JobItemUpdate, JobItemStatus, JobItemType,
     JobNote, JobNoteCreate,
     JobActivity, JobActivityType,
