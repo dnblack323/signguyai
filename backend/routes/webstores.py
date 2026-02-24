@@ -1108,18 +1108,43 @@ async def create_webstore_order(input: WebstoreOrderCreate):
     )
     await db.jobs.insert_one(job.model_dump())
     
-    # Create job items from order
+    # Helper to map product category to job item type
+    def map_category_to_item_type(category: str) -> JobItemType:
+        category_map = {
+            "apparel": JobItemType.APPAREL,
+            "signs": JobItemType.SIGN,
+            "decals": JobItemType.DECAL,
+            "promotional": JobItemType.PROMO,
+            "other": JobItemType.OTHER,
+        }
+        return category_map.get(category, JobItemType.OTHER)
+    
+    # Create job items from order with back-references
     for order_item in order_items:
+        # Get the product to determine category
+        product = await db.products.find_one(
+            {"id": order_item.product_id, "tenant_id": tenant_id},
+            {"_id": 0, "category": 1}
+        )
+        item_type = map_category_to_item_type(product.get("category") if product else "other")
+        
         job_item = JobItem(
             job_id=job.id,
-            item_type=JobItemType.OTHER,
+            item_type=item_type,
             description=f"{order_item.product_name}" + (f" - {order_item.variant_name}" if order_item.variant_name else ""),
             quantity=order_item.quantity,
             unit_price=order_item.unit_price,
             line_total=order_item.item_total,
             status=JobItemStatus.PENDING
         )
-        await db.job_items.insert_one(job_item.model_dump())
+        
+        # Store job item with back-references
+        job_item_data = job_item.model_dump()
+        job_item_data["webstore_order_id"] = None  # Will be set after order is created
+        job_item_data["webstore_order_item_product_id"] = order_item.product_id
+        job_item_data["variant_id"] = order_item.variant_id
+        
+        await db.job_items.insert_one(job_item_data)
     
     # Update job subtotal
     await db.jobs.update_one(
