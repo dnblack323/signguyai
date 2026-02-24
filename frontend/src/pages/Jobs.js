@@ -133,19 +133,24 @@ const activityIcons = {
 // ============ JOBS LIST COMPONENT ============
 export function JobsList() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { 
     jobs, customers, fetchJobs, fetchCustomers, 
-    createJob, updateJob, deleteJob, completeJob, archiveJob
+    createJob, updateJob, deleteJob, completeJob, archiveJob, approveJob
   } = useApp();
   const [loading, setLoading] = useState(true);
-  const [filterType, setFilterType] = useState('active');
+  // Get filter from URL params, default to 'all'
+  const filterType = searchParams.get('filter') || 'all';
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [createMode, setCreateMode] = useState('quote'); // 'quote' or 'job'
   const [formData, setFormData] = useState({
     customer_id: '',
     name: '',
     description: '',
-    status: 'quoted',
-    due_date: ''
+    notes: '',
+    status: 'quote',
+    due_date: '',
+    line_items: [{ description: '', quantity: 1, unit_price: '' }]
   });
 
   useEffect(() => {
@@ -161,21 +166,82 @@ export function JobsList() {
     setLoading(false);
   };
 
+  const setFilterType = (newFilter) => {
+    setSearchParams({ filter: newFilter });
+  };
+
+  // Calculate total from line items
+  const calculateTotal = () => {
+    return formData.line_items.reduce((sum, item) => {
+      const qty = parseFloat(item.quantity) || 0;
+      const price = parseFloat(item.unit_price) || 0;
+      return sum + (qty * price);
+    }, 0);
+  };
+
+  const addLineItem = () => {
+    setFormData({
+      ...formData,
+      line_items: [...formData.line_items, { description: '', quantity: 1, unit_price: '' }]
+    });
+  };
+
+  const updateLineItem = (index, field, value) => {
+    const newItems = [...formData.line_items];
+    newItems[index][field] = value;
+    setFormData({ ...formData, line_items: newItems });
+  };
+
+  const removeLineItem = (index) => {
+    if (formData.line_items.length > 1) {
+      const newItems = formData.line_items.filter((_, i) => i !== index);
+      setFormData({ ...formData, line_items: newItems });
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.customer_id || !formData.name.trim()) {
       toast.error('Please fill in required fields');
       return;
     }
+    
+    // Clean line items - convert strings to numbers
+    const cleanedLineItems = formData.line_items
+      .filter(item => item.description.trim()) // Only include items with descriptions
+      .map(item => ({
+        ...item,
+        quantity: parseFloat(item.quantity) || 1,
+        unit_price: parseFloat(item.unit_price) || 0
+      }));
+    
     try {
-      const newJob = await createJob(formData);
-      toast.success('Job created');
+      const jobData = {
+        ...formData,
+        line_items: cleanedLineItems,
+        status: createMode === 'job' ? 'approved' : 'quote'
+      };
+      const newJob = await createJob(jobData);
+      toast.success(createMode === 'job' ? 'Job created' : 'Quote created');
       setIsDialogOpen(false);
-      setFormData({ customer_id: '', name: '', description: '', status: 'quoted', due_date: '' });
+      resetForm();
       navigate(`/jobs/${newJob.id}`);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to create job');
+      toast.error(err.response?.data?.detail || 'Failed to create');
     }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      customer_id: '',
+      name: '',
+      description: '',
+      notes: '',
+      status: 'quote',
+      due_date: '',
+      line_items: [{ description: '', quantity: 1, unit_price: '' }]
+    });
+    setCreateMode('quote');
   };
 
   const handleStatusChange = async (jobId, newStatus) => {
@@ -184,6 +250,16 @@ export function JobsList() {
       toast.success('Status updated');
     } catch (err) {
       toast.error('Failed to update status');
+    }
+  };
+
+  const handleApprove = async (jobId) => {
+    try {
+      await approveJob(jobId);
+      toast.success('Quote approved - ready for production!');
+      loadData();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to approve');
     }
   };
 
