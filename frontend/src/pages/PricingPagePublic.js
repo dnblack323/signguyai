@@ -355,7 +355,7 @@ export default function PricingPagePublic() {
                     Start Extended Trial
                   </Button>
                 </Link>
-                <p className="text-xs text-gray-500 mt-2">Credits toward Tier 3 subscription</p>
+                <p className="text-xs text-gray-500 mt-2">Credits toward Business subscription</p>
               </div>
             </CardContent>
           </Card>
