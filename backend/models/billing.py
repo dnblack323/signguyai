@@ -70,13 +70,13 @@ FOUNDER_PRICING = {
         "name": "14-Day Extended Trial",
         "amount": 19.99,
         "amount_annual": 19.99,  # One-time, no annual
-        "description": "Full platform access for 14 days. Credits toward Tier 3!",
+        "description": "Full platform access for 14 days. Credits toward Business subscription!",
         "trial_days": 14,
-        "tier": "tier_3",  # Gets full Tier 3 access during trial
+        "tier": "business",  # Gets full Business tier access during trial
         "credits_to_tier3": True,
     },
     SubscriptionPlan.TIER_1: {
-        "name": "Tier 1 – Founder",
+        "name": "Starter – Founder",
         "display_name": "Starter Shop",
         "amount": 79.00,
         "amount_annual": 790.00,  # 10 months (save 2 months)
@@ -89,7 +89,7 @@ FOUNDER_PRICING = {
         "onboarding_fee": 0,  # Founders never pay
     },
     SubscriptionPlan.TIER_2: {
-        "name": "Tier 2 – Founder",
+        "name": "Pro – Founder",
         "display_name": "Growth Shop",
         "amount": 129.00,
         "amount_annual": 1290.00,  # 10 months (save 2 months)
@@ -102,7 +102,7 @@ FOUNDER_PRICING = {
         "onboarding_fee": 0,
     },
     SubscriptionPlan.TIER_3: {
-        "name": "Tier 3 – Founder",
+        "name": "Business – Founder",
         "display_name": "Pro Shop",
         "amount": 199.00,
         "amount_annual": 1990.00,  # 10 months (save 2 months)
