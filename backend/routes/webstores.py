@@ -477,6 +477,8 @@ async def update_product(
         update_data["variants"] = variants
     
     if update_data:
+        # Always set updated_at on product update
+        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
         await db.products.update_one(
             {"id": product_id, "tenant_id": current_user.tenant_id}, 
             {"$set": update_data}
