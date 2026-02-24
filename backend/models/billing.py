@@ -185,16 +185,16 @@ STANDARD_PRICING = {
     },
 }
 
-# Tier feature mapping
+# Tier display names (for UI)
 TIER_NAMES = {
-    "starter": "Tier 1",
-    "pro": "Tier 2", 
-    "business": "Tier 3",
+    "starter": "Starter",
+    "pro": "Pro", 
+    "business": "Business",
 }
 
 # Features by tier for display
 TIER_FEATURES = {
-    "starter": [  # Tier 1
+    "starter": [
         "Customer Management",
         "Quotes & Jobs",
         "Basic Invoicing",
@@ -204,8 +204,8 @@ TIER_FEATURES = {
         "100MB Storage",
         "Email Support",
     ],
-    "pro": [  # Tier 2
-        "Everything in Tier 1, plus:",
+    "pro": [
+        "Everything in Starter, plus:",
         "5 Webstores",
         "100 AI generations/month",
         "5 Team members",
@@ -215,8 +215,8 @@ TIER_FEATURES = {
         "Advanced Analytics",
         "Priority Support",
     ],
-    "business": [  # Tier 3
-        "Everything in Tier 2, plus:",
+    "business": [
+        "Everything in Pro, plus:",
         "Unlimited Webstores",
         "Unlimited AI generations",
         "Unlimited Team members",
