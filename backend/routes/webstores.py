@@ -1170,7 +1170,13 @@ async def create_webstore_order(input: WebstoreOrderCreate):
     
     await db.webstore_orders_v2.insert_one(order.model_dump())
     
-    # Update webstore stats
+    # Update job items with back-reference to order ID
+    await db.job_items.update_many(
+        {"job_id": job.id, "webstore_order_id": None},
+        {"$set": {"webstore_order_id": order.id}}
+    )
+    
+    # Update webstore stats - increment payout_owed
     await db.webstores_v2.update_one(
         {"id": input.webstore_id},
         {"$inc": {
