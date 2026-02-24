@@ -86,10 +86,12 @@ async def get_dashboard_stats(current_user: UserInDB = Depends(get_current_activ
     # Count customers
     total_customers = await db.customers.count_documents({"tenant_id": tenant_id})
     
-    # Count active jobs (not complete/delivered/cancelled)
+    # Count active jobs (approved and in_progress - NOT quotes)
+    # Quotes are pipeline stage, not active production
     active_jobs = await db.jobs.count_documents({
         "tenant_id": tenant_id,
-        "status": {"$nin": ["complete", "delivered", "cancelled"]}
+        "status": {"$in": ["approved", "in_progress"]},
+        "is_archived": {"$ne": True}
     })
     
     # Count pending invoices (sent but not paid)
