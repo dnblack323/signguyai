@@ -444,7 +444,7 @@ export default function PricingPage() {
                   {checkoutLoading === 'extended_trial' ? 'Processing...' : 'Start Extended Trial'}
                 </Button>
                 <p className="text-xs text-[var(--text-secondary)] mt-2 text-center">
-                  Credits toward Tier 3 subscription
+                  Credits toward Business subscription
                 </p>
               </div>
             </div>
