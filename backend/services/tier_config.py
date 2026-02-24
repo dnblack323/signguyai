@@ -15,7 +15,7 @@ from models.tiers import (
 
 
 def get_starter_tier() -> TierConfig:
-    """Tier 1 - Starter (Free): Hook small shops without giving away crown jewels"""
+    """Starter Tier: Hook small shops without giving away crown jewels"""
     return TierConfig(
         name="starter",
         level=TierLevel.STARTER,
