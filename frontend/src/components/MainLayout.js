@@ -30,7 +30,6 @@ const navigationCategories = [
     icon: FileText,
     items: [
       { name: 'Customers', href: '/customers', icon: Users, permission: Permission.CUSTOMERS_VIEW },
-      { name: 'Quotes', href: '/quotes', icon: FileText, permission: Permission.QUOTES_VIEW },
       { name: 'Jobs', href: '/jobs', icon: Briefcase, permission: Permission.JOBS_VIEW },
       { name: 'Invoices', href: '/invoices', icon: Receipt, permission: Permission.INVOICES_VIEW },
     ]
