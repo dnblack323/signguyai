@@ -353,6 +353,67 @@ async def delete_job(
 
 # ============== JOB STATUS ACTIONS ==============
 
+@router.post("/{job_id}/approve")
+async def approve_job(
+    job_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """
+    Approve a job (move from quote stage to approved).
+    This is the action that converts a quote to a production job.
+    The same record is updated - no new record is created.
+    """
+    job = await db.jobs.find_one(
+        {"id": job_id, "tenant_id": current_user.tenant_id}, 
+        {"_id": 0}
+    )
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    if job.get("status") != JobStatus.QUOTE.value:
+        raise HTTPException(status_code=400, detail="Only jobs in quote stage can be approved")
+    
+    await db.jobs.update_one(
+        {"id": job_id}, 
+        {"$set": {
+            "status": JobStatus.APPROVED.value, 
+            "approved_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    await log_job_activity(job_id, JobActivityType.STATUS_CHANGED, "Quote approved - ready for production", JobStatus.QUOTE.value, JobStatus.APPROVED.value)
+    
+    return {"message": "Job approved and ready for production"}
+
+
+@router.post("/{job_id}/send")
+async def send_job_quote(
+    job_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Mark a job quote as sent to customer"""
+    job = await db.jobs.find_one(
+        {"id": job_id, "tenant_id": current_user.tenant_id}, 
+        {"_id": 0}
+    )
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    if job.get("status") != JobStatus.QUOTE.value:
+        raise HTTPException(status_code=400, detail="Only jobs in quote stage can be marked as sent")
+    
+    await db.jobs.update_one(
+        {"id": job_id}, 
+        {"$set": {
+            "sent_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    await log_job_activity(job_id, JobActivityType.STATUS_CHANGED, "Quote sent to customer")
+    
+    return {"message": "Quote marked as sent"}
+
+
 @router.post("/{job_id}/archive")
 async def archive_job(
     job_id: str,
@@ -396,11 +457,11 @@ async def unarchive_job(
         {"id": job_id}, 
         {"$set": {
             "is_archived": False, 
-            "status": JobStatus.COMPLETE.value, 
+            "status": JobStatus.COMPLETED.value, 
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
-    await log_job_activity(job_id, JobActivityType.UNARCHIVED, "Job unarchived", JobStatus.ARCHIVED.value, JobStatus.COMPLETE.value)
+    await log_job_activity(job_id, JobActivityType.UNARCHIVED, "Job unarchived", JobStatus.ARCHIVED.value, JobStatus.COMPLETED.value)
     
     return {"message": "Job unarchived"}
 
