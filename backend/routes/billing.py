@@ -1035,19 +1035,42 @@ async def stripe_webhook(request: Request, db = Depends(get_db)):
             subscription_id = event_data.subscription
             
             if subscription_id:
+                # Fetch updated subscription data from Stripe (source of truth)
+                update_fields = {
+                    "status": SubscriptionStatus.ACTIVE.value,
+                    "last_payment_at": now.isoformat(),
+                    "updated_at": now.isoformat()
+                }
+                
+                try:
+                    stripe_sub = stripe.Subscription.retrieve(subscription_id)
+                    update_fields["current_period_end"] = datetime.fromtimestamp(
+                        stripe_sub.current_period_end, tz=timezone.utc
+                    ).isoformat()
+                    update_fields["current_period_start"] = datetime.fromtimestamp(
+                        stripe_sub.current_period_start, tz=timezone.utc
+                    ).isoformat()
+                except stripe.error.StripeError:
+                    pass  # Use what we have
+                
                 # Successful renewal payment
                 await db.subscriptions.update_one(
                     {"stripe_subscription_id": subscription_id},
-                    {"$set": {
-                        "status": SubscriptionStatus.ACTIVE.value,
-                        "last_payment_at": now.isoformat(),
-                        "updated_at": now.isoformat()
-                    }}
+                    {"$set": update_fields}
                 )
+                
+                # Also update tenant status to active
+                sub = await db.subscriptions.find_one({"stripe_subscription_id": subscription_id}, {"_id": 0})
+                if sub:
+                    await db.tenants.update_one(
+                        {"id": sub["tenant_id"]},
+                        {"$set": {"subscription_status": "active", "updated_at": now.isoformat()}}
+                    )
                 
                 # Record payment in transactions
                 await db.payment_transactions.insert_one({
                     "id": str(uuid.uuid4()),
+                    "tenant_id": sub.get("tenant_id") if sub else None,
                     "stripe_invoice_id": event_data.id,
                     "stripe_subscription_id": subscription_id,
                     "amount": event_data.amount_paid / 100,  # Convert from cents
