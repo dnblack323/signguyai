@@ -1197,7 +1197,11 @@ async def create_job_from_order(
     order_id: str,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Create a job from a webstore order"""
+    """
+    Create a job from a webstore order.
+    
+    IDEMPOTENT: If job already exists for this order, returns existing job_id.
+    """
     order = await db.webstore_orders_v2.find_one({"id": order_id}, {"_id": 0})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -1210,8 +1214,9 @@ async def create_job_from_order(
     if not webstore:
         raise HTTPException(status_code=404, detail="Order not found")
     
+    # IDEMPOTENT: If job already exists, return it instead of error
     if order.get("job_id"):
-        raise HTTPException(status_code=400, detail="Job already created for this order")
+        return {"message": "Job already exists for this order", "job_id": order["job_id"]}
     
     # Create or find customer (tenant-filtered)
     customer = await db.customers.find_one(
@@ -1229,6 +1234,17 @@ async def create_job_from_order(
         await db.customers.insert_one(customer.model_dump())
         customer = customer.model_dump()
     
+    # Helper to map product category to job item type
+    def map_category_to_item_type(category: str) -> JobItemType:
+        category_map = {
+            "apparel": JobItemType.APPAREL,
+            "signs": JobItemType.SIGN,
+            "decals": JobItemType.DECAL,
+            "promotional": JobItemType.PROMO,
+            "other": JobItemType.OTHER,
+        }
+        return category_map.get(category, JobItemType.OTHER)
+    
     # Create job
     from models import Job, JobItem
     job = Job(
@@ -1240,18 +1256,32 @@ async def create_job_from_order(
     )
     await db.jobs.insert_one(job.model_dump())
     
-    # Create job items
+    # Create job items with proper type mapping and back-references
     for item in order.get("items", []):
+        # Get product to determine category
+        product = await db.products.find_one(
+            {"id": item.get("product_id"), "tenant_id": current_user.tenant_id},
+            {"_id": 0, "category": 1}
+        )
+        item_type = map_category_to_item_type(product.get("category") if product else "other")
+        
         job_item = JobItem(
             job_id=job.id,
-            item_type=JobItemType.OTHER,
+            item_type=item_type,
             description=f"{item['product_name']}" + (f" - {item['variant_name']}" if item.get('variant_name') else ""),
             quantity=item["quantity"],
             unit_price=item["unit_price"],
             line_total=item["item_total"],
             status=JobItemStatus.PENDING
         )
-        await db.job_items.insert_one(job_item.model_dump())
+        
+        # Add back-references
+        job_item_data = job_item.model_dump()
+        job_item_data["webstore_order_id"] = order_id
+        job_item_data["webstore_order_item_product_id"] = item.get("product_id")
+        job_item_data["variant_id"] = item.get("variant_id")
+        
+        await db.job_items.insert_one(job_item_data)
     
     # Update job subtotal
     await db.jobs.update_one(
