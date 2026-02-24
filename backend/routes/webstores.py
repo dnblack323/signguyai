@@ -537,17 +537,17 @@ async def create_webstore(
 
 @webstores_router.get("", response_model=List[Webstore])
 async def get_webstores(
-    store_type: Optional[str] = None,
-    status: Optional[str] = None,
+    store_type: Optional[WebstoreType] = None,
+    status: Optional[WebstoreStatus] = None,
     is_public: Optional[bool] = None,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """List all webstores"""
     query = {"tenant_id": current_user.tenant_id}
     if store_type:
-        query["store_type"] = store_type
+        query["store_type"] = store_type.value
     if status:
-        query["status"] = status
+        query["status"] = status.value
     if is_public is not None:
         query["is_public"] = is_public
     webstores = await db.webstores_v2.find(query, {"_id": 0}).to_list(500)
