@@ -25,7 +25,6 @@ const shortcutCategories = [
     shortcuts: [
       { id: 'dashboard', name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
       { id: 'customers', name: 'Customers', href: '/customers', icon: Users },
-      { id: 'quotes', name: 'Quotes', href: '/quotes', icon: FileText },
       { id: 'jobs', name: 'Jobs', href: '/jobs', icon: Briefcase },
       { id: 'invoices', name: 'Invoices', href: '/invoices', icon: Receipt },
     ]
@@ -84,8 +83,8 @@ const shortcutCategories = [
 // Flatten all shortcuts for lookup
 const allShortcuts = shortcutCategories.flatMap(cat => cat.shortcuts);
 
-// Default shortcuts with separators
-const defaultShortcuts = ['dashboard', 'customers', 'quotes', 'jobs', 'invoices', '|', 'ai-tools', 'ai-assistant'];
+// Default shortcuts with separators - removed quotes, jobs handles both now
+const defaultShortcuts = ['dashboard', 'customers', 'jobs', 'invoices', '|', 'ai-tools', 'ai-assistant'];
 
 const STORAGE_KEY = 'toolbar_shortcuts_v2';
 
