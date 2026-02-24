@@ -311,14 +311,27 @@ async def create_checkout_session(
     db = Depends(get_db),
     current_user: UserInDB = Depends(get_current_user_billing)
 ):
-    """Create a Stripe checkout session for subscription"""
-    from emergentintegrations.payments.stripe.checkout import (
-        StripeCheckout, CheckoutSessionRequest
-    )
+    """
+    Create a Stripe checkout session for subscription.
+    
+    For regular plans (tier_1, tier_2, tier_3, ai_addon):
+        - Creates a Stripe SUBSCRIPTION checkout (mode=subscription)
+        - Uses pre-created Stripe Price IDs from environment variables
+        - Stripe manages billing cycles and renewal
+        
+    For extended_trial:
+        - Creates a ONE-TIME PAYMENT checkout (mode=payment)
+        - Grants 14-day full access
+        - $19.99 credits toward future Business subscription
+    """
+    import stripe
+    from models.billing import get_stripe_price_id
     
     api_key = os.environ.get('STRIPE_SECRET_KEY')
     if not api_key:
         raise HTTPException(status_code=500, detail="Stripe not configured")
+    
+    stripe.api_key = api_key
     
     # Check if founder pricing is available
     is_founder = await is_founder_pricing_available(db)
@@ -330,22 +343,142 @@ async def create_checkout_session(
     
     plan_info = pricing[request.plan]
     is_annual = request.billing_interval == "annual"
+    billing_interval = "annual" if is_annual else "monthly"
     
-    # Get the correct amount based on billing interval
-    if is_annual and plan_info.get("amount_annual"):
-        amount = float(plan_info["amount_annual"])
+    # Build URLs
+    origin = request.origin_url.rstrip('/')
+    success_url = f"{origin}/billing/success?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{origin}/billing/cancel"
+    
+    # Metadata for webhook processing
+    metadata = {
+        "tenant_id": current_user.tenant_id,
+        "user_id": current_user.id,
+        "email": current_user.email,
+        "plan": request.plan.value,
+        "tier": plan_info["tier"],
+        "is_founder": str(is_founder).lower(),
+        "include_ai_addon": str(request.include_ai_addon).lower(),
+        "billing_interval": billing_interval,
+    }
+    
+    # ==================== EXTENDED TRIAL: ONE-TIME PAYMENT ====================
+    if request.plan == SubscriptionPlan.EXTENDED_TRIAL:
+        # Extended trial is a ONE-TIME payment, NOT a subscription
+        amount = int(plan_info["amount"] * 100)  # Convert to cents
+        
+        try:
+            session = stripe.checkout.Session.create(
+                mode="payment",
+                payment_method_types=["card"],
+                line_items=[{
+                    "price_data": {
+                        "currency": "usd",
+                        "unit_amount": amount,
+                        "product_data": {
+                            "name": "14-Day Extended Trial",
+                            "description": "Full platform access for 14 days. Credits toward Business subscription!",
+                        },
+                    },
+                    "quantity": 1,
+                }],
+                customer_email=current_user.email,
+                success_url=success_url,
+                cancel_url=cancel_url,
+                metadata=metadata,
+            )
+        except stripe.error.StripeError as e:
+            raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
+        
+        # Record transaction
+        transaction = PaymentTransaction(
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            email=current_user.email,
+            stripe_session_id=session.id,
+            amount=plan_info["amount"],
+            currency="usd",
+            plan=request.plan,
+            payment_status=PaymentStatus.INITIATED,
+            is_founder_purchase=is_founder,
+            metadata={
+                "plan_name": plan_info["name"],
+                "tier": plan_info["tier"],
+                "checkout_mode": "payment",  # One-time
+            }
+        )
+        await db.payment_transactions.insert_one(transaction.model_dump())
+        
+        return CheckoutResponse(url=session.url, session_id=session.id)
+    
+    # ==================== REGULAR PLANS: SUBSCRIPTION ====================
+    # Build line items using Stripe Price IDs
+    line_items = []
+    
+    # Get the main plan price ID
+    main_price_id = get_stripe_price_id(request.plan.value, billing_interval)
+    
+    if main_price_id:
+        # Use pre-created Stripe Price
+        line_items.append({
+            "price": main_price_id,
+            "quantity": 1,
+        })
     else:
-        amount = float(plan_info["amount"])
+        # Fallback: Create price_data dynamically (for development/testing)
+        if is_annual and plan_info.get("amount_annual"):
+            amount = int(plan_info["amount_annual"] * 100)
+            interval = "year"
+        else:
+            amount = int(plan_info["amount"] * 100)
+            interval = "month"
+        
+        line_items.append({
+            "price_data": {
+                "currency": "usd",
+                "unit_amount": amount,
+                "recurring": {"interval": interval},
+                "product_data": {
+                    "name": plan_info["name"],
+                    "description": plan_info.get("description", ""),
+                },
+            },
+            "quantity": 1,
+        })
     
     # Add AI addon if requested
     if request.include_ai_addon and request.plan != SubscriptionPlan.AI_ADDON:
         ai_info = pricing[SubscriptionPlan.AI_ADDON]
-        if is_annual and ai_info.get("amount_annual"):
-            amount += float(ai_info["amount_annual"])
+        ai_price_id = get_stripe_price_id("ai_addon", billing_interval)
+        
+        if ai_price_id:
+            line_items.append({
+                "price": ai_price_id,
+                "quantity": 1,
+            })
         else:
-            amount += float(ai_info["amount"])
+            # Fallback: dynamic price_data
+            if is_annual and ai_info.get("amount_annual"):
+                ai_amount = int(ai_info["amount_annual"] * 100)
+                interval = "year"
+            else:
+                ai_amount = int(ai_info["amount"] * 100)
+                interval = "month"
+            
+            line_items.append({
+                "price_data": {
+                    "currency": "usd",
+                    "unit_amount": ai_amount,
+                    "recurring": {"interval": interval},
+                    "product_data": {
+                        "name": ai_info["name"],
+                        "description": ai_info.get("description", ""),
+                    },
+                },
+                "quantity": 1,
+            })
     
-    # Check for trial credits to apply (only for Business tier)
+    # Check for trial credits (only for Business tier)
     trial_credits = 0
     if request.apply_trial_credits and request.plan == SubscriptionPlan.TIER_3:
         existing_sub = await db.subscriptions.find_one({
@@ -355,44 +488,52 @@ async def create_checkout_session(
         })
         if existing_sub:
             trial_credits = existing_sub.get("trial_credits_applied", 0)
-            if trial_credits > 0:
-                amount = max(0, amount - trial_credits)
     
-    # Build URLs
-    origin = request.origin_url.rstrip('/')
-    success_url = f"{origin}/billing/success?session_id={{CHECKOUT_SESSION_ID}}"
-    cancel_url = f"{origin}/billing/cancel"
+    metadata["trial_credits_applied"] = str(trial_credits)
     
-    # Create checkout session
-    webhook_url = f"{str(http_request.base_url).rstrip('/')}/api/webhook/stripe"
-    stripe_checkout = StripeCheckout(api_key=api_key, webhook_url=webhook_url)
-    
-    checkout_request = CheckoutSessionRequest(
-        amount=amount,
-        currency="usd",
-        success_url=success_url,
-        cancel_url=cancel_url,
-        metadata={
-            "tenant_id": current_user.tenant_id,
-            "user_id": current_user.id,
-            "email": current_user.email,
-            "plan": request.plan.value,
-            "tier": plan_info["tier"],
-            "is_founder": str(is_founder).lower(),
-            "include_ai_addon": str(request.include_ai_addon).lower(),
-            "billing_interval": request.billing_interval,
-            "trial_credits_applied": str(trial_credits)
+    # Create subscription checkout session
+    try:
+        session_params = {
+            "mode": "subscription",
+            "payment_method_types": ["card"],
+            "line_items": line_items,
+            "customer_email": current_user.email,
+            "success_url": success_url,
+            "cancel_url": cancel_url,
+            "metadata": metadata,
+            "subscription_data": {
+                "metadata": metadata,  # Also store on subscription for webhook access
+            },
         }
-    )
+        
+        # Apply trial credits as a discount if available
+        # Note: In production, you'd create a Stripe Coupon/Promotion Code
+        # For now, we track credits separately and apply manually
+        
+        session = stripe.checkout.Session.create(**session_params)
+        
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
     
-    session = await stripe_checkout.create_checkout_session(checkout_request)
+    # Calculate total amount for transaction record
+    if is_annual and plan_info.get("amount_annual"):
+        amount = float(plan_info["amount_annual"])
+    else:
+        amount = float(plan_info["amount"])
     
-    # Create payment transaction record
+    if request.include_ai_addon and request.plan != SubscriptionPlan.AI_ADDON:
+        ai_info = pricing[SubscriptionPlan.AI_ADDON]
+        if is_annual and ai_info.get("amount_annual"):
+            amount += float(ai_info["amount_annual"])
+        else:
+            amount += float(ai_info["amount"])
+    
+    # Record transaction
     transaction = PaymentTransaction(
         tenant_id=current_user.tenant_id,
         user_id=current_user.id,
         email=current_user.email,
-        stripe_session_id=session.session_id,
+        stripe_session_id=session.id,
         amount=amount,
         currency="usd",
         plan=request.plan,
@@ -402,14 +543,15 @@ async def create_checkout_session(
             "plan_name": plan_info["name"],
             "tier": plan_info["tier"],
             "include_ai_addon": request.include_ai_addon,
-            "billing_interval": request.billing_interval,
-            "trial_credits_applied": trial_credits
+            "billing_interval": billing_interval,
+            "trial_credits_applied": trial_credits,
+            "checkout_mode": "subscription",
         }
     )
     
     await db.payment_transactions.insert_one(transaction.model_dump())
     
-    return CheckoutResponse(url=session.url, session_id=session.session_id)
+    return CheckoutResponse(url=session.url, session_id=session.id)
 
 
 @router.get("/checkout/status/{session_id}")
