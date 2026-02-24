@@ -286,7 +286,10 @@ async def get_public_store(webstore_id: str):
 
 @storefront_router.get("/{webstore_id}/products")
 async def get_public_store_products(webstore_id: str):
-    """Get products for a public webstore (no auth required)"""
+    """
+    Get products for a public webstore (no auth required).
+    Ensures products belong to the same tenant as the webstore.
+    """
     webstore = await db.webstores_v2.find_one(
         {"id": webstore_id}, 
         {"_id": 0}
@@ -298,21 +301,51 @@ async def get_public_store_products(webstore_id: str):
     if not webstore.get("is_public", True):
         raise HTTPException(status_code=404, detail="Store not found")
     
+    if webstore.get("status") != "active":
+        raise HTTPException(status_code=404, detail="Store is not currently available")
+    
+    tenant_id = webstore.get("tenant_id")
+    
     # Get all enabled product assignments for this webstore
     assignments = await db.webstore_products.find(
         {"webstore_id": webstore_id, "is_enabled": True}, 
         {"_id": 0}
     ).to_list(500)
     
-    # Enrich with product details
+    # Enrich with product details - TENANT SAFE
     products = []
     for a in assignments:
-        product = await db.products.find_one({"id": a["product_id"]}, {"_id": 0})
+        # Ensure product belongs to same tenant as webstore
+        product = await db.products.find_one(
+            {"id": a["product_id"], "tenant_id": tenant_id}, 
+            {"_id": 0}
+        )
         if product and product.get("is_active", True):
-            # Structure for storefront consumption
+            # Structure for storefront consumption - exclude sensitive fields
             enriched = {
                 "product_id": product["id"],
-                "product": product,
+                "product": {
+                    "id": product["id"],
+                    "name": product["name"],
+                    "description": product.get("description"),
+                    "category": product.get("category"),
+                    "retail_price": product.get("retail_price"),
+                    "images": product.get("images", []),
+                    "image_url": product.get("image_url"),
+                    "has_variants": product.get("has_variants", False),
+                    "variants": [
+                        {
+                            "id": v.get("id"),
+                            "name": v.get("name"),
+                            "size": v.get("size"),
+                            "color": v.get("color"),
+                            "additional_cost": v.get("additional_cost", 0),
+                            "is_available": v.get("is_available", True)
+                        }
+                        for v in product.get("variants", [])
+                        if v.get("is_available", True)
+                    ]
+                },
                 "price_override": a.get("price_override"),
                 "effective_price": a.get("price_override") or product["retail_price"]
             }
