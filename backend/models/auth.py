@@ -32,7 +32,7 @@ class TenantBase(BaseModel):
     country: str = "USA"
     website: Optional[str] = None
     logo_url: Optional[str] = None
-    plan: TenantPlan = TenantPlan.FREE
+    plan: TenantPlan = TenantPlan.STARTER  # Default to starter tier
     is_active: bool = True
     time_tracking_settings: Optional[TimeTrackingSettings] = None
 
