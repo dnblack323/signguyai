@@ -313,7 +313,8 @@ class TestWebstoreCheckoutStripeGate:
         webstore_data = {
             "name": "TEST_Webstore_Checkout",
             "description": "Test webstore for checkout",
-            "type": "business",
+            "store_type": "business",  # Correct field name
+            "owner_name": "Checkout Test Owner",  # Required field
             "is_public": True
         }
         
