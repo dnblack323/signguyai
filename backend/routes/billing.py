@@ -498,7 +498,7 @@ async def _activate_subscription(db, session_id: str, metadata: dict):
             "has_ai_addon": True,  # Full access during trial
             "trial_start": now.isoformat(),
             "trial_end": trial_end.isoformat(),
-            "trial_credits_applied": amount_paid,  # $19.99 credits toward Tier 3
+            "trial_credits_applied": amount_paid,  # $19.99 credits toward Business subscription
             "trial_credits_used": False,  # Not yet used
             "extended_trial_paid": True,
             "amount_paid": amount_paid,
