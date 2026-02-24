@@ -147,6 +147,18 @@ export const AppProvider = ({ children }) => {
     return res.data;
   };
 
+  const approveJob = async (jobId) => {
+    const res = await api.post(`/jobs/${jobId}/approve`);
+    await fetchJobs();
+    return res.data;
+  };
+
+  const sendJobQuote = async (jobId) => {
+    const res = await api.post(`/jobs/${jobId}/send`);
+    await fetchJobs();
+    return res.data;
+  };
+
   const completeJob = async (jobId) => {
     const res = await api.post(`/jobs/${jobId}/complete`);
     await fetchJobs();
