@@ -159,7 +159,10 @@ export default function Storefront() {
         }
       };
 
-      const paymentRes = await fetch(`${API}/api/stripe-connect/webstore/${storeId}/checkout?origin_url=${encodeURIComponent(window.location.href)}`, {
+      // Use clean origin URL (without query params)
+      const originUrl = `${window.location.origin}`;
+      
+      const paymentRes = await fetch(`${API}/api/stripe-connect/webstore/${storeId}/checkout?origin_url=${encodeURIComponent(originUrl)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(checkoutPayload)
@@ -173,7 +176,12 @@ export default function Storefront() {
         return;
       }
 
-      // Show error message
+      // Show specific error message based on response
+      if (paymentData.detail === "Store cannot accept payments at this time") {
+        throw new Error("This store is not yet set up to accept payments. Please contact the store owner.");
+      } else if (paymentData.detail === "Store payment setup incomplete") {
+        throw new Error("The store's payment system is still being configured. Please try again later.");
+      }
       throw new Error(paymentData.detail || 'Unable to process payment');
     } catch (err) {
       console.error('Checkout error:', err);
