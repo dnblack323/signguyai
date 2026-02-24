@@ -26,6 +26,51 @@ from typing import Optional, Dict, List, Any
 from enum import Enum
 from datetime import datetime, timezone
 import uuid
+import os
+
+
+# ============== STRIPE PRICE ID CONFIGURATION ==============
+# Maps plan + interval to Stripe Price IDs from environment variables
+
+def get_stripe_price_id(plan: str, billing_interval: str = "monthly") -> Optional[str]:
+    """
+    Get the Stripe Price ID for a given plan and billing interval.
+    Returns None if no price ID is configured (placeholder check).
+    """
+    price_map = {
+        ("tier_1", "monthly"): os.environ.get("STRIPE_PRICE_STARTER_MONTHLY"),
+        ("tier_1", "annual"): os.environ.get("STRIPE_PRICE_STARTER_ANNUAL"),
+        ("tier_2", "monthly"): os.environ.get("STRIPE_PRICE_PRO_MONTHLY"),
+        ("tier_2", "annual"): os.environ.get("STRIPE_PRICE_PRO_ANNUAL"),
+        ("tier_3", "monthly"): os.environ.get("STRIPE_PRICE_BUSINESS_MONTHLY"),
+        ("tier_3", "annual"): os.environ.get("STRIPE_PRICE_BUSINESS_ANNUAL"),
+        ("ai_addon", "monthly"): os.environ.get("STRIPE_PRICE_AI_ADDON_MONTHLY"),
+        ("ai_addon", "annual"): os.environ.get("STRIPE_PRICE_AI_ADDON_ANNUAL"),
+        ("extended_trial", "monthly"): os.environ.get("STRIPE_PRICE_EXTENDED_TRIAL"),
+    }
+    
+    price_id = price_map.get((plan, billing_interval))
+    
+    # Return None if it's a placeholder value
+    if price_id and "placeholder" in price_id:
+        return None
+    
+    return price_id
+
+
+def get_all_stripe_price_ids() -> Dict[str, str]:
+    """Get all configured Stripe Price IDs for debugging"""
+    return {
+        "starter_monthly": os.environ.get("STRIPE_PRICE_STARTER_MONTHLY", ""),
+        "starter_annual": os.environ.get("STRIPE_PRICE_STARTER_ANNUAL", ""),
+        "pro_monthly": os.environ.get("STRIPE_PRICE_PRO_MONTHLY", ""),
+        "pro_annual": os.environ.get("STRIPE_PRICE_PRO_ANNUAL", ""),
+        "business_monthly": os.environ.get("STRIPE_PRICE_BUSINESS_MONTHLY", ""),
+        "business_annual": os.environ.get("STRIPE_PRICE_BUSINESS_ANNUAL", ""),
+        "ai_addon_monthly": os.environ.get("STRIPE_PRICE_AI_ADDON_MONTHLY", ""),
+        "ai_addon_annual": os.environ.get("STRIPE_PRICE_AI_ADDON_ANNUAL", ""),
+        "extended_trial": os.environ.get("STRIPE_PRICE_EXTENDED_TRIAL", ""),
+    }
 
 
 class SubscriptionPlan(str, Enum):
