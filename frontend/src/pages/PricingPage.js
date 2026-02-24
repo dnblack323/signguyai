@@ -13,8 +13,27 @@ import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-// Tier icons and colors
+// Tier icons and colors - use canonical tier names (starter/pro/business)
 const tierConfig = {
+  starter: { 
+    icon: Zap, 
+    gradient: 'from-slate-500 to-slate-600',
+    bgGlow: 'bg-slate-500/10',
+    color: 'slate'
+  },
+  pro: { 
+    icon: Sparkles, 
+    gradient: 'from-blue-500 to-indigo-600',
+    bgGlow: 'bg-blue-500/10',
+    color: 'blue'
+  },
+  business: { 
+    icon: Crown, 
+    gradient: 'from-amber-500 to-orange-600',
+    bgGlow: 'bg-amber-500/10',
+    color: 'amber'
+  },
+  // Billing plan IDs (for checkout) - map to tier config
   tier_1: { 
     icon: Zap, 
     gradient: 'from-slate-500 to-slate-600',
