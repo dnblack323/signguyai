@@ -660,6 +660,41 @@ Dashboard, Customers, Quotes, Jobs, Invoices, AI Tools
 
 ## Recent Updates (Feb 24, 2026)
 
+### 🏷️ Tier Naming Standardization
+Unified all tier references across the entire codebase to use canonical names:
+
+**Canonical Tier Keys (single source of truth):**
+- `starter` - Display: "Starter"
+- `pro` - Display: "Pro"
+- `business` - Display: "Business"
+
+**Changes Made:**
+1. **Backend Models:** 
+   - Updated `TierLevel` enum comments
+   - Updated `TenantPlan` enum: `FREE` → `STARTER`
+   - Updated `TierConfig` display_names
+   - Fixed Extended Trial tier: `tier_3` → `business`
+
+2. **Billing System:**
+   - All FOUNDER_PRICING entries now use correct tier keys
+   - All STANDARD_PRICING entries now use correct tier keys
+   - Trial credits now reference "Business subscription"
+   - TIER_NAMES mapping updated
+
+3. **Frontend:**
+   - PricingPage.js updated to use canonical tier keys
+   - Extended trial shows "Credits toward Business subscription"
+   - Feature lists reference "Starter" and "Growth" instead of "Tier 1/2"
+
+4. **Migration Script:** Created `/app/backend/scripts/migrate_tier_names.py`
+   - Migrates old values: tier_1→starter, tier_2→pro, tier_3→business, free→starter
+   - Updates both tenant.plan and subscription.tier fields
+
+**Verification Endpoints:**
+- `GET /api/billing/pricing` returns tier values: starter/pro/business ✅
+- Extended trial tier = "business" ✅
+- New tenants default to "starter" plan ✅
+
 ### ⭐ MAJOR REFACTOR: Unified Quotes and Jobs System
 **A quote is not a separate object. A quote is a job in the "quote" stage.**
 
