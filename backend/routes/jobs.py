@@ -103,14 +103,37 @@ async def create_job(
     input: JobCreate,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Create a new job"""
-    job = Job(**input.model_dump())
+    """
+    Create a new job.
+    
+    - If status="quote": Creates a job in quote stage (not yet approved)
+    - If status="approved": Creates a job ready for production
+    - Default status is "quote" (pipeline stage)
+    """
+    # Calculate total from line items if present
+    total = 0
+    line_items_with_totals = []
+    if input.line_items:
+        for item in input.line_items:
+            item_dict = item.model_dump() if hasattr(item, 'model_dump') else item
+            item_total = item_dict.get('quantity', 1) * item_dict.get('unit_price', 0)
+            item_dict['total'] = item_total
+            line_items_with_totals.append(item_dict)
+            total += item_total
+    
+    job_data = input.model_dump()
+    job_data['line_items'] = line_items_with_totals
+    job_data['total'] = total
+    job_data['subtotal'] = total
+    
+    job = Job(**job_data)
     job.tenant_id = current_user.tenant_id
     doc = job.model_dump()
     await db.jobs.insert_one(doc)
     
     # Log creation
-    await log_job_activity(job.id, JobActivityType.CREATED, f"Job '{job.name}' created")
+    activity_desc = f"Quote '{job.name}' created" if job.status == JobStatus.QUOTE else f"Job '{job.name}' created"
+    await log_job_activity(job.id, JobActivityType.CREATED, activity_desc)
     
     return job
 
