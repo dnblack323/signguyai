@@ -917,7 +917,16 @@ async def update_webstore_product_status(
 
 @webstores_router.post("/orders", response_model=WebstoreOrder)
 async def create_webstore_order(input: WebstoreOrderCreate):
-    """Create a new order (public endpoint for customers) - auto-creates a job"""
+    """
+    Create a new order (public endpoint for customers) - auto-creates a job.
+    
+    Validates:
+    - All products exist and belong to the webstore's tenant
+    - All products are assigned and enabled in the webstore
+    - All variants exist and are available
+    - Quantities are >= 1
+    - Prices are non-negative
+    """
     # Get webstore
     webstore = await db.webstores_v2.find_one({"id": input.webstore_id}, {"_id": 0})
     if not webstore:
@@ -926,20 +935,89 @@ async def create_webstore_order(input: WebstoreOrderCreate):
     if webstore.get("status") != "active":
         raise HTTPException(status_code=400, detail="This store is not accepting orders")
     
+    if not webstore.get("is_public", True):
+        raise HTTPException(status_code=400, detail="This store is not available for orders")
+    
     tenant_id = webstore.get("tenant_id")
     
-    # Process items
+    # ==================== VALIDATION PHASE ====================
+    invalid_items = []
+    validation_errors = []
+    
+    for idx, item in enumerate(input.items):
+        product_id = item.get("product_id")
+        
+        # Validate quantity
+        quantity = item.get("quantity", 1)
+        if quantity < 1:
+            validation_errors.append(f"Item {idx}: quantity must be >= 1 (got {quantity})")
+            continue
+        
+        # Check product exists AND belongs to same tenant
+        product = await db.products.find_one(
+            {"id": product_id, "tenant_id": tenant_id}, 
+            {"_id": 0}
+        )
+        if not product:
+            invalid_items.append(product_id)
+            continue
+        
+        # Check product is active
+        if not product.get("is_active", True):
+            invalid_items.append(product_id)
+            continue
+        
+        # Check product is assigned AND enabled in this webstore
+        assignment = await db.webstore_products.find_one({
+            "webstore_id": input.webstore_id,
+            "product_id": product_id,
+            "is_enabled": True
+        }, {"_id": 0})
+        
+        if not assignment:
+            validation_errors.append(f"Product '{product.get('name', product_id)}' is not available in this store")
+            continue
+        
+        # Validate variant if provided
+        variant_id = item.get("variant_id")
+        if variant_id and product.get("variants"):
+            variant_found = False
+            for v in product["variants"]:
+                if v["id"] == variant_id:
+                    if not v.get("is_available", True):
+                        validation_errors.append(f"Variant '{v.get('name', variant_id)}' is not available")
+                    else:
+                        variant_found = True
+                    break
+            if not variant_found and variant_id not in [v["id"] for v in product["variants"]]:
+                validation_errors.append(f"Invalid variant '{variant_id}' for product '{product.get('name')}'")
+    
+    # Return errors if any validation failed
+    if invalid_items:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid or unavailable products: {invalid_items}"
+        )
+    
+    if validation_errors:
+        raise HTTPException(
+            status_code=400,
+            detail={"message": "Order validation failed", "errors": validation_errors}
+        )
+    
+    # ==================== PROCESSING PHASE ====================
     order_items = []
     subtotal = 0
     total_cost = 0
     total_profit = 0
     
     for item in input.items:
-        product = await db.products.find_one({"id": item["product_id"]}, {"_id": 0})
-        if not product:
-            continue
+        product = await db.products.find_one(
+            {"id": item["product_id"], "tenant_id": tenant_id}, 
+            {"_id": 0}
+        )
         
-        # Check for price override
+        # Get price override from assignment
         assignment = await db.webstore_products.find_one({
             "webstore_id": input.webstore_id,
             "product_id": item["product_id"]
@@ -949,13 +1027,19 @@ async def create_webstore_order(input: WebstoreOrderCreate):
                       else product["retail_price"])
         base_cost = product["base_cost"]
         
+        # Validate price is non-negative
+        if unit_price < 0:
+            raise HTTPException(status_code=400, detail=f"Invalid price for product '{product['name']}'")
+        
         # Handle variant
         variant_name = None
-        if item.get("variant_id") and product.get("variants"):
+        variant_id = item.get("variant_id")
+        if variant_id and product.get("variants"):
             for v in product["variants"]:
-                if v["id"] == item["variant_id"]:
+                if v["id"] == variant_id:
                     variant_name = v.get("name")
                     base_cost += v.get("additional_cost", 0)
+                    unit_price += v.get("additional_cost", 0)  # Add to retail price too
                     break
         
         quantity = item.get("quantity", 1)
@@ -966,7 +1050,7 @@ async def create_webstore_order(input: WebstoreOrderCreate):
         order_items.append(WebstoreOrderItem(
             product_id=product["id"],
             product_name=product["name"],
-            variant_id=item.get("variant_id"),
+            variant_id=variant_id,
             variant_name=variant_name,
             quantity=quantity,
             unit_price=unit_price,
@@ -979,13 +1063,23 @@ async def create_webstore_order(input: WebstoreOrderCreate):
         total_cost += item_cost
         total_profit += item_profit
     
-    # Calculate commission
+    # ==================== COMMISSION CALCULATION ====================
     commission_amount = 0
-    if webstore.get("store_type") in ["fundraiser", "creator"]:
+    store_type = webstore.get("store_type")
+    
+    if store_type == "fundraiser":
+        # Fundraiser: use fundraiser_profit_percent
+        profit_percent = webstore.get("fundraiser_profit_percent", 0)
+        commission_amount = total_profit * (profit_percent / 100)
+    elif store_type == "creator":
+        # Creator: use creator_commission_type/value
         if webstore.get("creator_commission_type") == "percentage":
             commission_amount = total_profit * (webstore.get("creator_commission_value", 0) / 100)
         else:
             commission_amount = webstore.get("creator_commission_value", 0)
+    # Business stores: no commission (shop keeps all profit)
+    
+    # ==================== CUSTOMER & JOB CREATION ====================
     
     # Auto-create or find customer
     customer = await db.customers.find_one(
