@@ -137,7 +137,7 @@ STANDARD_PRICING = {
         "amount_annual": 19.99,
         "description": "Full platform access for 14 days",
         "trial_days": 14,
-        "tier": "tier_3",
+        "tier": "business",  # Gets full Business tier access during trial
     },
     SubscriptionPlan.TIER_1: {
         "name": "Shop Core",
