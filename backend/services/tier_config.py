@@ -215,7 +215,7 @@ def get_starter_tier() -> TierConfig:
 
 
 def get_pro_tier() -> TierConfig:
-    """Tier 2 - Pro: Where real shops live"""
+    """Pro Tier: Where real shops live"""
     return TierConfig(
         name="pro",
         level=TierLevel.PRO,
