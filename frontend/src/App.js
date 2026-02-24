@@ -114,7 +114,8 @@ function ProtectedRoutes() {
         <Routes>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/customers" element={<Customers />} />
-          <Route path="/quotes" element={<Quotes />} />
+          {/* Quotes redirect to Jobs with filter - quotes are now jobs with status=quote */}
+          <Route path="/quotes" element={<Navigate to="/jobs?filter=quotes" replace />} />
           <Route path="/jobs" element={<Jobs />} />
           <Route path="/jobs/:id" element={<JobDetails />} />
           <Route path="/invoices" element={<Invoices />} />
