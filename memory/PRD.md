@@ -660,6 +660,49 @@ Dashboard, Customers, Quotes, Jobs, Invoices, AI Tools
 
 ## Recent Updates (Feb 24, 2026)
 
+### ⭐ MAJOR REFACTOR: Unified Quotes and Jobs System
+**A quote is not a separate object. A quote is a job in the "quote" stage.**
+
+#### Architecture Changes:
+- **Single `jobs` collection** - No separate quotes storage
+- **Status-based filtering** - `quote`, `approved`, `in_progress`, `completed`, `invoiced`, `archived`
+- **Active Jobs** = Only `approved` + `in_progress` (NOT quotes)
+- **Quotes** = Jobs with `status="quote"` (pipeline stage)
+
+#### New Status Flow:
+```
+quote → approved → in_progress → completed → invoiced → archived
+  │         │
+  │         └── Ready for production
+  └── Pipeline stage (not yet approved)
+```
+
+#### Key Endpoints:
+- `POST /api/jobs` - Create job (status=quote or approved)
+- `POST /api/jobs/{id}/approve` - Approve quote (changes status, SAME record)
+- `POST /api/jobs/{id}/send` - Mark quote as sent to customer
+- `GET /api/jobs?filter_type=quotes` - Get only quotes
+- `GET /api/jobs?filter_type=active` - Get production jobs
+
+#### UI Changes:
+- **Jobs page** has unified view with status filter
+- **"Create New"** dropdown: "New Quote (Pipeline)" / "New Job (Ready for production)"
+- **Quick filter badges** for each status
+- **Approve button** on quote rows
+- **Sidebar** - "Quotes" link removed, only "Jobs"
+- **`/quotes` URL** redirects to `/jobs?filter=quotes`
+
+#### Data Integrity:
+- Same job ID preserved when approving (no record duplication)
+- `approved_at` timestamp set when quote approved
+- `sent_at` timestamp set when quote marked as sent
+
+#### Migration Completed:
+- 36 existing jobs migrated to new status values
+- `in_production` → `in_progress`
+- `quoted` → `quote`
+- `complete`/`installed` → `completed`
+
 ### Webstore Bug Fixes
 1. **Webstore Checkout Flow Improvements**
    - Fixed origin_url handling in checkout to use clean base URL
@@ -681,21 +724,9 @@ Dashboard, Customers, Quotes, Jobs, Invoices, AI Tools
    - Connect button redirects to Stripe onboarding
 
 ### Test Results:
-- Backend: 10/10 API tests passed
-- Frontend: 3/3 UI tests passed
+- Backend: 10/10 API tests passed for unified jobs system
+- Frontend: 5/5 UI tests passed
 - All webstore-related bug fixes verified
-
-## Pending User Decision
-
-### Line Item Form Inconsistency
-The Jobs page has a detailed dialog with Type, Status, Description, Quantity, Unit Price, and "Use Calculator" button. The Quotes page has a simpler inline form with just Description, Qty, and Price.
-
-**Options:**
-1. Simple inline form on both (like Quotes)
-2. Detailed dialog on both (like Jobs)
-3. Hybrid: Simple inline with optional "Use Calculator" button
-
-User feedback needed to unify the experience.
 
 ## Last Updated
 February 24, 2026
