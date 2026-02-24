@@ -3,9 +3,14 @@ Billing & Subscription Routes - Updated Pricing
 
 Pricing Structure:
 - 24-Hour Free Trial (no payment)
-- 14-Day Extended Trial ($19.99)
-- Founder Pricing (first 100): Tier 1 $79, Tier 2 $129, Tier 3 $199, AI Add-on $49
-- Standard Pricing (after 100): $129, $229, $379, $89
+- 14-Day Extended Trial ($19.99, credits to Business subscription)
+- Founder Pricing (first 100): Starter $79, Pro $129, Business $199, AI Add-on $49
+- Standard Pricing (after 100): Starter $129, Pro $229, Business $379, AI $89
+
+Tier Keys (canonical):
+- starter
+- pro
+- business
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Request
