@@ -19,6 +19,7 @@ from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 import os
 import jwt
+import uuid
 
 from models.billing import (
     SubscriptionPlan, SubscriptionStatus, PaymentStatus, BillingInterval,
