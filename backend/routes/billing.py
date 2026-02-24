@@ -1110,9 +1110,15 @@ async def _activate_subscription_v2(
     session_id: str, 
     metadata: dict,
     stripe_customer_id: str = None,
-    stripe_subscription_id: str = None
+    stripe_subscription_id: str = None,
+    current_period_end: str = None
 ):
-    """Activate subscription after successful checkout - stores Stripe IDs"""
+    """
+    Activate subscription after successful checkout.
+    
+    For real subscriptions: Stores Stripe IDs, period_end comes from Stripe.
+    For extended trial: One-time payment, 14-day access, no Stripe subscription.
+    """
     tenant_id = metadata.get("tenant_id")
     plan_str = metadata.get("plan")
     tier = metadata.get("tier", "starter")
@@ -1141,7 +1147,9 @@ async def _activate_subscription_v2(
     amount_paid = transaction.get("amount", 0) if transaction else 0
     
     if plan == SubscriptionPlan.EXTENDED_TRIAL:
-        # 14-day extended trial - NOT a recurring subscription
+        # ==================== EXTENDED TRIAL: ONE-TIME PAYMENT ====================
+        # NOT a recurring subscription - grants 14-day full access
+        # $19.99 credits toward future Business subscription
         trial_end = now + timedelta(days=14)
         subscription_data = {
             "tenant_id": tenant_id,
@@ -1153,17 +1161,18 @@ async def _activate_subscription_v2(
             "has_ai_addon": True,  # Full access during trial
             "trial_start": now.isoformat(),
             "trial_end": trial_end.isoformat(),
-            "trial_credits_applied": amount_paid,
+            "trial_credits_applied": amount_paid,  # $19.99 credit
             "trial_credits_used": False,
             "extended_trial_paid": True,
             "amount_paid": amount_paid,
             "stripe_customer_id": stripe_customer_id,
-            # No subscription_id for extended trial (one-time payment)
+            # No stripe_subscription_id for one-time payment
             "created_at": now.isoformat(),
             "updated_at": now.isoformat()
         }
     else:
-        # Real subscription - Stripe manages period_end
+        # ==================== REAL SUBSCRIPTION ====================
+        # Stripe is source of truth for billing cycle
         subscription_data = {
             "tenant_id": tenant_id,
             "plan": plan.value,
@@ -1175,13 +1184,16 @@ async def _activate_subscription_v2(
             "founder_locked_at": now.isoformat() if is_founder else None,
             "has_ai_addon": include_ai_addon or plan == SubscriptionPlan.AI_ADDON,
             "current_period_start": now.isoformat(),
-            # Let Stripe webhook update current_period_end from subscription data
             "amount_paid": amount_paid,
             "stripe_customer_id": stripe_customer_id,
             "stripe_subscription_id": stripe_subscription_id,
             "created_at": now.isoformat(),
             "updated_at": now.isoformat()
         }
+        
+        # Use Stripe's current_period_end if provided (source of truth)
+        if current_period_end:
+            subscription_data["current_period_end"] = current_period_end
         
         if trial_credits_applied > 0:
             subscription_data["trial_credits_used"] = True
