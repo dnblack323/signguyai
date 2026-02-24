@@ -355,7 +355,7 @@ export default function PricingPage() {
                       </p>
                     )}
                     
-                    {/* Trial credits note for Tier 3 */}
+                    {/* Trial credits note for Business tier */}
                     {plan.id === 'tier_3' && trialCredits?.has_credits && (
                       <p className="text-xs text-amber-500 mt-2 flex items-center gap-1">
                         <Gift className="w-3 h-3" />
