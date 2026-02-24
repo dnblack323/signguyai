@@ -457,7 +457,7 @@ const QuickActions = () => (
           <span className="truncate">New Customer</span>
         </button>
       </Link>
-      <Link to="/quotes">
+      <Link to="/jobs?filter=quotes">
         <button 
           className="w-full flex items-center justify-start gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 hover:shadow-sm"
           style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
@@ -467,7 +467,7 @@ const QuickActions = () => (
           <span className="truncate">New Quote</span>
         </button>
       </Link>
-      <Link to="/jobs">
+      <Link to="/jobs?filter=active">
         <button 
           className="w-full flex items-center justify-start gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 hover:shadow-sm"
           style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
