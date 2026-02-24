@@ -677,7 +677,7 @@ async def delete_job_item(
         raise HTTPException(status_code=404, detail="Job item not found")
     
     job_id = job_item["job_id"]
-    result = await db.job_items.delete_one({"id": item_id})
+    await db.job_items.delete_one({"id": item_id})
     
     # Recalculate job subtotal
     await recalculate_job_subtotal(job_id)
