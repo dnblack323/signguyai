@@ -3,17 +3,22 @@ Subscription & Billing Models - Updated Pricing Structure
 
 Pricing Tiers:
 - 24-Hour Free Trial (no payment)
-- 14-Day Extended Trial ($19.99, credits to Tier 3)
+- 14-Day Extended Trial ($19.99, credits to Business subscription)
 - Founder Pricing (first 100 shops, lifetime lock-in):
-  - Tier 1 Founder: $79/mo
-  - Tier 2 Founder: $129/mo
-  - Tier 3 Founder: $199/mo
+  - Starter – Founder: $79/mo
+  - Pro – Founder: $129/mo
+  - Business – Founder: $199/mo
   - AI Tools Add-On: $49/mo
 - Standard Pricing (after 100 founders):
-  - Shop Core: $129/mo
-  - Growth Shop: $229/mo
-  - Pro Shop: $379/mo
+  - Shop Core (Starter): $129/mo
+  - Growth Shop (Pro): $229/mo
+  - Pro Shop (Business): $379/mo
   - AI Tools Add-On: $89/mo
+
+Tier Keys (canonical, single source of truth):
+- starter
+- pro
+- business
 """
 
 from pydantic import BaseModel, Field
