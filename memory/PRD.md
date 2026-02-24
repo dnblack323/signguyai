@@ -658,5 +658,44 @@ Dashboard, Customers, Quotes, Jobs, Invoices, AI Tools
 - Backend: 13/13 tests passed (100%)
 - Frontend: 6/6 tests passed (100%)
 
+## Recent Updates (Feb 24, 2026)
+
+### Webstore Bug Fixes
+1. **Webstore Checkout Flow Improvements**
+   - Fixed origin_url handling in checkout to use clean base URL
+   - Added better error messages for Stripe Connect errors
+   - Clear user-friendly error: "This store is not yet set up to accept payments"
+
+2. **Product Image Upload Fix**
+   - Fixed product update endpoint to properly handle images array
+   - Images now persist correctly after product updates
+   - Legacy image_url field kept in sync with images array
+
+3. **Color Picker Fix**
+   - Improved color picker CSS for better cross-browser compatibility
+   - Added wrapper div with proper styling for native color input
+
+4. **Webstore Stripe Connect Gate**
+   - Users must connect Stripe to access Webstores feature
+   - Clear messaging: "Connect your Stripe account to start selling online"
+   - Connect button redirects to Stripe onboarding
+
+### Test Results:
+- Backend: 10/10 API tests passed
+- Frontend: 3/3 UI tests passed
+- All webstore-related bug fixes verified
+
+## Pending User Decision
+
+### Line Item Form Inconsistency
+The Jobs page has a detailed dialog with Type, Status, Description, Quantity, Unit Price, and "Use Calculator" button. The Quotes page has a simpler inline form with just Description, Qty, and Price.
+
+**Options:**
+1. Simple inline form on both (like Quotes)
+2. Detailed dialog on both (like Jobs)
+3. Hybrid: Simple inline with optional "Use Calculator" button
+
+User feedback needed to unify the experience.
+
 ## Last Updated
-February 20, 2026
+February 24, 2026
