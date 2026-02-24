@@ -561,17 +561,21 @@ async def get_checkout_status(
     current_user: UserInDB = Depends(get_current_user_billing)
 ):
     """Get status of a checkout session"""
-    from emergentintegrations.payments.stripe.checkout import StripeCheckout
+    import stripe
     
     api_key = os.environ.get('STRIPE_SECRET_KEY')
     if not api_key:
         raise HTTPException(status_code=500, detail="Stripe not configured")
     
-    stripe_checkout = StripeCheckout(api_key=api_key, webhook_url="")
-    status = await stripe_checkout.get_checkout_status(session_id)
+    stripe.api_key = api_key
+    
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
     
     # Update transaction if paid
-    if status.payment_status == "paid":
+    if session.payment_status == "paid":
         existing = await db.payment_transactions.find_one({
             "stripe_session_id": session_id,
             "payment_status": PaymentStatus.PAID.value
@@ -584,18 +588,30 @@ async def get_checkout_status(
                     "$set": {
                         "payment_status": PaymentStatus.PAID.value,
                         "paid_at": datetime.now(timezone.utc).isoformat(),
-                        "updated_at": datetime.now(timezone.utc).isoformat()
+                        "updated_at": datetime.now(timezone.utc).isoformat(),
+                        "stripe_customer_id": session.customer,
+                        "stripe_subscription_id": session.subscription,
                     }
                 }
             )
             
-            await _activate_subscription(db, session_id, status.metadata)
+            # Activate subscription (webhook should also handle this, but this is a fallback)
+            await _activate_subscription_v2(
+                db, 
+                session_id=session_id,
+                metadata=session.metadata or {},
+                stripe_customer_id=session.customer,
+                stripe_subscription_id=session.subscription
+            )
     
     return {
-        "status": status.status,
-        "payment_status": status.payment_status,
-        "amount": status.amount_total / 100,
-        "currency": status.currency
+        "status": session.status,
+        "payment_status": session.payment_status,
+        "amount": (session.amount_total or 0) / 100,
+        "currency": session.currency,
+        "mode": session.mode,  # "subscription" or "payment"
+        "subscription_id": session.subscription,
+        "customer_id": session.customer,
     }
 
 
