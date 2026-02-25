@@ -222,7 +222,7 @@ function App() {
             </BrowserRouter>
           </AppProvider>
         </PlanProvider>
-        </TierProvider>
+      </TierProvider>
       </AuthProvider>
     </ThemeProvider>
   );
