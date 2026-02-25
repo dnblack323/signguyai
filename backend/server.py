@@ -944,6 +944,7 @@ from routes.approvals import router as approvals_router
 from routes.documents import router as documents_router
 from routes.email_templates import router as email_templates_router
 from routes.stripe_connect import router as stripe_connect_router
+from routes.plans import router as plans_router
 
 # Include all routers in the api_router
 api_router.include_router(auth_router)
@@ -976,6 +977,7 @@ api_router.include_router(approvals_router)
 api_router.include_router(documents_router)
 api_router.include_router(email_templates_router)
 api_router.include_router(stripe_connect_router)
+api_router.include_router(plans_router)  # Multi-product plan management
 
 # Include the api_router in the main app
 app.include_router(api_router)
