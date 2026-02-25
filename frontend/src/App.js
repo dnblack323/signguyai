@@ -149,6 +149,7 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <TierProvider>
+          <PlanProvider>
           <AppProvider>
             <BrowserRouter>
               <ScrollToTop />
