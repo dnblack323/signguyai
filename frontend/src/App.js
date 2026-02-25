@@ -3,6 +3,7 @@ import { AppProvider } from "./context/AppContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { TierProvider } from "./context/TierContext";
+import { PlanProvider } from "./contexts/PlanContext";
 import { MainLayout } from "./components/MainLayout";
 import { UpgradeModal } from "./components/UpgradeModal";
 import { TrialLockout } from "./components/TrialLockout";
