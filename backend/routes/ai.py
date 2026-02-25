@@ -879,7 +879,6 @@ async def get_shop_context(tenant_id: str) -> dict:
     
     now = datetime.now(timezone.utc)
     thirty_days_ago = now - timedelta(days=30)
-    ninety_days_ago = now - timedelta(days=90)
     
     # Get tenant info
     tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
