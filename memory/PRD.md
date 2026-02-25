@@ -837,3 +837,72 @@ Major refactor of billing and webstore systems based on user specifications.
 
 ## Last Updated
 December 1, 2025
+
+---
+
+## Multi-Product Restructure - Phase 1 & 2 COMPLETE ✅
+**Date: December 1, 2025**
+
+### What Was Built
+
+**Phase 1: Backend Restructure**
+- Created 3 distinct product lines with 9 total plans
+- Added `product_line` field to tenant model
+- Implemented processing fee logic by plan type
+- Added 100 founder spots (OS plans only)
+
+**Phase 2: Feature Gating**
+- Implemented `MultiProductFeatureGate` service
+- Added feature checks to AI routes (text generation, image generation, AI assistant)
+- Created UI visibility flags per product line
+- Added usage tracking for limited features
+
+### Product Lines & Plans
+
+**1. SignGuy AI OS (Shop Management)**
+| Plan | Monthly | Founder | Invoice Fee | Webstore Fee |
+|------|---------|---------|-------------|--------------|
+| Starter | $39 | $29 | 0% | 0% |
+| Pro | $79 | $59 | 1% | 3% |
+| Business | $149 | $99 | 1% | 2% |
+
+**2. SignGuy Webstores (Commerce-Only)**
+| Plan | Monthly | Webstore Fee |
+|------|---------|--------------|
+| Launch | $39 | 3% |
+| Growth | $59 | 2.5% |
+| Scale | $99 | 2% |
+
+**3. SignGuy AI Studio (AI-Only)**
+| Plan | Monthly |
+|------|---------|
+| Basic | $29 |
+| Pro | $59 |
+| Max | $99 |
+
+### API Endpoints Created
+- `GET /api/plans/all` - All plans grouped by product line
+- `GET /api/plans/os` - OS plans
+- `GET /api/plans/webstores` - Webstore plans
+- `GET /api/plans/ai-studio` - AI Studio plans
+- `GET /api/plans/founder-status` - Founder spot availability
+- `GET /api/plans/{plan_type}/details` - Detailed plan config
+- `GET /api/plans/my-plan` - Current user's plan info
+- `GET /api/plans/my-ui-visibility` - UI visibility flags
+- `POST /api/plans/check-feature` - Feature access check
+
+### Files Created
+- `backend/models/product_tiers.py` - Plan types and feature structures
+- `backend/services/plan_configs.py` - All 9 plan configurations
+- `backend/services/multi_product_gate.py` - Feature gating service
+- `backend/routes/plans.py` - Plan API endpoints
+- `frontend/src/contexts/PlanContext.js` - React context for plan state
+- `frontend/src/components/UpgradePrompt.js` - Upgrade prompt components
+
+### Test Results
+- 44/44 backend tests passed (100%)
+- All 9 plans verified with correct features and pricing
+
+### STOPPED FOR REVIEW
+Phase 3 (Billing & Stripe Wiring) pending user confirmation.
+User will provide real Stripe Price IDs when ready.
