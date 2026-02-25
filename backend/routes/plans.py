@@ -294,10 +294,7 @@ async def get_upgrade_options(current_user: UserInDB = Depends(get_current_activ
     plan_type, is_founder = await gate.get_tenant_plan(current_user.tenant_id)
     current_config = get_plan_config(plan_type)
     
-    # Get plans in the same product line that are higher tier
-    same_line_plans = get_plans_by_product_line(current_config.product_line)
-    
-    # Also show cross-product upgrades (e.g., Webstore -> OS)
+    # Get all plans for upgrade comparison
     all_plans = get_all_plans()
     
     upgrades = []
