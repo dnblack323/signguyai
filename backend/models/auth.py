@@ -33,7 +33,11 @@ class TenantBase(BaseModel):
     website: Optional[str] = None
     logo_url: Optional[str] = None
     plan: TenantPlan = TenantPlan.STARTER  # Default to starter tier
+    product_line: str = "os"  # os, webstores, or ai_studio
     is_active: bool = True
+    is_founder: bool = False
+    founder_number: Optional[int] = None
+    founder_locked_at: Optional[str] = None
     time_tracking_settings: Optional[TimeTrackingSettings] = None
 
 class TenantCreate(BaseModel):
