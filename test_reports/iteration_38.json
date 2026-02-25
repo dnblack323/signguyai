@@ -1,0 +1,106 @@
+{
+  "summary": "Multi-Product Plan System - All 44 backend tests passed (100%). Verified 9 plans across 3 product lines with correct founder pricing, UI visibility flags, and feature gating.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results": {
+    "backend_api_tests": {
+      "total": 44,
+      "passed": 44,
+      "failed": 0,
+      "test_file": "/app/backend/tests/test_multi_product_plans.py",
+      "key_verifications": [
+        "✅ GET /api/plans/all returns 3 product lines with 3 plans each (9 total)",
+        "✅ GET /api/plans/os returns OS plans with founder pricing (all founder_eligible=true)",
+        "✅ GET /api/plans/webstores returns Webstore plans WITHOUT founder pricing",
+        "✅ GET /api/plans/ai-studio returns AI Studio plans WITHOUT founder pricing",
+        "✅ GET /api/plans/founder-status returns 100 total spots",
+        "✅ GET /api/plans/{plan_type}/details returns correct features and UI visibility flags",
+        "✅ GET /api/plans/my-plan (authenticated) returns user's current plan info",
+        "✅ GET /api/plans/my-ui-visibility (authenticated) returns UI visibility flags",
+        "✅ POST /api/plans/check-feature validates feature access based on plan",
+        "✅ ws_launch has show_jobs_ui=false (and all shop management UI hidden)",
+        "✅ ai_max has business_data_aware=false (AI-only plans don't access business data)"
+      ]
+    }
+  },
+  "features_verified": {
+    "product_lines": {
+      "os": {
+        "plans": ["os_starter", "os_pro", "os_business"],
+        "display_name": "SignGuy AI OS",
+        "founder_eligible": true,
+        "founder_pricing_present": true
+      },
+      "webstores": {
+        "plans": ["ws_launch", "ws_growth", "ws_scale"],
+        "display_name": "SignGuy Webstores",
+        "founder_eligible": false,
+        "founder_pricing_present": false
+      },
+      "ai_studio": {
+        "plans": ["ai_basic", "ai_pro", "ai_max"],
+        "display_name": "SignGuy AI Studio",
+        "founder_eligible": false,
+        "founder_pricing_present": false
+      }
+    },
+    "founder_spots": {
+      "total": 100,
+      "only_os_eligible": true
+    },
+    "ui_visibility_flags": {
+      "webstore_plans_hide_jobs_ui": true,
+      "ai_studio_plans_hide_jobs_ui": true,
+      "os_business_shows_all_ui": true
+    },
+    "feature_gating": {
+      "ai_max_no_business_data_aware": true,
+      "webstore_plans_have_webstore_access": true,
+      "ai_studio_no_webstore_access": true
+    },
+    "processing_fees": {
+      "os_starter": {"invoice": 0, "webstore": 0},
+      "os_pro": {"invoice": 1.0, "webstore": 3.0},
+      "os_business": {"invoice": 1.0, "webstore": 2.0},
+      "ws_launch": {"invoice": 0, "webstore": 3.0},
+      "ai_plans": {"invoice": 0, "webstore": 0}
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_multi_product_plans.py",
+    "/app/test_reports/pytest/multi_product_plans_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_multi_product_plans.py"
+  ],
+  "success_rate": {
+    "backend": "100% (44/44 tests passed)"
+  },
+  "test_credentials": {
+    "test_user": "billing_test@example.com / TestPass123!"
+  },
+  "seed_data_creation": "None - used existing test user",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Multi-product plan restructure complete. 9 plans across 3 product lines: 1) OS (Starter/Pro/Business) with founder pricing, 2) Webstores (Launch/Growth/Scale) without founder pricing, 3) AI Studio (Basic/Pro/Max) without founder pricing. All plan endpoints working: /all, /os, /webstores, /ai-studio, /founder-status, /{plan_type}/details, /my-plan, /my-ui-visibility, /check-feature. UI visibility flags control frontend rendering based on product line.",
+  "api_endpoints_tested": {
+    "GET /api/plans/all": "Working - returns 3 product lines with 9 total plans",
+    "GET /api/plans/os": "Working - returns 3 OS plans with founder pricing",
+    "GET /api/plans/webstores": "Working - returns 3 Webstore plans without founder pricing",
+    "GET /api/plans/ai-studio": "Working - returns 3 AI Studio plans without founder pricing",
+    "GET /api/plans/founder-status": "Working - returns 100 total spots",
+    "GET /api/plans/{plan_type}/details": "Working - returns features and UI visibility",
+    "GET /api/plans/my-plan": "Working - returns authenticated user's plan",
+    "GET /api/plans/my-ui-visibility": "Working - returns UI visibility flags",
+    "POST /api/plans/check-feature": "Working - validates feature access"
+  }
+}
