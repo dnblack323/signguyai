@@ -221,6 +221,7 @@ function App() {
               <Toaster position="top-right" richColors />
             </BrowserRouter>
           </AppProvider>
+        </PlanProvider>
         </TierProvider>
       </AuthProvider>
     </ThemeProvider>
