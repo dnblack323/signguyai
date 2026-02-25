@@ -1005,23 +1005,32 @@ async def ai_business_assistant(
 ):
     """AI Business Assistant - Chat interface for sign shop operations with real shop data"""
     from emergentintegrations.llm.chat import LlmChat, UserMessage
+    from services.multi_product_gate import get_multi_product_feature_gate
     
     if not EMERGENT_LLM_KEY:
         raise HTTPException(status_code=500, detail="AI service not configured")
     
+    # Check feature access
+    gate = get_multi_product_feature_gate(db)
+    await gate.require_feature(current_user.tenant_id, "ai_assistant", "assistant_access")
+    await gate.require_feature(current_user.tenant_id, "ai_assistant", "monthly_queries", increment_usage=True)
+    
+    # Check if business data access is allowed
+    data_aware_result = await gate.check_feature(current_user.tenant_id, "ai_assistant", "business_data_aware")
+    data_limited_result = await gate.check_feature(current_user.tenant_id, "ai_assistant", "business_data_limited")
+    
+    has_business_data_access = data_aware_result.allowed or data_limited_result.allowed
+    
     try:
-        # Fetch real shop data
-        shop_data = await get_shop_context(current_user.tenant_id)
+        # Only fetch shop data if user has access
+        shop_data = None
+        shop_summary = ""
         
-        # Build conversation context from history
-        context_messages = ""
-        if request.conversation_history:
-            for msg in request.conversation_history[-6:]:  # Last 6 messages for context
-                role = "User" if msg.get("role") == "user" else "Assistant"
-                context_messages += f"{role}: {msg.get('content', '')}\n\n"
-        
-        # Format shop data for the prompt
-        shop_summary = f"""
+        if has_business_data_access:
+            shop_data = await get_shop_context(current_user.tenant_id)
+            
+            # Format shop data for the prompt
+            shop_summary = f"""
 ## Current Shop Data for {shop_data['company_name']}:
 
 ### Customers & Sales
@@ -1048,6 +1057,26 @@ async def ai_business_assistant(
 
 ### Team & Operations
 - Employees: {shop_data['team_size']}
+- Webstores: {shop_data['webstores']['count']}
+- Webstore Orders: {shop_data['webstores']['total_orders']}
+"""
+        else:
+            # Non-data-aware mode - provide generic sign shop context
+            shop_summary = """
+## Note: Operating in generic mode (no access to your business data)
+
+I can help with general sign shop questions, industry best practices, and advice,
+but I don't have access to your specific customer, job, or financial data.
+
+To get personalized insights based on your actual business data, please upgrade your plan.
+"""
+        
+        # Build conversation context from history
+        context_messages = ""
+        if request.conversation_history:
+            for msg in request.conversation_history[-6:]:  # Last 6 messages for context
+                role = "User" if msg.get("role") == "user" else "Assistant"
+                context_messages += f"{role}: {msg.get('content', '')}\n\n"
 - Webstores: {shop_data['webstores']['count']} ({shop_data['webstores']['total_orders']} total orders)
 """
         
