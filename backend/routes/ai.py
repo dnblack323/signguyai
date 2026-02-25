@@ -1072,15 +1072,16 @@ To get personalized insights based on your actual business data, please upgrade 
 """
         
         # Build conversation context from history
+        # Build conversation context from history
         context_messages = ""
         if request.conversation_history:
             for msg in request.conversation_history[-6:]:  # Last 6 messages for context
                 role = "User" if msg.get("role") == "user" else "Assistant"
                 context_messages += f"{role}: {msg.get('content', '')}\n\n"
-- Webstores: {shop_data['webstores']['count']} ({shop_data['webstores']['total_orders']} total orders)
-"""
         
-        system_message = f"""You are the AI Business Assistant for SignGuy AI, a comprehensive sign shop management platform. You are chatting with {current_user.full_name or 'the owner'} from {shop_data['company_name']}.
+        # Build system message based on data access level
+        if has_business_data_access and shop_data:
+            system_message = f"""You are the AI Business Assistant for SignGuy AI, a comprehensive sign shop management platform. You are chatting with {current_user.full_name or 'the owner'} from {shop_data['company_name']}.
 
 ## Your Role
 You have FULL ACCESS to this shop's real business data (shown below). Use this data to give SPECIFIC, PERSONALIZED answers - never generic advice.
@@ -1107,6 +1108,28 @@ You have FULL ACCESS to this shop's real business data (shown below). Use this d
 - "Based on your {shop_data['jobs']['active']} active jobs, here's how to optimize workflow..."
 
 Never say "if you upload your data" or "tell me what software you use" - you already have their data!"""
+        else:
+            # Non-data-aware mode
+            system_message = f"""You are the AI Business Assistant for SignGuy AI, a comprehensive sign shop management platform.
+
+## Your Role
+You are operating in GENERAL ADVICE MODE. You can help with sign industry best practices, but you don't have access to this user's specific business data.
+
+{shop_summary}
+
+## Your Knowledge
+- **Sign Industry Operations**: Vehicle wraps, channel letters, monument signs, banners, vinyl graphics, dimensional letters, LED signs, A-frames, window graphics, wall wraps, trade show displays
+- **Materials & Production**: Vinyl types (cast, calendered, reflective), substrates (ACM, PVC, MDO), laminates, print technologies, installation techniques
+- **Business Management**: Pricing strategies, profit margins (industry standard 40-60%), job costing, time tracking, workflow optimization
+- **SignGuy AI Features**: You know this platform has Quotes, Jobs, Invoices, Customers, Time Tracking, Webstores, Employee Portal, AI Tools, and more
+
+## How to Respond
+1. Provide helpful general advice about the sign industry
+2. Share industry benchmarks and best practices
+3. If they ask about their specific data, politely explain you don't have access and suggest they upgrade for personalized insights
+4. Be conversational and helpful
+
+Note: For personalized insights based on their actual business data, users can upgrade to a Pro or Business plan."""
         
         # Initialize chat with the session
         chat = LlmChat(
