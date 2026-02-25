@@ -775,6 +775,13 @@ async def generate_ai_content(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Generate AI text content"""
+    from services.multi_product_gate import get_multi_product_feature_gate
+    
+    # Check feature access and increment usage
+    gate = get_multi_product_feature_gate(db)
+    await gate.require_feature(current_user.tenant_id, "ai_tools", "text_generation")
+    await gate.require_feature(current_user.tenant_id, "ai_tools", "monthly_generations", increment_usage=True)
+    
     try:
         result = await generate_text_content(request.tool, request.input_data)
         
@@ -805,6 +812,13 @@ async def generate_ai_images(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Generate AI images"""
+    from services.multi_product_gate import get_multi_product_feature_gate
+    
+    # Check feature access - image generation is separate from text
+    gate = get_multi_product_feature_gate(db)
+    await gate.require_feature(current_user.tenant_id, "ai_tools", "image_generation")
+    await gate.require_feature(current_user.tenant_id, "ai_tools", "monthly_generations", increment_usage=True)
+    
     try:
         images = await generate_images(request.tool, request.input_data, request.image_count)
         
