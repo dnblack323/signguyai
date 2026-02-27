@@ -46,9 +46,16 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
 ├── frontend/
 │   ├── src/
 │   │   ├── components/ # UI components
+│   │   │   ├── ribbon/ # Office-style ribbon navigation (NEW)
+│   │   │   │   ├── TopAppBar.js       # Top bar with logo, File menu, search, profile
+│   │   │   │   ├── Ribbon.js          # Ribbon tabs container
+│   │   │   │   ├── RibbonToolbar.js   # Contextual toolbars for each tab
+│   │   │   │   ├── DropdownMenu.js    # Dropdown and split button components
+│   │   │   │   └── MobileRibbonOverlay.js # Mobile menu overlay
+│   │   │   └── MainLayout.js          # Main layout (ribbon, no sidebar)
 │   │   ├── context/    # React contexts
 │   │   ├── pages/      # Page components
-│   │   └── index.css   # Global theme variables
+│   │   └── index.css   # Global theme variables + ribbon styles
 │   └── tailwind.config.js
 └── memory/
     └── PRD.md
