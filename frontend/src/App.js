@@ -61,6 +61,10 @@ import BillingSuccess from "./pages/BillingSuccess";
 import BillingCancel from "./pages/BillingCancel";
 import BillingManagement from "./pages/BillingManagement";
 
+// Questionnaires
+import Questionnaires from "./pages/Questionnaires";
+import PublicQuestionnaire from "./pages/PublicQuestionnaire";
+
 // Public Pages
 import LandingPage from "./pages/LandingPage";
 import FeaturesPage from "./pages/FeaturesPage";
