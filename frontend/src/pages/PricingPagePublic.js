@@ -132,49 +132,7 @@ export default function PricingPagePublic() {
   return (
     <div className="min-h-screen bg-[#0B0F17] text-white">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0B0F17]/90 backdrop-blur-md border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            <Link to="/home" className="flex items-center gap-3">
-              <img src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/k3asaz65_sgai%20long.png" alt="TheSignGuy AI" className="h-14 w-auto" />
-            </Link>
-            
-            <div className="hidden md:flex items-center gap-8">
-              <Link to="/features" className="text-gray-300 hover:text-white transition">Features</Link>
-              <Link to="/pricing" className="text-[#2F8BFB] font-medium">Pricing</Link>
-              <Link to="/about" className="text-gray-300 hover:text-white transition">About</Link>
-              <Link to="/contact" className="text-gray-300 hover:text-white transition">Contact</Link>
-              <Link to="/login">
-                <Button variant="ghost" className="text-gray-300 hover:text-white">Log In</Button>
-              </Link>
-              <Link to="/register">
-                <Button className="bg-[#2F8BFB] hover:bg-[#1E7AF0] text-black font-semibold">
-                  Start Free Trial
-                </Button>
-              </Link>
-            </div>
-
-            <button className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
-        </div>
-
-        {mobileMenuOpen && (
-          <div className="md:hidden bg-[#111826] border-t border-white/10 p-4">
-            <div className="flex flex-col gap-4">
-              <Link to="/features" className="text-gray-300 hover:text-white">Features</Link>
-              <Link to="/pricing" className="text-[#2F8BFB]">Pricing</Link>
-              <Link to="/about" className="text-gray-300 hover:text-white">About</Link>
-              <Link to="/contact" className="text-gray-300 hover:text-white">Contact</Link>
-              <Link to="/login" className="text-gray-300 hover:text-white">Log In</Link>
-              <Link to="/register">
-                <Button className="w-full bg-[#2F8BFB] hover:bg-[#1E7AF0] text-black font-semibold">Start Free Trial</Button>
-              </Link>
-            </div>
-          </div>
-        )}
-      </nav>
+      <PublicNav />
 
       {/* Hero */}
       <section className="pt-32 pb-8 px-4">
