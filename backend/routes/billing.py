@@ -929,9 +929,9 @@ async def get_payment_history(
                 "id": t["id"],
                 "amount": t["amount"],
                 "currency": t["currency"],
-                "plan": t["plan"],
+                "plan": t.get("plan") or t.get("plan_type"),
                 "status": t["payment_status"],
-                "is_founder": t.get("is_founder_purchase", False),
+                "is_founder": t.get("is_founder_purchase") or t.get("is_founder", False),
                 "created_at": t["created_at"],
                 "paid_at": t.get("paid_at")
             }
@@ -940,7 +940,158 @@ async def get_payment_history(
     }
 
 
-# ============== WEBHOOK HANDLER ==============
+# ============== MULTI-PRODUCT SUBSCRIPTION V2 ==============
+
+@router.get("/subscription/v2")
+async def get_subscription_v2(
+    db = Depends(get_db),
+    current_user: UserInDB = Depends(get_current_user_billing)
+):
+    """
+    Get subscription details for the new multi-product system.
+    Returns plan_type (os_starter, ws_launch, etc.) and product_line (os, webstores, ai_studio).
+    """
+    from services.plan_configs import get_plan_config
+    from services.multi_product_gate import get_multi_product_feature_gate
+    from models.product_tiers import PlanType, ProductLine
+    
+    subscription = await db.subscriptions.find_one(
+        {"tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    
+    tenant = await db.tenants.find_one(
+        {"id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    
+    # Determine current plan
+    plan_str = None
+    product_line = None
+    is_founder = False
+    
+    if subscription:
+        plan_str = subscription.get("plan")
+        product_line = subscription.get("product_line")
+        is_founder = subscription.get("is_founder", False)
+    
+    if not plan_str and tenant:
+        plan_str = tenant.get("plan")
+        product_line = tenant.get("product_line")
+        is_founder = tenant.get("is_founder", False)
+    
+    # Default to OS Starter for new tenants
+    if not plan_str:
+        plan_str = "os_starter"
+        product_line = "os"
+    
+    # Try to parse as PlanType enum
+    try:
+        plan_type = PlanType(plan_str)
+    except ValueError:
+        # Handle legacy plan names
+        legacy_map = {
+            "starter": PlanType.OS_STARTER,
+            "pro": PlanType.OS_PRO,
+            "business": PlanType.OS_BUSINESS,
+            "tier_1": PlanType.OS_STARTER,
+            "tier_2": PlanType.OS_PRO,
+            "tier_3": PlanType.OS_BUSINESS,
+        }
+        plan_type = legacy_map.get(plan_str.lower(), PlanType.OS_STARTER)
+    
+    config = get_plan_config(plan_type)
+    
+    # Get UI visibility from gate service
+    gate = get_multi_product_feature_gate(db)
+    ui_visibility = await gate.get_ui_visibility(current_user.tenant_id)
+    
+    return {
+        # Plan info
+        "plan_type": plan_type.value,
+        "plan_display_name": config.display_name,
+        "product_line": config.product_line.value,
+        "product_line_display": {
+            "os": "SignGuy AI OS",
+            "webstores": "SignGuy Webstores",
+            "ai_studio": "SignGuy AI Studio"
+        }.get(config.product_line.value, config.product_line.value),
+        
+        # Status
+        "status": subscription.get("status", "active") if subscription else "trialing",
+        "is_founder": is_founder,
+        "founder_number": subscription.get("founder_number") if subscription else tenant.get("founder_number") if tenant else None,
+        
+        # Billing
+        "billing_interval": subscription.get("billing_interval", "monthly") if subscription else "monthly",
+        "current_period_end": subscription.get("current_period_end") if subscription else None,
+        
+        # Pricing
+        "pricing": {
+            "monthly": config.pricing.monthly,
+            "annual": config.pricing.annual,
+            "founder_monthly": config.pricing.founder_monthly,
+            "founder_annual": config.pricing.founder_annual,
+        },
+        
+        # Processing fees
+        "processing_fees": {
+            "invoice": config.processing_fees.invoice_fee_percent,
+            "webstore": config.processing_fees.webstore_fee_percent,
+            "stripe_connect_enabled": config.processing_fees.stripe_connect_enabled,
+            "online_payments_enabled": config.processing_fees.online_payments_enabled,
+        },
+        
+        # UI visibility
+        "ui_visibility": ui_visibility,
+        
+        # Available upgrades
+        "upgrade_options": _get_upgrade_options(plan_type),
+    }
+
+
+def _get_upgrade_options(current_plan: 'PlanType') -> list:
+    """Get available upgrade options based on current plan"""
+    from models.product_tiers import PlanType, ProductLine
+    from services.plan_configs import get_plan_config
+    
+    config = get_plan_config(current_plan)
+    product_line = config.product_line
+    
+    upgrades = []
+    
+    if product_line == ProductLine.OS:
+        if current_plan == PlanType.OS_STARTER:
+            upgrades = [
+                {"plan_type": "os_pro", "display_name": "Pro", "monthly_price": 79},
+                {"plan_type": "os_business", "display_name": "Business", "monthly_price": 149},
+            ]
+        elif current_plan == PlanType.OS_PRO:
+            upgrades = [
+                {"plan_type": "os_business", "display_name": "Business", "monthly_price": 149},
+            ]
+    elif product_line == ProductLine.WEBSTORES:
+        if current_plan == PlanType.WS_LAUNCH:
+            upgrades = [
+                {"plan_type": "ws_growth", "display_name": "Growth", "monthly_price": 59},
+                {"plan_type": "ws_scale", "display_name": "Scale", "monthly_price": 99},
+            ]
+        elif current_plan == PlanType.WS_GROWTH:
+            upgrades = [
+                {"plan_type": "ws_scale", "display_name": "Scale", "monthly_price": 99},
+            ]
+    elif product_line == ProductLine.AI_STUDIO:
+        if current_plan == PlanType.AI_BASIC:
+            upgrades = [
+                {"plan_type": "ai_pro", "display_name": "AI Pro", "monthly_price": 59},
+                {"plan_type": "ai_max", "display_name": "AI Max", "monthly_price": 99},
+            ]
+        elif current_plan == PlanType.AI_PRO:
+            upgrades = [
+                {"plan_type": "ai_max", "display_name": "AI Max", "monthly_price": 99},
+            ]
+    
+    return upgrades
 
 @webhook_router.post("/webhook/stripe")
 async def stripe_webhook(request: Request, db = Depends(get_db)):
