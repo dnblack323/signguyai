@@ -3,13 +3,13 @@ import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { PublicNav, PublicFooter } from '../components/PublicNav';
 import {
   CheckCircle2, Star, Sparkles, ArrowRight, Menu, X,
   Zap, Clock, Shield, HelpCircle, Gift, Users, Crown
 } from 'lucide-react';
 
 export default function PricingPagePublic() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' or 'annual'
 
   const tiers = [
