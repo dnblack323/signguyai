@@ -555,6 +555,16 @@ export const MainLayout = ({ children }) => {
 
   const pageTitle = getCurrentPageTitle();
 
+  // Product Line preview options - allows viewing the app as different product line users
+  const productLineLabels = {
+    os_business: { name: 'OS Business (Full Access)', color: 'bg-amber-500', productLine: 'os' },
+    os_pro: { name: 'OS Pro', color: 'bg-blue-500', productLine: 'os' },
+    os_starter: { name: 'OS Starter', color: 'bg-slate-500', productLine: 'os' },
+    webstores_only: { name: 'Webstores Only', color: 'bg-emerald-500', productLine: 'webstores' },
+    ai_studio_only: { name: 'AI Studio Only', color: 'bg-purple-500', productLine: 'ai_studio' },
+  };
+
+  // Legacy tierLabels for backwards compatibility
   const tierLabels = {
     tier1: { name: 'Starter (Free)', color: 'bg-slate-500' },
     tier2: { name: 'Pro', color: 'bg-blue-500' },
