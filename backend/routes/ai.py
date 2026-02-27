@@ -581,8 +581,48 @@ Create:
 - Engaging caption that showcases the work
 - Relevant hashtags (10-15)
 - Call to action
-- Keep client confidentiality (no names unless approved)"""
+- Keep client confidentiality (no names unless approved)""",
+
+    # Product Description Generator for Webstores
+    "product_description": """You are an expert e-commerce copywriter specializing in signs, graphics, and custom products. Generate a compelling product description for an online store.
+
+**Product Name:** {product_name}
+**Product Category:** {product_category}
+**Key Features/Details:** {product_features}
+**Target Audience:** {target_audience}
+**Tone:** {tone}
+**Price Point:** ${price} (use for positioning, don't mention directly)
+
+Generate a product description that includes:
+
+1. **Headline Hook** (1 sentence that grabs attention)
+
+2. **Main Description** (2-3 paragraphs covering):
+   - What the product is and its primary benefit
+   - Key features and what makes it special
+   - Ideal use cases or who it's perfect for
+   - Quality/craftsmanship highlights
+
+3. **Bullet Points** (5-7 key selling points)
+   - Focus on benefits, not just features
+   - Include emotional triggers
+   - Mention any customization options
+
+4. **Call to Action** (encouraging but not pushy)
+
+Write in a {tone} tone. Make it persuasive, scannable, and optimized for online shopping.
+Do NOT mention the price directly - let the value speak for itself."""
 }
+
+# Product Description Styles/Tones
+PRODUCT_DESCRIPTION_TONES = [
+    "professional",      # Business-focused, authoritative
+    "friendly",          # Approachable, conversational
+    "enthusiastic",      # Energetic, exciting
+    "premium",           # Luxury, high-end feel
+    "technical",         # Detail-oriented, specification-focused
+    "casual",            # Relaxed, everyday language
+]
 
 IMAGE_PROMPTS = {
     # NEW IMAGE TOOLS
