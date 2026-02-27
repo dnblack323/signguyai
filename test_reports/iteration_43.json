@@ -1,0 +1,77 @@
+{
+  "summary": "Dynamic Questionnaire Creator feature testing complete. All backend APIs work correctly (24/24 tests passed). Frontend UI works but has a CRITICAL design issue - question labels on public questionnaire page have very low contrast (dark text on dark background) making them invisible.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Public Questionnaire Page (/questionnaire/{id})",
+        "issues": [
+          "CRITICAL: Question labels have very low contrast - label color is rgb(15, 23, 42) on dark background #0B0F17, making labels essentially invisible to users. Only the red asterisks (*) for required fields are visible."
+        ]
+      }
+    ]
+  },
+  "features_verified": {
+    "backend_endpoints": {
+      "GET /api/questionnaires": "WORKING - Lists all questionnaires for tenant",
+      "GET /api/questionnaires/templates": "WORKING - Returns 3 pre-built templates",
+      "POST /api/questionnaires/from-template/{id}": "WORKING - Creates questionnaire from template",
+      "POST /api/questionnaires": "WORKING - Creates new questionnaire",
+      "PUT /api/questionnaires/{id}": "WORKING - Updates questionnaire",
+      "DELETE /api/questionnaires/{id}": "WORKING - Deletes questionnaire",
+      "GET /api/questionnaires/public/{id}": "WORKING - Returns public questionnaire (requires active status)",
+      "POST /api/questionnaires/public/{id}/submit": "WORKING - Submits questionnaire response",
+      "GET /api/questionnaires/{id}/responses": "WORKING - Returns all responses"
+    },
+    "templates": {
+      "vehicle_wrap_intake": {"name": "Vehicle Wrap Intake Form", "questions": 14, "category": "vehicle_wrap"},
+      "sign_request": {"name": "Sign Request Form", "questions": 9, "category": "signage"},
+      "apparel_order": {"name": "Apparel/Merchandise Order Form", "questions": 9, "category": "apparel"}
+    },
+    "frontend_ui": {
+      "questionnaires_page": "WORKING - Shows list with category tabs (All, Vehicle Wrap, Signage, Apparel, General)",
+      "use_template_button": "WORKING - Opens dialog with 3 templates",
+      "create_from_template": "WORKING - Creates questionnaire and opens edit dialog",
+      "navigation_link": "WORKING - Questionnaires link visible in AI Tools sidebar menu",
+      "public_questionnaire_page": "PARTIAL - Page loads but labels not visible due to contrast issue"
+    },
+    "question_types_supported": ["text", "textarea", "number", "email", "phone", "select", "multi_select", "radio", "checkbox", "date", "file_upload", "heading", "paragraph"]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_questionnaires.py",
+    "/app/test_reports/pytest/questionnaires_results.xml"
+  ],
+  "action_items": [
+    "FIX CRITICAL: Public questionnaire page labels have no contrast - change label text color to a lighter color (e.g., text-white or text-slate-200) in PublicQuestionnaire.js"
+  ],
+  "critical_code_review_comments": [
+    "PublicQuestionnaire.js line 149-151: Labels use default color which appears as dark text (rgb(15, 23, 42)) on dark background, making them invisible. Need to add 'text-white' or similar class to Label components.",
+    "All other frontend and backend implementations are correct and working well."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_questionnaires.py"
+  ],
+  "success_rate": {
+    "backend": "100% (24/24 tests passed)",
+    "frontend": "90% - All features work but public form has label visibility issue"
+  },
+  "test_credentials": {
+    "test_user": "test@test.com / password"
+  },
+  "seed_data_creation": "Test questionnaires created and cleaned up after testing",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Questionnaires feature is mostly working. Backend is 100% functional. Main issue is PublicQuestionnaire.js has label contrast problem - labels are dark text on dark background making them invisible. After fix, verify labels are visible on /questionnaire/{id} page.",
+  "rca_of_issue": {
+    "issue": "Question labels invisible on public questionnaire page",
+    "root_cause": "The Label component in PublicQuestionnaire.js inherits default styling which results in dark text color (rgb(15, 23, 42)) while the page background is also dark (#0B0F17). This creates essentially zero contrast.",
+    "affected_file": "/app/frontend/src/pages/PublicQuestionnaire.js",
+    "affected_lines": "Lines 149, 169, 189, 205, 223, 250, 278, 305 - all Label components in renderQuestion function",
+    "fix_suggestion": "Add 'text-white' or 'text-slate-200' class to all Label components in the renderQuestion function, or update the base Label component styling for dark backgrounds."
+  }
+}
