@@ -59,6 +59,7 @@ import PricingPage from "./pages/PricingPage";
 import PricingPlansV2 from "./pages/PricingPlansV2";
 import BillingSuccess from "./pages/BillingSuccess";
 import BillingCancel from "./pages/BillingCancel";
+import BillingManagement from "./pages/BillingManagement";
 
 // Public Pages
 import LandingPage from "./pages/LandingPage";
