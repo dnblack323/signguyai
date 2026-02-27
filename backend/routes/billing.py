@@ -554,6 +554,61 @@ async def create_checkout_session(
     return CheckoutResponse(url=session.url, session_id=session.id)
 
 
+# ============== MULTI-PRODUCT CHECKOUT ==============
+
+class MultiProductCheckoutRequest(BaseModel):
+    """Request for multi-product checkout"""
+    plan_type: str  # os_starter, os_pro, os_business, ws_launch, etc.
+    billing_interval: str = "monthly"  # monthly or annual (annual only for os_business)
+    use_founder_pricing: bool = False  # Only for OS plans
+    origin_url: str
+
+
+from pydantic import BaseModel
+
+
+@router.post("/checkout/v2")
+async def create_multi_product_checkout_session(
+    request: MultiProductCheckoutRequest,
+    db = Depends(get_db),
+    current_user: UserInDB = Depends(get_current_user_billing)
+):
+    """
+    Create a Stripe checkout session for any plan across all 3 product lines.
+    
+    Product Lines:
+    - OS: os_starter, os_pro, os_business (founder pricing available)
+    - Webstores: ws_launch, ws_growth, ws_scale
+    - AI Studio: ai_basic, ai_pro, ai_max
+    
+    Rules:
+    - Founder pricing ONLY for OS plans
+    - Annual billing ONLY for OS Business
+    - Processing fees vary by plan and transaction type
+    """
+    from models.product_tiers import PlanType
+    from services.multi_product_billing import create_multi_product_checkout
+    
+    # Validate plan type
+    try:
+        plan_type = PlanType(request.plan_type)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid plan type: {request.plan_type}")
+    
+    result = await create_multi_product_checkout(
+        db=db,
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id,
+        email=current_user.email,
+        plan_type=plan_type,
+        billing_interval=request.billing_interval,
+        use_founder_pricing=request.use_founder_pricing,
+        origin_url=request.origin_url,
+    )
+    
+    return result
+
+
 @router.get("/checkout/status/{session_id}")
 async def get_checkout_status(
     session_id: str,
