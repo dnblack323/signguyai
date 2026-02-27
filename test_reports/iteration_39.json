@@ -1,0 +1,128 @@
+{
+  "summary": "Multi-Product Billing Phase 3 (Stripe Wiring) - All 39 backend tests passed (100%). Verified checkout/v2 for all 9 plans with real Stripe URLs, subscription/v2 response structure, and validation rules.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results": {
+    "backend_api_tests": {
+      "total": 39,
+      "passed": 39,
+      "failed": 0,
+      "test_file": "/app/backend/tests/test_multi_product_billing_v2.py",
+      "key_verifications": [
+        "✅ POST /api/billing/checkout/v2 - Creates Stripe checkout for OS plans (os_starter, os_pro, os_business)",
+        "✅ POST /api/billing/checkout/v2 - Creates Stripe checkout for Webstore plans (ws_launch, ws_growth, ws_scale)",
+        "✅ POST /api/billing/checkout/v2 - Creates Stripe checkout for AI Studio plans (ai_basic, ai_pro, ai_max)",
+        "✅ POST /api/billing/checkout/v2 - Validates annual billing ONLY for os_business",
+        "✅ POST /api/billing/checkout/v2 - Validates founder pricing ONLY for OS plans",
+        "✅ GET /api/billing/subscription/v2 - Returns plan_type and product_line",
+        "✅ GET /api/billing/subscription/v2 - Returns pricing info (monthly, annual, founder prices)",
+        "✅ GET /api/billing/subscription/v2 - Returns processing_fees (invoice, webstore percentages)",
+        "✅ GET /api/billing/subscription/v2 - Returns UI visibility flags",
+        "✅ GET /api/billing/subscription/v2 - Returns upgrade_options based on current plan",
+        "✅ GET /api/plans/all - Returns all 9 plans grouped by product line",
+        "✅ GET /api/plans/os - Returns 3 OS plans with correct pricing ($39, $79, $149)",
+        "✅ GET /api/plans/webstores - Returns 3 Webstore plans ($39, $59, $99)",
+        "✅ GET /api/plans/ai-studio - Returns 3 AI Studio plans ($29, $59, $99)",
+        "✅ GET /api/plans/founder-status - Returns 100 total spots, 98 remaining",
+        "✅ GET /api/plans/{plan_type}/details - Returns features and UI visibility",
+        "✅ Processing fees correct: OS Pro (1% invoice, 3% webstore), OS Business (1%, 2%), WS plans (0%, 2-3%)"
+      ]
+    }
+  },
+  "features_verified": {
+    "checkout_v2": {
+      "stripe_integration": "WORKING - Returns real https://checkout.stripe.com URLs",
+      "os_plans_checkout": {
+        "os_starter": "Working - monthly",
+        "os_pro": "Working - monthly",
+        "os_business": "Working - monthly AND annual"
+      },
+      "webstore_plans_checkout": {
+        "ws_launch": "Working - monthly only",
+        "ws_growth": "Working - monthly only",
+        "ws_scale": "Working - monthly only"
+      },
+      "ai_plans_checkout": {
+        "ai_basic": "Working - monthly only",
+        "ai_pro": "Working - monthly only",
+        "ai_max": "Working - monthly only"
+      }
+    },
+    "subscription_v2": {
+      "response_includes": [
+        "plan_type",
+        "plan_display_name",
+        "product_line",
+        "product_line_display",
+        "status",
+        "is_founder",
+        "billing_interval",
+        "pricing (monthly, annual, founder_monthly, founder_annual)",
+        "processing_fees (invoice, webstore, stripe_connect_enabled)",
+        "ui_visibility",
+        "upgrade_options"
+      ]
+    },
+    "validation_rules": {
+      "annual_billing_os_business_only": "ENFORCED - other plans return 400",
+      "founder_pricing_os_plans_only": "ENFORCED - webstore/ai plans return 400"
+    },
+    "processing_fees": {
+      "os_starter": {"invoice": 0.0, "webstore": 0.0},
+      "os_pro": {"invoice": 1.0, "webstore": 3.0},
+      "os_business": {"invoice": 1.0, "webstore": 2.0},
+      "ws_launch": {"invoice": 0.0, "webstore": 3.0},
+      "ws_growth": {"invoice": 0.0, "webstore": 2.5},
+      "ws_scale": {"invoice": 0.0, "webstore": 2.0},
+      "ai_basic": {"invoice": 0.0, "webstore": 0.0},
+      "ai_pro": {"invoice": 0.0, "webstore": 0.0},
+      "ai_max": {"invoice": 0.0, "webstore": 0.0}
+    },
+    "founder_status": {
+      "total_spots": 100,
+      "remaining_spots": 98,
+      "available": true
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_multi_product_billing_v2.py",
+    "/app/test_reports/pytest/multi_product_billing_v2_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_multi_product_billing_v2.py"
+  ],
+  "success_rate": {
+    "backend": "100% (39/39 tests passed)"
+  },
+  "test_credentials": {
+    "test_user": "billing_test@example.com / TestPass123!"
+  },
+  "seed_data_creation": "None - used existing test user",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Phase 3 Billing & Stripe Wiring complete. All 9 plans across 3 product lines can create real Stripe checkout sessions. Validation rules enforced: annual billing only for os_business, founder pricing only for OS plans. subscription/v2 returns comprehensive plan info including pricing, processing fees, UI visibility, and upgrade options. Stripe Price IDs configured in backend/.env.",
+  "api_endpoints_tested": {
+    "POST /api/billing/checkout/v2": "Working - creates Stripe checkout for all 9 plans",
+    "GET /api/billing/subscription/v2": "Working - returns plan info with product_line, pricing, fees, UI visibility",
+    "GET /api/plans/all": "Working - returns 9 plans grouped by 3 product lines",
+    "GET /api/plans/os": "Working - returns 3 OS plans",
+    "GET /api/plans/webstores": "Working - returns 3 Webstore plans",
+    "GET /api/plans/ai-studio": "Working - returns 3 AI Studio plans",
+    "GET /api/plans/founder-status": "Working - returns 100 spots, 98 remaining",
+    "GET /api/plans/{plan_type}/details": "Working - returns features and UI visibility"
+  },
+  "stripe_configuration": {
+    "status": "CONFIGURED - Real Price IDs in backend/.env",
+    "checkout_urls": "Returns live Stripe checkout URLs (https://checkout.stripe.com/...)",
+    "webhook_handler": "Routes to multi_product_billing handlers for plan_type starting with os_, ws_, ai_"
+  }
+}
