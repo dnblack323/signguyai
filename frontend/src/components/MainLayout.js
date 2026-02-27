@@ -108,11 +108,26 @@ export const Sidebar = () => {
   const location = useLocation();
   const [activeCategory, setActiveCategory] = useState(null);
   const [flyoutPosition, setFlyoutPosition] = useState({ top: 0 });
+  const [previewProductLine, setPreviewProductLine] = useState(localStorage.getItem('preview_product_line') || 'os_business');
   const navRef = useRef(null);
   const categoryRefs = useRef({});
 
-  // Get preview product line from localStorage for filtering
-  const previewProductLine = localStorage.getItem('preview_product_line') || 'os_business';
+  // Listen for preview product line changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setPreviewProductLine(localStorage.getItem('preview_product_line') || 'os_business');
+    };
+    
+    // Listen for custom event dispatched when preview changes
+    window.addEventListener('previewProductLineChanged', handleStorageChange);
+    // Also listen for storage changes (for multi-tab support)
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('previewProductLineChanged', handleStorageChange);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
   
   // Map preview product line to actual product line for filtering
   const getProductLineFromPreview = (preview) => {
