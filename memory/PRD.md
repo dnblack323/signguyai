@@ -1032,13 +1032,13 @@ The webhook handler now routes to appropriate handlers based on metadata:
 - ~~Webstore Settings/Branding merge~~ ✅ DONE
 - ~~AI Assistant intermittent failures~~ ✅ VERIFIED WORKING
 - ~~AI Product Description Generator~~ ✅ DONE
+- ~~Racing-Specific Module~~ ✅ DONE
 
 ### P2 (Medium Priority)
-- Racing-Specific Module (Number/Name generators)
+- Dynamic Questionnaire Creator
 
 ### P3 (Low Priority)
-- Dynamic Questionnaire Creator
-- Vehicle Wrap AI Tool (Full Spec)
+- Vehicle Wrap AI Tool (Full Spec) - Enhanced version beyond current calculator
 
 ---
 
