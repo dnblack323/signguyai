@@ -61,13 +61,6 @@ export default function AboutPage() {
       <PublicNav />
 
       {/* Hero */}
-              </Link>
-            </div>
-          </div>
-        )}
-      </nav>
-
-      {/* Hero */}
       <section className="pt-32 pb-16 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
