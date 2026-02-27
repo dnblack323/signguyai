@@ -101,6 +101,42 @@ export default function Products() {
   const apparelSizes = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'];
   const decalSizes = ['Small (3")', 'Medium (6")', 'Large (12")', 'XL (18")', 'Custom'];
 
+  // AI Product Description Generator
+  const handleGenerateDescription = async () => {
+    if (!formData.name.trim()) {
+      toast.error('Please enter a product name first');
+      return;
+    }
+
+    setGeneratingDescription(true);
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/ai/generate-product-description`,
+        {
+          product_name: formData.name,
+          product_category: categoryOptions.find(c => c.value === formData.category)?.label || 'Other',
+          product_features: formData.description || '', // Use existing description as features hint
+          target_audience: 'small businesses and consumers',
+          tone: 'professional',
+          price: parseFloat(formData.retail_price) || 0,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      // Use the full description or just the main content
+      const newDescription = response.data.description;
+      setFormData({ ...formData, description: newDescription });
+      toast.success('Description generated!');
+    } catch (error) {
+      console.error('Failed to generate description:', error);
+      toast.error(error.response?.data?.detail || 'Failed to generate description');
+    } finally {
+      setGeneratingDescription(false);
+    }
+  };
+
   useEffect(() => {
     loadProducts();
   }, []);
