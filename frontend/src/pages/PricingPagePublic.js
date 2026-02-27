@@ -449,22 +449,7 @@ export default function PricingPagePublic() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#0B0F14] border-t border-white/10 py-8 px-4">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <img src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/k3asaz65_sgai%20long.png" alt="TheSignGuy AI" className="h-10 w-auto" />
-          </div>
-          <div className="flex items-center gap-6 text-sm text-gray-400">
-            <Link to="/home" className="hover:text-white transition">Home</Link>
-            <Link to="/features" className="hover:text-white transition">Features</Link>
-            <Link to="/pricing" className="hover:text-white transition">Pricing</Link>
-            <Link to="/contact" className="hover:text-white transition">Contact</Link>
-          </div>
-          <div className="text-sm text-gray-500">
-            © 2026 SignGuy AI. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }
