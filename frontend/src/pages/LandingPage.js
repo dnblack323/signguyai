@@ -152,20 +152,23 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             <div className="flex items-center gap-3">
-              <img src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/k3asaz65_sgai%20long.png" alt="TheSignGuy AI" className="h-14 w-auto" />
+              <Link to="/">
+                <img src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/k3asaz65_sgai%20long.png" alt="TheSignGuy AI" className="h-14 w-auto" />
+              </Link>
             </div>
             
             {/* Desktop Nav */}
-            <div className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-gray-300 hover:text-white transition">Features</a>
-              <a href="#ai-tools" className="text-gray-300 hover:text-white transition">AI Tools</a>
-              <a href="#pricing" className="text-gray-300 hover:text-white transition">Pricing</a>
+            <div className="hidden md:flex items-center gap-6">
+              <Link to="/features" className="text-gray-300 hover:text-white transition">Features</Link>
+              <Link to="/pricing" className="text-gray-300 hover:text-white transition">Pricing</Link>
+              <Link to="/about" className="text-gray-300 hover:text-white transition">About</Link>
+              <Link to="/contact" className="text-gray-300 hover:text-white transition">Contact</Link>
               <Link to="/docs" className="text-gray-300 hover:text-white transition">Docs</Link>
               <Link to="/login">
                 <Button variant="ghost" className="text-gray-300 hover:text-white">Log In</Button>
               </Link>
-              <Link to="/register">
-                <Button className="bg-[#2F8BFB] hover:bg-[#1E7AF0] text-black font-semibold">
+              <Link to="/login">
+                <Button className="bg-[#2F8BFB] hover:bg-[#1E7AF0] text-white font-semibold">
                   Start Free Trial
                 </Button>
               </Link>
@@ -182,13 +185,14 @@ export default function LandingPage() {
         {mobileMenuOpen && (
           <div className="md:hidden bg-[#111826] border-t border-white/10 p-4">
             <div className="flex flex-col gap-4">
-              <a href="#features" className="text-gray-300 hover:text-white">Features</a>
-              <a href="#ai-tools" className="text-gray-300 hover:text-white">AI Tools</a>
-              <a href="#pricing" className="text-gray-300 hover:text-white">Pricing</a>
-              <Link to="/docs" className="text-gray-300 hover:text-white">Docs</Link>
-              <Link to="/login" className="text-gray-300 hover:text-white">Log In</Link>
-              <Link to="/register">
-                <Button className="w-full bg-[#2F8BFB] hover:bg-[#1E7AF0] text-black font-semibold">Start Free Trial</Button>
+              <Link to="/features" className="text-gray-300 hover:text-white" onClick={() => setMobileMenuOpen(false)}>Features</Link>
+              <Link to="/pricing" className="text-gray-300 hover:text-white" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
+              <Link to="/about" className="text-gray-300 hover:text-white" onClick={() => setMobileMenuOpen(false)}>About</Link>
+              <Link to="/contact" className="text-gray-300 hover:text-white" onClick={() => setMobileMenuOpen(false)}>Contact</Link>
+              <Link to="/docs" className="text-gray-300 hover:text-white" onClick={() => setMobileMenuOpen(false)}>Docs</Link>
+              <Link to="/login" className="text-gray-300 hover:text-white" onClick={() => setMobileMenuOpen(false)}>Log In</Link>
+              <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
+                <Button className="w-full bg-[#2F8BFB] hover:bg-[#1E7AF0] text-white font-semibold">Start Free Trial</Button>
               </Link>
             </div>
           </div>
