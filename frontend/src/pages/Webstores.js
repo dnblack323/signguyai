@@ -1323,20 +1323,96 @@ export default function Webstores() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="settings" className="space-y-4">
-                  <div className="space-y-4">
-                    <h4 className="font-medium">Store Branding</h4>
-                    <div className="space-y-4">
+                <TabsContent value="settings" className="space-y-6">
+                  {/* Store Link Section - Prominent at top */}
+                  <div className="p-4 rounded-lg bg-gradient-to-r from-[#2F8BFB]/10 to-[#2F8BFB]/5 border border-[#2F8BFB]/20">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-[#2F8BFB]/20 rounded-lg">
+                          <Link2 className="h-5 w-5 text-[#2F8BFB]" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">Public Store Link</p>
+                          <p className="text-xs font-mono text-muted-foreground truncate max-w-[350px]">
+                            {getStoreUrl(selectedStore.id)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleCopyLink(selectedStore.id)}
+                          data-testid="copy-store-link-btn"
+                        >
+                          <Copy className="h-4 w-4 mr-1" /> Copy
+                        </Button>
+                        <Button 
+                          size="sm"
+                          onClick={() => handleOpenStore(selectedStore.id)}
+                          className="bg-[#2F8BFB] hover:bg-[#2F8BFB]/90 text-white"
+                          data-testid="open-store-btn"
+                        >
+                          <ExternalLink className="h-4 w-4 mr-1" /> Open
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Store Status Controls */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Settings className="h-4 w-4" />
+                        Store Status
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label>Store Active</Label>
+                          <p className="text-xs text-muted-foreground">Enable or disable this storefront</p>
+                        </div>
+                        <Switch
+                          checked={selectedStore.status === 'active'}
+                          onCheckedChange={(checked) => handleUpdateStatus(checked ? 'active' : 'disabled')}
+                          data-testid="store-active-switch"
+                        />
+                      </div>
+                      <Separator />
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label>Public Access</Label>
+                          <p className="text-xs text-muted-foreground">Allow anyone to view and order</p>
+                        </div>
+                        <Switch
+                          checked={selectedStore.is_public}
+                          onCheckedChange={(checked) => handleUpdatePublic(checked)}
+                          data-testid="store-public-switch"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Branding Section */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Palette className="h-4 w-4" />
+                        Store Branding
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {/* Logo Upload */}
                       <div className="space-y-3">
-                        <Label>Company Logo</Label>
+                        <Label className="text-sm font-medium">Company Logo</Label>
                         
-                        {/* Current Logo Preview */}
                         {(logoPreview || selectedStore.branding?.logo_url) && (
                           <div className="flex items-center gap-4 p-3 rounded-lg border border-border bg-muted/30">
                             <img 
                               src={logoPreview || selectedStore.branding?.logo_url} 
                               alt="Logo preview" 
-                              className="h-16 w-auto object-contain rounded"
+                              className="h-14 w-auto object-contain rounded"
                             />
                             <div className="flex-1">
                               <p className="text-sm font-medium">
@@ -1362,7 +1438,6 @@ export default function Webstores() {
                           </div>
                         )}
                         
-                        {/* Upload Button */}
                         <div className="flex gap-2">
                           <input
                             type="file"
@@ -1374,28 +1449,30 @@ export default function Webstores() {
                           <Button
                             type="button"
                             variant="outline"
+                            size="sm"
                             onClick={() => document.getElementById('edit-logo-file-input')?.click()}
-                            className="flex-1"
                             disabled={uploadingLogo}
+                            data-testid="upload-logo-btn"
                           >
                             <Upload className="h-4 w-4 mr-2" />
-                            {logoPreview ? 'Change Logo' : 'Upload Logo'}
+                            {logoPreview ? 'Change' : 'Upload'}
                           </Button>
                           {logoFile && (
                             <Button
                               type="button"
+                              size="sm"
                               onClick={() => handleUploadLogo()}
                               disabled={uploadingLogo}
+                              data-testid="save-logo-btn"
                             >
-                              {uploadingLogo ? 'Uploading...' : 'Save Logo'}
+                              {uploadingLogo ? 'Saving...' : 'Save Logo'}
                             </Button>
                           )}
                         </div>
                         
-                        {/* Or use URL */}
                         <div className="flex items-center gap-2">
                           <div className="flex-1 h-px bg-border" />
-                          <span className="text-xs text-muted-foreground">or enter URL</span>
+                          <span className="text-xs text-muted-foreground">or URL</span>
                           <div className="flex-1 h-px bg-border" />
                         </div>
                         
@@ -1403,27 +1480,28 @@ export default function Webstores() {
                           value={selectedStore.branding?.logo_url || ''}
                           onChange={(e) => handleUpdateBranding('logo_url', e.target.value)}
                           placeholder="https://example.com/logo.png"
-                          data-testid="edit-logo-input"
+                          className="text-sm"
+                          data-testid="edit-logo-url-input"
                         />
-                        <p className="text-xs text-muted-foreground">
-                          Upload an image or enter a URL. Max file size: 2MB
-                        </p>
                       </div>
-                      
-                      {/* Banner Image Upload */}
+
+                      <Separator />
+
+                      {/* Banner Upload */}
                       <div className="space-y-3">
-                        <Label>Store Banner</Label>
-                        <p className="text-xs text-muted-foreground">
-                          Add a custom banner image to personalize the storefront header
-                        </p>
+                        <div>
+                          <Label className="text-sm font-medium">Store Banner</Label>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Recommended size: 1200x300px
+                          </p>
+                        </div>
                         
-                        {/* Current Banner Preview */}
                         {(bannerPreview || selectedStore.branding?.banner_url) && (
                           <div className="relative rounded-lg border border-border overflow-hidden">
                             <img 
                               src={bannerPreview || selectedStore.branding?.banner_url} 
                               alt="Banner preview" 
-                              className="w-full h-32 object-cover"
+                              className="w-full h-28 object-cover"
                             />
                             {bannerPreview && (
                               <Button
@@ -1442,7 +1520,6 @@ export default function Webstores() {
                           </div>
                         )}
                         
-                        {/* Upload Button */}
                         <div className="flex gap-2">
                           <input
                             type="file"
@@ -1454,28 +1531,30 @@ export default function Webstores() {
                           <Button
                             type="button"
                             variant="outline"
+                            size="sm"
                             onClick={() => document.getElementById('edit-banner-file-input')?.click()}
-                            className="flex-1"
                             disabled={uploadingBanner}
+                            data-testid="upload-banner-btn"
                           >
                             <Upload className="h-4 w-4 mr-2" />
-                            {bannerPreview ? 'Change Banner' : 'Upload Banner'}
+                            {bannerPreview ? 'Change' : 'Upload'}
                           </Button>
                           {bannerFile && (
                             <Button
                               type="button"
+                              size="sm"
                               onClick={() => handleUploadBanner()}
                               disabled={uploadingBanner}
+                              data-testid="save-banner-btn"
                             >
-                              {uploadingBanner ? 'Uploading...' : 'Save Banner'}
+                              {uploadingBanner ? 'Saving...' : 'Save Banner'}
                             </Button>
                           )}
                         </div>
                         
-                        {/* Or use URL */}
                         <div className="flex items-center gap-2">
                           <div className="flex-1 h-px bg-border" />
-                          <span className="text-xs text-muted-foreground">or enter URL</span>
+                          <span className="text-xs text-muted-foreground">or URL</span>
                           <div className="flex-1 h-px bg-border" />
                         </div>
                         
@@ -1483,16 +1562,17 @@ export default function Webstores() {
                           value={selectedStore.branding?.banner_url || ''}
                           onChange={(e) => handleUpdateBranding('banner_url', e.target.value)}
                           placeholder="https://example.com/banner.jpg"
-                          data-testid="edit-banner-input"
+                          className="text-sm"
+                          data-testid="edit-banner-url-input"
                         />
-                        <p className="text-xs text-muted-foreground">
-                          Recommended size: 1200x300px. Max file size: 5MB
-                        </p>
                       </div>
-                      
-                      <div className="space-y-2">
-                        <Label>Accent Color</Label>
-                        <div className="flex gap-2 items-center">
+
+                      <Separator />
+
+                      {/* Accent Color */}
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Accent Color</Label>
+                        <div className="flex gap-3 items-center">
                           <div className="relative w-12 h-10 rounded border border-border overflow-hidden cursor-pointer">
                             <input
                               type="color"
@@ -1505,7 +1585,7 @@ export default function Webstores() {
                                 appearance: 'none',
                                 backgroundColor: 'transparent'
                               }}
-                              data-testid="edit-color-input"
+                              data-testid="edit-color-picker"
                             />
                             <div 
                               className="absolute inset-0 pointer-events-none"
@@ -1516,7 +1596,8 @@ export default function Webstores() {
                             value={selectedStore.branding?.primary_color || '#0D9488'}
                             onChange={(e) => handleUpdateBranding('primary_color', e.target.value)}
                             placeholder="#0D9488"
-                            className="w-28 font-mono"
+                            className="w-28 font-mono text-sm"
+                            data-testid="edit-color-input"
                           />
                           <div 
                             className="flex-1 h-10 rounded-lg flex items-center justify-center text-white text-sm font-medium"
@@ -1526,122 +1607,44 @@ export default function Webstores() {
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </CardContent>
+                  </Card>
 
-                    <Separator />
-
-                    <h4 className="font-medium">Store Status</h4>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
+                  {/* Store Details (Read-only info) */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
+                        Store Details
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                          <Label>Store Active</Label>
-                          <p className="text-xs text-muted-foreground">Enable or disable this storefront</p>
+                          <p className="text-muted-foreground text-xs">Owner/Organization</p>
+                          <p className="font-medium">{selectedStore.owner_name || '-'}</p>
                         </div>
-                        <Switch
-                          checked={selectedStore.status === 'active'}
-                          onCheckedChange={(checked) => handleUpdateStatus(checked ? 'active' : 'disabled')}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
                         <div>
-                          <Label>Public Access</Label>
-                          <p className="text-xs text-muted-foreground">Allow anyone to view and order</p>
+                          <p className="text-muted-foreground text-xs">Store Type</p>
+                          <Badge className={getStoreTypeColor(selectedStore.store_type)}>
+                            {selectedStore.store_type}
+                          </Badge>
                         </div>
-                        <Switch
-                          checked={selectedStore.is_public}
-                          onCheckedChange={(checked) => handleUpdatePublic(checked)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="branding" className="space-y-4">
-                  {/* Store Link Section */}
-                  <div className="p-4 rounded-lg border" style={{ background: '#F5F7FA', borderColor: '#D7DCE2' }}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-sm" style={{ color: '#1A1A1A' }}>Public Store Link</p>
-                        <p className="text-xs font-mono truncate max-w-[400px]" style={{ color: '#5A5A5A' }}>
-                          {getStoreUrl(selectedStore.id)}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleCopyLink(selectedStore.id)}
-                        >
-                          <Copy className="h-4 w-4 mr-2" /> Copy Link
-                        </Button>
-                        <Button 
-                          size="sm"
-                          onClick={() => handleOpenStore(selectedStore.id)}
-                          style={{ background: '#2F8BFB' }}
-                          className="text-white"
-                        >
-                          <ExternalLink className="h-4 w-4 mr-2" /> Open Store
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Branding Preview */}
-                  <div className="space-y-2">
-                    <h4 className="font-medium" style={{ color: '#1A1A1A' }}>Store Branding</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 rounded-lg" style={{ background: '#F5F7FA' }}>
-                        <p className="text-xs mb-2" style={{ color: '#5A5A5A' }}>Logo</p>
-                        {selectedStore.branding?.logo_url ? (
-                          <img 
-                            src={selectedStore.branding.logo_url} 
-                            alt="Store logo" 
-                            className="h-12 w-auto object-contain"
-                          />
-                        ) : (
-                          <p className="text-sm italic" style={{ color: '#5A5A5A' }}>No logo set</p>
-                        )}
-                      </div>
-                      <div className="p-4 rounded-lg" style={{ background: '#F5F7FA' }}>
-                        <p className="text-xs mb-2" style={{ color: '#5A5A5A' }}>Accent Color</p>
-                        <div className="flex items-center gap-3">
-                          <div 
-                            className="w-10 h-10 rounded-lg border"
-                            style={{ 
-                              backgroundColor: selectedStore.branding?.primary_color || '#0D9488',
-                              borderColor: '#D7DCE2'
-                            }}
-                          />
-                          <span className="font-mono text-sm" style={{ color: '#1A1A1A' }}>
-                            {selectedStore.branding?.primary_color || '#0D9488'}
-                          </span>
+                        <div>
+                          <p className="text-muted-foreground text-xs">Contact Email</p>
+                          <p className="font-medium">{selectedStore.owner_email || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground text-xs">Contact Phone</p>
+                          <p className="font-medium">{selectedStore.owner_phone || '-'}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-muted-foreground text-xs">Description</p>
+                          <p className="font-medium">{selectedStore.description || '-'}</p>
                         </div>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Store Info */}
-                  <div className="space-y-2">
-                    <h4 className="font-medium" style={{ color: '#1A1A1A' }}>Store Details</h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p style={{ color: '#5A5A5A' }}>Contact Email</p>
-                        <p style={{ color: '#1A1A1A' }}>{selectedStore.owner_email || '-'}</p>
-                      </div>
-                      <div>
-                        <p style={{ color: '#5A5A5A' }}>Contact Phone</p>
-                        <p style={{ color: '#1A1A1A' }}>{selectedStore.owner_phone || '-'}</p>
-                      </div>
-                      <div>
-                        <p style={{ color: '#5A5A5A' }}>Status</p>
-                        <Badge className={getStatusBadge(selectedStore.status)}>{selectedStore.status}</Badge>
-                      </div>
-                      <div>
-                        <p style={{ color: '#5A5A5A' }}>Visibility</p>
-                        <p style={{ color: '#1A1A1A' }}>{selectedStore.is_public ? 'Public' : 'Private'}</p>
-                      </div>
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
                 </TabsContent>
               </Tabs>
             </>
