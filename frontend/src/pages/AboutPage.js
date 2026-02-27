@@ -1,16 +1,14 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { PublicNav, PublicFooter } from '../components/PublicNav';
 import {
-  Heart, ArrowRight, Menu, X, Users, Target, Lightbulb,
+  Heart, ArrowRight, Users, Target, Lightbulb,
   CheckCircle2, MessageSquare, Rocket, Shield, Award, Zap
 } from 'lucide-react';
 
 export default function AboutPage() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   const values = [
     {
       icon: Heart,
