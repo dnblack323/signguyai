@@ -1093,6 +1093,9 @@ def _get_upgrade_options(current_plan: 'PlanType') -> list:
     
     return upgrades
 
+
+# ============== WEBHOOK HANDLER ==============
+
 @webhook_router.post("/webhook/stripe")
 async def stripe_webhook(request: Request, db = Depends(get_db)):
     """
