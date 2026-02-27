@@ -93,7 +93,7 @@ export const Ribbon = () => {
       {/* Ribbon Tabs Row */}
       <div className="flex items-center border-b border-[var(--border-light)]">
         {/* Desktop Tabs */}
-        <div className="hidden lg:flex items-center px-2">
+        <div className="hidden lg:flex items-center pl-4 pr-2">
           {ribbonTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
