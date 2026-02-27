@@ -1029,8 +1029,8 @@ The webhook handler now routes to appropriate handlers based on metadata:
 ## Remaining Tasks
 
 ### P1 (High Priority)
-- Webstore Settings/Branding merge
-- AI Assistant intermittent failures (needs reproduction steps)
+- ~~Webstore Settings/Branding merge~~ ✅ DONE
+- ~~AI Assistant intermittent failures~~ ✅ VERIFIED WORKING
 
 ### P2 (Medium Priority)
 - AI product description generator
