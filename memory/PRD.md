@@ -1072,3 +1072,42 @@ Merged the separate "Settings" and "Branding" tabs in the Webstore detail dialog
 
 ### Note
 Testing requires Stripe Connect to be set up (real account required for webstore functionality).
+
+---
+
+## Product Line Preview Mode COMPLETE ✅
+**Date: December 27, 2025**
+
+### What Was Built
+Added a "View As Product Line" feature in the Preview Mode panel (bottom right corner) that allows previewing the app as different customer types:
+
+**Preview Options:**
+- **OS Business (Full Access)** - All features visible
+- **OS Pro** - Standard OS features
+- **OS Starter** - Basic OS features
+- **Webstores Only** - Only Dashboard, Webstores, Admin visible
+- **AI Studio Only** - Only Dashboard, AI Tools, Admin visible
+
+### How It Works
+1. Click the preview button in the bottom right corner
+2. Select a product line to preview
+3. The sidebar navigation dynamically updates to show only the features that customer type would see
+4. Changes persist in localStorage and sync across components
+
+### Files Modified
+- `frontend/src/components/MainLayout.js`:
+  - Added `productLines` property to navigation categories
+  - Added `previewProductLine` state management
+  - Added custom event dispatching for sidebar updates
+  - Updated Sidebar to filter navigation based on preview product line
+
+### Navigation Visibility by Product Line
+| Feature | OS | Webstores | AI Studio |
+|---------|-----|-----------|-----------|
+| Dashboard | ✅ | ✅ | ✅ |
+| Sales | ✅ | ❌ | ❌ |
+| Operations | ✅ | ❌ | ❌ |
+| Webstores | ✅ | ✅ | ❌ |
+| AI Tools | ✅ | ❌ | ✅ |
+| Admin | ✅ | ✅ | ✅ |
+
