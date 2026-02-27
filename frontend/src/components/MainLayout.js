@@ -590,6 +590,8 @@ export const MainLayout = ({ children }) => {
 
   useEffect(() => {
     localStorage.setItem('preview_product_line', previewProductLine);
+    // Dispatch custom event to notify Sidebar of the change
+    window.dispatchEvent(new Event('previewProductLineChanged'));
   }, [previewProductLine]);
 
   // Get current page title
