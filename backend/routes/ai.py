@@ -828,7 +828,41 @@ The wrap features {design_description} in {primary_colors} colors with a {style}
 The vehicle should be shown from a {view_angle} angle.
 Photorealistic mockup, professional vehicle wrap photography, clean background or simple environment.
 The wrap should look professionally installed, with realistic reflections and contours following the vehicle body.
-High quality commercial photography style suitable for client presentations."""
+High quality commercial photography style suitable for client presentations.""",
+
+    # Racing & Motorsports Image Prompts
+    "race_number_designer": """Professional racing number "{race_number}" design.
+Style: {number_style}, {racing_series} series aesthetic.
+Colors: {color_scheme}, {custom_colors}.
+Background: {background_type}.
+Effects: {effects}.
+Bold, aggressive racing number suitable for motorsports.
+Clean graphic design, high contrast, readable at speed.
+Vector-style appearance, sharp edges, professional race graphics.
+The number should look fast and powerful.""",
+
+    "driver_name_plate": """Professional motorsports driver name plate design.
+Driver name: "{driver_name}"
+Plate type: {plate_type}.
+Number included: {include_number}, #{race_number}.
+Hometown: {hometown}.
+Sponsor: {sponsor_text}.
+Font style: {font_style}.
+Colors: {color_scheme}, {custom_colors}.
+Clean racing typography, professional driver identification.
+Readable name plate suitable for race car door or roof strip.
+High contrast, bold text, racing aesthetic.""",
+
+    "race_team_branding": """Professional race team branding design for "{team_name}".
+Racing series: {racing_series}.
+Team number: #{primary_number}.
+Colors: {team_colors}.
+Style: {style_preference}.
+Elements: {include_elements}.
+Sponsor areas: {sponsor_placeholders}.
+Bold motorsports branding, aggressive racing aesthetic.
+Professional race team identity, logo and number design.
+Clean vector style, suitable for car graphics, merchandise, and marketing."""
 }
 
 
