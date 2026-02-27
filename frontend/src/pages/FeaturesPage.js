@@ -360,8 +360,8 @@ export default function FeaturesPage() {
             Start your free trial and see why sign shops are switching to SignGuy AI.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/register">
-              <Button size="lg" className="bg-[#2F8BFB] hover:bg-[#1E7AF0] text-black font-semibold text-lg px-8 py-6 h-auto">
+            <Link to="/login">
+              <Button size="lg" className="bg-[#2F8BFB] hover:bg-[#1E7AF0] text-white font-semibold text-lg px-8 py-6 h-auto">
                 Start Your Free Trial
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
@@ -376,43 +376,7 @@ export default function FeaturesPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-4 border-t border-white/10">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <img src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/k3asaz65_sgai%20long.png" alt="TheSignGuy AI" className="h-12 w-auto mb-4" />
-              <p className="text-gray-400 text-sm">
-                The AI-powered operating system for serious sign shops.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-white mb-4">Product</h4>
-              <ul className="space-y-2 text-gray-400 text-sm">
-                <li><Link to="/features" className="hover:text-white transition">Features</Link></li>
-                <li><Link to="/pricing" className="hover:text-white transition">Pricing</Link></li>
-                <li><Link to="/home#faq" className="hover:text-white transition">FAQ</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold text-white mb-4">Company</h4>
-              <ul className="space-y-2 text-gray-400 text-sm">
-                <li><Link to="/about" className="hover:text-white transition">About</Link></li>
-                <li><Link to="/contact" className="hover:text-white transition">Contact</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold text-white mb-4">Legal</h4>
-              <ul className="space-y-2 text-gray-400 text-sm">
-                <li><a href="#" className="hover:text-white transition">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-white transition">Terms of Service</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-white/10 pt-8 text-center text-gray-500 text-sm">
-            &copy; {new Date().getFullYear()} SignGuy AI. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }
