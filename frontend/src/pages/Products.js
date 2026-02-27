@@ -395,14 +395,42 @@ export default function Products() {
                   />
                 </div>
                 <div className="space-y-2 col-span-2">
-                  <Label>Description</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Description</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGenerateDescription}
+                      disabled={generatingDescription || !formData.name.trim()}
+                      className="text-xs h-7 px-2 gap-1"
+                      data-testid="generate-description-btn"
+                    >
+                      {generatingDescription ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-3 w-3" />
+                          AI Generate
+                        </>
+                      )}
+                    </Button>
+                  </div>
                   <Textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Product description..."
-                    rows={2}
+                    placeholder="Product description... or click 'AI Generate' to create one automatically"
+                    rows={4}
                     data-testid="product-description-input"
                   />
+                  {formData.description && formData.description.length > 100 && (
+                    <p className="text-xs text-muted-foreground text-right">
+                      {formData.description.length} characters
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Category *</Label>
