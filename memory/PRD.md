@@ -1150,3 +1150,46 @@ The generator creates descriptions with:
 
 Example: "Make your message impossible to miss with a custom vinyl banner that looks sharp, lasts longer, and sells harder..."
 
+---
+
+## Racing & Motorsports Module COMPLETE ✅
+**Date: December 27, 2025**
+
+### What Was Built
+Added a complete Racing & Motorsports category to the AI Tools Suite with 4 specialized tools for motorsports sign shops.
+
+### Racing Tools
+
+**1. Race Number Designer** (Generates 3 Images)
+- Create professional racing number designs
+- Options: number style (11 options), color scheme, background type, special effects
+- Racing series styles: NASCAR, dirt track, drag racing, motocross, karting, sprint car, etc.
+
+**2. Driver Name Plate Generator** (Generates 2 Images)
+- Create professional driver name plates and roof strips
+- Plate types: door strip, roof strip, windshield banner, quarter panel, hero card
+- Options: include number, hometown, sponsor text, font style, color scheme
+
+**3. Vehicle Wrap Cost Calculator** (Text-only)
+- Calculate accurate pricing for any vehicle wrap job
+- Inputs: vehicle type (18 options), wrap coverage, material type, design complexity
+- Outputs: detailed breakdown of materials, labor, additional fees, and final quote
+- Includes recommended retail price, profit margins, and price ranges
+
+**4. Race Team Branding Kit** (Generates 3 Images)
+- Create complete branding packages for race teams
+- Options: team name, racing series, primary number, team colors, style preference
+- Includes: logo concepts, number designs, wrap concepts, sponsor layouts
+
+### Files Modified
+- `frontend/src/pages/AITools.js` - Added 4 racing tools and "Racing & Motorsports" category
+- `backend/routes/ai.py` - Added TOOL_PROMPTS and IMAGE_PROMPTS for racing tools
+
+### Test Results
+- Backend: 7/7 core tests passed (100%)
+- Frontend: All UI elements working (100%)
+- Feature gating working correctly (monthly limits, image access by plan)
+
+### Vehicle Types Supported
+Sedan (compact/full), SUV (crossover/full), Pickup truck, Van (cargo/sprinter), Box truck, Semi truck (cab/trailer), Race car (stock/late model/modified), Sprint car, Motorcycle, ATV/UTV, Boat, Trailer
+
