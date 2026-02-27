@@ -67,12 +67,14 @@ const getCategoryColor = (category) => {
 
 export default function Products() {
   const { getProducts, createProduct, updateProduct, deleteProduct } = useApp();
+  const { token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [expandedProduct, setExpandedProduct] = useState(null);
+  const [generatingDescription, setGeneratingDescription] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
