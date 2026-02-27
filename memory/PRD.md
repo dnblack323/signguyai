@@ -903,6 +903,58 @@ December 1, 2025
 - 44/44 backend tests passed (100%)
 - All 9 plans verified with correct features and pricing
 
-### STOPPED FOR REVIEW
-Phase 3 (Billing & Stripe Wiring) pending user confirmation.
-User will provide real Stripe Price IDs when ready.
+---
+
+## Multi-Product Restructure - Phase 3 COMPLETE ✅
+**Date: December 27, 2025**
+
+### What Was Built
+
+**Phase 3: Billing & Stripe Wiring**
+- Wired up all 9 plans to Stripe with real Price IDs
+- Created `/api/billing/checkout/v2` endpoint for multi-product checkouts
+- Created `/api/billing/subscription/v2` endpoint for plan info retrieval
+- Updated Stripe webhook handler to route multi-product events to new handlers
+- Implemented validation rules:
+  - Annual billing ONLY for OS Business plan
+  - Founder pricing ONLY for OS plans
+
+### Stripe Configuration
+All 14 Stripe Price IDs configured in `backend/.env`:
+```
+STRIPE_PRICE_OS_STARTER_MONTHLY
+STRIPE_PRICE_OS_STARTER_FOUNDER_MONTHLY
+STRIPE_PRICE_OS_PRO_MONTHLY
+STRIPE_PRICE_OS_PRO_FOUNDER_MONTHLY
+STRIPE_PRICE_OS_BUSINESS_MONTHLY
+STRIPE_PRICE_OS_BUSINESS_ANNUAL
+STRIPE_PRICE_OS_BUSINESS_FOUNDER_MONTHLY
+STRIPE_PRICE_OS_BUSINESS_FOUNDER_ANNUAL
+STRIPE_PRICE_WS_LAUNCH_MONTHLY
+STRIPE_PRICE_WS_GROWTH_MONTHLY
+STRIPE_PRICE_WS_SCALE_MONTHLY
+STRIPE_PRICE_AI_BASIC_MONTHLY
+STRIPE_PRICE_AI_PRO_MONTHLY
+STRIPE_PRICE_AI_MAX_MONTHLY
+```
+
+### New API Endpoints
+- `POST /api/billing/checkout/v2` - Create Stripe checkout for any plan
+- `GET /api/billing/subscription/v2` - Get current plan with pricing, fees, UI visibility, upgrade options
+
+### Webhook Handler Updates
+The webhook handler now routes to appropriate handlers based on metadata:
+- If `plan_type` starts with `os_`, `ws_`, or `ai_` → `multi_product_billing` handlers
+- Otherwise → legacy billing handlers
+
+### Test Results
+- 39/39 backend tests passed (100%)
+- All checkout endpoints return real Stripe checkout URLs
+- Processing fees verified correct per plan
+
+### Files Updated
+- `backend/routes/billing.py` - checkout/v2, subscription/v2, webhook handler
+- `backend/services/multi_product_billing.py` - checkout, webhook handlers, fee calculations
+
+### AWAITING USER REVIEW
+Phase 3 complete. Ready for user to review before proceeding to Phase 4 (Frontend Pricing Pages).
