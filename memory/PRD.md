@@ -186,6 +186,15 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
   - Added "AI Draft" button to Invoice Preview Modal
   - Added "AI Draft" button to Quote Preview Modal
   - Backend /api/ai/generate-email endpoint
+- [x] **Windows Office-Style Ribbon Navigation (Feb 27, 2026):**
+  - Complete UI redesign replacing left sidebar with Office-style ribbon
+  - **Top App Bar (Row 1):** Logo (navigates to dashboard), File dropdown menu, Search, Notifications, Help, Profile dropdown
+  - **Ribbon (Row 2):** 9 tabs - Home, Jobs, Quotes, Invoices, Customers, Webstores, AI Tools, Reports, Settings
+  - **Contextual Toolbars:** Each tab has unique grouped buttons with icons and labels
+  - **Split Buttons:** New (Job/Quote/Invoice), Export (PDF/CSV/Print)
+  - **Mobile View:** Hamburger menu opens overlay with horizontal tab selector and action items
+  - **Keyboard Accessibility:** Tab navigation, Enter activates, ESC closes dropdowns
+  - **Files:** /app/frontend/src/components/ribbon/ (TopAppBar.js, Ribbon.js, RibbonToolbar.js, DropdownMenu.js, MobileRibbonOverlay.js)
 - [x] **Documentation & Help Center (Feb 18, 2026):**
   - Complete docs site at /docs with sidebar navigation
   - Getting Started guide (5-step walkthrough)
