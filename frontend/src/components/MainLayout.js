@@ -729,12 +729,12 @@ export const MainLayout = ({ children }) => {
             onClick={() => setPreviewOpen(true)}
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-full shadow-lg transition-all hover:scale-105",
-              tierLabels[previewTier].color
+              productLineLabels[previewProductLine]?.color || 'bg-amber-500'
             )}
             data-testid="preview-mode-toggle"
           >
             <Eye className="h-4 w-4 text-white" />
-            <span className="text-sm font-medium text-white">{tierLabels[previewTier].name}</span>
+            <span className="text-sm font-medium text-white">{productLineLabels[previewProductLine]?.name || 'OS Business'}</span>
             <ChevronDown className="h-3 w-3 text-white/80" />
           </button>
         ))}
