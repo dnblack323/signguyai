@@ -111,7 +111,20 @@ export const Sidebar = () => {
   const navRef = useRef(null);
   const categoryRefs = useRef({});
 
-  // Filter navigation based on permissions
+  // Get preview product line from localStorage for filtering
+  const previewProductLine = localStorage.getItem('preview_product_line') || 'os_business';
+  
+  // Map preview product line to actual product line for filtering
+  const getProductLineFromPreview = (preview) => {
+    if (preview.startsWith('os_')) return 'os';
+    if (preview === 'webstores_only') return 'webstores';
+    if (preview === 'ai_studio_only') return 'ai_studio';
+    return 'os';
+  };
+  
+  const currentProductLine = getProductLineFromPreview(previewProductLine);
+
+  // Filter navigation based on permissions AND product line
   const filteredNavigation = useMemo(() => {
     return navigationCategories.map(category => {
       // Keep direct link items (like Home) as-is
@@ -119,7 +132,16 @@ export const Sidebar = () => {
         return category;
       }
       
+      // Filter category by product line (if specified)
+      if (category.productLines && !category.productLines.includes(currentProductLine)) {
+        return { ...category, items: [] }; // Empty items = hidden category
+      }
+      
       const filteredItems = category.items.filter(item => {
+        // Filter item by product line (if specified)
+        if (item.productLines && !item.productLines.includes(currentProductLine)) {
+          return false;
+        }
         // Founder-only items
         if (item.founderOnly && !user?.is_founder) return false;
         // If no permission required, show the item
@@ -137,7 +159,7 @@ export const Sidebar = () => {
       
       return { ...category, items: filteredItems };
     }).filter(category => category.isDirectLink || category.items.length > 0); // Keep direct links and non-empty categories
-  }, [hasPermission, checkFeature, user?.is_founder]);
+  }, [hasPermission, checkFeature, user?.is_founder, currentProductLine]);
 
   // Find active category based on current path
   const findActiveCategory = () => {
