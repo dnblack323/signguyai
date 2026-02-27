@@ -144,6 +144,7 @@ function ProtectedRoutes() {
           <Route path="/pricing-calculator" element={<Pricing />} />
           <Route path="/pricing-calculator/settings" element={<PricingSettings />} />
           <Route path="/billing" element={<BillingManagement />} />
+          <Route path="/questionnaires" element={<Questionnaires />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </MainLayout>
