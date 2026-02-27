@@ -191,6 +191,7 @@ export const MobileRibbonOverlay = ({ isOpen, onClose }) => {
               <button
                 key={index}
                 onClick={() => handleActionClick(action)}
+                data-testid={`mobile-action-${action.label?.toLowerCase().replace(/\s+/g, '-')}`}
                 className="flex items-center gap-4 w-full px-4 py-3 text-left hover:bg-[var(--surface-2)] transition-colors"
               >
                 <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
