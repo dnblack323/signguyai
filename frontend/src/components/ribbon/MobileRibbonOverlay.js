@@ -161,6 +161,7 @@ export const MobileRibbonOverlay = ({ isOpen, onClose }) => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
+                data-testid={`mobile-tab-${tab.id}`}
                 className={cn(
                   "flex flex-col items-center gap-1 px-4 py-3 min-w-[70px] transition-colors relative",
                   isActive 
