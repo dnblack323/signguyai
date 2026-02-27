@@ -18,7 +18,7 @@ from models.questionnaires import (
     QuestionnaireStatus, QuestionnaireCategory,
     Question, QuestionType, QUESTIONNAIRE_TEMPLATES
 )
-from models.user import UserInDB
+from models import UserInDB
 from core.auth_deps import get_current_active_user
 
 # Database connection
