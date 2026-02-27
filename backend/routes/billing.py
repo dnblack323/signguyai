@@ -585,6 +585,12 @@ async def create_multi_product_checkout_session(
     - Founder pricing ONLY for OS plans
     - Annual billing ONLY for OS Business
     - Processing fees vary by plan and transaction type
+    
+    Stripe Price IDs configured in environment:
+    - OS: STRIPE_PRICE_OS_STARTER_MONTHLY, STRIPE_PRICE_OS_PRO_MONTHLY, STRIPE_PRICE_OS_BUSINESS_MONTHLY/ANNUAL
+    - Founder: STRIPE_PRICE_OS_*_FOUNDER_MONTHLY/ANNUAL
+    - Webstores: STRIPE_PRICE_WS_LAUNCH/GROWTH/SCALE_MONTHLY
+    - AI Studio: STRIPE_PRICE_AI_BASIC/PRO/MAX_MONTHLY
     """
     from models.product_tiers import PlanType
     from services.multi_product_billing import create_multi_product_checkout
