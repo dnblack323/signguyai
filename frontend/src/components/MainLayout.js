@@ -72,6 +72,7 @@ const navigationCategories = [
     items: [
       { name: 'Users', href: '/users', icon: Shield, permission: Permission.USERS_VIEW },
       { name: 'Company Settings', href: '/settings', icon: Building2, permission: Permission.SETTINGS_VIEW },
+      { name: 'My Plan & Billing', href: '/billing', icon: CreditCard, permission: Permission.SETTINGS_VIEW },
       { name: 'Payment Settings', href: '/admin/payments', icon: CreditCard, permission: Permission.SETTINGS_VIEW },
       { name: 'Email Templates', href: '/settings/email-templates', icon: Mail, permission: Permission.SETTINGS_VIEW },
       { name: 'Promo Codes', href: '/promo-codes', icon: Ticket, founderOnly: true },
