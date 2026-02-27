@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { PublicNav, PublicFooter } from '../components/PublicNav';
 import {
   Users, FileText, Calculator, Receipt, Clock, DollarSign,
   Sparkles, BarChart3, Store, Shield, Zap, CheckCircle2,
@@ -13,7 +14,6 @@ import {
 } from 'lucide-react';
 
 export default function FeaturesPage() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('all');
 
   const categories = [
