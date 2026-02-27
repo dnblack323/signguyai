@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Users, FileText, Briefcase, Receipt, 
   Clock, DollarSign, CalendarDays, Sparkles, Store,
   Package, LogOut, User, Shield, ChevronRight, Menu, X, Crown, Building2, Settings, CreditCard,
-  Eye, ExternalLink, ChevronDown, Lock, Zap, Globe, Ticket, Image as ImageIcon, Mail
+  Eye, ExternalLink, ChevronDown, Lock, Zap, Globe, Ticket, Image as ImageIcon, Mail, FileQuestion, Flag
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth, Permission } from '../context/AuthContext';
