@@ -15,6 +15,8 @@ import { TrialCountdown } from './TrialLockout';
 import QuickToolbar from './QuickToolbar';
 
 // Navigation structure with categories, nested items, required permissions, and tier features
+// productLines: which product lines can see this category (os, webstores, ai_studio)
+// If not specified, visible to all product lines
 const navigationCategories = [
   {
     id: 'home',
@@ -28,6 +30,7 @@ const navigationCategories = [
     id: 'sales',
     label: 'Sales',
     icon: FileText,
+    productLines: ['os'], // Only visible to OS product line
     items: [
       { name: 'Customers', href: '/customers', icon: Users, permission: Permission.CUSTOMERS_VIEW },
       { name: 'Jobs', href: '/jobs', icon: Briefcase, permission: Permission.JOBS_VIEW },
@@ -38,6 +41,7 @@ const navigationCategories = [
     id: 'operations',
     label: 'Operations',
     icon: Clock,
+    productLines: ['os'], // Only visible to OS product line
     items: [
       { name: 'Time Clock', href: '/timeclock', icon: Clock, permission: Permission.TIMECLOCK_VIEW_OWN, tierFeature: { category: 'core_modules', feature: 'time_clock' } },
       { name: 'Payroll', href: '/payroll', icon: DollarSign, permission: Permission.PAYROLL_VIEW, tierFeature: { category: 'core_modules', feature: 'payroll' } },
@@ -49,6 +53,7 @@ const navigationCategories = [
     id: 'webstores',
     label: 'Webstores',
     icon: Store,
+    productLines: ['os', 'webstores'], // Visible to OS and Webstores product lines
     items: [
       { name: 'Webstores', href: '/webstores', icon: Store, permission: Permission.WEBSTORES_VIEW },
       { name: 'Products', href: '/products', icon: Package, permission: Permission.WEBSTORES_VIEW },
@@ -56,13 +61,14 @@ const navigationCategories = [
   },
   {
     id: 'tools',
-    label: 'Tools',
+    label: 'AI Tools',
     icon: Sparkles,
+    productLines: ['os', 'ai_studio'], // Visible to OS and AI Studio product lines
     items: [
       { name: 'AI Tools', href: '/ai-tools', icon: Sparkles },
-      { name: 'Approvals', href: '/approvals', icon: ImageIcon, permission: Permission.JOBS_VIEW },
-      { name: 'Documents', href: '/documents', icon: FileText },
-      { name: 'Pricing Calculator', href: '/pricing-calculator', icon: DollarSign },
+      { name: 'Approvals', href: '/approvals', icon: ImageIcon, permission: Permission.JOBS_VIEW, productLines: ['os'] },
+      { name: 'Documents', href: '/documents', icon: FileText, productLines: ['os'] },
+      { name: 'Pricing Calculator', href: '/pricing-calculator', icon: DollarSign, productLines: ['os'] },
     ]
   },
   {
@@ -70,13 +76,13 @@ const navigationCategories = [
     label: 'Admin',
     icon: Shield,
     items: [
-      { name: 'Users', href: '/users', icon: Shield, permission: Permission.USERS_VIEW },
+      { name: 'Users', href: '/users', icon: Shield, permission: Permission.USERS_VIEW, productLines: ['os'] },
       { name: 'Company Settings', href: '/settings', icon: Building2, permission: Permission.SETTINGS_VIEW },
       { name: 'My Plan & Billing', href: '/billing', icon: CreditCard, permission: Permission.SETTINGS_VIEW },
-      { name: 'Payment Settings', href: '/admin/payments', icon: CreditCard, permission: Permission.SETTINGS_VIEW },
-      { name: 'Email Templates', href: '/settings/email-templates', icon: Mail, permission: Permission.SETTINGS_VIEW },
+      { name: 'Payment Settings', href: '/admin/payments', icon: CreditCard, permission: Permission.SETTINGS_VIEW, productLines: ['os', 'webstores'] },
+      { name: 'Email Templates', href: '/settings/email-templates', icon: Mail, permission: Permission.SETTINGS_VIEW, productLines: ['os'] },
       { name: 'Promo Codes', href: '/promo-codes', icon: Ticket, founderOnly: true },
-      { name: 'Pricing Settings', href: '/pricing-calculator/settings', icon: DollarSign, permission: Permission.SETTINGS_VIEW },
+      { name: 'Pricing Settings', href: '/pricing-calculator/settings', icon: DollarSign, permission: Permission.SETTINGS_VIEW, productLines: ['os'] },
     ]
   },
 ];
