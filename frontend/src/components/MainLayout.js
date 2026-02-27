@@ -1,583 +1,25 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Eye, ExternalLink, ChevronDown, X, User, Clock, Globe } from 'lucide-react';
 import { cn } from '../lib/utils';
-import {
-  LayoutDashboard, Users, FileText, Briefcase, Receipt, 
-  Clock, DollarSign, CalendarDays, Sparkles, Store,
-  Package, LogOut, User, Shield, ChevronRight, Menu, X, Crown, Building2, Settings, CreditCard,
-  Eye, ExternalLink, ChevronDown, Lock, Zap, Globe, Ticket, Image as ImageIcon, Mail, FileQuestion, Flag
-} from 'lucide-react';
-import { Button } from './ui/button';
-import { useAuth, Permission } from '../context/AuthContext';
-import { useTier } from '../context/TierContext';
-import { TierBadge } from './UpgradeModal';
+import { useAuth } from '../context/AuthContext';
+import { TopAppBar, Ribbon, MobileRibbonOverlay } from './ribbon';
 import { TrialCountdown } from './TrialLockout';
-import QuickToolbar from './QuickToolbar';
 
-// Navigation structure with categories, nested items, required permissions, and tier features
-// productLines: which product lines can see this category (os, webstores, ai_studio)
-// If not specified, visible to all product lines
-const navigationCategories = [
-  {
-    id: 'home',
-    label: 'Dashboard',
-    icon: LayoutDashboard,
-    isDirectLink: true,  // Special flag for direct navigation
-    href: '/dashboard',
-    items: []
-  },
-  {
-    id: 'sales',
-    label: 'Sales',
-    icon: FileText,
-    productLines: ['os'], // Only visible to OS product line
-    items: [
-      { name: 'Customers', href: '/customers', icon: Users, permission: Permission.CUSTOMERS_VIEW },
-      { name: 'Jobs', href: '/jobs', icon: Briefcase, permission: Permission.JOBS_VIEW },
-      { name: 'Invoices', href: '/invoices', icon: Receipt, permission: Permission.INVOICES_VIEW },
-    ]
-  },
-  {
-    id: 'operations',
-    label: 'Operations',
-    icon: Clock,
-    productLines: ['os'], // Only visible to OS product line
-    items: [
-      { name: 'Time Clock', href: '/timeclock', icon: Clock, permission: Permission.TIMECLOCK_VIEW_OWN, tierFeature: { category: 'core_modules', feature: 'time_clock' } },
-      { name: 'Payroll', href: '/payroll', icon: DollarSign, permission: Permission.PAYROLL_VIEW, tierFeature: { category: 'core_modules', feature: 'payroll' } },
-      { name: 'Productivity', href: '/productivity', icon: CalendarDays },
-      { name: 'Financials', href: '/financials', icon: DollarSign, permission: Permission.FINANCIALS_VIEW, tierFeature: { category: 'core_modules', feature: 'financial_tracking' } },
-    ]
-  },
-  {
-    id: 'webstores',
-    label: 'Webstores',
-    icon: Store,
-    productLines: ['os', 'webstores'], // Visible to OS and Webstores product lines
-    items: [
-      { name: 'Webstores', href: '/webstores', icon: Store, permission: Permission.WEBSTORES_VIEW },
-      { name: 'Products', href: '/products', icon: Package, permission: Permission.WEBSTORES_VIEW },
-    ]
-  },
-  {
-    id: 'tools',
-    label: 'AI Tools',
-    icon: Sparkles,
-    productLines: ['os', 'ai_studio'], // Visible to OS and AI Studio product lines
-    items: [
-      { name: 'AI Tools', href: '/ai-tools', icon: Sparkles },
-      { name: 'Approvals', href: '/approvals', icon: ImageIcon, permission: Permission.JOBS_VIEW, productLines: ['os'] },
-      { name: 'Documents', href: '/documents', icon: FileText, productLines: ['os'] },
-      { name: 'Questionnaires', href: '/questionnaires', icon: FileQuestion, productLines: ['os'] },
-      { name: 'Pricing Calculator', href: '/pricing-calculator', icon: DollarSign, productLines: ['os'] },
-    ]
-  },
-  {
-    id: 'admin',
-    label: 'Admin',
-    icon: Shield,
-    items: [
-      { name: 'Users', href: '/users', icon: Shield, permission: Permission.USERS_VIEW, productLines: ['os'] },
-      { name: 'Company Settings', href: '/settings', icon: Building2, permission: Permission.SETTINGS_VIEW },
-      { name: 'My Plan & Billing', href: '/billing', icon: CreditCard, permission: Permission.SETTINGS_VIEW },
-      { name: 'Payment Settings', href: '/admin/payments', icon: CreditCard, permission: Permission.SETTINGS_VIEW, productLines: ['os', 'webstores'] },
-      { name: 'Email Templates', href: '/settings/email-templates', icon: Mail, permission: Permission.SETTINGS_VIEW, productLines: ['os'] },
-      { name: 'Promo Codes', href: '/promo-codes', icon: Ticket, founderOnly: true },
-      { name: 'Pricing Settings', href: '/pricing-calculator/settings', icon: DollarSign, permission: Permission.SETTINGS_VIEW, productLines: ['os'] },
-    ]
-  },
-];
-
-// Tooltip component
-const Tooltip = ({ children, content, show }) => {
-  if (!show) return children;
-  
-  return (
-    <div className="relative group">
-      {children}
-      <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-[var(--sidebar)] text-[var(--text-on-dark)] text-xs font-medium rounded-md whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-lg">
-        {content}
-        <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[var(--sidebar)]" />
-      </div>
-    </div>
-  );
-};
-
-export const Sidebar = () => {
-  const { user, logout, hasPermission } = useAuth();
-  const { checkFeature, requireFeature, tier } = useTier();
-  const location = useLocation();
-  const [activeCategory, setActiveCategory] = useState(null);
-  const [flyoutPosition, setFlyoutPosition] = useState({ top: 0 });
-  const [previewProductLine, setPreviewProductLine] = useState(localStorage.getItem('preview_product_line') || 'os_business');
-  const navRef = useRef(null);
-  const categoryRefs = useRef({});
-
-  // Listen for preview product line changes
-  useEffect(() => {
-    const handleStorageChange = () => {
-      setPreviewProductLine(localStorage.getItem('preview_product_line') || 'os_business');
-    };
-    
-    // Listen for custom event dispatched when preview changes
-    window.addEventListener('previewProductLineChanged', handleStorageChange);
-    // Also listen for storage changes (for multi-tab support)
-    window.addEventListener('storage', handleStorageChange);
-    
-    return () => {
-      window.removeEventListener('previewProductLineChanged', handleStorageChange);
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, []);
-  
-  // Map preview product line to actual product line for filtering
-  const getProductLineFromPreview = (preview) => {
-    if (preview.startsWith('os_')) return 'os';
-    if (preview === 'webstores_only') return 'webstores';
-    if (preview === 'ai_studio_only') return 'ai_studio';
-    return 'os';
-  };
-  
-  const currentProductLine = getProductLineFromPreview(previewProductLine);
-
-  // Filter navigation based on permissions AND product line
-  const filteredNavigation = useMemo(() => {
-    return navigationCategories.map(category => {
-      // Keep direct link items (like Home) as-is
-      if (category.isDirectLink) {
-        return category;
-      }
-      
-      // Filter category by product line (if specified)
-      if (category.productLines && !category.productLines.includes(currentProductLine)) {
-        return { ...category, items: [] }; // Empty items = hidden category
-      }
-      
-      const filteredItems = category.items.filter(item => {
-        // Filter item by product line (if specified)
-        if (item.productLines && !item.productLines.includes(currentProductLine)) {
-          return false;
-        }
-        // Founder-only items
-        if (item.founderOnly && !user?.is_founder) return false;
-        // If no permission required, show the item
-        if (!item.permission) return true;
-        // Check if user has the permission
-        return hasPermission(item.permission);
-      }).map(item => {
-        // Add tier check info
-        if (item.tierFeature) {
-          const tierCheck = checkFeature(item.tierFeature.category, item.tierFeature.feature);
-          return { ...item, tierLocked: !tierCheck.allowed, tierStatus: tierCheck.status };
-        }
-        return item;
-      });
-      
-      return { ...category, items: filteredItems };
-    }).filter(category => category.isDirectLink || category.items.length > 0); // Keep direct links and non-empty categories
-  }, [hasPermission, checkFeature, user?.is_founder, currentProductLine]);
-
-  // Find active category based on current path
-  const findActiveCategory = () => {
-    for (const category of filteredNavigation) {
-      if (category.items.some(item => item.href === location.pathname)) {
-        return category.id;
-      }
-    }
-    return null;
-  };
-
-  const currentActiveCategory = findActiveCategory();
-
-  // Handle category click to show flyout submenu
-  const handleCategoryClick = (categoryId) => {
-    // Calculate flyout position
-    const categoryEl = categoryRefs.current[categoryId];
-    if (categoryEl && navRef.current) {
-      const navRect = navRef.current.getBoundingClientRect();
-      const catRect = categoryEl.getBoundingClientRect();
-      setFlyoutPosition({
-        top: catRect.top - navRect.top,
-      });
-    }
-    
-    // Toggle category
-    if (activeCategory === categoryId) {
-      setActiveCategory(null);
-    } else {
-      setActiveCategory(categoryId);
-    }
-  };
-
-  // Close flyout on navigation
-  useEffect(() => {
-    setActiveCategory(null);
-  }, [location.pathname]);
-
-  // Close flyout when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (navRef.current && !navRef.current.contains(event.target)) {
-        setActiveCategory(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const activeCategoryData = filteredNavigation.find(c => c.id === activeCategory);
-
-  // Get role badge color
-  const getRoleBadgeColor = () => {
-    if (user?.role === 'owner') return '#d97706'; // amber
-    if (user?.role === 'admin') return '#2F8BFB'; // blue
-    return '#5A5A5A'; // gray for staff
-  };
-
-  return (
-    <aside
-      ref={navRef}
-      className="fixed left-0 top-0 z-40 h-screen w-48 nav-shell"
-      data-testid="sidebar"
-    >
-      <div className="flex h-full flex-col">
-        {/* Logo */}
-        <div className="flex h-16 items-center px-3 border-b border-[var(--border-dark)]">
-          <img 
-            src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/k3asaz65_sgai%20long.png" 
-            alt="SignGuy AI" 
-            className="h-9 w-auto object-contain"
-          />
-        </div>
-
-        {/* Navigation Categories - Always show icons + labels */}
-        <nav className="flex-1 py-3 overflow-y-auto">
-          <div className="space-y-0.5 px-2">
-            {filteredNavigation.map((category) => {
-              const Icon = category.icon;
-              const isActive = currentActiveCategory === category.id || (category.isDirectLink && location.pathname === category.href);
-              const isOpen = activeCategory === category.id;
-              
-              // Handle direct link items (like Dashboard)
-              if (category.isDirectLink) {
-                return (
-                  <NavLink
-                    key={category.id}
-                    to={category.href}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200",
-                      isActive && "bg-[var(--accent)] text-white",
-                      !isActive && "text-[var(--text-muted-on-dark)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-on-dark)]"
-                    )}
-                    data-testid={`nav-${category.id}`}
-                  >
-                    <Icon className="h-5 w-5 flex-shrink-0" />
-                    <span className="font-medium text-sm">{category.label}</span>
-                  </NavLink>
-                );
-              }
-              
-              // Category with submenu
-              return (
-                <div
-                  key={category.id}
-                  ref={el => categoryRefs.current[category.id] = el}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200",
-                    isActive && !isOpen && "bg-[var(--accent)] text-white",
-                    isOpen && "bg-[var(--sidebar-hover)] text-[var(--text-on-dark)]",
-                    !isActive && !isOpen && "text-[var(--text-muted-on-dark)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-on-dark)]"
-                  )}
-                  onClick={() => handleCategoryClick(category.id)}
-                  data-testid={`nav-category-${category.id}`}
-                >
-                  <Icon className="h-5 w-5 flex-shrink-0" />
-                  <span className="flex-1 font-medium text-sm">{category.label}</span>
-                  <ChevronRight className={cn(
-                    "h-4 w-4 transition-transform duration-200",
-                    isOpen && "rotate-90"
-                  )} />
-                </div>
-              );
-            })}
-          </div>
-        </nav>
-
-        {/* User Section */}
-        <div className="border-t border-[var(--border-dark)] p-3 space-y-2">
-          {/* Tier Badge */}
-          <div className="px-1 pb-2">
-            <TierBadge size="sm" />
-          </div>
-          
-          {user && (
-            <>
-              <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[var(--sidebar-hover)]">
-                <div className="w-8 h-8 rounded-full bg-[var(--accent)]/20 flex items-center justify-center flex-shrink-0">
-                  {user.role === 'owner' ? (
-                    <Crown className="w-4 h-4" style={{ color: '#d97706' }} />
-                  ) : (
-                    <User className="w-4 h-4 text-[var(--accent)]" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-[var(--text-on-dark)] truncate" data-testid="user-name">
-                      {user.full_name}
-                    </p>
-                    <span 
-                      className="text-[10px] px-1.5 py-0.5 rounded uppercase font-semibold"
-                      style={{ 
-                        backgroundColor: `${getRoleBadgeColor()}20`,
-                        color: getRoleBadgeColor()
-                      }}
-                    >
-                      {user.role}
-                    </span>
-                  </div>
-                  <p className="text-xs text-[var(--text-muted-on-dark)] truncate">
-                    {user.company_name || user.email}
-                  </p>
-                </div>
-              </div>
-              
-              <button
-                onClick={logout}
-                data-testid="logout-btn"
-                className="flex items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-200 w-full"
-              >
-                <LogOut className="h-5 w-5 flex-shrink-0" />
-                <span className="font-medium text-sm">Sign Out</span>
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Flyout Submenu */}
-      {activeCategory && activeCategoryData && (
-        <div
-          className="absolute left-48 w-56 bg-[var(--sidebar-hover)] rounded-lg shadow-xl border border-[var(--border-dark)] overflow-hidden animate-slide-in"
-          style={{ top: flyoutPosition.top }}
-        >
-          <div className="py-2">
-            <div className="px-4 py-2 border-b border-[var(--border-dark)]">
-              <span className="text-xs font-semibold text-[var(--text-muted-on-dark)] uppercase tracking-wider">
-                {activeCategoryData.label}
-              </span>
-            </div>
-            {activeCategoryData.items.map((item) => {
-              const ItemIcon = item.icon;
-              const isItemActive = location.pathname === item.href;
-              const isLocked = item.tierLocked;
-              
-              const handleClick = (e) => {
-                if (isLocked && item.tierFeature) {
-                  e.preventDefault();
-                  requireFeature(item.tierFeature.category, item.tierFeature.feature);
-                }
-              };
-              
-              return (
-                <NavLink
-                  key={item.href}
-                  to={isLocked ? '#' : item.href}
-                  onClick={handleClick}
-                  data-testid={`nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-2.5 text-sm transition-all duration-150",
-                    isLocked && "opacity-60 cursor-pointer",
-                    isItemActive && !isLocked
-                      ? "bg-[var(--accent)] text-white" 
-                      : isLocked
-                      ? "text-[var(--text-muted-on-dark)] hover:bg-[var(--sidebar)]"
-                      : "text-[var(--text-on-dark)] hover:bg-[var(--accent)] hover:text-white"
-                  )}
-                >
-                  <ItemIcon className="h-4 w-4" />
-                  <span className="flex-1">{item.name}</span>
-                  {isLocked && (
-                    <Lock className="h-3.5 w-3.5 text-amber-500" />
-                  )}
-                </NavLink>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </aside>
-  );
-};
-
-// Mobile Navigation
-export const MobileNav = ({ isOpen, onClose }) => {
-  const { user, logout, hasPermission } = useAuth();
-  const location = useLocation();
-
-  // Filter navigation based on permissions
-  const filteredNavigation = useMemo(() => {
-    return navigationCategories.map(category => {
-      // Keep direct link items (like Dashboard) as-is
-      if (category.isDirectLink) {
-        return category;
-      }
-      const filteredItems = category.items.filter(item => {
-        if (!item.permission) return true;
-        return hasPermission(item.permission);
-      });
-      return { ...category, items: filteredItems };
-    }).filter(category => category.isDirectLink || category.items.length > 0);
-  }, [hasPermission]);
-
-  // Close on navigation
-  useEffect(() => {
-    if (isOpen) {
-      onClose();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
-
-  return (
-    <>
-      {/* Overlay */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
-          onClick={onClose}
-        />
-      )}
-      
-      {/* Mobile Menu */}
-      <div className={cn(
-        "fixed left-0 top-0 h-full w-72 z-50 nav-shell transform transition-transform duration-300 lg:hidden",
-        isOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
-        <div className="flex h-full flex-col">
-          {/* Header */}
-          <div className="flex h-16 items-center justify-between px-4 border-b border-[var(--border-dark)]">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
-                <img 
-                  src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/zofnt5d0_sgai%20square.png" 
-                  alt="SG" 
-                  className="h-8 w-auto object-contain"
-                />
-              </div>
-              <span className="text-[var(--text-on-dark)] font-semibold text-lg font-heading">
-                SignGuy AI
-              </span>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg text-[var(--text-muted-on-dark)] hover:text-[var(--text-on-dark)] hover:bg-[var(--sidebar-hover)]"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 py-4 overflow-y-auto">
-            {filteredNavigation.map((category) => {
-              // Handle direct link items (like Dashboard)
-              if (category.isDirectLink) {
-                const Icon = category.icon;
-                const isActive = location.pathname === category.href;
-                return (
-                  <div key={category.id} className="mb-2 px-2">
-                    <NavLink
-                      to={category.href}
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                        isActive 
-                          ? "bg-[var(--accent)] text-white" 
-                          : "text-[var(--text-muted-on-dark)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-on-dark)]"
-                      )}
-                    >
-                      <Icon className="h-5 w-5" />
-                      <span>{category.label}</span>
-                    </NavLink>
-                  </div>
-                );
-              }
-
-              // Regular category with items
-              return (
-                <div key={category.id} className="mb-4">
-                  <div className="px-4 py-2">
-                    <span className="text-xs font-semibold text-[var(--text-muted-on-dark)] uppercase tracking-wider">
-                      {category.label}
-                    </span>
-                  </div>
-                  <div className="space-y-1 px-2">
-                    {category.items.map((item) => {
-                      const Icon = item.icon;
-                      const isActive = location.pathname === item.href;
-                      
-                      return (
-                        <NavLink
-                          key={item.href}
-                          to={item.href}
-                          className={cn(
-                            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                            isActive 
-                              ? "bg-[var(--accent)] text-white" 
-                              : "text-[var(--text-muted-on-dark)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-on-dark)]"
-                          )}
-                        >
-                          <Icon className="h-5 w-5" />
-                          <span>{item.name}</span>
-                        </NavLink>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </nav>
-
-          {/* User Section */}
-          {user && (
-            <div className="border-t border-[var(--border-dark)] p-4 space-y-3">
-              <div className="flex items-center gap-3 px-2">
-                <div className="w-10 h-10 rounded-full bg-[var(--accent)]/20 flex items-center justify-center">
-                  <User className="w-5 h-5 text-[var(--accent)]" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[var(--text-on-dark)] truncate">
-                    {user.full_name}
-                  </p>
-                  <p className="text-xs text-[var(--text-muted-on-dark)] truncate">
-                    {user.company_name || user.email}
-                  </p>
-                </div>
-              </div>
-              
-              <button
-                onClick={logout}
-                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-200"
-              >
-                <LogOut className="h-5 w-5" />
-                <span className="font-medium text-sm">Sign Out</span>
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </>
-  );
-};
+// Total header height: TopAppBar (56px) + Ribbon (approx 112px) = 168px
+const HEADER_HEIGHT = 168;
 
 export const MainLayout = ({ children }) => {
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewTier, setPreviewTier] = useState(() => localStorage.getItem('preview_tier') || 'tier3');
-  const [previewProductLine, setPreviewProductLine] = useState(() => localStorage.getItem('preview_product_line') || 'os_business');
+  const [previewProductLine, setPreviewProductLine] = useState(() => 
+    localStorage.getItem('preview_product_line') || 'os_business'
+  );
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
   
   // Only show preview mode in development OR for founder accounts
-  // This prevents regular customers from seeing/using the tier selector
   const isDevelopment = process.env.NODE_ENV === 'development' || 
                         window.location.hostname.includes('preview.emergentagent.com') ||
                         window.location.hostname === 'localhost';
@@ -586,27 +28,11 @@ export const MainLayout = ({ children }) => {
 
   // Save preview settings to localStorage
   useEffect(() => {
-    localStorage.setItem('preview_tier', previewTier);
-  }, [previewTier]);
-
-  useEffect(() => {
     localStorage.setItem('preview_product_line', previewProductLine);
-    // Dispatch custom event to notify Sidebar of the change
     window.dispatchEvent(new Event('previewProductLineChanged'));
   }, [previewProductLine]);
 
-  // Get current page title
-  const getCurrentPageTitle = () => {
-    for (const category of navigationCategories) {
-      const item = category.items.find(i => i.href === location.pathname);
-      if (item) return item.name;
-    }
-    return 'Dashboard';
-  };
-
-  const pageTitle = getCurrentPageTitle();
-
-  // Product Line preview options - allows viewing the app as different product line users
+  // Product Line preview options
   const productLineLabels = {
     os_business: { name: 'OS Business (Full Access)', color: 'bg-amber-500', productLine: 'os' },
     os_pro: { name: 'OS Pro', color: 'bg-blue-500', productLine: 'os' },
@@ -615,55 +41,46 @@ export const MainLayout = ({ children }) => {
     ai_studio_only: { name: 'AI Studio Only', color: 'bg-purple-500', productLine: 'ai_studio' },
   };
 
-  // Legacy tierLabels for backwards compatibility
-  const tierLabels = {
-    tier1: { name: 'Starter (Free)', color: 'bg-slate-500' },
-    tier2: { name: 'Pro', color: 'bg-blue-500' },
-    tier3: { name: 'Business', color: 'bg-amber-500' }
-  };
-
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--bg)' }}>
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:block">
-        <Sidebar />
-      </div>
-
-      {/* Quick Toolbar - Desktop Only */}
-      <QuickToolbar />
-
-      {/* Mobile Navigation */}
-      <MobileNav isOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
-
-      {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 z-30 app-header flex items-center justify-between px-4">
-        <div className="flex items-center">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setMobileOpen(true)}
-            className="text-[var(--text-on-dark)] hover:bg-[var(--sidebar-hover)]"
-            data-testid="mobile-menu-toggle"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-          <h1 className="ml-4 font-heading font-semibold text-lg text-[var(--text-on-dark)]">
-            {pageTitle}
-          </h1>
+      {/* Fixed Header: Top App Bar + Ribbon */}
+      <header className="fixed top-0 left-0 right-0 z-40">
+        {/* Row 1: Top App Bar */}
+        <TopAppBar onMobileMenuClick={() => setMobileMenuOpen(true)} />
+        
+        {/* Row 2: Ribbon (Desktop only - hidden on mobile) */}
+        <div className="hidden lg:block">
+          <Ribbon />
         </div>
-        <TrialCountdown />
       </header>
 
-      {/* Desktop Trial Countdown - Fixed top right, below toolbar */}
-      <div className="hidden lg:block fixed top-14 right-4 z-40">
+      {/* Mobile Ribbon Overlay */}
+      <MobileRibbonOverlay 
+        isOpen={mobileMenuOpen} 
+        onClose={() => setMobileMenuOpen(false)} 
+      />
+
+      {/* Trial Countdown - Fixed top right, below header on desktop */}
+      <div className="hidden lg:block fixed top-[180px] right-4 z-30">
         <TrialCountdown />
       </div>
 
-      {/* Main Content */}
-      <main className="lg:pl-48 pt-16 lg:pt-12 min-h-screen">
+      {/* Mobile Trial Countdown */}
+      <div className="lg:hidden fixed top-16 right-4 z-30">
+        <TrialCountdown />
+      </div>
+
+      {/* Main Content - with padding for fixed header */}
+      <main 
+        className="min-h-screen"
+        style={{ paddingTop: HEADER_HEIGHT }}
+      >
+        {/* Mobile: smaller padding since ribbon is hidden */}
+        <div className="lg:hidden" style={{ marginTop: -112 }} />
+        
         <div className="p-3 sm:p-6 lg:p-8">
           {/* Content wrapper with light surface */}
-          <div className="bg-[var(--surface)] rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-4rem)] shadow-sm">
+          <div className="bg-[var(--surface)] rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-12rem)] shadow-sm">
             {children}
           </div>
         </div>
@@ -788,5 +205,9 @@ export const MainLayout = ({ children }) => {
     </div>
   );
 };
+
+// Export Sidebar as a no-op for backwards compatibility if imported elsewhere
+export const Sidebar = () => null;
+export const MobileNav = () => null;
 
 export default MainLayout;
