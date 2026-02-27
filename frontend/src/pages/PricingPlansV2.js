@@ -159,7 +159,7 @@ export default function PricingPlansV2() {
   const fetchPlans = async () => {
     try {
       const response = await axios.get(`${API_URL}/api/plans/all`);
-      // Group plans by product line
+      // API returns array of { product_line, display_name, plans: [...] }
       const grouped = {};
       response.data.forEach(productLine => {
         grouped[productLine.product_line] = productLine.plans;
