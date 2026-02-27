@@ -32,9 +32,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { formatCurrency } from '../lib/utils';
 import { 
   Plus, Package, Shirt, SignpostBig, Sticker, Gift, 
-  Edit2, Trash2, X, ChevronDown, ChevronUp, Upload, Link as LinkIcon
+  Edit2, Trash2, X, ChevronDown, ChevronUp, Upload, Link as LinkIcon,
+  Sparkles, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const categoryOptions = [
   { value: 'apparel', label: 'Apparel', icon: Shirt },
