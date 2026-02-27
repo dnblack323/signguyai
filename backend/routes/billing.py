@@ -556,15 +556,15 @@ async def create_checkout_session(
 
 # ============== MULTI-PRODUCT CHECKOUT ==============
 
-class MultiProductCheckoutRequest(BaseModel):
+from pydantic import BaseModel as PydanticBaseModel
+
+
+class MultiProductCheckoutRequest(PydanticBaseModel):
     """Request for multi-product checkout"""
     plan_type: str  # os_starter, os_pro, os_business, ws_launch, etc.
     billing_interval: str = "monthly"  # monthly or annual (annual only for os_business)
     use_founder_pricing: bool = False  # Only for OS plans
     origin_url: str
-
-
-from pydantic import BaseModel
 
 
 @router.post("/checkout/v2")
