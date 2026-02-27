@@ -1039,3 +1039,36 @@ The webhook handler now routes to appropriate handlers based on metadata:
 ### P3 (Low Priority)
 - Dynamic Questionnaire Creator
 - Vehicle Wrap AI Tool (Full Spec)
+
+---
+
+## Webstore Settings/Branding Merge COMPLETE ✅
+**Date: December 27, 2025**
+
+### What Was Changed
+Merged the separate "Settings" and "Branding" tabs in the Webstore detail dialog into a single streamlined "Settings & Branding" tab.
+
+### Before
+- **4 tabs**: Dashboard | Products | Settings | Branding
+- Settings tab: Logo/banner/color editing + status toggles
+- Branding tab: Read-only preview + store link
+
+### After
+- **3 tabs**: Dashboard | Products | Settings & Branding
+- Unified tab with:
+  1. Store link section (prominent at top with copy/open buttons)
+  2. Store Status card (active toggle, public access toggle)
+  3. Store Branding card (logo upload, banner upload, color picker)
+  4. Store Details card (owner info, type, contact details)
+
+### Files Modified
+- `frontend/src/pages/Webstores.js` - Merged tabs, added Card components for better organization
+
+### UI Improvements
+- Cleaner navigation with fewer tabs
+- Store link prominently displayed at top
+- Logical grouping with Card components
+- Consistent styling with rest of app
+
+### Note
+Testing requires Stripe Connect to be set up (real account required for webstore functionality).
