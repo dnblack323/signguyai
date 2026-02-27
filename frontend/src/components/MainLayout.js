@@ -527,6 +527,7 @@ export const MainLayout = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTier, setPreviewTier] = useState(() => localStorage.getItem('preview_tier') || 'tier3');
+  const [previewProductLine, setPreviewProductLine] = useState(() => localStorage.getItem('preview_product_line') || 'os_business');
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -539,10 +540,14 @@ export const MainLayout = ({ children }) => {
   const isFounder = user?.is_founder === true;
   const showPreviewMode = isDevelopment || isFounder;
 
-  // Save preview tier to localStorage
+  // Save preview settings to localStorage
   useEffect(() => {
     localStorage.setItem('preview_tier', previewTier);
   }, [previewTier]);
+
+  useEffect(() => {
+    localStorage.setItem('preview_product_line', previewProductLine);
+  }, [previewProductLine]);
 
   // Get current page title
   const getCurrentPageTitle = () => {
