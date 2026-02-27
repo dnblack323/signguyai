@@ -979,6 +979,7 @@ api_router.include_router(documents_router)
 api_router.include_router(email_templates_router)
 api_router.include_router(stripe_connect_router)
 api_router.include_router(plans_router)  # Multi-product plan management
+api_router.include_router(questionnaires_router)  # Dynamic form builder
 
 # Include the api_router in the main app
 app.include_router(api_router)
