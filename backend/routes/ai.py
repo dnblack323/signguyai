@@ -611,7 +611,140 @@ Generate a product description that includes:
 4. **Call to Action** (encouraging but not pushy)
 
 Write in a {tone} tone. Make it persuasive, scannable, and optimized for online shopping.
-Do NOT mention the price directly - let the value speak for itself."""
+Do NOT mention the price directly - let the value speak for itself.""",
+
+    # Racing & Motorsports Tool Prompts
+    "race_number_designer": """You are designing a professional racing number for motorsports.
+
+**Race Number:** {race_number}
+**Number Style:** {number_style}
+**Color Scheme:** {color_scheme}
+**Custom Colors:** {custom_colors}
+**Background Type:** {background_type}
+**Special Effects:** {effects}
+**Racing Series:** {racing_series}
+
+Create a detailed design brief describing:
+1. The exact visual style of the number (font characteristics, weight, angles)
+2. Color application and gradients
+3. Shadow, stroke, or effect specifications
+4. How it fits the racing series style
+5. Production notes for vinyl cutting or printing
+6. Size recommendations for different placements (door, roof, quarter panel)
+
+Make it look fast, aggressive, and professional - perfect for race day!""",
+
+    "driver_name_plate": """You are creating a professional driver name plate/strip for motorsports.
+
+**Driver Name:** {driver_name}
+**Plate Type:** {plate_type}
+**Include Number:** {include_number}
+**Race Number:** {race_number}
+**Hometown:** {hometown}
+**Sponsor Text:** {sponsor_text}
+**Font Style:** {font_style}
+**Color Scheme:** {color_scheme}
+**Custom Colors:** {custom_colors}
+
+Design specifications needed:
+1. Layout and composition for the plate type
+2. Typography hierarchy (name prominence, secondary info)
+3. Color blocking and contrast
+4. Size dimensions for standard racing applications
+5. Material recommendations (vinyl, printed decal)
+6. Tips for visibility at speed
+
+Keep it professional, readable, and race-ready!""",
+
+    "wrap_cost_calculator": """You are a vehicle wrap pricing expert. Calculate accurate pricing for this wrap job.
+
+**VEHICLE INFORMATION:**
+- Vehicle Type: {vehicle_type}
+- Wrap Coverage: {wrap_coverage}
+- Material Type: {wrap_type}
+
+**JOB SPECIFICATIONS:**
+- Design Complexity: {design_complexity}
+- Design Services Needed: {includes_design}
+- Installation Difficulty: {installation_difficulty}
+- Old Wrap Removal: {removal_needed}
+- Turnaround Time: {turnaround}
+
+**PRICING INPUTS:**
+- Shop Hourly Rate: ${your_hourly_rate}/hour
+- Material Markup: {material_markup}%
+
+Please provide a detailed cost breakdown:
+
+1. **Material Costs**
+   - Square footage estimate for vehicle type
+   - Material cost per sq ft by type
+   - Total material with markup
+
+2. **Labor Costs**
+   - Design hours (if applicable)
+   - Print/production hours
+   - Installation hours
+   - Removal hours (if applicable)
+   - Total labor cost
+
+3. **Additional Fees**
+   - Rush fees (if applicable)
+   - Complexity surcharge (if applicable)
+
+4. **Final Quote**
+   - Subtotal
+   - Recommended retail price
+   - Suggested profit margin
+   - Price range (low/mid/high)
+
+5. **Notes**
+   - What's included
+   - Warranty recommendations
+   - Timeline expectations
+
+Format as a professional quote the shop owner can reference or adapt.""",
+
+    "race_team_branding": """You are a motorsports branding expert creating a race team brand kit.
+
+**Team Information:**
+- Team Name: {team_name}
+- Racing Series: {racing_series}
+- Primary Number: {primary_number}
+- Team Colors: {team_colors}
+- Style Preference: {style_preference}
+- Include Elements: {include_elements}
+- Sponsor Placeholders: {sponsor_placeholders}
+
+Create a comprehensive branding brief:
+
+1. **Brand Identity**
+   - Logo concept description
+   - Typography recommendations
+   - Color palette with hex codes
+   - Brand personality and voice
+
+2. **Number Design**
+   - Style that matches team brand
+   - Color application
+   - Effect recommendations
+
+3. **Race Car Layout**
+   - Primary placement zones
+   - Sponsor placement recommendations
+   - Color blocking strategy
+
+4. **Merchandise Potential**
+   - T-shirt design concepts
+   - Hat/cap ideas
+   - Hero card layout
+
+5. **Production Files Needed**
+   - Vector logo requirements
+   - Number kit specifications
+   - Template sizes
+
+Make it memorable, professional, and ready to stand out on race day!"""
 }
 
 # Product Description Styles/Tones
