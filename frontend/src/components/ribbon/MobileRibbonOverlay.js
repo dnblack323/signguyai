@@ -185,7 +185,7 @@ export const MobileRibbonOverlay = ({ isOpen, onClose }) => {
               return <div key={index} className="h-px bg-[var(--border-light)] my-2" />;
             }
 
-            const Icon = action.icon;
+            const ActionIcon = action.icon;
             return (
               <button
                 key={index}
@@ -193,7 +193,7 @@ export const MobileRibbonOverlay = ({ isOpen, onClose }) => {
                 className="flex items-center gap-4 w-full px-4 py-3 text-left hover:bg-[var(--surface-2)] transition-colors"
               >
                 <div className="w-10 h-10 rounded-lg bg-[var(--accent-soft)] flex items-center justify-center">
-                  <Icon className="h-5 w-5 text-[var(--accent)]" />
+                  {ActionIcon && <ActionIcon className="h-5 w-5 text-[var(--accent)]" />}
                 </div>
                 <span className="flex-1 font-medium text-[var(--text)]">{action.label}</span>
                 <ChevronRight className="h-4 w-4 text-[var(--text-muted)]" />
