@@ -187,8 +187,9 @@ function App() {
                 {/* Public Storefront - No Auth Required */}
                 <Route path="/store/:storeId" element={<Storefront />} />
                 
-                {/* Public Pricing Page */}
-                <Route path="/pricing-plans" element={<PricingPage />} />
+                {/* Public Pricing Page - New Multi-Product Version */}
+                <Route path="/pricing-plans" element={<PricingPlansV2 />} />
+                <Route path="/pricing-plans-old" element={<PricingPage />} />
                 
                 {/* Billing Routes */}
                 <Route path="/billing/success" element={<BillingSuccess />} />
