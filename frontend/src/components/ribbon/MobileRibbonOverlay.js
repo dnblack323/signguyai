@@ -192,8 +192,8 @@ export const MobileRibbonOverlay = ({ isOpen, onClose }) => {
                 onClick={() => handleActionClick(action)}
                 className="flex items-center gap-4 w-full px-4 py-3 text-left hover:bg-[var(--surface-2)] transition-colors"
               >
-                <div className="w-10 h-10 rounded-lg bg-[var(--accent-soft)] flex items-center justify-center">
-                  {ActionIcon && <ActionIcon className="h-5 w-5 text-[var(--accent)]" />}
+                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                  {ActionIcon && <ActionIcon className="h-5 w-5 text-blue-600" />}
                 </div>
                 <span className="flex-1 font-medium text-[var(--text)]">{action.label}</span>
                 <ChevronRight className="h-4 w-4 text-[var(--text-muted)]" />
