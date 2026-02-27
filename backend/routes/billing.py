@@ -939,7 +939,11 @@ async def get_payment_history(
 @webhook_router.post("/webhook/stripe")
 async def stripe_webhook(request: Request, db = Depends(get_db)):
     """
-    Handle Stripe webhook events.
+    Handle Stripe webhook events for BOTH legacy and multi-product billing systems.
+    
+    Routes to appropriate handler based on metadata:
+    - If metadata contains 'plan_type' (os_starter, ws_launch, etc.) → multi_product_billing handlers
+    - Otherwise → legacy billing handlers
     
     Supported events:
     - checkout.session.completed: Initial payment success
@@ -950,6 +954,14 @@ async def stripe_webhook(request: Request, db = Depends(get_db)):
     - invoice.payment_failed: Payment failed (card declined, etc.)
     """
     import stripe
+    from services.multi_product_billing import (
+        handle_checkout_completed,
+        handle_subscription_created,
+        handle_subscription_updated,
+        handle_subscription_deleted,
+        handle_invoice_payment_succeeded,
+        handle_invoice_payment_failed,
+    )
     
     api_key = os.environ.get('STRIPE_SECRET_KEY')
     webhook_secret = os.environ.get('STRIPE_WEBHOOK_SECRET')
@@ -972,191 +984,79 @@ async def stripe_webhook(request: Request, db = Depends(get_db)):
         
         event_type = event.type
         event_data = event.data.object
+        metadata = getattr(event_data, 'metadata', {}) or {}
+        
+        # Check if this is a multi-product checkout (new system)
+        is_multi_product = 'plan_type' in metadata and metadata.get('plan_type', '').startswith(('os_', 'ws_', 'ai_'))
         
         now = datetime.now(timezone.utc)
         
         # ==================== CHECKOUT SESSION COMPLETED ====================
         if event_type == "checkout.session.completed":
-            session_id = event_data.id
-            metadata = event_data.metadata or {}
-            payment_status = event_data.payment_status
-            checkout_mode = event_data.mode  # "subscription" or "payment"
-            
-            # Update transaction record
-            await db.payment_transactions.update_one(
-                {"stripe_session_id": session_id},
-                {"$set": {
-                    "payment_status": PaymentStatus.PAID.value if payment_status == "paid" else PaymentStatus.PENDING.value,
-                    "paid_at": now.isoformat() if payment_status == "paid" else None,
-                    "updated_at": now.isoformat(),
-                    "stripe_customer_id": event_data.customer,
-                    "stripe_subscription_id": event_data.subscription
-                }}
-            )
-            
-            if payment_status == "paid":
-                # For subscription checkouts, fetch the subscription to get current_period_end
-                current_period_end = None
-                if checkout_mode == "subscription" and event_data.subscription:
-                    try:
-                        stripe_sub = stripe.Subscription.retrieve(event_data.subscription)
-                        current_period_end = datetime.fromtimestamp(
-                            stripe_sub.current_period_end, tz=timezone.utc
-                        ).isoformat()
-                    except stripe.error.StripeError:
-                        pass  # Will be updated by subscription.created webhook
+            if is_multi_product:
+                # Use new multi-product handler
+                await handle_checkout_completed(db, event_data)
+            else:
+                # Legacy handler for old-style checkouts
+                session_id = event_data.id
+                payment_status = event_data.payment_status
+                checkout_mode = event_data.mode
                 
-                # Activate subscription and store Stripe IDs
-                await _activate_subscription_v2(
-                    db, 
-                    session_id=session_id,
-                    metadata=metadata,
-                    stripe_customer_id=event_data.customer,
-                    stripe_subscription_id=event_data.subscription,
-                    current_period_end=current_period_end
-                )
-        
-        # ==================== SUBSCRIPTION CREATED ====================
-        elif event_type == "customer.subscription.created":
-            subscription_id = event_data.id
-            status = event_data.status
-            current_period_end = datetime.fromtimestamp(event_data.current_period_end, tz=timezone.utc)
-            
-            # Update subscription record with Stripe data
-            await db.subscriptions.update_one(
-                {"stripe_subscription_id": subscription_id},
-                {"$set": {
-                    "stripe_customer_id": event_data.customer,
-                    "status": _map_stripe_status(status),
-                    "current_period_end": current_period_end.isoformat(),
-                    "updated_at": now.isoformat()
-                }}
-            )
-        
-        # ==================== SUBSCRIPTION UPDATED ====================
-        elif event_type == "customer.subscription.updated":
-            subscription_id = event_data.id
-            status = event_data.status
-            current_period_end = datetime.fromtimestamp(event_data.current_period_end, tz=timezone.utc)
-            cancel_at_period_end = event_data.cancel_at_period_end
-            
-            update_data = {
-                "status": _map_stripe_status(status),
-                "current_period_end": current_period_end.isoformat(),
-                "cancel_at_period_end": cancel_at_period_end,
-                "updated_at": now.isoformat()
-            }
-            
-            # If subscription is renewed, clear any past_due status
-            if status == "active":
-                update_data["status"] = SubscriptionStatus.ACTIVE.value
-            
-            await db.subscriptions.update_one(
-                {"stripe_subscription_id": subscription_id},
-                {"$set": update_data}
-            )
-            
-            # Also update tenant status
-            sub = await db.subscriptions.find_one({"stripe_subscription_id": subscription_id}, {"_id": 0})
-            if sub:
-                await db.tenants.update_one(
-                    {"id": sub["tenant_id"]},
-                    {"$set": {"subscription_status": _map_stripe_status(status), "updated_at": now.isoformat()}}
-                )
-        
-        # ==================== SUBSCRIPTION DELETED/CANCELLED ====================
-        elif event_type == "customer.subscription.deleted":
-            subscription_id = event_data.id
-            
-            await db.subscriptions.update_one(
-                {"stripe_subscription_id": subscription_id},
-                {"$set": {
-                    "status": SubscriptionStatus.CANCELLED.value,
-                    "cancelled_at": now.isoformat(),
-                    "updated_at": now.isoformat()
-                }}
-            )
-            
-            # Update tenant status
-            sub = await db.subscriptions.find_one({"stripe_subscription_id": subscription_id}, {"_id": 0})
-            if sub:
-                await db.tenants.update_one(
-                    {"id": sub["tenant_id"]},
-                    {"$set": {"subscription_status": "cancelled", "updated_at": now.isoformat()}}
-                )
-        
-        # ==================== INVOICE PAYMENT SUCCEEDED ====================
-        elif event_type == "invoice.payment_succeeded":
-            subscription_id = event_data.subscription
-            
-            if subscription_id:
-                # Fetch updated subscription data from Stripe (source of truth)
-                update_fields = {
-                    "status": SubscriptionStatus.ACTIVE.value,
-                    "last_payment_at": now.isoformat(),
-                    "updated_at": now.isoformat()
-                }
-                
-                try:
-                    stripe_sub = stripe.Subscription.retrieve(subscription_id)
-                    update_fields["current_period_end"] = datetime.fromtimestamp(
-                        stripe_sub.current_period_end, tz=timezone.utc
-                    ).isoformat()
-                    update_fields["current_period_start"] = datetime.fromtimestamp(
-                        stripe_sub.current_period_start, tz=timezone.utc
-                    ).isoformat()
-                except stripe.error.StripeError:
-                    pass  # Use what we have
-                
-                # Successful renewal payment
-                await db.subscriptions.update_one(
-                    {"stripe_subscription_id": subscription_id},
-                    {"$set": update_fields}
-                )
-                
-                # Also update tenant status to active
-                sub = await db.subscriptions.find_one({"stripe_subscription_id": subscription_id}, {"_id": 0})
-                if sub:
-                    await db.tenants.update_one(
-                        {"id": sub["tenant_id"]},
-                        {"$set": {"subscription_status": "active", "updated_at": now.isoformat()}}
-                    )
-                
-                # Record payment in transactions
-                await db.payment_transactions.insert_one({
-                    "id": str(uuid.uuid4()),
-                    "tenant_id": sub.get("tenant_id") if sub else None,
-                    "stripe_invoice_id": event_data.id,
-                    "stripe_subscription_id": subscription_id,
-                    "amount": event_data.amount_paid / 100,  # Convert from cents
-                    "currency": event_data.currency,
-                    "payment_status": PaymentStatus.PAID.value,
-                    "paid_at": now.isoformat(),
-                    "created_at": now.isoformat(),
-                    "metadata": {"event_type": "invoice.payment_succeeded"}
-                })
-        
-        # ==================== INVOICE PAYMENT FAILED ====================
-        elif event_type == "invoice.payment_failed":
-            subscription_id = event_data.subscription
-            
-            if subscription_id:
-                await db.subscriptions.update_one(
-                    {"stripe_subscription_id": subscription_id},
+                await db.payment_transactions.update_one(
+                    {"stripe_session_id": session_id},
                     {"$set": {
-                        "status": SubscriptionStatus.PAST_DUE.value,
-                        "payment_failed_at": now.isoformat(),
-                        "updated_at": now.isoformat()
+                        "payment_status": PaymentStatus.PAID.value if payment_status == "paid" else PaymentStatus.PENDING.value,
+                        "paid_at": now.isoformat() if payment_status == "paid" else None,
+                        "updated_at": now.isoformat(),
+                        "stripe_customer_id": event_data.customer,
+                        "stripe_subscription_id": event_data.subscription
                     }}
                 )
                 
-                # Update tenant
-                sub = await db.subscriptions.find_one({"stripe_subscription_id": subscription_id}, {"_id": 0})
-                if sub:
-                    await db.tenants.update_one(
-                        {"id": sub["tenant_id"]},
-                        {"$set": {"subscription_status": "past_due", "updated_at": now.isoformat()}}
+                if payment_status == "paid":
+                    current_period_end = None
+                    if checkout_mode == "subscription" and event_data.subscription:
+                        try:
+                            stripe_sub = stripe.Subscription.retrieve(event_data.subscription)
+                            current_period_end = datetime.fromtimestamp(
+                                stripe_sub.current_period_end, tz=timezone.utc
+                            ).isoformat()
+                        except stripe.error.StripeError:
+                            pass
+                    
+                    await _activate_subscription_v2(
+                        db, 
+                        session_id=session_id,
+                        metadata=metadata,
+                        stripe_customer_id=event_data.customer,
+                        stripe_subscription_id=event_data.subscription,
+                        current_period_end=current_period_end
                     )
+        
+        # ==================== SUBSCRIPTION CREATED ====================
+        elif event_type == "customer.subscription.created":
+            # Multi-product handler works for both - it just updates by stripe_subscription_id
+            await handle_subscription_created(db, event_data)
+        
+        # ==================== SUBSCRIPTION UPDATED ====================
+        elif event_type == "customer.subscription.updated":
+            # Multi-product handler works for both
+            await handle_subscription_updated(db, event_data)
+        
+        # ==================== SUBSCRIPTION DELETED/CANCELLED ====================
+        elif event_type == "customer.subscription.deleted":
+            # Multi-product handler works for both
+            await handle_subscription_deleted(db, event_data)
+        
+        # ==================== INVOICE PAYMENT SUCCEEDED ====================
+        elif event_type == "invoice.payment_succeeded":
+            # Multi-product handler works for both
+            await handle_invoice_payment_succeeded(db, event_data)
+        
+        # ==================== INVOICE PAYMENT FAILED ====================
+        elif event_type == "invoice.payment_failed":
+            # Multi-product handler works for both
+            await handle_invoice_payment_failed(db, event_data)
         
         return {"status": "success", "event_type": event_type}
     
@@ -1165,6 +1065,8 @@ async def stripe_webhook(request: Request, db = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Invalid signature")
     except Exception as e:
         print(f"Webhook error: {e}")
+        import traceback
+        traceback.print_exc()
         return {"status": "error", "message": str(e)}
 
 
