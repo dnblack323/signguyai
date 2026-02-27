@@ -403,6 +403,83 @@ const aiTools = [
       { name: 'budget_range', label: 'Budget Range', type: 'select', options: ['under_500', '500_to_1000', '1000_to_2500', '2500_plus'] },
       { name: 'duration', label: 'Campaign Duration', type: 'select', options: ['1_week', '2_weeks', '1_month'] }
     ]
+  },
+  // Racing & Motorsports Tools
+  {
+    id: 'race_number_designer',
+    name: 'Race Number Designer',
+    description: 'Generate professional racing number designs with custom fonts, colors, and effects.',
+    icon: Flag,
+    category: 'racing',
+    generatesImages: true,
+    imageCount: 3,
+    fields: [
+      { name: 'race_number', label: 'Race Number', type: 'text', placeholder: 'e.g., 24, 88, 3', required: true },
+      { name: 'number_style', label: 'Number Style', type: 'select', options: ['classic_bold', 'italic_speed', 'blocky_industrial', 'script_elegant', 'grunge_distressed', 'outline_stroke', 'gradient_fade', '3d_dimensional', 'retro_vintage', 'futuristic_tech'], required: true },
+      { name: 'color_scheme', label: 'Color Scheme', type: 'select', options: ['red_white', 'blue_white', 'yellow_black', 'green_white', 'orange_black', 'purple_gold', 'black_gold', 'custom_colors'] },
+      { name: 'custom_colors', label: 'Custom Colors (if selected above)', type: 'text', placeholder: 'e.g., Primary: #FF0000, Outline: #000000' },
+      { name: 'background_type', label: 'Background', type: 'select', options: ['transparent', 'solid_white', 'solid_black', 'checkered_flag', 'carbon_fiber', 'brushed_metal'] },
+      { name: 'effects', label: 'Special Effects', type: 'select', options: ['none', 'drop_shadow', 'glow_effect', 'chrome_shine', 'racing_stripes', 'speed_lines'] },
+      { name: 'racing_series', label: 'Racing Series Style', type: 'select', options: ['nascar_style', 'dirt_track', 'drag_racing', 'motocross', 'karting', 'sprint_car', 'rally', 'formula_style', 'custom'] }
+    ]
+  },
+  {
+    id: 'driver_name_plate',
+    name: 'Driver Name Plate Generator',
+    description: 'Create professional driver name plates and roof strips for race cars.',
+    icon: Users,
+    category: 'racing',
+    generatesImages: true,
+    imageCount: 2,
+    fields: [
+      { name: 'driver_name', label: 'Driver Name', type: 'text', placeholder: 'e.g., John Smith', required: true },
+      { name: 'plate_type', label: 'Plate Type', type: 'select', options: ['door_name_strip', 'roof_strip', 'windshield_banner', 'quarter_panel_name', 'hero_card_style'], required: true },
+      { name: 'include_number', label: 'Include Race Number?', type: 'select', options: ['yes', 'no'] },
+      { name: 'race_number', label: 'Race Number (if included)', type: 'text', placeholder: 'e.g., 24' },
+      { name: 'hometown', label: 'Hometown (optional)', type: 'text', placeholder: 'e.g., Charlotte, NC' },
+      { name: 'sponsor_text', label: 'Sponsor Text (optional)', type: 'text', placeholder: 'e.g., Sponsored by ABC Racing' },
+      { name: 'font_style', label: 'Font Style', type: 'select', options: ['classic_racing', 'modern_clean', 'aggressive_bold', 'script_signature', 'military_stencil'] },
+      { name: 'color_scheme', label: 'Color Scheme', type: 'select', options: ['white_on_black', 'black_on_white', 'team_colors_custom', 'gold_on_black', 'red_white_blue'] },
+      { name: 'custom_colors', label: 'Custom Team Colors (if selected)', type: 'text', placeholder: 'e.g., Background: #000, Text: #FFF, Accent: #FF0' }
+    ]
+  },
+  {
+    id: 'wrap_cost_calculator',
+    name: 'Vehicle Wrap Cost Calculator',
+    description: 'Calculate accurate pricing for vehicle wraps based on size, complexity, and materials.',
+    icon: DollarSign,
+    category: 'racing',
+    generatesImages: false,
+    fields: [
+      { name: 'vehicle_type', label: 'Vehicle Type', type: 'select', options: ['sedan_compact', 'sedan_full', 'suv_crossover', 'suv_full_size', 'pickup_truck', 'van_cargo', 'van_sprinter', 'box_truck', 'semi_truck_cab', 'semi_trailer', 'race_car_stock', 'race_car_late_model', 'race_car_modified', 'sprint_car', 'motorcycle', 'atv_utv', 'boat', 'trailer'], required: true },
+      { name: 'wrap_coverage', label: 'Wrap Coverage', type: 'select', options: ['full_wrap_100', 'partial_wrap_75', 'partial_wrap_50', 'partial_wrap_25', 'decal_kit_only', 'color_change_full', 'accent_only'], required: true },
+      { name: 'wrap_type', label: 'Wrap Material Type', type: 'select', options: ['cast_vinyl_premium', 'cast_vinyl_standard', 'calendered_vinyl', 'reflective_vinyl', 'chrome_mirror', 'carbon_fiber_vinyl', 'matte_finish', 'gloss_finish', 'satin_finish'], required: true },
+      { name: 'design_complexity', label: 'Design Complexity', type: 'select', options: ['simple_solid_color', 'simple_logo_text', 'moderate_graphics', 'complex_full_graphics', 'extreme_custom_art'] },
+      { name: 'includes_design', label: 'Design Services Needed?', type: 'select', options: ['no_customer_provides', 'yes_simple_layout', 'yes_full_design', 'yes_custom_illustration'] },
+      { name: 'installation_difficulty', label: 'Installation Difficulty', type: 'select', options: ['standard', 'moderate_curves', 'complex_surfaces', 'extreme_body_kit'] },
+      { name: 'removal_needed', label: 'Old Wrap Removal?', type: 'select', options: ['no_removal', 'partial_removal', 'full_wrap_removal'] },
+      { name: 'turnaround', label: 'Turnaround Time', type: 'select', options: ['standard_5_7_days', 'rush_3_days', 'express_24_48_hours'] },
+      { name: 'your_hourly_rate', label: 'Your Shop Hourly Rate ($)', type: 'text', placeholder: 'e.g., 75' },
+      { name: 'material_markup', label: 'Material Markup %', type: 'text', placeholder: 'e.g., 30' }
+    ]
+  },
+  {
+    id: 'race_team_branding',
+    name: 'Race Team Branding Kit',
+    description: 'Generate complete branding packages for race teams including logos, numbers, and sponsor layouts.',
+    icon: Flag,
+    category: 'racing',
+    generatesImages: true,
+    imageCount: 3,
+    fields: [
+      { name: 'team_name', label: 'Team Name', type: 'text', placeholder: 'e.g., Thunder Racing, Smith Motorsports', required: true },
+      { name: 'racing_series', label: 'Racing Series', type: 'select', options: ['nascar_regional', 'dirt_track_late_model', 'dirt_track_modified', 'sprint_car', 'drag_racing', 'road_racing', 'rally', 'motocross', 'karting', 'other'], required: true },
+      { name: 'primary_number', label: 'Primary Car Number', type: 'text', placeholder: 'e.g., 24' },
+      { name: 'team_colors', label: 'Team Colors', type: 'text', placeholder: 'e.g., Red, White, and Blue or Hex codes: #FF0000, #FFFFFF, #0000FF' },
+      { name: 'style_preference', label: 'Style Preference', type: 'select', options: ['aggressive_bold', 'classic_traditional', 'modern_clean', 'retro_vintage', 'tech_futuristic'] },
+      { name: 'include_elements', label: 'Include Elements', type: 'select', options: ['logo_number_only', 'logo_number_pattern', 'full_wrap_concept', 'hero_card_template'] },
+      { name: 'sponsor_placeholders', label: 'Sponsor Placeholder Locations', type: 'select', options: ['none', 'hood_only', 'hood_and_quarters', 'full_car_layout'] }
+    ]
   }
 ];
 
