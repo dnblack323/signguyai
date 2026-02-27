@@ -68,6 +68,7 @@ const navigationCategories = [
       { name: 'AI Tools', href: '/ai-tools', icon: Sparkles },
       { name: 'Approvals', href: '/approvals', icon: ImageIcon, permission: Permission.JOBS_VIEW, productLines: ['os'] },
       { name: 'Documents', href: '/documents', icon: FileText, productLines: ['os'] },
+      { name: 'Questionnaires', href: '/questionnaires', icon: FileQuestion, productLines: ['os'] },
       { name: 'Pricing Calculator', href: '/pricing-calculator', icon: DollarSign, productLines: ['os'] },
     ]
   },
