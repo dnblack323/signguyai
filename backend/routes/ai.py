@@ -905,6 +905,147 @@ async def get_ai_history(
     return history
 
 
+# ============== PRODUCT DESCRIPTION GENERATOR ==============
+
+class ProductDescriptionRequest(BaseModel):
+    """Request model for generating product descriptions"""
+    product_name: str
+    product_category: str = "Other"
+    product_features: str = ""  # Key features, materials, dimensions, etc.
+    target_audience: str = "general consumers"
+    tone: str = "professional"  # professional, friendly, enthusiastic, premium, technical, casual
+    price: float = 0.0
+
+
+class ProductDescriptionResponse(BaseModel):
+    """Response model for product descriptions"""
+    description: str
+    headline: str
+    bullet_points: List[str]
+    call_to_action: str
+
+
+@router.post("/generate-product-description")
+async def generate_product_description(
+    request: ProductDescriptionRequest,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """
+    Generate an AI-powered product description for webstore products.
+    
+    This endpoint creates compelling, e-commerce optimized product descriptions
+    including headlines, bullet points, and calls to action.
+    """
+    from services.multi_product_gate import get_multi_product_feature_gate
+    
+    # Check feature access
+    gate = get_multi_product_feature_gate(db)
+    await gate.require_feature(current_user.tenant_id, "ai_tools", "text_generation")
+    await gate.require_feature(current_user.tenant_id, "ai_tools", "monthly_generations", increment_usage=True)
+    
+    # Validate tone
+    valid_tones = ["professional", "friendly", "enthusiastic", "premium", "technical", "casual"]
+    tone = request.tone.lower() if request.tone.lower() in valid_tones else "professional"
+    
+    try:
+        # Prepare input data for the template
+        input_data = {
+            "product_name": request.product_name,
+            "product_category": request.product_category,
+            "product_features": request.product_features or "Standard quality product",
+            "target_audience": request.target_audience or "general consumers",
+            "tone": tone,
+            "price": request.price if request.price > 0 else "competitive",
+        }
+        
+        # Generate using existing infrastructure
+        result = await generate_text_content("product_description", input_data)
+        
+        # Parse the response to extract structured data
+        parsed = parse_product_description(result)
+        
+        # Save to history
+        history_entry = {
+            "id": str(uuid.uuid4()),
+            "tool": "product_description",
+            "input_data": input_data,
+            "output": result,
+            "images": None,
+            "tenant_id": current_user.tenant_id,
+            "user_id": current_user.id,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.ai_history.insert_one(history_entry)
+        
+        return {
+            "description": result,
+            "headline": parsed.get("headline", ""),
+            "bullet_points": parsed.get("bullet_points", []),
+            "call_to_action": parsed.get("call_to_action", ""),
+            "id": history_entry["id"]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Product description generation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate product description: {str(e)}")
+
+
+def parse_product_description(text: str) -> dict:
+    """Parse the generated description to extract structured components"""
+    result = {
+        "headline": "",
+        "bullet_points": [],
+        "call_to_action": ""
+    }
+    
+    lines = text.split('\n')
+    
+    # Extract headline (usually first non-empty line or after "Headline Hook")
+    for i, line in enumerate(lines):
+        line = line.strip()
+        if "headline" in line.lower() and i + 1 < len(lines):
+            result["headline"] = lines[i + 1].strip().strip('*').strip('"').strip()
+            break
+        elif line and not line.startswith('#') and not line.startswith('*') and len(line) < 150:
+            if not result["headline"] and line:
+                result["headline"] = line.strip('*').strip('"').strip()
+    
+    # Extract bullet points
+    in_bullet_section = False
+    for line in lines:
+        line = line.strip()
+        if "bullet" in line.lower() or "selling points" in line.lower():
+            in_bullet_section = True
+            continue
+        if in_bullet_section:
+            if line.startswith('-') or line.startswith('•') or line.startswith('*'):
+                bullet = line.lstrip('-•* ').strip()
+                if bullet and len(bullet) > 10:
+                    result["bullet_points"].append(bullet)
+            elif line.startswith('#') or "call to action" in line.lower():
+                in_bullet_section = False
+    
+    # Extract call to action
+    for i, line in enumerate(lines):
+        if "call to action" in line.lower() and i + 1 < len(lines):
+            cta = lines[i + 1].strip().strip('*').strip('"').strip()
+            if cta:
+                result["call_to_action"] = cta
+            break
+    
+    # Fallback: if no bullet points found, extract any lines starting with - or •
+    if not result["bullet_points"]:
+        for line in lines:
+            line = line.strip()
+            if line.startswith('-') or line.startswith('•'):
+                bullet = line.lstrip('-•* ').strip()
+                if bullet and len(bullet) > 10:
+                    result["bullet_points"].append(bullet)
+    
+    return result
+
+
 # ============== AI BUSINESS ASSISTANT ==============
 
 class AIAssistantRequest(BaseModel):
