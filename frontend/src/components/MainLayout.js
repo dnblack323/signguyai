@@ -640,9 +640,9 @@ export const MainLayout = ({ children }) => {
 
         {/* Preview Mode Panel - Only visible in dev/preview or for founders */}
         {showPreviewMode && (previewOpen ? (
-          <div className="bg-[var(--sidebar)] border border-[var(--border-dark)] rounded-xl shadow-2xl w-72 overflow-hidden">
+          <div className="bg-[var(--sidebar)] border border-[var(--border-dark)] rounded-xl shadow-2xl w-80 overflow-hidden max-h-[80vh] overflow-y-auto">
             {/* Header */}
-            <div className="flex items-center justify-between p-3 border-b border-[var(--border-dark)] bg-[var(--accent)]/20">
+            <div className="flex items-center justify-between p-3 border-b border-[var(--border-dark)] bg-[var(--accent)]/20 sticky top-0">
               <div className="flex items-center gap-2">
                 <Eye className="h-4 w-4 text-[var(--accent)]" />
                 <span className="text-sm font-semibold text-[var(--text-on-dark)]">Preview Mode</span>
@@ -655,26 +655,35 @@ export const MainLayout = ({ children }) => {
               </button>
             </div>
 
-            {/* Tier Selection */}
-            <div className="p-3 space-y-3">
+            <div className="p-3 space-y-4">
+              {/* Product Line Selection */}
               <div>
-                <label className="text-xs font-medium text-[var(--text-muted-on-dark)] uppercase tracking-wide">Subscription Tier</label>
-                <div className="mt-2 space-y-1">
-                  {Object.entries(tierLabels).map(([tier, { name, color }]) => (
+                <label className="text-xs font-medium text-[var(--text-muted-on-dark)] uppercase tracking-wide">View As Product Line</label>
+                <p className="text-xs text-[var(--text-muted-on-dark)] mt-1 mb-2">Preview what different customers see</p>
+                <div className="space-y-1">
+                  {Object.entries(productLineLabels).map(([key, { name, color, productLine }]) => (
                     <button
-                      key={tier}
-                      onClick={() => setPreviewTier(tier)}
+                      key={key}
+                      onClick={() => setPreviewProductLine(key)}
                       className={cn(
                         "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all",
-                        previewTier === tier 
+                        previewProductLine === key 
                           ? "bg-[var(--sidebar-hover)] ring-1 ring-[var(--accent)]" 
                           : "hover:bg-[var(--sidebar-hover)]"
                       )}
+                      data-testid={`preview-${key}`}
                     >
                       <div className={cn("w-3 h-3 rounded-full", color)} />
-                      <span className="text-sm text-[var(--text-on-dark)]">{name}</span>
-                      {previewTier === tier && (
-                        <span className="ml-auto text-xs text-[var(--accent)]">Active</span>
+                      <div className="flex-1">
+                        <span className="text-sm text-[var(--text-on-dark)]">{name}</span>
+                        {productLine !== 'os' && (
+                          <span className="ml-2 text-xs text-[var(--text-muted-on-dark)]">
+                            ({productLine === 'webstores' ? 'No shop features' : 'AI tools only'})
+                          </span>
+                        )}
+                      </div>
+                      {previewProductLine === key && (
+                        <span className="text-xs text-[var(--accent)]">Active</span>
                       )}
                     </button>
                   ))}
@@ -704,12 +713,12 @@ export const MainLayout = ({ children }) => {
                 </div>
               </div>
 
-              {/* Current Tier Info */}
+              {/* Current View Info */}
               <div className="pt-2 border-t border-[var(--border-dark)]">
                 <div className="flex items-center gap-2 px-3 py-2 bg-[var(--sidebar-hover)] rounded-lg">
-                  <div className={cn("w-2 h-2 rounded-full", tierLabels[previewTier].color)} />
+                  <div className={cn("w-2 h-2 rounded-full", productLineLabels[previewProductLine]?.color || 'bg-slate-500')} />
                   <span className="text-xs text-[var(--text-muted-on-dark)]">
-                    Viewing as: <span className="text-[var(--text-on-dark)] font-medium">{tierLabels[previewTier].name}</span>
+                    Viewing as: <span className="text-[var(--text-on-dark)] font-medium">{productLineLabels[previewProductLine]?.name || 'OS Business'}</span>
                   </span>
                 </div>
               </div>
