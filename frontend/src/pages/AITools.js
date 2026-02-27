@@ -488,7 +488,8 @@ const categories = [
   { id: 'design', name: 'Design Tools', icon: Image, color: 'text-blue-400', count: 10 },
   { id: 'branding', name: 'Branding', icon: Palette, color: 'text-purple-400', count: 3 },
   { id: 'business', name: 'Business', icon: FileText, color: 'text-green-400', count: 5 },
-  { id: 'marketing', name: 'Marketing', icon: Share2, color: 'text-pink-400', count: 6 }
+  { id: 'marketing', name: 'Marketing', icon: Share2, color: 'text-pink-400', count: 6 },
+  { id: 'racing', name: 'Racing & Motorsports', icon: Flag, color: 'text-red-400', count: 4 }
 ];
 
 export default function AITools() {
