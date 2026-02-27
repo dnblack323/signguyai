@@ -56,6 +56,7 @@ import EmployeePortalProfile from "./pages/EmployeePortalProfile";
 
 // Billing Pages
 import PricingPage from "./pages/PricingPage";
+import PricingPlansV2 from "./pages/PricingPlansV2";
 import BillingSuccess from "./pages/BillingSuccess";
 import BillingCancel from "./pages/BillingCancel";
 
