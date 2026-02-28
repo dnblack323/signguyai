@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { Button } from '../components/ui/button';
-import { Card, CardContent } from '../components/ui/card';
-import { PublicNav, PublicFooter } from '../components/PublicNav';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent } from '../../components/ui/card';
+import { PublicNav, PublicFooter } from '../../components/PublicNav';
 import {
   Cpu, Sparkles, Wand2, Type, Image, MessageSquare,
   FileText, Palette, CheckCircle2, ArrowRight, Brain
