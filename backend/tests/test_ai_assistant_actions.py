@@ -90,7 +90,7 @@ class MockCursor:
 
 class MockUser:
     """Mock user for testing"""
-    def __init__(self, role=UserUserRole.ADMIN, tenant_id="test_tenant"):
+    def __init__(self, role=UserRole.ADMIN, tenant_id="test_tenant"):
         self.id = "test_user"
         self.tenant_id = tenant_id
         self.role = role
