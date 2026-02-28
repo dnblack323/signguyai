@@ -191,7 +191,7 @@ export function PublicFooter() {
             <h4 className="text-white font-semibold mb-4">Products</h4>
             <ul className="space-y-2">
               <li><Link to="/platform" className="text-gray-400 hover:text-white text-sm">Platform</Link></li>
-              <li><Link to="/webstores" className="text-gray-400 hover:text-white text-sm">Webstores</Link></li>
+              <li><Link to="/webstores-overview" className="text-gray-400 hover:text-white text-sm">Webstores</Link></li>
               <li><Link to="/ai-studio" className="text-gray-400 hover:text-white text-sm">AI Studio</Link></li>
               <li><Link to="/pricing" className="text-gray-400 hover:text-white text-sm">Pricing</Link></li>
             </ul>
