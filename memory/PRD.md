@@ -1209,3 +1209,62 @@ Added a complete Racing & Motorsports category to the AI Tools Suite with 4 spec
 ### Vehicle Types Supported
 Sedan (compact/full), SUV (crossover/full), Pickup truck, Van (cargo/sprinter), Box truck, Semi truck (cab/trailer), Race car (stock/late model/modified), Sprint car, Motorcycle, ATV/UTV, Boat, Trailer
 
+---
+
+## Marketing Site Restructure COMPLETE ✅
+**Date: December 2025**
+
+### What Was Built
+Complete restructure of the public marketing website to properly represent the three distinct product lines.
+
+### New Architecture
+```
+/app/frontend/src/pages/marketing/
+├── PlatformPage.js          # /platform - SignGuy AI OS overview
+├── WebstoresPage.js         # /webstores-overview - SignGuy Webstores overview  
+├── AIStudioPage.js          # /ai-studio - SignGuy AI Studio overview
+├── index.js                 # Barrel exports
+└── plans/
+    ├── StarterPlanPage.js   # /starter - OS Starter plan details
+    ├── ProPlanPage.js       # /pro - OS Pro plan details
+    ├── BusinessPlanPage.js  # /business - OS Business plan details (with annual pricing)
+    ├── WebstoreLaunchPage.js    # /webstore-launch
+    ├── WebstoreGrowthPage.js    # /webstore-growth
+    ├── WebstoreScalePage.js     # /webstore-scale
+    ├── AIBasicPage.js       # /ai-basic
+    ├── AIProPage.js         # /ai-pro
+    └── AIMaxPage.js         # /ai-max
+```
+
+### Routes Added
+| Route | Page | Description |
+|-------|------|-------------|
+| `/platform` | PlatformPage | SignGuy AI OS overview with Core Modules |
+| `/webstores-overview` | WebstoresPage | SignGuy Webstores (uses `-overview` to avoid conflict with app `/webstores`) |
+| `/ai-studio` | AIStudioPage | SignGuy AI Studio overview |
+| `/starter`, `/pro`, `/business` | Plan detail pages | OS plan details with features |
+| `/webstore-launch`, `/webstore-growth`, `/webstore-scale` | Webstore plans | Monthly only pricing |
+| `/ai-basic`, `/ai-pro`, `/ai-max` | AI Studio plans | Monthly only pricing |
+
+### Pricing Rules Implemented
+- **Annual pricing ONLY for OS Business plan** ($99/mo or $990/year Founder)
+- All other plans are monthly only
+- Founder pricing shown with regular pricing for reference
+
+### Updated Files
+- `App.js` - Added all new marketing routes
+- `PublicNav.js` - Updated navigation to use new routes
+- `LandingPage.js` - Updated links to `/webstores-overview`
+- `PricingPagePublic.js` - Fixed text visibility on dark background
+
+### Test Results
+- All 12 routes verified working (100%)
+- Navigation links working correctly
+- Annual pricing only on Business plan
+- Text visibility fixed on pricing page
+
+---
+
+## Last Updated
+December 2025
+
