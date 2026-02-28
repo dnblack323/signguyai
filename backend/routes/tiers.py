@@ -266,38 +266,51 @@ async def get_my_usage(current_user: UserInDB = Depends(get_current_user_dep)):
 
 # ============== ADMIN: TIER MANAGEMENT ==============
 
-@router.get("/admin/full-config/{tier}")
+@router.get("/admin/full-config/{plan}")
+async def get_full_plan_config(
+    plan: str,
+    current_user: UserInDB = Depends(get_current_user_dep)
+):
+    """Get full configuration for a specific plan (admin only)"""
+    if not user_has_permission(current_user.role, Permission.SETTINGS_VIEW):
+        raise HTTPException(status_code=403, detail="Permission denied")
+    
+    # Try new plan type first, then legacy tier
+    try:
+        plan_type = PlanType(plan)
+    except ValueError:
+        # Try legacy tier mapping
+        plan_type = legacy_tier_to_plan(plan)
+    
+    config = get_plan_config(plan_type)
+    return config.model_dump()
+
+
+# Legacy alias
+@router.get("/admin/full-config/tier/{tier}")
 async def get_full_tier_config(
     tier: str,
     current_user: UserInDB = Depends(get_current_user_dep)
 ):
-    """Get full configuration for a specific tier (admin only)"""
-    if not user_has_permission(current_user.role, Permission.SETTINGS_VIEW):
-        raise HTTPException(status_code=403, detail="Permission denied")
-    
-    try:
-        tier_level = TierLevel(tier)
-    except ValueError:
-        raise HTTPException(status_code=400, detail=f"Invalid tier: {tier}")
-    
-    config = get_tier_config(tier_level)
-    return config.model_dump()
+    """DEPRECATED: Use /admin/full-config/{plan} instead"""
+    return await get_full_plan_config(tier, current_user)
 
 
-@router.put("/admin/tenant/{tenant_id}/tier")
-async def set_tenant_tier(
+@router.put("/admin/tenant/{tenant_id}/plan")
+async def set_tenant_plan(
     tenant_id: str,
-    tier: str,
+    plan: str,
     current_user: UserInDB = Depends(get_current_user_dep)
 ):
-    """Change a tenant's subscription tier (admin only)"""
+    """Change a tenant's subscription plan (admin only)"""
     if not user_has_permission(current_user.role, Permission.SETTINGS_EDIT):
         raise HTTPException(status_code=403, detail="Permission denied")
     
+    # Try new plan type first, then legacy tier
     try:
-        tier_level = TierLevel(tier)
+        plan_type = PlanType(plan)
     except ValueError:
-        raise HTTPException(status_code=400, detail=f"Invalid tier: {tier}")
+        plan_type = legacy_tier_to_plan(plan)
     
     db = await get_db()
     
@@ -307,14 +320,25 @@ async def set_tenant_tier(
         raise HTTPException(status_code=404, detail="Tenant not found")
     
     gate = await get_gate_dep()
-    await gate.set_tenant_tier(tenant_id, tier_level)
+    await gate.set_tenant_plan(tenant_id, plan_type)
     
     return {
         "success": True,
         "tenant_id": tenant_id,
-        "new_tier": tier,
-        "message": f"Tenant upgraded to {tier_level.value}"
+        "new_plan": plan_type.value,
+        "message": f"Tenant upgraded to {plan_type.value}"
     }
+
+
+# Legacy alias
+@router.put("/admin/tenant/{tenant_id}/tier")
+async def set_tenant_tier(
+    tenant_id: str,
+    tier: str,
+    current_user: UserInDB = Depends(get_current_user_dep)
+):
+    """DEPRECATED: Use /admin/tenant/{tenant_id}/plan instead"""
+    return await set_tenant_plan(tenant_id, tier, current_user)
 
 
 @router.post("/admin/tenant/{tenant_id}/reset-usage")
