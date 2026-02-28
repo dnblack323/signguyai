@@ -2,17 +2,25 @@
 Invoice Platform Fee Application Tests
 
 Tests that platform fees are correctly calculated and stored for invoice payments.
-Tests scenarios:
-1) OS_PRO, non-founder: 1% invoice fee
-2) OS_BUSINESS, founder, annual: 0.5% invoice fee (founder discount)
+
+BUSINESS RULE (Updated Dec 2025):
+- Platform fees apply ONLY when the platform processes the payment (Stripe).
+- Invoice fees apply ONLY to Stripe-paid invoice payments.
+- Manual invoice payments (cash/check/external) ALWAYS have platform_fee = 0.00.
+- Webstore fees apply to all webstore orders (platform-mediated).
+
+Test scenarios:
+1) OS_PRO, non-founder: 1% invoice fee (Stripe only)
+2) OS_BUSINESS, founder, annual: 0.5% invoice fee (Stripe only)
 3) OS_STARTER: 0% invoice fee
 4) Rounding test for edge cases
+5) Manual payments: Always 0% fee regardless of plan
 
 Fee storage locations:
-- Stripe payments: db.payment_transactions.platform_fee
-- Manual payments: db.payments.platform_fee (needs to be added)
+- Stripe payments: db.payment_transactions.platform_fee (calculated based on plan)
+- Manual payments: db.payments.platform_fee = 0.00 (always zero)
 
-Uses multi_product_gate.py for fee calculation.
+Uses multi_product_gate.py for Stripe fee calculation.
 """
 
 import pytest
