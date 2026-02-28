@@ -366,31 +366,46 @@ async def get_upgrade_prompt(
 ):
     """Get upgrade prompt details for a blocked feature"""
     gate = await get_gate_dep()
-    current_tier = await gate.get_tenant_tier(current_user.tenant_id)
+    current_plan = await gate.get_tenant_plan(current_user.tenant_id)
     
-    # Find which tier unlocks this feature
-    unlock_tier = None
-    for tier_level in [TierLevel.PRO, TierLevel.BUSINESS]:
-        config = get_tier_config(tier_level)
+    # Find which plan unlocks this feature (check higher tiers in same product line)
+    unlock_plan = None
+    
+    # Determine upgrade path based on current product line
+    if current_plan.value.startswith('os_'):
+        upgrade_path = [PlanType.OS_PRO, PlanType.OS_BUSINESS]
+    elif current_plan.value.startswith('ws_'):
+        upgrade_path = [PlanType.WS_GROWTH, PlanType.WS_SCALE]
+    elif current_plan.value.startswith('ai_'):
+        upgrade_path = [PlanType.AI_PRO, PlanType.AI_MAX]
+    else:
+        upgrade_path = [PlanType.OS_PRO, PlanType.OS_BUSINESS]
+    
+    for plan_type in upgrade_path:
+        config = get_plan_config(plan_type)
         category_config = getattr(config.features, category, None)
         if category_config:
             feature_value = getattr(category_config, feature, None)
             if feature_value and feature_value.status.value != "off":
-                unlock_tier = tier_level
+                unlock_plan = plan_type
                 break
     
-    if not unlock_tier:
-        return {"error": "Feature not found in any tier"}
+    if not unlock_plan:
+        return {"error": "Feature not found in any plan"}
     
-    unlock_config = get_tier_config(unlock_tier)
+    unlock_config = get_plan_config(unlock_plan)
     
     return {
-        "current_tier": current_tier.value,
-        "unlock_tier": unlock_tier.value,
-        "unlock_tier_name": unlock_config.display_name,
-        "unlock_price_monthly": unlock_config.price_monthly,
-        "unlock_price_yearly": unlock_config.price_yearly,
+        "current_plan": current_plan.value,
+        "unlock_plan": unlock_plan.value,
+        "unlock_plan_name": unlock_config.display_name,
+        "unlock_price_monthly": unlock_config.pricing.monthly,
+        "unlock_price_yearly": unlock_config.pricing.annual,
         "feature": f"{category}.{feature}",
         "message": f"Upgrade to {unlock_config.display_name} to unlock this feature",
-        "cta_text": f"Upgrade to {unlock_config.display_name}"
+        "cta_text": f"Upgrade to {unlock_config.display_name}",
+        # Legacy fields
+        "current_tier": current_plan.value,
+        "unlock_tier": unlock_plan.value,
+        "unlock_tier_name": unlock_config.display_name
     }
