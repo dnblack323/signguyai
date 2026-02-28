@@ -2,17 +2,18 @@
 Feature Gating Service
 
 Provides utilities to check feature access and track usage for tenants.
+Uses the authoritative plan_configs.py and multi_product_gate.py system.
 """
 
 from typing import Optional, Tuple
 from datetime import datetime, timezone
 from fastapi import HTTPException, Depends
 
-from models.tiers import (
-    TierLevel, FeatureStatus, FeatureValue, FeatureCheckResult,
-    TenantUsage, UsageType
+from models.product_tiers import (
+    PlanType, FeatureStatus, FeatureValue, FeatureCheckResult,
+    TenantUsage, TierLevel
 )
-from services.tier_config import get_tier_config, TIER_CONFIGS
+from services.plan_configs import get_plan_config, legacy_tier_to_plan, PLAN_CONFIGS
 
 
 class FeatureGate:
