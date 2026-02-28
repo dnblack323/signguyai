@@ -78,13 +78,13 @@ class ActionResponse(BaseModel):
 ACTION_PERMISSIONS = {
     ActionType.CREATE_JOB: Permission.JOBS_EDIT,
     ActionType.UPDATE_JOB_STATUS: Permission.JOBS_EDIT,
-    ActionType.CREATE_CALENDAR_EVENT: Permission.CALENDAR_EDIT,
-    ActionType.ADD_MATERIAL: Permission.INVENTORY_EDIT,
-    ActionType.UPDATE_MATERIAL_COST: Permission.INVENTORY_EDIT,
+    ActionType.CREATE_CALENDAR_EVENT: Permission.JOBS_EDIT,  # Calendar tied to jobs
+    ActionType.ADD_MATERIAL: Permission.SETTINGS_MANAGE,  # Inventory in settings
+    ActionType.UPDATE_MATERIAL_COST: Permission.SETTINGS_MANAGE,
     ActionType.CREATE_INVOICE: Permission.INVOICES_EDIT,
-    ActionType.ASSIGN_EMPLOYEE: Permission.EMPLOYEES_EDIT,
-    ActionType.LOG_TIME_ENTRY: Permission.TIME_EDIT,
-    ActionType.CATEGORIZE_EXPENSE: Permission.EXPENSES_EDIT,
+    ActionType.ASSIGN_EMPLOYEE: Permission.EMPLOYEES_MANAGE,
+    ActionType.LOG_TIME_ENTRY: Permission.TIME_CLOCK_MANAGE,
+    ActionType.CATEGORIZE_EXPENSE: Permission.FINANCIALS_MANAGE,
 }
 
 
