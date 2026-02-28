@@ -2,21 +2,23 @@
 Tier Management Routes
 
 API endpoints for:
-- Viewing available tiers
+- Viewing available tiers/plans
 - Checking feature access
 - Managing tenant subscriptions
 - Viewing usage
+
+NOTE: Uses authoritative plan_configs.py system (not legacy tier_config.py)
 """
 
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import List, Optional
 
-from models.tiers import (
-    TierLevel, TierConfig, FeatureCheckResult, TenantUsage
+from models.product_tiers import (
+    PlanType, PlanConfig, FeatureCheckResult, TenantUsage, TierLevel, ProductLine
 )
 from models import UserInDB, Permission, user_has_permission
-from services.tier_config import get_all_tiers, get_tier_config
+from services.plan_configs import get_all_plans, get_plan_config, get_plans_by_product_line, legacy_tier_to_plan
 from services.feature_gate import FeatureGate
 
 router = APIRouter(prefix="/tiers", tags=["Subscription Tiers"])
