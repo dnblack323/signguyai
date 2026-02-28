@@ -200,6 +200,24 @@ export function JobsList() {
     }
   };
 
+  // Handle item calculated from pricing calculator
+  const handlePricingCalculatorItem = (itemData) => {
+    const newLineItem = {
+      description: itemData.description || 'Calculated Item',
+      quantity: itemData.quantity || 1,
+      unit_price: itemData.unit_price || itemData.line_total || 0
+    };
+    
+    // Add the calculated item to line items
+    setFormData({
+      ...formData,
+      line_items: [...formData.line_items.filter(item => item.description.trim()), newLineItem]
+    });
+    
+    setShowPricingCalculator(false);
+    toast.success('Item added from calculator');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.customer_id || !formData.name.trim()) {
