@@ -1,5 +1,8 @@
 export { TopAppBar } from './TopAppBar';
-export { Ribbon } from './Ribbon';
-export { RibbonToolbar } from './RibbonToolbar';
-export { DropdownMenu, SplitButton } from './DropdownMenu';
-export { MobileRibbonOverlay } from './MobileRibbonOverlay';
+export { PrimaryNav } from './PrimaryNav';
+export { ActionToolbar } from './ActionToolbar';
+export { MobileNav } from './MobileNav';
+
+// Legacy exports for backwards compatibility
+export { PrimaryNav as Ribbon } from './PrimaryNav';
+export { ActionToolbar as RibbonToolbar } from './ActionToolbar';
