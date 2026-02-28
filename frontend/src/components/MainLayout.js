@@ -1,24 +1,36 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Eye, ExternalLink, ChevronDown, X, User, Clock, Globe } from 'lucide-react';
+import { Menu, Eye, ExternalLink, ChevronDown, X, User, Clock, Globe } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
-import { TopAppBar, Ribbon, MobileRibbonOverlay } from './ribbon';
+import { TopAppBar, PrimaryNav, ActionToolbar, MobileNav } from './ribbon';
 import { TrialCountdown } from './TrialLockout';
 
-// Total header height: TopAppBar (56px) + Ribbon (approx 112px) = 168px
-const HEADER_HEIGHT = 168;
+// Total header height: TopAppBar (64px) + PrimaryNav (48px) + ActionToolbar (40px) = 152px
+const HEADER_HEIGHT = 152;
+const MOBILE_HEADER_HEIGHT = 64;
 
 export const MainLayout = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewProductLine, setPreviewProductLine] = useState(() => 
     localStorage.getItem('preview_product_line') || 'os_business'
   );
+  const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
   
+  // Track scroll for shadow effect
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 0);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   // Only show preview mode in development OR for founder accounts
   const isDevelopment = process.env.NODE_ENV === 'development' || 
                         window.location.hostname.includes('preview.emergentagent.com') ||
@@ -34,7 +46,7 @@ export const MainLayout = ({ children }) => {
 
   // Product Line preview options
   const productLineLabels = {
-    os_business: { name: 'OS Business (Full Access)', color: 'bg-amber-500', productLine: 'os' },
+    os_business: { name: 'OS Business', color: 'bg-amber-500', productLine: 'os' },
     os_pro: { name: 'OS Pro', color: 'bg-blue-500', productLine: 'os' },
     os_starter: { name: 'OS Starter', color: 'bg-slate-500', productLine: 'os' },
     webstores_only: { name: 'Webstores Only', color: 'bg-emerald-500', productLine: 'webstores' },
@@ -42,148 +54,150 @@ export const MainLayout = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg)' }}>
-      {/* Fixed Header: Top App Bar + Ribbon */}
-      <header className="fixed top-0 left-0 right-0 z-40">
-        {/* Row 1: Top App Bar */}
-        <TopAppBar onMobileMenuClick={() => setMobileMenuOpen(true)} />
-        
-        {/* Row 2: Ribbon (Desktop only - hidden on mobile) */}
+    <div className="min-h-screen bg-gray-50">
+      {/* Fixed Header */}
+      <header 
+        className={cn(
+          "fixed top-0 left-0 right-0 z-40 bg-white transition-shadow",
+          scrolled && "shadow-sm"
+        )}
+      >
+        {/* Mobile Header */}
+        <div className="lg:hidden h-16 flex items-center justify-between px-4 border-b border-gray-200">
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md"
+            data-testid="mobile-menu-btn"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          
+          <img 
+            src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/k3asaz65_sgai%20long.png" 
+            alt="SignGuy AI" 
+            className="h-7 w-auto"
+          />
+          
+          <div className="w-9" /> {/* Spacer for balance */}
+        </div>
+
+        {/* Desktop Header */}
         <div className="hidden lg:block">
-          <Ribbon />
+          {/* Top App Bar: Logo + Right icons */}
+          <TopAppBar onMobileMenuClick={() => setMobileMenuOpen(true)} />
+          
+          {/* Primary Navigation */}
+          <PrimaryNav activeTab={activeTab} onTabChange={setActiveTab} />
+          
+          {/* Action Toolbar */}
+          <ActionToolbar activeTab={activeTab} />
         </div>
       </header>
 
-      {/* Mobile Ribbon Overlay */}
-      <MobileRibbonOverlay 
+      {/* Mobile Navigation */}
+      <MobileNav 
         isOpen={mobileMenuOpen} 
         onClose={() => setMobileMenuOpen(false)} 
       />
 
-      {/* Trial Countdown - Fixed top right, below header on desktop */}
-      <div className="hidden lg:block fixed top-[180px] right-4 z-30">
+      {/* Trial Countdown */}
+      <div className="hidden lg:block fixed top-4 right-24 z-30">
         <TrialCountdown />
       </div>
 
-      {/* Mobile Trial Countdown */}
-      <div className="lg:hidden fixed top-16 right-4 z-30">
-        <TrialCountdown />
-      </div>
-
-      {/* Main Content - with padding for fixed header */}
+      {/* Main Content */}
       <main 
-        className="min-h-screen"
-        style={{ paddingTop: HEADER_HEIGHT }}
+        className="min-h-screen transition-all"
+        style={{ 
+          paddingTop: typeof window !== 'undefined' && window.innerWidth >= 1024 
+            ? HEADER_HEIGHT 
+            : MOBILE_HEADER_HEIGHT 
+        }}
       >
-        {/* Mobile: smaller padding since ribbon is hidden */}
-        <div className="lg:hidden" style={{ marginTop: -112 }} />
+        {/* Desktop padding */}
+        <div className="hidden lg:block" style={{ height: HEADER_HEIGHT - 64 }} />
         
-        <div className="p-3 sm:p-6 lg:p-8">
-          {/* Content wrapper with light surface */}
-          <div className="bg-[var(--surface)] rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-12rem)] shadow-sm">
+        {/* Content wrapper */}
+        <div className="p-6 lg:p-8">
+          <div className="max-w-[1600px] mx-auto">
             {children}
           </div>
         </div>
       </main>
 
       {/* Marketing Site Link - Fixed Bottom Right */}
-      <div className="fixed bottom-16 right-4 z-50 flex items-center gap-2">
+      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2">
         {/* Visit Marketing Site */}
         <a
           href="/home"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#2F8BFB]/20 border border-[#2F8BFB]/30 text-[#2F8BFB] hover:bg-[#2F8BFB]/30 transition-all shadow-lg"
+          className="flex items-center gap-2 px-3 py-2 rounded-full bg-white border border-gray-200 text-gray-600 hover:text-gray-900 hover:border-gray-300 transition-all shadow-sm text-sm"
           data-testid="marketing-site-link"
         >
           <Globe className="h-4 w-4" />
-          <span className="text-sm font-medium">View Website</span>
-          <ExternalLink className="h-3 w-3" />
+          <span className="font-medium">Website</span>
         </a>
 
-        {/* Preview Mode Panel - Only visible in dev/preview or for founders */}
+        {/* Preview Mode Panel */}
         {showPreviewMode && (previewOpen ? (
-          <div className="bg-[var(--sidebar)] border border-[var(--border-dark)] rounded-xl shadow-2xl w-80 overflow-hidden max-h-[80vh] overflow-y-auto">
+          <div className="bg-white border border-gray-200 rounded-xl shadow-lg w-72 overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between p-3 border-b border-[var(--border-dark)] bg-[var(--accent)]/20 sticky top-0">
+            <div className="flex items-center justify-between p-3 border-b border-gray-100 bg-gray-50">
               <div className="flex items-center gap-2">
-                <Eye className="h-4 w-4 text-[var(--accent)]" />
-                <span className="text-sm font-semibold text-[var(--text-on-dark)]">Preview Mode</span>
+                <Eye className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium text-gray-900">Preview Mode</span>
               </div>
               <button 
                 onClick={() => setPreviewOpen(false)}
-                className="text-[var(--text-muted-on-dark)] hover:text-[var(--text-on-dark)]"
+                className="text-gray-400 hover:text-gray-600"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="p-3 space-y-4">
+            <div className="p-3 space-y-3">
               {/* Product Line Selection */}
               <div>
-                <label className="text-xs font-medium text-[var(--text-muted-on-dark)] uppercase tracking-wide">View As Product Line</label>
-                <p className="text-xs text-[var(--text-muted-on-dark)] mt-1 mb-2">Preview what different customers see</p>
-                <div className="space-y-1">
-                  {Object.entries(productLineLabels).map(([key, { name, color, productLine }]) => (
+                <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">View As</label>
+                <div className="mt-2 space-y-1">
+                  {Object.entries(productLineLabels).map(([key, { name, color }]) => (
                     <button
                       key={key}
                       onClick={() => setPreviewProductLine(key)}
                       className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all",
+                        "w-full flex items-center gap-2 px-3 py-2 rounded-md text-left transition-all text-sm",
                         previewProductLine === key 
-                          ? "bg-[var(--sidebar-hover)] ring-1 ring-[var(--accent)]" 
-                          : "hover:bg-[var(--sidebar-hover)]"
+                          ? "bg-blue-50 text-blue-700 ring-1 ring-blue-200" 
+                          : "hover:bg-gray-50 text-gray-600"
                       )}
                       data-testid={`preview-${key}`}
                     >
-                      <div className={cn("w-3 h-3 rounded-full", color)} />
-                      <div className="flex-1">
-                        <span className="text-sm text-[var(--text-on-dark)]">{name}</span>
-                        {productLine !== 'os' && (
-                          <span className="ml-2 text-xs text-[var(--text-muted-on-dark)]">
-                            ({productLine === 'webstores' ? 'No shop features' : 'AI tools only'})
-                          </span>
-                        )}
-                      </div>
-                      {previewProductLine === key && (
-                        <span className="text-xs text-[var(--accent)]">Active</span>
-                      )}
+                      <div className={cn("w-2 h-2 rounded-full", color)} />
+                      <span>{name}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
               {/* Quick Links */}
-              <div className="pt-2 border-t border-[var(--border-dark)]">
-                <label className="text-xs font-medium text-[var(--text-muted-on-dark)] uppercase tracking-wide">Quick Access</label>
-                <div className="mt-2 space-y-1">
-                  <button
-                    onClick={() => window.open('/customer-portal/login', '_blank')}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-[var(--sidebar-hover)] transition-all"
-                  >
-                    <User className="h-4 w-4 text-teal-400" />
-                    <span className="text-sm text-[var(--text-on-dark)]">Customer Portal</span>
-                    <ExternalLink className="h-3 w-3 ml-auto text-[var(--text-muted-on-dark)]" />
-                  </button>
-                  <button
-                    onClick={() => window.open('/employee-portal/login', '_blank')}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-[var(--sidebar-hover)] transition-all"
-                  >
-                    <Clock className="h-4 w-4 text-purple-400" />
-                    <span className="text-sm text-[var(--text-on-dark)]">Employee Portal</span>
-                    <ExternalLink className="h-3 w-3 ml-auto text-[var(--text-muted-on-dark)]" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Current View Info */}
-              <div className="pt-2 border-t border-[var(--border-dark)]">
-                <div className="flex items-center gap-2 px-3 py-2 bg-[var(--sidebar-hover)] rounded-lg">
-                  <div className={cn("w-2 h-2 rounded-full", productLineLabels[previewProductLine]?.color || 'bg-slate-500')} />
-                  <span className="text-xs text-[var(--text-muted-on-dark)]">
-                    Viewing as: <span className="text-[var(--text-on-dark)] font-medium">{productLineLabels[previewProductLine]?.name || 'OS Business'}</span>
-                  </span>
-                </div>
+              <div className="pt-2 border-t border-gray-100">
+                <button
+                  onClick={() => window.open('/customer-portal/login', '_blank')}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-left hover:bg-gray-50 text-sm text-gray-600"
+                >
+                  <User className="h-4 w-4 text-gray-400" />
+                  <span>Customer Portal</span>
+                  <ExternalLink className="h-3 w-3 ml-auto text-gray-400" />
+                </button>
+                <button
+                  onClick={() => window.open('/employee-portal/login', '_blank')}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-left hover:bg-gray-50 text-sm text-gray-600"
+                >
+                  <Clock className="h-4 w-4 text-gray-400" />
+                  <span>Employee Portal</span>
+                  <ExternalLink className="h-3 w-3 ml-auto text-gray-400" />
+                </button>
               </div>
             </div>
           </div>
@@ -191,23 +205,18 @@ export const MainLayout = ({ children }) => {
           <button
             onClick={() => setPreviewOpen(true)}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-full shadow-lg transition-all hover:scale-105",
+              "flex items-center gap-2 px-3 py-2 rounded-full shadow-sm transition-all text-sm font-medium text-white",
               productLineLabels[previewProductLine]?.color || 'bg-amber-500'
             )}
             data-testid="preview-mode-toggle"
           >
-            <Eye className="h-4 w-4 text-white" />
-            <span className="text-sm font-medium text-white">{productLineLabels[previewProductLine]?.name || 'OS Business'}</span>
-            <ChevronDown className="h-3 w-3 text-white/80" />
+            <Eye className="h-4 w-4" />
+            <span>{productLineLabels[previewProductLine]?.name || 'Preview'}</span>
           </button>
         ))}
       </div>
     </div>
   );
 };
-
-// Export Sidebar as a no-op for backwards compatibility if imported elsewhere
-export const Sidebar = () => null;
-export const MobileNav = () => null;
 
 export default MainLayout;
