@@ -1,5 +1,21 @@
 """
-Tier Configuration Definitions
+=============================================================================
+LEGACY - DO NOT USE - replaced by plan_configs.py + multi_product_gate.py
+=============================================================================
+
+This module has been DEPRECATED as of December 2025.
+
+All new code MUST use:
+  - services/plan_configs.py      (plan definitions for all 9 plans)
+  - services/multi_product_gate.py (feature gating logic)
+  - models/product_tiers.py       (authoritative data models)
+
+This file is retained ONLY for backwards compatibility during migration.
+DO NOT add new features or modify this file.
+
+=============================================================================
+
+Tier Configuration Definitions (LEGACY)
 
 Pre-defined configurations for each subscription tier based on product requirements.
 """
