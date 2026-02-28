@@ -14,7 +14,7 @@ const navLinks = [
       { href: '/business', label: 'Business' },
     ]
   },
-  { href: '/webstores', label: 'Webstores' },
+  { href: '/webstores-overview', label: 'Webstores' },
   { href: '/ai-studio', label: 'AI Studio' },
   { href: '/pricing', label: 'Pricing' },
 ];
