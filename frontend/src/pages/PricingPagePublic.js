@@ -45,9 +45,9 @@ export default function PricingPagePublic() {
             {/* Starter */}
             <Card className="bg-[#111826] border-white/10">
               <CardContent className="p-6">
-                <h3 className="text-xl font-bold mb-2">Starter</h3>
+                <h3 className="text-xl font-bold mb-2 text-white">Starter</h3>
                 <div className="mb-4">
-                  <span className="text-3xl font-bold">$29</span>
+                  <span className="text-3xl font-bold text-white">$29</span>
                   <span className="text-gray-400">/mo</span>
                   <p className="text-sm text-amber-400 mt-1">Founder (reg. $39/mo)</p>
                 </div>
