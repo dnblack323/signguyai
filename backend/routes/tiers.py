@@ -73,58 +73,109 @@ async def get_gate_dep():
 @router.get("/plans")
 async def get_subscription_plans():
     """Get all available subscription plans (public endpoint)"""
-    tiers = get_all_tiers()
+    plans = get_all_plans()
     
     return {
         "plans": [
             {
-                "id": tier.level.value,
-                "name": tier.display_name,
-                "description": tier.description,
-                "price_monthly": tier.price_monthly,
-                "price_yearly": tier.price_yearly,
-                "highlights": _get_tier_highlights(tier)
+                "id": plan.plan_type.value,
+                "name": plan.display_name,
+                "description": plan.description,
+                "product_line": plan.product_line.value,
+                "price_monthly": plan.pricing.monthly,
+                "price_yearly": plan.pricing.annual,
+                "founder_monthly": plan.pricing.founder_monthly,
+                "founder_annual": plan.pricing.founder_annual,
+                "founder_eligible": plan.founder_eligible,
+                "highlights": _get_plan_highlights(plan)
             }
-            for tier in tiers
+            for plan in plans
         ]
     }
 
 
-def _get_tier_highlights(tier: TierConfig) -> list:
-    """Get highlight features for a tier (for marketing display)"""
-    if tier.level == TierLevel.STARTER:
+def _get_plan_highlights(plan: PlanConfig) -> list:
+    """Get highlight features for a plan (for marketing display)"""
+    # OS Plans
+    if plan.plan_type == PlanType.OS_STARTER:
         return [
-            "1 Webstore",
+            "2 Employees",
             "25 AI generations/month",
-            "1 Team member",
-            "100MB Storage",
-            "Basic Analytics",
+            "Basic Time Clock",
+            "No online payments",
             "Email Support"
         ]
-    elif tier.level == TierLevel.PRO:
+    elif plan.plan_type == PlanType.OS_PRO:
         return [
-            "5 Webstores",
+            "10 Employees",
+            "3 Webstores",
             "100 AI generations/month",
-            "5 Team members",
-            "1GB Storage",
-            "Advanced Analytics",
             "Time Clock & Payroll",
-            "Kanban & Calendar",
+            "Customer Portal",
+            "Online Invoice Payments",
             "Priority Support"
         ]
-    else:  # BUSINESS
+    elif plan.plan_type == PlanType.OS_BUSINESS:
         return [
+            "Unlimited Employees",
             "Unlimited Webstores",
             "Unlimited AI generations",
-            "Unlimited Team members",
-            "5GB Storage",
-            "Custom Reports",
-            "B2B Features",
-            "BNPL Payments",
-            "SMS Notifications",
-            "API Access",
+            "Full Financial Suite",
+            "Advanced Analytics",
+            "Business Data AI Assistant",
             "Dedicated Support"
         ]
+    # Webstore Plans
+    elif plan.plan_type == PlanType.WS_LAUNCH:
+        return [
+            "1 Webstore",
+            "B2B & Fundraiser stores",
+            "Basic Analytics",
+            "3% Platform Fee"
+        ]
+    elif plan.plan_type == PlanType.WS_GROWTH:
+        return [
+            "5 Webstores",
+            "All store types",
+            "Advanced Branding",
+            "Price Overrides",
+            "2.5% Platform Fee"
+        ]
+    elif plan.plan_type == PlanType.WS_SCALE:
+        return [
+            "Unlimited Webstores",
+            "Bulk Order Tools",
+            "Advanced Analytics",
+            "Payout Tracking",
+            "2% Platform Fee"
+        ]
+    # AI Studio Plans
+    elif plan.plan_type == PlanType.AI_BASIC:
+        return [
+            "Text Generation",
+            "25 generations/month",
+            "10 AI queries/month"
+        ]
+    elif plan.plan_type == PlanType.AI_PRO:
+        return [
+            "Text + Image Generation",
+            "100 generations/month",
+            "50 AI queries/month"
+        ]
+    elif plan.plan_type == PlanType.AI_MAX:
+        return [
+            "Unlimited Generations",
+            "Branding Kit Generator",
+            "Campaign Builder",
+            "Content Calendar"
+        ]
+    return []
+
+
+# Legacy alias for backwards compatibility
+def _get_tier_highlights(tier: PlanConfig) -> list:
+    """DEPRECATED: Use _get_plan_highlights()"""
+    return _get_plan_highlights(tier)
 
 
 # ============== TENANT FEATURES ==============
