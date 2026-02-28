@@ -225,7 +225,27 @@ This file is retained ONLY for backwards compatibility during migration.
 
 ---
 
-## 6. EXECUTION ORDER
+## 6. EXECUTION STATUS
+
+**Status: COMPLETED**  
+**Executed:** December 2025
+
+### API Tests Passed
+- ✅ `GET /api/tiers/plans` - Returns all 9 plans with product_line
+- ✅ `GET /api/tiers/my-plan` - Returns plan info with new fields (plan, product_line)
+- ✅ `GET /api/tiers/check/{category}/{feature}` - Feature gates work correctly
+- ✅ `GET /api/tiers/upgrade-prompt/{category}/{feature}` - Returns correct upgrade path
+
+### Regression Verification
+- ✅ Legacy `starter` maps to `os_starter`
+- ✅ `payroll` is OFF for starter (correct)
+- ✅ `jobs` is ON for starter (correct)
+- ✅ `employees` is LIMITED to 2 for starter (correct)
+- ✅ Upgrade prompt shows OS_PRO for payroll feature
+
+---
+
+## 7. EXECUTION ORDER
 
 1. Add deprecation header to `tier_config.py` (no runtime impact)
 2. Update `models/__init__.py` to export product_tiers models
