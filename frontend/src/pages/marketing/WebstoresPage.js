@@ -147,16 +147,16 @@ export default function WebstoresPage() {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {plans.map((plan) => (
-              <Card key={plan.name} className={`bg-[#111826] border-2 ${plan.popular ? 'border-emerald-500' : 'border-white/10'}`}>
+              <Card key={plan.name} className={`bg-[#111826] text-white border-2 ${plan.popular ? 'border-emerald-500' : 'border-white/10'}`}>
                 {plan.popular && (
                   <div className="bg-emerald-500 text-white text-xs font-bold text-center py-1">
                     MOST POPULAR
                   </div>
                 )}
                 <CardContent className="p-6">
-                  <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
+                  <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
                   <div className="mb-4">
-                    <span className="text-3xl font-bold">${plan.price}</span>
+                    <span className="text-3xl font-bold text-white">${plan.price}</span>
                     <span className="text-gray-400">/mo</span>
                   </div>
                   <ul className="space-y-2 mb-6">
