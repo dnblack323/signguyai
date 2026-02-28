@@ -1632,3 +1632,257 @@ Write a complete email with subject line and body. Sign off as "SignGuy AI Team"
         print(f"Email generation error: {e}")
         raise HTTPException(status_code=500, detail=f"Email generation error: {str(e)}")
 
+
+
+# ============== AI ASSISTANT STRUCTURED ACTIONS ==============
+
+from services.ai_assistant_actions import (
+    AIAssistantActions, ActionType, ActionStatus, ActionRequest, ActionResponse,
+    get_ai_assistant_actions
+)
+
+
+class ExecuteActionRequest(BaseModel):
+    """Request to execute a structured action via AI Assistant"""
+    action_type: str  # ActionType enum value
+    parameters: Dict[str, Any]
+    confirmed: bool = False  # Set to True to skip confirmation
+
+
+class ConfirmActionRequest(BaseModel):
+    """Request to confirm a pending action"""
+    action_id: str
+    confirm: bool  # True to execute, False to cancel
+
+
+@router.post("/assistant/action")
+async def execute_assistant_action(
+    request: ExecuteActionRequest,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """
+    Execute a structured database action via AI Assistant.
+    
+    All actions are:
+    - Tenant scoped (automatically)
+    - Permission checked
+    - Audit logged
+    - Require confirmation for destructive changes (unless confirmed=True)
+    
+    Supported actions:
+    - create_job
+    - update_job_status
+    - create_calendar_event
+    - add_material
+    - update_material_cost
+    - create_invoice
+    - assign_employee
+    - log_time_entry
+    - categorize_expense
+    """
+    try:
+        action_type = ActionType(request.action_type)
+    except ValueError:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid action type: {request.action_type}. Valid types: {[a.value for a in ActionType]}"
+        )
+    
+    actions = get_ai_assistant_actions(db)
+    
+    action_request = ActionRequest(
+        action_type=action_type,
+        parameters=request.parameters
+    )
+    
+    response = await actions.execute_action(
+        user=current_user,
+        action_request=action_request,
+        confirmed=request.confirmed
+    )
+    
+    return response.model_dump()
+
+
+@router.post("/assistant/action/confirm")
+async def confirm_assistant_action(
+    request: ConfirmActionRequest,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """
+    Confirm or cancel a pending action.
+    
+    After an action returns status=pending_confirmation, use this endpoint
+    to either execute (confirm=True) or cancel (confirm=False) the action.
+    """
+    actions = get_ai_assistant_actions(db)
+    
+    # Get the pending action from audit log
+    pending = await db.ai_action_audit.find_one({
+        "action_id": request.action_id,
+        "tenant_id": current_user.tenant_id,
+        "status": ActionStatus.PENDING_CONFIRMATION.value
+    }, {"_id": 0})
+    
+    if not pending:
+        raise HTTPException(
+            status_code=404,
+            detail="Pending action not found or already processed"
+        )
+    
+    if not request.confirm:
+        # Cancel the action
+        await db.ai_action_audit.update_one(
+            {"action_id": request.action_id},
+            {"$set": {
+                "status": ActionStatus.CANCELLED.value,
+                "cancelled_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        return {
+            "action_id": request.action_id,
+            "status": ActionStatus.CANCELLED.value,
+            "message": "Action cancelled"
+        }
+    
+    # Execute the confirmed action
+    try:
+        action_type = ActionType(pending["action_type"])
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid action type in pending action")
+    
+    action_request = ActionRequest(
+        action_type=action_type,
+        parameters=pending["parameters"]
+    )
+    
+    response = await actions.execute_action(
+        user=current_user,
+        action_request=action_request,
+        confirmed=True  # Now confirmed
+    )
+    
+    # Update the original audit entry
+    await db.ai_action_audit.update_one(
+        {"action_id": request.action_id},
+        {"$set": {
+            "status": response.status.value,
+            "confirmed_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return response.model_dump()
+
+
+@router.get("/assistant/actions/audit")
+async def get_action_audit_log(
+    limit: int = 50,
+    action_type: Optional[str] = None,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """
+    Get audit log of AI Assistant actions for the tenant.
+    
+    Returns all actions executed via the AI Assistant, including:
+    - Action type and parameters
+    - Status (executed, failed, cancelled, pending)
+    - Results or errors
+    - Timestamps
+    """
+    actions = get_ai_assistant_actions(db)
+    
+    at = None
+    if action_type:
+        try:
+            at = ActionType(action_type)
+        except ValueError:
+            pass
+    
+    entries = await actions.get_action_audit_log(
+        tenant_id=current_user.tenant_id,
+        limit=limit,
+        action_type=at
+    )
+    
+    return {"audit_log": entries, "count": len(entries)}
+
+
+@router.get("/assistant/actions/pending")
+async def get_pending_actions(
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """
+    Get actions that are pending confirmation.
+    
+    Returns actions that require user confirmation before execution.
+    Use /assistant/action/confirm to confirm or cancel.
+    """
+    actions = get_ai_assistant_actions(db)
+    pending = await actions.get_pending_confirmations(current_user.tenant_id)
+    
+    return {"pending_actions": pending, "count": len(pending)}
+
+
+@router.get("/assistant/actions/types")
+async def get_available_action_types():
+    """
+    Get list of available action types and their descriptions.
+    """
+    return {
+        "action_types": [
+            {
+                "type": ActionType.CREATE_JOB.value,
+                "description": "Create a new job",
+                "requires_confirmation": False,
+                "parameters": ["name", "customer_id", "customer_name", "category", "description", "due_date", "priority", "total"]
+            },
+            {
+                "type": ActionType.UPDATE_JOB_STATUS.value,
+                "description": "Update job status (pending, in_progress, production, completed, on_hold, cancelled)",
+                "requires_confirmation": True,
+                "parameters": ["job_id", "status"]
+            },
+            {
+                "type": ActionType.CREATE_CALENDAR_EVENT.value,
+                "description": "Create a calendar event",
+                "requires_confirmation": False,
+                "parameters": ["title", "description", "start_time", "end_time", "all_day", "event_type", "location", "job_id"]
+            },
+            {
+                "type": ActionType.ADD_MATERIAL.value,
+                "description": "Add material to inventory",
+                "requires_confirmation": False,
+                "parameters": ["name", "category", "sku", "unit", "cost", "price", "quantity", "supplier"]
+            },
+            {
+                "type": ActionType.UPDATE_MATERIAL_COST.value,
+                "description": "Update material cost (affects future quotes/jobs)",
+                "requires_confirmation": True,
+                "parameters": ["material_id", "cost"]
+            },
+            {
+                "type": ActionType.CREATE_INVOICE.value,
+                "description": "Create a new invoice",
+                "requires_confirmation": True,
+                "parameters": ["customer_id", "customer_name", "job_id", "line_items", "tax_rate", "due_date", "notes"]
+            },
+            {
+                "type": ActionType.ASSIGN_EMPLOYEE.value,
+                "description": "Assign employee to a job",
+                "requires_confirmation": True,
+                "parameters": ["job_id", "employee_id"]
+            },
+            {
+                "type": ActionType.LOG_TIME_ENTRY.value,
+                "description": "Log time entry for an employee",
+                "requires_confirmation": False,
+                "parameters": ["employee_id", "employee_name", "job_id", "job_name", "date", "hours", "description", "billable"]
+            },
+            {
+                "type": ActionType.CATEGORIZE_EXPENSE.value,
+                "description": "Categorize or re-categorize an expense",
+                "requires_confirmation": False,
+                "parameters": ["expense_id", "category"]
+            }
+        ]
+    }
