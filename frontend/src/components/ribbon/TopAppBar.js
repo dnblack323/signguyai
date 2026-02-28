@@ -1,96 +1,33 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  Search, Bell, HelpCircle, User, ChevronRight, 
-  LogOut, Settings, CreditCard, Menu, LayoutDashboard,
-  FileDown, Upload, Building2, Users, Folder
-} from 'lucide-react';
+import { Search, Bell, HelpCircle, LogOut, Settings, User, ChevronDown } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
-import { DropdownMenu } from './DropdownMenu';
 
 export const TopAppBar = ({ onMobileMenuClick }) => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { user, logout } = useAuth();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Generate breadcrumbs from current path
-  const getBreadcrumbs = () => {
-    const pathSegments = location.pathname.split('/').filter(Boolean);
-    if (pathSegments.length <= 1) return null;
-
-    const breadcrumbs = pathSegments.map((segment, index) => {
-      const path = '/' + pathSegments.slice(0, index + 1).join('/');
-      const label = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
-      return { label, path };
-    });
-
-    return breadcrumbs;
-  };
-
-  const breadcrumbs = getBreadcrumbs();
-
-  // File menu items
-  const fileMenuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', onClick: () => navigate('/dashboard') },
-    { separator: true },
-    { icon: Building2, label: 'Company Settings', onClick: () => navigate('/settings') },
-    { icon: CreditCard, label: 'Billing', onClick: () => navigate('/billing') },
-    { icon: Users, label: 'Users', onClick: () => navigate('/users') },
-    { separator: true },
-    { icon: Upload, label: 'Import Data', onClick: () => {} },
-    { icon: FileDown, label: 'Export Data', onClick: () => {} },
-    { separator: true },
-    { icon: LogOut, label: 'Logout', onClick: logout, danger: true },
-  ];
-
-  // Profile menu items
-  const profileMenuItems = [
-    { icon: User, label: 'Account Settings', onClick: () => navigate('/settings') },
-    { icon: Settings, label: 'Preferences', onClick: () => navigate('/settings') },
-    { separator: true },
-    { icon: LogOut, label: 'Sign Out', onClick: logout, danger: true },
-  ];
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      // Implement global search
       console.log('Searching for:', searchQuery);
     }
   };
 
   return (
     <div 
-      className="h-14 flex items-center justify-between px-4 bg-[var(--sidebar)] border-b border-[var(--border-dark)]"
+      className="h-16 flex items-center justify-between px-6 bg-white border-b border-gray-200"
       data-testid="top-app-bar"
     >
-      {/* Left Section: File Menu + Logo */}
-      <div className="flex items-center gap-4">
-        {/* Mobile Menu Button */}
-        <button
-          onClick={onMobileMenuClick}
-          className="lg:hidden p-2 text-[var(--text-on-dark)] hover:bg-[var(--sidebar-hover)] rounded-md"
-          data-testid="mobile-menu-btn"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-
-        {/* File Menu */}
-        <div className="hidden lg:block">
-          <DropdownMenu
-            trigger={{ icon: Folder, label: 'File' }}
-            items={fileMenuItems}
-            triggerClassName="px-3 py-1.5 text-sm text-[var(--text-on-dark)] hover:bg-[var(--sidebar-hover)] rounded-md"
-          />
-        </div>
-
-        {/* Logo - Click to go to Dashboard */}
+      {/* Left: Logo */}
+      <div className="flex items-center">
         <button
           onClick={() => navigate('/dashboard')}
-          className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+          className="flex items-center hover:opacity-80 transition-opacity"
           data-testid="logo-home-btn"
         >
           <img 
@@ -99,32 +36,13 @@ export const TopAppBar = ({ onMobileMenuClick }) => {
             className="h-8 w-auto object-contain"
           />
         </button>
-
-        {/* Breadcrumbs - Desktop only, when on sub-pages */}
-        {breadcrumbs && breadcrumbs.length > 1 && (
-          <div className="hidden lg:flex items-center gap-1 ml-4 text-sm">
-            {breadcrumbs.map((crumb, index) => (
-              <span key={crumb.path} className="flex items-center gap-1">
-                {index > 0 && <ChevronRight className="h-3 w-3 text-[var(--text-muted-on-dark)]" />}
-                <button
-                  onClick={() => navigate(crumb.path)}
-                  className={cn(
-                    "hover:text-[var(--accent)] transition-colors",
-                    index === breadcrumbs.length - 1 
-                      ? "text-[var(--text-on-dark)] font-medium"
-                      : "text-[var(--text-muted-on-dark)]"
-                  )}
-                >
-                  {crumb.label}
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
+        
+        {/* Subtle divider */}
+        <div className="h-6 w-px bg-gray-200 ml-6" />
       </div>
 
-      {/* Right Section: Search, Notifications, Help, Profile */}
-      <div className="flex items-center gap-2">
+      {/* Right: Search, Notifications, Help, Profile */}
+      <div className="flex items-center gap-4">
         {/* Search */}
         <div className="relative">
           {searchOpen ? (
@@ -136,54 +54,91 @@ export const TopAppBar = ({ onMobileMenuClick }) => {
                 placeholder="Search..."
                 autoFocus
                 onBlur={() => !searchQuery && setSearchOpen(false)}
-                className="w-48 px-3 py-1.5 text-sm bg-[var(--sidebar-hover)] text-[var(--text-on-dark)] border border-[var(--border-dark)] rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                className="w-48 px-3 py-1.5 text-sm bg-gray-50 text-gray-900 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 data-testid="search-input"
               />
             </form>
           ) : (
             <button
               onClick={() => setSearchOpen(true)}
-              className="p-2 text-[var(--text-muted-on-dark)] hover:text-[var(--text-on-dark)] hover:bg-[var(--sidebar-hover)] rounded-md transition-colors"
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
               data-testid="search-btn"
             >
-              <Search className="h-5 w-5" />
+              <Search className="h-[18px] w-[18px]" />
             </button>
           )}
         </div>
 
         {/* Notifications */}
         <button
-          className="p-2 text-[var(--text-muted-on-dark)] hover:text-[var(--text-on-dark)] hover:bg-[var(--sidebar-hover)] rounded-md transition-colors relative"
+          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors relative"
           data-testid="notifications-btn"
         >
-          <Bell className="h-5 w-5" />
-          {/* Notification badge - uncomment when implementing notifications
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-          */}
+          <Bell className="h-[18px] w-[18px]" />
         </button>
 
         {/* Help */}
         <button
           onClick={() => window.open('/docs', '_blank')}
-          className="p-2 text-[var(--text-muted-on-dark)] hover:text-[var(--text-on-dark)] hover:bg-[var(--sidebar-hover)] rounded-md transition-colors"
+          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
           data-testid="help-btn"
         >
-          <HelpCircle className="h-5 w-5" />
+          <HelpCircle className="h-[18px] w-[18px]" />
         </button>
 
         {/* Profile Dropdown */}
-        <DropdownMenu
-          trigger={{ 
-            icon: () => (
-              <div className="w-8 h-8 rounded-full bg-[var(--accent)] flex items-center justify-center text-white text-sm font-medium">
-                {user?.full_name?.charAt(0) || 'U'}
+        <div className="relative">
+          <button
+            onClick={() => setProfileOpen(!profileOpen)}
+            className="flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-md transition-colors"
+            data-testid="profile-btn"
+          >
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium">
+              {user?.full_name?.charAt(0) || 'U'}
+            </div>
+            <ChevronDown className={cn(
+              "h-4 w-4 text-gray-400 transition-transform",
+              profileOpen && "rotate-180"
+            )} />
+          </button>
+
+          {profileOpen && (
+            <>
+              <div 
+                className="fixed inset-0 z-40" 
+                onClick={() => setProfileOpen(false)}
+              />
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1">
+                <div className="px-4 py-2 border-b border-gray-100">
+                  <p className="text-sm font-medium text-gray-900 truncate">{user?.full_name}</p>
+                  <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                </div>
+                <button
+                  onClick={() => { navigate('/settings'); setProfileOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <User className="h-4 w-4" />
+                  Account
+                </button>
+                <button
+                  onClick={() => { navigate('/settings'); setProfileOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <Settings className="h-4 w-4" />
+                  Settings
+                </button>
+                <div className="h-px bg-gray-100 my-1" />
+                <button
+                  onClick={() => { logout(); setProfileOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </button>
               </div>
-            )
-          }}
-          items={profileMenuItems}
-          align="right"
-          triggerClassName="p-1 hover:bg-[var(--sidebar-hover)] rounded-full"
-        />
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
