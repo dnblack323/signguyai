@@ -252,7 +252,7 @@ export default function ContactPage() {
                 ))}
               </div>
               
-              <Card className="bg-gradient-to-r from-[#2F8BFB]/10 to-blue-600/10 border-[#2F8BFB]/30 mt-6">
+              <Card className="bg-gradient-to-r from-[#2F8BFB]/10 to-blue-600/10 text-white border-[#2F8BFB]/30 mt-6">
                 <CardContent className="p-6">
                   <h3 className="font-semibold text-white mb-2">Feature Request?</h3>
                   <p className="text-gray-400 mb-4">
