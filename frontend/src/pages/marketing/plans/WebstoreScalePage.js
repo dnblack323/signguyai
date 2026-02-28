@@ -51,7 +51,7 @@ export default function WebstoreScalePage() {
           </div>
 
           <div className="mt-8 text-center">
-            <Link to="/webstores" className="text-emerald-400 hover:text-emerald-300">
+            <Link to="/webstores-overview" className="text-emerald-400 hover:text-emerald-300">
               ← Back to Webstores Overview
             </Link>
           </div>
