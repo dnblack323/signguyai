@@ -142,6 +142,7 @@ export function JobsList() {
   // Get filter from URL params, default to 'all'
   const filterType = searchParams.get('filter') || 'all';
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [showPricingCalculator, setShowPricingCalculator] = useState(false);
   const [createMode, setCreateMode] = useState('quote'); // 'quote' or 'job'
   const [formData, setFormData] = useState({
     customer_id: '',
