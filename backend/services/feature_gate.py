@@ -257,7 +257,7 @@ class FeatureGate:
         """Reset monthly usage counters (call this on billing cycle)"""
         monthly_features = [
             "ai_tools.monthly_generations",
-            "ai_assistant.natural_language"
+            "ai_assistant.monthly_queries"  # Updated from natural_language
         ]
         
         for feature in monthly_features:
@@ -272,29 +272,62 @@ class FeatureGate:
                 }
             )
     
-    async def set_tenant_tier(self, tenant_id: str, tier: TierLevel):
-        """Update a tenant's subscription tier"""
+    async def set_tenant_plan(self, tenant_id: str, plan: PlanType):
+        """Update a tenant's subscription plan"""
         await self.db.tenants.update_one(
             {"id": tenant_id},
-            {"$set": {"plan": tier.value}}
+            {"$set": {"plan": plan.value}}
         )
         
-        # Update usage limits based on new tier
-        config = get_tier_config(tier)
+        # Update usage limits based on new plan
+        config = get_plan_config(plan)
         await self._update_usage_limits(tenant_id, config)
     
-    async def _update_usage_limits(self, tenant_id: str, config):
-        """Update usage limits when tier changes"""
-        # Map of features to their new limits
-        limit_updates = {
-            "ai_tools.monthly_generations": config.features.ai_tools.monthly_generations.limit,
-            "ai_assistant.natural_language": config.features.ai_assistant.natural_language.limit,
-            "team.team_members": config.features.team.team_members.limit,
-            "webstores.num_stores": config.features.webstores.num_stores.limit,
-            "webstores.product_images": config.features.webstores.product_images.limit,
-            "data.storage_mb": config.features.data.storage_mb.limit,
-            "data.retention_years": config.features.data.retention_years.limit,
+    # Legacy alias
+    async def set_tenant_tier(self, tenant_id: str, tier: TierLevel):
+        """DEPRECATED: Use set_tenant_plan() instead"""
+        tier_to_plan = {
+            TierLevel.STARTER: PlanType.OS_STARTER,
+            TierLevel.PRO: PlanType.OS_PRO,
+            TierLevel.BUSINESS: PlanType.OS_BUSINESS,
         }
+        plan = tier_to_plan.get(tier, PlanType.OS_STARTER)
+        await self.set_tenant_plan(tenant_id, plan)
+    
+    async def _update_usage_limits(self, tenant_id: str, config):
+        """Update usage limits when plan changes"""
+        # Map of features to their new limits based on new plan_configs structure
+        limit_updates = {}
+        
+        # AI generations
+        if hasattr(config.features, 'ai_tools'):
+            ai_gen = config.features.ai_tools.monthly_generations
+            if ai_gen.status == FeatureStatus.LIMITED and ai_gen.limit:
+                limit_updates["ai_tools.monthly_generations"] = ai_gen.limit
+        
+        # AI queries
+        if hasattr(config.features, 'ai_assistant'):
+            ai_queries = config.features.ai_assistant.monthly_queries
+            if ai_queries.status == FeatureStatus.LIMITED and ai_queries.limit:
+                limit_updates["ai_assistant.monthly_queries"] = ai_queries.limit
+        
+        # Employees
+        if hasattr(config.features, 'core'):
+            employees = config.features.core.employees
+            if employees.status == FeatureStatus.LIMITED and employees.limit:
+                limit_updates["core.employees"] = employees.limit
+        
+        # Webstores
+        if hasattr(config.features, 'webstores'):
+            num_stores = config.features.webstores.num_stores
+            if num_stores.status == FeatureStatus.LIMITED and num_stores.limit:
+                limit_updates["webstores.num_stores"] = num_stores.limit
+        
+        # Document storage
+        if hasattr(config.features, 'customer_portal'):
+            storage = config.features.customer_portal.document_storage_mb
+            if storage.status == FeatureStatus.LIMITED and storage.limit:
+                limit_updates["customer_portal.document_storage_mb"] = storage.limit
         
         for usage_type, new_limit in limit_updates.items():
             if new_limit is not None:
