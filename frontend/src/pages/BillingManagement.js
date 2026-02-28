@@ -115,7 +115,7 @@ export default function BillingManagement() {
   if (!subscription) {
     return (
       <div className="p-6">
-        <Card className="bg-[#111826] border-[#1E293B]">
+        <Card className="bg-[#111826] text-white border-[#1E293B]">
           <CardContent className="p-8 text-center">
             <AlertCircle className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
             <h2 className="text-xl font-bold text-white mb-2">No Active Subscription</h2>
@@ -262,7 +262,7 @@ export default function BillingManagement() {
       </Card>
 
       {/* Payment History */}
-      <Card className="bg-[#111826] border-[#1E293B]">
+      <Card className="bg-[#111826] text-white border-[#1E293B]">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-[#2F8BFB]" />

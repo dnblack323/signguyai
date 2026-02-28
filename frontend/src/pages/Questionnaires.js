@@ -370,7 +370,7 @@ export default function Questionnaires() {
 
       {/* Questionnaires Grid */}
       {filteredQuestionnaires.length === 0 ? (
-        <Card className="bg-[#111826] border-[#1E293B]">
+        <Card className="bg-[#111826] text-white border-[#1E293B]">
           <CardContent className="p-12 text-center">
             <FileQuestion className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">No questionnaires yet</h3>

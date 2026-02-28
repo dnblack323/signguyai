@@ -365,7 +365,7 @@ export default function PublicQuestionnaire() {
   return (
     <div className="min-h-screen bg-[#0B0F17] py-8 px-4">
       <div className="max-w-2xl mx-auto">
-        <Card className="bg-[#111826] border-[#1E293B]">
+        <Card className="bg-[#111826] text-white border-[#1E293B]">
           <CardHeader className="border-b border-[#1E293B]">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-[#2F8BFB]/20 rounded-lg">
