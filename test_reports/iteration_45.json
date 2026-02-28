@@ -1,0 +1,93 @@
+{
+  "summary": "Marketing site restructure testing complete. All 12 routes working correctly. Fixed critical UI bug where plan names and prices were invisible on pricing page due to Card component's dark text color on dark background. Also fixed broken back links in webstore plan pages.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "features_verified": {
+    "landing_page": {
+      "hero_section": "WORKING - Shows 'The AI-Powered Operating System for Sign Shops'",
+      "three_product_blocks": "WORKING - SignGuy AI OS, SignGuy Webstores, SignGuy AI Studio all visible"
+    },
+    "navigation": {
+      "platform_dropdown": "WORKING - Shows Overview, Starter, Pro, Business links",
+      "webstores_link": "WORKING - Links to /webstores-overview",
+      "ai_studio_link": "WORKING - Links to /ai-studio",
+      "pricing_link": "WORKING - Links to /pricing"
+    },
+    "product_overview_pages": {
+      "/platform": "WORKING - SignGuy AI OS overview with Core Modules and Plan Comparison",
+      "/webstores-overview": "WORKING - SignGuy Webstores overview with Who It's For section",
+      "/ai-studio": "WORKING - SignGuy AI Studio overview with AI Tools Included section"
+    },
+    "pricing_page": {
+      "shop_management_section": "WORKING - Shows Starter $29, Pro $59, Business $99 plans",
+      "webstore_plans_section": "WORKING - Shows Launch $39, Growth $59, Scale $99 plans",
+      "ai_studio_plans_section": "WORKING - Shows Basic $29, Pro $59, Max $99 plans",
+      "annual_billing_note": "WORKING - 'Annual billing only available for Business plan' displayed"
+    },
+    "os_plan_pages": {
+      "/starter": "WORKING - $29/mo, no annual pricing",
+      "/pro": "WORKING - $59/mo, no annual pricing",
+      "/business": "WORKING - $99/mo monthly AND $990/year annual options shown"
+    },
+    "webstore_plan_pages": {
+      "/webstore-launch": "WORKING - $39/mo, no annual pricing",
+      "/webstore-growth": "WORKING - $59/mo, no annual pricing",
+      "/webstore-scale": "WORKING - $99/mo, no annual pricing"
+    },
+    "ai_studio_plan_pages": {
+      "/ai-basic": "WORKING - $29/mo, no annual pricing",
+      "/ai-pro": "WORKING - $59/mo, no annual pricing",
+      "/ai-max": "WORKING - $99/mo, no annual pricing"
+    },
+    "footer": {
+      "products_links": "WORKING - Platform, Webstores, AI Studio, Pricing",
+      "os_plans_links": "WORKING - Starter, Pro, Business",
+      "portals_links": "WORKING - Sign In, Customer Portal, Employee Portal"
+    }
+  },
+  "bugs_fixed_by_testing_agent": [
+    {
+      "issue": "Plan names and prices invisible on pricing page",
+      "root_cause": "Card component applies text-[#0F172A] (dark navy) which inherited to h3 and price spans, making them invisible against bg-[#111826] dark background",
+      "fix": "Added explicit text-white class to all h3 and price span elements in PricingPagePublic.js",
+      "file": "/app/frontend/src/pages/PricingPagePublic.js"
+    },
+    {
+      "issue": "Webstore plan pages had broken back links",
+      "root_cause": "Back links pointed to /webstores instead of /webstores-overview",
+      "fix": "Updated href to /webstores-overview in WebstoreLaunchPage.js, WebstoreGrowthPage.js, WebstoreScalePage.js",
+      "files": [
+        "/app/frontend/src/pages/marketing/plans/WebstoreLaunchPage.js",
+        "/app/frontend/src/pages/marketing/plans/WebstoreGrowthPage.js",
+        "/app/frontend/src/pages/marketing/plans/WebstoreScalePage.js"
+      ]
+    }
+  ],
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Card component at /app/frontend/src/components/ui/card.jsx has default light theme styling (text-[#0F172A], bg-[#F5F7FA]) which conflicts with dark-themed marketing pages. Consider adding a dark variant or ensuring explicit color classes are used when Card is on dark backgrounds."
+  ],
+  "updated_files": [
+    "/app/frontend/src/pages/PricingPagePublic.js",
+    "/app/frontend/src/pages/marketing/plans/WebstoreLaunchPage.js",
+    "/app/frontend/src/pages/marketing/plans/WebstoreGrowthPage.js",
+    "/app/frontend/src/pages/marketing/plans/WebstoreScalePage.js"
+  ],
+  "success_rate": {
+    "backend": "N/A - Frontend only testing",
+    "frontend": "100% - All marketing site features working"
+  },
+  "test_credentials": "None needed - public marketing pages",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Marketing site restructure with three product lines (SignGuy AI OS, SignGuy Webstores, SignGuy AI Studio) is complete. All routes work correctly. Annual pricing is ONLY shown on Business plan page. Other plans (OS Starter/Pro, Webstore Launch/Growth/Scale, AI Basic/Pro/Max) only show monthly pricing. The webstores marketing route is /webstores-overview to avoid conflict with in-app /webstores feature."
+}
