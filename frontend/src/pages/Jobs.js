@@ -445,9 +445,16 @@ export function JobsList() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <Label>Line Items</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={addLineItem}>
-                    <Plus className="h-3 w-3 mr-1" /> Add Item
-                  </Button>
+                  <div className="flex gap-2">
+                    <PricingCalculatorButton 
+                      onClick={() => setShowPricingCalculator(true)} 
+                      variant="outline"
+                      size="sm"
+                    />
+                    <Button type="button" variant="outline" size="sm" onClick={addLineItem}>
+                      <Plus className="h-3 w-3 mr-1" /> Add Item
+                    </Button>
+                  </div>
                 </div>
                 {formData.line_items.map((item, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-end">
