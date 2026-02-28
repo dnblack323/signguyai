@@ -543,6 +543,13 @@ export function JobsList() {
         </DialogContent>
       </Dialog>
 
+      {/* Pricing Calculator Modal for Line Items */}
+      <PricingCalculatorModal
+        isOpen={showPricingCalculator}
+        onClose={() => setShowPricingCalculator(false)}
+        onItemCalculated={handlePricingCalculatorItem}
+      />
+
       {/* Jobs List */}
       <Card className="bg-card border-border/50">
         <CardContent className="p-0">
