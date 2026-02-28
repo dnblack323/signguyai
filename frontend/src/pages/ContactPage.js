@@ -131,7 +131,7 @@ export default function ContactPage() {
               <h2 className="text-2xl font-bold mb-6">Send Us a Message</h2>
               
               {submitted ? (
-                <Card className="bg-[#111826] border-green-500/30">
+                <Card className="bg-[#111826] text-white border-green-500/30">
                   <CardContent className="p-8 text-center">
                     <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                       <CheckCircle2 className="w-8 h-8 text-green-400" />
@@ -153,7 +153,7 @@ export default function ContactPage() {
                   </CardContent>
                 </Card>
               ) : (
-                <Card className="bg-[#111826] border-white/10">
+                <Card className="bg-[#111826] text-white border-white/10">
                   <CardContent className="p-6">
                     <form onSubmit={handleSubmit} className="space-y-6">
                       <div className="grid sm:grid-cols-2 gap-4">
