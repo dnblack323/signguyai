@@ -10,7 +10,7 @@ import {
   BarChart3, Rocket, Palette
 } from 'lucide-react';
 
-// Product line configurations
+// Product line configurations with EXACT pricing
 const productLines = [
   {
     id: 'os',
@@ -24,10 +24,9 @@ const productLines = [
       {
         id: 'os_starter',
         name: 'Starter',
-        price: 39,
-        founderPrice: 29,
-        annual: 390,
-        founderAnnual: 290,
+        monthlyPrice: 39,
+        founderMonthly: 29,
+        hasAnnual: false, // NO annual for Starter
         icon: Zap,
         popular: false,
         features: [
@@ -43,10 +42,11 @@ const productLines = [
       {
         id: 'os_pro',
         name: 'Pro',
-        price: 79,
-        founderPrice: 59,
-        annual: 790,
-        founderAnnual: 590,
+        monthlyPrice: 79,
+        founderMonthly: 59,
+        annualPrice: 790, // $790/year = ~$66/mo
+        founderAnnual: 590, // $590/year = ~$49/mo
+        hasAnnual: true, // Annual available
         icon: Sparkles,
         popular: true,
         features: [
@@ -63,10 +63,11 @@ const productLines = [
       {
         id: 'os_business',
         name: 'Business',
-        price: 149,
-        founderPrice: 99,
-        annual: 1490,
-        founderAnnual: 990,
+        monthlyPrice: 149,
+        founderMonthly: 99,
+        annualPrice: 1490, // $1490/year = ~$124/mo
+        founderAnnual: 990, // $990/year = ~$82/mo
+        hasAnnual: true, // Annual available
         icon: Crown,
         popular: false,
         features: [
@@ -93,8 +94,8 @@ const productLines = [
       {
         id: 'ws_launch',
         name: 'Launch',
-        price: 39,
-        annual: 390,
+        monthlyPrice: 39,
+        hasAnnual: false,
         icon: Rocket,
         popular: false,
         features: [
@@ -109,8 +110,8 @@ const productLines = [
       {
         id: 'ws_growth',
         name: 'Growth',
-        price: 59,
-        annual: 590,
+        monthlyPrice: 59,
+        hasAnnual: false,
         icon: BarChart3,
         popular: true,
         features: [
@@ -125,8 +126,8 @@ const productLines = [
       {
         id: 'ws_scale',
         name: 'Scale',
-        price: 99,
-        annual: 990,
+        monthlyPrice: 99,
+        hasAnnual: false,
         icon: Store,
         popular: false,
         features: [
@@ -152,8 +153,8 @@ const productLines = [
       {
         id: 'ai_basic',
         name: 'AI Basic',
-        price: 29,
-        annual: 290,
+        monthlyPrice: 29,
+        hasAnnual: false,
         icon: Palette,
         popular: false,
         features: [
@@ -167,8 +168,8 @@ const productLines = [
       {
         id: 'ai_pro',
         name: 'AI Pro',
-        price: 59,
-        annual: 590,
+        monthlyPrice: 59,
+        hasAnnual: false,
         icon: Sparkles,
         popular: true,
         features: [
@@ -182,8 +183,8 @@ const productLines = [
       {
         id: 'ai_max',
         name: 'AI Max',
-        price: 99,
-        annual: 990,
+        monthlyPrice: 99,
+        hasAnnual: false,
         icon: Crown,
         popular: false,
         features: [
@@ -234,6 +235,9 @@ export default function PricingPagePublic() {
   const activeProductLine = productLines.find(p => p.id === activeProduct);
   const colors = colorConfig[activeProductLine?.color || 'blue'];
 
+  // Check if any plan in active product has annual pricing
+  const hasAnyAnnualPlans = activeProductLine?.plans.some(p => p.hasAnnual);
+
   return (
     <div className="min-h-screen bg-[#0B0F17] text-white">
       {/* Navigation */}
@@ -253,32 +257,39 @@ export default function PricingPagePublic() {
             Three product lines to match exactly what you need. Start with a 24-hour free trial.
           </p>
 
-          {/* Billing Toggle */}
-          <div className="flex items-center justify-center gap-4 mb-8">
-            <button
-              onClick={() => setBillingCycle('monthly')}
-              className={`px-4 py-2 rounded-lg transition ${
-                billingCycle === 'monthly'
-                  ? 'bg-[#2F8BFB] text-white'
-                  : 'bg-white/10 text-gray-400 hover:bg-white/20'
-              }`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setBillingCycle('annual')}
-              className={`px-4 py-2 rounded-lg transition ${
-                billingCycle === 'annual'
-                  ? 'bg-[#2F8BFB] text-white'
-                  : 'bg-white/10 text-gray-400 hover:bg-white/20'
-              }`}
-            >
-              Annual
-              <span className="ml-2 text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">
-                Save 2 months
-              </span>
-            </button>
-          </div>
+          {/* Billing Toggle - Only show for OS product line */}
+          {activeProduct === 'os' && hasAnyAnnualPlans && (
+            <div className="flex items-center justify-center gap-4 mb-8">
+              <button
+                onClick={() => setBillingCycle('monthly')}
+                className={`px-4 py-2 rounded-lg transition ${
+                  billingCycle === 'monthly'
+                    ? 'bg-[#2F8BFB] text-white'
+                    : 'bg-white/10 text-gray-400 hover:bg-white/20'
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setBillingCycle('annual')}
+                className={`px-4 py-2 rounded-lg transition ${
+                  billingCycle === 'annual'
+                    ? 'bg-[#2F8BFB] text-white'
+                    : 'bg-white/10 text-gray-400 hover:bg-white/20'
+                }`}
+              >
+                Annual
+                <span className="ml-2 text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">
+                  Save 2 months
+                </span>
+              </button>
+            </div>
+          )}
+
+          {/* Note for non-OS products */}
+          {activeProduct !== 'os' && (
+            <p className="text-sm text-gray-500 mb-8">Monthly billing only</p>
+          )}
         </div>
       </section>
 
@@ -294,7 +305,10 @@ export default function PricingPagePublic() {
               return (
                 <button
                   key={product.id}
-                  onClick={() => setActiveProduct(product.id)}
+                  onClick={() => {
+                    setActiveProduct(product.id);
+                    setBillingCycle('monthly'); // Reset to monthly when switching
+                  }}
                   className={`p-6 rounded-xl border-2 transition-all text-left ${
                     isActive
                       ? `${prodColors.border} ${prodColors.bg}`
@@ -333,17 +347,31 @@ export default function PricingPagePublic() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {activeProductLine?.plans.map((plan) => {
               const Icon = plan.icon;
-              const price = billingCycle === 'annual' 
-                ? (activeProductLine.hasFounderPricing ? plan.founderAnnual : plan.annual)
-                : (activeProductLine.hasFounderPricing ? plan.founderPrice : plan.price);
-              const monthlyEquivalent = billingCycle === 'annual' ? Math.round(price / 12) : price;
+              const isFounder = activeProductLine.hasFounderPricing;
+              
+              // Determine price based on billing cycle and plan availability
+              let displayPrice;
+              let billingNote = '/mo';
+              let regularPrice = null;
+
+              if (billingCycle === 'annual' && plan.hasAnnual) {
+                // Annual pricing
+                const annualTotal = isFounder ? plan.founderAnnual : plan.annualPrice;
+                displayPrice = Math.round(annualTotal / 12);
+                billingNote = '/mo';
+                regularPrice = isFounder ? `$${plan.annualPrice}/yr` : null;
+              } else {
+                // Monthly pricing (default for plans without annual)
+                displayPrice = isFounder ? plan.founderMonthly : plan.monthlyPrice;
+                regularPrice = isFounder ? `$${plan.monthlyPrice}` : null;
+              }
 
               return (
                 <Card
                   key={plan.id}
                   className={`relative bg-[#111826] border-2 transition-all ${
                     plan.popular
-                      ? `${colors.border} shadow-lg shadow-${activeProductLine.color}-500/20`
+                      ? `${colors.border} shadow-lg`
                       : 'border-white/10 hover:border-white/20'
                   }`}
                 >
@@ -360,23 +388,26 @@ export default function PricingPagePublic() {
                       </div>
                       <div>
                         <h3 className="text-lg font-bold text-white">{plan.name}</h3>
+                        {!plan.hasAnnual && activeProduct === 'os' && (
+                          <span className="text-xs text-gray-500">Monthly only</span>
+                        )}
                       </div>
                     </div>
 
                     <div className="mb-6">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-bold text-white">${monthlyEquivalent}</span>
-                        <span className="text-gray-400">/mo</span>
+                        <span className="text-4xl font-bold text-white">${displayPrice}</span>
+                        <span className="text-gray-400">{billingNote}</span>
                       </div>
-                      {billingCycle === 'annual' && (
+                      {billingCycle === 'annual' && plan.hasAnnual && (
                         <p className="text-sm text-gray-500 mt-1">
-                          Billed ${price}/year
+                          Billed ${isFounder ? plan.founderAnnual : plan.annualPrice}/year
                         </p>
                       )}
-                      {activeProductLine.hasFounderPricing && (
+                      {isFounder && regularPrice && (
                         <p className="text-xs text-amber-400 mt-2">
                           <Star className="w-3 h-3 inline mr-1" />
-                          Founder pricing (reg. ${billingCycle === 'annual' ? plan.annual : plan.price}/mo)
+                          Founder pricing (reg. {regularPrice}{billingCycle === 'annual' && plan.hasAnnual ? '' : '/mo'})
                         </p>
                       )}
                     </div>
@@ -410,40 +441,42 @@ export default function PricingPagePublic() {
         </div>
       </section>
 
-      {/* Founder Benefits */}
-      <section className="px-4 pb-16">
-        <div className="max-w-4xl mx-auto">
-          <Card className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/30">
-            <CardContent className="p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center">
-                  <Crown className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-white">Founder Benefits</h3>
-                  <p className="text-amber-400 text-sm">Only for SignGuy AI OS plans</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  'Lifetime locked-in pricing',
-                  'No onboarding fees (save up to $599)',
-                  'Early access to new features',
-                  'Direct input into product development',
-                  'Priority support channel',
-                  'Limited to first 100 shops',
-                ].map((benefit, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-amber-400" />
-                    <span className="text-gray-300">{benefit}</span>
+      {/* Founder Benefits - Only for OS */}
+      {activeProduct === 'os' && (
+        <section className="px-4 pb-16">
+          <div className="max-w-4xl mx-auto">
+            <Card className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/30">
+              <CardContent className="p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center">
+                    <Crown className="w-6 h-6 text-white" />
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Founder Benefits</h3>
+                    <p className="text-amber-400 text-sm">Lock in special pricing forever</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    'Lifetime locked-in pricing',
+                    'No onboarding fees (save up to $599)',
+                    'Early access to new features',
+                    'Direct input into product development',
+                    'Priority support channel',
+                    'Limited to first 100 shops',
+                  ].map((benefit, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-amber-400" />
+                      <span className="text-gray-300">{benefit}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+      )}
 
       {/* FAQ */}
       <section className="px-4 pb-16">
@@ -461,12 +494,12 @@ export default function PricingPagePublic() {
                 a: 'Yes! You can switch between OS, Webstores, and AI Studio at any time. Your data is preserved and billing is prorated.',
               },
               {
-                q: 'What are processing fees?',
-                a: 'Processing fees apply to webstore transactions on top of Stripe\'s standard fees. They range from 2-3% depending on your plan.',
+                q: 'Is annual billing available for all plans?',
+                a: 'Annual billing is available for OS Pro and OS Business plans only. Webstores and AI Studio are monthly billing only.',
               },
               {
                 q: 'Is there a contract or commitment?',
-                a: 'No contracts! Pay monthly or annually. Cancel anytime. Annual plans save you 2 months.',
+                a: 'No contracts! Pay monthly or annually (for eligible plans). Cancel anytime.',
               },
             ].map((item, idx) => (
               <div key={idx} className="bg-[#111826] rounded-xl p-6 border border-white/10">
