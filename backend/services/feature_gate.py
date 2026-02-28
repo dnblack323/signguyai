@@ -22,17 +22,37 @@ class FeatureGate:
     def __init__(self, db):
         self.db = db
     
-    async def get_tenant_tier(self, tenant_id: str) -> TierLevel:
-        """Get the current tier for a tenant"""
+    async def get_tenant_plan(self, tenant_id: str) -> PlanType:
+        """Get the current plan for a tenant"""
         tenant = await self.db.tenants.find_one({"id": tenant_id}, {"_id": 0, "plan": 1})
         if not tenant:
-            return TierLevel.STARTER
+            return PlanType.OS_STARTER
         
         plan = tenant.get("plan", "starter")
+        # Handle both new plan types and legacy tier names
         try:
-            return TierLevel(plan)
+            return PlanType(plan)
         except ValueError:
-            return TierLevel.STARTER
+            # Legacy tier mapping
+            return legacy_tier_to_plan(plan)
+    
+    # Legacy alias for backwards compatibility
+    async def get_tenant_tier(self, tenant_id: str) -> TierLevel:
+        """DEPRECATED: Use get_tenant_plan() instead. Maps to legacy TierLevel."""
+        plan = await self.get_tenant_plan(tenant_id)
+        # Map plan to legacy tier
+        tier_map = {
+            PlanType.OS_STARTER: TierLevel.STARTER,
+            PlanType.OS_PRO: TierLevel.PRO,
+            PlanType.OS_BUSINESS: TierLevel.BUSINESS,
+            PlanType.WS_LAUNCH: TierLevel.STARTER,
+            PlanType.WS_GROWTH: TierLevel.PRO,
+            PlanType.WS_SCALE: TierLevel.BUSINESS,
+            PlanType.AI_BASIC: TierLevel.STARTER,
+            PlanType.AI_PRO: TierLevel.PRO,
+            PlanType.AI_MAX: TierLevel.BUSINESS,
+        }
+        return tier_map.get(plan, TierLevel.STARTER)
     
     async def get_feature_value(
         self,
@@ -40,9 +60,9 @@ class FeatureGate:
         category: str,
         feature: str
     ) -> FeatureValue:
-        """Get the feature value for a tenant's tier"""
-        tier = await self.get_tenant_tier(tenant_id)
-        config = get_tier_config(tier)
+        """Get the feature value for a tenant's plan"""
+        plan = await self.get_tenant_plan(tenant_id)
+        config = get_plan_config(plan)
         
         # Navigate to the feature
         category_config = getattr(config.features, category, None)
