@@ -21,7 +21,7 @@ from services.ai_assistant_actions import (
     AIAssistantActions, ActionType, ActionStatus, ActionRequest,
     ACTION_PERMISSIONS, DESTRUCTIVE_ACTIONS
 )
-from models.auth import Permission, Role
+from models.auth import Permission, UserRole
 
 
 class MockDB:
