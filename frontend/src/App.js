@@ -186,6 +186,26 @@ function App() {
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/contact" element={<ContactPage />} />
                 
+                {/* Marketing - Product Overview Pages */}
+                <Route path="/platform" element={<PlatformPage />} />
+                <Route path="/webstores-overview" element={<WebstoresMarketingPage />} />
+                <Route path="/ai-studio" element={<AIStudioPage />} />
+                
+                {/* Marketing - OS Plan Detail Pages */}
+                <Route path="/starter" element={<StarterPlanPage />} />
+                <Route path="/pro" element={<ProPlanPage />} />
+                <Route path="/business" element={<BusinessPlanPage />} />
+                
+                {/* Marketing - Webstore Plan Detail Pages */}
+                <Route path="/webstore-launch" element={<WebstoreLaunchPage />} />
+                <Route path="/webstore-growth" element={<WebstoreGrowthPage />} />
+                <Route path="/webstore-scale" element={<WebstoreScalePage />} />
+                
+                {/* Marketing - AI Studio Plan Detail Pages */}
+                <Route path="/ai-basic" element={<AIBasicPage />} />
+                <Route path="/ai-pro" element={<AIProPage />} />
+                <Route path="/ai-max" element={<AIMaxPage />} />
+                
                 {/* Auth Routes - Public */}
                 <Route path="/login" element={<Login />} />
                 
