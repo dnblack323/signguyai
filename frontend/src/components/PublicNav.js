@@ -104,7 +104,7 @@ export function PublicNav() {
             
             <div className="ml-4 flex items-center gap-2">
               <Link to="/login">
-                <Button variant="ghost" className="text-gray-400 hover:text-white text-sm">
+                <Button variant="ghost" className="!text-gray-400 hover:!text-white hover:!bg-white/10 text-sm">
                   Log In
                 </Button>
               </Link>
