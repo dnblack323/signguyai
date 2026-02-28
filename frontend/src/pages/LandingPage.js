@@ -172,7 +172,7 @@ export default function LandingPage() {
 
           <div className="text-center mt-12">
             <Link to="/platform">
-              <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
+              <Button variant="outline" className="border-white/20 !text-white hover:bg-white/10 hover:!text-white bg-transparent">
                 See All Features
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
