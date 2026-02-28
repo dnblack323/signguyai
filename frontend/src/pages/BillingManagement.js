@@ -150,7 +150,7 @@ export default function BillingManagement() {
       </div>
 
       {/* Current Plan Card */}
-      <Card className="bg-[#111826] border-[#1E293B] overflow-hidden">
+      <Card className="bg-[#111826] text-white border-[#1E293B] overflow-hidden">
         <div className={`h-2 bg-gradient-to-r ${productConfig.gradient}`}></div>
         <CardHeader>
           <div className="flex items-center justify-between">
