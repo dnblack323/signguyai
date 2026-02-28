@@ -370,12 +370,17 @@ class TestInvoicePaymentFeeStorage:
         assert stored['amount'] == 100.00
     
     @pytest.mark.asyncio
-    async def test_manual_payment_should_store_fee(self, mock_db):
+    async def test_manual_payment_zero_fee_os_pro(self, mock_db):
         """
-        Manual invoice payments (record-payment endpoint) should also store platform_fee.
+        BUSINESS RULE: Manual payments have NO platform fee.
         
-        Currently in routes/invoices.py record_payment(), the payment record does NOT
-        include platform_fee. This test documents expected behavior.
+        Manual invoice payments (record-payment endpoint) must store:
+        - platform_fee = 0.00
+        - platform_fee_percent = 0.0
+        - platform_fee_reason = "manual_payment_no_platform_processing"
+        
+        This applies to ALL plans, including those with invoice fees.
+        Platform fees only apply when the platform processes the payment (Stripe).
         """
         tenant_id = 'tenant_manual_test'
         invoice_id = 'inv_manual_test'
@@ -384,32 +389,95 @@ class TestInvoicePaymentFeeStorage:
         create_test_subscription(mock_db, tenant_id, 'monthly')
         create_test_invoice(mock_db, invoice_id, tenant_id, 100.00)
         
-        gate = MultiProductFeatureGate(mock_db)
-        fees = await gate.get_processing_fees(tenant_id)
-        
-        amount = 100.00
-        fee_percent = fees.invoice_fee_percent
-        platform_fee = gate.calculate_platform_fee(amount, fee_percent)
-        
-        # Simulate EXPECTED payment record with fee (what record_payment SHOULD do)
+        # Manual payment - NO fee regardless of plan
         payment_record = {
             'invoice_id': invoice_id,
             'tenant_id': tenant_id,
-            'amount': amount,
-            'platform_fee': platform_fee,
-            'fee_percent': fee_percent,
-            'payment_method': 'manual',
+            'amount': 100.00,
+            'platform_fee': 0.00,
+            'platform_fee_percent': 0.0,
+            'platform_fee_reason': 'manual_payment_no_platform_processing',
+            'payment_method': 'cash',
+            'payment_type': 'manual',
             'notes': 'Test payment',
             'created_at': datetime.now(timezone.utc).isoformat()
         }
         await mock_db.payments.insert_one(payment_record)
         
-        # Verify stored correctly
+        # Verify stored correctly with zero fee
         stored = await mock_db.payments.find_one({'invoice_id': invoice_id})
         
         assert stored is not None
-        assert stored['platform_fee'] == 1.00
-        assert stored['fee_percent'] == 1.0
+        assert stored['platform_fee'] == 0.00, "Manual payments must have zero platform fee"
+        assert stored['platform_fee_percent'] == 0.0, "Manual payments must have zero fee percent"
+        assert stored['platform_fee_reason'] == 'manual_payment_no_platform_processing'
+    
+    @pytest.mark.asyncio
+    async def test_manual_payment_zero_fee_os_business_founder_annual(self, mock_db):
+        """
+        Manual payment for OS_BUSINESS founder with annual billing.
+        Even founder annual (which has 0.5% Stripe fee) should have 0 fee for manual.
+        """
+        tenant_id = 'tenant_manual_founder'
+        invoice_id = 'inv_manual_founder'
+        
+        create_test_tenant(mock_db, tenant_id, 'os_business', is_founder=True)
+        create_test_subscription(mock_db, tenant_id, 'annual')
+        create_test_invoice(mock_db, invoice_id, tenant_id, 100.00)
+        
+        # Manual payment - NO fee even for founder annual
+        payment_record = {
+            'invoice_id': invoice_id,
+            'tenant_id': tenant_id,
+            'amount': 100.00,
+            'platform_fee': 0.00,
+            'platform_fee_percent': 0.0,
+            'platform_fee_reason': 'manual_payment_no_platform_processing',
+            'payment_method': 'check',
+            'payment_type': 'manual',
+            'notes': 'Founder annual manual payment',
+            'created_at': datetime.now(timezone.utc).isoformat()
+        }
+        await mock_db.payments.insert_one(payment_record)
+        
+        stored = await mock_db.payments.find_one({'invoice_id': invoice_id})
+        
+        assert stored is not None
+        assert stored['platform_fee'] == 0.00, "Manual payments must have zero platform fee"
+        assert stored['platform_fee_percent'] == 0.0
+    
+    @pytest.mark.asyncio
+    async def test_manual_payment_zero_fee_os_starter(self, mock_db):
+        """
+        Manual payment for OS_STARTER (which already has 0% Stripe fee).
+        Should still explicitly store 0.00 for consistency.
+        """
+        tenant_id = 'tenant_manual_starter'
+        invoice_id = 'inv_manual_starter'
+        
+        create_test_tenant(mock_db, tenant_id, 'os_starter', is_founder=False)
+        create_test_subscription(mock_db, tenant_id, 'monthly')
+        create_test_invoice(mock_db, invoice_id, tenant_id, 100.00)
+        
+        payment_record = {
+            'invoice_id': invoice_id,
+            'tenant_id': tenant_id,
+            'amount': 100.00,
+            'platform_fee': 0.00,
+            'platform_fee_percent': 0.0,
+            'platform_fee_reason': 'manual_payment_no_platform_processing',
+            'payment_method': 'cash',
+            'payment_type': 'manual',
+            'notes': 'Starter manual payment',
+            'created_at': datetime.now(timezone.utc).isoformat()
+        }
+        await mock_db.payments.insert_one(payment_record)
+        
+        stored = await mock_db.payments.find_one({'invoice_id': invoice_id})
+        
+        assert stored is not None
+        assert stored['platform_fee'] == 0.00
+        assert stored['platform_fee_percent'] == 0.0
 
 
 class TestFullScenarios:
