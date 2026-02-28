@@ -5,9 +5,21 @@
 
 ---
 
+## BUSINESS RULE (AUTHORITATIVE)
+
+**Platform fees apply ONLY when the platform processes the payment.**
+
+| Payment Type | Platform Fee | Reason |
+|--------------|--------------|--------|
+| **Stripe Invoice Payment** | Calculated based on plan | Platform processes payment |
+| **Manual Payment (cash/check/external)** | **Always $0.00** | No platform processing |
+| **Webstore Order** | Calculated based on plan | Platform-mediated |
+
+---
+
 ## 1. FEE STORAGE LOCATIONS
 
-### 1.1 Stripe Payments (Online)
+### 1.1 Stripe Payments (Online) - FEES APPLY
 **Location:** `db.payment_transactions`  
 **File:** `/app/backend/routes/stripe_connect.py` line 362-374
 
@@ -18,7 +30,7 @@ payment_record = {
     'type': 'invoice',
     'reference_id': invoice_id,
     'amount': amount,
-    'platform_fee': platform_fee_cents / 100,  # ← FEE STORED HERE
+    'platform_fee': platform_fee_cents / 100,  # ← Calculated fee
     'currency': 'usd',
     'status': 'pending',
     ...
@@ -26,42 +38,27 @@ payment_record = {
 await db.payment_transactions.insert_one(payment_record)
 ```
 
-**Fields:**
-| Field | Description |
-|-------|-------------|
-| `platform_fee` | Calculated fee amount in dollars |
-| `amount` | Invoice total amount |
-
-### 1.2 Manual Payments (Offline)
+### 1.2 Manual Payments (Offline) - NO FEES
 **Location:** `db.payments`  
-**File:** `/app/backend/routes/invoices.py` line 260-268
+**File:** `/app/backend/routes/invoices.py` line 260-280
 
 ```python
 payment_record = {
     'invoice_id': invoice_id,
+    'tenant_id': current_user.tenant_id,
     'amount': amount,
-    'payment_method': payment_method,
+    'platform_fee': 0.00,                                    # ← Always zero
+    'platform_fee_percent': 0.0,                             # ← Always zero
+    'platform_fee_reason': 'manual_payment_no_platform_processing',
+    'payment_method': payment_method or 'manual',
+    'payment_type': 'manual',
     'notes': notes,
     'created_at': datetime.now(timezone.utc).isoformat()
 }
 await db.payments.insert_one(payment_record)
 ```
 
-**⚠️ ISSUE:** Manual payments do NOT currently store `platform_fee` or `fee_percent`.
-
-**RECOMMENDATION:** Update `record_payment()` to include:
-```python
-payment_record = {
-    'invoice_id': invoice_id,
-    'tenant_id': current_user.tenant_id,  # Add
-    'amount': amount,
-    'platform_fee': calculated_fee,        # Add
-    'fee_percent': fee_percent,            # Add
-    'payment_method': payment_method,
-    'notes': notes,
-    'created_at': datetime.now(timezone.utc).isoformat()
-}
-```
+**Manual payments intentionally have no platform fee** - the platform does not process manual/cash/check payments, so no fee is earned.
 
 ---
 
