@@ -182,7 +182,7 @@ export default function AboutPage() {
       {/* Founder Promise */}
       <section className="py-20 px-4 bg-gradient-to-r from-[#2F8BFB]/10 to-blue-600/10">
         <div className="max-w-4xl mx-auto">
-          <Card className="bg-[#0B0F17] border-[#2F8BFB]/30">
+          <Card className="bg-[#0B0F17] text-white border-[#2F8BFB]/30">
             <CardContent className="p-8 md:p-12">
               <div className="flex items-start gap-4 mb-6">
                 <div className="w-12 h-12 bg-[#2F8BFB]/20 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -246,7 +246,7 @@ export default function AboutPage() {
               {timeline.map((item, index) => (
                 <div key={index} className={`flex items-center gap-8 ${index % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>
                   <div className={`flex-1 ${index % 2 === 1 ? 'md:text-right' : ''}`}>
-                    <Card className="bg-[#111826] border-white/10">
+                    <Card className="bg-[#111826] text-white border-white/10">
                       <CardContent className="p-6">
                         <div className="text-[#2F8BFB] font-bold mb-2">{item.year}</div>
                         <h3 className="text-lg font-semibold text-white mb-2">{item.title}</h3>
