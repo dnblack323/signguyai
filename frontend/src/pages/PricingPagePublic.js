@@ -172,9 +172,9 @@ export default function PricingPagePublic() {
             {/* Launch */}
             <Card className="bg-[#111826] border-white/10">
               <CardContent className="p-6">
-                <h3 className="text-xl font-bold mb-2">Launch</h3>
+                <h3 className="text-xl font-bold mb-2 text-white">Launch</h3>
                 <div className="mb-4">
-                  <span className="text-3xl font-bold">$39</span>
+                  <span className="text-3xl font-bold text-white">$39</span>
                   <span className="text-gray-400">/mo</span>
                 </div>
                 <ul className="space-y-2 mb-6 text-sm text-gray-300">
@@ -203,9 +203,9 @@ export default function PricingPagePublic() {
                 MOST POPULAR
               </div>
               <CardContent className="p-6">
-                <h3 className="text-xl font-bold mb-2">Growth</h3>
+                <h3 className="text-xl font-bold mb-2 text-white">Growth</h3>
                 <div className="mb-4">
-                  <span className="text-3xl font-bold">$59</span>
+                  <span className="text-3xl font-bold text-white">$59</span>
                   <span className="text-gray-400">/mo</span>
                 </div>
                 <ul className="space-y-2 mb-6 text-sm text-gray-300">
@@ -231,9 +231,9 @@ export default function PricingPagePublic() {
             {/* Scale */}
             <Card className="bg-[#111826] border-white/10">
               <CardContent className="p-6">
-                <h3 className="text-xl font-bold mb-2">Scale</h3>
+                <h3 className="text-xl font-bold mb-2 text-white">Scale</h3>
                 <div className="mb-4">
-                  <span className="text-3xl font-bold">$99</span>
+                  <span className="text-3xl font-bold text-white">$99</span>
                   <span className="text-gray-400">/mo</span>
                 </div>
                 <ul className="space-y-2 mb-6 text-sm text-gray-300">
