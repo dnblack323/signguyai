@@ -168,7 +168,7 @@ export default function WebstoresPage() {
                     ))}
                   </ul>
                   <Link to={plan.path}>
-                    <Button className={`w-full ${plan.popular ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-white/10 hover:bg-white/20'}`}>
+                    <Button className={`w-full text-white ${plan.popular ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-white/10 hover:bg-white/20'}`}>
                       Learn More
                     </Button>
                   </Link>

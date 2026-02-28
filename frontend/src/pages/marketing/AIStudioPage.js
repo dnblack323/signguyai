@@ -141,7 +141,7 @@ export default function AIStudioPage() {
                     ))}
                   </ul>
                   <Link to={plan.path}>
-                    <Button className={`w-full ${plan.popular ? 'bg-purple-600 hover:bg-purple-700' : 'bg-white/10 hover:bg-white/20'}`}>
+                    <Button className={`w-full text-white ${plan.popular ? 'bg-purple-600 hover:bg-purple-700' : 'bg-white/10 hover:bg-white/20'}`}>
                       Learn More
                     </Button>
                   </Link>

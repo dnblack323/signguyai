@@ -154,7 +154,7 @@ export default function PlatformPage() {
                     ))}
                   </ul>
                   <Link to={plan.path}>
-                    <Button className={`w-full ${plan.popular ? 'bg-blue-600 hover:bg-blue-700' : 'bg-white/10 hover:bg-white/20'}`}>
+                    <Button className={`w-full text-white ${plan.popular ? 'bg-blue-600 hover:bg-blue-700' : 'bg-white/10 hover:bg-white/20'}`}>
                       Learn More
                     </Button>
                   </Link>
