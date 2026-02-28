@@ -165,21 +165,19 @@ TestFullScenarios::test_scenario_rounding_99_99                    PASSED
 
 ---
 
-## 6. ISSUES FOUND
+## 6. MANUAL PAYMENT FEE RULE
 
-### Issue: Manual Payments Missing Fee Storage
+**Rule: Manual payments intentionally have no platform fee.**
 
-**Current State:** `/app/backend/routes/invoices.py` `record_payment()` does NOT calculate or store platform fees.
+| Scenario | Plan | Payment Type | Fee |
+|----------|------|--------------|-----|
+| OS_PRO tenant pays invoice via Stripe | os_pro | stripe | 1.0% |
+| OS_PRO tenant pays invoice via cash | os_pro | manual | **0.0%** |
+| OS_BUSINESS founder annual via Stripe | os_business | stripe | 0.5% |
+| OS_BUSINESS founder annual via check | os_business | manual | **0.0%** |
 
-**Impact:** Platform revenue tracking incomplete for manual/cash/check payments.
-
-**Severity:** MEDIUM - Affects financial reporting accuracy.
-
-**Fix Required:** Update `record_payment()` to:
-1. Get tenant's processing fees via `multi_product_gate`
-2. Calculate platform fee
-3. Store `platform_fee` and `fee_percent` in payment record
+**Rationale:** The platform earns fees only when it provides payment processing services. Manual payments (cash, check, external transfers) bypass the platform entirely.
 
 ---
 
-*Report generated from automated test suite execution.*
+*Report updated December 2025 to reflect manual payment fee rule.*
