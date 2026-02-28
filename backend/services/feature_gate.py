@@ -172,8 +172,8 @@ class FeatureGate:
     
     async def get_tenant_features(self, tenant_id: str) -> dict:
         """Get all features and their status for a tenant"""
-        tier = await self.get_tenant_tier(tenant_id)
-        config = get_tier_config(tier)
+        plan = await self.get_tenant_plan(tenant_id)
+        config = get_plan_config(plan)
         
         # Get usage data for limited features
         usage_data = await self._get_all_usage(tenant_id)
@@ -191,7 +191,11 @@ class FeatureGate:
                         feature_data["remaining"] = max(0, feature_data.get("limit", 0) - usage_data[usage_key]["current_usage"])
         
         return {
-            "tier": tier.value,
+            "plan": plan.value,
+            "plan_display_name": config.display_name,
+            "product_line": config.product_line.value,
+            # Legacy fields for backwards compat
+            "tier": plan.value,
             "tier_display_name": config.display_name,
             "features": features_dict
         }
