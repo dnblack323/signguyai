@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { Button } from '../components/ui/button';
-import { Card, CardContent } from '../components/ui/card';
-import { PublicNav, PublicFooter } from '../components/PublicNav';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent } from '../../components/ui/card';
+import { PublicNav, PublicFooter } from '../../components/PublicNav';
 import {
   Store, Package, ShoppingCart, CreditCard, Share2, 
   BarChart3, CheckCircle2, ArrowRight, Users, Ticket
