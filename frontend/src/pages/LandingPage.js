@@ -116,7 +116,7 @@ export default function LandingPage() {
                 <p className="text-gray-400 mb-6">
                   Sell online with B2B stores, fundraisers, and creator shops. Perfect if you use other management software.
                 </p>
-                <Link to="/webstores">
+                <Link to="/webstores-overview">
                   <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
                     Explore Webstores
                     <ArrowRight className="w-4 h-4 ml-2" />
