@@ -115,7 +115,7 @@ export default function AboutPage() {
           </p>
           
           <div className="grid md:grid-cols-2 gap-6">
-            <Card className="bg-[#0B0F17] border-red-500/30">
+            <Card className="bg-[#0B0F17] text-white border-red-500/30">
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold text-red-400 mb-2">Too Expensive</h3>
                 <p className="text-gray-400">
@@ -124,7 +124,7 @@ export default function AboutPage() {
                 </p>
               </CardContent>
             </Card>
-            <Card className="bg-[#0B0F17] border-red-500/30">
+            <Card className="bg-[#0B0F17] text-white border-red-500/30">
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold text-red-400 mb-2">Built by Committees</h3>
                 <p className="text-gray-400">
@@ -133,7 +133,7 @@ export default function AboutPage() {
                 </p>
               </CardContent>
             </Card>
-            <Card className="bg-[#0B0F17] border-red-500/30">
+            <Card className="bg-[#0B0F17] text-white border-red-500/30">
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold text-red-400 mb-2">Outdated Technology</h3>
                 <p className="text-gray-400">
@@ -142,7 +142,7 @@ export default function AboutPage() {
                 </p>
               </CardContent>
             </Card>
-            <Card className="bg-[#0B0F17] border-red-500/30">
+            <Card className="bg-[#0B0F17] text-white border-red-500/30">
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold text-red-400 mb-2">No Innovation</h3>
                 <p className="text-gray-400">
