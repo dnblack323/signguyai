@@ -231,7 +231,13 @@ async def record_payment(
     notes: Optional[str] = None,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Record a payment on an invoice"""
+    """
+    Record a manual payment on an invoice.
+    
+    BUSINESS RULE: Manual payments have NO platform fee.
+    Platform fees apply ONLY when the platform processes the payment (Stripe).
+    Manual payments (cash/check/external) bypass platform processing.
+    """
     invoice = await db.invoices.find_one(
         {"id": invoice_id, "tenant_id": current_user.tenant_id},
         {"_id": 0}
@@ -257,11 +263,18 @@ async def record_payment(
         }}
     )
     
-    # Record payment in payments collection (if needed)
+    # Record payment in payments collection
+    # Manual payments intentionally have platform_fee = 0.00
+    # Fees only apply to platform-processed (Stripe) payments
     payment_record = {
         "invoice_id": invoice_id,
+        "tenant_id": current_user.tenant_id,
         "amount": amount,
-        "payment_method": payment_method,
+        "platform_fee": 0.00,
+        "platform_fee_percent": 0.0,
+        "platform_fee_reason": "manual_payment_no_platform_processing",
+        "payment_method": payment_method or "manual",
+        "payment_type": "manual",
         "notes": notes,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
@@ -270,7 +283,8 @@ async def record_payment(
     return {
         "message": f"Payment of ${amount:.2f} recorded",
         "new_balance": grand_total - new_amount_paid,
-        "status": new_status
+        "status": new_status,
+        "platform_fee": 0.00
     }
 
 
