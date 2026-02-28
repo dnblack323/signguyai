@@ -115,11 +115,11 @@ export default function PricingPagePublic() {
             <Card className="bg-[#111826] border-amber-500/30">
               <CardContent className="p-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <h3 className="text-xl font-bold">Business</h3>
+                  <h3 className="text-xl font-bold text-white">Business</h3>
                   <Crown className="w-4 h-4 text-amber-400" />
                 </div>
                 <div className="mb-4">
-                  <span className="text-3xl font-bold">$99</span>
+                  <span className="text-3xl font-bold text-white">$99</span>
                   <span className="text-gray-400">/mo</span>
                   <p className="text-sm text-amber-400 mt-1">Founder (reg. $149/mo)</p>
                   <p className="text-xs text-gray-500 mt-1">or $990/year (Founder) | $1490/year</p>
