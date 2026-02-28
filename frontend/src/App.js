@@ -72,6 +72,22 @@ import PricingPagePublic from "./pages/PricingPagePublic";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 
+// Marketing Pages - Product Overviews
+import {
+  PlatformPage,
+  WebstoresPage as WebstoresMarketingPage,
+  AIStudioPage,
+  StarterPlanPage,
+  ProPlanPage,
+  BusinessPlanPage,
+  WebstoreLaunchPage,
+  WebstoreGrowthPage,
+  WebstoreScalePage,
+  AIBasicPage,
+  AIProPage,
+  AIMaxPage
+} from "./pages/marketing";
+
 // Documentation Pages
 import DocsLayout from "./components/DocsLayout";
 import DocsOverview from "./pages/docs/DocsOverview";
