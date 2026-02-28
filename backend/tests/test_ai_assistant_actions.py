@@ -90,7 +90,7 @@ class MockCursor:
 
 class MockUser:
     """Mock user for testing"""
-    def __init__(self, role=UserRole.ADMIN, tenant_id="test_tenant"):
+    def __init__(self, role=UserUserRole.ADMIN, tenant_id="test_tenant"):
         self.id = "test_user"
         self.tenant_id = tenant_id
         self.role = role
@@ -130,7 +130,7 @@ class TestCreateJob:
     async def test_create_job_success(self, mock_db):
         """Should create job successfully"""
         actions = AIAssistantActions(mock_db)
-        user = MockUser(role=Role.ADMIN)
+        user = MockUser(role=UserRole.ADMIN)
         
         request = ActionRequest(
             action_type=ActionType.CREATE_JOB,
@@ -153,7 +153,7 @@ class TestCreateJob:
     async def test_create_job_no_confirmation_needed(self, mock_db):
         """Create job should not require confirmation"""
         actions = AIAssistantActions(mock_db)
-        user = MockUser(role=Role.ADMIN)
+        user = MockUser(role=UserRole.ADMIN)
         
         request = ActionRequest(
             action_type=ActionType.CREATE_JOB,
@@ -185,7 +185,7 @@ class TestUpdateJobStatus:
     async def test_update_status_requires_confirmation(self, mock_db):
         """Update status should require confirmation"""
         actions = AIAssistantActions(mock_db)
-        user = MockUser(role=Role.ADMIN)
+        user = MockUser(role=UserRole.ADMIN)
         
         request = ActionRequest(
             action_type=ActionType.UPDATE_JOB_STATUS,
@@ -202,7 +202,7 @@ class TestUpdateJobStatus:
     async def test_update_status_with_confirmation(self, mock_db):
         """Update status should execute when confirmed"""
         actions = AIAssistantActions(mock_db)
-        user = MockUser(role=Role.ADMIN)
+        user = MockUser(role=UserRole.ADMIN)
         
         request = ActionRequest(
             action_type=ActionType.UPDATE_JOB_STATUS,
@@ -241,7 +241,7 @@ class TestTenantScoping:
     async def test_cannot_update_other_tenant_job(self, mock_db):
         """User should not be able to update another tenant's job"""
         actions = AIAssistantActions(mock_db)
-        user = MockUser(role=Role.ADMIN, tenant_id="tenant_a")
+        user = MockUser(role=UserRole.ADMIN, tenant_id="tenant_a")
         
         request = ActionRequest(
             action_type=ActionType.UPDATE_JOB_STATUS,
@@ -265,7 +265,7 @@ class TestAuditLogging:
     async def test_successful_action_logged(self, mock_db):
         """Successful actions should be audit logged"""
         actions = AIAssistantActions(mock_db)
-        user = MockUser(role=Role.ADMIN, tenant_id="test_tenant")
+        user = MockUser(role=UserRole.ADMIN, tenant_id="test_tenant")
         
         request = ActionRequest(
             action_type=ActionType.CREATE_JOB,
@@ -286,7 +286,7 @@ class TestAuditLogging:
     async def test_failed_action_logged(self, mock_db):
         """Failed actions should be audit logged with error"""
         actions = AIAssistantActions(mock_db)
-        user = MockUser(role=Role.ADMIN, tenant_id="test_tenant")
+        user = MockUser(role=UserRole.ADMIN, tenant_id="test_tenant")
         
         request = ActionRequest(
             action_type=ActionType.UPDATE_JOB_STATUS,
@@ -331,7 +331,7 @@ class TestAllActionTypes:
     @pytest.mark.asyncio
     async def test_create_calendar_event(self, mock_db):
         actions = AIAssistantActions(mock_db)
-        user = MockUser(role=Role.ADMIN)
+        user = MockUser(role=UserRole.ADMIN)
         
         request = ActionRequest(
             action_type=ActionType.CREATE_CALENDAR_EVENT,
@@ -347,7 +347,7 @@ class TestAllActionTypes:
     @pytest.mark.asyncio
     async def test_add_material(self, mock_db):
         actions = AIAssistantActions(mock_db)
-        user = MockUser(role=Role.ADMIN)
+        user = MockUser(role=UserRole.ADMIN)
         
         request = ActionRequest(
             action_type=ActionType.ADD_MATERIAL,
@@ -363,7 +363,7 @@ class TestAllActionTypes:
     @pytest.mark.asyncio
     async def test_update_material_cost(self, mock_db):
         actions = AIAssistantActions(mock_db)
-        user = MockUser(role=Role.ADMIN)
+        user = MockUser(role=UserRole.ADMIN)
         
         request = ActionRequest(
             action_type=ActionType.UPDATE_MATERIAL_COST,
@@ -377,7 +377,7 @@ class TestAllActionTypes:
     @pytest.mark.asyncio
     async def test_create_invoice(self, mock_db):
         actions = AIAssistantActions(mock_db)
-        user = MockUser(role=Role.ADMIN)
+        user = MockUser(role=UserRole.ADMIN)
         
         request = ActionRequest(
             action_type=ActionType.CREATE_INVOICE,
@@ -393,7 +393,7 @@ class TestAllActionTypes:
     @pytest.mark.asyncio
     async def test_assign_employee(self, mock_db):
         actions = AIAssistantActions(mock_db)
-        user = MockUser(role=Role.ADMIN)
+        user = MockUser(role=UserRole.ADMIN)
         
         request = ActionRequest(
             action_type=ActionType.ASSIGN_EMPLOYEE,
@@ -405,7 +405,7 @@ class TestAllActionTypes:
     @pytest.mark.asyncio
     async def test_log_time_entry(self, mock_db):
         actions = AIAssistantActions(mock_db)
-        user = MockUser(role=Role.ADMIN)
+        user = MockUser(role=UserRole.ADMIN)
         
         request = ActionRequest(
             action_type=ActionType.LOG_TIME_ENTRY,
@@ -422,7 +422,7 @@ class TestAllActionTypes:
     @pytest.mark.asyncio
     async def test_categorize_expense(self, mock_db):
         actions = AIAssistantActions(mock_db)
-        user = MockUser(role=Role.ADMIN)
+        user = MockUser(role=UserRole.ADMIN)
         
         request = ActionRequest(
             action_type=ActionType.CATEGORIZE_EXPENSE,
