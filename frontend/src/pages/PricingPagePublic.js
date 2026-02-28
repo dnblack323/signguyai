@@ -43,7 +43,7 @@ export default function PricingPagePublic() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Starter */}
-            <Card className="bg-[#111826] border-white/10">
+            <Card className="bg-[#111826] text-white border-white/10">
               <CardContent className="p-6">
                 <h3 className="text-xl font-bold mb-2 text-white">Starter</h3>
                 <div className="mb-4">
@@ -76,7 +76,7 @@ export default function PricingPagePublic() {
             </Card>
 
             {/* Pro */}
-            <Card className="bg-[#111826] border-2 border-blue-500">
+            <Card className="bg-[#111826] text-white border-2 border-blue-500">
               <div className="bg-blue-500 text-white text-xs font-bold text-center py-1">
                 MOST POPULAR
               </div>
@@ -112,7 +112,7 @@ export default function PricingPagePublic() {
             </Card>
 
             {/* Business */}
-            <Card className="bg-[#111826] border-amber-500/30">
+            <Card className="bg-[#111826] text-white border-amber-500/30">
               <CardContent className="p-6">
                 <div className="flex items-center gap-2 mb-2">
                   <h3 className="text-xl font-bold text-white">Business</h3>
@@ -170,7 +170,7 @@ export default function PricingPagePublic() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Launch */}
-            <Card className="bg-[#111826] border-white/10">
+            <Card className="bg-[#111826] text-white border-white/10">
               <CardContent className="p-6">
                 <h3 className="text-xl font-bold mb-2 text-white">Launch</h3>
                 <div className="mb-4">
@@ -198,7 +198,7 @@ export default function PricingPagePublic() {
             </Card>
 
             {/* Growth */}
-            <Card className="bg-[#111826] border-2 border-emerald-500">
+            <Card className="bg-[#111826] text-white border-2 border-emerald-500">
               <div className="bg-emerald-500 text-white text-xs font-bold text-center py-1">
                 MOST POPULAR
               </div>
@@ -229,7 +229,7 @@ export default function PricingPagePublic() {
             </Card>
 
             {/* Scale */}
-            <Card className="bg-[#111826] border-white/10">
+            <Card className="bg-[#111826] text-white border-white/10">
               <CardContent className="p-6">
                 <h3 className="text-xl font-bold mb-2 text-white">Scale</h3>
                 <div className="mb-4">
@@ -274,7 +274,7 @@ export default function PricingPagePublic() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Basic */}
-            <Card className="bg-[#111826] border-white/10">
+            <Card className="bg-[#111826] text-white border-white/10">
               <CardContent className="p-6">
                 <h3 className="text-xl font-bold mb-2 text-white">Basic</h3>
                 <div className="mb-4">
@@ -302,7 +302,7 @@ export default function PricingPagePublic() {
             </Card>
 
             {/* Pro */}
-            <Card className="bg-[#111826] border-2 border-purple-500">
+            <Card className="bg-[#111826] text-white border-2 border-purple-500">
               <div className="bg-purple-500 text-white text-xs font-bold text-center py-1">
                 MOST POPULAR
               </div>
@@ -333,7 +333,7 @@ export default function PricingPagePublic() {
             </Card>
 
             {/* Max */}
-            <Card className="bg-[#111826] border-white/10">
+            <Card className="bg-[#111826] text-white border-white/10">
               <CardContent className="p-6">
                 <h3 className="text-xl font-bold mb-2 text-white">Max</h3>
                 <div className="mb-4">
