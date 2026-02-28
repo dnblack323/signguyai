@@ -26,7 +26,7 @@ import os
 sys.path.insert(0, '/app/backend')
 
 from services.plan_configs import get_plan_config, PlanType
-from services.multi_product_gate import MultiProductFeatureGate, get_multi_product_gate
+from services.multi_product_gate import MultiProductFeatureGate
 from models.product_tiers import ProcessingFees
 
 
