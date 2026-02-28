@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Button } from '../components/ui/button';
-import { PublicNav, PublicFooter } from '../components/PublicNav';
+import { Button } from '../../../components/ui/button';
+import { PublicNav, PublicFooter } from '../../../components/PublicNav';
 import { CheckCircle2, ArrowRight, BarChart3 } from 'lucide-react';
 
 export default function WebstoreGrowthPage() {
