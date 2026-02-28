@@ -92,7 +92,7 @@ export default function PlatformPage() {
               </Button>
             </Link>
             <Link to="/pricing">
-              <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 px-8">
+              <Button size="lg" variant="outline" className="border-white/20 !text-white hover:bg-white/10 hover:!text-white px-8 bg-transparent">
                 View Pricing
               </Button>
             </Link>
