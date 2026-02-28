@@ -318,7 +318,7 @@ export default function BillingManagement() {
       {/* Quick Links */}
       <div className="grid md:grid-cols-2 gap-4">
         <Link to="/pricing-plans">
-          <Card className="bg-[#111826] border-[#1E293B] hover:border-[#2F8BFB]/50 transition cursor-pointer">
+          <Card className="bg-[#111826] text-white border-[#1E293B] hover:border-[#2F8BFB]/50 transition cursor-pointer">
             <CardContent className="p-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-[#2F8BFB]/10 rounded-lg">
@@ -334,7 +334,7 @@ export default function BillingManagement() {
           </Card>
         </Link>
         <Link to="/settings">
-          <Card className="bg-[#111826] border-[#1E293B] hover:border-[#2F8BFB]/50 transition cursor-pointer">
+          <Card className="bg-[#111826] text-white border-[#1E293B] hover:border-[#2F8BFB]/50 transition cursor-pointer">
             <CardContent className="p-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-[#2F8BFB]/10 rounded-lg">
