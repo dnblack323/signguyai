@@ -276,9 +276,9 @@ export default function PricingPagePublic() {
             {/* Basic */}
             <Card className="bg-[#111826] border-white/10">
               <CardContent className="p-6">
-                <h3 className="text-xl font-bold mb-2">Basic</h3>
+                <h3 className="text-xl font-bold mb-2 text-white">Basic</h3>
                 <div className="mb-4">
-                  <span className="text-3xl font-bold">$29</span>
+                  <span className="text-3xl font-bold text-white">$29</span>
                   <span className="text-gray-400">/mo</span>
                 </div>
                 <ul className="space-y-2 mb-6 text-sm text-gray-300">
@@ -307,9 +307,9 @@ export default function PricingPagePublic() {
                 MOST POPULAR
               </div>
               <CardContent className="p-6">
-                <h3 className="text-xl font-bold mb-2">Pro</h3>
+                <h3 className="text-xl font-bold mb-2 text-white">Pro</h3>
                 <div className="mb-4">
-                  <span className="text-3xl font-bold">$59</span>
+                  <span className="text-3xl font-bold text-white">$59</span>
                   <span className="text-gray-400">/mo</span>
                 </div>
                 <ul className="space-y-2 mb-6 text-sm text-gray-300">
@@ -335,9 +335,9 @@ export default function PricingPagePublic() {
             {/* Max */}
             <Card className="bg-[#111826] border-white/10">
               <CardContent className="p-6">
-                <h3 className="text-xl font-bold mb-2">Max</h3>
+                <h3 className="text-xl font-bold mb-2 text-white">Max</h3>
                 <div className="mb-4">
-                  <span className="text-3xl font-bold">$99</span>
+                  <span className="text-3xl font-bold text-white">$99</span>
                   <span className="text-gray-400">/mo</span>
                 </div>
                 <ul className="space-y-2 mb-6 text-sm text-gray-300">
