@@ -70,7 +70,7 @@ export default function PricingPagePublic() {
                   </li>
                 </ul>
                 <Link to="/starter">
-                  <Button className="w-full bg-white/10 hover:bg-white/20">Learn More</Button>
+                  <Button className="w-full bg-white/10 hover:bg-white/20 text-white">Learn More</Button>
                 </Link>
               </CardContent>
             </Card>
@@ -192,7 +192,7 @@ export default function PricingPagePublic() {
                   </li>
                 </ul>
                 <Link to="/webstore-launch">
-                  <Button className="w-full bg-white/10 hover:bg-white/20">Learn More</Button>
+                  <Button className="w-full bg-white/10 hover:bg-white/20 text-white">Learn More</Button>
                 </Link>
               </CardContent>
             </Card>
@@ -251,7 +251,7 @@ export default function PricingPagePublic() {
                   </li>
                 </ul>
                 <Link to="/webstore-scale">
-                  <Button className="w-full bg-white/10 hover:bg-white/20">Learn More</Button>
+                  <Button className="w-full bg-white/10 hover:bg-white/20 text-white">Learn More</Button>
                 </Link>
               </CardContent>
             </Card>
@@ -296,7 +296,7 @@ export default function PricingPagePublic() {
                   </li>
                 </ul>
                 <Link to="/ai-basic">
-                  <Button className="w-full bg-white/10 hover:bg-white/20">Learn More</Button>
+                  <Button className="w-full bg-white/10 hover:bg-white/20 text-white">Learn More</Button>
                 </Link>
               </CardContent>
             </Card>
@@ -355,7 +355,7 @@ export default function PricingPagePublic() {
                   </li>
                 </ul>
                 <Link to="/ai-max">
-                  <Button className="w-full bg-white/10 hover:bg-white/20">Learn More</Button>
+                  <Button className="w-full bg-white/10 hover:bg-white/20 text-white">Learn More</Button>
                 </Link>
               </CardContent>
             </Card>
