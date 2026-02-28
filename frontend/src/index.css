@@ -965,39 +965,232 @@ tr:hover {
 }
 
 /* ============================================
-   RIBBON NAVIGATION STYLES
-   Office-style ribbon toolbar
+   CLEAN NAVIGATION STYLES
+   Modern SaaS navigation with 8px spacing system
    ============================================ */
 
-/* Ribbon container */
-.ribbon-container {
-    background-color: var(--surface);
-    border-bottom: 1px solid var(--border-light);
+/* 8px spacing system */
+.spacing-1 { margin: 8px; }
+.spacing-2 { margin: 16px; }
+.spacing-3 { margin: 24px; }
+.spacing-4 { margin: 32px; }
+
+.gap-1 { gap: 8px; }
+.gap-2 { gap: 16px; }
+.gap-3 { gap: 24px; }
+.gap-4 { gap: 32px; }
+
+/* Primary Navigation */
+.primary-nav {
+    height: 48px;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    background: white;
+    border-bottom: 1px solid #f1f5f9;
 }
 
-/* Ribbon tabs */
-.ribbon-tab {
+.primary-nav-item {
     position: relative;
-    padding: 0.625rem 1rem;
-    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    font-size: 14px;
     font-weight: 500;
-    color: var(--text-muted);
+    color: #64748b;
+    border-radius: 6px;
     transition: all 0.15s ease;
 }
 
-.ribbon-tab:hover {
-    color: var(--text);
-    background-color: var(--surface-2);
+.primary-nav-item:hover {
+    color: #334155;
+    background: #f8fafc;
 }
 
-.ribbon-tab-active {
-    color: var(--accent);
-    background-color: white;
+.primary-nav-item.active {
+    color: #0f172a;
 }
 
-.ribbon-tab-active::after {
+.primary-nav-item.active::after {
     content: '';
     position: absolute;
+    bottom: -1px;
+    left: 8px;
+    right: 8px;
+    height: 2px;
+    background: #2563eb;
+    border-radius: 2px;
+}
+
+.primary-nav-item .nav-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.primary-nav-item.active .nav-icon {
+    color: #2563eb;
+}
+
+/* Action Toolbar */
+.action-toolbar {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    background: #fafbfc;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.toolbar-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #64748b;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+
+.toolbar-button:hover {
+    color: #334155;
+    background: #f1f5f9;
+}
+
+.toolbar-button .toolbar-icon {
+    width: 16px;
+    height: 16px;
+}
+
+.toolbar-separator {
+    width: 1px;
+    height: 20px;
+    background: #e2e8f0;
+    margin: 0 8px;
+}
+
+/* Top App Bar */
+.top-app-bar {
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.top-app-bar-logo {
+    height: 32px;
+    width: auto;
+}
+
+.top-app-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.top-app-bar-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    color: #94a3b8;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+}
+
+.top-app-bar-icon:hover {
+    color: #475569;
+    background: #f1f5f9;
+}
+
+.top-app-bar-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Card Styles with proper spacing */
+.dashboard-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.card-grid {
+    display: grid;
+    gap: 24px;
+}
+
+/* Content area spacing */
+.content-area {
+    padding-top: 32px;
+}
+
+/* Mobile Navigation */
+.mobile-nav-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+}
+
+.mobile-nav-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.mobile-nav-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 288px;
+    background: white;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.mobile-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    font-size: 14px;
+    color: #374151;
+    transition: all 0.15s ease;
+}
+
+.mobile-nav-item:hover {
+    background: #f9fafb;
+}
+
+.mobile-nav-item.active {
+    color: #2563eb;
+    background: #eff6ff;
+    font-weight: 500;
+}
+
+.mobile-nav-item .mobile-nav-icon {
+    width: 20px;
+    height: 20px;
+    color: #9ca3af;
+}
+
+.mobile-nav-item.active .mobile-nav-icon {
+    color: #2563eb;
+}
+
+/* Scroll shadow effect */
+.header-scrolled {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
     bottom: 0;
     left: 0;
     right: 0;
