@@ -88,12 +88,12 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* OS Block */}
-            <Card className="bg-[#111826] border-blue-500/30 hover:border-blue-500/50 transition-colors">
+            <Card className="bg-[#111826] text-white border-blue-500/30 hover:border-blue-500/50 transition-colors">
               <CardContent className="p-8">
                 <div className="w-14 h-14 bg-blue-500/20 rounded-xl flex items-center justify-center mb-6">
                   <Building2 className="w-7 h-7 text-blue-400" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">SignGuy AI OS</h3>
+                <h3 className="text-xl font-bold text-white mb-3">SignGuy AI OS</h3>
                 <p className="text-gray-400 mb-6">
                   Complete shop management platform. Customers, jobs, invoices, payroll, webstores, and AI tools included.
                 </p>
@@ -107,12 +107,12 @@ export default function LandingPage() {
             </Card>
 
             {/* Webstores Block */}
-            <Card className="bg-[#111826] border-emerald-500/30 hover:border-emerald-500/50 transition-colors">
+            <Card className="bg-[#111826] text-white border-emerald-500/30 hover:border-emerald-500/50 transition-colors">
               <CardContent className="p-8">
                 <div className="w-14 h-14 bg-emerald-500/20 rounded-xl flex items-center justify-center mb-6">
                   <Store className="w-7 h-7 text-emerald-400" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">SignGuy Webstores</h3>
+                <h3 className="text-xl font-bold text-white mb-3">SignGuy Webstores</h3>
                 <p className="text-gray-400 mb-6">
                   Sell online with B2B stores, fundraisers, and creator shops. Perfect if you use other management software.
                 </p>
@@ -126,12 +126,12 @@ export default function LandingPage() {
             </Card>
 
             {/* AI Studio Block */}
-            <Card className="bg-[#111826] border-purple-500/30 hover:border-purple-500/50 transition-colors">
+            <Card className="bg-[#111826] text-white border-purple-500/30 hover:border-purple-500/50 transition-colors">
               <CardContent className="p-8">
                 <div className="w-14 h-14 bg-purple-500/20 rounded-xl flex items-center justify-center mb-6">
                   <Cpu className="w-7 h-7 text-purple-400" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">SignGuy AI Studio</h3>
+                <h3 className="text-xl font-bold text-white mb-3">SignGuy AI Studio</h3>
                 <p className="text-gray-400 mb-6">
                   Access our full AI toolkit standalone. Text generation, image creation, and business assistant.
                 </p>
