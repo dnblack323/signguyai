@@ -145,7 +145,17 @@ export default function Webstores() {
   };
 
   // Check Stripe Connect status first
+  // DEV MODE: Set to true to bypass Stripe requirement for testing
+  const DEV_BYPASS_STRIPE = true;
+  
   const checkStripeStatus = async () => {
+    // Bypass Stripe check in dev/test mode
+    if (DEV_BYPASS_STRIPE) {
+      console.log('DEV MODE: Bypassing Stripe Connect requirement');
+      setStripeConnected(true);
+      return;
+    }
+    
     try {
       const status = await getStripeConnectStatus();
       setStripeConnected(status.connected && status.charges_enabled);
