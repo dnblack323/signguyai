@@ -1286,20 +1286,20 @@ export default function Webstores() {
         <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
           {selectedStore && (
             <>
-              <DialogHeader className="pr-10">
-                <div className="flex items-center gap-3">
-                  <Badge className={`${getStoreTypeColor(selectedStore.store_type)} shrink-0`}>
-                    {selectedStore.store_type}
-                  </Badge>
-                  <div className="flex items-center gap-3 flex-1">
-                    {(() => {
-                      const Icon = getStoreTypeIcon(selectedStore.store_type);
-                      return <Icon className="h-6 w-6 shrink-0" />;
-                    })()}
-                    <div className="min-w-0">
+              <DialogHeader>
+                <div className="flex items-center gap-3 pr-8">
+                  {(() => {
+                    const Icon = getStoreTypeIcon(selectedStore.store_type);
+                    return <Icon className="h-6 w-6 shrink-0" />;
+                  })()}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
                       <DialogTitle className="font-heading uppercase truncate">{selectedStore.name}</DialogTitle>
-                      <p className="text-sm text-muted-foreground truncate">{selectedStore.owner_name}</p>
+                      <Badge className={`${getStoreTypeColor(selectedStore.store_type)} shrink-0`}>
+                        {selectedStore.store_type}
+                      </Badge>
                     </div>
+                    <p className="text-sm text-muted-foreground truncate">{selectedStore.owner_name}</p>
                   </div>
                 </div>
               </DialogHeader>
