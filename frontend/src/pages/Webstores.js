@@ -39,6 +39,7 @@ import {
   Upload, ImageIcon, CreditCard, AlertTriangle, Loader2, Palette,
   QrCode, Download
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
 import WebstoreDetailDashboard from '../components/WebstoreDetailDashboard';
 
