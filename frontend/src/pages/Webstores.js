@@ -1329,34 +1329,42 @@ export default function Webstores() {
                   <p className="text-sm text-muted-foreground">
                     Enable products from your catalog for this store
                   </p>
-                  <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                    {products.map(product => {
-                      const assigned = storeProducts.find(sp => sp.id === product.id);
-                      const isEnabled = assigned?.is_enabled ?? false;
-                      return (
-                        <div 
-                          key={product.id}
-                          className={`flex items-center justify-between p-3 rounded-lg border ${
-                            isEnabled ? 'border-primary/30 bg-primary/5' : 'border-border'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Package className="h-5 w-5 text-muted-foreground" />
-                            <div>
-                              <p className="font-medium">{product.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {formatCurrency(product.retail_price)} • {product.category}
-                              </p>
+                  {loadingStoreDetails ? (
+                    <div className="flex items-center justify-center h-32">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                      {products.map(product => {
+                        const assigned = storeProducts.find(sp => sp.id === product.id);
+                        const isEnabled = assigned?.is_enabled ?? false;
+                        return (
+                          <div 
+                            key={`${selectedStore?.id}-${product.id}`}
+                            className={`flex items-center justify-between p-3 rounded-lg border ${
+                              isEnabled ? 'border-primary/30 bg-primary/5' : 'border-border'
+                            }`}
+                            data-testid={`product-toggle-${product.id}`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <Package className="h-5 w-5 text-muted-foreground" />
+                              <div>
+                                <p className="font-medium">{product.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatCurrency(product.retail_price)} • {product.category}
+                                </p>
+                              </div>
                             </div>
+                            <Switch
+                              checked={isEnabled}
+                              onCheckedChange={() => handleToggleProduct(product.id, isEnabled)}
+                              data-testid={`product-switch-${product.id}`}
+                            />
                           </div>
-                          <Switch
-                            checked={isEnabled}
-                            onCheckedChange={() => handleToggleProduct(product.id, isEnabled)}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="settings" className="space-y-6">
