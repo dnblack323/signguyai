@@ -1265,6 +1265,43 @@ Complete restructure of the public marketing website to properly represent the t
 
 ---
 
+## Webstore Management UI Bug Fixes (Mar 2, 2026)
+
+### Issues Fixed
+1. **Product Toggle Bug** - Fixed issue where toggling one product switch would activate multiple switches simultaneously
+   - Root cause: React key uniqueness issue
+   - Solution: Added unique composite keys `${selectedStore?.id}-${product.id}` for product items
+
+2. **State Persistence Bug** - Fixed issue where product toggle state incorrectly persisted when viewing different stores
+   - Root cause: State not being properly reset when switching stores
+   - Solution: Added `loadingStoreDetails` state, reset `storeProducts` before loading new store data
+
+3. **Badge Position Bug** - Fixed badge overlapping with close (X) button in store detail dialog
+   - Solution: Restructured `DialogHeader` to position badge inline with title after the store name
+
+4. **Branding Sync Bug** - Fixed branding information (logo, colors) from store creation not appearing in settings view
+   - This was already working correctly - the `selectedStore` object contains the branding data
+   - Settings tab correctly displays `selectedStore.branding.logo_url` and `primary_color`
+
+5. **QR Code Feature** - Added QR code generation for store URLs in Settings & Branding tab
+   - Installed `qrcode.react` library
+   - Added `QRCodeSVG` component next to the store link section
+
+### Files Modified
+- `frontend/src/pages/Webstores.js`:
+  - Added import for `QRCodeSVG` from `qrcode.react`
+  - Added `loadingStoreDetails` state variable
+  - Updated `handleViewStore` to properly reset state and show loading
+  - Restructured `DialogHeader` for better badge positioning
+  - Updated Products tab with loading state and unique keys
+  - Added QR code to Settings & Branding tab
+
+### Testing
+- All 5 bug fixes verified by testing agent (iteration_46.json)
+- 100% frontend test success rate
+
+---
+
 ## Last Updated
-December 2025
+March 2026
 
