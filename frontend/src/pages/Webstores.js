@@ -1411,15 +1411,154 @@ export default function Webstores() {
                 </TabsContent>
 
                 <TabsContent value="products" className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Enable products from your catalog for this store
-                  </p>
+                  {/* Header with Create Button */}
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                      Enable products from your catalog for this store
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowCreateProduct(!showCreateProduct)}
+                      data-testid="create-product-btn"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      {showCreateProduct ? 'Cancel' : 'Create Product'}
+                    </Button>
+                  </div>
+
+                  {/* Create Product Form */}
+                  {showCreateProduct && (
+                    <Card className="border-primary/30 bg-primary/5">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                          <Plus className="h-4 w-4" />
+                          Create New Product
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <form onSubmit={handleCreateProductForStore} className="space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="col-span-2 space-y-1">
+                              <Label className="text-xs">Product Name *</Label>
+                              <Input
+                                value={newProductData.name}
+                                onChange={(e) => setNewProductData({ ...newProductData, name: e.target.value })}
+                                placeholder="e.g., Custom T-Shirt"
+                                className="h-9"
+                                data-testid="new-product-name"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Category</Label>
+                              <Select
+                                value={newProductData.category}
+                                onValueChange={(val) => setNewProductData({ ...newProductData, category: val })}
+                              >
+                                <SelectTrigger className="h-9" data-testid="new-product-category">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {categoryOptions.map(cat => (
+                                    <SelectItem key={cat.value} value={cat.value}>
+                                      {cat.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Description</Label>
+                              <Input
+                                value={newProductData.description}
+                                onChange={(e) => setNewProductData({ ...newProductData, description: e.target.value })}
+                                placeholder="Optional"
+                                className="h-9"
+                                data-testid="new-product-description"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Base Cost *</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={newProductData.base_cost}
+                                onChange={(e) => setNewProductData({ ...newProductData, base_cost: e.target.value })}
+                                placeholder="0.00"
+                                className="h-9"
+                                data-testid="new-product-cost"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Retail Price *</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={newProductData.retail_price}
+                                onChange={(e) => setNewProductData({ ...newProductData, retail_price: e.target.value })}
+                                placeholder="0.00"
+                                className="h-9"
+                                data-testid="new-product-price"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex justify-end gap-2 pt-2">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setShowCreateProduct(false);
+                                setNewProductData({
+                                  name: '',
+                                  description: '',
+                                  category: 'other',
+                                  base_cost: '',
+                                  retail_price: ''
+                                });
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              type="submit"
+                              size="sm"
+                              disabled={creatingProduct}
+                              data-testid="save-new-product-btn"
+                            >
+                              {creatingProduct ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                  Creating...
+                                </>
+                              ) : (
+                                <>
+                                  <Check className="h-4 w-4 mr-1" />
+                                  Create & Add to Store
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </form>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Existing Products List */}
                   {loadingStoreDetails ? (
                     <div className="flex items-center justify-center h-32">
                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
                     </div>
+                  ) : products.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Package className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p>No products in catalog yet</p>
+                      <p className="text-sm mt-1">Click "Create Product" above to add your first product</p>
+                    </div>
                   ) : (
-                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
                       {products.map(product => {
                         const assigned = storeProducts.find(sp => sp.id === product.id);
                         const isEnabled = assigned?.is_enabled ?? false;
