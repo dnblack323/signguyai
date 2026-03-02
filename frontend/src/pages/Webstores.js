@@ -88,7 +88,8 @@ export default function Webstores() {
     assignProductToWebstore, removeProductFromWebstore, updateWebstoreProductStatus,
     createJobFromOrder, recordPayout, getWebstorePayouts,
     uploadWebstoreLogo, uploadWebstoreBanner,
-    getStripeConnectStatus, createStripeConnectAccount
+    getStripeConnectStatus, createStripeConnectAccount,
+    createProduct
   } = useApp();
   
   const [loading, setLoading] = useState(true);
@@ -108,6 +109,17 @@ export default function Webstores() {
   const [storePayouts, setStorePayouts] = useState([]);
   const [detailTab, setDetailTab] = useState('dashboard');
   const [loadingStoreDetails, setLoadingStoreDetails] = useState(false);
+  
+  // Create product inline form states
+  const [showCreateProduct, setShowCreateProduct] = useState(false);
+  const [creatingProduct, setCreatingProduct] = useState(false);
+  const [newProductData, setNewProductData] = useState({
+    name: '',
+    description: '',
+    category: 'other',
+    base_cost: '',
+    retail_price: ''
+  });
   
   // Logo upload states
   const [logoPreview, setLogoPreview] = useState(null);
