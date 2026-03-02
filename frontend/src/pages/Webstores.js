@@ -1368,37 +1368,45 @@ export default function Webstores() {
                 </TabsContent>
 
                 <TabsContent value="settings" className="space-y-6">
-                  {/* Store Link Section - Prominent at top */}
+                  {/* Store Link Section with QR Code */}
                   <div className="p-4 rounded-lg bg-gradient-to-r from-[#2F8BFB]/10 to-[#2F8BFB]/5 border border-[#2F8BFB]/20">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-[#2F8BFB]/20 rounded-lg">
-                          <Link2 className="h-5 w-5 text-[#2F8BFB]" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">Public Store Link</p>
-                          <p className="text-xs font-mono text-muted-foreground truncate max-w-[350px]">
-                            {getStoreUrl(selectedStore.id)}
-                          </p>
-                        </div>
+                    <div className="flex items-start gap-4">
+                      {/* QR Code */}
+                      <div className="shrink-0 p-2 bg-white rounded-lg" data-testid="store-qr-code">
+                        <QRCodeSVG 
+                          value={getStoreUrl(selectedStore.id)} 
+                          size={80}
+                          level="M"
+                        />
                       </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleCopyLink(selectedStore.id)}
-                          data-testid="copy-store-link-btn"
-                        >
-                          <Copy className="h-4 w-4 mr-1" /> Copy
-                        </Button>
-                        <Button 
-                          size="sm"
-                          onClick={() => handleOpenStore(selectedStore.id)}
-                          className="bg-[#2F8BFB] hover:bg-[#2F8BFB]/90 text-white"
-                          data-testid="open-store-btn"
-                        >
-                          <ExternalLink className="h-4 w-4 mr-1" /> Open
-                        </Button>
+                      
+                      {/* Link Info and Buttons */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Link2 className="h-4 w-4 text-[#2F8BFB]" />
+                          <p className="font-medium text-sm">Public Store Link</p>
+                        </div>
+                        <p className="text-xs font-mono text-muted-foreground truncate max-w-[350px] mb-3">
+                          {getStoreUrl(selectedStore.id)}
+                        </p>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleCopyLink(selectedStore.id)}
+                            data-testid="copy-store-link-btn"
+                          >
+                            <Copy className="h-4 w-4 mr-1" /> Copy Link
+                          </Button>
+                          <Button 
+                            size="sm"
+                            onClick={() => handleOpenStore(selectedStore.id)}
+                            className="bg-[#2F8BFB] hover:bg-[#2F8BFB]/90 text-white"
+                            data-testid="open-store-btn"
+                          >
+                            <ExternalLink className="h-4 w-4 mr-1" /> Open Store
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
