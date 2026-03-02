@@ -1286,6 +1286,7 @@ export default function Webstores() {
         if (!open) {
           // Reset store products when closing to prevent state leakage
           setStoreProducts([]);
+          setLoadingStoreDetails(false);
         }
       }}>
         <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
