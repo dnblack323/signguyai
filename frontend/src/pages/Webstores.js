@@ -98,6 +98,7 @@ export default function Webstores() {
   const [storeProducts, setStoreProducts] = useState([]);
   const [storePayouts, setStorePayouts] = useState([]);
   const [detailTab, setDetailTab] = useState('dashboard');
+  const [loadingStoreDetails, setLoadingStoreDetails] = useState(false);
   
   // Logo upload states
   const [logoPreview, setLogoPreview] = useState(null);
