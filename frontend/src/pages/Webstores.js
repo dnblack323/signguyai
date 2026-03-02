@@ -366,6 +366,7 @@ export default function Webstores() {
     // Reset store-specific state first to prevent showing stale data
     setStoreProducts([]);
     setStorePayouts([]);
+    setLoadingStoreDetails(true);
     
     setSelectedStore(store);
     setDetailTab('dashboard');
@@ -375,6 +376,8 @@ export default function Webstores() {
     setLogoFile(null);
     setBannerPreview(null);
     setBannerFile(null);
+    
+    setIsDetailDialogOpen(true);
     
     try {
       const [prods, payouts] = await Promise.all([
@@ -387,8 +390,9 @@ export default function Webstores() {
       console.error('Error loading store details:', err);
       setStoreProducts([]);
       setStorePayouts([]);
+    } finally {
+      setLoadingStoreDetails(false);
     }
-    setIsDetailDialogOpen(true);
   };
 
   const getStoreUrl = (storeId) => {
