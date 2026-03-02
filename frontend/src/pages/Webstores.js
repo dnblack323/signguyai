@@ -398,6 +398,16 @@ export default function Webstores() {
     setBannerPreview(null);
     setBannerFile(null);
     
+    // Reset create product form state
+    setShowCreateProduct(false);
+    setNewProductData({
+      name: '',
+      description: '',
+      category: 'other',
+      base_cost: '',
+      retail_price: ''
+    });
+    
     setIsDetailDialogOpen(true);
     
     try {
