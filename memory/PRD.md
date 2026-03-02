@@ -1287,17 +1287,30 @@ Complete restructure of the public marketing website to properly represent the t
    - Installed `qrcode.react` library
    - Added `QRCodeSVG` component next to the store link section
 
+### New Feature: Create Product from Store Settings
+Added ability to create products directly from the store's Products tab:
+- **"Create Product" button** in Products tab header
+- **Inline form** with fields: Product Name, Category, Description, Base Cost, Retail Price
+- **Auto-assignment**: New products are automatically added to the catalog AND enabled for the current store
+- **Form validation**: Required fields (name, costs) validated before submission
+- **State management**: Form state properly resets when switching stores
+
 ### Files Modified
 - `frontend/src/pages/Webstores.js`:
   - Added import for `QRCodeSVG` from `qrcode.react`
-  - Added `loadingStoreDetails` state variable
-  - Updated `handleViewStore` to properly reset state and show loading
+  - Added import for category icons (`Shirt`, `Sticker`, `Gift`)
+  - Added `categoryOptions` constant for product categories
+  - Added `createProduct` from AppContext
+  - Added `loadingStoreDetails`, `showCreateProduct`, `creatingProduct`, `newProductData` state variables
+  - Added `handleCreateProductForStore` function
+  - Updated `handleViewStore` to properly reset all state including create product form
   - Restructured `DialogHeader` for better badge positioning
-  - Updated Products tab with loading state and unique keys
+  - Updated Products tab with loading state, unique keys, empty state, and create product form
   - Added QR code to Settings & Branding tab
 
 ### Testing
 - All 5 bug fixes verified by testing agent (iteration_46.json)
+- Create Product feature tested manually with screenshot verification
 - 100% frontend test success rate
 
 ---
