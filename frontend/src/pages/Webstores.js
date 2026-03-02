@@ -360,17 +360,30 @@ export default function Webstores() {
   };
 
   const handleViewStore = async (store) => {
+    // Reset store-specific state first to prevent showing stale data
+    setStoreProducts([]);
+    setStorePayouts([]);
+    
     setSelectedStore(store);
     setDetailTab('dashboard');
+    
+    // Reset branding form state
+    setLogoPreview(null);
+    setLogoFile(null);
+    setBannerPreview(null);
+    setBannerFile(null);
+    
     try {
       const [prods, payouts] = await Promise.all([
         getWebstoreProducts(store.id, true),
         getWebstorePayouts(store.id)
       ]);
-      setStoreProducts(prods);
-      setStorePayouts(payouts);
+      setStoreProducts(prods || []);
+      setStorePayouts(payouts || []);
     } catch (err) {
       console.error('Error loading store details:', err);
+      setStoreProducts([]);
+      setStorePayouts([]);
     }
     setIsDetailDialogOpen(true);
   };
