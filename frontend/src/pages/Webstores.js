@@ -462,6 +462,69 @@ export default function Webstores() {
     }
   };
 
+  // Create product and auto-assign to current store
+  const handleCreateProductForStore = async (e) => {
+    e.preventDefault();
+    if (!selectedStore) return;
+    
+    const baseCost = parseFloat(newProductData.base_cost);
+    const retailPrice = parseFloat(newProductData.retail_price);
+    
+    if (!newProductData.name.trim()) {
+      toast.error('Product name is required');
+      return;
+    }
+    if (isNaN(baseCost) || isNaN(retailPrice) || baseCost <= 0 || retailPrice <= 0) {
+      toast.error('Please enter valid prices');
+      return;
+    }
+    
+    setCreatingProduct(true);
+    try {
+      // Create the product
+      const newProduct = await createProduct({
+        name: newProductData.name,
+        description: newProductData.description,
+        category: newProductData.category,
+        base_cost: baseCost,
+        retail_price: retailPrice
+      });
+      
+      // Assign it to the current store and enable it
+      if (newProduct?.id) {
+        await assignProductToWebstore(selectedStore.id, {
+          webstore_id: selectedStore.id,
+          product_id: newProduct.id,
+          is_enabled: true
+        });
+      }
+      
+      // Reload products for the store and master catalog
+      const [prods, allProducts] = await Promise.all([
+        getWebstoreProducts(selectedStore.id, true),
+        getProducts()
+      ]);
+      setStoreProducts(prods || []);
+      setProducts(allProducts || []);
+      
+      // Reset form
+      setNewProductData({
+        name: '',
+        description: '',
+        category: 'other',
+        base_cost: '',
+        retail_price: ''
+      });
+      setShowCreateProduct(false);
+      toast.success('Product created and added to store!');
+    } catch (err) {
+      console.error('Error creating product:', err);
+      toast.error('Failed to create product');
+    } finally {
+      setCreatingProduct(false);
+    }
+  };
+
   const handleDeleteStore = async (storeId) => {
     if (!confirm('Are you sure you want to delete this webstore?')) return;
     try {
