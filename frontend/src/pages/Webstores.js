@@ -1261,25 +1261,31 @@ export default function Webstores() {
       </Tabs>
 
       {/* Store Detail Dialog */}
-      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+      <Dialog open={isDetailDialogOpen} onOpenChange={(open) => {
+        setIsDetailDialogOpen(open);
+        if (!open) {
+          // Reset store products when closing to prevent state leakage
+          setStoreProducts([]);
+        }
+      }}>
         <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
           {selectedStore && (
             <>
-              <DialogHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {(() => {
-                      const Icon = getStoreTypeIcon(selectedStore.store_type);
-                      return <Icon className="h-6 w-6" />;
-                    })()}
-                    <div>
-                      <DialogTitle className="font-heading uppercase">{selectedStore.name}</DialogTitle>
-                      <p className="text-sm text-muted-foreground">{selectedStore.owner_name}</p>
-                    </div>
-                  </div>
-                  <Badge className={getStoreTypeColor(selectedStore.store_type)}>
+              <DialogHeader className="pr-10">
+                <div className="flex items-center gap-3">
+                  <Badge className={`${getStoreTypeColor(selectedStore.store_type)} shrink-0`}>
                     {selectedStore.store_type}
                   </Badge>
+                  <div className="flex items-center gap-3 flex-1">
+                    {(() => {
+                      const Icon = getStoreTypeIcon(selectedStore.store_type);
+                      return <Icon className="h-6 w-6 shrink-0" />;
+                    })()}
+                    <div className="min-w-0">
+                      <DialogTitle className="font-heading uppercase truncate">{selectedStore.name}</DialogTitle>
+                      <p className="text-sm text-muted-foreground truncate">{selectedStore.owner_name}</p>
+                    </div>
+                  </div>
                 </div>
               </DialogHeader>
 
