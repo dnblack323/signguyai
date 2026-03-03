@@ -12,6 +12,8 @@ import {
 import { Link } from 'react-router-dom';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
 import OnboardingChecklist from '../components/OnboardingChecklist';
+import { FoundersBadge, CreditMeter } from '../components/founders';
+import { CreditPurchaseModal } from '../components/credits/CreditBalance';
 import axios from 'axios';
 import { toast } from 'sonner';
 
@@ -554,7 +556,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in" data-testid="dashboard">
-      {/* Personalized Header */}
+      {/* Personalized Header with Founders Badge */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 sm:gap-3 mb-1">
@@ -562,6 +564,7 @@ export default function Dashboard() {
             <h1 className="text-2xl sm:text-3xl font-bold font-heading tracking-tight" style={{ color: 'var(--text)' }}>
               {greeting.text}, {user?.full_name?.split(' ')[0] || 'there'}!
             </h1>
+            <FoundersBadge size="small" />
           </div>
           <p className="ml-8 sm:ml-10 text-sm sm:text-base" style={{ color: 'var(--text-muted)' }}>
             Here's what's happening at {user?.company_name || 'your shop'} today

@@ -23,6 +23,7 @@ from models import (
     UserRole, Permission, ROLE_PERMISSIONS,
     get_user_permissions, user_has_permission
 )
+import uuid
 
 # These will be imported from the main server module
 # In the future, they should be moved to core/auth.py
@@ -43,25 +44,79 @@ admin_router = APIRouter(prefix="/admin", tags=["Admin"])
 
 @router.post("/register", response_model=Token)
 async def register(input: UserCreate):
-    """Register a new user and create their tenant/company"""
+    """Register a new user and create their tenant/company with Founders Edition plan"""
+    from services.founders_config import (
+        FOUNDERS_EDITION_MAX_CUSTOMERS, 
+        FOUNDERS_EDITION_MONTHLY_CREDITS,
+        FOUNDERS_EDITION_PLAN
+    )
+    from datetime import timezone
+    from dateutil.relativedelta import relativedelta
+    
     # Check if user already exists
     existing_user = await db.users.find_one({"email": input.email.lower()})
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
+    # Check Founders Edition availability
+    founders_count = await db.tenants.count_documents({"plan": "founders_edition"})
+    if founders_count >= FOUNDERS_EDITION_MAX_CUSTOMERS:
+        raise HTTPException(
+            status_code=400, 
+            detail="Founders Edition is sold out. Please check back for future plans."
+        )
+    
     # Self-registration always creates a new tenant (company) and the user becomes owner
     company_name = input.company_name or f"{input.full_name}'s Sign Shop"
     
-    # Create tenant for this user
+    # Create tenant with Founders Edition plan
     tenant = Tenant(
         name=company_name,
         slug=generate_tenant_slug(company_name),
         owner_email=input.email.lower(),
     )
     tenant_doc = tenant.model_dump()
+    
+    # Add Founders Edition plan fields
+    tenant_doc["plan"] = "founders_edition"
+    tenant_doc["plan_name"] = FOUNDERS_EDITION_PLAN["plan_name"]
+    tenant_doc["founder_lifetime_lock"] = True
+    tenant_doc["plan_started_at"] = datetime.now(timezone.utc).isoformat()
+    
     await db.tenants.insert_one(tenant_doc)
     tenant_id = tenant.id
-    logger.info(f"Created new tenant: {tenant.name} ({tenant.id})")
+    logger.info(f"Created new Founders Edition tenant: {tenant.name} ({tenant.id})")
+    
+    # Initialize AI credits for this tenant
+    now = datetime.now(timezone.utc)
+    period_end = now + relativedelta(months=1)
+    
+    credits_doc = {
+        "id": str(uuid.uuid4()),
+        "tenant_id": tenant_id,
+        "monthly_credits": FOUNDERS_EDITION_MONTHLY_CREDITS,
+        "purchased_credits": 0,
+        "monthly_credits_granted_at": now.isoformat(),
+        "monthly_credits_period_start": now.isoformat(),
+        "monthly_credits_period_end": period_end.isoformat(),
+        "low_credits_threshold": 10,
+        "created_at": now.isoformat(),
+        "updated_at": now.isoformat(),
+    }
+    await db.user_credits.insert_one(credits_doc)
+    
+    # Record initial credit grant transaction
+    from models.credits import CreditTransaction, CreditTransactionType
+    transaction = CreditTransaction(
+        tenant_id=tenant_id,
+        transaction_type=CreditTransactionType.MONTHLY_GRANT,
+        amount=FOUNDERS_EDITION_MONTHLY_CREDITS,
+        balance_after=FOUNDERS_EDITION_MONTHLY_CREDITS,
+        monthly_balance_after=FOUNDERS_EDITION_MONTHLY_CREDITS,
+        purchased_balance_after=0,
+        description=f"Welcome to Founders Edition! {FOUNDERS_EDITION_MONTHLY_CREDITS} monthly credits granted."
+    )
+    await db.credit_transactions.insert_one(transaction.model_dump())
     
     # Self-registering user is always the owner of their tenant
     role = UserRole.OWNER

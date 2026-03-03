@@ -69,6 +69,7 @@ import PublicQuestionnaire from "./pages/PublicQuestionnaire";
 import LandingPage from "./pages/LandingPage";
 import FeaturesPage from "./pages/FeaturesPage";
 import PricingPagePublic from "./pages/PricingPagePublic";
+import FoundersEditionPricing from "./pages/FoundersEditionPricing";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 
@@ -182,7 +183,9 @@ function App() {
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/home" element={<LandingPage />} />
                 <Route path="/features" element={<FeaturesPage />} />
-                <Route path="/pricing" element={<PricingPagePublic />} />
+                <Route path="/pricing" element={<FoundersEditionPricing />} />
+                <Route path="/pricing-legacy" element={<PricingPagePublic />} />
+                <Route path="/founders" element={<FoundersEditionPricing />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/contact" element={<ContactPage />} />
                 

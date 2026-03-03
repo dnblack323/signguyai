@@ -20,12 +20,16 @@ from server import db, get_current_active_user, logger
 from models import UserInDB
 from models.credits import (
     UserCredits, CreditTransaction, CreditTransactionType,
-    CreditPackType, CREDIT_PACKS,
+    CreditPackType,
     CreditUsageRequest, CreditUsageResponse,
     CreditBalanceResponse, PurchaseCreditPackRequest, PurchaseCreditPackResponse
 )
 from services.founders_config import (
-    FOUNDERS_EDITION_MONTHLY_CREDITS, get_ai_credit_cost, CREDIT_PACKS as FOUNDERS_CREDIT_PACKS
+    FOUNDERS_EDITION_MONTHLY_CREDITS, 
+    get_ai_credit_cost, 
+    get_credit_packs_for_api,
+    LOW_CREDITS_THRESHOLD,
+    CREDIT_PACKS
 )
 
 router = APIRouter(prefix="/credits", tags=["AI Credits"])
@@ -263,13 +267,7 @@ async def use_credits(
 async def get_credit_packs(current_user: UserInDB = Depends(get_current_active_user)):
     """Get available credit packs for purchase"""
     return {
-        "packs": [
-            {
-                "pack_type": pack_type,
-                **pack_info
-            }
-            for pack_type, pack_info in FOUNDERS_CREDIT_PACKS.items()
-        ]
+        "packs": get_credit_packs_for_api()
     }
 
 
@@ -286,10 +284,17 @@ async def purchase_credit_pack(
         raise HTTPException(status_code=500, detail="Payment system not configured")
     
     pack_type = request.pack_type.value
-    if pack_type not in FOUNDERS_CREDIT_PACKS:
+    
+    # Find the pack in our config
+    pack = None
+    for pack_key, pack_info in CREDIT_PACKS.items():
+        if pack_info["pack_id"] == pack_type:
+            pack = pack_info
+            break
+    
+    if not pack:
         raise HTTPException(status_code=400, detail="Invalid credit pack type")
     
-    pack = FOUNDERS_CREDIT_PACKS[pack_type]
     tenant_id = current_user.tenant_id
     
     # Get the frontend URL for redirect

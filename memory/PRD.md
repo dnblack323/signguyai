@@ -1383,6 +1383,82 @@ Added ability to create products directly from the store's Products tab:
 
 ---
 
+## Founders Edition Complete Implementation (Mar 3, 2026)
+
+### Plan Configuration
+- **Plan Name:** Founders Edition
+- **Monthly Price:** $99
+- **Annual Price:** $594 (pay 6 months, get 12 with code FOUNDERS)
+- **Founder Limit:** 100 customers
+- **Lifetime Lock:** Yes (pricing never changes)
+- **Status:** Active, Default for all new signups
+
+### Fee Configuration
+- **Platform Processing Fee:** 2.2% + $0.20 on all transactions
+- **Webstore Sales Fee:** 2.0% on all webstore sales
+- **Stripe Connect:** Enabled for all Founders Edition tenants
+
+### AI Credit System (Complete)
+**Monthly Allowance:** 150 credits (reset on billing cycle)
+
+**Credit Costs by Category:**
+1. **1-Credit Tools:** text_generation, email_reply, product_description, simple assistant queries, non-destructive actions
+2. **2-Credit Tools:** blog_creator, SEO content, proposals, content calendar, pricing advisor, medium assistant queries
+3. **3-Credit Tools:** image_generation, mockups, vehicle wrap mockups, generative fill, pricing intelligence, heavy queries
+
+**Credit Packs:**
+- 100 credits: $10 ($0.10/credit)
+- 300 credits: $25 ($0.083/credit) - 17% savings
+- 1000 credits: $60 ($0.06/credit) - 40% savings
+
+**Low Credits Threshold:** 10 (triggers modal prompt)
+
+### Signup Workflow
+1. New user registers
+2. System checks Founders Edition availability (< 100 spots)
+3. Creates tenant with `plan: "founders_edition"`
+4. Initializes 150 AI credits
+5. Records initial credit grant transaction
+6. Sets `founder_lifetime_lock: true`
+
+### UI Components Created
+- `FoundersEditionPricing.js` - New pricing page (replaces legacy)
+- `FoundersBadge.js` - "Founding Shop" badge component
+- `CreditMeter.js` - Credit meter component (compact/dashboard variants)
+- `CreditBalance.js` - Header credit balance with purchase modal
+
+### Routes Updated
+- `/pricing` - Now shows Founders Edition only
+- `/pricing-legacy` - Legacy pricing archived
+- `/founders` - Alias to Founders Edition page
+
+### Backend Files
+- `services/founders_config.py` - Complete plan configuration
+- `routes/credits.py` - Credit management APIs
+- `routes/auth.py` - Updated signup to assign Founders Edition
+- `services/credit_service.py` - Credit deduction helper
+
+### Legacy Pricing Archive
+- Legacy plans moved to `/pricing-legacy` route
+- Original `PricingPagePublic.js` preserved
+- No legacy plans shown to new users
+- Existing legacy data structures preserved (not deleted)
+
+### Validation Checklist
+- [x] Founders Edition is the only visible plan on /pricing
+- [x] Legacy plans hidden at /pricing-legacy
+- [x] Credit deduction works (1/2/3 credit categories)
+- [x] Monthly credit refill logic implemented
+- [x] Credit packs available via Stripe
+- [x] Platform fee: 2.2% + $0.20 configured
+- [x] Webstore fee: 2.0% configured
+- [x] Annual billing: $594 with FOUNDERS code
+- [x] Founder lock prevents plan changes
+- [x] Founders Badge shows in dashboard header
+- [x] Credit balance shows in top nav
+
+---
+
 ## Last Updated
 March 2026
 
