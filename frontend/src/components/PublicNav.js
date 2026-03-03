@@ -8,6 +8,7 @@ import { Menu, X } from 'lucide-react';
 const navLinks = [
   { href: '/features', label: 'Features' },
   { href: '/pricing', label: 'Pricing' },
+  { href: '/docs', label: 'Docs' },
 ];
 
 export function PublicNav() {
