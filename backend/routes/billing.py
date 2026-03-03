@@ -226,34 +226,53 @@ async def get_trial_status(
     db = Depends(get_db),
     current_user: UserInDB = Depends(get_current_user_billing)
 ):
-    """Get current trial status for the user"""
+    """Get current trial status for the user (48-hour free trial or subscription)"""
+    from services.founders_config import FREE_TRIAL_HOURS
     
-    # First check if user/tenant is a founder - founders are never locked
+    # First check if user/tenant is a founder or has active subscription
     tenant = await db.tenants.find_one(
         {"id": current_user.tenant_id},
         {"_id": 0}
     )
     
     if tenant:
-        # Founders and active subscriptions are never locked
-        if tenant.get("is_founder") or tenant.get("subscription_status") == "active":
+        # Founders Edition active subscribers are never locked
+        if tenant.get("plan") == "founders_edition" and tenant.get("founder_lifetime_lock"):
             return TrialStatus(
                 is_trial=False,
                 is_locked=False,
                 can_upgrade=False
             )
-    
-    # Get subscription
-    subscription = await db.subscriptions.find_one(
-        {"tenant_id": current_user.tenant_id},
-        {"_id": 0}
-    )
-    
-    if not subscription:
-        # Check tenant creation time for 24hr free trial
-        if tenant and tenant.get("created_at"):
+        
+        # Check for 48-hour free trial
+        if tenant.get("is_trial") or tenant.get("plan") == "free_trial":
+            trial_ends_at = tenant.get("trial_ends_at")
+            if trial_ends_at:
+                trial_end = datetime.fromisoformat(trial_ends_at.replace("Z", "+00:00"))
+                now = datetime.now(timezone.utc)
+                
+                if now < trial_end:
+                    hours_remaining = (trial_end - now).total_seconds() / 3600
+                    return TrialStatus(
+                        is_trial=True,
+                        trial_type="free_trial",
+                        hours_remaining=round(hours_remaining, 1),
+                        is_locked=False,
+                        can_upgrade=True
+                    )
+                else:
+                    # 48hr trial expired - account locked
+                    return TrialStatus(
+                        is_trial=False,
+                        is_locked=True,
+                        can_upgrade=True,
+                        trial_expired=True
+                    )
+        
+        # Legacy: Check tenant creation time for older accounts
+        if tenant.get("created_at") and not tenant.get("trial_ends_at"):
             created_at = datetime.fromisoformat(tenant["created_at"].replace("Z", "+00:00"))
-            trial_end = created_at + timedelta(hours=24)
+            trial_end = created_at + timedelta(hours=FREE_TRIAL_HOURS)
             now = datetime.now(timezone.utc)
             
             if now < trial_end:
@@ -266,13 +285,21 @@ async def get_trial_status(
                     can_upgrade=True
                 )
             else:
-                # 24hr trial expired - account locked
+                # Trial expired - account locked
                 return TrialStatus(
                     is_trial=False,
                     is_locked=True,
-                    can_upgrade=True
+                    can_upgrade=True,
+                    trial_expired=True
                 )
-        
+    
+    # Get subscription for users with subscription records
+    subscription = await db.subscriptions.find_one(
+        {"tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    
+    if not subscription:
         return TrialStatus(is_trial=False, is_locked=True, can_upgrade=True)
     
     sub = Subscription(**subscription)

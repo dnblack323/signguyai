@@ -85,7 +85,13 @@ export default function FoundersEditionPricing() {
       {/* Hero */}
       <section className="pt-32 pb-8 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <Badge className="mb-4 bg-gradient-to-r from-amber-500/30 to-orange-500/30 text-amber-300 border-amber-500/50 px-4 py-1.5">
+          {/* 48-Hour Free Trial Badge */}
+          <Badge className="mb-3 bg-green-500/20 text-green-400 border-green-500/50 px-4 py-1.5">
+            <Clock className="w-4 h-4 mr-2" />
+            Start with 48-Hour Free Trial - No Credit Card Required
+          </Badge>
+          
+          <Badge className="mb-4 bg-gradient-to-r from-amber-500/30 to-orange-500/30 text-amber-300 border-amber-500/50 px-4 py-1.5 ml-2">
             <Crown className="w-4 h-4 mr-2" />
             Limited to 100 Founding Shops
           </Badge>
@@ -352,6 +358,20 @@ export default function FoundersEditionPricing() {
             Frequently Asked Questions
           </h2>
           <div className="space-y-4">
+            {/* 48-Hour Free Trial */}
+            <div className="p-4 bg-[#111826] rounded-lg border border-green-500/30">
+              <h3 className="font-semibold text-green-400 mb-2 flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                How does the 48-hour free trial work?
+              </h3>
+              <p className="text-gray-400 text-sm">
+                Start exploring SignGuy AI instantly with our 48-hour free trial. No credit card required. 
+                You get access to all features plus 50 AI credits to try our AI tools. We've also included 
+                sample customers, jobs, and a webstore so you can see exactly how everything works. 
+                After 48 hours, subscribe to Founders Edition to continue.
+              </p>
+            </div>
+            
             <div className="p-4 bg-[#111826] rounded-lg">
               <h3 className="font-semibold text-white mb-2">What is Founders Edition?</h3>
               <p className="text-gray-400 text-sm">
@@ -370,11 +390,60 @@ export default function FoundersEditionPricing() {
                 You get 150 AI credits each month. Different AI actions cost 1-3 credits. If you run low, you can buy credit packs that never expire. Monthly credits reset at the start of each billing period.
               </p>
             </div>
-            <div className="p-4 bg-[#111826] rounded-lg">
-              <h3 className="font-semibold text-white mb-2">What are the processing fees?</h3>
-              <p className="text-gray-400 text-sm">
-                We charge 2.2% + $0.20 on all payment transactions (invoices, payments). Webstore sales have an additional 2% fee. These fees cover payment processing and platform costs.
-              </p>
+            
+            {/* Enhanced Fee Explanation */}
+            <div className="p-4 bg-[#111826] rounded-lg border border-amber-500/20">
+              <h3 className="font-semibold text-amber-400 mb-3 flex items-center gap-2">
+                <Percent className="w-4 h-4" />
+                What are the fees and what do they cover?
+              </h3>
+              <div className="space-y-4 text-sm">
+                {/* Platform Fee */}
+                <div className="p-3 bg-[#0B0F17] rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-white font-medium">Platform Processing Fee</span>
+                    <span className="text-amber-400 font-semibold">2.2% + $0.20</span>
+                  </div>
+                  <p className="text-gray-400 text-xs mb-2">
+                    This fee covers everything you need to accept payments and run your business:
+                  </p>
+                  <ul className="text-gray-500 text-xs space-y-1">
+                    <li>• Secure payment processing via Stripe</li>
+                    <li>• Fraud protection & chargeback defense</li>
+                    <li>• Encrypted data storage & backups</li>
+                    <li>• Platform infrastructure & 99.9% uptime</li>
+                    <li>• Continuous feature updates & improvements</li>
+                  </ul>
+                  <p className="text-green-400 text-xs mt-2">
+                    <strong>Compare:</strong> Stripe alone charges 2.9% + $0.30 — you're getting more value at a lower cost.
+                  </p>
+                </div>
+                
+                {/* Webstore Fee */}
+                <div className="p-3 bg-[#0B0F17] rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-white font-medium">Additional Webstore Fee</span>
+                    <span className="text-amber-400 font-semibold">2.0%</span>
+                  </div>
+                  <p className="text-gray-400 text-xs mb-2">
+                    Only charged when you make sales through your webstores. Covers:
+                  </p>
+                  <ul className="text-gray-500 text-xs space-y-1">
+                    <li>• Hosted storefront infrastructure</li>
+                    <li>• CDN delivery for fast global loading</li>
+                    <li>• Order management & fulfillment tracking</li>
+                    <li>• Secure customer checkout experience</li>
+                    <li>• Inventory sync across multiple stores</li>
+                  </ul>
+                  <p className="text-blue-400 text-xs mt-2">
+                    <strong>Note:</strong> You only pay this when your webstores generate revenue — no sales, no fee.
+                  </p>
+                </div>
+                
+                <p className="text-gray-500 text-xs italic">
+                  Our fees are designed to be transparent and competitive. No hidden costs, no surprises.
+                </p>
+              </div>
             </div>
           </div>
         </div>

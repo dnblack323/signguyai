@@ -28,6 +28,10 @@ export default function LandingPage() {
       a: 'SignGuy AI is a complete operating system for sign shops. It includes shop management, e-commerce webstores, and AI tools - all built specifically for the sign industry.'
     },
     {
+      q: 'How does the 48-hour free trial work?',
+      a: 'Start exploring instantly with no credit card required. You get access to all features plus 50 AI credits. We include sample customers, jobs, and a webstore so you can see exactly how everything works. After 48 hours, subscribe to Founders Edition to continue.'
+    },
+    {
       q: 'What is Founders Edition?',
       a: 'Founders Edition is our exclusive early adopter plan limited to just 100 shops. You get lifetime locked pricing at $99/month with all features included and 150 AI credits per month.'
     },
@@ -36,8 +40,8 @@ export default function LandingPage() {
       a: 'You get 150 AI credits each month. Different AI actions cost 1-3 credits. If you need more, you can buy credit packs that never expire. Monthly credits reset at the start of each billing period.'
     },
     {
-      q: 'What are the fees?',
-      a: 'We charge 2.2% + $0.20 on payment transactions. Webstore sales have an additional 2% fee. These fees cover payment processing and platform costs.'
+      q: 'What are the fees and what do they cover?',
+      a: 'Platform Processing Fee (2.2% + $0.20): Covers secure payment processing via Stripe, fraud protection, encrypted data storage, platform infrastructure, and continuous feature updates. Compare: Stripe alone charges 2.9% + $0.30. Additional Webstore Fee (2.0%): Only charged when you make sales through your webstores. Covers hosted storefront infrastructure, CDN delivery, order management, and secure checkout. No sales means no fee. Our fees are transparent and competitive — you\'re getting more value at a lower cost than payment processing alone.'
     },
   ];
 
@@ -48,7 +52,13 @@ export default function LandingPage() {
       {/* Section 1: Hero - Founders Edition Focused */}
       <section className="pt-20 pb-16 px-4">
         <div className="max-w-5xl mx-auto text-center">
-          <Badge className="mb-6 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-400 border border-amber-500/30 px-4 py-1.5">
+          {/* 48-Hour Free Trial Badge */}
+          <Badge className="mb-3 bg-green-500/20 text-green-400 border border-green-500/30 px-4 py-1.5">
+            <Clock className="w-4 h-4 mr-2" />
+            48-Hour Free Trial - No Credit Card Required
+          </Badge>
+          
+          <Badge className="mb-6 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-400 border border-amber-500/30 px-4 py-1.5 ml-2">
             <Crown className="w-4 h-4 mr-2" />
             Founders Edition - Only 100 Spots
           </Badge>
@@ -66,7 +76,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/register">
               <Button size="lg" className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-semibold px-8 py-6 text-lg h-auto">
-                Get Founders Edition
+                Start Free Trial
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>

@@ -8,6 +8,14 @@ The ONLY active pricing plan for new signups:
 - 150 AI credits per month (rollover enabled for purchased credits)
 - All features included, no restrictions
 
+48-Hour Free Trial:
+- No credit card required
+- All features available
+- 50 AI credits (one-time, non-refilling)
+- Sample data provided to explore the platform
+- Webstores: Can create stores/products but cannot make them "live"
+- After 48 hours: Full lockout until subscription
+
 Processing Fees:
 - Platform processing: 2.2% + $0.20 on all transactions
 - Webstore fee: 2.0% on all webstore sales
@@ -84,6 +92,22 @@ FOUNDERS_EDITION_ANNUAL_PRICE = FOUNDERS_EDITION_PLAN["price_annual"]
 FOUNDERS_EDITION_MONTHLY_CREDITS = FOUNDERS_EDITION_PLAN["ai_credits_monthly"]
 FOUNDERS_EDITION_MAX_CUSTOMERS = FOUNDERS_EDITION_PLAN["founder_limit"]
 FOUNDERS_PROMO_CODE = "FOUNDERS"
+
+# =============================================================================
+# 48-HOUR FREE TRIAL CONFIGURATION
+# =============================================================================
+
+FREE_TRIAL_CONFIG = {
+    "trial_hours": 48,
+    "trial_credits": 50,  # One-time credits for trial
+    "require_card": False,
+    "all_features_enabled": True,
+    "webstores_can_go_live": False,  # Can create, cannot publish
+    "sample_data_enabled": True,
+}
+
+FREE_TRIAL_HOURS = FREE_TRIAL_CONFIG["trial_hours"]
+FREE_TRIAL_CREDITS = FREE_TRIAL_CONFIG["trial_credits"]
 
 # =============================================================================
 # AI CREDIT COSTS BY CATEGORY
@@ -415,4 +439,56 @@ def get_fee_breakdown(transaction_amount_cents: int, is_webstore: bool = False) 
         "webstore_fee_display": f"{PLATFORM_FEES['webstore_fee_percent']}%" if is_webstore else None,
         "total_fees": total_fees / 100,
         "net_amount": net_amount / 100,
+    }
+
+
+def get_fee_explanation() -> dict:
+    """
+    Get detailed explanations of what the fees cover and why they exist.
+    Use this for FAQ sections and anywhere fees are displayed.
+    """
+    return {
+        "platform_fee": {
+            "rate": f"{PLATFORM_FEES['platform_processing_percent']}% + ${PLATFORM_FEES['platform_processing_fixed']:.2f}",
+            "short_description": "Platform Processing Fee",
+            "explanation": (
+                "This fee covers secure payment processing through Stripe, fraud protection and chargeback defense, "
+                "encrypted data storage, platform infrastructure and uptime, and continuous feature development. "
+                "For comparison, Stripe alone charges 2.9% + $0.30 — our bundled rate gives you more value at a lower cost."
+            ),
+            "what_it_covers": [
+                "Secure payment processing via Stripe",
+                "Fraud protection & chargeback defense",
+                "Encrypted data storage & backups",
+                "Platform infrastructure & 99.9% uptime",
+                "Continuous feature updates & improvements",
+            ],
+        },
+        "webstore_fee": {
+            "rate": f"{PLATFORM_FEES['webstore_fee_percent']}%",
+            "short_description": "Webstore Sales Fee",
+            "explanation": (
+                "This fee only applies when you make sales through your webstores. It covers hosted storefront infrastructure, "
+                "CDN delivery for fast loading, order management and fulfillment tracking, customer checkout experience, "
+                "and inventory sync across stores. You only pay this when your webstores generate revenue."
+            ),
+            "what_it_covers": [
+                "Hosted storefront infrastructure",
+                "CDN delivery for fast global loading",
+                "Order management & fulfillment tracking",
+                "Secure customer checkout experience",
+                "Inventory sync across multiple stores",
+            ],
+            "when_charged": "Only charged when you make sales through your webstores",
+        },
+        "comparison": {
+            "stripe_standard": "2.9% + $0.30",
+            "our_platform": f"{PLATFORM_FEES['platform_processing_percent']}% + ${PLATFORM_FEES['platform_processing_fixed']:.2f}",
+            "savings_note": "You save money while getting more features bundled in",
+        },
+        "summary": (
+            "Our fees are designed to be transparent and competitive. The platform fee covers everything "
+            "from payment processing to feature development, while the webstore fee only kicks in when "
+            "you're actually making sales. No hidden costs, no surprises."
+        ),
     }

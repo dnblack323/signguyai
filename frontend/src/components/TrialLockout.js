@@ -89,27 +89,27 @@ const LockoutScreen = () => {
           </h1>
           
           <p className="text-lg text-[var(--text-secondary)] mb-8 max-w-md mx-auto">
-            Your 24-hour free trial is over. Choose a plan to continue using SignGuy AI 
+            Your 48-hour free trial is over. Subscribe to continue using SignGuy AI 
             and keep running your sign shop like a pro.
           </p>
 
           {/* CTA Buttons */}
           <div className="space-y-4 mb-8">
             <Button
-              onClick={() => navigate('/pricing-plans')}
-              className="w-full sm:w-auto px-8 py-6 text-lg bg-gradient-to-r from-blue-500 to-indigo-600 hover:opacity-90 text-white font-semibold shadow-lg shadow-blue-500/25"
+              onClick={() => navigate('/pricing')}
+              className="w-full sm:w-auto px-8 py-6 text-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-90 text-black font-semibold shadow-lg shadow-amber-500/25"
             >
               <Rocket className="w-5 h-5 mr-2" />
-              View Plans & Pricing
+              Get Founders Edition - $99/mo
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </div>
 
-          {/* Trial offer */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 mb-8">
-            <Star className="w-4 h-4 text-emerald-500" />
-            <span className="text-sm text-emerald-500">
-              Start with a 14-day Pro trial for just $24.99
+          {/* Founder spots reminder */}
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/30 mb-8">
+            <Star className="w-4 h-4 text-amber-500" />
+            <span className="text-sm text-amber-400">
+              Only 100 Founder spots available - lock in lifetime pricing!
             </span>
           </div>
 
@@ -124,13 +124,13 @@ const LockoutScreen = () => {
                 'Quotes & Jobs',
                 'Invoicing',
                 'Time Clock',
-                'AI Tools',
-                'Webstores',
+                '150 AI Credits/mo',
+                'Unlimited Webstores',
                 'Analytics',
-                'And more...'
+                'And much more...'
               ].map((feature) => (
                 <div key={feature} className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
-                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                   {feature}
                 </div>
               ))}
@@ -139,8 +139,8 @@ const LockoutScreen = () => {
 
           {/* Founder pricing reminder */}
           <p className="mt-8 text-sm text-[var(--text-secondary)]">
-            🎉 <span className="text-amber-500 font-semibold">Founder Member Pricing</span> — 
-            Lock in special rates forever when you subscribe today
+            <span className="text-amber-400 font-semibold">Founders Edition</span> — 
+            All features, lifetime locked pricing, no restrictions
           </p>
         </div>
       </div>

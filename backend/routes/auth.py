@@ -44,12 +44,14 @@ admin_router = APIRouter(prefix="/admin", tags=["Admin"])
 
 @router.post("/register", response_model=Token)
 async def register(input: UserCreate):
-    """Register a new user and create their tenant/company with Founders Edition plan"""
+    """Register a new user with 48-hour free trial and sample data"""
     from services.founders_config import (
         FOUNDERS_EDITION_MAX_CUSTOMERS, 
-        FOUNDERS_EDITION_MONTHLY_CREDITS,
+        FREE_TRIAL_CREDITS,
+        FREE_TRIAL_HOURS,
         FOUNDERS_EDITION_PLAN
     )
+    from services.sample_data import create_sample_data_for_tenant
     from datetime import timezone
     from dateutil.relativedelta import relativedelta
     
@@ -58,18 +60,14 @@ async def register(input: UserCreate):
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
-    # Check Founders Edition availability
+    # Check Founders Edition availability (for after trial)
     founders_count = await db.tenants.count_documents({"plan": "founders_edition"})
-    if founders_count >= FOUNDERS_EDITION_MAX_CUSTOMERS:
-        raise HTTPException(
-            status_code=400, 
-            detail="Founders Edition is sold out. Please check back for future plans."
-        )
+    founders_spots_remaining = FOUNDERS_EDITION_MAX_CUSTOMERS - founders_count
     
     # Self-registration always creates a new tenant (company) and the user becomes owner
     company_name = input.company_name or f"{input.full_name}'s Sign Shop"
     
-    # Create tenant with Founders Edition plan
+    # Create tenant with FREE TRIAL (not Founders Edition yet)
     tenant = Tenant(
         name=company_name,
         slug=generate_tenant_slug(company_name),
@@ -77,44 +75,47 @@ async def register(input: UserCreate):
     )
     tenant_doc = tenant.model_dump()
     
-    # Add Founders Edition plan fields
-    tenant_doc["plan"] = "founders_edition"
-    tenant_doc["plan_name"] = FOUNDERS_EDITION_PLAN["plan_name"]
-    tenant_doc["founder_lifetime_lock"] = True
-    tenant_doc["plan_started_at"] = datetime.now(timezone.utc).isoformat()
+    # Set up 48-hour free trial
+    now = datetime.now(timezone.utc)
+    trial_end = now + timedelta(hours=FREE_TRIAL_HOURS)
+    
+    tenant_doc["plan"] = "free_trial"
+    tenant_doc["plan_name"] = "48-Hour Free Trial"
+    tenant_doc["trial_started_at"] = now.isoformat()
+    tenant_doc["trial_ends_at"] = trial_end.isoformat()
+    tenant_doc["is_trial"] = True
+    tenant_doc["founders_spots_remaining"] = founders_spots_remaining
     
     await db.tenants.insert_one(tenant_doc)
     tenant_id = tenant.id
-    logger.info(f"Created new Founders Edition tenant: {tenant.name} ({tenant.id})")
+    logger.info(f"Created new trial tenant: {tenant.name} ({tenant.id}) - 48hr trial until {trial_end.isoformat()}")
     
-    # Initialize AI credits for this tenant
-    now = datetime.now(timezone.utc)
-    period_end = now + relativedelta(months=1)
-    
+    # Initialize trial AI credits (50 credits, one-time)
     credits_doc = {
         "id": str(uuid.uuid4()),
         "tenant_id": tenant_id,
-        "monthly_credits": FOUNDERS_EDITION_MONTHLY_CREDITS,
+        "monthly_credits": FREE_TRIAL_CREDITS,  # 50 trial credits
         "purchased_credits": 0,
         "monthly_credits_granted_at": now.isoformat(),
         "monthly_credits_period_start": now.isoformat(),
-        "monthly_credits_period_end": period_end.isoformat(),
+        "monthly_credits_period_end": trial_end.isoformat(),  # Credits expire with trial
         "low_credits_threshold": 10,
+        "is_trial_credits": True,
         "created_at": now.isoformat(),
         "updated_at": now.isoformat(),
     }
     await db.user_credits.insert_one(credits_doc)
     
-    # Record initial credit grant transaction
+    # Record trial credit grant transaction
     from models.credits import CreditTransaction, CreditTransactionType
     transaction = CreditTransaction(
         tenant_id=tenant_id,
         transaction_type=CreditTransactionType.MONTHLY_GRANT,
-        amount=FOUNDERS_EDITION_MONTHLY_CREDITS,
-        balance_after=FOUNDERS_EDITION_MONTHLY_CREDITS,
-        monthly_balance_after=FOUNDERS_EDITION_MONTHLY_CREDITS,
+        amount=FREE_TRIAL_CREDITS,
+        balance_after=FREE_TRIAL_CREDITS,
+        monthly_balance_after=FREE_TRIAL_CREDITS,
         purchased_balance_after=0,
-        description=f"Welcome to Founders Edition! {FOUNDERS_EDITION_MONTHLY_CREDITS} monthly credits granted."
+        description=f"Welcome! {FREE_TRIAL_CREDITS} AI credits for your 48-hour free trial."
     )
     await db.credit_transactions.insert_one(transaction.model_dump())
     
@@ -133,6 +134,14 @@ async def register(input: UserCreate):
     )
     doc = user.model_dump()
     await db.users.insert_one(doc)
+    
+    # Create sample data for the trial account
+    try:
+        await create_sample_data_for_tenant(db, tenant_id, input.full_name)
+        logger.info(f"Created sample data for trial tenant: {tenant_id}")
+    except Exception as e:
+        logger.warning(f"Failed to create sample data for tenant {tenant_id}: {e}")
+        # Don't fail registration if sample data creation fails
     
     # Create access token
     access_token = create_access_token(data={"sub": user.id})
