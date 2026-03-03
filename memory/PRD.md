@@ -1490,6 +1490,63 @@ Added a comprehensive marketing page at `/why-founder` to explain the Founders E
 
 ---
 
+## 48-Hour Free Trial Implementation (Mar 2026) - COMPLETE ✅
+
+### What Was Added
+Implemented 48-hour free trial with no credit card required, including:
+
+1. **Trial Configuration** (`founders_config.py`):
+   - FREE_TRIAL_HOURS = 48
+   - FREE_TRIAL_CREDITS = 50 (one-time, non-refilling)
+   - All features available during trial
+   - Webstores can be created but NOT go live
+
+2. **Sample Data on Signup** (`sample_data.py`):
+   - 3 sample customers (B2B, retail, fundraiser org)
+   - 2 sample jobs (in_progress, quote stages)
+   - 1 sample invoice
+   - 1 sample webstore (draft mode with products)
+   - 2 sample products
+
+3. **Registration Flow** (`auth.py`):
+   - Creates trial tenant with trial_ends_at timestamp
+   - Grants 50 trial AI credits
+   - Auto-creates sample data
+
+4. **Trial Status API** (`billing.py`):
+   - Returns hours_remaining, is_trial, is_locked
+   - After 48 hours: account locked until subscription
+
+5. **Frontend Updates**:
+   - 48-hour trial badge on Landing page and Pricing page
+   - "Start Free Trial" CTA button
+   - Enhanced FAQ with detailed fee explanations
+   - Login page auto-switches to registration with ?register=true
+
+### Fee Explanations Added
+**Platform Processing Fee (2.2% + $0.20):**
+- Secure payment processing via Stripe
+- Fraud protection & chargeback defense
+- Encrypted data storage & backups
+- Platform infrastructure & 99.9% uptime
+- Continuous feature updates
+- Comparison: Stripe alone charges 2.9% + $0.30
+
+**Webstore Fee (2.0%):**
+- Only charged on webstore sales
+- Hosted storefront infrastructure
+- CDN delivery for fast global loading
+- Order management & fulfillment tracking
+- Secure customer checkout
+- Inventory sync across stores
+
+### Test Results
+- Backend: 100% (10/10 tests passed)
+- Frontend: 100% (all elements verified)
+- Test file: `/app/backend/tests/test_48hr_free_trial.py`
+
+---
+
 ## Last Updated
 March 2026
 

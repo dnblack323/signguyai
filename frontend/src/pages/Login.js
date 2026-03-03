@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -11,8 +11,12 @@ import { Loader2, Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login, register, error, clearError, isAuthenticated } = useAuth();
-  const [isRegister, setIsRegister] = useState(false);
+  
+  // Check for ?register=true in URL
+  const shouldRegister = searchParams.get('register') === 'true';
+  const [isRegister, setIsRegister] = useState(shouldRegister);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState('');
@@ -23,6 +27,13 @@ export default function Login() {
       navigate('/dashboard');
     }
   }, [isAuthenticated, navigate]);
+  
+  // Update isRegister when URL changes
+  useEffect(() => {
+    if (shouldRegister) {
+      setIsRegister(true);
+    }
+  }, [shouldRegister]);
 
   // Form fields
   const [email, setEmail] = useState('');
