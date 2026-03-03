@@ -219,7 +219,7 @@ export default function FoundersEditionPricing() {
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-400 flex items-center gap-2">
                         <Store className="w-4 h-4" />
-                        Webstore Sales Fee
+                        <span><strong className="text-gray-300">Additional</strong> Webstore Fee</span>
                       </span>
                       <span className="text-white">2.0%</span>
                     </div>
