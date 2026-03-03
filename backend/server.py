@@ -947,6 +947,7 @@ from routes.stripe_connect import router as stripe_connect_router
 from routes.plans import router as plans_router
 from routes.questionnaires import router as questionnaires_router
 from routes.credits import router as credits_router
+from routes.dev import router as dev_router
 
 # Include all routers in the api_router
 api_router.include_router(auth_router)
@@ -982,6 +983,7 @@ api_router.include_router(stripe_connect_router)
 api_router.include_router(plans_router)  # Multi-product plan management
 api_router.include_router(questionnaires_router)  # Dynamic form builder
 api_router.include_router(credits_router)  # AI Credits system
+api_router.include_router(dev_router)  # Dev/Admin testing panel
 
 # Include the api_router in the main app
 app.include_router(api_router)
