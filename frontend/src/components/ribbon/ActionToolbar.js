@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Plus, Save, Copy, FileDown, Send, Calendar, LayoutGrid, UserCheck,
   Printer, CheckCircle, UserPlus, Package, Share2, Wand2, TrendingUp,
@@ -8,21 +8,25 @@ import { cn } from '../../lib/utils';
 import { useState, useRef, useEffect } from 'react';
 
 // Ghost button component for toolbar
-const ToolbarButton = ({ icon: Icon, label, onClick, active = false }) => (
-  <button
-    onClick={onClick}
-    className={cn(
-      "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors",
-      active 
-        ? "text-blue-600 bg-blue-50" 
-        : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-    )}
-    data-testid={`toolbar-btn-${label?.toLowerCase().replace(/\s+/g, '-')}`}
-  >
-    <Icon className="h-4 w-4" />
-    <span>{label}</span>
-  </button>
-);
+const ToolbarButton = ({ icon: Icon, label, onClick, active = false, route, currentPath }) => {
+  const isActive = active || (route && currentPath === route);
+  
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors",
+        isActive 
+          ? "text-blue-600 bg-blue-100 border border-blue-200" 
+          : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+      )}
+      data-testid={`toolbar-btn-${label?.toLowerCase().replace(/\s+/g, '-')}`}
+    >
+      <Icon className="h-4 w-4" />
+      <span>{label}</span>
+    </button>
+  );
+};
 
 // Dropdown button for toolbar
 const ToolbarDropdown = ({ icon: Icon, label, items }) => {
@@ -225,6 +229,8 @@ const toolbarConfigs = {
 
 export const ActionToolbar = ({ activeTab }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const currentPath = location.pathname;
   const config = toolbarConfigs[activeTab] || toolbarConfigs.dashboard;
 
   const handleAction = (item) => {
@@ -237,7 +243,7 @@ export const ActionToolbar = ({ activeTab }) => {
 
   return (
     <div 
-      className="h-10 flex items-center px-6 bg-gray-50/50 border-b border-gray-100"
+      className="h-10 flex items-center px-6 bg-gray-50/80 border-b border-gray-100"
       data-testid="action-toolbar"
     >
       <div className="flex items-center">
@@ -263,6 +269,8 @@ export const ActionToolbar = ({ activeTab }) => {
                   key={itemIdx}
                   icon={item.icon}
                   label={item.label}
+                  route={item.route}
+                  currentPath={currentPath}
                   onClick={() => handleAction(item)}
                 />
               );

@@ -46,7 +46,7 @@ export default function LandingPage() {
       <PublicNav />
 
       {/* Section 1: Hero - Founders Edition Focused */}
-      <section className="pt-32 pb-20 px-4">
+      <section className="pt-20 pb-16 px-4">
         <div className="max-w-5xl mx-auto text-center">
           <Badge className="mb-6 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-400 border border-amber-500/30 px-4 py-1.5">
             <Crown className="w-4 h-4 mr-2" />
