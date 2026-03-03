@@ -213,6 +213,7 @@ function App() {
                 
                 {/* Auth Routes - Public */}
                 <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Navigate to="/login?register=true" replace />} />
                 
                 {/* Documentation Routes */}
                 <Route path="/docs" element={<DocsLayout />}>
