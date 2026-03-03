@@ -196,6 +196,7 @@ class TenantPlan(str, Enum):
     STARTER = "starter"    # Starter tier
     PRO = "pro"            # Pro tier
     BUSINESS = "business"  # Business tier
+    FOUNDERS_EDITION = "founders_edition"  # Founders Edition - all features, 150 credits/month
 
 class PaymentMethod(str, Enum):
     CASH = "cash"

@@ -983,11 +983,21 @@ async def generate_ai_content(
 ):
     """Generate AI text content"""
     from services.multi_product_gate import get_multi_product_feature_gate
+    from services.credit_service import check_and_deduct_credits
     
-    # Check feature access and increment usage
+    # Check feature access
     gate = get_multi_product_feature_gate(db)
     await gate.require_feature(current_user.tenant_id, "ai_tools", "text_generation")
-    await gate.require_feature(current_user.tenant_id, "ai_tools", "monthly_generations", increment_usage=True)
+    
+    # Check and deduct credits
+    success, credits_used, message = await check_and_deduct_credits(
+        db, 
+        current_user.tenant_id, 
+        request.tool,
+        {"tool": request.tool}
+    )
+    if not success:
+        raise HTTPException(status_code=402, detail=message)
     
     try:
         result = await generate_text_content(request.tool, request.input_data)
@@ -1001,11 +1011,12 @@ async def generate_ai_content(
             "images": None,
             "tenant_id": current_user.tenant_id,
             "user_id": current_user.id,
+            "credits_used": credits_used,
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.ai_history.insert_one(history_entry)
         
-        return {"content": result, "id": history_entry["id"]}
+        return {"content": result, "id": history_entry["id"], "credits_used": credits_used}
     except HTTPException:
         raise
     except Exception as e:
@@ -1020,11 +1031,21 @@ async def generate_ai_images(
 ):
     """Generate AI images"""
     from services.multi_product_gate import get_multi_product_feature_gate
+    from services.credit_service import check_and_deduct_credits
     
-    # Check feature access - image generation is separate from text
+    # Check feature access
     gate = get_multi_product_feature_gate(db)
     await gate.require_feature(current_user.tenant_id, "ai_tools", "image_generation")
-    await gate.require_feature(current_user.tenant_id, "ai_tools", "monthly_generations", increment_usage=True)
+    
+    # Check and deduct credits for image generation
+    success, credits_used, message = await check_and_deduct_credits(
+        db, 
+        current_user.tenant_id, 
+        "image_generation",
+        {"tool": request.tool, "image_count": request.image_count}
+    )
+    if not success:
+        raise HTTPException(status_code=402, detail=message)
     
     try:
         images = await generate_images(request.tool, request.input_data, request.image_count)

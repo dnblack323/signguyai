@@ -69,3 +69,12 @@ from .billing import (
     CheckoutRequest, CheckoutResponse, SubscriptionResponse,
     PricingPlan, TrialStatus
 )
+
+# AI Credits models
+from .credits import (
+    CreditPackType, CREDIT_PACKS, CreditTransactionType,
+    CreditTransaction, UserCredits,
+    CreditUsageRequest, CreditUsageResponse,
+    CreditBalanceResponse, PurchaseCreditPackRequest, PurchaseCreditPackResponse,
+    PromoCode, PromoCodeUsage
+)

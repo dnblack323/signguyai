@@ -323,3 +323,87 @@ async def get_upgrade_options(current_user: UserInDB = Depends(get_current_activ
         "is_founder": is_founder,
         "upgrade_options": upgrades,
     }
+
+
+# ============== FOUNDERS EDITION ENDPOINTS ==============
+
+@router.get("/founders-edition")
+async def get_founders_edition():
+    """Get Founders Edition plan details and availability"""
+    from services.founders_config import (
+        get_founders_edition_config, 
+        FOUNDERS_EDITION_MAX_CUSTOMERS,
+        FOUNDERS_EDITION_MONTHLY_CREDITS,
+        FOUNDERS_PROMO_CODE
+    )
+    
+    # Count current founders
+    founders_count = await db.tenants.count_documents({"plan": "founders_edition"})
+    spots_remaining = max(0, FOUNDERS_EDITION_MAX_CUSTOMERS - founders_count)
+    
+    return {
+        "plan": get_founders_edition_config(),
+        "availability": {
+            "max_spots": FOUNDERS_EDITION_MAX_CUSTOMERS,
+            "spots_claimed": founders_count,
+            "spots_remaining": spots_remaining,
+            "is_available": spots_remaining > 0
+        },
+        "promo_code": {
+            "code": FOUNDERS_PROMO_CODE,
+            "description": "Pay for 6 months, get 12 months of access",
+            "discount_percent": 50  # Effectively 50% off annual
+        },
+        "ai_credits": {
+            "monthly_allowance": FOUNDERS_EDITION_MONTHLY_CREDITS,
+            "expires_monthly": True,
+            "packs_available": True
+        }
+    }
+
+
+@router.post("/founders-edition/validate-promo")
+async def validate_founders_promo_code(
+    code: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Validate the FOUNDERS promo code"""
+    from services.founders_config import FOUNDERS_PROMO_CODE, FOUNDERS_EDITION_MAX_CUSTOMERS
+    
+    # Check if code matches
+    if code.upper() != FOUNDERS_PROMO_CODE:
+        return {
+            "valid": False,
+            "reason": "Invalid promo code"
+        }
+    
+    # Check if user already used this code
+    existing_usage = await db.promo_code_usage.find_one({
+        "tenant_id": current_user.tenant_id,
+        "promo_code": FOUNDERS_PROMO_CODE
+    })
+    if existing_usage:
+        return {
+            "valid": False,
+            "reason": "You have already used this promo code"
+        }
+    
+    # Check if spots available
+    founders_count = await db.tenants.count_documents({"plan": "founders_edition"})
+    if founders_count >= FOUNDERS_EDITION_MAX_CUSTOMERS:
+        return {
+            "valid": False,
+            "reason": "All Founders Edition spots have been claimed"
+        }
+    
+    return {
+        "valid": True,
+        "discount": {
+            "type": "annual_50_percent",
+            "description": "Pay for 6 months, get 12 months",
+            "original_annual": 1188.00,  # $99 x 12
+            "discounted_annual": 594.00   # $99 x 6
+        },
+        "spots_remaining": FOUNDERS_EDITION_MAX_CUSTOMERS - founders_count
+    }
+

@@ -1315,6 +1315,74 @@ Added ability to create products directly from the store's Products tab:
 
 ---
 
+## Founders Edition Plan & AI Credit System (Mar 3, 2026)
+
+### Founders Edition Plan
+- **Price:** $99/month
+- **Annual Option:** Pay for 6 months ($594), get 12 months with promo code `FOUNDERS`
+- **Limited to:** 100 customers total (one-time use per customer)
+- **Features:** All features included, no restrictions
+- **AI Credits:** 150 credits per month
+
+### AI Credit System
+**Credit Balances:**
+- Monthly credits: 150/month (expire at month end, auto-refill)
+- Purchased credits: Never expire
+
+**Credit Packs (via Stripe):**
+- Starter Pack: 100 credits for $10 ($0.10/credit)
+- Value Pack: 300 credits for $25 ($0.083/credit) - 17% savings
+- Power Pack: 1000 credits for $60 ($0.06/credit) - 40% savings
+
+**Credit Costs per AI Action:**
+- Text generation: 1 credit
+- Blog creator: 2 credits
+- Social media post: 1 credit
+- Image generation: 3 credits
+- AI assistant query: 1-2 credits
+- Branding kit: 3 credits
+- Campaign builder: 2 credits
+(User will configure exact values)
+
+**Usage Priority:** Monthly credits consumed first, then purchased credits
+
+### New Files Created
+- `backend/models/credits.py` - Credit models (UserCredits, CreditTransaction, etc.)
+- `backend/routes/credits.py` - Credit management API endpoints
+- `backend/services/founders_config.py` - Founders Edition configuration
+- `backend/services/credit_service.py` - Credit check/deduction helper
+- `frontend/src/components/credits/CreditBalance.js` - Credit balance UI component
+
+### API Endpoints Added
+- `GET /api/credits/balance` - Get current credit balance
+- `POST /api/credits/use` - Use credits for AI action
+- `GET /api/credits/packs` - Get available credit packs
+- `POST /api/credits/purchase` - Create Stripe checkout for credit pack
+- `GET /api/credits/history` - Get credit transaction history
+- `GET /api/credits/costs` - Get all AI action credit costs
+- `GET /api/plans/founders-edition` - Get Founders Edition plan details
+- `POST /api/plans/founders-edition/validate-promo` - Validate FOUNDERS promo code
+
+### Frontend Updates
+- Added `CreditBalance` component to top navigation bar
+- Shows total credits with coin icon
+- Low credits warning when balance drops below 20
+- Click to open purchase modal with pack options
+
+### Database Collections
+- `user_credits` - Credit balances per tenant
+- `credit_transactions` - Transaction history/audit log
+- `promo_code_usage` - Track promo code usage per tenant
+
+### Testing Status
+- Credit balance API: Verified
+- Credit usage/deduction: Verified
+- Credit pack purchase flow: Ready (Stripe integration)
+- Credit display in UI: Verified with screenshots
+- AI routes integrated with credit system
+
+---
+
 ## Last Updated
 March 2026
 

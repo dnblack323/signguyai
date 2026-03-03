@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, Bell, HelpCircle, LogOut, Settings, User, ChevronDown } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
+import { CreditBalance } from '../credits/CreditBalance';
 
 export const TopAppBar = ({ onMobileMenuClick }) => {
   const navigate = useNavigate();
@@ -68,6 +69,9 @@ export const TopAppBar = ({ onMobileMenuClick }) => {
             </button>
           )}
         </div>
+
+        {/* AI Credits Balance */}
+        <CreditBalance compact={true} />
 
         {/* Notifications */}
         <button
