@@ -13,6 +13,18 @@ import {
   PieChart, CreditCard, UserCheck, Building2, Layers
 } from 'lucide-react';
 
+// Feature screenshots mapping
+const featureScreenshots = {
+  'customers': '/screenshots/feature_customers.jpeg',
+  'jobs': '/screenshots/feature_jobs.jpeg',
+  'quotes': '/screenshots/feature_quotes.jpeg',
+  'invoicing': '/screenshots/feature_invoices.jpeg',
+  'webstores': '/screenshots/feature_webstores.jpeg',
+  'ai': '/screenshots/feature_ai_tools.jpeg',
+  'settings': '/screenshots/feature_settings.jpeg',
+  'dashboard': '/screenshots/feature_dashboard.jpeg',
+};
+
 export default function FeaturesPage() {
   const [activeCategory, setActiveCategory] = useState('all');
 
@@ -337,12 +349,20 @@ export default function FeaturesPage() {
               
               <div className={`${index % 2 === 1 ? 'lg:order-1' : ''}`}>
                 <div className={`bg-gradient-to-br ${feature.color} p-1 rounded-2xl`}>
-                  <div className="bg-[#111826] rounded-xl p-8 h-full min-h-[300px] flex items-center justify-center">
-                    <div className="text-center">
-                      <feature.icon className="w-24 h-24 text-white/20 mx-auto mb-4" />
-                      <p className="text-gray-500">Screenshot coming soon</p>
+                  {featureScreenshots[feature.id] ? (
+                    <img 
+                      src={featureScreenshots[feature.id]} 
+                      alt={`${feature.title} screenshot`}
+                      className="w-full h-auto rounded-xl"
+                    />
+                  ) : (
+                    <div className="bg-[#111826] rounded-xl p-8 h-full min-h-[300px] flex items-center justify-center">
+                      <div className="text-center">
+                        <feature.icon className="w-24 h-24 text-white/20 mx-auto mb-4" />
+                        <p className="text-gray-500">Screenshot coming soon</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -357,17 +377,17 @@ export default function FeaturesPage() {
             Ready to Try These Features?
           </h2>
           <p className="text-xl text-gray-400 mb-8">
-            Start your free trial and see why sign shops are switching to SignGuy AI.
+            Join the Founding 100 and get lifetime access to all features.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/login">
-              <Button size="lg" className="bg-[#2F8BFB] hover:bg-[#1E7AF0] text-white font-semibold text-lg px-8 py-6 h-auto">
-                Start Your Free Trial
+            <Link to="/register">
+              <Button size="lg" className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-semibold text-lg px-8 py-6 h-auto">
+                Get Founders Edition
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>
             <Link to="/pricing">
-              <Button size="lg" variant="outline" className="border-[#2F8BFB]/30 text-[#2F8BFB] text-lg px-8 py-6 h-auto hover:bg-[#2F8BFB]/10">
+              <Button size="lg" variant="outline" className="border-amber-500/30 text-amber-400 text-lg px-8 py-6 h-auto hover:bg-amber-500/10">
                 View Pricing
               </Button>
             </Link>

@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
 import { PublicNav, PublicFooter } from '../components/PublicNav';
 import {
   Users, FileText, Receipt, Clock, DollarSign, Sparkles,
   BarChart3, Store, CheckCircle2, ArrowRight, Building2, Cpu,
-  Briefcase, Calendar, ChevronDown
+  Briefcase, Calendar, ChevronDown, Crown, Coins
 } from 'lucide-react';
 
 export default function LandingPage() {
@@ -24,19 +25,19 @@ export default function LandingPage() {
   const faqs = [
     {
       q: 'What is SignGuy AI?',
-      a: 'SignGuy AI is a complete operating system for sign shops. It includes shop management (OS), e-commerce (Webstores), and AI tools (AI Studio) - all built specifically for the sign industry.'
+      a: 'SignGuy AI is a complete operating system for sign shops. It includes shop management, e-commerce webstores, and AI tools - all built specifically for the sign industry.'
     },
     {
-      q: 'How is it different from other sign shop software?',
-      a: 'Built by a sign shop owner who understands the industry. Modern interface, AI-powered features, and includes everything from CRM to webstores in one platform.'
+      q: 'What is Founders Edition?',
+      a: 'Founders Edition is our exclusive early adopter plan limited to just 100 shops. You get lifetime locked pricing at $99/month with all features included and 150 AI credits per month.'
     },
     {
-      q: 'Is there a free trial?',
-      a: 'Yes! Start with a 24-hour free trial, no credit card required. You can extend your trial for $19.99 which credits toward your first subscription.'
+      q: 'How do AI credits work?',
+      a: 'You get 150 AI credits each month. Different AI actions cost 1-3 credits. If you need more, you can buy credit packs that never expire. Monthly credits reset at the start of each billing period.'
     },
     {
-      q: 'Can I use just the webstore or just AI tools?',
-      a: 'Absolutely. We offer three products: OS (full shop management), Webstores (e-commerce only), and AI Studio (AI tools only). Choose what fits your needs.'
+      q: 'What are the fees?',
+      a: 'We charge 2.2% + $0.20 on payment transactions. Webstore sales have an additional 2% fee. These fees cover payment processing and platform costs.'
     },
   ];
 
@@ -44,17 +45,17 @@ export default function LandingPage() {
     <div className="min-h-screen bg-[#0B0F17] text-white">
       <PublicNav />
 
-      {/* Section 1: Hero - OS Focused */}
+      {/* Section 1: Hero - Founders Edition Focused */}
       <section className="pt-32 pb-20 px-4">
         <div className="max-w-5xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-full mb-6">
-            <Building2 className="w-4 h-4 text-blue-400" />
-            <span className="text-blue-400 text-sm font-medium">Built by a Sign Shop, For Sign Shops</span>
-          </div>
+          <Badge className="mb-6 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-400 border border-amber-500/30 px-4 py-1.5">
+            <Crown className="w-4 h-4 mr-2" />
+            Founders Edition - Only 100 Spots
+          </Badge>
           
           <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
             The AI-Powered Operating System<br />
-            <span className="text-blue-400">for Sign Shops</span>
+            <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">for Sign Shops</span>
           </h1>
           
           <p className="text-xl text-gray-400 max-w-3xl mx-auto mb-8">
@@ -63,84 +64,124 @@ export default function LandingPage() {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/login">
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg h-auto">
-                Start with OS
+            <Link to="/register">
+              <Button size="lg" className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-semibold px-8 py-6 text-lg h-auto">
+                Get Founders Edition
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>
-            <Link to="/webstores-overview">
+            <Link to="/features">
               <Button size="lg" variant="outline" className="border-white/20 !text-white hover:bg-white/10 hover:!text-white px-8 py-6 text-lg h-auto bg-transparent">
-                Explore Webstores
+                Explore Features
               </Button>
             </Link>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="mt-12 flex flex-wrap justify-center gap-8">
+            <div className="text-center">
+              <p className="text-3xl font-bold text-white">$99</p>
+              <p className="text-sm text-gray-500">per month</p>
+            </div>
+            <div className="text-center">
+              <p className="text-3xl font-bold text-white">150</p>
+              <p className="text-sm text-gray-500">AI credits/month</p>
+            </div>
+            <div className="text-center">
+              <p className="text-3xl font-bold text-white">100%</p>
+              <p className="text-sm text-gray-500">features included</p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Section 2: Three Product Blocks */}
+      {/* Section 2: What's Included */}
       <section className="py-20 px-4 bg-white/5">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-4">Three Products, One Ecosystem</h2>
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-4">Everything You Need, One Price</h2>
           <p className="text-gray-400 text-center mb-12 max-w-2xl mx-auto">
-            Choose the product that fits your needs, or combine them for the complete experience.
+            Founders Edition includes all features with no restrictions. No upsells, no tiers.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* OS Block */}
-            <Card className="bg-[#111826] text-white border-blue-500/30 hover:border-blue-500/50 transition-colors">
+            {/* Shop Management */}
+            <Card className="bg-[#111826] text-white border-amber-500/30">
               <CardContent className="p-8">
-                <div className="w-14 h-14 bg-blue-500/20 rounded-xl flex items-center justify-center mb-6">
-                  <Building2 className="w-7 h-7 text-blue-400" />
+                <div className="w-14 h-14 bg-amber-500/20 rounded-xl flex items-center justify-center mb-6">
+                  <Building2 className="w-7 h-7 text-amber-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">SignGuy AI OS</h3>
-                <p className="text-gray-400 mb-6">
-                  Complete shop management platform. Customers, jobs, invoices, payroll, webstores, and AI tools included.
+                <h3 className="text-xl font-bold text-white mb-3">Shop Management</h3>
+                <p className="text-gray-400 mb-4">
+                  Customers, jobs, quotes, invoices, payroll, time tracking, tasks, and reporting.
                 </p>
-                <Link to="/platform">
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                    Explore Platform
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </Link>
+                <ul className="space-y-2 text-sm text-gray-400">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                    Unlimited customers & jobs
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                    Online invoice payments
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                    Employee time clock
+                  </li>
+                </ul>
               </CardContent>
             </Card>
 
-            {/* Webstores Block */}
-            <Card className="bg-[#111826] text-white border-emerald-500/30 hover:border-emerald-500/50 transition-colors">
+            {/* Webstores */}
+            <Card className="bg-[#111826] text-white border-amber-500/30">
               <CardContent className="p-8">
-                <div className="w-14 h-14 bg-emerald-500/20 rounded-xl flex items-center justify-center mb-6">
-                  <Store className="w-7 h-7 text-emerald-400" />
+                <div className="w-14 h-14 bg-amber-500/20 rounded-xl flex items-center justify-center mb-6">
+                  <Store className="w-7 h-7 text-amber-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">SignGuy Webstores</h3>
-                <p className="text-gray-400 mb-6">
-                  Sell online with B2B stores, fundraisers, and creator shops. Perfect if you use other management software.
+                <h3 className="text-xl font-bold text-white mb-3">Webstores</h3>
+                <p className="text-gray-400 mb-4">
+                  Sell online with B2B stores, fundraisers, and creator shops. Stripe Connect included.
                 </p>
-                <Link to="/webstores-overview">
-                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
-                    Explore Webstores
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </Link>
+                <ul className="space-y-2 text-sm text-gray-400">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                    Unlimited stores
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                    Custom branding
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                    Automatic payouts
+                  </li>
+                </ul>
               </CardContent>
             </Card>
 
-            {/* AI Studio Block */}
-            <Card className="bg-[#111826] text-white border-purple-500/30 hover:border-purple-500/50 transition-colors">
+            {/* AI Tools */}
+            <Card className="bg-[#111826] text-white border-amber-500/30">
               <CardContent className="p-8">
-                <div className="w-14 h-14 bg-purple-500/20 rounded-xl flex items-center justify-center mb-6">
-                  <Cpu className="w-7 h-7 text-purple-400" />
+                <div className="w-14 h-14 bg-amber-500/20 rounded-xl flex items-center justify-center mb-6">
+                  <Sparkles className="w-7 h-7 text-amber-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">SignGuy AI Studio</h3>
-                <p className="text-gray-400 mb-6">
-                  Access our full AI toolkit standalone. Text generation, image creation, and business assistant.
+                <h3 className="text-xl font-bold text-white mb-3">AI Tools</h3>
+                <p className="text-gray-400 mb-4">
+                  15+ AI tools for text, images, mockups, and business intelligence.
                 </p>
-                <Link to="/ai-studio">
-                  <Button className="w-full bg-purple-600 hover:bg-purple-700">
-                    Explore AI Studio
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </Link>
+                <ul className="space-y-2 text-sm text-gray-400">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                    150 credits/month
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                    Image generation
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                    AI business assistant
+                  </li>
+                </ul>
               </CardContent>
             </Card>
           </div>
@@ -160,8 +201,8 @@ export default function LandingPage() {
               const Icon = feature.icon;
               return (
                 <div key={feature.title} className="p-6 bg-white/5 border border-white/10 rounded-xl">
-                  <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mb-4">
-                    <Icon className="w-6 h-6 text-blue-400" />
+                  <div className="w-12 h-12 bg-amber-500/20 rounded-lg flex items-center justify-center mb-4">
+                    <Icon className="w-6 h-6 text-amber-400" />
                   </div>
                   <h3 className="font-semibold mb-2">{feature.title}</h3>
                   <p className="text-sm text-gray-400">{feature.desc}</p>
@@ -171,8 +212,8 @@ export default function LandingPage() {
           </div>
 
           <div className="text-center mt-12">
-            <Link to="/platform">
-              <Button variant="outline" className="border-white/20 !text-white hover:bg-white/10 hover:!text-white bg-transparent">
+            <Link to="/features">
+              <Button variant="outline" className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 bg-transparent">
                 See All Features
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
@@ -181,24 +222,25 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Section 4: CTA - OS Primary */}
-      <section className="py-20 px-4 bg-gradient-to-b from-blue-900/20 to-transparent">
+      {/* Section 4: CTA - Founders Edition */}
+      <section className="py-20 px-4 bg-gradient-to-b from-amber-900/20 to-transparent">
         <div className="max-w-4xl mx-auto text-center">
+          <Crown className="w-12 h-12 mx-auto mb-4 text-amber-400" />
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Ready to Transform Your Sign Shop?
+            Join the Founding 100
           </h2>
           <p className="text-xl text-gray-400 mb-8">
-            Join hundreds of sign shops running on SignGuy AI. Start your free trial today.
+            Lock in $99/month forever. All features included. Limited spots available.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/login">
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg h-auto">
-                Start Free Trial
+            <Link to="/register">
+              <Button size="lg" className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-semibold px-8 py-6 text-lg h-auto">
+                Get Founders Edition
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>
             <Link to="/pricing">
-              <Button size="lg" variant="outline" className="border-white/20 !text-white hover:bg-white/10 hover:!text-white px-8 py-6 text-lg h-auto bg-transparent">
+              <Button size="lg" variant="outline" className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-8 py-6 text-lg h-auto bg-transparent">
                 View Pricing
               </Button>
             </Link>
