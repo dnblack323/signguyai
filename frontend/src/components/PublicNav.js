@@ -7,6 +7,7 @@ import { Menu, X } from 'lucide-react';
 // Legacy nav config saved at: /src/config/legacyNavConfig.js
 const navLinks = [
   { href: '/features', label: 'Features' },
+  { href: '/why-founder', label: 'Why Be a Founder' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/docs', label: 'Docs' },
 ];

@@ -70,6 +70,7 @@ import LandingPage from "./pages/LandingPage";
 import FeaturesPage from "./pages/FeaturesPage";
 import PricingPagePublic from "./pages/PricingPagePublic";
 import FoundersEditionPricing from "./pages/FoundersEditionPricing";
+import WhyFounderPage from "./pages/WhyFounderPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 
@@ -186,6 +187,7 @@ function App() {
                 <Route path="/pricing" element={<FoundersEditionPricing />} />
                 <Route path="/pricing-legacy" element={<PricingPagePublic />} />
                 <Route path="/founders" element={<FoundersEditionPricing />} />
+                <Route path="/why-founder" element={<WhyFounderPage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/contact" element={<ContactPage />} />
                 
