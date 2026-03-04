@@ -497,69 +497,67 @@ export function JobsList() {
               />
             </div>
 
-            {/* Line Items for Quote mode */}
-            {createMode === 'quote' && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label>Line Items</Label>
-                  <div className="flex gap-2">
-                    <PricingCalculatorButton 
-                      onClick={() => setShowPricingCalculator(true)} 
-                      variant="outline"
-                      size="sm"
+            {/* Line Items - shown for both Quote and Job modes */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Line Items</Label>
+                <div className="flex gap-2">
+                  <PricingCalculatorButton 
+                    onClick={() => setShowPricingCalculator(true)} 
+                    variant="outline"
+                    size="sm"
+                  />
+                  <Button type="button" variant="outline" size="sm" onClick={addLineItem}>
+                    <Plus className="h-3 w-3 mr-1" /> Add Item
+                  </Button>
+                </div>
+              </div>
+              {formData.line_items.map((item, idx) => (
+                <div key={idx} className="grid grid-cols-12 gap-2 items-end">
+                  <div className="col-span-6">
+                    <Input
+                      placeholder="Description"
+                      value={item.description}
+                      onChange={(e) => updateLineItem(idx, 'description', e.target.value)}
+                      data-testid={`line-item-desc-${idx}`}
                     />
-                    <Button type="button" variant="outline" size="sm" onClick={addLineItem}>
-                      <Plus className="h-3 w-3 mr-1" /> Add Item
+                  </div>
+                  <div className="col-span-2">
+                    <Input
+                      type="number"
+                      placeholder="Qty"
+                      value={item.quantity}
+                      onChange={(e) => updateLineItem(idx, 'quantity', e.target.value)}
+                      data-testid={`line-item-qty-${idx}`}
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Price"
+                      value={item.unit_price}
+                      onChange={(e) => updateLineItem(idx, 'unit_price', e.target.value)}
+                      data-testid={`line-item-price-${idx}`}
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeLineItem(idx)}
+                      disabled={formData.line_items.length === 1}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
                 </div>
-                {formData.line_items.map((item, idx) => (
-                  <div key={idx} className="grid grid-cols-12 gap-2 items-end">
-                    <div className="col-span-6">
-                      <Input
-                        placeholder="Description"
-                        value={item.description}
-                        onChange={(e) => updateLineItem(idx, 'description', e.target.value)}
-                        data-testid={`line-item-desc-${idx}`}
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <Input
-                        type="number"
-                        placeholder="Qty"
-                        value={item.quantity}
-                        onChange={(e) => updateLineItem(idx, 'quantity', e.target.value)}
-                        data-testid={`line-item-qty-${idx}`}
-                      />
-                    </div>
-                    <div className="col-span-3">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="Price"
-                        value={item.unit_price}
-                        onChange={(e) => updateLineItem(idx, 'unit_price', e.target.value)}
-                        data-testid={`line-item-price-${idx}`}
-                      />
-                    </div>
-                    <div className="col-span-1">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeLineItem(idx)}
-                        disabled={formData.line_items.length === 1}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                <div className="text-right font-bold text-lg">
-                  Total: {formatCurrency(calculateTotal())}
-                </div>
+              ))}
+              <div className="text-right font-bold text-lg">
+                Total: {formatCurrency(calculateTotal())}
               </div>
-            )}
+            </div>
 
             <div className="space-y-2">
               <Label>Notes</Label>
