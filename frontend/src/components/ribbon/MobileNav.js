@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   X, LayoutDashboard, Briefcase, FileText, Receipt, Users, 
@@ -7,6 +7,10 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
+import { useApp } from '../../context/AppContext';
+
+// Default SignGuy AI logo
+const DEFAULT_LOGO = "https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/k3asaz65_sgai%20long.png";
 
 const mobileNavItems = [
   { 
@@ -92,7 +96,12 @@ export const MobileNav = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { tenant } = useApp();
   const [expandedItem, setExpandedItem] = useState(null);
+
+  // Use tenant logo if available
+  const logoUrl = tenant?.logo_url || DEFAULT_LOGO;
+  const logoAlt = tenant?.name || 'SignGuy AI';
 
   const handleNavClick = (item) => {
     if (item.actions.length > 0) {
@@ -130,9 +139,9 @@ export const MobileNav = ({ isOpen, onClose }) => {
         {/* Header */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200">
           <img 
-            src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/k3asaz65_sgai%20long.png" 
-            alt="SignGuy AI" 
-            className="h-7 w-auto"
+            src={logoUrl} 
+            alt={logoAlt} 
+            className="h-7 w-auto max-w-[140px] object-contain"
           />
           <button
             onClick={onClose}

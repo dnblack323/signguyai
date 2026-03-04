@@ -38,6 +38,7 @@ export const AppProvider = ({ children }) => {
   const [employees, setEmployees] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [dashboardStats, setDashboardStats] = useState(null);
+  const [tenant, setTenant] = useState(null);
   const [loading, setLoading] = useState(false);
 
   // Customers
@@ -601,13 +602,26 @@ export const AppProvider = ({ children }) => {
   };
 
   // Tenant / Company Settings
+  const fetchTenant = async () => {
+    try {
+      const res = await api.get(`/tenant`);
+      setTenant(res.data);
+      return res.data;
+    } catch (err) {
+      console.error('Error fetching tenant:', err);
+      return null;
+    }
+  };
+
   const getTenant = async () => {
     const res = await api.get(`/tenant`);
+    setTenant(res.data);
     return res.data;
   };
 
   const updateTenant = async (data) => {
-    const res = await api.put(`/tenant/settings`, data);
+    const res = await api.put(`/tenant`, data);
+    setTenant(res.data);
     return res.data;
   };
 
@@ -626,7 +640,7 @@ export const AppProvider = ({ children }) => {
     // Raw API instance for custom calls
     api,
     // State
-    customers, quotes, jobs, invoices, employees, tasks, dashboardStats, loading,
+    customers, quotes, jobs, invoices, employees, tasks, dashboardStats, tenant, loading,
     setLoading,
     // Customer actions
     fetchCustomers, createCustomer, updateCustomer, deleteCustomer,
@@ -674,7 +688,7 @@ export const AppProvider = ({ children }) => {
     // Webstore Analytics
     getWebstoreAnalytics,
     // Tenant / Company Settings
-    getTenant, updateTenant,
+    tenant, fetchTenant, getTenant, updateTenant,
     // Stripe Connect
     getStripeConnectStatus, createStripeConnectAccount
   };

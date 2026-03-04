@@ -18,7 +18,7 @@ export default function CompanySettings() {
   const canViewSettings = hasPermission(Permission.SETTINGS_VIEW) || isOwner();
   const canEditSettings = hasPermission(Permission.SETTINGS_EDIT) || isOwner();
   
-  const { getTenant, updateTenant } = useApp();
+  const { getTenant, updateTenant, fetchTenant } = useApp();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [tenant, setTenant] = useState(null);
@@ -206,7 +206,11 @@ export default function CompanySettings() {
       // Update local state with new logo
       setFormData({ ...formData, logo_url: response.data.logo_url });
       setTenant({ ...tenant, logo_url: response.data.logo_url });
-      toast.success('Logo uploaded successfully');
+      
+      // Update global tenant state so header logo updates immediately
+      await fetchTenant();
+      
+      toast.success('Logo uploaded successfully! Header logo updated.');
     } catch (err) {
       console.error('Error uploading logo:', err);
       toast.error(err.response?.data?.detail || 'Failed to upload logo');
@@ -233,7 +237,11 @@ export default function CompanySettings() {
       // Update local state
       setFormData({ ...formData, logo_url: '' });
       setTenant({ ...tenant, logo_url: null });
-      toast.success('Logo removed');
+      
+      // Update global tenant state so header logo reverts
+      await fetchTenant();
+      
+      toast.success('Logo removed. Header reverted to default.');
     } catch (err) {
       console.error('Error deleting logo:', err);
       toast.error('Failed to remove logo');

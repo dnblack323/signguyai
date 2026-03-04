@@ -1,16 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, Bell, HelpCircle, LogOut, Settings, User, ChevronDown } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
+import { useApp } from '../../context/AppContext';
 import { CreditBalance } from '../credits/CreditBalance';
+
+// Default SignGuy AI logo
+const DEFAULT_LOGO = "https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/k3asaz65_sgai%20long.png";
 
 export const TopAppBar = ({ onMobileMenuClick }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { tenant, fetchTenant } = useApp();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [profileOpen, setProfileOpen] = useState(false);
+
+  // Fetch tenant on mount to get logo
+  useEffect(() => {
+    if (!tenant) {
+      fetchTenant();
+    }
+  }, [tenant, fetchTenant]);
+
+  // Use tenant logo if available, otherwise default
+  const logoUrl = tenant?.logo_url || DEFAULT_LOGO;
+  const logoAlt = tenant?.name || 'SignGuy AI';
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -32,9 +48,9 @@ export const TopAppBar = ({ onMobileMenuClick }) => {
           data-testid="logo-home-btn"
         >
           <img 
-            src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/k3asaz65_sgai%20long.png" 
-            alt="SignGuy AI" 
-            className="h-8 w-auto object-contain"
+            src={logoUrl} 
+            alt={logoAlt} 
+            className="h-8 w-auto object-contain max-w-[180px]"
           />
         </button>
         
