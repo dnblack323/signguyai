@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Users, FileText, Briefcase, Receipt,
   Clock, DollarSign, CalendarDays, Sparkles, Store,
   Package, Shield, Building2, Settings, CreditCard,
-  Image as ImageIcon, Mail, Ticket, Plus, X, Check, Bot
+  Image as ImageIcon, Mail, Ticket, Plus, X, Check, Bot, MessageSquare
 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
@@ -69,6 +69,7 @@ const shortcutCategories = [
     shortcuts: [
       { id: 'documents', name: 'Documents', href: '/documents', icon: FileText },
       { id: 'approvals', name: 'Approvals', href: '/approvals', icon: ImageIcon },
+      { id: 'admin-portal', name: 'Communications', href: '/admin-portal', icon: MessageSquare },
     ]
   },
   {

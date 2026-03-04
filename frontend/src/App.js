@@ -54,6 +54,9 @@ import EmployeePortalPay from "./pages/EmployeePortalPay";
 import EmployeePortalTasks from "./pages/EmployeePortalTasks";
 import EmployeePortalProfile from "./pages/EmployeePortalProfile";
 
+// Admin Portal (Communications Hub)
+import AdminPortal from "./pages/AdminPortal";
+
 // Billing Pages
 import PricingPage from "./pages/PricingPage";
 import PricingPlansV2 from "./pages/PricingPlansV2";
@@ -145,6 +148,7 @@ function ProtectedRoutes() {
           <Route path="/jobs/:id" element={<JobDetails />} />
           <Route path="/invoices" element={<Invoices />} />
           <Route path="/approvals" element={<Approvals />} />
+          <Route path="/admin-portal" element={<AdminPortal />} />
           <Route path="/documents" element={<Documents />} />
           <Route path="/timeclock" element={<TimeClock />} />
           <Route path="/payroll" element={<Payroll />} />
