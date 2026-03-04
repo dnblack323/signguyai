@@ -288,17 +288,17 @@ export function JobsList() {
     }
   };
 
-  const resetForm = () => {
+  const resetForm = (mode = 'quote') => {
     setFormData({
       customer_id: '',
       name: '',
       description: '',
       notes: '',
-      status: 'quote',
+      status: mode === 'job' ? 'approved' : 'quote',
       due_date: '',
       line_items: [{ description: '', quantity: 1, unit_price: '' }]
     });
-    setCreateMode('quote');
+    setCreateMode(mode);
   };
 
   const handleStatusChange = async (jobId, newStatus) => {
@@ -378,7 +378,7 @@ export function JobsList() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem 
-                onClick={() => { setCreateMode('quote'); resetForm(); setIsDialogOpen(true); }}
+                onClick={() => { resetForm('quote'); setIsDialogOpen(true); }}
                 data-testid="new-quote-option"
               >
                 <FileText className="h-4 w-4 mr-2" />
@@ -386,7 +386,7 @@ export function JobsList() {
                 <span className="text-xs text-muted-foreground ml-2">(Pipeline)</span>
               </DropdownMenuItem>
               <DropdownMenuItem 
-                onClick={() => { setCreateMode('job'); resetForm(); setFormData(prev => ({ ...prev, status: 'approved' })); setIsDialogOpen(true); }}
+                onClick={() => { resetForm('job'); setIsDialogOpen(true); }}
                 data-testid="new-job-option"
               >
                 <Package className="h-4 w-4 mr-2" />
