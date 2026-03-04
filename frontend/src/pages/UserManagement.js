@@ -266,10 +266,10 @@ export default function UserManagement() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold font-heading uppercase tracking-tight" style={{ color: '#1A1A1A' }}>
+          <h1 className="text-3xl font-bold font-heading uppercase tracking-tight text-white">
             User Management
           </h1>
-          <p style={{ color: '#5A5A5A' }} className="mt-1">
+          <p className="text-slate-300 mt-1">
             Manage user accounts, roles, and permissions
           </p>
         </div>

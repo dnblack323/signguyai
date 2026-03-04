@@ -365,8 +365,8 @@ export default function Approvals() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Artwork Approvals</h1>
-          <p className="text-muted-foreground">Manage and track artwork proofs for customer approval</p>
+          <h1 className="text-3xl font-bold text-white">Artwork Approvals</h1>
+          <p className="text-slate-300">Manage and track artwork proofs for customer approval</p>
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

@@ -296,8 +296,8 @@ export default function CompanySettings() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: '#1A1A1A' }}>Company Settings</h1>
-          <p style={{ color: '#5A5A5A' }}>Manage your sign shop's information and preferences</p>
+          <h1 className="text-2xl font-bold text-white">Company Settings</h1>
+          <p className="text-slate-300">Manage your sign shop's information and preferences</p>
         </div>
         <div className="flex items-center gap-3">
           {planBadge(tenant.plan)}

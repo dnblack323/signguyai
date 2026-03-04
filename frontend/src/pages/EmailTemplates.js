@@ -109,10 +109,10 @@ export default function EmailTemplates() {
     <div className="space-y-6 animate-fade-in" data-testid="email-templates-page">
       {/* Header */}
       <div>
-        <h1 className="text-4xl font-bold font-heading uppercase tracking-tight" style={{ color: 'var(--text)' }}>
-          Email Templates
-        </h1>
-        <p className="text-muted-foreground mt-1">
+          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-white">
+            Email Templates
+          </h1>
+        <p className="text-slate-300 mt-1">
           Customize the emails sent to your customers
         </p>
       </div>

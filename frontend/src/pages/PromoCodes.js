@@ -188,10 +188,10 @@ export default function PromoCodes() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold font-heading" style={{ color: 'var(--text)' }}>
+          <h1 className="text-3xl font-bold font-heading text-white">
             Promo Codes
           </h1>
-          <p style={{ color: 'var(--text-muted)' }}>
+          <p className="text-slate-300">
             Create discount codes for friends and beta testers
           </p>
         </div>

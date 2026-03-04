@@ -344,8 +344,8 @@ export default function AdminPortal() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Communications Hub</h1>
-          <p className="text-slate-600">Manage customer communications, documents, and artwork approvals</p>
+          <h1 className="text-2xl font-bold text-white">Communications Hub</h1>
+          <p className="text-slate-300">Manage customer communications, documents, and artwork approvals</p>
         </div>
       </div>
 

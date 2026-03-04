@@ -561,7 +561,7 @@ export default function Dashboard() {
         <div>
           <div className="flex items-center gap-2 sm:gap-3 mb-1">
             <GreetingIcon className={`h-6 w-6 sm:h-7 sm:w-7 ${greeting.color}`} />
-            <h1 className="text-2xl sm:text-3xl font-bold font-heading tracking-tight" style={{ color: 'var(--text)' }}>
+            <h1 className="text-2xl sm:text-3xl font-bold font-heading tracking-tight text-white">
               {greeting.text}, {user?.full_name?.split(' ')[0] || 'there'}!
             </h1>
             <FoundersBadge size="small" />

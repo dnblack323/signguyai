@@ -368,8 +368,8 @@ export default function Products() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight" style={{ color: 'var(--text)' }}>Product Catalog</h1>
-          <p className="text-muted-foreground mt-1">Master catalog of products for all webstores</p>
+          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-white">Product Catalog</h1>
+          <p className="text-slate-300 mt-1">Master catalog of products for all webstores</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={(open) => { if (!open) resetForm(); setIsDialogOpen(open); }}>
           <DialogTrigger asChild>

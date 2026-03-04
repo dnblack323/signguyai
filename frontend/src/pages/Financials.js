@@ -194,8 +194,8 @@ export default function Financials() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight" style={{ color: 'var(--text)' }}>Financials</h1>
-          <p className="text-muted-foreground mt-1">Track sales, expenses, and taxes</p>
+          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-white">Financials</h1>
+          <p className="text-slate-300 mt-1">Track sales, expenses, and taxes</p>
         </div>
         <div className="flex gap-2">
           <Dialog open={isSalesDialogOpen} onOpenChange={setIsSalesDialogOpen}>
