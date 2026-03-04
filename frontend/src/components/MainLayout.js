@@ -55,12 +55,12 @@ export const MainLayout = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Fixed Header */}
+    <div className="min-h-screen" style={{ backgroundColor: '#0f172a' }}>
+      {/* Fixed Header - Light */}
       <header 
         className={cn(
           "fixed top-0 left-0 right-0 z-40 bg-white transition-shadow",
-          scrolled && "shadow-sm"
+          scrolled && "shadow-md"
         )}
       >
         {/* Mobile Header */}
@@ -106,19 +106,28 @@ export const MainLayout = ({ children }) => {
         <TrialCountdown />
       </div>
 
-      {/* Main Content */}
+      {/* Main Content - Dark Shell Background */}
       <main 
         className="min-h-screen transition-all"
         style={{ 
           paddingTop: typeof window !== 'undefined' && window.innerWidth >= 1024 
             ? HEADER_HEIGHT 
-            : MOBILE_HEADER_HEIGHT 
+            : MOBILE_HEADER_HEIGHT,
+          backgroundColor: '#0f172a'
         }}
       >
-        {/* Content wrapper */}
-        <div className="p-6 lg:p-8">
-          <div className="max-w-[1600px] mx-auto">
-            {children}
+        {/* Content wrapper - centered with max-width, dark shell visible around */}
+        <div className="p-4 lg:p-6">
+          <div className="max-w-[1400px] mx-auto">
+            {/* Light content container */}
+            <div 
+              className="bg-white rounded-xl shadow-lg p-6 lg:p-8"
+              style={{ 
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+              }}
+            >
+              {children}
+            </div>
           </div>
         </div>
       </main>
