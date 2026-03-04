@@ -196,7 +196,7 @@ export default function CompanySettings() {
       formDataUpload.append('file', file);
 
       const token = localStorage.getItem('auth_token');
-      const response = await axios.post(`${API}/api/tenant/upload-logo`, formDataUpload, {
+      const response = await axios.post(`${API}/tenant/upload-logo`, formDataUpload, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -229,7 +229,7 @@ export default function CompanySettings() {
     setUploadingLogo(true);
     try {
       const token = localStorage.getItem('auth_token');
-      await axios.delete(`${API}/api/tenant/logo`, {
+      await axios.delete(`${API}/tenant/logo`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
 
