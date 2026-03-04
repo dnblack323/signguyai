@@ -650,6 +650,250 @@ async def get_webstore(
     return webstore
 
 
+@webstores_router.get("/{webstore_id}/analytics")
+async def get_webstore_analytics(
+    webstore_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """
+    Get analytics data for a webstore.
+    Returns summary stats, sales trends, top products, and fundraiser metrics if applicable.
+    """
+    from datetime import timedelta
+    
+    # Verify webstore exists and belongs to tenant
+    webstore = await db.webstores_v2.find_one(
+        {"id": webstore_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+    
+    # Get all orders for this webstore
+    orders = await db.webstore_orders_v2.find(
+        {"webstore_id": webstore_id},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    # Calculate summary stats
+    total_orders = len(orders)
+    total_revenue = sum(o.get("subtotal", 0) for o in orders)
+    total_cost = sum(o.get("total_cost", 0) for o in orders)
+    total_profit = sum(o.get("total_profit", 0) for o in orders)
+    total_commission = sum(o.get("commission_amount", 0) for o in orders)
+    
+    # Shop profit = total profit - commission paid to store owner
+    shop_profit = total_profit - total_commission
+    
+    pending_orders = len([o for o in orders if o.get("status") in ["pending", "processing"]])
+    completed_orders = len([o for o in orders if o.get("status") == "completed"])
+    
+    avg_order_value = total_revenue / total_orders if total_orders > 0 else 0
+    
+    # Calculate sales by day (last 14 days)
+    now = datetime.now(timezone.utc)
+    sales_by_day = []
+    for i in range(13, -1, -1):
+        day = now - timedelta(days=i)
+        day_str = day.strftime("%Y-%m-%d")
+        day_label = day.strftime("%b %d")
+        
+        # Sum sales for this day
+        day_total = 0
+        for order in orders:
+            order_date = order.get("created_at", "")
+            if order_date and order_date.startswith(day_str):
+                day_total += order.get("subtotal", 0)
+        
+        sales_by_day.append({
+            "date": day_str,
+            "label": day_label,
+            "amount": day_total
+        })
+    
+    # Calculate top products
+    product_sales = {}
+    for order in orders:
+        for item in order.get("items", []):
+            pid = item.get("product_id")
+            if pid:
+                if pid not in product_sales:
+                    product_sales[pid] = {
+                        "product_id": pid,
+                        "product_name": item.get("product_name", "Unknown"),
+                        "quantity_sold": 0,
+                        "total_revenue": 0
+                    }
+                product_sales[pid]["quantity_sold"] += item.get("quantity", 0)
+                product_sales[pid]["total_revenue"] += item.get("item_total", 0)
+    
+    # Sort by revenue and take top 5
+    top_products = sorted(
+        product_sales.values(),
+        key=lambda x: x["total_revenue"],
+        reverse=True
+    )[:5]
+    
+    # Transform to match frontend expectations (name, quantity, revenue)
+    top_products_formatted = [
+        {
+            "product_id": p["product_id"],
+            "name": p["product_name"],
+            "quantity": p["quantity_sold"],
+            "revenue": p["total_revenue"]
+        }
+        for p in top_products
+    ]
+    
+    # Payout info
+    total_owed = webstore.get("payout_owed", 0)
+    total_paid = webstore.get("payout_paid", 0)
+    
+    payout_info = {
+        "total_owed": total_owed,
+        "total_paid": total_paid,
+        "pending_payout": total_owed,
+        "commission_rate": webstore.get("fundraiser_profit_percent", 0) if webstore.get("store_type") == "fundraiser" else webstore.get("creator_commission_value", 0)
+    }
+    
+    # Fundraiser metrics (if applicable)
+    fundraiser_metrics = None
+    if webstore.get("store_type") == "fundraiser":
+        goal = webstore.get("fundraiser_goal", 0) or 0
+        raised = total_commission  # What the fundraiser has earned
+        progress_percent = (raised / goal * 100) if goal > 0 else 0
+        
+        # Calculate days remaining
+        days_remaining = None
+        end_date_str = webstore.get("fundraiser_end_date")
+        if end_date_str:
+            try:
+                # Handle both ISO format and date-only format
+                if "T" in end_date_str:
+                    end_date = datetime.fromisoformat(end_date_str.replace("Z", "+00:00"))
+                else:
+                    end_date = datetime.strptime(end_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                days_remaining = max(0, (end_date - now).days)
+            except:
+                pass
+        
+        fundraiser_metrics = {
+            "goal": goal,
+            "raised": raised,
+            "progress_percent": min(progress_percent, 100),  # Cap at 100%
+            "days_remaining": days_remaining,
+            "profit_percent": webstore.get("fundraiser_profit_percent", 0)
+        }
+    
+    return {
+        "summary": {
+            "total_revenue": total_revenue,
+            "total_orders": total_orders,
+            "pending_orders": pending_orders,
+            "completed_orders": completed_orders,
+            "total_profit": total_profit,
+            "shop_profit": shop_profit,
+            "avg_order_value": avg_order_value
+        },
+        "payout_info": payout_info,
+        "sales_by_day": sales_by_day,
+        "top_products": top_products_formatted,
+        "fundraiser_metrics": fundraiser_metrics
+    }
+
+
+@webstores_router.get("/{webstore_id}/payouts")
+async def get_webstore_payouts(
+    webstore_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """
+    Get payout history for a webstore.
+    Returns list of recorded payouts.
+    """
+    # Verify webstore exists and belongs to tenant
+    webstore = await db.webstores_v2.find_one(
+        {"id": webstore_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+    
+    # Get payouts from collection
+    payouts = await db.webstore_payouts.find(
+        {"webstore_id": webstore_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    return payouts
+
+
+@webstores_router.post("/{webstore_id}/record-payout")
+async def record_webstore_payout(
+    webstore_id: str,
+    amount: float,
+    notes: str = None,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """
+    Record a payout to the webstore owner.
+    Updates the webstore's payout_owed and payout_paid fields.
+    """
+    # Verify webstore exists and belongs to tenant
+    webstore = await db.webstores_v2.find_one(
+        {"id": webstore_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+    
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Payout amount must be positive")
+    
+    # Calculate new totals
+    current_owed = webstore.get("payout_owed", 0)
+    current_paid = webstore.get("payout_paid", 0)
+    
+    if amount > current_owed:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Payout amount (${amount:.2f}) exceeds amount owed (${current_owed:.2f})"
+        )
+    
+    # Create payout record
+    payout = {
+        "id": str(uuid.uuid4()),
+        "webstore_id": webstore_id,
+        "tenant_id": current_user.tenant_id,
+        "amount": amount,
+        "notes": notes,
+        "recorded_by": current_user.email,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.webstore_payouts.insert_one(payout)
+    
+    # Update webstore balances
+    await db.webstores_v2.update_one(
+        {"id": webstore_id},
+        {
+            "$set": {
+                "payout_owed": current_owed - amount,
+                "payout_paid": current_paid + amount,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    logger.info(f"Recorded payout of ${amount:.2f} for webstore {webstore_id}")
+    
+    return {
+        "message": "Payout recorded",
+        "payout_id": payout["id"],
+        "new_balance_owed": current_owed - amount,
+        "total_paid": current_paid + amount
+    }
+
+
 @webstores_router.put("/{webstore_id}", response_model=Webstore)
 async def update_webstore(
     webstore_id: str, 
