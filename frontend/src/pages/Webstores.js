@@ -134,6 +134,9 @@ export default function Webstores() {
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const bannerInputRef = useRef(null);
   
+  // Create store loading state (prevent double-click)
+  const [creatingStore, setCreatingStore] = useState(false);
+  
   // Form state
   const [formData, setFormData] = useState({
     name: '',
@@ -230,6 +233,7 @@ export default function Webstores() {
     setLogoFile(null);
     setBannerPreview(null);
     setBannerFile(null);
+    setCreatingStore(false);
   };
 
   // Handle logo file selection
@@ -352,6 +356,11 @@ export default function Webstores() {
       toast.error('Store name and owner are required');
       return;
     }
+    
+    // Prevent double-click
+    if (creatingStore) return;
+    setCreatingStore(true);
+    
     try {
       const newStore = await createWebstore(formData);
       
@@ -380,7 +389,10 @@ export default function Webstores() {
       resetForm();
       await loadData();
     } catch (err) {
-      toast.error('Failed to create webstore');
+      console.error('Failed to create webstore:', err);
+      toast.error(err.response?.data?.detail || 'Failed to create webstore');
+    } finally {
+      setCreatingStore(false);
     }
   };
 
@@ -1093,10 +1105,19 @@ export default function Webstores() {
               </div>
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)} disabled={creatingStore}>
                 Cancel
               </Button>
-              <Button type="submit" data-testid="store-submit-btn">Create Store</Button>
+              <Button type="submit" data-testid="store-submit-btn" disabled={creatingStore}>
+                {creatingStore ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Store'
+                )}
+              </Button>
             </div>
           </form>
         </DialogContent>
