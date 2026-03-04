@@ -163,13 +163,24 @@ export function JobsList() {
     const isNew = searchParams.get('new') === 'true';
     const customerId = searchParams.get('customer_id');
     const customerName = searchParams.get('customer_name');
+    const jobType = searchParams.get('type'); // 'quote' or 'job'
     
     if (isNew) {
+      // Set the create mode - default to 'job' if coming from customer page, otherwise check URL param
+      const mode = jobType === 'quote' ? 'quote' : 'job';
+      setCreateMode(mode);
+      
       // Pre-fill customer if provided
       if (customerId) {
         setFormData(prev => ({
           ...prev,
-          customer_id: customerId
+          customer_id: customerId,
+          status: mode === 'job' ? 'approved' : 'quote'
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          status: mode === 'job' ? 'approved' : 'quote'
         }));
       }
       
@@ -180,7 +191,7 @@ export function JobsList() {
       setSearchParams({});
       
       if (customerName) {
-        toast.info(`Creating job for ${decodeURIComponent(customerName)}`);
+        toast.info(`Creating ${mode} for ${decodeURIComponent(customerName)}`);
       }
     }
   }, [searchParams]);
