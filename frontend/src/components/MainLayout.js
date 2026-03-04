@@ -115,9 +115,6 @@ export const MainLayout = ({ children }) => {
             : MOBILE_HEADER_HEIGHT 
         }}
       >
-        {/* Desktop padding */}
-        <div className="hidden lg:block" style={{ height: HEADER_HEIGHT - 64 }} />
-        
         {/* Content wrapper */}
         <div className="p-6 lg:p-8">
           <div className="max-w-[1600px] mx-auto">
