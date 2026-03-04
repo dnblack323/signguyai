@@ -12,16 +12,19 @@ import { Separator } from './ui/separator';
 import { formatCurrency, formatDate, getStatusColor } from '../lib/utils';
 import { 
   Printer, X, Building2, Receipt, Calendar, 
-  Phone, Mail, CheckCircle, AlertTriangle, Sparkles
+  Phone, Mail, CheckCircle, AlertTriangle, Sparkles, Send
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AIEmailComposer from './AIEmailComposer';
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
   const { customers, fetchCustomers, jobs, fetchJobs } = useApp();
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAIEmail, setShowAIEmail] = useState(false);
+  const [sendingToPortal, setSendingToPortal] = useState(false);
 
   useEffect(() => {
     if (isOpen && invoiceId) {
@@ -88,6 +91,36 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
     }
   };
 
+  const handleSendToPortal = async () => {
+    if (!invoice) return;
+    setSendingToPortal(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch(`${API}/invoices/${invoice.id}/send-to-portal`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || 'Failed to send to portal');
+      }
+      
+      const data = await res.json();
+      toast.success(`Invoice sent to ${data.customer_name}'s portal`);
+      
+      // Reload invoice to update portal status
+      await loadInvoice();
+    } catch (err) {
+      toast.error(err.message || 'Failed to send invoice to portal');
+    } finally {
+      setSendingToPortal(false);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent 
@@ -112,6 +145,17 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
               </Button>
               <Button variant="outline" size="sm" onClick={handleEmail} data-testid="email-invoice-btn">
                 <Mail className="h-4 w-4 mr-2" /> Email
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleSendToPortal}
+                disabled={sendingToPortal || invoice?.portal_visible}
+                className="bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100 disabled:opacity-50"
+                data-testid="send-to-portal-btn"
+              >
+                <Send className="h-4 w-4 mr-2" /> 
+                {sendingToPortal ? 'Sending...' : invoice?.portal_visible ? 'In Portal' : 'Send to Portal'}
               </Button>
               <Button variant="outline" size="sm" onClick={handlePrint} data-testid="print-invoice-btn">
                 <Printer className="h-4 w-4 mr-2" /> Print

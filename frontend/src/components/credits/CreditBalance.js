@@ -17,7 +17,7 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 // Helper to get auth token
 const getAuthToken = () => localStorage.getItem('auth_token');
 
-export const CreditBalance = ({ compact = false }) => {
+export const CreditBalance = ({ compact = false, darkMode = false }) => {
   const [credits, setCredits] = useState(null);
   const [loading, setLoading] = useState(true);
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
@@ -59,7 +59,7 @@ export const CreditBalance = ({ compact = false }) => {
   if (loading) {
     return (
       <div className="flex items-center gap-1.5 px-2 py-1">
-        <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+        <Loader2 className={cn("h-4 w-4 animate-spin", darkMode ? "text-slate-400" : "text-gray-400")} />
       </div>
     );
   }
@@ -74,9 +74,13 @@ export const CreditBalance = ({ compact = false }) => {
         onClick={() => setPurchaseModalOpen(true)}
         className={cn(
           "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-colors",
-          is_low_credits 
-            ? "bg-amber-50 text-amber-700 hover:bg-amber-100" 
-            : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+          darkMode
+            ? is_low_credits 
+              ? "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30" 
+              : "bg-slate-700 text-slate-200 hover:bg-slate-600"
+            : is_low_credits 
+              ? "bg-amber-50 text-amber-700 hover:bg-amber-100" 
+              : "bg-gray-50 text-gray-700 hover:bg-gray-100"
         )}
         data-testid="credit-balance-btn"
       >

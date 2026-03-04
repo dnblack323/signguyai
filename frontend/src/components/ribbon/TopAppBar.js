@@ -37,7 +37,8 @@ export const TopAppBar = ({ onMobileMenuClick }) => {
 
   return (
     <div 
-      className="h-16 flex items-center justify-between px-6 bg-white border-b border-gray-200"
+      className="h-16 flex items-center justify-between px-6"
+      style={{ backgroundColor: '#0f172a' }}
       data-testid="top-app-bar"
     >
       {/* Left: Logo */}
@@ -50,12 +51,12 @@ export const TopAppBar = ({ onMobileMenuClick }) => {
           <img 
             src={logoUrl} 
             alt={logoAlt} 
-            className="h-8 w-auto object-contain max-w-[180px]"
+            className="h-8 w-auto object-contain max-w-[180px] brightness-0 invert"
           />
         </button>
         
         {/* Subtle divider */}
-        <div className="h-6 w-px bg-gray-200 ml-6" />
+        <div className="h-6 w-px bg-slate-600 ml-6" />
       </div>
 
       {/* Right: Search, Notifications, Help, Profile */}
@@ -71,14 +72,14 @@ export const TopAppBar = ({ onMobileMenuClick }) => {
                 placeholder="Search..."
                 autoFocus
                 onBlur={() => !searchQuery && setSearchOpen(false)}
-                className="w-48 px-3 py-1.5 text-sm bg-gray-50 text-gray-900 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-48 px-3 py-1.5 text-sm bg-slate-800 text-white border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 placeholder-slate-400"
                 data-testid="search-input"
               />
             </form>
           ) : (
             <button
               onClick={() => setSearchOpen(true)}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+              className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-md transition-colors"
               data-testid="search-btn"
             >
               <Search className="h-[18px] w-[18px]" />
@@ -87,11 +88,11 @@ export const TopAppBar = ({ onMobileMenuClick }) => {
         </div>
 
         {/* AI Credits Balance */}
-        <CreditBalance compact={true} />
+        <CreditBalance compact={true} darkMode={true} />
 
         {/* Notifications */}
         <button
-          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors relative"
+          className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-md transition-colors relative"
           data-testid="notifications-btn"
         >
           <Bell className="h-[18px] w-[18px]" />
@@ -100,7 +101,7 @@ export const TopAppBar = ({ onMobileMenuClick }) => {
         {/* Help */}
         <button
           onClick={() => window.open('/docs', '_blank')}
-          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+          className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-md transition-colors"
           data-testid="help-btn"
         >
           <HelpCircle className="h-[18px] w-[18px]" />
@@ -110,14 +111,14 @@ export const TopAppBar = ({ onMobileMenuClick }) => {
         <div className="relative">
           <button
             onClick={() => setProfileOpen(!profileOpen)}
-            className="flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-md transition-colors"
+            className="flex items-center gap-2 p-1.5 hover:bg-slate-700 rounded-md transition-colors"
             data-testid="profile-btn"
           >
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium">
+            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium">
               {user?.full_name?.charAt(0) || 'U'}
             </div>
             <ChevronDown className={cn(
-              "h-4 w-4 text-gray-400 transition-transform",
+              "h-4 w-4 text-slate-400 transition-transform",
               profileOpen && "rotate-180"
             )} />
           </button>

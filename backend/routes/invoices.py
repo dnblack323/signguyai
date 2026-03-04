@@ -223,6 +223,77 @@ async def send_invoice(
     return {"message": "Invoice marked as sent"}
 
 
+@router.post("/{invoice_id}/send-to-portal")
+async def send_invoice_to_portal(
+    invoice_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """
+    Send invoice to customer portal.
+    Makes the invoice visible in the customer's portal and creates a notification.
+    """
+    from models import CustomerNotification
+    
+    invoice = await db.invoices.find_one(
+        {"id": invoice_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    # Get customer info for notification
+    customer = await db.customers.find_one(
+        {"id": invoice["customer_id"]},
+        {"_id": 0}
+    )
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    # Check if customer has portal enabled
+    if not customer.get("portal_enabled"):
+        raise HTTPException(
+            status_code=400, 
+            detail="Customer does not have portal access enabled. Enable portal access for this customer first."
+        )
+    
+    # Update invoice to mark as portal visible and set status to sent
+    update_data = {
+        "portal_visible": True,
+        "portal_sent_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Also update status to sent if it's still draft
+    if invoice.get("status") == "draft":
+        update_data["status"] = InvoiceStatus.SENT.value
+        update_data["sent_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.invoices.update_one(
+        {"id": invoice_id},
+        {"$set": update_data}
+    )
+    
+    # Create notification for customer
+    notification = CustomerNotification(
+        tenant_id=current_user.tenant_id,
+        customer_id=invoice["customer_id"],
+        notification_type="invoice",
+        title="New Invoice Available",
+        message=f"Invoice #{invoice_id[:8].upper()} for ${invoice.get('total', 0):.2f} is now available in your portal.",
+        related_id=invoice_id
+    )
+    await db.customer_notifications.insert_one(notification.model_dump())
+    
+    logger.info(f"Invoice {invoice_id} sent to portal for customer {invoice['customer_id']}")
+    
+    return {
+        "message": "Invoice sent to customer portal",
+        "portal_url": f"/portal/invoices",
+        "customer_name": customer.get("name"),
+        "customer_email": customer.get("email")
+    }
+
+
 @router.post("/{invoice_id}/record-payment")
 async def record_payment(
     invoice_id: str,
