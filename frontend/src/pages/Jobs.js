@@ -48,6 +48,7 @@ import {
   ChevronRight, Send, CalendarPlus, Calculator, Play, Square, Timer, Loader2,
   GitBranch, ArrowRight, ArrowRightCircle, Filter
 } from 'lucide-react';
+import { TimelineToggle } from '../components/ProductionTimeline';
 import { toast } from 'sonner';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
 import PricingCalculatorModal, { PricingCalculatorButton } from '../components/PricingCalculatorModal';
@@ -1639,6 +1640,7 @@ export function JobDetails() {
                         <TableHead className="text-right">Unit Price</TableHead>
                         <TableHead className="text-right">Total</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Timeline</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1671,6 +1673,18 @@ export function JobDetails() {
                                 ))}
                               </SelectContent>
                             </Select>
+                          </TableCell>
+                          <TableCell>
+                            <TimelineToggle
+                              jobId={job.id}
+                              lineItemId={item.id}
+                              lineItemName={item.description}
+                              timelineEnabled={item.timeline_enabled}
+                              onTimelineChange={(enabled) => {
+                                // Update local state to show timeline status
+                                loadJobDetails();
+                              }}
+                            />
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
