@@ -158,6 +158,33 @@ export function JobsList() {
     loadData();
   }, [filterType]);
 
+  // Handle URL params for opening new job dialog with pre-selected customer
+  useEffect(() => {
+    const isNew = searchParams.get('new') === 'true';
+    const customerId = searchParams.get('customer_id');
+    const customerName = searchParams.get('customer_name');
+    
+    if (isNew) {
+      // Pre-fill customer if provided
+      if (customerId) {
+        setFormData(prev => ({
+          ...prev,
+          customer_id: customerId
+        }));
+      }
+      
+      // Open the dialog
+      setIsDialogOpen(true);
+      
+      // Clear the URL params after opening
+      setSearchParams({});
+      
+      if (customerName) {
+        toast.info(`Creating job for ${decodeURIComponent(customerName)}`);
+      }
+    }
+  }, [searchParams]);
+
   const loadData = async () => {
     setLoading(true);
     await Promise.all([

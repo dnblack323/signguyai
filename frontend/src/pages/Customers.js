@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -36,7 +37,8 @@ import { formatDate, formatCurrency, getStatusColor, getInitials } from '../lib/
 import { 
   Plus, Search, Edit2, Trash2, Mail, Phone, Building, 
   User, Briefcase, Receipt, FileText, Calendar, Eye,
-  DollarSign, Clock, Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Download
+  DollarSign, Clock, Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Download,
+  ArrowRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
@@ -47,6 +49,7 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 const statusOptions = ['lead', 'active', 'inactive'];
 
 export default function Customers() {
+  const navigate = useNavigate();
   const { 
     customers, fetchCustomers, createCustomer, updateCustomer, deleteCustomer,
     jobs, fetchJobs, invoices, fetchInvoices, quotes, fetchQuotes
@@ -153,17 +156,23 @@ export default function Customers() {
     return { activeJobs, completedJobs, totalRevenue, outstandingBalance, customerJobs, customerInvoices };
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e, addJobAfter = false) => {
     e.preventDefault();
     try {
       if (editingCustomer) {
         await updateCustomer(editingCustomer.id, formData);
         toast.success('Customer updated');
+        resetForm();
       } else {
-        await createCustomer(formData);
+        const newCustomer = await createCustomer(formData);
         toast.success('Customer created');
+        resetForm();
+        
+        // If "Save & Add Job" was clicked, navigate to jobs page with customer pre-selected
+        if (addJobAfter && newCustomer) {
+          navigate(`/jobs?new=true&customer_id=${newCustomer.id}&customer_name=${encodeURIComponent(newCustomer.name)}`);
+        }
       }
-      resetForm();
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to save customer');
     }
@@ -629,13 +638,32 @@ export default function Customers() {
                   data-testid="customer-notes-input"
                 />
               </div>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={resetForm}>
-                  Cancel
-                </Button>
-                <Button type="submit" data-testid="customer-submit-btn">
-                  {editingCustomer ? 'Update' : 'Create'}
-                </Button>
+              
+              {/* Action Buttons */}
+              <div className="flex justify-between items-center pt-2">
+                {/* Save & Add Job link - only show for new customers */}
+                {!editingCustomer && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleSubmit(e, true)}
+                    className="text-sm text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1"
+                    data-testid="save-and-add-job-btn"
+                  >
+                    <Briefcase className="h-3.5 w-3.5" />
+                    Save & Add Job
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                )}
+                {editingCustomer && <div />}
+                
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={resetForm}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" data-testid="customer-submit-btn">
+                    {editingCustomer ? 'Update' : 'Create'}
+                  </Button>
+                </div>
               </div>
             </form>
           </DialogContent>
