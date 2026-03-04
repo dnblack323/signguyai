@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth, Permission } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
@@ -7,8 +7,11 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Switch } from '../components/ui/switch';
-import { Building2, Phone, MapPin, Globe, Save, AlertTriangle, Crown, Timer, Clock, Users, Shield, Eye, EyeOff } from 'lucide-react';
+import { Building2, Phone, MapPin, Globe, Save, AlertTriangle, Crown, Timer, Clock, Users, Shield, Eye, EyeOff, Upload, X, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import axios from 'axios';
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function CompanySettings() {
   const { hasPermission, isOwner } = useAuth();
@@ -53,6 +56,10 @@ export default function CompanySettings() {
     can_see_pricing: false
   });
   const [savingPortalSettings, setSavingPortalSettings] = useState(false);
+
+  // Logo upload state
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef(null);
 
   useEffect(() => {
     loadTenant();
@@ -163,6 +170,75 @@ export default function CompanySettings() {
       toast.error('Failed to update employee portal permissions');
     }
     setSavingPortalSettings(false);
+  };
+
+  // Logo upload handler
+  const handleLogoUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif', 'image/svg+xml'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Invalid file type. Please upload PNG, JPEG, WebP, GIF, or SVG');
+      return;
+    }
+
+    // Validate file size (2MB max)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('File too large. Maximum size is 2MB');
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const token = localStorage.getItem('auth_token');
+      const response = await axios.post(`${API}/tenant/upload-logo`, formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      // Update local state with new logo
+      setFormData({ ...formData, logo_url: response.data.logo_url });
+      setTenant({ ...tenant, logo_url: response.data.logo_url });
+      toast.success('Logo uploaded successfully');
+    } catch (err) {
+      console.error('Error uploading logo:', err);
+      toast.error(err.response?.data?.detail || 'Failed to upload logo');
+    }
+    setUploadingLogo(false);
+    
+    // Reset the file input
+    if (logoInputRef.current) {
+      logoInputRef.current.value = '';
+    }
+  };
+
+  // Logo delete handler
+  const handleLogoDelete = async () => {
+    if (!window.confirm('Are you sure you want to remove the company logo?')) return;
+
+    setUploadingLogo(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      await axios.delete(`${API}/tenant/logo`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      // Update local state
+      setFormData({ ...formData, logo_url: '' });
+      setTenant({ ...tenant, logo_url: null });
+      toast.success('Logo removed');
+    } catch (err) {
+      console.error('Error deleting logo:', err);
+      toast.error('Failed to remove logo');
+    }
+    setUploadingLogo(false);
   };
 
   const planBadge = (plan) => {
@@ -364,19 +440,81 @@ export default function CompanySettings() {
                   />
                 </div>
               </div>
+            </div>
 
-              {/* Logo URL */}
-              <div className="space-y-2">
-                <Label htmlFor="logo_url" style={{ color: '#1A1A1A' }}>Logo URL</Label>
-                <Input
-                  id="logo_url"
-                  data-testid="company-logo-input"
-                  value={formData.logo_url}
-                  onChange={(e) => setFormData({...formData, logo_url: e.target.value})}
-                  placeholder="https://example.com/logo.png"
-                  disabled={!canEditSettings}
-                  style={{ background: '#FFFFFF', borderColor: '#D7DCE2' }}
-                />
+            {/* Company Logo Upload Section */}
+            <div className="pt-6 border-t" style={{ borderColor: '#D7DCE2' }}>
+              <Label style={{ color: '#1A1A1A' }} className="text-base font-medium">Company Logo</Label>
+              <p className="text-sm mb-4" style={{ color: '#5A5A5A' }}>
+                Upload your company logo. It will appear on invoices, quotes, and customer portals.
+              </p>
+              
+              <div className="flex items-start gap-6">
+                {/* Logo Preview */}
+                <div 
+                  className="w-32 h-32 rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden"
+                  style={{ 
+                    borderColor: formData.logo_url ? '#2F8BFB' : '#D7DCE2',
+                    background: formData.logo_url ? '#FFFFFF' : '#F5F7FA'
+                  }}
+                >
+                  {formData.logo_url ? (
+                    <img 
+                      src={formData.logo_url} 
+                      alt="Company Logo" 
+                      className="w-full h-full object-contain p-2"
+                    />
+                  ) : (
+                    <div className="text-center p-4">
+                      <ImageIcon className="h-8 w-8 mx-auto mb-2" style={{ color: '#5A5A5A' }} />
+                      <p className="text-xs" style={{ color: '#5A5A5A' }}>No logo</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Upload Controls */}
+                <div className="flex-1 space-y-3">
+                  <input
+                    type="file"
+                    ref={logoInputRef}
+                    onChange={handleLogoUpload}
+                    accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/svg+xml"
+                    className="hidden"
+                    data-testid="logo-file-input"
+                  />
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => logoInputRef.current?.click()}
+                      disabled={!canEditSettings || uploadingLogo}
+                      data-testid="upload-logo-btn"
+                      className="flex items-center gap-2"
+                    >
+                      <Upload className="h-4 w-4" />
+                      {uploadingLogo ? 'Uploading...' : formData.logo_url ? 'Change Logo' : 'Upload Logo'}
+                    </Button>
+                    
+                    {formData.logo_url && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleLogoDelete}
+                        disabled={!canEditSettings || uploadingLogo}
+                        data-testid="delete-logo-btn"
+                        className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:border-red-300"
+                      >
+                        <X className="h-4 w-4" />
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <p className="text-xs" style={{ color: '#5A5A5A' }}>
+                    Supported formats: PNG, JPEG, WebP, GIF, SVG. Max size: 2MB
+                  </p>
+                </div>
               </div>
             </div>
 

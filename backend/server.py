@@ -5,7 +5,8 @@ This file contains the FastAPI application setup and core utilities.
 All models are in /models and all routes are in /routes.
 """
 
-from fastapi import FastAPI, APIRouter, HTTPException, Depends
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File
+import base64
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -920,6 +921,72 @@ async def update_tenant_info(
     # Return updated tenant
     tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0})
     return tenant
+
+
+@api_router.post("/tenant/upload-logo")
+async def upload_tenant_logo(
+    file: UploadFile = File(...),
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Upload a logo image for the tenant/company"""
+    # Only owners can upload logo
+    if current_user.role != "owner":
+        raise HTTPException(status_code=403, detail="Only owners can upload company logo")
+    
+    # Validate file type
+    allowed_types = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif", "image/svg+xml"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400, 
+            detail="Invalid file type. Allowed: PNG, JPEG, WebP, GIF, SVG"
+        )
+    
+    # Read file contents
+    contents = await file.read()
+    
+    # Check file size (max 2MB)
+    if len(contents) > 2 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large. Maximum size is 2MB")
+    
+    # Convert to base64 data URL
+    base64_encoded = base64.b64encode(contents).decode('utf-8')
+    logo_data_url = f"data:{file.content_type};base64,{base64_encoded}"
+    
+    # Update tenant with logo
+    await db.tenants.update_one(
+        {"id": current_user.tenant_id},
+        {"$set": {
+            "logo_url": logo_data_url,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    logger.info(f"Logo uploaded for tenant {current_user.tenant_id}")
+    
+    return {"message": "Logo uploaded successfully", "logo_url": logo_data_url}
+
+
+@api_router.delete("/tenant/logo")
+async def delete_tenant_logo(
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Remove the tenant/company logo"""
+    # Only owners can delete logo
+    if current_user.role != "owner":
+        raise HTTPException(status_code=403, detail="Only owners can delete company logo")
+    
+    # Remove logo from tenant
+    await db.tenants.update_one(
+        {"id": current_user.tenant_id},
+        {"$set": {
+            "logo_url": None,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    logger.info(f"Logo deleted for tenant {current_user.tenant_id}")
+    
+    return {"message": "Logo deleted successfully"}
 
 
 # ============== IMPORT AND INCLUDE ROUTERS ==============
