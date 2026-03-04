@@ -1907,3 +1907,159 @@ async def get_available_action_types():
             }
         ]
     }
+
+
+class ParseActionRequest(BaseModel):
+    """Request to parse natural language into structured action"""
+    message: str
+    action_type: str  # Hint about what type of action this might be
+
+
+@router.post("/assistant/parse-action")
+async def parse_action_intent(
+    request: ParseActionRequest,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """
+    Parse natural language message into structured action parameters.
+    
+    Uses AI to extract action parameters from user's message.
+    Returns parsed parameters or indicates that more info is needed.
+    """
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    import json
+    import re
+    
+    if not EMERGENT_LLM_KEY:
+        raise HTTPException(status_code=500, detail="AI service not configured")
+    
+    # Get context data for better parsing
+    tenant_id = current_user.tenant_id
+    
+    # Get recent customers for matching
+    recent_customers = await db.customers.find(
+        {"tenant_id": tenant_id},
+        {"_id": 0, "id": 1, "name": 1, "company": 1}
+    ).sort("created_at", -1).limit(20).to_list(20)
+    customer_names = [f"{c['name']} ({c.get('company', '')})" for c in recent_customers]
+    
+    # Get active jobs for matching
+    active_jobs = await db.jobs.find(
+        {"tenant_id": tenant_id, "status": {"$nin": ["completed", "cancelled"]}},
+        {"_id": 0, "id": 1, "name": 1, "customer_id": 1}
+    ).sort("created_at", -1).limit(20).to_list(20)
+    job_names = [j['name'] for j in active_jobs]
+    
+    # Build parsing prompt based on action type
+    if request.action_type == "create_job":
+        system_prompt = f"""You are a parsing assistant. Extract job details from the user's message.
+
+Known customers: {', '.join(customer_names[:10]) if customer_names else 'None yet'}
+
+Return a JSON object with these fields:
+- name: Job name/title (required)
+- customer_name: Customer name if mentioned
+- description: Job description if mentioned
+- category: One of 'vehicle_wrap', 'sign', 'banner', 'decal', 'other' if determinable
+- due_date: Date in YYYY-MM-DD format if mentioned
+- priority: 'low', 'normal', 'high', 'urgent' if mentioned
+
+If you cannot determine enough info to create a job, return:
+{{"needs_more_info": true, "question": "Your question to get missing info"}}
+
+Respond ONLY with valid JSON, nothing else."""
+
+    elif request.action_type == "create_calendar_event":
+        system_prompt = f"""You are a parsing assistant. Extract appointment/event details from the user's message.
+
+Return a JSON object with these fields:
+- title: Event title (required)
+- date: Date in YYYY-MM-DD format (required)
+- time: Time in HH:MM format if mentioned
+- duration_minutes: Duration if mentioned
+- location: Location if mentioned
+- event_type: 'appointment', 'meeting', 'installation', 'consultation', 'other'
+- description: Additional details
+
+If you cannot determine the required fields, return:
+{{"needs_more_info": true, "question": "Your question to get missing info"}}
+
+Respond ONLY with valid JSON, nothing else."""
+
+    elif request.action_type == "log_time_entry":
+        system_prompt = f"""You are a parsing assistant. Extract time entry details from the user's message.
+
+Known jobs: {', '.join(job_names[:10]) if job_names else 'None active'}
+
+Return a JSON object with these fields:
+- hours: Number of hours (required)
+- job_name: Job name if mentioned
+- task: Task description
+- date: Date in YYYY-MM-DD format (defaults to today)
+- billable: true/false
+
+If you cannot determine the hours, return:
+{{"needs_more_info": true, "question": "Your question to get missing info"}}
+
+Respond ONLY with valid JSON, nothing else."""
+
+    else:
+        # Generic parsing
+        system_prompt = """You are a parsing assistant. Extract relevant parameters from the user's message.
+
+Return a JSON object with any relevant fields you can extract.
+If you need more information, return:
+{"needs_more_info": true, "question": "Your question to get missing info"}
+
+Respond ONLY with valid JSON, nothing else."""
+
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"parse_action_{uuid.uuid4()}",
+            system_message=system_prompt
+        ).with_model("openai", "gpt-5.2")
+        
+        response = await chat.send_message(UserMessage(text=request.message))
+        
+        # Try to parse as JSON
+        try:
+            # Clean up response - sometimes AI adds markdown
+            clean_response = response.strip()
+            if clean_response.startswith("```"):
+                clean_response = re.sub(r'^```(?:json)?\n?', '', clean_response)
+                clean_response = re.sub(r'\n?```$', '', clean_response)
+            
+            parsed = json.loads(clean_response)
+            
+            # If we got parameters, try to match customer/job IDs
+            if not parsed.get("needs_more_info"):
+                if request.action_type == "create_job" and parsed.get("customer_name"):
+                    # Try to match customer
+                    for c in recent_customers:
+                        if parsed["customer_name"].lower() in c["name"].lower():
+                            parsed["customer_id"] = c["id"]
+                            break
+                
+                if request.action_type == "log_time_entry" and parsed.get("job_name"):
+                    # Try to match job
+                    for j in active_jobs:
+                        if parsed["job_name"].lower() in j["name"].lower():
+                            parsed["job_id"] = j["id"]
+                            break
+            
+            return {"parameters": parsed} if not parsed.get("needs_more_info") else parsed
+            
+        except json.JSONDecodeError:
+            # If AI didn't return valid JSON, ask for more info
+            return {
+                "needs_more_info": True,
+                "question": response if len(response) < 200 else "Could you provide more details?"
+            }
+            
+    except Exception as e:
+        print(f"Parse action error: {e}")
+        return {
+            "needs_more_info": True,
+            "question": "I couldn't understand that. Could you rephrase?"
+        }

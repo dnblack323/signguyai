@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { TopAppBar, PrimaryNav, ActionToolbar, MobileNav } from './ribbon';
 import { TrialCountdown } from './TrialLockout';
 import DevPanel from './DevPanel';
+import FloatingAssistant from './FloatingAssistant';
 
 // Total header height: TopAppBar (64px) + PrimaryNav (48px) + ActionToolbar (40px) = 152px
 const HEADER_HEIGHT = 152;
@@ -224,6 +225,9 @@ export const MainLayout = ({ children }) => {
 
       {/* Dev Panel - Admin Only */}
       <DevPanel />
+      
+      {/* Floating AI Assistant - Always visible */}
+      <FloatingAssistant />
     </div>
   );
 };
