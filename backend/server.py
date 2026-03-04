@@ -944,9 +944,9 @@ async def upload_tenant_logo(
     # Read file contents
     contents = await file.read()
     
-    # Check file size (max 2MB)
-    if len(contents) > 2 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="File too large. Maximum size is 2MB")
+    # Check file size (max 3MB)
+    if len(contents) > 3 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large. Maximum size is 3MB")
     
     # Convert to base64 data URL
     base64_encoded = base64.b64encode(contents).decode('utf-8')

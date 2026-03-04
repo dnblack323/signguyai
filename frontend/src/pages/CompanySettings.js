@@ -184,9 +184,9 @@ export default function CompanySettings() {
       return;
     }
 
-    // Validate file size (2MB max)
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('File too large. Maximum size is 2MB');
+    // Validate file size (3MB max)
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error('File too large. Maximum size is 3MB');
       return;
     }
 
@@ -519,7 +519,7 @@ export default function CompanySettings() {
                   </div>
                   
                   <p className="text-xs" style={{ color: '#5A5A5A' }}>
-                    Supported formats: PNG, JPEG, WebP, GIF, SVG. Max size: 2MB
+                    Supported formats: PNG, JPEG, WebP, GIF, SVG. Max size: 3MB
                   </p>
                 </div>
               </div>
