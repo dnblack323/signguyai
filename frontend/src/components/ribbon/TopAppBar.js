@@ -51,7 +51,7 @@ export const TopAppBar = ({ onMobileMenuClick }) => {
           <img 
             src={logoUrl} 
             alt={logoAlt} 
-            className="h-16 w-auto object-contain max-w-[240px]"
+            className="h-24 w-auto object-contain max-w-[300px]"
           />
         </button>
         
