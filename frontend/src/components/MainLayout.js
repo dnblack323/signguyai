@@ -116,18 +116,17 @@ export const MainLayout = ({ children }) => {
           backgroundColor: '#0f172a'
         }}
       >
-        {/* Content wrapper - centered with max-width, dark shell visible around */}
-        <div className="p-4 lg:p-6">
-          <div className="max-w-[1400px] mx-auto">
-            {/* Light content container */}
-            <div 
-              className="bg-white rounded-xl shadow-lg p-6 lg:p-8"
-              style={{ 
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-              }}
-            >
-              {children}
-            </div>
+        {/* Content wrapper - centered with max-width, TRANSPARENT background */}
+        <div 
+          className="p-4 lg:p-6"
+          style={{ backgroundColor: 'transparent' }}
+        >
+          <div 
+            className="max-w-[1400px] mx-auto"
+            style={{ backgroundColor: 'transparent' }}
+          >
+            {/* Children render their own cards - no wrapper card here */}
+            {children}
           </div>
         </div>
       </main>

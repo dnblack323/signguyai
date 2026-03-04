@@ -8,6 +8,7 @@ import { Badge } from '../components/ui/badge';
 import { Textarea } from '../components/ui/textarea';
 import { Switch } from '../components/ui/switch';
 import { Separator } from '../components/ui/separator';
+import { ShellCard, ShellCardHeader, ShellCardTitle, PageStack } from '../components/ui/shell-card';
 import {
   Dialog,
   DialogContent,
@@ -610,86 +611,95 @@ export default function Webstores() {
   // Show Stripe Connect required message if not connected
   if (stripeConnected === false) {
     return (
-      <div className="space-y-6 animate-fade-in" data-testid="webstores-page">
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-full p-6 mb-6">
-            <CreditCard className="h-16 w-16 text-amber-500" />
+      <PageStack gap="24px" data-testid="webstores-page">
+        <ShellCard padding="lg">
+          <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-full p-6 mb-6">
+              <CreditCard className="h-16 w-16 text-amber-500" />
+            </div>
+            <h1 className="text-3xl font-bold font-heading mb-3 text-gray-900">Connect Stripe to Use Webstores</h1>
+            <p className="text-gray-500 max-w-md mb-6">
+              Webstores require Stripe payment processing to accept customer orders. 
+              Connect your Stripe account to start selling online.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button 
+                size="lg" 
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={handleConnectStripe}
+                disabled={connectingStripe}
+              >
+                {connectingStripe ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="h-5 w-5 mr-2" />
+                    Connect Stripe Account
+                  </>
+                )}
+              </Button>
+            </div>
+            <div className="mt-8 p-4 bg-gray-50 rounded-lg max-w-md border border-gray-200">
+              <h3 className="font-semibold mb-2 flex items-center gap-2 text-gray-900">
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                Why is Stripe required?
+              </h3>
+              <ul className="text-sm text-gray-500 space-y-1 text-left">
+                <li>• Accept credit card payments from customers</li>
+                <li>• Automatic order processing and confirmation</li>
+                <li>• Orders automatically added to your Jobs list</li>
+                <li>• Secure, PCI-compliant payment handling</li>
+              </ul>
+            </div>
           </div>
-          <h1 className="text-3xl font-bold font-heading mb-3">Connect Stripe to Use Webstores</h1>
-          <p className="text-muted-foreground max-w-md mb-6">
-            Webstores require Stripe payment processing to accept customer orders. 
-            Connect your Stripe account to start selling online.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button 
-              size="lg" 
-              className="neon-glow"
-              onClick={handleConnectStripe}
-              disabled={connectingStripe}
-            >
-              {connectingStripe ? (
-                <>
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  Connecting...
-                </>
-              ) : (
-                <>
-                  <CreditCard className="h-5 w-5 mr-2" />
-                  Connect Stripe Account
-                </>
-              )}
-            </Button>
-          </div>
-          <div className="mt-8 p-4 bg-[var(--surface-2)] rounded-lg max-w-md">
-            <h3 className="font-semibold mb-2 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
-              Why is Stripe required?
-            </h3>
-            <ul className="text-sm text-muted-foreground space-y-1 text-left">
-              <li>• Accept credit card payments from customers</li>
-              <li>• Automatic order processing and confirmation</li>
-              <li>• Orders automatically added to your Jobs list</li>
-              <li>• Secure, PCI-compliant payment handling</li>
-            </ul>
-          </div>
-        </div>
-      </div>
+        </ShellCard>
+      </PageStack>
     );
   }
 
   // Show loading while checking Stripe status
   if (stripeConnected === null) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <PageStack gap="24px">
+        <ShellCard>
+          <div className="flex items-center justify-center min-h-[50vh]">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          </div>
+        </ShellCard>
+      </PageStack>
     );
   }
 
   return (
-    <div className="space-y-6 animate-fade-in" data-testid="webstores-page">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight" style={{ color: 'var(--text)' }}>Webstore Manager</h1>
-          <p className="text-muted-foreground mt-1">Manage all your webstores from one place</p>
+    <PageStack gap="24px" data-testid="webstores-page">
+      {/* Header Card */}
+      <ShellCard padding="default">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold font-heading uppercase tracking-tight text-gray-900">Webstore Manager</h1>
+            <p className="text-gray-500 text-sm mt-1">Manage all your webstores from one place</p>
+          </div>
+          <Button className="bg-blue-600 hover:bg-blue-700" data-testid="create-store-btn" onClick={() => { resetForm(); setIsCreateDialogOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" /> Create Webstore
+          </Button>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="neon-glow" data-testid="create-store-btn" onClick={() => resetForm()}>
-              <Plus className="h-4 w-4 mr-2" /> Create Webstore
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="font-heading uppercase">Create New Webstore</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleCreateStore} className="space-y-4">
-              {/* Store Type Selection */}
-              <div className="space-y-2">
-                <Label>Store Type *</Label>
-                <div className="grid grid-cols-3 gap-3">
-                  {storeTypes.map(type => {
+      </ShellCard>
+
+      {/* Create Dialog - outside ShellCard */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-heading uppercase">Create New Webstore</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateStore} className="space-y-4">
+            {/* Store Type Selection */}
+            <div className="space-y-2">
+              <Label>Store Type *</Label>
+              <div className="grid grid-cols-3 gap-3">
+                {storeTypes.map(type => {
                     const Icon = type.icon;
                     return (
                       <button
@@ -1082,80 +1092,74 @@ export default function Webstores() {
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" data-testid="store-submit-btn">Create Store</Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" data-testid="store-submit-btn">Create Store</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-      {/* Stats Cards */}
+      {/* Stats Cards - Individual small cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-card border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <Store className="h-8 w-8 text-primary" />
-              <div>
-                <p className="text-sm text-muted-foreground">Total Stores</p>
-                <p className="text-2xl font-bold">{webstores.length}</p>
-              </div>
+        <ShellCard padding="default">
+          <div className="flex items-center gap-3">
+            <Store className="h-8 w-8 text-blue-600" />
+            <div>
+              <p className="text-sm text-gray-500">Total Stores</p>
+              <p className="text-2xl font-bold text-gray-900">{webstores.length}</p>
             </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <DollarSign className="h-8 w-8 text-green-400" />
-              <div>
-                <p className="text-sm text-muted-foreground">Total Sales</p>
-                <p className="text-2xl font-bold text-green-400">{formatCurrency(totalSales)}</p>
-              </div>
+          </div>
+        </ShellCard>
+        <ShellCard padding="default">
+          <div className="flex items-center gap-3">
+            <DollarSign className="h-8 w-8 text-green-600" />
+            <div>
+              <p className="text-sm text-gray-500">Total Sales</p>
+              <p className="text-2xl font-bold text-green-600">{formatCurrency(totalSales)}</p>
             </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <TrendingUp className="h-8 w-8 text-primary" />
-              <div>
-                <p className="text-sm text-muted-foreground">Total Profit</p>
-                <p className="text-2xl font-bold text-primary">{formatCurrency(totalProfit)}</p>
-              </div>
+          </div>
+        </ShellCard>
+        <ShellCard padding="default">
+          <div className="flex items-center gap-3">
+            <TrendingUp className="h-8 w-8 text-blue-600" />
+            <div>
+              <p className="text-sm text-gray-500">Total Profit</p>
+              <p className="text-2xl font-bold text-blue-600">{formatCurrency(totalProfit)}</p>
             </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <ShoppingCart className="h-8 w-8 text-yellow-400" />
-              <div>
-                <p className="text-sm text-muted-foreground">Pending Orders</p>
-                <p className="text-2xl font-bold text-yellow-400">{pendingOrders}</p>
-              </div>
+          </div>
+        </ShellCard>
+        <ShellCard padding="default">
+          <div className="flex items-center gap-3">
+            <ShoppingCart className="h-8 w-8 text-amber-600" />
+            <div>
+              <p className="text-sm text-gray-500">Pending Orders</p>
+              <p className="text-2xl font-bold text-amber-600">{pendingOrders}</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </ShellCard>
       </div>
 
-      {/* Main Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="stores" data-testid="tab-stores">
-            <Store className="h-4 w-4 mr-2" /> All Stores ({webstores.length})
-          </TabsTrigger>
-          <TabsTrigger value="orders" data-testid="tab-orders">
-            <ShoppingCart className="h-4 w-4 mr-2" /> Orders ({orders.length})
-          </TabsTrigger>
-        </TabsList>
+      {/* Main Tabs Card */}
+      <ShellCard padding="none">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <div className="px-6 pt-5 pb-4 border-b border-gray-100">
+            <TabsList className="bg-gray-100">
+              <TabsTrigger value="stores" data-testid="tab-stores">
+                <Store className="h-4 w-4 mr-2" /> All Stores ({webstores.length})
+              </TabsTrigger>
+              <TabsTrigger value="orders" data-testid="tab-orders">
+                <ShoppingCart className="h-4 w-4 mr-2" /> Orders ({orders.length})
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
         {/* Stores Tab */}
-        <TabsContent value="stores" className="mt-4 space-y-4">
+        <TabsContent value="stores" className="space-y-0">
           {/* Type Filter */}
-          <div className="flex gap-2">
+          <div className="px-6 py-4 flex gap-2 border-b border-gray-100">
             <Button
               variant={selectedType === 'all' ? 'default' : 'outline'}
               size="sm"
@@ -1179,72 +1183,71 @@ export default function Webstores() {
             })}
           </div>
 
-          <Card className="bg-card border-border/50">
-            <CardContent className="p-0">
-              {loading ? (
-                <div className="flex items-center justify-center h-32">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                </div>
-              ) : filteredStores.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Store className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No webstores yet</p>
-                  <p className="text-sm mt-1">Create your first webstore to get started</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Store</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Owner</TableHead>
-                      <TableHead className="text-right">Sales</TableHead>
-                      <TableHead className="text-right">Profit</TableHead>
-                      <TableHead className="text-right">Owed</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredStores.map((store, idx) => {
-                      const Icon = getStoreTypeIcon(store.store_type);
-                      return (
-                        <TableRow 
-                          key={store.id} 
-                          className={idx % 2 === 0 ? '' : 'bg-muted/30'}
-                          data-testid={`store-row-${store.id}`}
-                        >
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center">
-                                <Icon className="h-5 w-5" />
-                              </div>
-                              <div>
-                                <p className="font-medium">{store.name}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {store.total_orders || 0} orders
-                                </p>
-                              </div>
+          <div>
+            {loading ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              </div>
+            ) : filteredStores.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <Store className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No webstores yet</p>
+                <p className="text-sm mt-1">Create your first webstore to get started</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Store</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Owner</TableHead>
+                    <TableHead className="text-right">Sales</TableHead>
+                    <TableHead className="text-right">Profit</TableHead>
+                    <TableHead className="text-right">Owed</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredStores.map((store, idx) => {
+                    const Icon = getStoreTypeIcon(store.store_type);
+                    return (
+                      <TableRow 
+                        key={store.id} 
+                        className={idx % 2 === 0 ? '' : 'bg-gray-50'}
+                        data-testid={`store-row-${store.id}`}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                              <Icon className="h-5 w-5 text-gray-600" />
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={getStoreTypeColor(store.store_type)}>
-                              {store.store_type}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{store.owner_name}</TableCell>
-                          <TableCell className="text-right font-medium">
-                            {formatCurrency(store.total_sales || 0)}
-                          </TableCell>
-                          <TableCell className="text-right text-green-400">
-                            {formatCurrency(store.total_profit || 0)}
-                          </TableCell>
-                          <TableCell className="text-right text-yellow-400">
-                            {formatCurrency(store.payout_owed || 0)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={getStatusBadge(store.status)}>
-                              {store.status}
+                            <div>
+                              <p className="font-medium text-gray-900">{store.name}</p>
+                              <p className="text-xs text-gray-500">
+                                {store.total_orders || 0} orders
+                              </p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getStoreTypeColor(store.store_type)}>
+                            {store.store_type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-gray-700">{store.owner_name}</TableCell>
+                        <TableCell className="text-right font-medium text-gray-900">
+                          {formatCurrency(store.total_sales || 0)}
+                        </TableCell>
+                        <TableCell className="text-right text-green-600">
+                          {formatCurrency(store.total_profit || 0)}
+                        </TableCell>
+                        <TableCell className="text-right text-amber-600">
+                          {formatCurrency(store.payout_owed || 0)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getStatusBadge(store.status)}>
+                            {store.status}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
@@ -1293,23 +1296,21 @@ export default function Webstores() {
                   </TableBody>
                 </Table>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+          </TabsContent>
 
         {/* Orders Tab */}
-        <TabsContent value="orders" className="mt-4">
-          <Card className="bg-card border-border/50">
-            <CardContent className="p-0">
-              {orders.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No orders yet</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
+        <TabsContent value="orders" className="space-y-0">
+          <div>
+            {orders.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No orders yet</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
                       <TableHead>Order #</TableHead>
                       <TableHead>Store</TableHead>
                       <TableHead>Customer</TableHead>
@@ -1323,7 +1324,7 @@ export default function Webstores() {
                   </TableHeader>
                   <TableBody>
                     {orders.map((order, idx) => (
-                      <TableRow key={order.id} className={idx % 2 === 0 ? '' : 'bg-muted/30'}>
+                      <TableRow key={order.id} className={idx % 2 === 0 ? '' : 'bg-gray-50'}>
                         <TableCell className="font-mono text-sm">#{order.id.slice(0, 8)}</TableCell>
                         <TableCell>
                           <Badge className={getStoreTypeColor(order.store_type)}>
@@ -1332,13 +1333,13 @@ export default function Webstores() {
                         </TableCell>
                         <TableCell>
                           <div>
-                            <p className="font-medium">{order.customer_name}</p>
-                            <p className="text-xs text-muted-foreground">{order.customer_email}</p>
+                            <p className="font-medium text-gray-900">{order.customer_name}</p>
+                            <p className="text-xs text-gray-500">{order.customer_email}</p>
                           </div>
                         </TableCell>
                         <TableCell>{order.items?.length || 0} items</TableCell>
-                        <TableCell className="text-right font-bold">{formatCurrency(order.total)}</TableCell>
-                        <TableCell className="text-right text-green-400">
+                        <TableCell className="text-right font-bold text-gray-900">{formatCurrency(order.total)}</TableCell>
+                        <TableCell className="text-right text-green-600">
                           {formatCurrency(order.total_profit || 0)}
                         </TableCell>
                         <TableCell>
@@ -1350,7 +1351,7 @@ export default function Webstores() {
                           {order.job_id ? (
                             <Badge variant="outline">#{order.job_id.slice(0, 8)}</Badge>
                           ) : (
-                            <span className="text-muted-foreground">-</span>
+                            <span className="text-gray-500">-</span>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
@@ -1369,10 +1370,10 @@ export default function Webstores() {
                   </TableBody>
                 </Table>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </ShellCard>
 
       {/* Store Detail Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={(open) => {
@@ -1937,6 +1938,6 @@ export default function Webstores() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </PageStack>
   );
 }

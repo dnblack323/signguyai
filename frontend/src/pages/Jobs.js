@@ -9,6 +9,7 @@ import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Separator } from '../components/ui/separator';
 import { ScrollArea } from '../components/ui/scroll-area';
+import { ShellCard, ShellCardHeader, ShellCardTitle, PageStack } from '../components/ui/shell-card';
 import {
   Select,
   SelectContent,
@@ -361,76 +362,84 @@ export function JobsList() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in" data-testid="jobs-page">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight" style={{ color: 'var(--text)' }}>Jobs</h1>
-          <p className="text-muted-foreground mt-1">{jobs.length} {getFilterLabel(filterType).toLowerCase()}</p>
-        </div>
-        <div className="flex gap-2">
-          {/* New Quote / New Job dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button className="neon-glow" data-testid="add-job-btn">
-                <Plus className="h-4 w-4 mr-2" /> Create New
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem 
-                onClick={() => { resetForm('quote'); setIsDialogOpen(true); }}
-                data-testid="new-quote-option"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                New Quote
-                <span className="text-xs text-muted-foreground ml-2">(Pipeline)</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => { resetForm('job'); setIsDialogOpen(true); }}
-                data-testid="new-job-option"
-              >
-                <Package className="h-4 w-4 mr-2" />
-                New Job
-                <span className="text-xs text-muted-foreground ml-2">(Ready for production)</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-
-      {/* Filter Bar */}
-      <Card className="bg-card border-border/50">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-[200px]" data-testid="job-filter-select">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {filterOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {/* Quick filter badges */}
-            <div className="hidden md:flex gap-2 ml-4">
-              {filterOptions.slice(1).map((opt) => (
-                <Badge 
-                  key={opt.value}
-                  variant={filterType === opt.value ? "default" : "outline"}
-                  className="cursor-pointer"
-                  onClick={() => setFilterType(opt.value)}
-                >
-                  {opt.label}
-                </Badge>
-              ))}
-            </div>
+    <PageStack gap="24px" data-testid="jobs-page">
+      {/* Header Card */}
+      <ShellCard padding="default">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold font-heading uppercase tracking-tight text-gray-900">Jobs</h1>
+            <p className="text-gray-500 text-sm mt-1">{jobs.length} {getFilterLabel(filterType).toLowerCase()}</p>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex gap-2">
+            {/* New Quote / New Job dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="bg-blue-600 hover:bg-blue-700" data-testid="add-job-btn">
+                  <Plus className="h-4 w-4 mr-2" /> Create New
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem 
+                  onClick={() => { resetForm('quote'); setIsDialogOpen(true); }}
+                  data-testid="new-quote-option"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  New Quote
+                  <span className="text-xs text-muted-foreground ml-2">(Pipeline)</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => { resetForm('job'); setIsDialogOpen(true); }}
+                  data-testid="new-job-option"
+                >
+                  <Package className="h-4 w-4 mr-2" />
+                  New Job
+                  <span className="text-xs text-muted-foreground ml-2">(Ready for production)</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </ShellCard>
+
+      {/* Filters Card */}
+      <ShellCard padding="default">
+        <div className="flex items-center gap-3 flex-wrap">
+          <Filter className="h-4 w-4 text-gray-400" />
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="w-[200px]" data-testid="job-filter-select">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {filterOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {/* Quick filter badges */}
+          <div className="hidden md:flex gap-2 ml-4">
+            {filterOptions.slice(1).map((opt) => (
+              <Badge 
+                key={opt.value}
+                variant={filterType === opt.value ? "default" : "outline"}
+                className="cursor-pointer"
+                onClick={() => setFilterType(opt.value)}
+              >
+                {opt.label}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      </ShellCard>
+
+      {/* Jobs List Card */}
+      <ShellCard padding="none">
+        <div className="p-4 lg:p-6 border-b border-gray-100">
+          <h2 className="font-semibold text-gray-700">
+            {getFilterLabel(filterType)}
+          </h2>
+        </div>
 
       {/* Create Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -586,89 +595,87 @@ export function JobsList() {
         onItemCalculated={handlePricingCalculatorItem}
       />
 
-      {/* Jobs List */}
-      <Card className="bg-card border-border/50">
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center h-32">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-            </div>
-          ) : jobs.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <p>No jobs found</p>
-              <Button variant="link" onClick={() => { setCreateMode('quote'); setIsDialogOpen(true); }}>
-                Create your first quote
-              </Button>
-            </div>
-          ) : (
-            <div className="divide-y divide-border/50">
-              {jobs.map((job) => (
-                <div 
-                  key={job.id} 
-                  className="p-4 hover:bg-muted/30 transition-colors group cursor-pointer"
-                  data-testid={`job-row-${job.id}`}
-                  onClick={(e) => {
-                    // Don't navigate if clicking on interactive elements
-                    if (e.target.closest('button') || e.target.closest('[role="menu"]') || e.target.closest('a')) return;
-                    navigate(`/jobs/${job.id}`);
-                  }}
-                >
-                  <div className="flex items-center gap-4">
-                    {/* Job Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-1">
-                        <span 
-                          className="font-bold text-lg hover:text-primary transition-colors truncate cursor-pointer"
-                        >
-                          {job.name}
-                        </span>
-                        {/* Interactive Status Badge */}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="focus:outline-none" onClick={(e) => e.stopPropagation()}>
-                              <Badge 
-                                className={cn(
-                                  statusColors[job.status], 
-                                  "cursor-pointer hover:opacity-80 transition-opacity"
-                                )}
-                              >
-                                {statusLabels[job.status]}
-                              </Badge>
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start">
-                            {statusOptions.filter(s => s !== 'archived').map((status) => (
-                              <DropdownMenuItem
-                                key={status}
-                                onClick={() => handleStatusChange(job.id, status)}
-                                disabled={status === job.status}
-                              >
-                                <Badge className={cn(statusColors[status], "mr-2")} />
-                                {statusLabels[status]}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>{getCustomerName(job.customer_id)}</span>
-                        {job.due_date && (
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" /> {formatDate(job.due_date)}
-                          </span>
-                        )}
-                        {job.subtotal > 0 && (
-                          <span className="text-primary font-medium">
-                            {formatCurrency(job.subtotal)}
-                          </span>
-                        )}
-                      </div>
+        {/* Jobs Table Content */}
+        {loading ? (
+          <div className="flex items-center justify-center h-32">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          </div>
+        ) : jobs.length === 0 ? (
+          <div className="text-center py-12 text-gray-500">
+            <p>No jobs found</p>
+            <Button variant="link" onClick={() => { setCreateMode('quote'); setIsDialogOpen(true); }}>
+              Create your first quote
+            </Button>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {jobs.map((job) => (
+              <div 
+                key={job.id} 
+                className="p-4 hover:bg-gray-50 transition-colors group cursor-pointer"
+                data-testid={`job-row-${job.id}`}
+                onClick={(e) => {
+                  // Don't navigate if clicking on interactive elements
+                  if (e.target.closest('button') || e.target.closest('[role="menu"]') || e.target.closest('a')) return;
+                  navigate(`/jobs/${job.id}`);
+                }}
+              >
+                <div className="flex items-center gap-4">
+                  {/* Job Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-1">
+                      <span 
+                        className="font-bold text-lg hover:text-blue-600 transition-colors truncate cursor-pointer text-gray-900"
+                      >
+                        {job.name}
+                      </span>
+                      {/* Interactive Status Badge */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="focus:outline-none" onClick={(e) => e.stopPropagation()}>
+                            <Badge 
+                              className={cn(
+                                statusColors[job.status], 
+                                "cursor-pointer hover:opacity-80 transition-opacity"
+                              )}
+                            >
+                              {statusLabels[job.status]}
+                            </Badge>
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          {statusOptions.filter(s => s !== 'archived').map((status) => (
+                            <DropdownMenuItem
+                              key={status}
+                              onClick={() => handleStatusChange(job.id, status)}
+                              disabled={status === job.status}
+                            >
+                              <Badge className={cn(statusColors[status], "mr-2")} />
+                              {statusLabels[status]}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <span>{getCustomerName(job.customer_id)}</span>
+                      {job.due_date && (
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" /> {formatDate(job.due_date)}
+                        </span>
+                      )}
+                      {job.subtotal > 0 && (
+                        <span className="text-blue-600 font-medium">
+                          {formatCurrency(job.subtotal)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {/* Show Approve button for quotes */}
-                      {job.status === 'quote' && (
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* Show Approve button for quotes */}
+                    {job.status === 'quote' && (
                         <Button
                           variant="default"
                           size="sm"
@@ -729,9 +736,8 @@ export function JobsList() {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
-    </div>
+      </ShellCard>
+    </PageStack>
   );
 }
 
