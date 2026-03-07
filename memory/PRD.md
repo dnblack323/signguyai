@@ -1550,3 +1550,47 @@ Implemented 48-hour free trial with no credit card required, including:
 ## Last Updated
 March 2026
 
+
+---
+
+## Job-Invoice Workflow Bug Fixes (Mar 7, 2026) - COMPLETE ✅
+
+### Issues Fixed
+
+1. **Invoice Line Items Not Appearing**
+   - **Root Cause:** `create_invoice_from_job` only checked `job_items` collection, not the `line_items` array stored directly in the job document
+   - **Fix:** Updated `backend/routes/invoices.py` to check:
+     1. `job_items` collection first
+     2. `job.line_items` array as fallback
+     3. Job/quote subtotal as final fallback
+   - **Result:** Invoices now properly show line items from jobs
+
+2. **Quick Add Job Button**
+   - **Added:** "Quick Add Job" and "Quick Add Quote" buttons to customer detail modal
+   - **Location:** Prominent blue bar at top of modal in `frontend/src/pages/Customers.js`
+   - **Action:** Navigates to `/jobs?new=true&customer_id=X&customer_name=Y&type=job|quote`
+
+3. **Search Functionality**
+   - **Jobs Page:** Added search input that filters by job name, customer name, description
+   - **Invoices Page:** Added search input that filters by customer name, job name, invoice number, notes
+   - **Webstores Page:** Added search input that filters by store name, owner name, description
+
+### Files Modified
+- `backend/routes/invoices.py` - Enhanced `create_invoice_from_job` function
+- `frontend/src/pages/Jobs.js` - Added `searchQuery` state and search input
+- `frontend/src/pages/Invoices.js` - Added `searchQuery` state and search input
+- `frontend/src/pages/Webstores.js` - Added `searchQuery` state and search input
+- `frontend/src/pages/Customers.js` - Added Quick Add Job/Quote buttons
+
+### Test Results
+- Backend: 100% (2/2 tests passed)
+- Frontend: 100% (All 6 features verified)
+- Test file: `/app/backend/tests/test_invoice_from_job_line_items.py`
+
+### Note on Job Title
+The job title was reported as white-on-white, but investigation showed it uses `text-[#0D4F8B]` (dark blue) which is visible on the white card background. This may have been a browser caching issue or previous version.
+
+---
+
+## Last Updated
+March 7, 2026
