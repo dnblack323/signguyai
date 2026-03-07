@@ -901,6 +901,32 @@ export default function Customers() {
                   </div>
                 </DialogHeader>
 
+                {/* Quick Actions Bar */}
+                <div className="flex gap-2 mt-2 mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                  <Button 
+                    onClick={() => {
+                      setIsDetailOpen(false);
+                      navigate(`/jobs?new=true&customer_id=${selectedCustomer.id}&customer_name=${encodeURIComponent(selectedCustomer.name)}&type=job`);
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700"
+                    size="sm"
+                    data-testid="quick-add-job-btn"
+                  >
+                    <Plus className="h-4 w-4 mr-2" /> Quick Add Job
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      setIsDetailOpen(false);
+                      navigate(`/jobs?new=true&customer_id=${selectedCustomer.id}&customer_name=${encodeURIComponent(selectedCustomer.name)}&type=quote`);
+                    }}
+                    variant="outline"
+                    size="sm"
+                    data-testid="quick-add-quote-btn"
+                  >
+                    <FileText className="h-4 w-4 mr-2" /> Quick Add Quote
+                  </Button>
+                </div>
+
                 {/* Quick Stats */}
                 <div className="grid grid-cols-4 gap-3 my-4">
                   <div className="p-3 bg-muted/30 rounded-lg text-center">

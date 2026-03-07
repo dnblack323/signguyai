@@ -46,7 +46,7 @@ import {
   MoreHorizontal, CheckCircle, Archive, ArchiveRestore, Clock,
   FileText, MessageSquare, Activity, DollarSign, User, ExternalLink,
   ChevronRight, Send, CalendarPlus, Calculator, Play, Square, Timer, Loader2,
-  GitBranch, ArrowRight, ArrowRightCircle, Filter
+  GitBranch, ArrowRight, ArrowRightCircle, Filter, Search
 } from 'lucide-react';
 import { TimelineToggle } from '../components/ProductionTimeline';
 import { toast } from 'sonner';
@@ -143,6 +143,7 @@ export function JobsList() {
   const [loading, setLoading] = useState(true);
   // Get filter from URL params, default to 'all'
   const filterType = searchParams.get('filter') || 'all';
+  const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showPricingCalculator, setShowPricingCalculator] = useState(false);
   const [createMode, setCreateMode] = useState('quote'); // 'quote' or 'job'
@@ -405,6 +406,18 @@ export function JobsList() {
       {/* Filters Card */}
       <ShellCard padding="default">
         <div className="flex items-center gap-3 flex-wrap">
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search jobs..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 w-[200px]"
+              data-testid="job-search-input"
+            />
+          </div>
           <Filter className="h-4 w-4 text-gray-400" />
           <Select value={filterType} onValueChange={setFilterType}>
             <SelectTrigger className="w-[200px]" data-testid="job-filter-select">
@@ -610,7 +623,18 @@ export function JobsList() {
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {jobs.map((job) => (
+            {jobs
+              .filter(job => {
+                if (!searchQuery.trim()) return true;
+                const query = searchQuery.toLowerCase();
+                const customerName = getCustomerName(job.customer_id).toLowerCase();
+                return (
+                  job.name.toLowerCase().includes(query) ||
+                  customerName.includes(query) ||
+                  (job.description && job.description.toLowerCase().includes(query))
+                );
+              })
+              .map((job) => (
               <div 
                 key={job.id} 
                 className="p-4 hover:bg-gray-50 transition-colors group cursor-pointer"
@@ -1157,7 +1181,7 @@ export function JobDetails() {
               <div className="flex items-start gap-4 mb-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h1 className="text-3xl font-bold font-heading uppercase text-white">{job.name}</h1>
+                    <h1 className="text-3xl font-bold font-heading uppercase text-[#0D4F8B]">{job.name}</h1>
                     {/* Editable Status Dropdown */}
                     <Select value={job.status} onValueChange={handleStatusChange}>
                       <SelectTrigger className="w-[160px]" data-testid="job-status-dropdown">

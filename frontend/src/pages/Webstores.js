@@ -38,7 +38,7 @@ import {
   Eye, Edit2, Trash2, Package, DollarSign, TrendingUp,
   ExternalLink, Check, X, Settings, Copy, Link2, BarChart3,
   Upload, ImageIcon, CreditCard, AlertTriangle, Loader2, Palette,
-  QrCode, Download, Shirt, Sticker, Gift
+  QrCode, Download, Shirt, Sticker, Gift, Search
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
@@ -100,6 +100,7 @@ export default function Webstores() {
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
   const [selectedType, setSelectedType] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('stores');
   
   // Dialog states
@@ -610,9 +611,17 @@ export default function Webstores() {
     }
   };
 
-  const filteredStores = selectedType === 'all' 
-    ? webstores 
-    : webstores.filter(s => s.store_type === selectedType);
+  const filteredStores = webstores
+    .filter(s => selectedType === 'all' || s.store_type === selectedType)
+    .filter(s => {
+      if (!searchQuery.trim()) return true;
+      const query = searchQuery.toLowerCase();
+      return (
+        s.name.toLowerCase().includes(query) ||
+        s.owner_name?.toLowerCase().includes(query) ||
+        (s.description && s.description.toLowerCase().includes(query))
+      );
+    });
 
   // Calculate stats
   const totalSales = webstores.reduce((sum, s) => sum + (s.total_sales || 0), 0);
@@ -1179,29 +1188,43 @@ export default function Webstores() {
 
         {/* Stores Tab */}
         <TabsContent value="stores" className="space-y-0">
-          {/* Type Filter */}
-          <div className="px-6 py-4 flex gap-2 border-b border-gray-100">
-            <Button
-              variant={selectedType === 'all' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedType('all')}
-            >
-              All
-            </Button>
-            {storeTypes.map(type => {
-              const Icon = type.icon;
-              const count = webstores.filter(s => s.store_type === type.value).length;
-              return (
-                <Button
-                  key={type.value}
-                  variant={selectedType === type.value ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setSelectedType(type.value)}
-                >
-                  <Icon className="h-4 w-4 mr-1" /> {type.label} ({count})
-                </Button>
-              );
-            })}
+          {/* Search and Type Filter */}
+          <div className="px-6 py-4 flex gap-4 flex-wrap border-b border-gray-100">
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search stores..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 w-[200px]"
+                data-testid="webstore-search-input"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant={selectedType === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedType('all')}
+              >
+                All
+              </Button>
+              {storeTypes.map(type => {
+                const Icon = type.icon;
+                const count = webstores.filter(s => s.store_type === type.value).length;
+                return (
+                  <Button
+                    key={type.value}
+                    variant={selectedType === type.value ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedType(type.value)}
+                  >
+                    <Icon className="h-4 w-4 mr-1" /> {type.label} ({count})
+                  </Button>
+                );
+              })}
+            </div>
           </div>
 
           <div>

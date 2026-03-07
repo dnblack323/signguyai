@@ -30,7 +30,7 @@ import {
   TableRow,
 } from '../components/ui/table';
 import { formatCurrency, formatDate, getStatusColor } from '../lib/utils';
-import { Plus, Edit2, CheckCircle, AlertTriangle, Eye, CreditCard, Send } from 'lucide-react';
+import { Plus, Edit2, CheckCircle, AlertTriangle, Eye, CreditCard, Send, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
 import axios from 'axios';
@@ -50,6 +50,7 @@ export default function Invoices() {
   
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [formData, setFormData] = useState({
@@ -353,7 +354,19 @@ export default function Invoices() {
 
       {/* Filters */}
       <Card className="bg-card border-border/50">
-        <CardContent className="p-4">
+        <CardContent className="p-4 flex items-center gap-4">
+          {/* Search Input */}
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search invoices..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+              data-testid="invoice-search-input"
+            />
+          </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]" data-testid="invoice-filter-status">
               <SelectValue placeholder="Filter by status" />
@@ -398,7 +411,21 @@ export default function Invoices() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {invoices.map((invoice, idx) => (
+                {invoices
+                  .filter(invoice => {
+                    if (!searchQuery.trim()) return true;
+                    const query = searchQuery.toLowerCase();
+                    const customerName = getCustomerName(invoice.customer_id).toLowerCase();
+                    const jobName = getJobName(invoice.job_id).toLowerCase();
+                    const invoiceNum = invoice.id.slice(0, 8).toLowerCase();
+                    return (
+                      customerName.includes(query) ||
+                      jobName.includes(query) ||
+                      invoiceNum.includes(query) ||
+                      (invoice.notes && invoice.notes.toLowerCase().includes(query))
+                    );
+                  })
+                  .map((invoice, idx) => (
                   <TableRow 
                     key={invoice.id} 
                     className={idx % 2 === 0 ? 'bg-transparent' : 'bg-muted/30'}

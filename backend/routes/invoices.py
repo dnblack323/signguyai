@@ -152,14 +152,14 @@ async def create_invoice_from_job(
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     
-    # Get job items and create invoice line items
+    # Get job items from job_items collection
     job_items = await db.job_items.find({"job_id": job_id}, {"_id": 0}).to_list(1000)
     
     invoice_line_items = []
     total = 0
     
     if job_items:
-        # Create line items from job items
+        # Create line items from job_items collection
         for item in job_items:
             line_item = InvoiceLineItem(
                 description=item.get("description", ""),
@@ -170,8 +170,22 @@ async def create_invoice_from_job(
             )
             invoice_line_items.append(line_item)
             total += item.get("line_total", 0)
+    elif job.get("line_items") and len(job.get("line_items", [])) > 0:
+        # Fallback to line_items stored directly in job document (from quote/job creation)
+        for item in job.get("line_items", []):
+            qty = float(item.get("quantity", 1))
+            unit_price = float(item.get("unit_price", 0))
+            line_total = qty * unit_price
+            line_item = InvoiceLineItem(
+                description=item.get("description", ""),
+                quantity=qty,
+                unit_price=unit_price,
+                total=line_total
+            )
+            invoice_line_items.append(line_item)
+            total += line_total
     else:
-        # Fallback to job subtotal or quote total
+        # Final fallback to job subtotal or quote total
         total = job.get("subtotal", 0)
         if total == 0 and job.get("quote_id"):
             quote = await db.quotes.find_one({"id": job["quote_id"]}, {"_id": 0})
