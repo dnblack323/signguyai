@@ -206,6 +206,59 @@ export function JobsList() {
     }
   }, [searchParams]);
 
+  // Keyboard shortcuts for bulk actions
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Only trigger if not typing in an input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      // Only trigger if jobs are selected (except for 'a' which toggles select all)
+      
+      switch (e.key.toLowerCase()) {
+        case 'a':
+          if (e.ctrlKey || e.metaKey) return; // Don't override Ctrl+A
+          e.preventDefault();
+          toggleSelectAll();
+          break;
+        case 'escape':
+          if (selectedJobs.size > 0) {
+            e.preventDefault();
+            clearSelection();
+          }
+          break;
+        case 'c':
+          if (selectedJobs.size > 0 && !bulkActionLoading) {
+            e.preventDefault();
+            handleBulkComplete();
+          }
+          break;
+        case 'r':
+          if (selectedJobs.size > 0 && !bulkActionLoading) {
+            e.preventDefault();
+            handleBulkArchive();
+          }
+          break;
+        case 'e':
+          if (selectedJobs.size > 0 && !bulkActionLoading) {
+            e.preventDefault();
+            setIsAssignDialogOpen(true);
+          }
+          break;
+        case 'delete':
+        case 'backspace':
+          if (selectedJobs.size > 0 && !bulkActionLoading) {
+            e.preventDefault();
+            handleBulkDelete();
+          }
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedJobs, bulkActionLoading]);
+
   const loadData = async () => {
     setLoading(true);
     await Promise.all([
@@ -897,7 +950,7 @@ export function JobsList() {
           <div className="flex items-center gap-2 pr-4 border-r border-gray-200">
             <span className="font-semibold text-gray-900">{selectedJobs.size}</span>
             <span className="text-gray-500">selected</span>
-            <Button variant="ghost" size="sm" onClick={clearSelection} className="ml-2">
+            <Button variant="ghost" size="sm" onClick={clearSelection} className="ml-2" title="Clear selection (Esc)">
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -909,9 +962,11 @@ export function JobsList() {
               onClick={handleBulkComplete}
               disabled={bulkActionLoading}
               data-testid="bulk-complete-btn"
+              title="Press C"
             >
               <CheckCircle className="h-4 w-4 mr-2" />
-              Mark Complete
+              Complete
+              <kbd className="ml-2 px-1.5 py-0.5 text-xs bg-gray-100 rounded border">C</kbd>
             </Button>
             
             <Button
@@ -920,9 +975,11 @@ export function JobsList() {
               onClick={handleBulkArchive}
               disabled={bulkActionLoading}
               data-testid="bulk-archive-btn"
+              title="Press R"
             >
               <Archive className="h-4 w-4 mr-2" />
               Archive
+              <kbd className="ml-2 px-1.5 py-0.5 text-xs bg-gray-100 rounded border">R</kbd>
             </Button>
             
             <Button
@@ -931,9 +988,11 @@ export function JobsList() {
               onClick={() => setIsAssignDialogOpen(true)}
               disabled={bulkActionLoading}
               data-testid="bulk-assign-btn"
+              title="Press E"
             >
               <Users className="h-4 w-4 mr-2" />
               Assign
+              <kbd className="ml-2 px-1.5 py-0.5 text-xs bg-gray-100 rounded border">E</kbd>
             </Button>
             
             <Button
@@ -943,14 +1002,21 @@ export function JobsList() {
               disabled={bulkActionLoading}
               className="text-red-600 hover:text-red-700 hover:bg-red-50"
               data-testid="bulk-delete-btn"
+              title="Press Delete"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Delete
+              <kbd className="ml-2 px-1.5 py-0.5 text-xs bg-gray-100 rounded border">Del</kbd>
             </Button>
           </div>
           
+          {/* Keyboard hint */}
+          <div className="hidden lg:flex items-center text-xs text-gray-400 pl-4 border-l border-gray-200">
+            <kbd className="px-1.5 py-0.5 bg-gray-100 rounded border mr-1">A</kbd> Select All
+          </div>
+          
           {bulkActionLoading && (
-            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+            <Loader2 className="h-5 w-5 animate-spin text-blue-600 ml-2" />
           )}
         </div>
       )}
