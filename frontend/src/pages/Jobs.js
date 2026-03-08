@@ -10,6 +10,7 @@ import { Textarea } from '../components/ui/textarea';
 import { Separator } from '../components/ui/separator';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { ShellCard, ShellCardHeader, ShellCardTitle, PageStack } from '../components/ui/shell-card';
+import { Checkbox } from '../components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -46,7 +47,7 @@ import {
   MoreHorizontal, CheckCircle, Archive, ArchiveRestore, Clock,
   FileText, MessageSquare, Activity, DollarSign, User, ExternalLink,
   ChevronRight, Send, CalendarPlus, Calculator, Play, Square, Timer, Loader2,
-  GitBranch, ArrowRight, ArrowRightCircle, Filter, Search
+  GitBranch, ArrowRight, ArrowRightCircle, Filter, Search, Users, X
 } from 'lucide-react';
 import { TimelineToggle } from '../components/ProductionTimeline';
 import { toast } from 'sonner';
@@ -137,7 +138,7 @@ export function JobsList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { 
-    jobs, customers, fetchJobs, fetchCustomers, 
+    jobs, customers, employees, fetchJobs, fetchCustomers, fetchEmployees,
     createJob, updateJob, deleteJob, completeJob, archiveJob, approveJob
   } = useApp();
   const [loading, setLoading] = useState(true);
@@ -145,6 +146,12 @@ export function JobsList() {
   const filterType = searchParams.get('filter') || 'all';
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  // Bulk selection state
+  const [selectedJobs, setSelectedJobs] = useState(new Set());
+  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+  const [assignEmployeeId, setAssignEmployeeId] = useState('');
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const [showPricingCalculator, setShowPricingCalculator] = useState(false);
   const [createMode, setCreateMode] = useState('quote'); // 'quote' or 'job'
   const [formData, setFormData] = useState({
@@ -203,13 +210,122 @@ export function JobsList() {
     setLoading(true);
     await Promise.all([
       fetchJobs({ filter_type: filterType }), 
-      fetchCustomers()
+      fetchCustomers(),
+      fetchEmployees()
     ]);
     setLoading(false);
   };
 
   const setFilterType = (newFilter) => {
     setSearchParams({ filter: newFilter });
+    setSelectedJobs(new Set()); // Clear selection when changing filters
+  };
+
+  // Bulk selection handlers
+  const toggleJobSelection = (jobId) => {
+    const newSelection = new Set(selectedJobs);
+    if (newSelection.has(jobId)) {
+      newSelection.delete(jobId);
+    } else {
+      newSelection.add(jobId);
+    }
+    setSelectedJobs(newSelection);
+  };
+
+  const toggleSelectAll = () => {
+    const filteredJobIds = getFilteredJobs().map(j => j.id);
+    if (selectedJobs.size === filteredJobIds.length && filteredJobIds.length > 0) {
+      setSelectedJobs(new Set());
+    } else {
+      setSelectedJobs(new Set(filteredJobIds));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedJobs(new Set());
+  };
+
+  // Get filtered jobs for selection
+  const getFilteredJobs = () => {
+    return jobs.filter(job => {
+      if (!searchQuery.trim()) return true;
+      const query = searchQuery.toLowerCase();
+      const customerName = getCustomerName(job.customer_id).toLowerCase();
+      return (
+        job.name.toLowerCase().includes(query) ||
+        customerName.includes(query) ||
+        (job.description && job.description.toLowerCase().includes(query))
+      );
+    });
+  };
+
+  // Bulk action handlers
+  const handleBulkComplete = async () => {
+    if (selectedJobs.size === 0) return;
+    setBulkActionLoading(true);
+    try {
+      const promises = Array.from(selectedJobs).map(jobId => completeJob(jobId));
+      await Promise.all(promises);
+      toast.success(`${selectedJobs.size} jobs marked as complete`);
+      setSelectedJobs(new Set());
+      await loadData();
+    } catch (err) {
+      toast.error('Failed to complete some jobs');
+    }
+    setBulkActionLoading(false);
+  };
+
+  const handleBulkArchive = async () => {
+    if (selectedJobs.size === 0) return;
+    setBulkActionLoading(true);
+    try {
+      const promises = Array.from(selectedJobs).map(jobId => archiveJob(jobId));
+      await Promise.all(promises);
+      toast.success(`${selectedJobs.size} jobs archived`);
+      setSelectedJobs(new Set());
+      await loadData();
+    } catch (err) {
+      toast.error('Failed to archive some jobs');
+    }
+    setBulkActionLoading(false);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedJobs.size === 0) return;
+    if (!window.confirm(`Are you sure you want to delete ${selectedJobs.size} jobs? This cannot be undone.`)) {
+      return;
+    }
+    setBulkActionLoading(true);
+    try {
+      const promises = Array.from(selectedJobs).map(jobId => deleteJob(jobId));
+      await Promise.all(promises);
+      toast.success(`${selectedJobs.size} jobs deleted`);
+      setSelectedJobs(new Set());
+      await loadData();
+    } catch (err) {
+      toast.error('Failed to delete some jobs');
+    }
+    setBulkActionLoading(false);
+  };
+
+  const handleBulkAssign = async () => {
+    if (selectedJobs.size === 0 || !assignEmployeeId) return;
+    setBulkActionLoading(true);
+    try {
+      const promises = Array.from(selectedJobs).map(jobId => 
+        updateJob(jobId, { assigned_employee_id: assignEmployeeId })
+      );
+      await Promise.all(promises);
+      const employee = employees.find(e => e.id === assignEmployeeId);
+      toast.success(`${selectedJobs.size} jobs assigned to ${employee?.name || 'employee'}`);
+      setSelectedJobs(new Set());
+      setIsAssignDialogOpen(false);
+      setAssignEmployeeId('');
+      await loadData();
+    } catch (err) {
+      toast.error('Failed to assign some jobs');
+    }
+    setBulkActionLoading(false);
   };
 
   // Calculate total from line items
@@ -623,29 +739,41 @@ export function JobsList() {
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {jobs
-              .filter(job => {
-                if (!searchQuery.trim()) return true;
-                const query = searchQuery.toLowerCase();
-                const customerName = getCustomerName(job.customer_id).toLowerCase();
-                return (
-                  job.name.toLowerCase().includes(query) ||
-                  customerName.includes(query) ||
-                  (job.description && job.description.toLowerCase().includes(query))
-                );
-              })
-              .map((job) => (
+            {/* Select All Row */}
+            <div className="px-4 py-2 bg-gray-50 flex items-center gap-3 border-b border-gray-200">
+              <Checkbox
+                checked={selectedJobs.size > 0 && selectedJobs.size === getFilteredJobs().length}
+                onCheckedChange={toggleSelectAll}
+                data-testid="select-all-jobs"
+              />
+              <span className="text-sm text-gray-600">
+                {selectedJobs.size > 0 
+                  ? `${selectedJobs.size} selected` 
+                  : `Select all (${getFilteredJobs().length})`}
+              </span>
+            </div>
+            {getFilteredJobs().map((job) => (
               <div 
                 key={job.id} 
-                className="p-4 hover:bg-gray-50 transition-colors group cursor-pointer"
+                className={cn(
+                  "p-4 hover:bg-gray-50 transition-colors group cursor-pointer",
+                  selectedJobs.has(job.id) && "bg-blue-50 hover:bg-blue-100"
+                )}
                 data-testid={`job-row-${job.id}`}
                 onClick={(e) => {
                   // Don't navigate if clicking on interactive elements
-                  if (e.target.closest('button') || e.target.closest('[role="menu"]') || e.target.closest('a')) return;
+                  if (e.target.closest('button') || e.target.closest('[role="menu"]') || e.target.closest('a') || e.target.closest('[role="checkbox"]')) return;
                   navigate(`/jobs/${job.id}`);
                 }}
               >
                 <div className="flex items-center gap-4">
+                  {/* Checkbox */}
+                  <Checkbox
+                    checked={selectedJobs.has(job.id)}
+                    onCheckedChange={() => toggleJobSelection(job.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    data-testid={`select-job-${job.id}`}
+                  />
                   {/* Job Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-1">
@@ -762,6 +890,117 @@ export function JobsList() {
             </div>
           )}
       </ShellCard>
+
+      {/* Floating Bulk Action Bar */}
+      {selectedJobs.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 flex items-center gap-4 animate-in slide-in-from-bottom-4" data-testid="bulk-action-bar">
+          <div className="flex items-center gap-2 pr-4 border-r border-gray-200">
+            <span className="font-semibold text-gray-900">{selectedJobs.size}</span>
+            <span className="text-gray-500">selected</span>
+            <Button variant="ghost" size="sm" onClick={clearSelection} className="ml-2">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBulkComplete}
+              disabled={bulkActionLoading}
+              data-testid="bulk-complete-btn"
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Mark Complete
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBulkArchive}
+              disabled={bulkActionLoading}
+              data-testid="bulk-archive-btn"
+            >
+              <Archive className="h-4 w-4 mr-2" />
+              Archive
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAssignDialogOpen(true)}
+              disabled={bulkActionLoading}
+              data-testid="bulk-assign-btn"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Assign
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBulkDelete}
+              disabled={bulkActionLoading}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              data-testid="bulk-delete-btn"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          </div>
+          
+          {bulkActionLoading && (
+            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+          )}
+        </div>
+      )}
+
+      {/* Assign Employee Dialog */}
+      <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="font-heading uppercase flex items-center gap-2">
+              <Users className="h-5 w-5" /> Assign to Employee
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Assign {selectedJobs.size} selected job(s) to an employee
+            </p>
+            <div className="space-y-2">
+              <Label>Select Employee</Label>
+              <Select value={assignEmployeeId} onValueChange={setAssignEmployeeId}>
+                <SelectTrigger data-testid="assign-employee-select">
+                  <SelectValue placeholder="Choose employee..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees.map((emp) => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.name} {emp.role && `(${emp.role})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setIsAssignDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleBulkAssign} 
+                disabled={!assignEmployeeId || bulkActionLoading}
+                data-testid="confirm-assign-btn"
+              >
+                {bulkActionLoading ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Assigning...</>
+                ) : (
+                  <>Assign {selectedJobs.size} Job(s)</>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PageStack>
   );
 }
