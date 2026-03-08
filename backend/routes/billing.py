@@ -587,7 +587,6 @@ async def create_checkout_session(
 class FoundersCheckoutRequest(PydanticBaseModel):
     """Request for Founders Edition checkout"""
     billing_interval: str = "monthly"  # "monthly" or "annual"
-    promo_code: Optional[str] = None   # "FOUNDERS" for 50% off annual
     origin_url: str
 
 
@@ -666,26 +665,16 @@ async def create_founders_checkout_session(
                 "configuration": "founder_pricing_v1",
             },
         },
-        "allow_promotion_codes": True,  # Allow FOUNDERS promo code entry
+        "allow_promotion_codes": True,  # Customer can enter FOUNDERS code manually at checkout
     }
-    
-    # Apply FOUNDERS coupon if provided and annual
-    if request.promo_code and request.promo_code.upper() == "FOUNDERS" and request.billing_interval == "annual":
-        coupon_id = FounderPricingConfig.get_founders_coupon_id()
-        if coupon_id and founders_remaining > 0:
-            checkout_params["discounts"] = [{"coupon": coupon_id}]
-            # Remove allow_promotion_codes if using preset coupon
-            checkout_params.pop("allow_promotion_codes", None)
     
     try:
         session = stripe.checkout.Session.create(**checkout_params)
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
     
-    # Record transaction
+    # Record transaction (full price - discount applied at Stripe checkout)
     amount = 99.0 if request.billing_interval == "monthly" else 1188.0
-    if request.promo_code and request.promo_code.upper() == "FOUNDERS" and request.billing_interval == "annual":
-        amount = 594.0  # Discounted price
     
     transaction = PaymentTransaction(
         tenant_id=current_user.tenant_id,
