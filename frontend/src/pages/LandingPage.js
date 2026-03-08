@@ -72,14 +72,14 @@ export default function LandingPage() {
             48-Hour Free Trial - No Credit Card Required
           </Badge>
           
-          <Badge className="mb-6 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-400 border border-amber-500/30 px-4 py-1.5 ml-2">
+          <Badge className="mb-6 bg-gradient-to-r from-blue-500/20 to-blue-600/20 text-blue-400 border border-blue-500/30 px-4 py-1.5 ml-2">
             <Crown className="w-4 h-4 mr-2" />
             Founders Edition - Only 100 Spots
           </Badge>
           
           <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
             The AI-Powered Operating System<br />
-            <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">for Sign Shops</span>
+            <span className="bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent">for Sign Shops</span>
           </h1>
           
           <p className="text-xl text-gray-400 max-w-3xl mx-auto mb-8">
@@ -89,7 +89,7 @@ export default function LandingPage() {
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/register">
-              <Button size="lg" className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-semibold px-8 py-6 text-lg h-auto">
+              <Button size="lg" className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold px-8 py-6 text-lg h-auto">
                 Start Free Trial
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
@@ -120,16 +120,16 @@ export default function LandingPage() {
       </section>
 
       {/* Section 2: Founder Promotion Banner */}
-      <section className="py-6 px-4 bg-gradient-to-r from-amber-600/20 via-orange-600/20 to-amber-600/20 border-y border-amber-500/30">
+      <section className="py-6 px-4 bg-gradient-to-r from-blue-600/20 via-blue-700/20 to-blue-600/20 border-y border-blue-500/30">
         <div className="max-w-4xl mx-auto text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <Crown className="w-6 h-6 text-amber-400" />
-            <h3 className="text-xl font-bold text-amber-400">Founder Launch Offer</h3>
+            <Crown className="w-6 h-6 text-blue-400" />
+            <h3 className="text-xl font-bold text-blue-400">Founder Launch Offer</h3>
           </div>
           <p className="text-white mb-2">
-            Promo code <span className="font-mono bg-amber-500/30 px-2 py-0.5 rounded text-amber-300">FOUNDERS</span> gives <span className="font-bold">50% off the annual plan</span>
+            Promo code <span className="font-mono bg-blue-500/30 px-2 py-0.5 rounded text-blue-300">FOUNDERS</span> gives <span className="font-bold">50% off the annual plan</span>
           </p>
-          <p className="text-amber-200/80">Available for the first 100 customers only</p>
+          <p className="text-blue-200/80">Available for the first 100 customers only</p>
           <p className="text-sm text-gray-400 mt-3">
             Founder customers retain $99/month pricing after the first year as long as their subscription remains active. Future customers may pay higher prices.
           </p>
@@ -145,9 +145,9 @@ export default function LandingPage() {
           </p>
 
           {/* Founder Plan Pricing Card */}
-          <Card className="bg-[#111826] text-white border-2 border-amber-500/50 max-w-xl mx-auto overflow-hidden">
-            <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 text-center">
-              <span className="text-black font-bold uppercase tracking-wide">Founder Plan</span>
+          <Card className="bg-[#111826] text-white border-2 border-blue-500/50 max-w-xl mx-auto overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-3 text-center">
+              <span className="text-white font-bold uppercase tracking-wide">Founder Plan</span>
             </div>
             <CardContent className="p-8">
               {/* Price */}
@@ -156,7 +156,7 @@ export default function LandingPage() {
                   <span className="text-5xl font-bold text-white">$99</span>
                   <span className="text-xl text-gray-400">/ month</span>
                 </div>
-                <p className="text-sm text-amber-400 mt-2">or $1,188/year ($594 with FOUNDERS code)</p>
+                <p className="text-sm text-blue-400 mt-2">or $1,188/year ($594 with FOUNDERS code)</p>
               </div>
 
               {/* Feature Summary */}
@@ -186,7 +186,7 @@ export default function LandingPage() {
               {/* AI Credit Summary */}
               <div className="bg-white/5 rounded-lg p-4 mb-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <Sparkles className="w-4 h-4 text-blue-400" />
                   <span className="font-semibold text-white">AI Credit Summary</span>
                 </div>
                 <ul className="text-sm text-gray-400 space-y-1">
@@ -198,24 +198,24 @@ export default function LandingPage() {
               {/* Credit Packs */}
               <div className="border-t border-white/10 pt-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <Coins className="w-4 h-4 text-amber-400" />
+                  <Coins className="w-4 h-4 text-blue-400" />
                   <span className="font-semibold text-white">Credit Packs</span>
                 </div>
                 <div className="grid grid-cols-3 gap-3 mb-3">
                   <div className="bg-white/5 rounded-lg p-3 text-center">
                     <p className="text-lg font-bold text-white">100</p>
                     <p className="text-xs text-gray-400">credits</p>
-                    <p className="text-amber-400 font-semibold">$10</p>
+                    <p className="text-blue-400 font-semibold">$10</p>
                   </div>
                   <div className="bg-white/5 rounded-lg p-3 text-center">
                     <p className="text-lg font-bold text-white">300</p>
                     <p className="text-xs text-gray-400">credits</p>
-                    <p className="text-amber-400 font-semibold">$25</p>
+                    <p className="text-blue-400 font-semibold">$25</p>
                   </div>
                   <div className="bg-white/5 rounded-lg p-3 text-center">
                     <p className="text-lg font-bold text-white">1000</p>
                     <p className="text-xs text-gray-400">credits</p>
-                    <p className="text-amber-400 font-semibold">$60</p>
+                    <p className="text-blue-400 font-semibold">$60</p>
                   </div>
                 </div>
                 <p className="text-xs text-gray-500 text-center">
@@ -226,7 +226,7 @@ export default function LandingPage() {
               {/* CTA */}
               <div className="mt-8">
                 <Link to="/register">
-                  <Button className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-semibold py-6 text-lg h-auto">
+                  <Button className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-6 text-lg h-auto">
                     Start Free Trial
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
@@ -241,7 +241,7 @@ export default function LandingPage() {
       <section className="py-20 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <Zap className="w-8 h-8 text-amber-400" />
+            <Zap className="w-8 h-8 text-blue-400" />
             <h2 className="text-2xl md:text-3xl font-bold text-center">How AI Credits Work</h2>
           </div>
           <p className="text-gray-400 text-center mb-12 max-w-2xl mx-auto">
@@ -253,8 +253,8 @@ export default function LandingPage() {
             <Card className="bg-[#111826] text-white border-white/10">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-amber-500/20 rounded-lg flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-amber-400" />
+                  <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-blue-400" />
                   </div>
                   <h3 className="text-lg font-semibold">Monthly Credits</h3>
                 </div>
@@ -263,11 +263,11 @@ export default function LandingPage() {
                 </p>
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                    <AlertCircle className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
                     <span className="text-gray-400">Monthly credits expire on the billing date</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                    <AlertCircle className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
                     <span className="text-gray-400">Monthly credits are used before purchased credits</span>
                   </li>
                 </ul>
@@ -302,7 +302,7 @@ export default function LandingPage() {
 
           {/* Credit Cost Note */}
           <div className="mt-8 bg-white/5 border border-white/10 rounded-xl p-6 text-center">
-            <Info className="w-6 h-6 text-amber-400 mx-auto mb-3" />
+            <Info className="w-6 h-6 text-blue-400 mx-auto mb-3" />
             <p className="text-gray-300">
               Credit costs depend on compute intensity. Most AI actions cost between <span className="text-white font-semibold">1–3 credits</span>, though some advanced tools may require more.
             </p>
@@ -314,7 +314,7 @@ export default function LandingPage() {
       <section className="py-20 px-4 bg-white/5">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <CreditCard className="w-8 h-8 text-amber-400" />
+            <CreditCard className="w-8 h-8 text-blue-400" />
             <h2 className="text-2xl md:text-3xl font-bold text-center">Billing & Payments</h2>
           </div>
           <p className="text-gray-400 text-center mb-12 max-w-2xl mx-auto">
@@ -350,10 +350,10 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="bg-[#111826] border border-amber-500/30 rounded-xl p-6">
+            <div className="bg-[#111826] border border-blue-500/30 rounded-xl p-6">
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-amber-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <AlertCircle className="w-5 h-5 text-amber-400" />
+                <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <AlertCircle className="w-5 h-5 text-blue-400" />
                 </div>
                 <div>
                   <h4 className="font-semibold text-white mb-2">Failed Payment Policy</h4>
@@ -371,7 +371,7 @@ export default function LandingPage() {
       <section className="py-20 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <Sparkles className="w-8 h-8 text-amber-400" />
+            <Sparkles className="w-8 h-8 text-blue-400" />
             <h2 className="text-2xl md:text-3xl font-bold text-center">AI Usage Transparency</h2>
           </div>
           <p className="text-gray-400 text-center mb-12 max-w-2xl mx-auto">
@@ -385,8 +385,8 @@ export default function LandingPage() {
                 <p className="text-sm text-gray-400">Before running an AI action:</p>
               </div>
               <div className="p-6">
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-4">
-                  <p className="text-amber-400 font-medium mb-2">This action will cost 2 credits.</p>
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
+                  <p className="text-blue-400 font-medium mb-2">This action will cost 2 credits.</p>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-400">Remaining credits:</span>
                     <span className="text-white font-semibold">118</span>
@@ -412,10 +412,10 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Shop Management */}
-            <Card className="bg-[#111826] text-white border-amber-500/30">
+            <Card className="bg-[#111826] text-white border-blue-500/30">
               <CardContent className="p-8">
-                <div className="w-14 h-14 bg-amber-500/20 rounded-xl flex items-center justify-center mb-6">
-                  <Building2 className="w-7 h-7 text-amber-400" />
+                <div className="w-14 h-14 bg-blue-500/20 rounded-xl flex items-center justify-center mb-6">
+                  <Building2 className="w-7 h-7 text-blue-400" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-3">Shop Management</h3>
                 <p className="text-gray-400 mb-4">
@@ -439,10 +439,10 @@ export default function LandingPage() {
             </Card>
 
             {/* Webstores */}
-            <Card className="bg-[#111826] text-white border-amber-500/30">
+            <Card className="bg-[#111826] text-white border-blue-500/30">
               <CardContent className="p-8">
-                <div className="w-14 h-14 bg-amber-500/20 rounded-xl flex items-center justify-center mb-6">
-                  <Store className="w-7 h-7 text-amber-400" />
+                <div className="w-14 h-14 bg-blue-500/20 rounded-xl flex items-center justify-center mb-6">
+                  <Store className="w-7 h-7 text-blue-400" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-3">Webstores</h3>
                 <p className="text-gray-400 mb-4">
@@ -466,10 +466,10 @@ export default function LandingPage() {
             </Card>
 
             {/* AI Tools */}
-            <Card className="bg-[#111826] text-white border-amber-500/30">
+            <Card className="bg-[#111826] text-white border-blue-500/30">
               <CardContent className="p-8">
-                <div className="w-14 h-14 bg-amber-500/20 rounded-xl flex items-center justify-center mb-6">
-                  <Sparkles className="w-7 h-7 text-amber-400" />
+                <div className="w-14 h-14 bg-blue-500/20 rounded-xl flex items-center justify-center mb-6">
+                  <Sparkles className="w-7 h-7 text-blue-400" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-3">AI Tools</h3>
                 <p className="text-gray-400 mb-4">
@@ -508,8 +508,8 @@ export default function LandingPage() {
               const Icon = feature.icon;
               return (
                 <div key={feature.title} className="p-6 bg-white/5 border border-white/10 rounded-xl">
-                  <div className="w-12 h-12 bg-amber-500/20 rounded-lg flex items-center justify-center mb-4">
-                    <Icon className="w-6 h-6 text-amber-400" />
+                  <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mb-4">
+                    <Icon className="w-6 h-6 text-blue-400" />
                   </div>
                   <h3 className="font-semibold mb-2">{feature.title}</h3>
                   <p className="text-sm text-gray-400">{feature.desc}</p>
@@ -520,7 +520,7 @@ export default function LandingPage() {
 
           <div className="text-center mt-12">
             <Link to="/features">
-              <Button variant="outline" className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 bg-transparent">
+              <Button variant="outline" className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10 bg-transparent">
                 See All Features
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
@@ -530,9 +530,9 @@ export default function LandingPage() {
       </section>
 
       {/* Section 9: CTA - Founders Edition */}
-      <section className="py-20 px-4 bg-gradient-to-b from-amber-900/20 to-transparent">
+      <section className="py-20 px-4 bg-gradient-to-b from-blue-900/20 to-transparent">
         <div className="max-w-4xl mx-auto text-center">
-          <Crown className="w-12 h-12 mx-auto mb-4 text-amber-400" />
+          <Crown className="w-12 h-12 mx-auto mb-4 text-blue-400" />
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Join the Founding 100
           </h2>
@@ -541,13 +541,13 @@ export default function LandingPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/register">
-              <Button size="lg" className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-semibold px-8 py-6 text-lg h-auto">
+              <Button size="lg" className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold px-8 py-6 text-lg h-auto">
                 Get Founders Edition
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>
             <Link to="/pricing">
-              <Button size="lg" variant="outline" className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-8 py-6 text-lg h-auto bg-transparent">
+              <Button size="lg" variant="outline" className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10 px-8 py-6 text-lg h-auto bg-transparent">
                 View Full Pricing
               </Button>
             </Link>
