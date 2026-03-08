@@ -1717,3 +1717,63 @@ Create in Stripe Dashboard:
 
 ## Last Updated
 March 8, 2026
+
+---
+
+## Landing Page Pricing Transparency (Mar 8, 2026) - COMPLETE ✅
+
+### Configuration: `founder_pricing_v1`
+
+All pricing, credit, and billing rules are now visible on the marketing landing page as required.
+
+### Sections Implemented
+
+1. **Founder Promotion Banner**
+   - Promo code FOUNDERS = 50% off annual
+   - First 100 customers only
+   - Lifetime $99/month pricing note
+
+2. **Founder Plan Pricing Card**
+   - $99/month or $1,188/year ($594 with FOUNDERS)
+   - All features unlocked
+   - 150 AI credits/month
+   - Stripe requirement noted
+   - AI Credit Summary (1-3 credits typical)
+   - Credit Packs: $10 (100), $25 (300), $60 (1000)
+
+3. **How AI Credits Work Section**
+   - Monthly Credits: 150/month, expire on billing date
+   - Purchased Credits: Never expire during subscription
+   - Usage order explained
+
+4. **Billing & Payments Section**
+   - Stripe Integration Required
+   - Credit Refill Timing (after payment confirmation)
+   - Failed Payment Policy (no credits until resolved)
+
+5. **AI Usage Transparency Section**
+   - Example UI showing credit cost before action
+   - "Do not show again" option displayed
+
+6. **Fair Usage Protection Notice**
+   - Rate-limiting notice in footer area
+
+7. **FAQ Section (Updated)**
+   - Do unused monthly credits roll over? (No)
+   - When are my credits added? (After payment)
+   - Do purchased credits expire? (No, while active)
+   - Why do some AI tools cost more? (Compute intensity)
+
+### Files Modified
+- `frontend/src/pages/LandingPage.js` - Complete rewrite with all transparency sections
+
+### Compliance
+✅ Rules visible on landing page (not just backend)
+✅ Pricing matches system behavior  
+✅ Credit rules clearly explained
+✅ All FAQ questions added
+
+---
+
+## Last Updated
+March 8, 2026
