@@ -30,6 +30,7 @@ from models.billing import (
     PricingPlan, PricingResponse, TrialStatus
 )
 from models import UserInDB
+from pydantic import BaseModel as PydanticBaseModel
 
 router = APIRouter(prefix="/billing", tags=["Billing & Subscriptions"])
 webhook_router = APIRouter(tags=["Webhooks"])
@@ -581,9 +582,239 @@ async def create_checkout_session(
     return CheckoutResponse(url=session.url, session_id=session.id)
 
 
-# ============== MULTI-PRODUCT CHECKOUT ==============
+# ============== FOUNDERS EDITION CHECKOUT (v1) ==============
 
-from pydantic import BaseModel as PydanticBaseModel
+class FoundersCheckoutRequest(PydanticBaseModel):
+    """Request for Founders Edition checkout"""
+    billing_interval: str = "monthly"  # "monthly" or "annual"
+    promo_code: Optional[str] = None   # "FOUNDERS" for 50% off annual
+    origin_url: str
+
+
+class CreditPackCheckoutRequest(PydanticBaseModel):
+    """Request for credit pack purchase"""
+    pack_size: int  # 100, 300, or 1000
+    origin_url: str
+
+
+@router.post("/checkout/founders")
+async def create_founders_checkout_session(
+    request: FoundersCheckoutRequest,
+    db = Depends(get_db),
+    current_user: UserInDB = Depends(get_current_user_billing)
+):
+    """
+    Create Stripe checkout for Founders Edition subscription.
+    
+    Configuration: founder_pricing_v1
+    
+    Pricing:
+    - Monthly: $99/month
+    - Annual: $1188/year (or $594 with FOUNDERS promo code)
+    
+    Rules:
+    - FOUNDERS promo: 50% off first annual payment, limited to 100 customers
+    - All features included, no tiers
+    - 150 AI credits/month included
+    """
+    import stripe
+    from config.stripe_config import FounderPricingConfig
+    
+    stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
+    if not stripe.api_key:
+        raise HTTPException(status_code=500, detail="Stripe not configured")
+    
+    # Get subscription price ID
+    price_id = FounderPricingConfig.get_subscription_price_id(request.billing_interval)
+    
+    if not price_id:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Stripe Price ID not configured for {request.billing_interval}. Please contact support."
+        )
+    
+    # Check founder availability
+    founder_count = await db.tenants.count_documents({"founder_lifetime_lock": True})
+    founders_remaining = max(0, 100 - founder_count)
+    
+    # Build URLs
+    success_url = f"{request.origin_url}/settings/billing?success=true&session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{request.origin_url}/settings/billing?canceled=true"
+    
+    # Build checkout params
+    checkout_params = {
+        "mode": "subscription",
+        "payment_method_types": ["card"],
+        "line_items": [{
+            "price": price_id,
+            "quantity": 1,
+        }],
+        "customer_email": current_user.email,
+        "success_url": success_url,
+        "cancel_url": cancel_url,
+        "metadata": {
+            "tenant_id": current_user.tenant_id,
+            "user_id": current_user.id,
+            "plan": "founders_edition",
+            "billing_interval": request.billing_interval,
+            "configuration": "founder_pricing_v1",
+        },
+        "subscription_data": {
+            "metadata": {
+                "tenant_id": current_user.tenant_id,
+                "plan": "founders_edition",
+                "configuration": "founder_pricing_v1",
+            },
+        },
+        "allow_promotion_codes": True,  # Allow FOUNDERS promo code entry
+    }
+    
+    # Apply FOUNDERS coupon if provided and annual
+    if request.promo_code and request.promo_code.upper() == "FOUNDERS" and request.billing_interval == "annual":
+        coupon_id = FounderPricingConfig.get_founders_coupon_id()
+        if coupon_id and founders_remaining > 0:
+            checkout_params["discounts"] = [{"coupon": coupon_id}]
+            # Remove allow_promotion_codes if using preset coupon
+            checkout_params.pop("allow_promotion_codes", None)
+    
+    try:
+        session = stripe.checkout.Session.create(**checkout_params)
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
+    
+    # Record transaction
+    amount = 99.0 if request.billing_interval == "monthly" else 1188.0
+    if request.promo_code and request.promo_code.upper() == "FOUNDERS" and request.billing_interval == "annual":
+        amount = 594.0  # Discounted price
+    
+    transaction = PaymentTransaction(
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id,
+        email=current_user.email,
+        stripe_session_id=session.id,
+        amount=amount,
+        currency="usd",
+        plan=SubscriptionPlan.TIER_3,  # Map to highest tier for features
+        payment_status=PaymentStatus.INITIATED,
+        is_founder_purchase=True,
+        metadata={
+            "plan_name": "Founders Edition",
+            "billing_interval": request.billing_interval,
+            "promo_code": request.promo_code,
+            "configuration": "founder_pricing_v1",
+        }
+    )
+    
+    await db.payment_transactions.insert_one(transaction.model_dump())
+    
+    return CheckoutResponse(url=session.url, session_id=session.id)
+
+
+@router.post("/checkout/credits")
+async def create_credit_pack_checkout_session(
+    request: CreditPackCheckoutRequest,
+    db = Depends(get_db),
+    current_user: UserInDB = Depends(get_current_user_billing)
+):
+    """
+    Create Stripe checkout for AI credit pack purchase.
+    
+    Configuration: founder_pricing_v1
+    
+    Credit Packs:
+    - 100 credits = $10 (one-time)
+    - 300 credits = $25 (one-time)
+    - 1000 credits = $60 (one-time)
+    
+    Rules:
+    - Credits never expire during active subscription
+    - Used after monthly credits are depleted
+    """
+    import stripe
+    from config.stripe_config import FounderPricingConfig, CREDIT_PACK_MAPPING
+    
+    stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
+    if not stripe.api_key:
+        raise HTTPException(status_code=500, detail="Stripe not configured")
+    
+    # Validate pack size
+    if request.pack_size not in CREDIT_PACK_MAPPING:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid pack size. Choose from: {list(CREDIT_PACK_MAPPING.keys())}"
+        )
+    
+    pack_info = CREDIT_PACK_MAPPING[request.pack_size]
+    price_id = FounderPricingConfig.get_credit_pack_price_id(request.pack_size)
+    
+    # Build URLs
+    success_url = f"{request.origin_url}/settings/billing?credits_success=true&credits={request.pack_size}"
+    cancel_url = f"{request.origin_url}/settings/billing?credits_canceled=true"
+    
+    # Build checkout params
+    checkout_params = {
+        "mode": "payment",  # One-time payment
+        "payment_method_types": ["card"],
+        "customer_email": current_user.email,
+        "success_url": success_url,
+        "cancel_url": cancel_url,
+        "metadata": {
+            "tenant_id": current_user.tenant_id,
+            "user_id": current_user.id,
+            "purchase_type": "credit_pack",
+            "credits": str(request.pack_size),
+            "configuration": "founder_pricing_v1",
+        },
+    }
+    
+    if price_id:
+        checkout_params["line_items"] = [{
+            "price": price_id,
+            "quantity": 1,
+        }]
+    else:
+        # Fallback: dynamic price
+        checkout_params["line_items"] = [{
+            "price_data": {
+                "currency": "usd",
+                "unit_amount": int(pack_info["price"] * 100),
+                "product_data": {
+                    "name": f"AI Credits - {request.pack_size} Pack",
+                    "description": f"{request.pack_size} AI credits - never expire during subscription",
+                },
+            },
+            "quantity": 1,
+        }]
+    
+    try:
+        session = stripe.checkout.Session.create(**checkout_params)
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
+    
+    # Record transaction
+    transaction = PaymentTransaction(
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id,
+        email=current_user.email,
+        stripe_session_id=session.id,
+        amount=pack_info["price"],
+        currency="usd",
+        plan=SubscriptionPlan.AI_ADDON,  # Use AI addon enum for credit packs
+        payment_status=PaymentStatus.INITIATED,
+        is_founder_purchase=False,
+        metadata={
+            "purchase_type": "credit_pack",
+            "credits": request.pack_size,
+            "configuration": "founder_pricing_v1",
+        }
+    )
+    
+    await db.payment_transactions.insert_one(transaction.model_dump())
+    
+    return CheckoutResponse(url=session.url, session_id=session.id)
+
+
+# ============== MULTI-PRODUCT CHECKOUT ==============
 
 
 class MultiProductCheckoutRequest(PydanticBaseModel):
@@ -994,23 +1225,22 @@ async def get_subscription_v2(
     
     # Determine current plan
     plan_str = None
-    product_line = None
+    product_line = None  # noqa: F841 - may be used in future
     is_founder = False
     
     if subscription:
         plan_str = subscription.get("plan")
-        product_line = subscription.get("product_line")
+        product_line = subscription.get("product_line")  # noqa: F841
         is_founder = subscription.get("is_founder", False)
     
     if not plan_str and tenant:
         plan_str = tenant.get("plan")
-        product_line = tenant.get("product_line")
+        product_line = tenant.get("product_line")  # noqa: F841
         is_founder = tenant.get("is_founder", False)
     
     # Default to OS Starter for new tenants
     if not plan_str:
         plan_str = "os_starter"
-        product_line = "os"
     
     # Try to parse as PlanType enum
     try:
@@ -1077,7 +1307,7 @@ async def get_subscription_v2(
     }
 
 
-def _get_upgrade_options(current_plan: 'PlanType') -> list:
+def _get_upgrade_options(current_plan) -> list:
     """Get available upgrade options based on current plan"""
     from models.product_tiers import PlanType, ProductLine
     from services.plan_configs import get_plan_config

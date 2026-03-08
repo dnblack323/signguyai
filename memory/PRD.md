@@ -1642,3 +1642,78 @@ March 7, 2026
 
 ## Last Updated
 March 8, 2026
+
+---
+
+## Founders Edition Pricing Configuration (Mar 8, 2026) - COMPLETE ✅
+
+### Configuration: `founder_pricing_v1`
+
+**Subscription:**
+- Monthly: $99/month
+- Annual: $1188/year (normal), $594 with FOUNDERS promo (50% off first year)
+- Promo Code: `FOUNDERS` - First 100 customers only
+
+**Credit System:**
+- 150 AI credits/month included
+- Monthly credits expire on billing date, don't roll over
+- Purchased credits used after monthly depleted
+- Purchased credits never expire during active subscription
+
+**Credit Packs (one-time):**
+- 100 credits = $10
+- 300 credits = $25
+- 1000 credits = $60
+
+**AI Credit Costs:**
+- 1 credit: Small text, assistant replies, light formatting
+- 2 credits: Content generation, image edits
+- 3 credits: Complex design, heavy processing
+- 5+ credits: Future high-compute actions
+
+### New API Endpoints
+- `POST /api/billing/checkout/founders` - Founders Edition subscription checkout
+- `POST /api/billing/checkout/credits` - Credit pack purchase checkout
+
+### Files Modified/Created
+- `backend/config/stripe_config.py` - Complete rewrite for Founders pricing
+- `backend/services/founders_config.py` - Updated with correct annual pricing
+- `backend/routes/billing.py` - Added Founders checkout endpoints
+
+### Stripe Setup Required
+Create in Stripe Dashboard:
+1. **Product: "Founders Edition"**
+   - Price: $99/month (recurring) → `STRIPE_PRICE_FOUNDERS_MONTHLY`
+   - Price: $1188/year (recurring) → `STRIPE_PRICE_FOUNDERS_ANNUAL`
+
+2. **Product: "AI Credits - 100 Pack"**
+   - Price: $10 (one-time) → `STRIPE_PRICE_CREDITS_100`
+
+3. **Product: "AI Credits - 300 Pack"**
+   - Price: $25 (one-time) → `STRIPE_PRICE_CREDITS_300`
+
+4. **Product: "AI Credits - 1000 Pack"**
+   - Price: $60 (one-time) → `STRIPE_PRICE_CREDITS_1000`
+
+5. **Coupon: "FOUNDERS"**
+   - 50% off, applies to first payment only
+   - Limit: 100 redemptions
+   → `STRIPE_COUPON_FOUNDERS`
+
+---
+
+## Keyboard Shortcuts for Jobs Bulk Actions (Mar 8, 2026) - COMPLETE ✅
+
+| Key | Action |
+|-----|--------|
+| A | Select All / Deselect All |
+| C | Mark Complete |
+| R | Archive |
+| E | Open Assign Employee dialog |
+| Del/Backspace | Delete (with confirmation) |
+| Esc | Clear selection |
+
+---
+
+## Last Updated
+March 8, 2026

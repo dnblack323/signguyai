@@ -29,12 +29,14 @@ FOUNDERS_EDITION_PLAN = {
     "plan_name": "Founders Edition",
     "plan_id": "founders_edition",
     "price_monthly": 99.0,
-    "price_annual": 594.0,  # 6 months price for 12 months access
+    "price_annual": 1188.0,  # Normal annual price ($99 x 12)
+    "price_annual_with_promo": 594.0,  # With FOUNDERS code (50% off)
     "founder_lifetime_lock": True,
     "founder_limit": 100,
     "founder_spots_used": 0,  # Tracked in database
     "ai_credits_monthly": 150,
-    "credit_rollover": True,  # Purchased credits roll over (monthly don't)
+    "monthly_credits_rollover": False,  # Monthly credits expire on billing date
+    "purchased_credits_rollover": True,  # Purchased credits never expire during subscription
     "plan_active": True,
     "plan_public": True,
 }

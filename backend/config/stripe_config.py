@@ -1,88 +1,139 @@
 """
-Stripe Price Configuration
+Stripe Price Configuration - Founders Edition v1
 
-Maps subscription plans to Stripe Price IDs.
-Create these prices in the Stripe Dashboard first.
+CONFIGURATION: founder_pricing_v1
+STATUS: ACTIVE
 
-For each plan, create:
-- A Product (e.g., "Starter Plan")
-- Recurring Prices (monthly and annual)
+This configuration implements the simplified Founders Edition pricing:
+- Single plan: $99/month or $1188/year ($594 with FOUNDERS promo)
+- Credit packs: $10 (100), $25 (300), $60 (1000)
+- All features unlocked, no tiers
+
+Create these in Stripe Dashboard:
+1. Product: "Founders Edition" 
+   - Monthly Price: $99/month (recurring)
+   - Annual Price: $1188/year (recurring)
+2. Product: "AI Credits - 100 Pack" - $10 (one-time)
+3. Product: "AI Credits - 300 Pack" - $25 (one-time)
+4. Product: "AI Credits - 1000 Pack" - $60 (one-time)
+5. Coupon: "FOUNDERS" - 50% off, first payment only, limit 100 uses
 """
 
 import os
 from typing import Optional, Dict
-from enum import Enum
 
 
-class StripePriceConfig:
-    """Configuration for Stripe Price IDs"""
+class FounderPricingConfig:
+    """Founders Edition Pricing Configuration - v1"""
     
-    # Environment variable names for each plan/interval
-    PRICE_ENV_VARS = {
-        # Founder pricing
-        ("tier_1", "monthly", True): "STRIPE_PRICE_STARTER_MONTHLY",
-        ("tier_2", "monthly", True): "STRIPE_PRICE_PRO_MONTHLY",
-        ("tier_3", "monthly", True): "STRIPE_PRICE_BUSINESS_MONTHLY",
-        ("ai_addon", "monthly", True): "STRIPE_PRICE_AI_ADDON_MONTHLY",
-        ("tier_1", "annual", True): "STRIPE_PRICE_STARTER_ANNUAL",
-        ("tier_2", "annual", True): "STRIPE_PRICE_PRO_ANNUAL",
-        ("tier_3", "annual", True): "STRIPE_PRICE_BUSINESS_ANNUAL",
-        ("ai_addon", "annual", True): "STRIPE_PRICE_AI_ADDON_ANNUAL",
-        # Standard pricing
-        ("tier_1", "monthly", False): "STRIPE_PRICE_STARTER_MONTHLY_STD",
-        ("tier_2", "monthly", False): "STRIPE_PRICE_PRO_MONTHLY_STD",
-        ("tier_3", "monthly", False): "STRIPE_PRICE_BUSINESS_MONTHLY_STD",
-        ("ai_addon", "monthly", False): "STRIPE_PRICE_AI_ADDON_MONTHLY_STD",
-        # Extended trial (one-time)
-        ("extended_trial", "monthly", True): "STRIPE_PRICE_EXTENDED_TRIAL",
-        ("extended_trial", "monthly", False): "STRIPE_PRICE_EXTENDED_TRIAL",
+    # Environment variable mappings
+    ENV_VARS = {
+        # Subscription prices
+        "founders_monthly": "STRIPE_PRICE_FOUNDERS_MONTHLY",
+        "founders_annual": "STRIPE_PRICE_FOUNDERS_ANNUAL",
+        
+        # Credit pack prices (one-time)
+        "credits_100": "STRIPE_PRICE_CREDITS_100",
+        "credits_300": "STRIPE_PRICE_CREDITS_300",
+        "credits_1000": "STRIPE_PRICE_CREDITS_1000",
+        
+        # Promo code
+        "founders_coupon": "STRIPE_COUPON_FOUNDERS",
+    }
+    
+    # Pricing details
+    PRICING = {
+        "monthly": 99.00,
+        "annual": 1188.00,
+        "annual_with_promo": 594.00,
+        "credits_100": 10.00,
+        "credits_300": 25.00,
+        "credits_1000": 60.00,
+    }
+    
+    # Founder promo rules
+    FOUNDER_PROMO = {
+        "code": "FOUNDERS",
+        "discount_percent": 50,
+        "applies_to": "annual",
+        "max_uses": 100,
+        "first_payment_only": True,
     }
     
     @classmethod
-    def get_price_id(cls, plan: str, interval: str = "monthly", is_founder: bool = True) -> Optional[str]:
-        """Get Stripe Price ID for a plan"""
-        key = (plan, interval, is_founder)
-        env_var = cls.PRICE_ENV_VARS.get(key)
+    def get_subscription_price_id(cls, interval: str = "monthly") -> Optional[str]:
+        """Get Stripe Price ID for subscription"""
+        key = f"founders_{interval}"
+        env_var = cls.ENV_VARS.get(key)
         if env_var:
             return os.environ.get(env_var)
         return None
     
     @classmethod
+    def get_credit_pack_price_id(cls, credits: int) -> Optional[str]:
+        """Get Stripe Price ID for credit pack"""
+        key = f"credits_{credits}"
+        env_var = cls.ENV_VARS.get(key)
+        if env_var:
+            return os.environ.get(env_var)
+        return None
+    
+    @classmethod
+    def get_founders_coupon_id(cls) -> Optional[str]:
+        """Get Stripe Coupon ID for FOUNDERS promo"""
+        env_var = cls.ENV_VARS.get("founders_coupon")
+        if env_var:
+            return os.environ.get(env_var)
+        return None
+    
+    @classmethod
+    def has_stripe_configured(cls) -> bool:
+        """Check if required Stripe IDs are configured"""
+        required = ["founders_monthly"]
+        return all(os.environ.get(cls.ENV_VARS.get(k)) for k in required)
+    
+    @classmethod
+    def get_all_configured(cls) -> Dict[str, str]:
+        """Get all configured Stripe IDs"""
+        configured = {}
+        for key, env_var in cls.ENV_VARS.items():
+            value = os.environ.get(env_var)
+            if value:
+                configured[key] = value
+        return configured
+
+
+# Legacy compatibility - map old tier system to founders
+class StripePriceConfig:
+    """Legacy compatibility layer - redirects to FounderPricingConfig"""
+    
+    @classmethod
+    def get_price_id(cls, plan: str, interval: str = "monthly", is_founder: bool = True) -> Optional[str]:
+        """Get Stripe Price ID - all plans map to Founders Edition"""
+        return FounderPricingConfig.get_subscription_price_id(interval)
+    
+    @classmethod
     def has_stripe_prices_configured(cls) -> bool:
-        """Check if Stripe price IDs are configured"""
-        # Check for at least the basic monthly prices
-        required_vars = [
-            "STRIPE_PRICE_STARTER_MONTHLY",
-            "STRIPE_PRICE_PRO_MONTHLY",
-            "STRIPE_PRICE_BUSINESS_MONTHLY"
-        ]
-        return all(os.environ.get(var) for var in required_vars)
+        """Check if Stripe is configured"""
+        return FounderPricingConfig.has_stripe_configured()
     
     @classmethod
     def get_all_configured_prices(cls) -> Dict[str, str]:
-        """Get all configured Stripe price IDs"""
-        prices = {}
-        for key, env_var in cls.PRICE_ENV_VARS.items():
-            price_id = os.environ.get(env_var)
-            if price_id:
-                prices[f"{key[0]}_{key[1]}_{'founder' if key[2] else 'std'}"] = price_id
-        return prices
+        """Get all configured prices"""
+        return FounderPricingConfig.get_all_configured()
 
 
-# Map plan names to tier keys
-PLAN_TO_TIER = {
-    "tier_1": "starter",
-    "tier_2": "pro",
-    "tier_3": "business",
-    "ai_addon": "ai_addon",
-    "extended_trial": "business",  # Extended trial gets business tier access
+# Credit pack mapping
+CREDIT_PACK_MAPPING = {
+    100: {"price": 10.00, "env_var": "STRIPE_PRICE_CREDITS_100"},
+    300: {"price": 25.00, "env_var": "STRIPE_PRICE_CREDITS_300"},
+    1000: {"price": 60.00, "env_var": "STRIPE_PRICE_CREDITS_1000"},
 }
 
-# Map product categories to JobItemType
-CATEGORY_TO_JOB_TYPE = {
-    "apparel": "apparel",
-    "signs": "sign",
-    "decals": "decal",
-    "promotional": "promo",
-    "other": "other",
+# AI Credit cost rules
+AI_CREDIT_COSTS = {
+    "light": 1,      # Small text responses, assistant replies, light formatting
+    "moderate": 2,   # Content generation, image edits
+    "heavy": 3,      # Complex design actions, heavier processing
+    "premium": 5,    # Future high-compute actions
 }
