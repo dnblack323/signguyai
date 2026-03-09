@@ -20,6 +20,7 @@ from datetime import datetime, timezone, timedelta
 import os
 import jwt
 import uuid
+import logging
 
 from models.billing import (
     SubscriptionPlan, SubscriptionStatus, PaymentStatus, BillingInterval,
@@ -35,6 +36,7 @@ from server import limiter
 
 router = APIRouter(prefix="/billing", tags=["Billing & Subscriptions"])
 webhook_router = APIRouter(tags=["Webhooks"])
+logger = logging.getLogger(__name__)
 
 
 # ============== DEPENDENCY INJECTION ==============
@@ -218,6 +220,92 @@ async def get_pricing_plans(db = Depends(get_db)):
         addon=addon,
         trial=trial,
         founder_benefits=FOUNDER_BENEFITS if is_founder else []
+    )
+
+
+# ============== AI CREDITS ==============
+
+class CreditBalanceResponse(PydanticBaseModel):
+    """Credit balance response"""
+    monthly_credits: int = 0
+    purchased_credits: int = 0
+    total_available: int = 0
+    monthly_credits_expire_at: Optional[str] = None
+    is_trial: bool = False
+
+
+@router.get("/credits", response_model=CreditBalanceResponse)
+async def get_credit_balance(
+    db = Depends(get_db),
+    current_user: UserInDB = Depends(get_current_user_billing)
+):
+    """
+    Get current AI credit balance.
+    
+    Configuration: founder_pricing_v1
+    
+    Returns:
+    - monthly_credits: Credits that expire at end of billing period
+    - purchased_credits: Credits that never expire during subscription
+    - total_available: Sum of both
+    - monthly_credits_expire_at: When monthly credits expire
+    """
+    from services.founders_config import FOUNDERS_EDITION_MONTHLY_CREDITS
+    from datetime import datetime, timezone
+    from dateutil.relativedelta import relativedelta
+    
+    # Get credits record
+    credits = await db.user_credits.find_one(
+        {"tenant_id": current_user.tenant_id}, 
+        {"_id": 0}
+    )
+    
+    if not credits:
+        # Create new credits record for user
+        now = datetime.now(timezone.utc)
+        period_end = now + relativedelta(months=1)
+        
+        # Check if user is on trial
+        tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0})
+        is_trial = tenant and tenant.get("trial_active", False)
+        
+        # Trial users get 50 credits, subscribers get 150
+        initial_credits = 50 if is_trial else FOUNDERS_EDITION_MONTHLY_CREDITS
+        
+        new_credits = {
+            "tenant_id": current_user.tenant_id,
+            "monthly_credits": initial_credits,
+            "purchased_credits": 0,
+            "monthly_credits_granted_at": now.isoformat(),
+            "monthly_credits_period_start": now.isoformat(),
+            "monthly_credits_period_end": period_end.isoformat(),
+            "created_at": now.isoformat(),
+            "updated_at": now.isoformat()
+        }
+        await db.user_credits.insert_one(new_credits)
+        
+        return CreditBalanceResponse(
+            monthly_credits=initial_credits,
+            purchased_credits=0,
+            total_available=initial_credits,
+            monthly_credits_expire_at=period_end.isoformat(),
+            is_trial=is_trial
+        )
+    
+    monthly = credits.get("monthly_credits", 0)
+    purchased = credits.get("purchased_credits", 0)
+    expire_at = credits.get("monthly_credits_period_end")
+    
+    # Check if on trial
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0})
+    is_trial = tenant and tenant.get("trial_active", False)
+    
+    return CreditBalanceResponse(
+        monthly_credits=monthly,
+        purchased_credits=purchased,
+        total_available=monthly + purchased,
+        monthly_credits_expire_at=expire_at,
+        is_trial=is_trial
     )
 
 
@@ -1470,10 +1558,10 @@ async def stripe_webhook(request: Request, db = Depends(get_db)):
         return {"status": "success", "event_type": event_type}
     
     except stripe.error.SignatureVerificationError as e:
-        print(f"Webhook signature verification failed: {e}")
+        logger.error(f"Webhook signature verification failed: {e}")
         raise HTTPException(status_code=400, detail="Invalid signature")
     except Exception as e:
-        print(f"Webhook error: {e}")
+        logger.error(f"Webhook error: {e}")
         import traceback
         traceback.print_exc()
         return {"status": "error", "message": str(e)}

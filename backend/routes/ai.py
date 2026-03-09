@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 import uuid
 import os
 import base64
+import logging
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -22,6 +23,7 @@ from server import db, get_current_active_user, limiter
 from models import UserInDB
 
 router = APIRouter(prefix="/ai", tags=["AI Tools"])
+logger = logging.getLogger(__name__)
 
 # Get API key
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
@@ -919,7 +921,7 @@ async def generate_text_content(tool: str, input_data: Dict[str, Any]) -> str:
                 file_contents = [FileContent(content_type=content_type, file_content_base64=base64_data)]
                 prompt = f"Please analyze this uploaded image.\n\n{prompt}"
             except Exception as e:
-                print(f"Error parsing image upload: {e}")
+                logger.error(f"Error parsing image upload: {e}")
     
     # Create message with or without image
     if file_contents:
@@ -968,7 +970,7 @@ async def generate_images(tool: str, input_data: Dict[str, Any], count: int = 3)
                 image_base64 = base64.b64encode(images[0]).decode('utf-8')
                 images_base64.append(f"data:image/png;base64,{image_base64}")
         except Exception as e:
-            print(f"Error generating image {i+1}: {e}")
+            logger.error(f"Error generating image {i+1}: {e}")
             continue
     
     return images_base64
@@ -1022,7 +1024,7 @@ async def generate_ai_content(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"AI generation error: {e}")
+        logger.error(f"AI generation error: {e}")
         raise HTTPException(status_code=500, detail=f"AI generation failed: {str(e)}")
 
 
@@ -1074,7 +1076,7 @@ async def generate_ai_images(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"AI image generation error: {e}")
+        logger.error(f"AI image generation error: {e}")
         raise HTTPException(status_code=500, detail=f"Image generation failed: {str(e)}")
 
 
@@ -1179,7 +1181,7 @@ async def generate_product_description(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Product description generation error: {e}")
+        logger.error(f"Product description generation error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to generate product description: {str(e)}")
 
 
@@ -1530,7 +1532,7 @@ Note: For personalized insights based on their actual business data, users can u
         return {"response": response}
         
     except Exception as e:
-        print(f"AI Assistant error: {e}")
+        logger.error(f"AI Assistant error: {e}")
         raise HTTPException(status_code=500, detail=f"Assistant error: {str(e)}")
 
 
@@ -1654,7 +1656,7 @@ Write a complete email with subject line and body. Sign off as "SignGuy AI Team"
         }
         
     except Exception as e:
-        print(f"Email generation error: {e}")
+        logger.error(f"Email generation error: {e}")
         raise HTTPException(status_code=500, detail=f"Email generation error: {str(e)}")
 
 
@@ -2062,7 +2064,7 @@ Respond ONLY with valid JSON, nothing else."""
             }
             
     except Exception as e:
-        print(f"Parse action error: {e}")
+        logger.error(f"Parse action error: {e}")
         return {
             "needs_more_info": True,
             "question": "I couldn't understand that. Could you rephrase?"

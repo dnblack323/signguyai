@@ -180,7 +180,6 @@ export default function Webstores() {
   const checkStripeStatus = async () => {
     // Bypass Stripe check in dev/test mode
     if (DEV_BYPASS_STRIPE) {
-      console.log('DEV MODE: Bypassing Stripe Connect requirement');
       setStripeConnected(true);
       return;
     }
