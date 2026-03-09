@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Lock, Clock, Rocket, ArrowRight, Star } from 'lucide-react';
+import { Lock, Clock, Rocket, ArrowRight, Star, Tag, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
+import { Input } from './ui/input';
 import { useAuth } from '../context/AuthContext';
+import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -63,6 +65,70 @@ export const TrialLockout = ({ children }) => {
 
 const LockoutScreen = () => {
   const navigate = useNavigate();
+  const { token } = useAuth();
+  const [promoCode, setPromoCode] = useState('');
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [promoLoading, setPromoLoading] = useState(false);
+
+  const handleCheckout = async (billingInterval = 'monthly') => {
+    if (!token) {
+      toast.error('Please log in first');
+      return;
+    }
+
+    setCheckoutLoading(true);
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/billing/checkout/founders`,
+        {
+          billing_interval: billingInterval,
+          origin_url: window.location.origin
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Redirect to Stripe checkout - promo codes can be entered there
+      window.location.href = response.data.url;
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast.error(error.response?.data?.detail || 'Failed to start checkout');
+      setCheckoutLoading(false);
+    }
+  };
+
+  const handleApplyPromoCode = async () => {
+    if (!promoCode.trim()) {
+      toast.error('Please enter a promo code');
+      return;
+    }
+
+    if (!token) {
+      toast.error('Please log in first');
+      return;
+    }
+
+    setPromoLoading(true);
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/billing/apply-promo`,
+        { promo_code: promoCode.trim() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        toast.success(response.data.message || 'Promo code applied!');
+        // Reload to check new trial status
+        window.location.reload();
+      } else {
+        toast.error(response.data.message || 'Invalid promo code');
+      }
+    } catch (error) {
+      console.error('Promo error:', error);
+      toast.error(error.response?.data?.detail || 'Failed to apply promo code');
+    } finally {
+      setPromoLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-[var(--bg-primary)]">
@@ -93,15 +159,59 @@ const LockoutScreen = () => {
             and keep running your sign shop like a pro.
           </p>
 
+          {/* Promo Code Section */}
+          <div className="mb-6 p-4 rounded-xl bg-[var(--card-bg)] border border-[var(--border-color)]">
+            <div className="flex items-center gap-2 mb-3">
+              <Tag className="w-4 h-4 text-amber-500" />
+              <span className="text-sm font-medium text-[var(--text-primary)]">Have a promo code?</span>
+            </div>
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                placeholder="Enter promo code"
+                value={promoCode}
+                onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                className="flex-1 bg-[var(--bg-secondary)] border-[var(--border-color)]"
+                onKeyDown={(e) => e.key === 'Enter' && handleApplyPromoCode()}
+              />
+              <Button
+                onClick={handleApplyPromoCode}
+                disabled={promoLoading}
+                variant="outline"
+                className="px-4"
+              >
+                {promoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
+              </Button>
+            </div>
+          </div>
+
           {/* CTA Buttons */}
-          <div className="space-y-4 mb-8">
+          <div className="space-y-3 mb-8">
             <Button
-              onClick={() => navigate('/pricing')}
+              onClick={() => handleCheckout('monthly')}
+              disabled={checkoutLoading}
               className="w-full sm:w-auto px-8 py-6 text-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-90 text-black font-semibold shadow-lg shadow-amber-500/25"
+              data-testid="get-founders-monthly-btn"
             >
-              <Rocket className="w-5 h-5 mr-2" />
+              {checkoutLoading ? (
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              ) : (
+                <Rocket className="w-5 h-5 mr-2" />
+              )}
               Get Founders Edition - $99/mo
               <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+            
+            <div className="text-sm text-[var(--text-secondary)]">or</div>
+            
+            <Button
+              onClick={() => handleCheckout('annual')}
+              disabled={checkoutLoading}
+              variant="outline"
+              className="w-full sm:w-auto px-6 py-4"
+              data-testid="get-founders-annual-btn"
+            >
+              Annual Plan - $594/year (Save 50% with FOUNDERS code)
             </Button>
           </div>
 
@@ -141,6 +251,11 @@ const LockoutScreen = () => {
           <p className="mt-8 text-sm text-[var(--text-secondary)]">
             <span className="text-amber-400 font-semibold">Founders Edition</span> — 
             All features, lifetime locked pricing, no restrictions
+          </p>
+          
+          {/* Note about promo at checkout */}
+          <p className="mt-4 text-xs text-[var(--text-secondary)]">
+            You can also enter promo codes at the Stripe checkout page
           </p>
         </div>
       </div>

@@ -1702,3 +1702,250 @@ async def _activate_subscription_v2(
 async def _activate_subscription(db, session_id: str, metadata: dict):
     """Legacy activation function - redirects to v2"""
     await _activate_subscription_v2(db, session_id, metadata)
+
+
+
+# ============== PROMO CODE APPLICATION ==============
+
+class ApplyPromoRequest(PydanticBaseModel):
+    """Request to apply a promo code"""
+    promo_code: str
+
+
+@router.post("/apply-promo")
+async def apply_promo_code(
+    request: ApplyPromoRequest,
+    db = Depends(get_db),
+    current_user: UserInDB = Depends(get_current_user_billing)
+):
+    """
+    Apply a promo code to grant access without payment.
+    
+    This is for special promo codes like:
+    - FREEMONTH: Grants 30 days free access
+    - FOUNDER100: 100% off first month (still need payment info for recurring)
+    - Custom codes created by admin
+    
+    For Stripe coupon codes, they should be entered at checkout instead.
+    """
+    promo_code = request.promo_code.upper().strip()
+    now = datetime.now(timezone.utc)
+    
+    # Check if promo code exists in our database
+    promo = await db.promo_codes.find_one({
+        "code": promo_code,
+        "is_active": True,
+        "$or": [
+            {"expires_at": None},
+            {"expires_at": {"$gt": now.isoformat()}}
+        ]
+    })
+    
+    if not promo:
+        raise HTTPException(status_code=400, detail="Invalid or expired promo code")
+    
+    # Check usage limits
+    if promo.get("max_uses") and promo.get("use_count", 0) >= promo["max_uses"]:
+        raise HTTPException(status_code=400, detail="Promo code has reached its usage limit")
+    
+    # Check if user already used this code
+    existing_use = await db.promo_code_uses.find_one({
+        "promo_code": promo_code,
+        "tenant_id": current_user.tenant_id
+    })
+    if existing_use:
+        raise HTTPException(status_code=400, detail="You have already used this promo code")
+    
+    # Apply the promo based on type
+    promo_type = promo.get("type", "free_days")
+    free_days = promo.get("free_days", 30)
+    discount_percent = promo.get("discount_percent", 0)
+    
+    if promo_type == "free_days" or discount_percent == 100:
+        # Grant free access for specified days
+        trial_end = now + timedelta(days=free_days)
+        
+        # Update tenant
+        await db.tenants.update_one(
+            {"id": current_user.tenant_id},
+            {"$set": {
+                "is_trial": True,
+                "plan": "founders_edition",
+                "trial_ends_at": trial_end.isoformat(),
+                "promo_code_used": promo_code,
+                "updated_at": now.isoformat()
+            }}
+        )
+        
+        # Update or create subscription
+        await db.subscriptions.update_one(
+            {"tenant_id": current_user.tenant_id},
+            {"$set": {
+                "status": SubscriptionStatus.TRIALING.value,
+                "tier": "business",
+                "plan": "founders_edition",
+                "trial_end": trial_end.isoformat(),
+                "promo_code_used": promo_code,
+                "updated_at": now.isoformat()
+            }},
+            upsert=True
+        )
+        
+        message = f"Success! You have {free_days} days of free access."
+    else:
+        # For discount codes, they need to go through Stripe checkout
+        raise HTTPException(
+            status_code=400, 
+            detail=f"This code offers {discount_percent}% off. Please use it at checkout."
+        )
+    
+    # Record usage
+    await db.promo_code_uses.insert_one({
+        "promo_code": promo_code,
+        "tenant_id": current_user.tenant_id,
+        "user_id": current_user.id,
+        "used_at": now.isoformat()
+    })
+    
+    # Increment usage count
+    await db.promo_codes.update_one(
+        {"code": promo_code},
+        {"$inc": {"use_count": 1}}
+    )
+    
+    return {"success": True, "message": message, "free_days": free_days}
+
+
+# ============== ADMIN: GRANT FREE ACCESS ==============
+
+class GrantAccessRequest(PydanticBaseModel):
+    """Request to grant free access to a user"""
+    email: str
+    days: int = 30
+    reason: str = "Admin granted access"
+
+
+@router.post("/admin/grant-access")
+async def admin_grant_access(
+    request: GrantAccessRequest,
+    db = Depends(get_db),
+    current_user: UserInDB = Depends(get_current_user_billing)
+):
+    """
+    Admin endpoint to grant free access to a user by email.
+    Only works for users with admin/owner role.
+    """
+    # Check if current user is admin
+    if current_user.role not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    # Find target user
+    target_user = await db.users.find_one({"email": request.email.lower()}, {"_id": 0})
+    if not target_user:
+        raise HTTPException(status_code=404, detail=f"User not found: {request.email}")
+    
+    target_tenant_id = target_user.get("tenant_id")
+    if not target_tenant_id:
+        raise HTTPException(status_code=400, detail="User has no tenant")
+    
+    now = datetime.now(timezone.utc)
+    trial_end = now + timedelta(days=request.days)
+    
+    # Update tenant
+    await db.tenants.update_one(
+        {"id": target_tenant_id},
+        {"$set": {
+            "is_trial": True,
+            "plan": "founders_edition",
+            "trial_ends_at": trial_end.isoformat(),
+            "admin_granted_access": True,
+            "admin_grant_reason": request.reason,
+            "admin_granted_by": current_user.id,
+            "updated_at": now.isoformat()
+        }}
+    )
+    
+    # Update or create subscription
+    await db.subscriptions.update_one(
+        {"tenant_id": target_tenant_id},
+        {"$set": {
+            "status": SubscriptionStatus.TRIALING.value,
+            "tier": "business",
+            "plan": "founders_edition",
+            "trial_end": trial_end.isoformat(),
+            "admin_granted": True,
+            "admin_grant_reason": request.reason,
+            "updated_at": now.isoformat()
+        }},
+        upsert=True
+    )
+    
+    logger.info(f"Admin {current_user.email} granted {request.days} days access to {request.email}")
+    
+    return {
+        "success": True,
+        "message": f"Granted {request.days} days of free access to {request.email}",
+        "access_ends": trial_end.isoformat()
+    }
+
+
+# ============== ADMIN: CREATE PROMO CODE ==============
+
+class CreatePromoCodeRequest(PydanticBaseModel):
+    """Request to create a promo code"""
+    code: str
+    type: str = "free_days"  # free_days, discount
+    free_days: int = 30
+    discount_percent: int = 0
+    max_uses: Optional[int] = None
+    expires_at: Optional[str] = None
+    description: str = ""
+
+
+@router.post("/admin/create-promo")
+async def admin_create_promo_code(
+    request: CreatePromoCodeRequest,
+    db = Depends(get_db),
+    current_user: UserInDB = Depends(get_current_user_billing)
+):
+    """
+    Admin endpoint to create a promo code.
+    """
+    if current_user.role not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    code = request.code.upper().strip()
+    
+    # Check if code already exists
+    existing = await db.promo_codes.find_one({"code": code})
+    if existing:
+        raise HTTPException(status_code=400, detail="Promo code already exists")
+    
+    now = datetime.now(timezone.utc)
+    
+    promo_data = {
+        "code": code,
+        "type": request.type,
+        "free_days": request.free_days,
+        "discount_percent": request.discount_percent,
+        "max_uses": request.max_uses,
+        "use_count": 0,
+        "is_active": True,
+        "expires_at": request.expires_at,
+        "description": request.description,
+        "created_by": current_user.id,
+        "created_at": now.isoformat()
+    }
+    
+    await db.promo_codes.insert_one(promo_data)
+    
+    return {
+        "success": True,
+        "message": f"Promo code '{code}' created",
+        "promo": {
+            "code": code,
+            "type": request.type,
+            "free_days": request.free_days,
+            "discount_percent": request.discount_percent
+        }
+    }
