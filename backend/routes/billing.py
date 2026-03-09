@@ -1722,48 +1722,43 @@ async def apply_promo_code(
     Apply a promo code to grant access without payment.
     
     This is for special promo codes like:
-    - FREEMONTH: Grants 30 days free access
-    - FOUNDER100: 100% off first month (still need payment info for recurring)
-    - Custom codes created by admin
+    - free_days type: Grants X days of full access with no payment
+    - 100% discount: Still need to enter at Stripe checkout
     
-    For Stripe coupon codes, they should be entered at checkout instead.
+    For Stripe coupon codes (percent/fixed), they should be entered at checkout instead.
     """
     promo_code = request.promo_code.upper().strip()
     now = datetime.now(timezone.utc)
     
-    # Check if promo code exists in our database
+    # Check promo_codes collection (the existing system)
     promo = await db.promo_codes.find_one({
         "code": promo_code,
-        "is_active": True,
-        "$or": [
-            {"expires_at": None},
-            {"expires_at": {"$gt": now.isoformat()}}
-        ]
-    })
+        "is_active": True
+    }, {"_id": 0})
     
     if not promo:
         raise HTTPException(status_code=400, detail="Invalid or expired promo code")
     
+    # Check expiration
+    if promo.get("expires_at"):
+        expires = datetime.fromisoformat(promo["expires_at"].replace("Z", "+00:00"))
+        if now > expires:
+            raise HTTPException(status_code=400, detail="This promo code has expired")
+    
     # Check usage limits
-    if promo.get("max_uses") and promo.get("use_count", 0) >= promo["max_uses"]:
-        raise HTTPException(status_code=400, detail="Promo code has reached its usage limit")
+    if promo.get("max_uses") is not None:
+        if promo.get("times_used", 0) >= promo["max_uses"]:
+            raise HTTPException(status_code=400, detail="This promo code has reached its usage limit")
     
-    # Check if user already used this code
-    existing_use = await db.promo_code_uses.find_one({
-        "promo_code": promo_code,
-        "tenant_id": current_user.tenant_id
-    })
-    if existing_use:
-        raise HTTPException(status_code=400, detail="You have already used this promo code")
+    # Check if this is a free_days type code
+    promo_type = promo.get("discount_type", "percent")
+    trial_days = promo.get("trial_days", 0)
+    discount_value = promo.get("discount_value", 0)
     
-    # Apply the promo based on type
-    promo_type = promo.get("type", "free_days")
-    free_days = promo.get("free_days", 30)
-    discount_percent = promo.get("discount_percent", 0)
-    
-    if promo_type == "free_days" or discount_percent == 100:
+    # Only free_days or 100% discount can be applied directly
+    if promo_type == "free_days" and trial_days > 0:
         # Grant free access for specified days
-        trial_end = now + timedelta(days=free_days)
+        trial_end = now + timedelta(days=trial_days)
         
         # Update tenant
         await db.tenants.update_one(
@@ -1791,29 +1786,77 @@ async def apply_promo_code(
             upsert=True
         )
         
-        message = f"Success! You have {free_days} days of free access."
-    else:
-        # For discount codes, they need to go through Stripe checkout
-        raise HTTPException(
-            status_code=400, 
-            detail=f"This code offers {discount_percent}% off. Please use it at checkout."
+        # Increment usage count
+        await db.promo_codes.update_one(
+            {"code": promo_code},
+            {"$inc": {"times_used": 1}}
         )
+        
+        return {
+            "success": True, 
+            "message": f"Success! You have {trial_days} days of free access.",
+            "free_days": trial_days
+        }
     
-    # Record usage
-    await db.promo_code_uses.insert_one({
-        "promo_code": promo_code,
-        "tenant_id": current_user.tenant_id,
-        "user_id": current_user.id,
-        "used_at": now.isoformat()
-    })
+    elif promo_type == "percent" and discount_value == 100:
+        # 100% off - treat like free_days with 30 days default
+        free_days = 30
+        trial_end = now + timedelta(days=free_days)
+        
+        await db.tenants.update_one(
+            {"id": current_user.tenant_id},
+            {"$set": {
+                "is_trial": True,
+                "plan": "founders_edition",
+                "trial_ends_at": trial_end.isoformat(),
+                "promo_code_used": promo_code,
+                "updated_at": now.isoformat()
+            }}
+        )
+        
+        await db.subscriptions.update_one(
+            {"tenant_id": current_user.tenant_id},
+            {"$set": {
+                "status": SubscriptionStatus.TRIALING.value,
+                "tier": "business",
+                "plan": "founders_edition",
+                "trial_end": trial_end.isoformat(),
+                "promo_code_used": promo_code,
+                "updated_at": now.isoformat()
+            }},
+            upsert=True
+        )
+        
+        await db.promo_codes.update_one(
+            {"code": promo_code},
+            {"$inc": {"times_used": 1}}
+        )
+        
+        return {
+            "success": True,
+            "message": f"Success! You have {free_days} days of free access (100% off applied).",
+            "free_days": free_days
+        }
     
-    # Increment usage count
-    await db.promo_codes.update_one(
-        {"code": promo_code},
-        {"$inc": {"use_count": 1}}
-    )
-    
-    return {"success": True, "message": message, "free_days": free_days}
+    else:
+        # For other discount types, they need to go through Stripe checkout
+        if promo_type == "percent":
+            raise HTTPException(
+                status_code=400, 
+                detail=f"This code offers {int(discount_value)}% off. Please enter it at the Stripe checkout page."
+            )
+        elif promo_type == "fixed":
+            raise HTTPException(
+                status_code=400,
+                detail=f"This code offers ${discount_value} off. Please enter it at the Stripe checkout page."
+            )
+        elif promo_type == "free_trial":
+            raise HTTPException(
+                status_code=400,
+                detail=f"This code offers a {trial_days}-day extended trial. Please use it during signup."
+            )
+        else:
+            raise HTTPException(status_code=400, detail="This promo code type is not supported here.")
 
 
 # ============== ADMIN: GRANT FREE ACCESS ==============

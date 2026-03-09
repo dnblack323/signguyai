@@ -156,7 +156,9 @@ export default function PromoCodes() {
       case 'fixed':
         return `$${code.discount_value} off`;
       case 'free_trial':
-        return `${code.trial_days} days free`;
+        return `${code.trial_days} days free trial`;
+      case 'free_days':
+        return `${code.trial_days} days FREE access`;
       default:
         return 'Unknown';
     }
@@ -170,6 +172,8 @@ export default function PromoCodes() {
         return <DollarSign className="h-4 w-4" />;
       case 'free_trial':
         return <Clock className="h-4 w-4" />;
+      case 'free_days':
+        return <Clock className="h-4 w-4 text-green-500" />;
       default:
         return <Ticket className="h-4 w-4" />;
     }
@@ -393,12 +397,13 @@ export default function PromoCodes() {
                   <SelectItem value="percent">Percentage Off</SelectItem>
                   <SelectItem value="fixed">Fixed Amount Off</SelectItem>
                   <SelectItem value="free_trial">Free Extended Trial</SelectItem>
+                  <SelectItem value="free_days">Free Access (No Payment)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Discount Value */}
-            {formData.discount_type !== 'free_trial' && (
+            {formData.discount_type !== 'free_trial' && formData.discount_type !== 'free_days' && (
               <div>
                 <Label style={{ color: 'var(--text)' }}>
                   {formData.discount_type === 'percent' ? 'Discount Percent' : 'Discount Amount ($)'}
@@ -426,6 +431,23 @@ export default function PromoCodes() {
                 />
                 <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
                   Instead of paying $19.99, they get this many days free
+                </p>
+              </div>
+            )}
+
+            {/* Free Days (Full Access) */}
+            {formData.discount_type === 'free_days' && (
+              <div>
+                <Label style={{ color: 'var(--text)' }}>Free Access Days</Label>
+                <Input
+                  type="number"
+                  value={formData.trial_days}
+                  onChange={(e) => setFormData({ ...formData, trial_days: parseInt(e.target.value) || 30 })}
+                  min="1"
+                  max="365"
+                />
+                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                  Grants full access for this many days - no payment required. Perfect for friends & family.
                 </p>
               </div>
             )}

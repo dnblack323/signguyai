@@ -104,7 +104,7 @@ async def create_promo_code(
         raise HTTPException(status_code=400, detail="Promo code already exists")
     
     # Validate discount type
-    if data.discount_type not in ['percent', 'fixed', 'free_trial']:
+    if data.discount_type not in ['percent', 'fixed', 'free_trial', 'free_days']:
         raise HTTPException(status_code=400, detail="Invalid discount type")
     
     promo_code = {
@@ -114,7 +114,7 @@ async def create_promo_code(
         "description": data.description,
         "discount_type": data.discount_type,
         "discount_value": data.discount_value,
-        "trial_days": data.trial_days if data.discount_type == 'free_trial' else 0,
+        "trial_days": data.trial_days if data.discount_type in ['free_trial', 'free_days'] else 0,
         "max_uses": data.max_uses,
         "times_used": 0,
         "expires_at": data.expires_at,
