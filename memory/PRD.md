@@ -1775,5 +1775,64 @@ All pricing, credit, and billing rules are now visible on the marketing landing 
 
 ---
 
+## Data Safety & Soft Delete Implementation (Mar 2026) - COMPLETE ✅
+
+### What Was Implemented
+Complete data safety implementation with soft delete across all major data models. This is a critical pre-launch requirement.
+
+### Models with Soft Delete
+| Model | Collection | Delete Endpoint | Restore Endpoint | List Deleted |
+|-------|------------|-----------------|------------------|--------------|
+| Customers | customers | ✅ | ✅ | ✅ |
+| Jobs | jobs | ✅ | ✅ | ✅ |
+| Invoices | invoices | ✅ | ✅ | ✅ |
+| Quotes | quotes | ✅ | ✅ | ✅ |
+| Products | products | ✅ | ✅ | ✅ |
+| Webstores | webstores_v2 | ✅ | ✅ | ✅ |
+| Employees | employees | ✅ | ✅ | ✅ |
+
+### API Pattern
+```
+# Soft delete (default)
+DELETE /api/{model}/{id}
+→ Sets deleted_at timestamp, record still in DB
+
+# Permanent delete (admin only)  
+DELETE /api/{model}/{id}?permanent=true
+→ Actually removes record from DB
+
+# Restore soft-deleted item
+POST /api/{model}/{id}/restore
+→ Clears deleted_at, sets restored_at
+
+# View deleted items (admin)
+GET /api/{model}/deleted/list
+→ Returns only soft-deleted records
+
+# Include deleted in list
+GET /api/{model}?include_deleted=true
+→ Returns all records including deleted
+```
+
+### Files Created/Updated
+- `backend/services/soft_delete_service.py` - Core soft delete service
+- `backend/scripts/run_migrations.py` - Database migration runner
+- `backend/migrations/0001_soft_delete_fields.py` - Add deleted_at fields
+- `backend/routes/invoices.py` - Updated for soft delete
+- `backend/routes/quotes.py` - Updated for soft delete
+- `backend/routes/webstores.py` - Updated for soft delete (products + stores)
+- `backend/routes/employees.py` - Updated for soft delete
+
+### Documentation Created
+- `/app/PRE_LAUNCH_CHECKLIST.md` - Updated with soft delete status
+- `/app/USER_DATA_SAFETY_SPEC.md` - Detailed data safety specification
+
+### Test Results
+- **28/28 backend tests passed (100%)**
+- All soft delete, restore, list, and edge cases verified
+- Test file: `/app/backend/tests/test_soft_delete.py`
+
+---
+
 ## Last Updated
-March 8, 2026
+March 9, 2026
