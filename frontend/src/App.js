@@ -32,6 +32,7 @@ import Login from "./pages/Login";
 import UserManagement from "./pages/UserManagement";
 import Pricing from "./pages/Pricing";
 import PricingSettings from "./pages/PricingSettings";
+import MaterialsSettings from "./pages/MaterialsSettings";
 import CompanySettings from "./pages/CompanySettings";
 import ProductionSettings from "./pages/settings/ProductionSettings";
 import PromoCodes from "./pages/PromoCodes";
@@ -169,6 +170,7 @@ function ProtectedRoutes() {
           <Route path="/promo-codes" element={<PromoCodes />} />
           <Route path="/pricing-calculator" element={<Pricing />} />
           <Route path="/pricing-calculator/settings" element={<PricingSettings />} />
+          <Route path="/pricing-calculator/materials" element={<MaterialsSettings />} />
           <Route path="/billing" element={<BillingManagement />} />
           <Route path="/questionnaires" element={<Questionnaires />} />
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -257,3 +257,214 @@ async def toggle_template_favorite(
     )
     
     return {"is_favorite": new_status}
+
+
+
+# ============== MATERIALS CATALOG ==============
+
+import uuid
+from pydantic import BaseModel, Field
+
+class MaterialCreate(BaseModel):
+    """Create a new material"""
+    name: str
+    category: str = "vinyl"  # vinyl, print_media, laminate, substrate, hardware, supplies, other
+    cost: float = 0
+    unit: str = "sqft"  # sqft, lnft, each, roll, sheet, gallon, pack
+    markup_percent: float = 100
+    description: Optional[str] = None
+    sku: Optional[str] = None
+    supplier: Optional[str] = None
+    min_order_qty: int = 1
+    is_active: bool = True
+
+class MaterialUpdate(BaseModel):
+    """Update a material"""
+    name: Optional[str] = None
+    category: Optional[str] = None
+    cost: Optional[float] = None
+    unit: Optional[str] = None
+    markup_percent: Optional[float] = None
+    description: Optional[str] = None
+    sku: Optional[str] = None
+    supplier: Optional[str] = None
+    min_order_qty: Optional[int] = None
+    is_active: Optional[bool] = None
+
+
+@router.get("/materials/catalog")
+async def get_materials_catalog(
+    category: Optional[str] = None,
+    is_active: Optional[bool] = None,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Get all materials from the tenant's custom catalog"""
+    query = {"tenant_id": current_user.tenant_id}
+    if category:
+        query["category"] = category
+    if is_active is not None:
+        query["is_active"] = is_active
+    
+    materials = await db.materials.find(query, {"_id": 0}).sort("category", 1).to_list(500)
+    return materials
+
+
+@router.post("/materials")
+async def create_material(
+    data: MaterialCreate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Create a new material"""
+    now = datetime.now(timezone.utc)
+    
+    material = {
+        "id": str(uuid.uuid4()),
+        "tenant_id": current_user.tenant_id,
+        "name": data.name,
+        "category": data.category,
+        "cost": data.cost,
+        "unit": data.unit,
+        "markup_percent": data.markup_percent,
+        "description": data.description,
+        "sku": data.sku,
+        "supplier": data.supplier,
+        "min_order_qty": data.min_order_qty,
+        "is_active": data.is_active,
+        "created_at": now.isoformat(),
+        "updated_at": now.isoformat()
+    }
+    
+    await db.materials.insert_one(material)
+    material.pop("_id", None)
+    
+    return material
+
+
+@router.get("/materials/{material_id}")
+async def get_material(
+    material_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Get a specific material"""
+    material = await db.materials.find_one(
+        {"id": material_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    if not material:
+        raise HTTPException(status_code=404, detail="Material not found")
+    return material
+
+
+@router.put("/materials/{material_id}")
+async def update_material(
+    material_id: str,
+    data: MaterialUpdate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Update a material"""
+    # Build update dict with only provided fields
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    result = await db.materials.update_one(
+        {"id": material_id, "tenant_id": current_user.tenant_id},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Material not found")
+    
+    material = await db.materials.find_one({"id": material_id}, {"_id": 0})
+    return material
+
+
+@router.delete("/materials/{material_id}")
+async def delete_material(
+    material_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Delete a material"""
+    result = await db.materials.delete_one(
+        {"id": material_id, "tenant_id": current_user.tenant_id}
+    )
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Material not found")
+    
+    return {"message": "Material deleted"}
+
+
+# ============== COMMON SIGN SHOP MATERIALS (PRESETS) ==============
+
+@router.post("/materials/seed-defaults")
+async def seed_default_materials(
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Seed common sign shop materials as starting point"""
+    now = datetime.now(timezone.utc)
+    
+    # Check if tenant already has materials
+    existing = await db.materials.count_documents({"tenant_id": current_user.tenant_id})
+    if existing > 0:
+        raise HTTPException(status_code=400, detail="Materials already exist. Delete existing materials first to re-seed.")
+    
+    default_materials = [
+        # Vinyl & Film
+        {"name": "Cast Vinyl (3M 1080)", "category": "vinyl", "cost": 3.50, "unit": "sqft", "markup_percent": 100, "description": "Premium cast vinyl for vehicle wraps"},
+        {"name": "Calendered Vinyl (Oracal 651)", "category": "vinyl", "cost": 0.75, "unit": "sqft", "markup_percent": 150, "description": "General purpose adhesive vinyl"},
+        {"name": "Reflective Vinyl", "category": "vinyl", "cost": 4.00, "unit": "sqft", "markup_percent": 100, "description": "DOT reflective for signs"},
+        {"name": "Window Perf (50/50)", "category": "vinyl", "cost": 2.25, "unit": "sqft", "markup_percent": 100, "description": "Perforated window film"},
+        {"name": "Clear Optically Clear", "category": "vinyl", "cost": 2.50, "unit": "sqft", "markup_percent": 100, "description": "Clear film for glass"},
+        {"name": "HTV (Heat Transfer Vinyl)", "category": "vinyl", "cost": 1.50, "unit": "sqft", "markup_percent": 150, "description": "For apparel heat press"},
+        
+        # Print Media
+        {"name": "Glossy Banner (13oz)", "category": "print_media", "cost": 0.35, "unit": "sqft", "markup_percent": 200, "description": "Standard banner material"},
+        {"name": "Matte Banner (15oz)", "category": "print_media", "cost": 0.45, "unit": "sqft", "markup_percent": 200, "description": "Heavy duty banner"},
+        {"name": "Printable Vinyl (Avery)", "category": "print_media", "cost": 1.25, "unit": "sqft", "markup_percent": 150, "description": "White printable adhesive vinyl"},
+        {"name": "Canvas", "category": "print_media", "cost": 2.00, "unit": "sqft", "markup_percent": 150, "description": "Artist canvas for prints"},
+        {"name": "Photo Paper", "category": "print_media", "cost": 0.50, "unit": "sqft", "markup_percent": 200, "description": "Glossy photo paper"},
+        {"name": "Backlit Film", "category": "print_media", "cost": 1.75, "unit": "sqft", "markup_percent": 150, "description": "For lightboxes"},
+        
+        # Laminate
+        {"name": "Gloss Laminate", "category": "laminate", "cost": 0.40, "unit": "sqft", "markup_percent": 150, "description": "Glossy overlaminate"},
+        {"name": "Matte Laminate", "category": "laminate", "cost": 0.45, "unit": "sqft", "markup_percent": 150, "description": "Matte overlaminate"},
+        {"name": "Anti-Graffiti Laminate", "category": "laminate", "cost": 1.25, "unit": "sqft", "markup_percent": 100, "description": "Protective anti-vandal"},
+        {"name": "Floor Laminate", "category": "laminate", "cost": 1.50, "unit": "sqft", "markup_percent": 100, "description": "Non-slip floor graphic lam"},
+        
+        # Substrates
+        {"name": "Coroplast (4mm)", "category": "substrate", "cost": 0.45, "unit": "sqft", "markup_percent": 200, "description": "Corrugated plastic"},
+        {"name": "Aluminum Composite (3mm)", "category": "substrate", "cost": 2.50, "unit": "sqft", "markup_percent": 100, "description": "ACM/Dibond panel"},
+        {"name": "PVC Board (3mm)", "category": "substrate", "cost": 0.75, "unit": "sqft", "markup_percent": 150, "description": "Sintra/Forex"},
+        {"name": "Foam Board (3/16\")", "category": "substrate", "cost": 0.35, "unit": "sqft", "markup_percent": 200, "description": "Gator board"},
+        {"name": "MDO Plywood", "category": "substrate", "cost": 1.50, "unit": "sqft", "markup_percent": 150, "description": "Medium density overlay"},
+        {"name": "Acrylic (1/4\")", "category": "substrate", "cost": 4.00, "unit": "sqft", "markup_percent": 100, "description": "Clear acrylic sheet"},
+        
+        # Hardware & Mounting
+        {"name": "H-Stakes (Wire)", "category": "hardware", "cost": 1.25, "unit": "each", "markup_percent": 100, "description": "Yard sign stakes"},
+        {"name": "Grommets", "category": "hardware", "cost": 0.25, "unit": "each", "markup_percent": 200, "description": "Brass grommets for banners"},
+        {"name": "Pole Pockets", "category": "hardware", "cost": 2.50, "unit": "lnft", "markup_percent": 100, "description": "Sewn pole pocket"},
+        {"name": "Standoffs (1\" Chrome)", "category": "hardware", "cost": 3.50, "unit": "each", "markup_percent": 100, "description": "Sign mounting standoffs"},
+        {"name": "Banner Hanging Kit", "category": "hardware", "cost": 15.00, "unit": "each", "markup_percent": 75, "description": "Ropes and carabiners"},
+        {"name": "Suction Cups (Heavy)", "category": "hardware", "cost": 2.00, "unit": "each", "markup_percent": 100, "description": "Window sign suction cups"},
+        
+        # Supplies
+        {"name": "Transfer Tape (Med Tack)", "category": "supplies", "cost": 0.15, "unit": "sqft", "markup_percent": 200, "description": "Application tape"},
+        {"name": "Rivet Tape", "category": "supplies", "cost": 0.50, "unit": "lnft", "markup_percent": 150, "description": "For banner hems"},
+        {"name": "Edge Sealer", "category": "supplies", "cost": 25.00, "unit": "each", "markup_percent": 50, "description": "Per bottle, edge protection"},
+        {"name": "Cleaning Solution", "category": "supplies", "cost": 15.00, "unit": "gallon", "markup_percent": 50, "description": "Surface prep cleaner"},
+    ]
+    
+    materials_to_insert = []
+    for mat in default_materials:
+        materials_to_insert.append({
+            "id": str(uuid.uuid4()),
+            "tenant_id": current_user.tenant_id,
+            **mat,
+            "is_active": True,
+            "created_at": now.isoformat(),
+            "updated_at": now.isoformat()
+        })
+    
+    await db.materials.insert_many(materials_to_insert)
+    
+    return {"message": f"Added {len(materials_to_insert)} default materials", "count": len(materials_to_insert)}

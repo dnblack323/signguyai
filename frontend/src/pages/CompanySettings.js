@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useAuth, Permission } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
@@ -7,7 +8,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Switch } from '../components/ui/switch';
-import { Building2, Phone, MapPin, Globe, Save, AlertTriangle, Crown, Timer, Clock, Users, Shield, Eye, EyeOff, Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Building2, Phone, MapPin, Globe, Save, AlertTriangle, Crown, Timer, Clock, Users, Shield, Eye, EyeOff, Upload, X, Image as ImageIcon, Calculator, DollarSign, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -800,6 +801,60 @@ export default function CompanySettings() {
               </Button>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Pricing & Materials Settings Card */}
+      <Card className="border" style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2" style={{ color: '#1A1A1A' }}>
+            <Calculator className="h-5 w-5 text-teal-600" />
+            Pricing & Materials
+          </CardTitle>
+          <CardDescription style={{ color: '#5A5A5A' }}>
+            Configure your pricing calculator, material costs, and inventory items
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <p className="text-sm" style={{ color: '#5A5A5A' }}>
+              Set up your material costs per square foot, labor rates, markups, and inventory items like stakes, grommets, and other supplies.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Link to="/pricing-calculator/settings" className="block">
+                <div className="p-4 rounded-lg border border-slate-200 hover:border-teal-500 hover:bg-teal-50 transition-all cursor-pointer group">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-teal-100">
+                        <DollarSign className="h-5 w-5 text-teal-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium" style={{ color: '#1A1A1A' }}>Pricing Settings</p>
+                        <p className="text-sm" style={{ color: '#5A5A5A' }}>Labor rates, markups, minimums</p>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-teal-500" />
+                  </div>
+                </div>
+              </Link>
+              <Link to="/pricing-calculator/materials" className="block">
+                <div className="p-4 rounded-lg border border-slate-200 hover:border-teal-500 hover:bg-teal-50 transition-all cursor-pointer group">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-amber-100">
+                        <Calculator className="h-5 w-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium" style={{ color: '#1A1A1A' }}>Materials & Inventory</p>
+                        <p className="text-sm" style={{ color: '#5A5A5A' }}>Material costs, supplies, items</p>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-teal-500" />
+                  </div>
+                </div>
+              </Link>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
