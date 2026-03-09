@@ -14,7 +14,8 @@ import {
   Calculator, DollarSign, Clock, TrendingUp, Package, 
   Scissors, Printer, Square, Shirt, Car, Wrench, Tag,
   ChevronDown, ChevronUp, AlertCircle, CheckCircle, Loader2,
-  Save, Star, Trash2, FolderOpen, Sparkles, Lightbulb, Target
+  Save, Star, Trash2, FolderOpen, Sparkles, Lightbulb, Target,
+  RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -43,39 +44,47 @@ const SERVICE_TYPES = [
   { id: 'other_labor', name: 'Other Labor' },
 ];
 
-// Vinyl types
-const VINYL_TYPES = [
-  { id: 'oracal_651', name: 'Oracal 651 (Intermediate)' },
-  { id: 'oracal_751', name: 'Oracal 751 (High Performance)' },
-  { id: 'oracal_951', name: 'Oracal 951 (Premium Cast)' },
-  { id: 'avery_hp750', name: 'Avery HP750' },
-  { id: 'reflective', name: 'Reflective Vinyl' },
-  { id: 'specialty', name: 'Specialty Vinyl' },
+// Vinyl types - FALLBACK (will be replaced by database materials)
+const DEFAULT_VINYL_TYPES = [
+  { id: 'oracal_651', name: 'Oracal 651 (Intermediate)', cost: 0.75 },
+  { id: 'oracal_751', name: 'Oracal 751 (High Performance)', cost: 1.00 },
+  { id: 'oracal_951', name: 'Oracal 951 (Premium Cast)', cost: 1.50 },
+  { id: 'avery_hp750', name: 'Avery HP750', cost: 1.25 },
+  { id: 'reflective', name: 'Reflective Vinyl', cost: 4.00 },
+  { id: 'specialty', name: 'Specialty Vinyl', cost: 2.00 },
 ];
 
-// Print materials
-const PRINT_MATERIALS = [
-  { id: 'banner_13oz', name: '13oz Banner' },
-  { id: 'banner_18oz', name: '18oz Banner (Heavy)' },
-  { id: 'vinyl_adhesive', name: 'Adhesive Vinyl' },
-  { id: 'poster_paper', name: 'Poster Paper' },
-  { id: 'canvas', name: 'Canvas' },
-  { id: 'backlit', name: 'Backlit Film' },
-  { id: 'perforated', name: 'Perforated Window Film' },
+// Print materials - FALLBACK (will be replaced by database materials)
+const DEFAULT_PRINT_MATERIALS = [
+  { id: 'banner_13oz', name: '13oz Banner', cost: 0.35 },
+  { id: 'banner_18oz', name: '18oz Banner (Heavy)', cost: 0.45 },
+  { id: 'vinyl_adhesive', name: 'Adhesive Vinyl', cost: 1.25 },
+  { id: 'poster_paper', name: 'Poster Paper', cost: 0.50 },
+  { id: 'canvas', name: 'Canvas', cost: 2.00 },
+  { id: 'backlit', name: 'Backlit Film', cost: 1.75 },
+  { id: 'perforated', name: 'Perforated Window Film', cost: 2.25 },
 ];
 
-// Substrate types
-const SUBSTRATE_TYPES = [
-  { id: 'coroplast_4mm', name: 'Coroplast 4mm' },
-  { id: 'coroplast_10mm', name: 'Coroplast 10mm' },
-  { id: 'aluminum_040', name: 'Aluminum .040' },
-  { id: 'aluminum_063', name: 'Aluminum .063' },
-  { id: 'aluminum_080', name: 'Aluminum .080' },
-  { id: 'pvc_3mm', name: 'PVC 3mm' },
-  { id: 'pvc_6mm', name: 'PVC 6mm' },
-  { id: 'acrylic', name: 'Acrylic' },
-  { id: 'dibond', name: 'Dibond/ACM' },
-  { id: 'mdo', name: 'MDO Plywood' },
+// Substrate types - FALLBACK (will be replaced by database materials)
+const DEFAULT_SUBSTRATE_TYPES = [
+  { id: 'coroplast_4mm', name: 'Coroplast 4mm', cost: 0.45 },
+  { id: 'coroplast_10mm', name: 'Coroplast 10mm', cost: 0.65 },
+  { id: 'aluminum_040', name: 'Aluminum .040', cost: 1.50 },
+  { id: 'aluminum_063', name: 'Aluminum .063', cost: 2.25 },
+  { id: 'aluminum_080', name: 'Aluminum .080', cost: 3.00 },
+  { id: 'pvc_3mm', name: 'PVC 3mm', cost: 0.75 },
+  { id: 'pvc_6mm', name: 'PVC 6mm', cost: 1.00 },
+  { id: 'acrylic', name: 'Acrylic', cost: 4.00 },
+  { id: 'dibond', name: 'Dibond/ACM', cost: 2.50 },
+  { id: 'mdo', name: 'MDO Plywood', cost: 1.50 },
+];
+
+// Laminate types - FALLBACK
+const DEFAULT_LAMINATE_TYPES = [
+  { id: 'gloss', name: 'Gloss Laminate', cost: 0.40 },
+  { id: 'matte', name: 'Matte Laminate', cost: 0.45 },
+  { id: 'anti_graffiti', name: 'Anti-Graffiti Laminate', cost: 1.25 },
+  { id: 'floor', name: 'Floor Laminate', cost: 1.50 },
 ];
 
 // Apparel types
@@ -186,8 +195,114 @@ export default function PricingCalculator({
   const [templateDesc, setTemplateDesc] = useState('');
   const [savingTemplate, setSavingTemplate] = useState(false);
 
+  // Custom materials from database
+  const [customMaterials, setCustomMaterials] = useState({
+    vinyl: [],
+    print_media: [],
+    substrate: [],
+    laminate: [],
+    hardware: [],
+    supplies: []
+  });
+  const [materialsLoaded, setMaterialsLoaded] = useState(false);
+
   // Get auth token
   const getToken = () => localStorage.getItem('auth_token');
+
+  // Fetch custom materials from database
+  const fetchCustomMaterials = useCallback(async () => {
+    const token = getToken();
+    if (!token) return;
+
+    try {
+      const response = await fetch(`${API_URL}/api/pricing/materials/catalog`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Group materials by category
+        const grouped = {
+          vinyl: data.filter(m => m.category === 'vinyl' && m.is_active !== false),
+          print_media: data.filter(m => m.category === 'print_media' && m.is_active !== false),
+          substrate: data.filter(m => m.category === 'substrate' && m.is_active !== false),
+          laminate: data.filter(m => m.category === 'laminate' && m.is_active !== false),
+          hardware: data.filter(m => m.category === 'hardware' && m.is_active !== false),
+          supplies: data.filter(m => m.category === 'supplies' && m.is_active !== false)
+        };
+        setCustomMaterials(grouped);
+        setMaterialsLoaded(true);
+      }
+    } catch (err) {
+      console.error('Error fetching custom materials:', err);
+    }
+  }, []);
+
+  // Get materials list - prefer custom, fallback to defaults
+  const getVinylTypes = () => {
+    if (customMaterials.vinyl.length > 0) {
+      return customMaterials.vinyl.map(m => ({
+        id: m.id,
+        name: m.name,
+        cost: m.cost,
+        markup: m.markup_percent,
+        unit: m.unit
+      }));
+    }
+    return DEFAULT_VINYL_TYPES;
+  };
+
+  const getPrintMaterials = () => {
+    if (customMaterials.print_media.length > 0) {
+      return customMaterials.print_media.map(m => ({
+        id: m.id,
+        name: m.name,
+        cost: m.cost,
+        markup: m.markup_percent,
+        unit: m.unit
+      }));
+    }
+    return DEFAULT_PRINT_MATERIALS;
+  };
+
+  const getSubstrateTypes = () => {
+    if (customMaterials.substrate.length > 0) {
+      return customMaterials.substrate.map(m => ({
+        id: m.id,
+        name: m.name,
+        cost: m.cost,
+        markup: m.markup_percent,
+        unit: m.unit
+      }));
+    }
+    return DEFAULT_SUBSTRATE_TYPES;
+  };
+
+  const getLaminateTypes = () => {
+    if (customMaterials.laminate.length > 0) {
+      return customMaterials.laminate.map(m => ({
+        id: m.id,
+        name: m.name,
+        cost: m.cost,
+        markup: m.markup_percent,
+        unit: m.unit
+      }));
+    }
+    return DEFAULT_LAMINATE_TYPES;
+  };
+
+  // Get material cost by ID
+  const getMaterialCost = (materialId, category) => {
+    const lists = {
+      vinyl: getVinylTypes(),
+      print_media: getPrintMaterials(),
+      substrate: getSubstrateTypes(),
+      laminate: getLaminateTypes()
+    };
+    const list = lists[category] || [];
+    const material = list.find(m => m.id === materialId);
+    return material ? { cost: material.cost, markup: material.markup || 100 } : { cost: 0, markup: 100 };
+  };
 
   // Fetch AI-powered pricing suggestions
   const fetchAiSuggestions = async () => {
@@ -255,7 +370,8 @@ export default function PricingCalculator({
 
   useEffect(() => {
     fetchTemplates();
-  }, [fetchTemplates]);
+    fetchCustomMaterials();
+  }, [fetchTemplates, fetchCustomMaterials]);
 
   // Save template
   const handleSaveTemplate = async () => {
@@ -522,12 +638,22 @@ export default function PricingCalculator({
                 <Label>Vinyl Type</Label>
                 <Select 
                   value={pricingData.vinyl_type || ''} 
-                  onValueChange={(v) => setPricingData({...pricingData, vinyl_type: v})}
+                  onValueChange={(v) => {
+                    const material = getMaterialCost(v, 'vinyl');
+                    setPricingData({
+                      ...pricingData, 
+                      vinyl_type: v,
+                      material_cost_override: material.cost,
+                      material_markup: material.markup
+                    });
+                  }}
                 >
                   <SelectTrigger><SelectValue placeholder="Select vinyl" /></SelectTrigger>
                   <SelectContent>
-                    {VINYL_TYPES.map(t => (
-                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    {getVinylTypes().map(t => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name} {t.cost ? `($${t.cost.toFixed(2)}/sqft)` : ''}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -640,12 +766,22 @@ export default function PricingCalculator({
                 <Label>Material</Label>
                 <Select 
                   value={pricingData.print_material || ''} 
-                  onValueChange={(v) => setPricingData({...pricingData, print_material: v})}
+                  onValueChange={(v) => {
+                    const material = getMaterialCost(v, 'print_media');
+                    setPricingData({
+                      ...pricingData, 
+                      print_material: v,
+                      material_cost_override: material.cost,
+                      material_markup: material.markup
+                    });
+                  }}
                 >
                   <SelectTrigger><SelectValue placeholder="Select material" /></SelectTrigger>
                   <SelectContent>
-                    {PRINT_MATERIALS.map(t => (
-                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    {getPrintMaterials().map(t => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name} {t.cost ? `($${t.cost.toFixed(2)}/sqft)` : ''}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -697,12 +833,22 @@ export default function PricingCalculator({
               <Label>Substrate</Label>
               <Select 
                 value={pricingData.substrate_type || ''} 
-                onValueChange={(v) => setPricingData({...pricingData, substrate_type: v})}
+                onValueChange={(v) => {
+                  const material = getMaterialCost(v, 'substrate');
+                  setPricingData({
+                    ...pricingData, 
+                    substrate_type: v,
+                    substrate_cost_override: material.cost,
+                    substrate_markup: material.markup
+                  });
+                }}
               >
                 <SelectTrigger><SelectValue placeholder="Select substrate" /></SelectTrigger>
                 <SelectContent>
-                  {SUBSTRATE_TYPES.map(t => (
-                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  {getSubstrateTypes().map(t => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name} {t.cost ? `($${t.cost.toFixed(2)}/sqft)` : ''}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -980,6 +1126,25 @@ export default function PricingCalculator({
               })}
             </div>
           </div>
+
+          {/* Custom Materials Status */}
+          {materialsLoaded && (customMaterials.vinyl.length > 0 || customMaterials.print_media.length > 0 || customMaterials.substrate.length > 0) && (
+            <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <span className="text-sm text-green-700">
+                Using your custom materials ({customMaterials.vinyl.length + customMaterials.print_media.length + customMaterials.substrate.length + customMaterials.laminate.length} items)
+              </span>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={fetchCustomMaterials}
+                className="ml-auto h-6 text-green-600 hover:text-green-700 hover:bg-green-100"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Refresh
+              </Button>
+            </div>
+          )}
 
           {category && (
             <>
