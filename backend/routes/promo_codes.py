@@ -231,17 +231,122 @@ async def redeem_promo_code(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """
-    Redeem a promo code (increment usage counter).
-    Called after successful checkout/signup.
+    Redeem a promo code.
+    For free_days type: Grants immediate access without payment.
+    For other types: Just increments usage counter (discount applied at Stripe).
     """
-    code = code.upper().strip()
+    from datetime import timedelta
     
-    result = await db.promo_codes.update_one(
+    code = code.upper().strip()
+    now = datetime.now(timezone.utc)
+    
+    # Find the promo code
+    promo = await db.promo_codes.find_one(
         {"code": code, "is_active": True},
+        {"_id": 0}
+    )
+    
+    if not promo:
+        raise HTTPException(status_code=404, detail="Invalid promo code")
+    
+    # Check expiration
+    if promo.get("expires_at"):
+        expires = datetime.fromisoformat(promo["expires_at"].replace("Z", "+00:00"))
+        if now > expires:
+            raise HTTPException(status_code=400, detail="This promo code has expired")
+    
+    # Check max uses
+    if promo.get("max_uses") is not None:
+        if promo.get("times_used", 0) >= promo["max_uses"]:
+            raise HTTPException(status_code=400, detail="This promo code has reached its usage limit")
+    
+    # Increment usage
+    await db.promo_codes.update_one(
+        {"code": code},
         {"$inc": {"times_used": 1}}
     )
     
-    if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Promo code not found")
+    # For free_days type, grant immediate access
+    discount_type = promo.get("discount_type")
+    trial_days = promo.get("trial_days", 0)
+    discount_value = promo.get("discount_value", 0)
     
-    return {"message": "Promo code redeemed"}
+    if discount_type == "free_days" and trial_days > 0:
+        trial_end = now + timedelta(days=trial_days)
+        
+        # Update tenant
+        await db.tenants.update_one(
+            {"id": current_user.tenant_id},
+            {"$set": {
+                "is_trial": True,
+                "plan": "founders_edition",
+                "trial_ends_at": trial_end.isoformat(),
+                "promo_code_used": code,
+                "updated_at": now.isoformat()
+            }}
+        )
+        
+        # Update subscription
+        await db.subscriptions.update_one(
+            {"tenant_id": current_user.tenant_id},
+            {"$set": {
+                "status": "trialing",
+                "tier": "business",
+                "plan": "founders_edition",
+                "trial_end": trial_end.isoformat(),
+                "promo_code_used": code,
+                "updated_at": now.isoformat()
+            }},
+            upsert=True
+        )
+        
+        return {
+            "success": True,
+            "message": f"Success! You have {trial_days} days of free access.",
+            "free_days": trial_days,
+            "access_granted": True
+        }
+    
+    elif discount_type == "percent" and discount_value == 100:
+        # 100% off = 30 days free
+        free_days = 30
+        trial_end = now + timedelta(days=free_days)
+        
+        await db.tenants.update_one(
+            {"id": current_user.tenant_id},
+            {"$set": {
+                "is_trial": True,
+                "plan": "founders_edition",
+                "trial_ends_at": trial_end.isoformat(),
+                "promo_code_used": code,
+                "updated_at": now.isoformat()
+            }}
+        )
+        
+        await db.subscriptions.update_one(
+            {"tenant_id": current_user.tenant_id},
+            {"$set": {
+                "status": "trialing",
+                "tier": "business",
+                "plan": "founders_edition",
+                "trial_end": trial_end.isoformat(),
+                "promo_code_used": code,
+                "updated_at": now.isoformat()
+            }},
+            upsert=True
+        )
+        
+        return {
+            "success": True,
+            "message": f"Success! You have {free_days} days of free access.",
+            "free_days": free_days,
+            "access_granted": True
+        }
+    
+    # For other discount types, just confirm redemption
+    return {
+        "success": True,
+        "message": "Promo code redeemed! Apply the discount at checkout.",
+        "access_granted": False
+    }
+

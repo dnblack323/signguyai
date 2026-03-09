@@ -109,22 +109,40 @@ const LockoutScreen = () => {
 
     setPromoLoading(true);
     try {
-      const response = await axios.post(
-        `${API_URL}/api/billing/apply-promo`,
-        { promo_code: promoCode.trim() },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      // Try the new apply-promo endpoint first
+      let response;
+      try {
+        response = await axios.post(
+          `${API_URL}/api/billing/apply-promo`,
+          { promo_code: promoCode.trim() },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } catch (e) {
+        // If that fails, try the promo-codes/redeem endpoint
+        response = await axios.post(
+          `${API_URL}/api/promo-codes/redeem/${promoCode.trim().toUpperCase()}`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      }
 
-      if (response.data.success) {
+      if (response.data.success || response.data.access_granted) {
         toast.success(response.data.message || 'Promo code applied!');
         // Reload to check new trial status
         window.location.reload();
+      } else if (response.data.message) {
+        toast.info(response.data.message);
       } else {
-        toast.error(response.data.message || 'Invalid promo code');
+        toast.error('Invalid promo code');
       }
     } catch (error) {
       console.error('Promo error:', error);
-      toast.error(error.response?.data?.detail || 'Failed to apply promo code');
+      const detail = error.response?.data?.detail;
+      if (detail) {
+        toast.error(detail);
+      } else {
+        toast.error('Failed to apply promo code');
+      }
     } finally {
       setPromoLoading(false);
     }
