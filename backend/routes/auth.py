@@ -9,7 +9,7 @@ This module contains all routes related to:
 - Role management
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
@@ -28,7 +28,7 @@ import uuid
 # These will be imported from the main server module
 # In the future, they should be moved to core/auth.py
 from server import (
-    db, logger, security,
+    db, logger, security, limiter,
     SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES,
     pwd_context, get_password_hash, verify_password, create_access_token,
     get_current_user, get_current_active_user,
@@ -43,7 +43,8 @@ admin_router = APIRouter(prefix="/admin", tags=["Admin"])
 # ============== AUTH ROUTES ==============
 
 @router.post("/register", response_model=Token)
-async def register(input: UserCreate):
+@limiter.limit("5/minute")  # 5 registrations per minute per IP (anti-spam)
+async def register(request: Request, input: UserCreate):
     """Register a new user with 48-hour free trial and sample data"""
     from services.founders_config import (
         FOUNDERS_EDITION_MAX_CUSTOMERS, 
@@ -150,7 +151,8 @@ async def register(input: UserCreate):
 
 
 @router.post("/login", response_model=Token)
-async def login(input: UserLogin):
+@limiter.limit("10/minute")  # 10 login attempts per minute per IP (anti-brute-force)
+async def login(request: Request, input: UserLogin):
     """Authenticate user and return access token"""
     # Find user by email
     user = await db.users.find_one({"email": input.email.lower()}, {"_id": 0})

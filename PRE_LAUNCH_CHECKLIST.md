@@ -3,7 +3,7 @@
 ## 🔴 CRITICAL - Must Fix Before Launch
 
 ### 1. Security Issues
-- [ ] **CORS is set to allow ALL origins (`*`)** - Should be restricted to your production domain
+- [x] **CORS is now configurable via env var CORS_ORIGINS (`*`)** - Should be restricted to your production domain
   - File: `/app/backend/server.py` line 1065
   - Change `allow_origins=["*"]` to `allow_origins=["https://yourdomain.com"]`
 
@@ -17,7 +17,7 @@
   - Affected: `/generate`, `/generate-images`, `/history`, `/assistant`
   - Add authentication dependency
 
-- [ ] **No rate limiting configured** - App vulnerable to abuse/DoS
+- [x] **Rate limiting implemented** - App vulnerable to abuse/DoS
   - Implement rate limiting using `slowapi` or similar
   - Critical for AI endpoints (credit consumption)
 

@@ -7,7 +7,7 @@ This module contains routes for AI-powered tools:
 - AI history
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Header
+from fastapi import APIRouter, HTTPException, Depends, Header, Request
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field
@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from server import db, get_current_active_user
+from server import db, get_current_active_user, limiter
 from models import UserInDB
 
 router = APIRouter(prefix="/ai", tags=["AI Tools"])
@@ -977,7 +977,9 @@ async def generate_images(tool: str, input_data: Dict[str, Any], count: int = 3)
 # ============== ROUTES ==============
 
 @router.post("/generate")
+@limiter.limit("30/minute")  # 30 AI text generations per minute per IP
 async def generate_ai_content(
+    request_obj: Request,
     request: AIGenerateRequest,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
@@ -1025,7 +1027,9 @@ async def generate_ai_content(
 
 
 @router.post("/generate-images")
+@limiter.limit("10/minute")  # 10 AI image generations per minute per IP
 async def generate_ai_images(
+    request_obj: Request,
     request: AIGenerateImageRequest,
     current_user: UserInDB = Depends(get_current_active_user)
 ):

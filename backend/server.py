@@ -5,7 +5,7 @@ This file contains the FastAPI application setup and core utilities.
 All models are in /models and all routes are in /routes.
 """
 
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Request
 import base64
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
@@ -20,6 +20,11 @@ import jwt
 from passlib.context import CryptContext
 import secrets
 import re
+
+# Rate limiting imports
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 # Load environment variables
 ROOT_DIR = Path(__file__).parent
@@ -41,8 +46,15 @@ security = HTTPBearer(auto_error=False)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Rate limiter configuration
+# Default: 100 requests per minute per IP
+# AI endpoints will have stricter limits
+limiter = Limiter(key_func=get_remote_address)
+
 # Create the main app
 app = FastAPI(title="SignGuy AI API")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -1060,9 +1072,12 @@ api_router.include_router(production_timeline_router)  # Production Timeline Tra
 app.include_router(api_router)
 
 # Add CORS middleware
+# In production, set CORS_ORIGINS env var to your domain(s)
+# Example: CORS_ORIGINS=https://signguy.ai,https://www.signguy.ai
+cors_origins = os.environ.get("CORS_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

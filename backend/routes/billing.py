@@ -31,6 +31,7 @@ from models.billing import (
 )
 from models import UserInDB
 from pydantic import BaseModel as PydanticBaseModel
+from server import limiter
 
 router = APIRouter(prefix="/billing", tags=["Billing & Subscriptions"])
 webhook_router = APIRouter(tags=["Webhooks"])
@@ -597,7 +598,9 @@ class CreditPackCheckoutRequest(PydanticBaseModel):
 
 
 @router.post("/checkout/founders")
+@limiter.limit("5/minute")  # 5 checkout attempts per minute per IP
 async def create_founders_checkout_session(
+    request_obj: Request,
     request: FoundersCheckoutRequest,
     db = Depends(get_db),
     current_user: UserInDB = Depends(get_current_user_billing)
