@@ -144,8 +144,8 @@ export function PublicFooter() {
           <div>
             <h4 className="text-white font-semibold mb-4">Legal</h4>
             <ul className="space-y-2">
-              <li><a href="#" className="text-gray-400 hover:text-white text-sm">Privacy Policy</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white text-sm">Terms of Service</a></li>
+              <li><Link to="/privacy" className="text-gray-400 hover:text-white text-sm">Privacy Policy</Link></li>
+              <li><Link to="/terms" className="text-gray-400 hover:text-white text-sm">Terms of Service</Link></li>
             </ul>
           </div>
         </div>
