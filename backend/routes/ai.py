@@ -981,8 +981,8 @@ async def generate_images(tool: str, input_data: Dict[str, Any], count: int = 3)
 @router.post("/generate")
 @limiter.limit("30/minute")  # 30 AI text generations per minute per IP
 async def generate_ai_content(
-    request_obj: Request,
-    request: AIGenerateRequest,
+    request: Request,
+    data: AIGenerateRequest,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Generate AI text content"""
@@ -997,20 +997,20 @@ async def generate_ai_content(
     success, credits_used, message = await check_and_deduct_credits(
         db, 
         current_user.tenant_id, 
-        request.tool,
-        {"tool": request.tool}
+        data.tool,
+        {"tool": data.tool}
     )
     if not success:
         raise HTTPException(status_code=402, detail=message)
     
     try:
-        result = await generate_text_content(request.tool, request.input_data)
+        result = await generate_text_content(data.tool, data.input_data)
         
         # Save to history
         history_entry = {
             "id": str(uuid.uuid4()),
-            "tool": request.tool,
-            "input_data": request.input_data,
+            "tool": data.tool,
+            "input_data": data.input_data,
             "output": result,
             "images": None,
             "tenant_id": current_user.tenant_id,
@@ -1031,8 +1031,8 @@ async def generate_ai_content(
 @router.post("/generate-images")
 @limiter.limit("10/minute")  # 10 AI image generations per minute per IP
 async def generate_ai_images(
-    request_obj: Request,
-    request: AIGenerateImageRequest,
+    request: Request,
+    data: AIGenerateImageRequest,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Generate AI images"""
@@ -1048,13 +1048,13 @@ async def generate_ai_images(
         db, 
         current_user.tenant_id, 
         "image_generation",
-        {"tool": request.tool, "image_count": request.image_count}
+        {"tool": data.tool, "image_count": data.image_count}
     )
     if not success:
         raise HTTPException(status_code=402, detail=message)
     
     try:
-        images = await generate_images(request.tool, request.input_data, request.image_count)
+        images = await generate_images(data.tool, data.input_data, data.image_count)
         
         if not images:
             raise HTTPException(status_code=500, detail="No images were generated")
@@ -1062,8 +1062,8 @@ async def generate_ai_images(
         # Save to history
         history_entry = {
             "id": str(uuid.uuid4()),
-            "tool": request.tool,
-            "input_data": request.input_data,
+            "tool": data.tool,
+            "input_data": data.input_data,
             "output": None,
             "images": images,
             "tenant_id": current_user.tenant_id,
