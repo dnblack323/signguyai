@@ -55,6 +55,29 @@ Ensure these are set in production environment:
 
 - [ ] **Database backup strategy** - Set up automated backups for MongoDB
 
+### 4.1 Data Safety & Soft Deletes ✅ COMPLETE
+All critical data models now use soft delete instead of permanent deletion:
+- [x] **Customers** - `DELETE /api/customers/{id}` now soft deletes
+- [x] **Jobs** - `DELETE /api/jobs/{id}` now soft deletes (with related job_items, job_notes)
+- [x] **Invoices** - `DELETE /api/invoices/{id}` now soft deletes
+- [x] **Quotes** - `DELETE /api/quotes/{id}` now soft deletes
+- [x] **Products** - `DELETE /api/products/{id}` now soft deletes
+- [x] **Webstores** - `DELETE /api/webstores/v2/{id}` now soft deletes
+- [x] **Employees** - `DELETE /api/employees/{id}` now soft deletes
+
+**Implementation Details:**
+- All GET list endpoints exclude soft-deleted records by default
+- All GET single item endpoints exclude soft-deleted records
+- Use `include_deleted=true` query param to include soft-deleted items
+- Restore endpoints: `POST /api/{model}/{id}/restore`
+- View deleted items: `GET /api/{model}/deleted/list`
+- Hard delete (permanent): Add `permanent=true` query param to DELETE
+
+**Files Created/Updated:**
+- `backend/services/soft_delete_service.py` - Core soft delete logic
+- `backend/scripts/run_migrations.py` - Migration runner
+- `backend/migrations/0001_soft_delete_fields.py` - Add deleted_at fields
+
 ### 5. Credit System Implementation
 - [x] **Credit system verified - GET /api/billing/credits endpoint added** - Test AI tools deduct credits properly
 - [ ] **Credit refill on payment** - Verify webhook adds 150 credits on `invoice.payment_succeeded`

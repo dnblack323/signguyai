@@ -6,6 +6,7 @@ This module contains all routes related to:
 - Webstores (B2B, Fundraiser, Creator stores)
 - Webstore product assignments
 - Webstore orders (public ordering)
+- Soft delete and restore
 """
 
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
@@ -18,6 +19,7 @@ from enum import Enum
 
 # Import from server module
 from server import db, logger, get_current_active_user
+from services.soft_delete_service import SoftDeleteService, build_active_filter
 
 from models import UserInDB, JobStatus, JobItemType, JobItemStatus
 
@@ -414,10 +416,11 @@ async def get_apparel_defaults():
 async def get_products(
     category: Optional[ProductCategory] = None,
     is_active: Optional[bool] = None,
+    include_deleted: bool = False,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """List all products in the master catalog"""
-    query = {"tenant_id": current_user.tenant_id}
+    """List all products in the master catalog. Excludes deleted by default."""
+    query = build_active_filter(current_user.tenant_id, include_deleted)
     if category:
         query["category"] = category.value
     if is_active is not None:
@@ -431,9 +434,9 @@ async def get_product(
     product_id: str,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Get a specific product"""
+    """Get a specific product (excludes deleted)"""
     product = await db.products.find_one(
-        {"id": product_id, "tenant_id": current_user.tenant_id}, 
+        {"id": product_id, "tenant_id": current_user.tenant_id, "deleted_at": None}, 
         {"_id": 0}
     )
     if not product:
@@ -494,17 +497,78 @@ async def update_product(
 @products_router.delete("/{product_id}")
 async def delete_product(
     product_id: str,
+    permanent: bool = False,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Delete a product"""
-    result = await db.products.delete_one(
-        {"id": product_id, "tenant_id": current_user.tenant_id}
+    """Soft delete a product. Use permanent=true for hard delete (admin only)."""
+    soft_delete_service = SoftDeleteService(db)
+    
+    if permanent:
+        # Hard delete
+        result = await db.products.delete_one(
+            {"id": product_id, "tenant_id": current_user.tenant_id}
+        )
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Product not found")
+        # Also remove from all webstore assignments
+        await db.webstore_products.delete_many({"product_id": product_id})
+        return {"message": "Product permanently deleted"}
+    else:
+        # Soft delete
+        success = await soft_delete_service.soft_delete(
+            collection_name="products",
+            record_id=product_id,
+            deleted_by=current_user.id,
+            tenant_id=current_user.tenant_id,
+            reason="User requested deletion"
+        )
+        if not success:
+            raise HTTPException(status_code=404, detail="Product not found or already deleted")
+        # Disable in all webstore assignments (don't delete)
+        await db.webstore_products.update_many(
+            {"product_id": product_id},
+            {"$set": {"is_enabled": False}}
+        )
+        return {"message": "Product deleted (can be restored)"}
+
+
+@products_router.post("/{product_id}/restore")
+async def restore_product(
+    product_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Restore a soft-deleted product"""
+    soft_delete_service = SoftDeleteService(db)
+    
+    success = await soft_delete_service.restore(
+        collection_name="products",
+        record_id=product_id,
+        restored_by=current_user.id,
+        tenant_id=current_user.tenant_id
     )
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Product not found")
-    # Also remove from all webstore assignments
-    await db.webstore_products.delete_many({"product_id": product_id})
-    return {"message": "Product deleted"}
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Product not found or not deleted")
+    
+    # Return the restored product
+    product = await db.products.find_one({"id": product_id}, {"_id": 0})
+    return {"message": "Product restored", "product": product}
+
+
+@products_router.get("/deleted/list")
+async def get_deleted_products(
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Get list of soft-deleted products for admin review"""
+    soft_delete_service = SoftDeleteService(db)
+    
+    deleted = await soft_delete_service.get_deleted_records(
+        collection_name="products",
+        tenant_id=current_user.tenant_id,
+        limit=100
+    )
+    
+    return {"deleted_products": deleted, "count": len(deleted)}
 
 
 # ============== WEBSTORE ROUTES ==============
@@ -543,10 +607,11 @@ async def get_webstores(
     store_type: Optional[WebstoreType] = None,
     status: Optional[WebstoreStatus] = None,
     is_public: Optional[bool] = None,
+    include_deleted: bool = False,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """List all webstores"""
-    query = {"tenant_id": current_user.tenant_id}
+    """List all webstores. Excludes deleted by default."""
+    query = build_active_filter(current_user.tenant_id, include_deleted)
     if store_type:
         query["store_type"] = store_type.value
     if status:
@@ -640,9 +705,9 @@ async def get_webstore(
     webstore_id: str,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Get a specific webstore"""
+    """Get a specific webstore (excludes deleted)"""
     webstore = await db.webstores_v2.find_one(
-        {"id": webstore_id, "tenant_id": current_user.tenant_id}, 
+        {"id": webstore_id, "tenant_id": current_user.tenant_id, "deleted_at": None}, 
         {"_id": 0}
     )
     if not webstore:
@@ -917,17 +982,73 @@ async def update_webstore(
 @webstores_router.delete("/{webstore_id}")
 async def delete_webstore(
     webstore_id: str,
+    permanent: bool = False,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Delete a webstore"""
-    result = await db.webstores_v2.delete_one(
-        {"id": webstore_id, "tenant_id": current_user.tenant_id}
+    """Soft delete a webstore. Use permanent=true for hard delete (admin only)."""
+    soft_delete_service = SoftDeleteService(db)
+    
+    if permanent:
+        # Hard delete
+        result = await db.webstores_v2.delete_one(
+            {"id": webstore_id, "tenant_id": current_user.tenant_id}
+        )
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Webstore not found")
+        # Clean up product assignments
+        await db.webstore_products.delete_many({"webstore_id": webstore_id})
+        return {"message": "Webstore permanently deleted"}
+    else:
+        # Soft delete
+        success = await soft_delete_service.soft_delete(
+            collection_name="webstores_v2",
+            record_id=webstore_id,
+            deleted_by=current_user.id,
+            tenant_id=current_user.tenant_id,
+            reason="User requested deletion"
+        )
+        if not success:
+            raise HTTPException(status_code=404, detail="Webstore not found or already deleted")
+        return {"message": "Webstore deleted (can be restored)"}
+
+
+@webstores_router.post("/{webstore_id}/restore")
+async def restore_webstore(
+    webstore_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Restore a soft-deleted webstore"""
+    soft_delete_service = SoftDeleteService(db)
+    
+    success = await soft_delete_service.restore(
+        collection_name="webstores_v2",
+        record_id=webstore_id,
+        restored_by=current_user.id,
+        tenant_id=current_user.tenant_id
     )
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Webstore not found")
-    # Clean up product assignments
-    await db.webstore_products.delete_many({"webstore_id": webstore_id})
-    return {"message": "Webstore deleted"}
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Webstore not found or not deleted")
+    
+    # Return the restored webstore
+    webstore = await db.webstores_v2.find_one({"id": webstore_id}, {"_id": 0})
+    return {"message": "Webstore restored", "webstore": webstore}
+
+
+@webstores_router.get("/deleted/list")
+async def get_deleted_webstores(
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Get list of soft-deleted webstores for admin review"""
+    soft_delete_service = SoftDeleteService(db)
+    
+    deleted = await soft_delete_service.get_deleted_records(
+        collection_name="webstores_v2",
+        tenant_id=current_user.tenant_id,
+        limit=100
+    )
+    
+    return {"deleted_webstores": deleted, "count": len(deleted)}
 
 
 @webstores_router.post("/{webstore_id}/upload-logo")

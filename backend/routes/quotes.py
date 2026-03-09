@@ -4,6 +4,7 @@ Quote Management Routes
 This module contains all routes related to:
 - Quote CRUD operations
 - Quote to Job conversion
+- Soft delete and restore
 """
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -22,6 +23,7 @@ from server import (
     db, logger,
     get_current_active_user, has_permission
 )
+from services.soft_delete_service import SoftDeleteService, build_active_filter
 
 router = APIRouter(prefix="/quotes", tags=["Quotes"])
 
@@ -62,10 +64,11 @@ async def create_quote(
 async def get_quotes(
     customer_id: Optional[str] = None,
     status: Optional[QuoteStatus] = None,
+    include_deleted: bool = False,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """List all quotes with optional filtering"""
-    query = {"tenant_id": current_user.tenant_id}
+    """List all quotes with optional filtering. Excludes deleted by default."""
+    query = build_active_filter(current_user.tenant_id, include_deleted)
     if customer_id:
         query["customer_id"] = customer_id
     if status:
@@ -79,9 +82,9 @@ async def get_quote(
     quote_id: str,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Get a specific quote by ID"""
+    """Get a specific quote by ID (excludes deleted)"""
     quote = await db.quotes.find_one(
-        {"id": quote_id, "tenant_id": current_user.tenant_id}, 
+        {"id": quote_id, "tenant_id": current_user.tenant_id, "deleted_at": None}, 
         {"_id": 0}
     )
     if not quote:
@@ -129,9 +132,12 @@ async def update_quote(
 @router.delete("/{quote_id}")
 async def delete_quote(
     quote_id: str,
+    permanent: bool = False,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Delete a quote"""
+    """Soft delete a quote. Use permanent=true for hard delete (admin only)."""
+    soft_delete_service = SoftDeleteService(db)
+    
     quote = await db.quotes.find_one(
         {"id": quote_id, "tenant_id": current_user.tenant_id},
         {"_id": 0}
@@ -141,8 +147,68 @@ async def delete_quote(
     if quote.get("job_id"):
         raise HTTPException(status_code=400, detail="Cannot delete quote that has been converted to job")
     
-    result = await db.quotes.delete_one({"id": quote_id})
-    return {"message": "Quote deleted"}
+    if permanent:
+        # Hard delete - admin only
+        success = await soft_delete_service.hard_delete(
+            collection_name="quotes",
+            record_id=quote_id,
+            tenant_id=current_user.tenant_id,
+            admin_confirmation=True
+        )
+        if not success:
+            raise HTTPException(status_code=404, detail="Quote not found")
+        return {"message": "Quote permanently deleted"}
+    else:
+        # Soft delete
+        success = await soft_delete_service.soft_delete(
+            collection_name="quotes",
+            record_id=quote_id,
+            deleted_by=current_user.id,
+            tenant_id=current_user.tenant_id,
+            reason="User requested deletion"
+        )
+        if not success:
+            raise HTTPException(status_code=404, detail="Quote not found or already deleted")
+        return {"message": "Quote deleted (can be restored)"}
+
+
+@router.post("/{quote_id}/restore")
+async def restore_quote(
+    quote_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Restore a soft-deleted quote"""
+    soft_delete_service = SoftDeleteService(db)
+    
+    success = await soft_delete_service.restore(
+        collection_name="quotes",
+        record_id=quote_id,
+        restored_by=current_user.id,
+        tenant_id=current_user.tenant_id
+    )
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Quote not found or not deleted")
+    
+    # Return the restored quote
+    quote = await db.quotes.find_one({"id": quote_id}, {"_id": 0})
+    return {"message": "Quote restored", "quote": quote}
+
+
+@router.get("/deleted/list")
+async def get_deleted_quotes(
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Get list of soft-deleted quotes for admin review"""
+    soft_delete_service = SoftDeleteService(db)
+    
+    deleted = await soft_delete_service.get_deleted_records(
+        collection_name="quotes",
+        tenant_id=current_user.tenant_id,
+        limit=100
+    )
+    
+    return {"deleted_quotes": deleted, "count": len(deleted)}
 
 
 @router.post("/{quote_id}/convert-to-job", response_model=Job)

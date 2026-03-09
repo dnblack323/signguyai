@@ -5,6 +5,7 @@ This module contains all routes related to:
 - Customer CRUD operations
 - Customer search and filtering
 - Bulk import from CSV
+- Soft delete and restore
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Query
@@ -22,6 +23,7 @@ from server import (
     db, logger,
     get_current_active_user, has_permission
 )
+from services.soft_delete_service import SoftDeleteService, build_active_filter
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
@@ -153,10 +155,11 @@ async def import_customers(
 async def get_customers(
     status: Optional[CustomerStatus] = None,
     search: Optional[str] = None,
+    include_deleted: bool = False,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """List all customers with optional filtering"""
-    query = {"tenant_id": current_user.tenant_id}
+    """List all customers with optional filtering. Excludes deleted by default."""
+    query = build_active_filter(current_user.tenant_id, include_deleted)
     if status:
         query["status"] = status.value
     if search:
@@ -176,7 +179,7 @@ async def get_customer(
 ):
     """Get a specific customer by ID"""
     customer = await db.customers.find_one(
-        {"id": customer_id, "tenant_id": current_user.tenant_id}, 
+        {"id": customer_id, "tenant_id": current_user.tenant_id, "deleted_at": None}, 
         {"_id": 0}
     )
     if not customer:
@@ -206,15 +209,74 @@ async def update_customer(
 @router.delete("/{customer_id}")
 async def delete_customer(
     customer_id: str,
+    permanent: bool = False,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Delete a customer"""
-    result = await db.customers.delete_one(
-        {"id": customer_id, "tenant_id": current_user.tenant_id}
+    """Soft delete a customer. Use permanent=true for hard delete (admin only)."""
+    soft_delete_service = SoftDeleteService(db)
+    
+    if permanent:
+        # Hard delete - admin only
+        success = await soft_delete_service.hard_delete(
+            collection_name="customers",
+            record_id=customer_id,
+            tenant_id=current_user.tenant_id,
+            admin_confirmation=True
+        )
+        if not success:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        return {"message": "Customer permanently deleted"}
+    else:
+        # Soft delete
+        success = await soft_delete_service.soft_delete(
+            collection_name="customers",
+            record_id=customer_id,
+            deleted_by=current_user.id,
+            tenant_id=current_user.tenant_id,
+            reason="User requested deletion"
+        )
+        if not success:
+            raise HTTPException(status_code=404, detail="Customer not found or already deleted")
+        return {"message": "Customer deleted (can be restored)"}
+
+
+@router.post("/{customer_id}/restore")
+async def restore_customer(
+    customer_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Restore a soft-deleted customer"""
+    soft_delete_service = SoftDeleteService(db)
+    
+    success = await soft_delete_service.restore(
+        collection_name="customers",
+        record_id=customer_id,
+        restored_by=current_user.id,
+        tenant_id=current_user.tenant_id
     )
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Customer not found")
-    return {"message": "Customer deleted"}
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Customer not found or not deleted")
+    
+    # Return the restored customer
+    customer = await db.customers.find_one({"id": customer_id}, {"_id": 0})
+    return {"message": "Customer restored", "customer": customer}
+
+
+@router.get("/deleted/list")
+async def get_deleted_customers(
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Get list of soft-deleted customers for admin review"""
+    soft_delete_service = SoftDeleteService(db)
+    
+    deleted = await soft_delete_service.get_deleted_records(
+        collection_name="customers",
+        tenant_id=current_user.tenant_id,
+        limit=100
+    )
+    
+    return {"deleted_customers": deleted, "count": len(deleted)}
 
 
 @router.get("/{customer_id}/summary")
@@ -223,31 +285,34 @@ async def get_customer_summary(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Get a summary of customer activity (quotes, jobs, invoices)"""
-    # Verify customer exists and belongs to tenant
+    # Verify customer exists and belongs to tenant (exclude deleted)
     customer = await db.customers.find_one(
-        {"id": customer_id, "tenant_id": current_user.tenant_id},
+        {"id": customer_id, "tenant_id": current_user.tenant_id, "deleted_at": None},
         {"_id": 0}
     )
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
     
-    # Get counts
+    # Get counts (exclude deleted records)
     quote_count = await db.quotes.count_documents({
         "customer_id": customer_id, 
-        "tenant_id": current_user.tenant_id
+        "tenant_id": current_user.tenant_id,
+        "deleted_at": None
     })
     job_count = await db.jobs.count_documents({
         "customer_id": customer_id, 
-        "tenant_id": current_user.tenant_id
+        "tenant_id": current_user.tenant_id,
+        "deleted_at": None
     })
     invoice_count = await db.invoices.count_documents({
         "customer_id": customer_id, 
-        "tenant_id": current_user.tenant_id
+        "tenant_id": current_user.tenant_id,
+        "deleted_at": None
     })
     
-    # Get totals
+    # Get totals (exclude deleted invoices)
     invoices = await db.invoices.find(
-        {"customer_id": customer_id, "tenant_id": current_user.tenant_id},
+        {"customer_id": customer_id, "tenant_id": current_user.tenant_id, "deleted_at": None},
         {"_id": 0, "grand_total": 1, "amount_paid": 1, "status": 1}
     ).to_list(1000)
     

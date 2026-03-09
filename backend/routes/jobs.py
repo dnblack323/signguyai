@@ -7,6 +7,7 @@ This module contains all routes related to:
 - Job notes
 - Job activities (audit log)
 - Job status management (archive, complete, etc.)
+- Soft delete and restore
 
 IMPORTANT: Quotes are now jobs with status="quote"
 - Creating a "quote" = creating a job with status="quote"
@@ -28,6 +29,7 @@ from models import (
 
 # Import from server module - using late import to avoid circular dependency
 from core.auth_deps import get_current_active_user
+from services.soft_delete_service import SoftDeleteService, build_active_filter
 
 # Lazy imports to avoid circular dependency
 _db = None
@@ -142,11 +144,12 @@ async def create_job(
 async def get_jobs(
     customer_id: Optional[str] = None,
     status: Optional[JobStatus] = None,
-    filter_type: Optional[str] = Query(None, description="Filter: all, quotes, active, completed, invoiced, archived"),
+    filter_type: Optional[str] = Query(None, description="Filter: all, quotes, active, completed, invoiced, archived, deleted"),
+    include_deleted: bool = False,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """
-    List all jobs with optional filtering.
+    List all jobs with optional filtering. Excludes deleted by default.
     
     Filter types:
     - all: All jobs (excludes archived by default)
@@ -155,8 +158,9 @@ async def get_jobs(
     - completed: Completed jobs
     - invoiced: Invoiced jobs
     - archived: Archived jobs only
+    - deleted: Soft-deleted jobs only (admin)
     """
-    query = {"tenant_id": current_user.tenant_id}
+    query = build_active_filter(current_user.tenant_id, include_deleted)
     if customer_id:
         query["customer_id"] = customer_id
     
@@ -176,6 +180,9 @@ async def get_jobs(
         query["is_archived"] = {"$ne": True}
     elif filter_type == "archived":
         query["$or"] = [{"is_archived": True}, {"status": JobStatus.ARCHIVED.value}]
+    elif filter_type == "deleted":
+        # Show only soft-deleted jobs
+        query["deleted_at"] = {"$ne": None}
     elif filter_type == "all" or filter_type is None:
         # Show all non-archived jobs by default
         query["is_archived"] = {"$ne": True}
@@ -335,19 +342,84 @@ async def update_job(
 @router.delete("/{job_id}")
 async def delete_job(
     job_id: str,
+    permanent: bool = False,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Delete a job and all related data"""
-    # Also delete related job items, notes, and activities
-    await db.job_items.delete_many({"job_id": job_id})
-    await db.job_notes.delete_many({"job_id": job_id})
-    await db.job_activities.delete_many({"job_id": job_id})
-    result = await db.jobs.delete_one(
-        {"id": job_id, "tenant_id": current_user.tenant_id}
+    """Soft delete a job and related data. Use permanent=true for hard delete (admin only)."""
+    soft_delete_service = SoftDeleteService(db)
+    
+    if permanent:
+        # Hard delete - remove everything permanently
+        await db.job_items.delete_many({"job_id": job_id, "tenant_id": current_user.tenant_id})
+        await db.job_notes.delete_many({"job_id": job_id, "tenant_id": current_user.tenant_id})
+        await db.job_activities.delete_many({"job_id": job_id, "tenant_id": current_user.tenant_id})
+        
+        success = await soft_delete_service.hard_delete(
+            collection_name="jobs",
+            record_id=job_id,
+            tenant_id=current_user.tenant_id,
+            admin_confirmation=True
+        )
+        if not success:
+            raise HTTPException(status_code=404, detail="Job not found")
+        return {"message": "Job permanently deleted"}
+    else:
+        # Soft delete job and related items
+        now = datetime.now(timezone.utc).isoformat()
+        
+        # Soft delete related items
+        await db.job_items.update_many(
+            {"job_id": job_id, "tenant_id": current_user.tenant_id},
+            {"$set": {"deleted_at": now, "deleted_by": current_user.id}}
+        )
+        await db.job_notes.update_many(
+            {"job_id": job_id, "tenant_id": current_user.tenant_id},
+            {"$set": {"deleted_at": now, "deleted_by": current_user.id}}
+        )
+        
+        success = await soft_delete_service.soft_delete(
+            collection_name="jobs",
+            record_id=job_id,
+            deleted_by=current_user.id,
+            tenant_id=current_user.tenant_id,
+            reason="User requested deletion"
+        )
+        if not success:
+            raise HTTPException(status_code=404, detail="Job not found or already deleted")
+        return {"message": "Job deleted (can be restored)"}
+
+
+@router.post("/{job_id}/restore")
+async def restore_job(
+    job_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Restore a soft-deleted job and its related items"""
+    soft_delete_service = SoftDeleteService(db)
+    
+    success = await soft_delete_service.restore(
+        collection_name="jobs",
+        record_id=job_id,
+        restored_by=current_user.id,
+        tenant_id=current_user.tenant_id
     )
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Job not found")
-    return {"message": "Job deleted"}
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Job not found or not deleted")
+    
+    # Also restore related items
+    await db.job_items.update_many(
+        {"job_id": job_id, "tenant_id": current_user.tenant_id, "deleted_at": {"$ne": None}},
+        {"$set": {"deleted_at": None, "deleted_by": None}}
+    )
+    await db.job_notes.update_many(
+        {"job_id": job_id, "tenant_id": current_user.tenant_id, "deleted_at": {"$ne": None}},
+        {"$set": {"deleted_at": None, "deleted_by": None}}
+    )
+    
+    # Return the restored job
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    return {"message": "Job restored", "job": job}
 
 
 # ============== JOB STATUS ACTIONS ==============

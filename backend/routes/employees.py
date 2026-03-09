@@ -5,6 +5,7 @@ This module contains all routes related to:
 - Employee CRUD operations
 - Time clock (punch in/out, breaks)
 - Payroll transactions and balance tracking
+- Soft delete and restore
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Query
@@ -15,6 +16,7 @@ import uuid
 
 # Import from server module
 from server import db, logger, get_current_active_user
+from services.soft_delete_service import SoftDeleteService, build_active_filter
 
 from models import UserInDB, PayrollTransactionType
 
@@ -119,10 +121,11 @@ async def create_employee(
 @employees_router.get("", response_model=List[Employee])
 async def get_employees(
     is_active: Optional[bool] = None,
+    include_deleted: bool = False,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """List all employees for current tenant"""
-    query = {"tenant_id": current_user.tenant_id}
+    """List all employees for current tenant. Excludes deleted by default."""
+    query = build_active_filter(current_user.tenant_id, include_deleted)
     if is_active is not None:
         query["is_active"] = is_active
     employees = await db.employees.find(query, {"_id": 0}).to_list(1000)
@@ -134,10 +137,11 @@ async def get_employee(
     employee_id: str,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Get a specific employee (must belong to current tenant)"""
+    """Get a specific employee (must belong to current tenant, excludes deleted)"""
     employee = await db.employees.find_one({
         "id": employee_id,
-        "tenant_id": current_user.tenant_id
+        "tenant_id": current_user.tenant_id,
+        "deleted_at": None
     }, {"_id": 0})
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
@@ -163,6 +167,77 @@ async def update_employee(
         {"_id": 0}
     )
     return employee
+
+
+@employees_router.delete("/{employee_id}")
+async def delete_employee(
+    employee_id: str,
+    permanent: bool = False,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Soft delete an employee. Use permanent=true for hard delete (admin only)."""
+    soft_delete_service = SoftDeleteService(db)
+    
+    if permanent:
+        # Hard delete
+        result = await db.employees.delete_one({
+            "id": employee_id,
+            "tenant_id": current_user.tenant_id
+        })
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Employee not found")
+        return {"message": "Employee permanently deleted"}
+    else:
+        # Soft delete
+        success = await soft_delete_service.soft_delete(
+            collection_name="employees",
+            record_id=employee_id,
+            deleted_by=current_user.id,
+            tenant_id=current_user.tenant_id,
+            reason="User requested deletion"
+        )
+        if not success:
+            raise HTTPException(status_code=404, detail="Employee not found or already deleted")
+        return {"message": "Employee deleted (can be restored)"}
+
+
+@employees_router.post("/{employee_id}/restore")
+async def restore_employee(
+    employee_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Restore a soft-deleted employee"""
+    soft_delete_service = SoftDeleteService(db)
+    
+    success = await soft_delete_service.restore(
+        collection_name="employees",
+        record_id=employee_id,
+        restored_by=current_user.id,
+        tenant_id=current_user.tenant_id
+    )
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Employee not found or not deleted")
+    
+    # Return the restored employee
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    return {"message": "Employee restored", "employee": employee}
+
+
+@employees_router.get("/deleted/list")
+async def get_deleted_employees(
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Get list of soft-deleted employees for admin review"""
+    soft_delete_service = SoftDeleteService(db)
+    
+    deleted = await soft_delete_service.get_deleted_records(
+        collection_name="employees",
+        tenant_id=current_user.tenant_id,
+        limit=100
+    )
+    
+    return {"deleted_employees": deleted, "count": len(deleted)}
 
 
 # ============== TIME CLOCK ROUTES ==============

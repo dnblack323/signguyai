@@ -5,6 +5,7 @@ This module contains all routes related to:
 - Invoice CRUD operations
 - Invoice from Job creation
 - Payment recording
+- Soft delete and restore
 """
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -22,6 +23,7 @@ from server import (
     db, logger,
     get_current_active_user, has_permission, log_job_activity
 )
+from services.soft_delete_service import SoftDeleteService, build_active_filter
 
 router = APIRouter(prefix="/invoices", tags=["Invoices"])
 
@@ -48,10 +50,11 @@ async def create_invoice(
 async def get_invoices(
     customer_id: Optional[str] = None,
     status: Optional[InvoiceStatus] = None,
+    include_deleted: bool = False,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """List all invoices with optional filtering"""
-    query = {"tenant_id": current_user.tenant_id}
+    """List all invoices with optional filtering. Excludes deleted by default."""
+    query = build_active_filter(current_user.tenant_id, include_deleted)
     if customer_id:
         query["customer_id"] = customer_id
     if status:
@@ -65,9 +68,9 @@ async def get_invoice(
     invoice_id: str,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Get a specific invoice by ID"""
+    """Get a specific invoice by ID (excludes deleted)"""
     invoice = await db.invoices.find_one(
-        {"id": invoice_id, "tenant_id": current_user.tenant_id}, 
+        {"id": invoice_id, "tenant_id": current_user.tenant_id, "deleted_at": None}, 
         {"_id": 0}
     )
     if not invoice:
@@ -118,9 +121,12 @@ async def update_invoice(
 @router.delete("/{invoice_id}")
 async def delete_invoice(
     invoice_id: str,
+    permanent: bool = False,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Delete an invoice"""
+    """Soft delete an invoice. Use permanent=true for hard delete (admin only)."""
+    soft_delete_service = SoftDeleteService(db)
+    
     invoice = await db.invoices.find_one(
         {"id": invoice_id, "tenant_id": current_user.tenant_id},
         {"_id": 0}
@@ -128,15 +134,75 @@ async def delete_invoice(
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     
-    # Unlink from job if linked
-    if invoice.get("job_id"):
-        await db.jobs.update_one(
-            {"id": invoice["job_id"]},
-            {"$unset": {"invoice_id": ""}}
+    if permanent:
+        # Hard delete - admin only
+        # Unlink from job if linked
+        if invoice.get("job_id"):
+            await db.jobs.update_one(
+                {"id": invoice["job_id"]},
+                {"$unset": {"invoice_id": ""}}
+            )
+        
+        success = await soft_delete_service.hard_delete(
+            collection_name="invoices",
+            record_id=invoice_id,
+            tenant_id=current_user.tenant_id,
+            admin_confirmation=True
         )
+        if not success:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+        return {"message": "Invoice permanently deleted"}
+    else:
+        # Soft delete
+        success = await soft_delete_service.soft_delete(
+            collection_name="invoices",
+            record_id=invoice_id,
+            deleted_by=current_user.id,
+            tenant_id=current_user.tenant_id,
+            reason="User requested deletion"
+        )
+        if not success:
+            raise HTTPException(status_code=404, detail="Invoice not found or already deleted")
+        return {"message": "Invoice deleted (can be restored)"}
+
+
+@router.post("/{invoice_id}/restore")
+async def restore_invoice(
+    invoice_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Restore a soft-deleted invoice"""
+    soft_delete_service = SoftDeleteService(db)
     
-    result = await db.invoices.delete_one({"id": invoice_id})
-    return {"message": "Invoice deleted"}
+    success = await soft_delete_service.restore(
+        collection_name="invoices",
+        record_id=invoice_id,
+        restored_by=current_user.id,
+        tenant_id=current_user.tenant_id
+    )
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Invoice not found or not deleted")
+    
+    # Return the restored invoice
+    invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+    return {"message": "Invoice restored", "invoice": invoice}
+
+
+@router.get("/deleted/list")
+async def get_deleted_invoices(
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Get list of soft-deleted invoices for admin review"""
+    soft_delete_service = SoftDeleteService(db)
+    
+    deleted = await soft_delete_service.get_deleted_records(
+        collection_name="invoices",
+        tenant_id=current_user.tenant_id,
+        limit=100
+    )
+    
+    return {"deleted_invoices": deleted, "count": len(deleted)}
 
 
 @router.post("/from-job/{job_id}", response_model=Invoice)
