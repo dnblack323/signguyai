@@ -192,6 +192,7 @@ const toolbarConfigs = {
         items: [
           { type: 'button', icon: Wand2, label: 'AI Tools', route: '/ai-tools' },
           { type: 'button', icon: TrendingUp, label: 'Pricing', route: '/pricing-calculator' },
+          { type: 'button', icon: FileDown, label: 'Documents', route: '/documents' },
         ]
       },
     ]
@@ -221,6 +222,11 @@ const toolbarConfigs = {
           { type: 'button', icon: Building, label: 'Company', route: '/settings' },
           { type: 'button', icon: Shield, label: 'Users', route: '/users' },
           { type: 'button', icon: CreditCard, label: 'Billing', route: '/billing' },
+        ]
+      },
+      {
+        items: [
+          { type: 'button', icon: UserCheck, label: 'Admin Portal', route: '/admin-portal' },
         ]
       },
     ]
