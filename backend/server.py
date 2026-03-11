@@ -1074,86 +1074,17 @@ app.include_router(api_router)
 # Add CORS middleware
 # In production, set CORS_ORIGINS env var to your domain(s)
 # Example: CORS_ORIGINS=https://signguy.ai,https://www.signguy.ai
-cors_origins_env = os.environ.get("CORS_ORIGINS", "").strip()
+cors_origins = os.environ.get("CORS_ORIGINS", "*").split(",")
+# Clean up any quotes from env var
+cors_origins = [origin.strip().strip('"').strip("'") for origin in cors_origins]
 
-# Handle different CORS configurations
-if cors_origins_env == "*" or cors_origins_env == "" or cors_origins_env == '"*"':
-    # Allow all origins (development mode)
-    cors_origins = ["*"]
-    allow_credentials = False  # Can't use credentials with wildcard
-else:
-    # Production mode - specific origins
-    cors_origins = [origin.strip().strip('"').strip("'") for origin in cors_origins_env.split(",") if origin.strip()]
-    allow_credentials = True
-
-# Always include common development/preview origins
-default_origins = [
-    "http://localhost:3000",
-    "http://localhost:8001", 
-    "https://signguy.ai",
-    "https://www.signguy.ai",
-    "https://app.signguy.ai",
-    "https://signguy-ai.com",
-    "https://www.signguy-ai.com",
-]
-
-# Merge origins, avoiding duplicates
-all_origins = list(set(cors_origins + default_origins)) if cors_origins != ["*"] else ["*"]
-
-logger.info(f"CORS configured with origins: {all_origins}, credentials: {allow_credentials}")
-
-# Custom CORS middleware that handles Emergent preview URLs dynamically
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
-
-class DynamicCORSMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request, call_next):
-        origin = request.headers.get("origin", "")
-        
-        # Check if origin is allowed
-        is_allowed = False
-        
-        # Check explicit origins
-        if origin in all_origins or "*" in all_origins:
-            is_allowed = True
-        # Allow any Emergent preview URL
-        elif ".preview.emergentagent.com" in origin:
-            is_allowed = True
-        # Allow any Emergent host URL
-        elif ".emergent.host" in origin:
-            is_allowed = True
-        # Allow any localhost
-        elif origin.startswith("http://localhost"):
-            is_allowed = True
-        # Allow signguy domains
-        elif "signguy" in origin:
-            is_allowed = True
-            
-        # Handle preflight OPTIONS request
-        if request.method == "OPTIONS":
-            response = Response(status_code=200)  # Changed from 204 to 200
-            if is_allowed and origin:
-                response.headers["Access-Control-Allow-Origin"] = origin
-                response.headers["Access-Control-Allow-Credentials"] = "true"
-            else:
-                response.headers["Access-Control-Allow-Origin"] = "*"
-            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
-            response.headers["Access-Control-Allow-Headers"] = "Accept, Accept-Language, Content-Language, Content-Type, Authorization, X-Requested-With, Origin"
-            response.headers["Access-Control-Max-Age"] = "600"
-            return response
-        
-        # Process the request
-        response = await call_next(request)
-        
-        # Add CORS headers to response
-        if is_allowed and origin:
-            response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-        
-        return response
-
-# Add our custom CORS middleware (added last = runs first due to middleware stack)
-app.add_middleware(DynamicCORSMiddleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # ============== SHUTDOWN EVENT ==============
