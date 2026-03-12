@@ -1,144 +1,20 @@
-# SignGuy AI - Development Roadmap & Checklist
+# SignGuy AI - Roadmap
 
-**Live URL:** https://signguy-ai.com
-**Last Updated:** February 19, 2026
+## P0 - Critical (Resolved)
+- [x] Fix login "network error" (CORS preflight issue) - FIXED March 12, 2026
 
----
+## P1 - High Priority
+- [ ] Founders Edition Stripe Integration - Wire Stripe Price IDs (user has provided them in .env) into plan management
+- [ ] Dark Shell / Light Workspace UI Refactor - Apply ShellCard.jsx layout to all pages (Dashboard, Customers, Products, etc.)
 
-## 🔴 HIGH PRIORITY (P0-P1)
+## P2 - Medium Priority
+- [ ] Archive Legacy Pricing plans into "Legacy Pricing Archive"
+- [ ] Vehicle Wrap AI Tool (Full Spec)
+- [ ] Master Product List (filterable, searchable)
 
-### AI Tools to Build
-- [ ] **Race Number Creator** - AI tool for generating race car number designs
-- [ ] **Visualizer Tour** - Interactive tour/guide for the visualizer tool
-- [ ] **RaceWrap AI Tool** - Advanced version for vehicle wraps
-
-### Mobile & UX
-- [ ] **Mobile Responsiveness** - Refactor dashboard and key pages for mobile-friendliness
-- [ ] **Dashboard Quick Actions** - Make buttons open modals instead of navigating away
-
----
-
-## 🟠 MEDIUM PRIORITY (P2)
-
-### Webstores
-- [ ] **Webstores Enhancement** - Review and improve webstore functionality
-  - [ ] Test full webstore flow (create store, add products, customer ordering)
-  - [ ] Verify payment processing works correctly
-  - [ ] Check order management and fulfillment workflow
-  - [ ] Ensure store customization options work (branding, colors, etc.)
-  - [ ] Test customer-facing storefront display
-  - [ ] Verify inventory tracking (if applicable)
-
-### Marketing Site
-- [ ] **Replace "Screenshot coming soon" placeholders** on Features page with real screenshots
-- [ ] **Capture screenshots** for each feature section (Customer Management, Jobs, Invoicing, etc.)
-
-### Billing & Monetization
-- [ ] **Add-On Module System** - Architecture for selling additional features separately
-  - [ ] Advanced Wrap Module (future)
-  - [ ] AI Tools Add-On pack
-- [ ] **Founder pricing logic** - Track first 100 signups, lock in their rates
-- [ ] **Trial credits system** - For AI tool usage limits by tier
-
-### UX Improvements
-- [ ] **Kanban card click** - Verify navigation works correctly (user testing)
-
----
-
-## 🟡 FUTURE FEATURES (Backlog)
-
-### Document Library (Coming Soon - Announced on Website)
-- [ ] **Smart Document Library** - Central document management system
-  - [ ] Attach questionnaires to jobs (logo design, project intake)
-  - [ ] Vehicle inspection forms (fill on-site, save to job)
-  - [ ] Contract templates attached to quotes/jobs
-  - [ ] AI summarizes form responses for team
-  - [ ] Customer portal form filling
-  - [ ] Central document storage and organization
-
-### New Modules
-- [ ] **Form/Document Library** - Templates for common sign shop forms
-- [ ] **AI Smart Quote Builder** - AI-assisted quote generation
-- [ ] **Efficiency Dashboard** - Analytics and productivity metrics
-
-### Integrations
-- [ ] **BNPL (Buy Now Pay Later)** - Payment plans for customers
-- [ ] **SMS Notifications** - Text alerts for jobs, approvals, etc.
-- [ ] **QuickBooks Integration** - Sync invoices and financials
-- [ ] **Custom Domain Support** - Let shops use their own domain
-
----
-
-## 💡 BUSINESS IDEAS DISCUSSED
-
-- [ ] **Founder Promo Codes for Add-Ons** - Create codes like `FOUNDER20` for discounts on future add-on modules
-- [ ] **Tiered Add-On Pricing** - Founders pay for add-ons but get loyalty discounts
-- [ ] **First 100 Founders Tracking** - Lock in pricing for early adopters
-
----
-
-## 🔧 TECHNICAL DEBT / REFACTORING
-
-- [ ] Break down `Jobs.js` (large monolithic component)
-- [ ] Organize API routes (move to `/app/backend/routes/`)
-- [ ] Create test files at `/app/backend/tests/` for regression testing
-
----
-
-## ✅ COMPLETED
-
-### February 19, 2026
-- [x] Fixed unreadable dashboard badge (high-contrast colors)
-- [x] Applied blue theme (#2F8BFB) across all marketing pages
-- [x] Updated logos (slant, long, square) across app
-- [x] Created Promo Codes system (Admin > Promo Codes)
-- [x] Re-enabled Trial Lockout (founders bypass it)
-- [x] Added Employee Portal branding (square logo)
-- [x] Employee profile image upload feature
-- [x] Founder account setup (owner account marked as founder)
-- [x] Preview mode restricted to dev/founders only
-- [x] Deployed to production
-- [x] Connected custom domain: signguy-ai.com
-
-### Earlier Work
-- [x] Core business modules (Customers, Quotes, Jobs, Invoices)
-- [x] Employee Portal with time clock
-- [x] Customer Portal
-- [x] AI Tools suite (15+ tools)
-- [x] AI Business Assistant (chat with AI for insights)
-- [x] Smart Pricing Analyzer (competitor price comparison)
-- [x] Pricing calculators
-- [x] Multi-tenant architecture
-- [x] Role-based access control
-- [x] Marketing website with documentation
-- [x] Stripe billing integration (TEST mode)
-- [x] SendGrid email integration
-
-### Landing Page Updates (Feb 19, 2026)
-- [x] Root URL "/" now shows landing page (not login)
-- [x] Added quick links in hero: See All Features, Our Story, Founder Pricing, Documentation
-- [x] Added AI Business Assistant as featured tool with detailed description
-- [x] Added Smart Pricing Analyzer as featured tool with detailed description
-- [x] Added Document Library "Coming Soon" section with feature preview
-- [x] Added "View All Features" and "Our Story" buttons after features grid
-- [x] Document Library badge on features grid
-
----
-
-## 📝 NOTES
-
-### Founder Pricing Strategy
-- First 100 founders get locked-in tier pricing forever
-- Add-on modules are SEPARATE purchases (founders don't get them free)
-- Create promo codes for founder discounts on add-ons
-
-### Test Credentials
-- **Admin:** thesigntistslab@gmail.com (FOUNDER account)
-- **Test Admin:** testuser123@test.com / Test123!
-- **Employee Portal:** john@signshop.com / PIN: 5678
-
-### Theme Rules (NON-NEGOTIABLE)
-- Dark shell background: `#0B0F17`
-- Light content cards: `#FFFFFF` or `#F7F8FA`
-- Dark text on cards: `#111827` or `#374151`
-- Blue accents ONLY: `#2F8BFB` (hover: `#1E7AF0`)
+## Backlog
+- [ ] BNPL Payments integration
+- [ ] SMS Notifications
+- [ ] QuickBooks integration
+- [ ] Custom Reports
+- [ ] API Access for Pro tier
