@@ -1081,7 +1081,7 @@ else:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
-    allow_origin_regex=r"https://.*\.(emergent\.host|emergentagent\.com|signguy-ai\.com|signguy\.ai)",
+    allow_origin_regex=r"https://(.*\.)?(emergent\.host|emergentagent\.com|signguy-ai\.com|signguy\.ai)",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
