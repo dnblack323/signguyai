@@ -1072,15 +1072,16 @@ api_router.include_router(production_timeline_router)  # Production Timeline Tra
 app.include_router(api_router)
 
 # Add CORS middleware
-# In production, set CORS_ORIGINS env var to your domain(s)
-# Example: CORS_ORIGINS=https://signguy.ai,https://www.signguy.ai
-cors_origins = os.environ.get("CORS_ORIGINS", "*").split(",")
-# Clean up any quotes from env var
-cors_origins = [origin.strip().strip('"').strip("'") for origin in cors_origins]
+cors_origins_raw = os.environ.get("CORS_ORIGINS", "")
+if cors_origins_raw:
+    cors_origins = [origin.strip().strip('"').strip("'") for origin in cors_origins_raw.split(",") if origin.strip()]
+else:
+    cors_origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
+    allow_origin_regex=r"https://.*\.(emergent\.host|emergentagent\.com|signguy-ai\.com|signguy\.ai)",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
