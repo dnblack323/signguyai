@@ -79,8 +79,22 @@ export default function CompanySettings() {
         zip_code: data.zip_code || '',
         country: data.country || 'USA',
         website: data.website || '',
-        logo_url: data.logo_url || ''
+        logo_url: ''
       });
+      // Fetch logo separately if tenant has one
+      if (data.has_logo) {
+        try {
+          const token = localStorage.getItem('auth_token');
+          const logoRes = await axios.get(`${API}/tenant/logo`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (logoRes.data?.logo_url) {
+            setFormData(prev => ({ ...prev, logo_url: logoRes.data.logo_url }));
+          }
+        } catch (e) {
+          console.error('Error fetching logo:', e);
+        }
+      }
       // Load time tracking settings from tenant
       if (data.time_tracking_settings) {
         setTimeTrackingSettings({

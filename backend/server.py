@@ -885,11 +885,29 @@ async def health():
 
 @api_router.get("/tenant")
 async def get_tenant_info(current_user: UserInDB = Depends(get_current_active_user)):
-    """Get current user's tenant information"""
-    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0})
+    """Get current user's tenant information (excludes large logo data)"""
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0, "logo_url": 0})
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
+    # Add a lightweight flag so frontend knows whether a logo exists
+    logo_check = await db.tenants.find_one(
+        {"id": current_user.tenant_id, "logo_url": {"$ne": None}},
+        {"_id": 0, "id": 1}
+    )
+    tenant["has_logo"] = logo_check is not None
     return tenant
+
+
+@api_router.get("/tenant/logo")
+async def get_tenant_logo(current_user: UserInDB = Depends(get_current_active_user)):
+    """Get tenant logo data separately (can be large base64)"""
+    tenant = await db.tenants.find_one(
+        {"id": current_user.tenant_id},
+        {"_id": 0, "logo_url": 1}
+    )
+    if not tenant or not tenant.get("logo_url"):
+        return {"logo_url": None}
+    return {"logo_url": tenant["logo_url"]}
 
 
 @api_router.put("/tenant")
@@ -918,8 +936,13 @@ async def update_tenant_info(
             {"$set": update_dict}
         )
     
-    # Return updated tenant
-    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0})
+    # Return updated tenant (exclude large logo data)
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0, "logo_url": 0})
+    logo_check = await db.tenants.find_one(
+        {"id": current_user.tenant_id, "logo_url": {"$ne": None}},
+        {"_id": 0, "id": 1}
+    )
+    tenant["has_logo"] = logo_check is not None
     return tenant
 
 
