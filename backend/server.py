@@ -1083,13 +1083,13 @@ api_router.include_router(production_timeline_router)  # Production Timeline Tra
 app.include_router(api_router)
 
 # Add CORS middleware
-# NOTE: allow_credentials must be False when allow_origins=["*"]
-# This app uses Bearer token auth (Authorization header), NOT cookies,
-# so credentials (cookies) are not needed for CORS.
+# Use allow_origin_regex to REFLECT the actual origin instead of wildcard "*"
+# This is required because allow_credentials=True is incompatible with allow_origin="*"
+# Reflecting the origin satisfies both the CORS spec and production proxy requirements
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origin_regex=".*",
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
