@@ -33,11 +33,19 @@ export default function LandingPage() {
     },
     {
       q: 'What is Founders Edition?',
-      a: 'Founders Edition is our exclusive early adopter plan limited to just 100 shops. You get lifetime locked pricing at $99/month with all features included and 150 AI credits per month.'
+      a: 'Founders Edition is our exclusive early adopter plan limited to just 100 shops. You get lifetime locked pricing at $99/month with all features included and 150 AI credits per month. Founder customers retain this pricing as long as their subscription remains active.'
     },
     {
       q: 'How do AI credits work?',
-      a: 'You get 150 AI credits each month. Different AI actions cost 1-3 credits. If you need more, you can buy credit packs that never expire. Monthly credits reset at the start of each billing period.'
+      a: 'You get 150 AI credits each month. Different AI actions cost 1-3 credits. Monthly credits are used before purchased credits. If you need more, you can buy credit packs that never expire while your subscription is active.'
+    },
+    {
+      q: 'Do unused monthly credits roll over?',
+      a: 'No. Monthly credits expire on your billing date. Purchased credits remain valid while your subscription is active.'
+    },
+    {
+      q: 'Do purchased credits expire?',
+      a: 'Purchased credits remain available as long as your subscription stays active.'
     },
     {
       q: 'What are the fees and what do they cover?',

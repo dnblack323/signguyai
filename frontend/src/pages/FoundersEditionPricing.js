@@ -8,7 +8,7 @@ import { PublicNav, PublicFooter } from '../components/PublicNav';
 import {
   CheckCircle2, Star, ArrowRight, Sparkles, Crown, 
   Zap, Users, Store, Shield, Cpu, Clock, CreditCard,
-  Coins, Percent, AlertCircle
+  Coins, Percent, AlertCircle, Info, FileText, Eye, Ban
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -117,6 +117,27 @@ export default function FoundersEditionPricing() {
                 style={{ width: `${spotsPercentage}%` }}
               />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Founder Promotion Banner */}
+      <section className="pt-16 pb-4 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="p-6 bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-xl border border-amber-500/30 text-center">
+            <Badge className="mb-3 bg-amber-500/20 text-amber-400 text-sm px-4 py-1">
+              <Crown className="w-4 h-4 mr-1" />
+              Founder Launch Offer
+            </Badge>
+            <p className="text-white font-medium mb-1">
+              Promo code <span className="text-amber-400 font-bold">FOUNDERS</span> gives 50% off the annual plan
+            </p>
+            <p className="text-gray-400 text-sm mb-3">
+              Available for the first 100 customers only — {founders.spots_remaining} spots remaining
+            </p>
+            <p className="text-gray-500 text-xs max-w-xl mx-auto">
+              Founder customers retain $99/month pricing after the first year as long as their subscription remains active. Future customers may pay higher prices.
+            </p>
           </div>
         </div>
       </section>
@@ -244,6 +265,9 @@ export default function FoundersEditionPricing() {
                   <p className="text-center text-xs text-gray-500 mt-3">
                     No credit card required to start
                   </p>
+                  <p className="text-center text-xs text-gray-600 mt-1">
+                    Stripe connection required for payment processing features
+                  </p>
                 </div>
 
                 {/* Right: Features */}
@@ -274,8 +298,10 @@ export default function FoundersEditionPricing() {
                     </div>
                     <ul className="text-sm text-gray-300 space-y-1">
                       <li>• 150 credits included monthly</li>
-                      <li>• 1-3 credits per AI action</li>
-                      <li>• Buy more anytime (never expire)</li>
+                      <li>• AI tools typically cost 1–3 credits</li>
+                      <li>• Some advanced tools may require higher credit amounts</li>
+                      <li>• Purchase additional credits anytime</li>
+                      <li>• No feature tiers — all features unlocked</li>
                     </ul>
                   </div>
                 </div>
@@ -348,6 +374,118 @@ export default function FoundersEditionPricing() {
               </CardContent>
             </Card>
           </div>
+          <p className="text-center text-xs text-gray-500 mt-4">
+            Purchased credits never expire while your subscription remains active.
+          </p>
+        </div>
+      </section>
+
+      {/* Section 3: How AI Credits Work */}
+      <section className="py-12 px-4">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-8">
+            <Badge className="mb-4 bg-purple-500/20 text-purple-400">
+              <Sparkles className="w-3 h-3 mr-1" />
+              Transparency
+            </Badge>
+            <h2 className="text-2xl font-bold" data-testid="ai-credits-heading">How AI Credits Work</h2>
+          </div>
+
+          <div className="p-6 bg-[#111826] rounded-xl border border-gray-700">
+            <p className="text-gray-300 mb-4">
+              Every account receives <span className="text-white font-semibold">150 AI credits each month</span>.
+            </p>
+            <h4 className="text-white font-semibold mb-3">Credit Rules:</h4>
+            <ul className="space-y-2 text-sm text-gray-400 mb-4">
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+                Monthly credits expire on your billing date
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+                Monthly credits are used before purchased credits
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+                Purchased credits remain valid while your subscription is active
+              </li>
+            </ul>
+            <div className="p-3 bg-[#0B0F17] rounded-lg border border-gray-700">
+              <p className="text-xs text-gray-500 flex items-start gap-2">
+                <Info className="w-4 h-4 shrink-0 mt-0.5 text-blue-400" />
+                Credit costs depend on compute intensity. Most AI actions cost between 1–3 credits, though some advanced tools may require more.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Section 4: Billing & Payments */}
+      <section className="py-12 px-4 bg-[#111826]/50">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-8">
+            <Badge className="mb-4 bg-green-500/20 text-green-400">
+              <CreditCard className="w-3 h-3 mr-1" />
+              Billing
+            </Badge>
+            <h2 className="text-2xl font-bold" data-testid="billing-heading">Billing & Payments</h2>
+          </div>
+
+          <div className="p-6 bg-[#0B0F17] rounded-xl border border-gray-700 space-y-4">
+            <div className="flex items-start gap-3">
+              <CreditCard className="w-5 h-5 text-green-400 mt-0.5 shrink-0" />
+              <p className="text-gray-300 text-sm">Subscription billing is processed through <span className="text-white font-medium">Stripe</span>.</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <Store className="w-5 h-5 text-green-400 mt-0.5 shrink-0" />
+              <p className="text-gray-300 text-sm">Stripe must be connected before accepting payments through webstores or invoices.</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 shrink-0" />
+              <p className="text-gray-300 text-sm">Monthly AI credits are added only after a successful payment confirmation.</p>
+            </div>
+            <div className="p-3 bg-[#111826] rounded-lg border border-red-500/20">
+              <p className="text-xs text-red-400 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                If payment fails, new monthly credits will not be issued until payment is resolved.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Section 5: AI Usage Transparency Notice */}
+      <section className="py-12 px-4">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-8">
+            <Badge className="mb-4 bg-blue-500/20 text-blue-400">
+              <Eye className="w-3 h-3 mr-1" />
+              Transparency
+            </Badge>
+            <h2 className="text-2xl font-bold" data-testid="transparency-heading">AI Usage Transparency</h2>
+          </div>
+
+          <div className="p-6 bg-[#111826] rounded-xl border border-gray-700">
+            <p className="text-gray-300 mb-4">
+              Before running an AI action, the platform displays the credit cost and your remaining balance.
+            </p>
+            {/* Example UI */}
+            <div className="p-4 bg-[#0B0F17] rounded-lg border border-gray-600 max-w-sm mx-auto mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span className="text-white text-sm font-medium">AI Credit Check</span>
+              </div>
+              <p className="text-gray-300 text-sm mb-1">This action will cost <span className="text-amber-400 font-bold">2 credits</span>.</p>
+              <p className="text-gray-500 text-sm">Remaining credits: <span className="text-white font-medium">118</span></p>
+              <div className="mt-3 pt-3 border-t border-gray-700 flex items-center gap-2">
+                <input type="checkbox" className="rounded border-gray-600" readOnly />
+                <span className="text-xs text-gray-500">Do not show this message again</span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 text-center">
+              You always know what an action costs before you confirm it.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -388,6 +526,38 @@ export default function FoundersEditionPricing() {
               <h3 className="font-semibold text-white mb-2">How do AI credits work?</h3>
               <p className="text-gray-400 text-sm">
                 You get 150 AI credits each month. Different AI actions cost 1-3 credits. If you run low, you can buy credit packs that never expire. Monthly credits reset at the start of each billing period.
+              </p>
+            </div>
+
+            {/* New FAQ: Credit rollover */}
+            <div className="p-4 bg-[#111826] rounded-lg">
+              <h3 className="font-semibold text-white mb-2">Do unused monthly credits roll over?</h3>
+              <p className="text-gray-400 text-sm">
+                No. Monthly credits expire on your billing date. Purchased credits remain valid while your subscription is active.
+              </p>
+            </div>
+
+            {/* New FAQ: When credits added */}
+            <div className="p-4 bg-[#111826] rounded-lg">
+              <h3 className="font-semibold text-white mb-2">When are my credits added?</h3>
+              <p className="text-gray-400 text-sm">
+                Monthly credits are added after your subscription payment is successfully processed.
+              </p>
+            </div>
+
+            {/* New FAQ: Purchased credits expiry */}
+            <div className="p-4 bg-[#111826] rounded-lg">
+              <h3 className="font-semibold text-white mb-2">Do purchased credits expire?</h3>
+              <p className="text-gray-400 text-sm">
+                Purchased credits remain available as long as your subscription stays active.
+              </p>
+            </div>
+
+            {/* New FAQ: Why some tools cost more */}
+            <div className="p-4 bg-[#111826] rounded-lg">
+              <h3 className="font-semibold text-white mb-2">Why do some AI tools cost more credits?</h3>
+              <p className="text-gray-400 text-sm">
+                More advanced AI tools require more computing resources, so some actions may cost more than basic AI features.
               </p>
             </div>
             
@@ -444,6 +614,21 @@ export default function FoundersEditionPricing() {
                   Our fees are designed to be transparent and competitive. No hidden costs, no surprises.
                 </p>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Section 6: Fair Usage Protection */}
+      <section className="py-8 px-4">
+        <div className="max-w-3xl mx-auto">
+          <div className="p-4 bg-[#0B0F17] rounded-lg border border-gray-700 flex items-start gap-3">
+            <Shield className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
+            <div>
+              <h4 className="text-sm font-medium text-gray-300 mb-1">Fair Usage Protection</h4>
+              <p className="text-xs text-gray-500">
+                Excessive automated usage may be rate-limited to maintain platform performance and reliability.
+              </p>
             </div>
           </div>
         </div>
