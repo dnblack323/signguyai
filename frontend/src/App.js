@@ -35,6 +35,7 @@ import PricingSettings from "./pages/PricingSettings";
 import CompanySettings from "./pages/CompanySettings";
 import ProductionSettings from "./pages/settings/ProductionSettings";
 import BackupRestore from "./pages/settings/BackupRestore";
+import CommunityHub from "./pages/CommunityHub";
 import PromoCodes from "./pages/PromoCodes";
 import EmailTemplates from "./pages/EmailTemplates";
 import PaymentSettings from "./pages/Admin/PaymentSettings";
@@ -165,6 +166,7 @@ function ProtectedRoutes() {
           <Route path="/settings/email-templates" element={<EmailTemplates />} />
           <Route path="/settings/production" element={<ProductionSettings />} />
           <Route path="/settings/backup" element={<BackupRestore />} />
+          <Route path="/community" element={<CommunityHub />} />
           <Route path="/admin/payments" element={<PaymentSettings />} />
           <Route path="/promo-codes" element={<PromoCodes />} />
           <Route path="/pricing-calculator" element={<Pricing />} />

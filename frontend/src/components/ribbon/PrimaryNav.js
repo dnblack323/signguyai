@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Briefcase, FileText, Receipt, Users, 
-  Store, Sparkles, BarChart3, Settings
+  Store, Sparkles, BarChart3, Settings, MessageCircle
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -16,6 +16,7 @@ const primaryNavItems = [
   { id: 'webstores', label: 'Webstores', icon: Store, path: '/webstores' },
   { id: 'ai-tools', label: 'AI Tools', icon: Sparkles, path: '/ai-tools' },
   { id: 'reports', label: 'Reports', icon: BarChart3, path: '/financials' },
+  { id: 'community', label: 'Community', icon: MessageCircle, path: '/community' },
   { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
 ];
 
@@ -43,6 +44,7 @@ const routeToNavItem = {
   '/users': 'settings',
   '/billing': 'settings',
   '/admin/payments': 'settings',
+  '/community': 'community',
 };
 
 export const PrimaryNav = ({ activeTab, onTabChange }) => {

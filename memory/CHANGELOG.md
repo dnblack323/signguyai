@@ -1,22 +1,37 @@
 # SignGuy AI - Changelog
 
-## March 13, 2026 - Login Network Error Fix (P0 CRITICAL) - Two Root Causes
+## March 14, 2026 - Community Hub + Backup System + Pricing Transparency
 
-### Fix 1: CORS Preflight 400 Error
-- **Root Cause:** `allow_credentials=True` combined with `allow_origins=["*"]` in CORSMiddleware violated CORS spec
-- **Fix:** Changed to `allow_credentials=False` — app uses Bearer token auth, not cookies
-- **File:** `backend/server.py` (CORS middleware config)
+### New Feature: Community Hub (`/community`)
+- Searchable message board for bug reports, feature requests, questions, and feedback
+- Category system: Bug Report, Feature Request, Question, Feedback
+- Upvote system for prioritizing posts
+- Owner can reply with "Official" badge, pin posts, change status (Open/In Progress/Resolved/Closed)
+- Owner replies auto-mark posts as "Answered"
+- Direct "Contact Support" email link to app owner
+- Search across titles, descriptions, and replies
+- Filter by category and status
+- Added to main navigation bar
+- Backend: `/api/community/posts`, `/api/community/stats` + CRUD endpoints
+- Frontend: `CommunityHub.js` with list and detail views
 
-### Fix 2: 3MB Tenant Response Causing Timeouts (Account-Specific)
-- **Root Cause:** The admin account's tenant document contained a 2.95MB base64-encoded logo in `logo_url`. The `/api/tenant` endpoint returned the entire document on every page load (via TopAppBar), causing timeouts on production (Cloudflare/proxy limits)
-- **Fix:** 
-  - Excluded `logo_url` from `/api/tenant` GET response, added `has_logo` boolean flag
-  - Created dedicated `/api/tenant/logo` GET endpoint for logo data
-  - Updated `TopAppBar.js` to fetch logo separately and asynchronously
-  - Updated `CompanySettings.js` to use dedicated logo endpoint
-- **Impact:** `/api/tenant` response reduced from 2.95MB to 497 bytes
-- **Files:** `backend/server.py`, `frontend/src/components/ribbon/TopAppBar.js`, `frontend/src/pages/CompanySettings.js`
+### New Feature: Tenant Data Backup & Restore (`/settings/backup`)
+- Owner-only backup/restore system
+- Download all tenant data as JSON (images excluded, ~31KB vs 20MB)
+- Restore with preview summary and confirmation ("This will replace all existing data")
+- Weekly backup reminder banner (dismissable per session)
+- Link from Company Settings > Data Management
+- Backend: `/api/backup/export`, `/api/backup/status`, `/api/backup/preview-restore`, `/api/backup/restore`
 
-### Previous Session Completed Features (Reference)
-- Admin Communications Hub, Floating AI Assistant, Line-Item Production Timeline
-- Webstore fixes, Company logo upload fixes, Dark mode text visibility fixes
+### Enhancement: Webstore Product Image Upload
+- Added image upload UI (up to 3 images per product) to Create Product form
+- Product list shows image thumbnails
+
+### Enhancement: Landing Page Pricing Transparency (8 Sections)
+- Founder Launch Offer banner, How AI Credits Work block, Billing & Payments section
+- AI Usage Transparency notice with example UI, Fair Usage Protection notice
+- 4 new FAQ questions on both FoundersEditionPricing.js and LandingPage.js
+
+### Bug Fix: Login Network Error (P0)
+- Tenant response optimization: 2.95MB → 497 bytes (base64 logo separated to `/api/tenant/logo`)
+- Production routing issue identified: `quote-to-invoice-3.emergent.host` → "Deployment not found" (Emergent support contacted)

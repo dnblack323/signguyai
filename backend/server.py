@@ -1083,6 +1083,10 @@ api_router.include_router(production_timeline_router)  # Production Timeline Tra
 from routes.backup import setup_backup_routes
 setup_backup_routes(app, db, get_current_active_user, UserInDB)
 
+# Community Hub / Support Board
+from routes.community import setup_community_routes
+setup_community_routes(app, db, get_current_active_user, UserInDB)
+
 # Include the api_router in the main app
 app.include_router(api_router)
 
