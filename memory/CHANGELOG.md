@@ -1,5 +1,34 @@
 # SignGuy AI - Changelog
 
+
+## March 14, 2026 - Admin Payroll Enhancement + Document Library Update
+
+### Major Enhancement: Admin Payroll Page (`/payroll`)
+- Complete rewrite of payroll page with 4-tab layout
+- **Overview Tab**: Pay period summary table with per-employee gross pay, overtime, advances, payments, net owed
+- **Time Sheets Tab**: Consolidated view combining job timer entries + manual hours with employee/date filters
+- **Manual Hours Tab**: Add, edit, delete manual hours entries for employees
+  - Supports per-job allocation (optional job assignment)
+  - Task type categorization (general, design, production, installation, admin)
+  - Automatic gross pay calculation (hours × hourly rate)
+- **Transactions Tab**: Existing earnings/advances/payments ledger
+- **Overtime Calculation**: Automatic 1.5x overtime for hours over 40/week (or 80/biweekly)
+- **Pay Period Selector**: Weekly or Bi-Weekly period types
+- **Summary Cards**: Total Hours, Regular Hours, Overtime Hours, Gross Pay, Net Owed
+- New backend endpoints: POST/PUT/DELETE `/api/payroll/hours`, GET `/api/payroll/timesheet`, GET `/api/payroll/pay-period`
+- New MongoDB collection: `payroll_hours` for manual hour entries
+
+### Enhancement: Document Library Send Methods
+- Updated send dialog with 3 methods: **Email PDF** (no response needed), **Portal** (view only), **As Form** (interactive questionnaire)
+- Each method has clear description explaining what the customer receives
+- "As Form" method redirects to questionnaire creator for interactive customer forms
+- Clear labeling: "No response needed" for PDF/Portal, "Customer fills it out" for Form
+
+### Testing
+- All backend APIs: 100% pass rate
+- All frontend UI elements: 100% pass rate
+- Test file: `/app/backend/tests/test_payroll_enhancement.py`
+
 ## March 14, 2026 - Community Hub + Backup System + Pricing Transparency
 
 ### New Feature: Community Hub (`/community`)

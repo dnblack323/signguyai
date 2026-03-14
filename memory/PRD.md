@@ -212,7 +212,7 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
 - [ ] **Mobile Responsiveness (P1):** Owner dashboard mobile optimization
 - [ ] **Mobile Responsiveness (P0):** Optimize owner dashboard for mobile - collapsible sidebar, mobile-friendly tables, touch-optimized buttons
 - [ ] **RaceWrap AI Tool (P2):** Race Car Number & Sponsor Wrap Designer - custom race car numbers, full/partial wrap concepts, sponsor placement strategies (see ROADMAP.md for full specs)
-- [ ] Form & Document Library - questionnaires, inspections, aftercare guides with AI summarization, PDF export
+- [x] Form & Document Library - questionnaires, inspections, aftercare guides with AI summarization, PDF export, send as form/PDF
 - [ ] Efficiency Dashboard for employees
 - [ ] AI Business Assistant (internal chat)
 - [ ] Calendar + Kanban Views (Calendar view)
@@ -852,7 +852,15 @@ Major refactor of billing and webstore systems based on user specifications.
 - `/app/backend/migrations/2025_12_01_add_webstore_indexes.py`
 
 ## Last Updated
-December 1, 2025
+March 14, 2026
+
+## Admin Payroll Enhancement (Mar 14, 2026) - COMPLETE
+- 4-tab layout: Overview, Time Sheets, Manual Hours, Transactions
+- Manual hours CRUD with auto gross pay calculation
+- Overtime calculation (40hrs/week, 80hrs/biweekly threshold)
+- Consolidated timesheet combining job_time_entries + payroll_hours
+- Weekly/Bi-Weekly pay period summaries
+- Document Library: 3 send methods (Email PDF, Portal, As Form)
 
 ---
 
