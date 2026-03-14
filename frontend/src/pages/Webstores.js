@@ -121,6 +121,9 @@ export default function Webstores() {
     base_cost: '',
     retail_price: ''
   });
+  const [productImages, setProductImages] = useState([]);
+  const [productImagePreviews, setProductImagePreviews] = useState([]);
+  const productImageRef = useRef(null);
   
   // Logo upload states
   const [logoPreview, setLogoPreview] = useState(null);
@@ -485,6 +488,42 @@ export default function Webstores() {
     }
   };
 
+  // Handle product image selection (up to 3)
+  const handleProductImageSelect = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const remaining = 3 - productImages.length;
+    if (remaining <= 0) {
+      toast.error('Maximum 3 images per product');
+      return;
+    }
+    const validFiles = files.slice(0, remaining).filter(f => {
+      if (!['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'].includes(f.type)) {
+        toast.error(`${f.name}: Invalid image type`);
+        return false;
+      }
+      if (f.size > 2 * 1024 * 1024) {
+        toast.error(`${f.name}: Must be under 2MB`);
+        return false;
+      }
+      return true;
+    });
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setProductImages(prev => [...prev, ev.target.result]);
+        setProductImagePreviews(prev => [...prev, ev.target.result]);
+      };
+      reader.readAsDataURL(file);
+    });
+    if (productImageRef.current) productImageRef.current.value = '';
+  };
+
+  const removeProductImage = (idx) => {
+    setProductImages(prev => prev.filter((_, i) => i !== idx));
+    setProductImagePreviews(prev => prev.filter((_, i) => i !== idx));
+  };
+
   // Create product and auto-assign to current store
   const handleCreateProductForStore = async (e) => {
     e.preventDefault();
@@ -504,13 +543,14 @@ export default function Webstores() {
     
     setCreatingProduct(true);
     try {
-      // Create the product
+      // Create the product with images
       const newProduct = await createProduct({
         name: newProductData.name,
         description: newProductData.description,
         category: newProductData.category,
         base_cost: baseCost,
-        retail_price: retailPrice
+        retail_price: retailPrice,
+        images: productImages
       });
       
       // Assign it to the current store and enable it
@@ -538,6 +578,8 @@ export default function Webstores() {
         base_cost: '',
         retail_price: ''
       });
+      setProductImages([]);
+      setProductImagePreviews([]);
       setShowCreateProduct(false);
       toast.success('Product created and added to store!');
     } catch (err) {
@@ -1535,6 +1577,45 @@ export default function Webstores() {
                                 data-testid="new-product-price"
                               />
                             </div>
+                            {/* Product Images (up to 3) */}
+                            <div className="col-span-2 space-y-2">
+                              <Label className="text-xs">Product Images (up to 3)</Label>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {productImagePreviews.map((img, idx) => (
+                                  <div key={idx} className="relative group w-16 h-16 rounded border overflow-hidden">
+                                    <img src={img} alt={`Product ${idx + 1}`} className="w-full h-full object-cover" />
+                                    <button
+                                      type="button"
+                                      onClick={() => removeProductImage(idx)}
+                                      className="absolute top-0 right-0 bg-red-500 text-white rounded-bl p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      data-testid={`remove-product-image-${idx}`}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                                {productImages.length < 3 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => productImageRef.current?.click()}
+                                    className="w-16 h-16 rounded border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-primary hover:text-primary transition-colors"
+                                    data-testid="add-product-image-btn"
+                                  >
+                                    <ImageIcon className="h-5 w-5" />
+                                    <span className="text-[10px]">Add</span>
+                                  </button>
+                                )}
+                                <input
+                                  ref={productImageRef}
+                                  type="file"
+                                  accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                                  multiple
+                                  onChange={handleProductImageSelect}
+                                  className="hidden"
+                                  data-testid="product-image-input"
+                                />
+                              </div>
+                            </div>
                           </div>
                           <div className="flex justify-end gap-2 pt-2">
                             <Button
@@ -1550,6 +1631,8 @@ export default function Webstores() {
                                   base_cost: '',
                                   retail_price: ''
                                 });
+                                setProductImages([]);
+                                setProductImagePreviews([]);
                               }}
                             >
                               Cancel
@@ -1603,7 +1686,15 @@ export default function Webstores() {
                             data-testid={`product-toggle-${product.id}`}
                           >
                             <div className="flex items-center gap-3">
-                              <Package className="h-5 w-5 text-muted-foreground" />
+                              {product.images?.length > 0 || product.image_url ? (
+                                <img 
+                                  src={product.images?.[0] || product.image_url} 
+                                  alt={product.name}
+                                  className="h-10 w-10 rounded object-cover border"
+                                />
+                              ) : (
+                                <Package className="h-5 w-5 text-muted-foreground" />
+                              )}
                               <div>
                                 <p className="font-medium">{product.name}</p>
                                 <p className="text-xs text-muted-foreground">
