@@ -36,7 +36,7 @@ import {
   Download, Trash2, Eye, Link2, Tag, Clock,
   FileImage, FileSpreadsheet, File, Plus, X,
   Archive, MoreVertical, CheckCircle2, HardDrive,
-  Sparkles, Wand2, Send, Mail, Globe
+  Sparkles, Wand2, Send, Mail, Globe, ClipboardList
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDate } from '../../lib/utils';
@@ -159,7 +159,12 @@ export default function Documents() {
     
     setSending(true);
     try {
-      if (sendMethod === 'email') {
+      if (sendMethod === 'form') {
+        // Navigate to questionnaire creator with document context
+        navigate(`/questionnaires?from_doc=${sendDoc.id}&customer=${sendCustomerId}`);
+        setIsSendOpen(false);
+        toast.success('Redirecting to form creator...');
+      } else if (sendMethod === 'email') {
         await api.post(`/documents/${sendDoc.id}/send-email`, {
           customer_id: sendCustomerId,
           message: sendMessage,
@@ -174,7 +179,7 @@ export default function Documents() {
         });
         toast.success('Document sent to customer portal');
       }
-      setIsSendOpen(false);
+      if (sendMethod !== 'form') setIsSendOpen(false);
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to send document');
     }
@@ -819,15 +824,23 @@ export default function Documents() {
               <div className="space-y-2">
                 <Label>Send Method</Label>
                 <Tabs value={sendMethod} onValueChange={setSendMethod}>
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="email" className="flex items-center gap-2">
-                      <Mail className="h-4 w-4" /> Email
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="email" className="flex items-center gap-1.5 text-xs" data-testid="send-method-email">
+                      <Mail className="h-3.5 w-3.5" /> Email PDF
                     </TabsTrigger>
-                    <TabsTrigger value="portal" className="flex items-center gap-2">
-                      <Globe className="h-4 w-4" /> Customer Portal
+                    <TabsTrigger value="portal" className="flex items-center gap-1.5 text-xs" data-testid="send-method-portal">
+                      <Globe className="h-3.5 w-3.5" /> Portal
+                    </TabsTrigger>
+                    <TabsTrigger value="form" className="flex items-center gap-1.5 text-xs" data-testid="send-method-form">
+                      <ClipboardList className="h-3.5 w-3.5" /> As Form
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
+                <p className="text-xs text-muted-foreground">
+                  {sendMethod === 'email' && 'Send as a PDF attachment — no response needed from customer.'}
+                  {sendMethod === 'portal' && 'Add to customer portal for viewing — no response needed.'}
+                  {sendMethod === 'form' && 'Send as an interactive form — customer fills it out and submits.'}
+                </p>
               </div>
               
               {/* Customer selection */}
@@ -871,7 +884,7 @@ export default function Documents() {
                     onCheckedChange={setSendIncludeAttachment}
                   />
                 </div>
-              ) : (
+              ) : sendMethod === 'portal' ? (
                 <div className="flex items-center justify-between p-3 rounded-lg border border-border">
                   <div>
                     <Label>Send Email Notification</Label>
@@ -884,6 +897,13 @@ export default function Documents() {
                     onCheckedChange={setSendNotifyCustomer}
                   />
                 </div>
+              ) : (
+                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                  <p className="text-sm text-amber-300">
+                    <ClipboardList className="h-4 w-4 inline mr-2" />
+                    This will open the form creator where you can add questions for the customer to fill out. The customer will receive a link to complete the form.
+                  </p>
+                </div>
               )}
               
               {/* Info box */}
@@ -892,13 +912,18 @@ export default function Documents() {
                   {sendMethod === 'email' ? (
                     <>
                       <Mail className="h-4 w-4 inline mr-2" />
-                      The document will be sent directly to the customer&apos;s email address.
+                      The document will be sent as a PDF attachment. No response is needed from the customer.
+                    </>
+                  ) : sendMethod === 'portal' ? (
+                    <>
+                      <Globe className="h-4 w-4 inline mr-2" />
+                      The document will be added to the customer&apos;s portal for viewing only.
+                      {sendNotifyCustomer && ' They will receive an email notification.'}
                     </>
                   ) : (
                     <>
-                      <Globe className="h-4 w-4 inline mr-2" />
-                      The document will be added to the customer&apos;s portal. 
-                      {sendNotifyCustomer && ' They will receive an email notification.'}
+                      <ClipboardList className="h-4 w-4 inline mr-2" />
+                      The customer will receive a link to fill out the form and submit their response.
                     </>
                   )}
                 </p>
@@ -914,7 +939,7 @@ export default function Documents() {
                   {sending ? 'Sending...' : (
                     <>
                       <Send className="h-4 w-4 mr-2" /> 
-                      {sendMethod === 'email' ? 'Send Email' : 'Send to Portal'}
+                      {sendMethod === 'email' ? 'Send PDF' : sendMethod === 'portal' ? 'Send to Portal' : 'Create Form'}
                     </>
                   )}
                 </Button>

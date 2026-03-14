@@ -9,7 +9,7 @@ This module contains all routes related to:
 
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field
 import uuid
 
@@ -82,6 +82,35 @@ class PayrollBalance(BaseModel):
     total_advances: float
     total_payments: float
     balance: float
+
+class ManualHoursCreate(BaseModel):
+    employee_id: str
+    date: str  # YYYY-MM-DD
+    hours: float
+    description: Optional[str] = None
+    job_id: Optional[str] = None
+    task_type: str = "general"  # general, design, production, installation, admin
+
+class ManualHoursUpdate(BaseModel):
+    hours: Optional[float] = None
+    description: Optional[str] = None
+    task_type: Optional[str] = None
+    date: Optional[str] = None
+
+class ManualHoursEntry(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    employee_id: str
+    tenant_id: str
+    date: str
+    hours: float
+    description: Optional[str] = None
+    job_id: Optional[str] = None
+    job_name: Optional[str] = None
+    task_type: str = "general"
+    hourly_rate: float = 0
+    gross_pay: float = 0
+    is_manual: bool = True
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 # ============== ROUTERS ==============
@@ -404,5 +433,334 @@ async def get_payroll_report(
             "advances": sum(r["advances"] for r in report),
             "payments": sum(r["payments"] for r in report),
             "balance": sum(r["balance"] for r in report)
+        }
+    }
+
+
+# ============== MANUAL HOURS ROUTES ==============
+
+@payroll_router.post("/hours")
+async def add_manual_hours(
+    input: ManualHoursCreate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Add manual hours entry for an employee"""
+    employee = await db.employees.find_one({
+        "id": input.employee_id,
+        "tenant_id": current_user.tenant_id
+    }, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    hourly_rate = employee.get("hourly_rate", 0)
+    job_name = None
+    if input.job_id:
+        job = await db.jobs.find_one({"id": input.job_id, "tenant_id": current_user.tenant_id}, {"_id": 0, "name": 1})
+        if job:
+            job_name = job.get("name")
+    
+    entry = ManualHoursEntry(
+        employee_id=input.employee_id,
+        tenant_id=current_user.tenant_id,
+        date=input.date,
+        hours=input.hours,
+        description=input.description,
+        job_id=input.job_id,
+        job_name=job_name,
+        task_type=input.task_type,
+        hourly_rate=hourly_rate,
+        gross_pay=round(input.hours * hourly_rate, 2)
+    )
+    doc = entry.model_dump()
+    await db.payroll_hours.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+
+@payroll_router.put("/hours/{entry_id}")
+async def update_manual_hours(
+    entry_id: str,
+    input: ManualHoursUpdate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Update a manual hours entry"""
+    entry = await db.payroll_hours.find_one({
+        "id": entry_id,
+        "tenant_id": current_user.tenant_id
+    })
+    if not entry:
+        raise HTTPException(status_code=404, detail="Hours entry not found")
+    
+    update_data = {k: v for k, v in input.model_dump().items() if v is not None}
+    
+    # Recalculate gross_pay if hours changed
+    if "hours" in update_data:
+        hourly_rate = entry.get("hourly_rate", 0)
+        update_data["gross_pay"] = round(update_data["hours"] * hourly_rate, 2)
+    
+    if update_data:
+        await db.payroll_hours.update_one({"id": entry_id}, {"$set": update_data})
+    
+    updated = await db.payroll_hours.find_one({"id": entry_id}, {"_id": 0})
+    return updated
+
+
+@payroll_router.delete("/hours/{entry_id}")
+async def delete_manual_hours(
+    entry_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Delete a manual hours entry"""
+    result = await db.payroll_hours.delete_one({
+        "id": entry_id,
+        "tenant_id": current_user.tenant_id
+    })
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Hours entry not found")
+    return {"message": "Hours entry deleted"}
+
+
+@payroll_router.get("/hours")
+async def get_manual_hours(
+    employee_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Get manual hours entries"""
+    query = {"tenant_id": current_user.tenant_id}
+    if employee_id:
+        query["employee_id"] = employee_id
+    if start_date and end_date:
+        query["date"] = {"$gte": start_date, "$lte": end_date}
+    elif start_date:
+        query["date"] = {"$gte": start_date}
+    elif end_date:
+        query["date"] = {"$lte": end_date}
+    
+    entries = await db.payroll_hours.find(query, {"_id": 0}).sort("date", -1).to_list(1000)
+    return entries
+
+
+# ============== TIMESHEET & PAY PERIOD ROUTES ==============
+
+@payroll_router.get("/timesheet")
+async def get_timesheet(
+    start_date: str,
+    end_date: str,
+    employee_id: Optional[str] = None,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Get consolidated timesheet - combines job time entries + manual hours"""
+    emp_query = {"tenant_id": current_user.tenant_id}
+    if employee_id:
+        emp_query["id"] = employee_id
+    employees = await db.employees.find(emp_query, {"_id": 0}).to_list(1000)
+    
+    timesheet = []
+    for emp in employees:
+        emp_id = emp["id"]
+        hourly_rate = emp.get("hourly_rate", 0)
+        
+        # Get job time entries for this employee in range
+        job_entries = await db.job_time_entries.find({
+            "employee_id": emp_id,
+            "tenant_id": current_user.tenant_id,
+            "start_time": {"$gte": f"{start_date}T00:00:00", "$lte": f"{end_date}T23:59:59"}
+        }, {"_id": 0}).to_list(1000)
+        
+        # Get manual hours entries
+        manual_entries = await db.payroll_hours.find({
+            "employee_id": emp_id,
+            "tenant_id": current_user.tenant_id,
+            "date": {"$gte": start_date, "$lte": end_date}
+        }, {"_id": 0}).to_list(1000)
+        
+        # Calculate totals from job time entries
+        job_hours = 0
+        job_pay = 0
+        job_details = []
+        for je in job_entries:
+            minutes = je.get("duration_minutes", 0)
+            if minutes:
+                hours = minutes / 60
+                job_hours += hours
+                cost = je.get("labor_cost", 0)
+                job_pay += cost
+                job_details.append({
+                    "id": je.get("id"),
+                    "job_id": je.get("job_id"),
+                    "job_name": je.get("job_name", ""),
+                    "task_type": je.get("task_type", "production"),
+                    "date": je.get("start_time", "")[:10],
+                    "hours": round(hours, 2),
+                    "pay": round(cost, 2),
+                    "source": "job_timer"
+                })
+        
+        # Calculate totals from manual entries
+        manual_hours = sum(m.get("hours", 0) for m in manual_entries)
+        manual_pay = sum(m.get("gross_pay", 0) for m in manual_entries)
+        manual_details = [{
+            "id": m.get("id"),
+            "job_id": m.get("job_id"),
+            "job_name": m.get("job_name", ""),
+            "task_type": m.get("task_type", "general"),
+            "date": m.get("date"),
+            "hours": m.get("hours", 0),
+            "pay": m.get("gross_pay", 0),
+            "description": m.get("description", ""),
+            "source": "manual"
+        } for m in manual_entries]
+        
+        total_hours = round(job_hours + manual_hours, 2)
+        total_pay = round(job_pay + manual_pay, 2)
+        
+        # Overtime calc: anything over 40 hours/week is 1.5x
+        regular_hours = min(total_hours, 40)
+        overtime_hours = max(total_hours - 40, 0)
+        overtime_pay = round(overtime_hours * hourly_rate * 0.5, 2)  # Extra 0.5x on top of regular
+        
+        timesheet.append({
+            "employee_id": emp_id,
+            "employee_name": emp.get("name"),
+            "hourly_rate": hourly_rate,
+            "total_hours": total_hours,
+            "regular_hours": round(regular_hours, 2),
+            "overtime_hours": round(overtime_hours, 2),
+            "regular_pay": round(regular_hours * hourly_rate, 2),
+            "overtime_pay": overtime_pay,
+            "total_pay": round(total_pay + overtime_pay, 2),
+            "entries": sorted(job_details + manual_details, key=lambda x: x.get("date", ""), reverse=True)
+        })
+    
+    return {
+        "start_date": start_date,
+        "end_date": end_date,
+        "employees": timesheet,
+        "totals": {
+            "total_hours": round(sum(e["total_hours"] for e in timesheet), 2),
+            "regular_hours": round(sum(e["regular_hours"] for e in timesheet), 2),
+            "overtime_hours": round(sum(e["overtime_hours"] for e in timesheet), 2),
+            "total_pay": round(sum(e["total_pay"] for e in timesheet), 2),
+        }
+    }
+
+
+@payroll_router.get("/pay-period")
+async def get_pay_period_summary(
+    period_type: str = "weekly",  # weekly or biweekly
+    reference_date: Optional[str] = None,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Get pay period summary with overtime calculations"""
+    from datetime import date as date_type
+    
+    if reference_date:
+        ref = date_type.fromisoformat(reference_date)
+    else:
+        ref = datetime.now(timezone.utc).date()
+    
+    # Calculate period start/end
+    # Weekly: Monday to Sunday
+    days_since_monday = ref.weekday()
+    period_start = ref - timedelta(days=days_since_monday)
+    
+    if period_type == "biweekly":
+        # Go back an extra week
+        period_start = period_start - timedelta(days=7)
+        period_end = period_start + timedelta(days=13)
+    else:
+        period_end = period_start + timedelta(days=6)
+    
+    start_str = period_start.isoformat()
+    end_str = period_end.isoformat()
+    
+    employees = await db.employees.find({
+        "tenant_id": current_user.tenant_id
+    }, {"_id": 0}).to_list(1000)
+    
+    summary = []
+    for emp in employees:
+        emp_id = emp["id"]
+        hourly_rate = emp.get("hourly_rate", 0)
+        
+        # Get all hours from both sources
+        job_entries = await db.job_time_entries.find({
+            "employee_id": emp_id,
+            "tenant_id": current_user.tenant_id,
+            "start_time": {"$gte": f"{start_str}T00:00:00", "$lte": f"{end_str}T23:59:59"}
+        }, {"_id": 0}).to_list(1000)
+        
+        manual_entries = await db.payroll_hours.find({
+            "employee_id": emp_id,
+            "tenant_id": current_user.tenant_id,
+            "date": {"$gte": start_str, "$lte": end_str}
+        }, {"_id": 0}).to_list(1000)
+        
+        job_hours = sum((e.get("duration_minutes", 0) / 60) for e in job_entries)
+        manual_hours_total = sum(m.get("hours", 0) for m in manual_entries)
+        total_hours = round(job_hours + manual_hours_total, 2)
+        
+        # Overtime threshold depends on period type
+        ot_threshold = 80 if period_type == "biweekly" else 40
+        regular_hours = min(total_hours, ot_threshold)
+        overtime_hours = max(total_hours - ot_threshold, 0)
+        
+        regular_pay = round(regular_hours * hourly_rate, 2)
+        overtime_pay = round(overtime_hours * hourly_rate * 1.5, 2)
+        
+        # Get transactions in this period
+        transactions = await db.payroll_transactions.find({
+            "employee_id": emp_id,
+            "date": {"$gte": start_str, "$lte": end_str}
+        }, {"_id": 0}).to_list(1000)
+        
+        advances = sum(t["amount"] for t in transactions if t["type"] == "advance")
+        payments = sum(t["amount"] for t in transactions if t["type"] == "payment")
+        
+        gross_pay = regular_pay + overtime_pay
+        net_owed = gross_pay - advances - payments
+        
+        # Build daily breakdown
+        daily = {}
+        for je in job_entries:
+            day = je.get("start_time", "")[:10]
+            if day not in daily:
+                daily[day] = 0
+            daily[day] += je.get("duration_minutes", 0) / 60
+        for me in manual_entries:
+            day = me.get("date", "")
+            if day not in daily:
+                daily[day] = 0
+            daily[day] += me.get("hours", 0)
+        
+        summary.append({
+            "employee_id": emp_id,
+            "employee_name": emp.get("name"),
+            "hourly_rate": hourly_rate,
+            "total_hours": total_hours,
+            "regular_hours": round(regular_hours, 2),
+            "overtime_hours": round(overtime_hours, 2),
+            "regular_pay": regular_pay,
+            "overtime_pay": overtime_pay,
+            "gross_pay": gross_pay,
+            "advances": advances,
+            "payments_made": payments,
+            "net_owed": round(net_owed, 2),
+            "daily_hours": {k: round(v, 2) for k, v in sorted(daily.items())}
+        })
+    
+    return {
+        "period_type": period_type,
+        "period_start": start_str,
+        "period_end": end_str,
+        "employees": summary,
+        "totals": {
+            "total_hours": round(sum(e["total_hours"] for e in summary), 2),
+            "regular_hours": round(sum(e["regular_hours"] for e in summary), 2),
+            "overtime_hours": round(sum(e["overtime_hours"] for e in summary), 2),
+            "gross_pay": round(sum(e["gross_pay"] for e in summary), 2),
+            "net_owed": round(sum(e["net_owed"] for e in summary), 2)
         }
     }

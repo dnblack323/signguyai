@@ -1,458 +1,720 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth, Permission } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { Badge } from '../components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '../components/ui/select';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '../components/ui/dialog';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../components/ui/table';
 import { formatCurrency, formatDate } from '../lib/utils';
-import { DollarSign, Plus, TrendingUp, TrendingDown, Minus, AlertTriangle } from 'lucide-react';
+import {
+  DollarSign, Plus, TrendingUp, TrendingDown, Minus, AlertTriangle,
+  Clock, Users, CalendarDays, Edit2, Trash2, Briefcase, Timer
+} from 'lucide-react';
 import { toast } from 'sonner';
 
-const transactionTypes = ['earnings', 'advance', 'payment'];
+const TASK_TYPES = [
+  { value: 'general', label: 'General' },
+  { value: 'design', label: 'Design' },
+  { value: 'production', label: 'Production' },
+  { value: 'installation', label: 'Installation' },
+  { value: 'admin', label: 'Admin' },
+];
+
+const TRANSACTION_TYPES = ['earnings', 'advance', 'payment'];
+
+function StatCard({ label, value, icon: Icon, color = 'text-blue-400', bgColor = 'bg-blue-500/10' }) {
+  return (
+    <Card className="bg-card border-border/50">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
+            <p className={`text-2xl font-bold mt-1 ${color}`}>{value}</p>
+          </div>
+          <div className={`w-10 h-10 rounded-lg ${bgColor} flex items-center justify-center`}>
+            <Icon className={`h-5 w-5 ${color}`} />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Payroll() {
   const { hasPermission } = useAuth();
   const canViewPayroll = hasPermission(Permission.PAYROLL_VIEW);
   const canEditPayroll = hasPermission(Permission.PAYROLL_EDIT);
   
-  const { 
-    employees, fetchEmployees,
-    createPayrollTransaction, getPayrollTransactions, 
-    getPayrollBalance, getPayrollReport 
-  } = useApp();
+  const { employees, fetchEmployees, api } = useApp();
   
   const [loading, setLoading] = useState(true);
-  const [selectedEmployee, setSelectedEmployee] = useState('');
+  const [activeTab, setActiveTab] = useState('overview');
+  
+  // Overview state
+  const [payPeriod, setPayPeriod] = useState(null);
+  const [periodType, setPeriodType] = useState('weekly');
+  
+  // Timesheet state
+  const [timesheet, setTimesheet] = useState(null);
+  const [timesheetRange, setTimesheetRange] = useState({
+    start: getWeekStart(),
+    end: getWeekEnd()
+  });
+  const [selectedEmployee, setSelectedEmployee] = useState('all');
+  
+  // Manual hours state
+  const [manualHours, setManualHours] = useState([]);
+  const [showAddHours, setShowAddHours] = useState(false);
+  const [editingEntry, setEditingEntry] = useState(null);
+  const [hoursForm, setHoursForm] = useState({
+    employee_id: '', date: new Date().toISOString().split('T')[0],
+    hours: '', description: '', job_id: '', task_type: 'general'
+  });
+  
+  // Transactions state
   const [transactions, setTransactions] = useState([]);
-  const [balance, setBalance] = useState(null);
-  const [report, setReport] = useState([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [dateRange, setDateRange] = useState({
-    start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-    end: new Date().toISOString().split('T')[0]
-  });
-  const [formData, setFormData] = useState({
-    employee_id: '',
-    type: 'earnings',
-    amount: 0,
-    description: '',
-    date: new Date().toISOString().split('T')[0]
+  const [txnEmployee, setTxnEmployee] = useState('');
+  const [showAddTxn, setShowAddTxn] = useState(false);
+  const [txnForm, setTxnForm] = useState({
+    employee_id: '', type: 'earnings', amount: '',
+    description: '', date: new Date().toISOString().split('T')[0]
   });
   
-  useEffect(() => {
-    if (canViewPayroll) {
-      loadData();
-    }
-  }, [canViewPayroll]);
+  // Jobs for dropdown
+  const [jobs, setJobs] = useState([]);
 
-  useEffect(() => {
-    if (canViewPayroll && selectedEmployee) {
-      loadEmployeeData();
-    }
-  }, [selectedEmployee, canViewPayroll]);
+  function getWeekStart() {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(d.setDate(diff)).toISOString().split('T')[0];
+  }
+  
+  function getWeekEnd() {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? 0 : 7);
+    return new Date(d.setDate(diff)).toISOString().split('T')[0];
+  }
 
-  useEffect(() => {
-    if (canViewPayroll) {
-      loadReport();
-    }
-  }, [dateRange, canViewPayroll]);
-
-  const loadData = async () => {
-    setLoading(true);
-    await fetchEmployees();
-    setLoading(false);
-  };
-
-  const loadEmployeeData = async () => {
-    if (!selectedEmployee) return;
+  const loadPayPeriod = useCallback(async () => {
     try {
-      const [txns, bal] = await Promise.all([
-        getPayrollTransactions({ employee_id: selectedEmployee }),
-        getPayrollBalance(selectedEmployee)
-      ]);
-      setTransactions(txns);
-      setBalance(bal);
-    } catch (err) {
-      console.error('Error loading payroll data:', err);
-    }
-  };
-  
-  // Permission denied view
+      const res = await api.get('/payroll/pay-period', { params: { period_type: periodType } });
+      setPayPeriod(res.data);
+    } catch (err) { console.error('Error loading pay period:', err); }
+  }, [api, periodType]);
+
+  const loadTimesheet = useCallback(async () => {
+    try {
+      const params = { start_date: timesheetRange.start, end_date: timesheetRange.end };
+      if (selectedEmployee !== 'all') params.employee_id = selectedEmployee;
+      const res = await api.get('/payroll/timesheet', { params });
+      setTimesheet(res.data);
+    } catch (err) { console.error('Error loading timesheet:', err); }
+  }, [api, timesheetRange, selectedEmployee]);
+
+  const loadManualHours = useCallback(async () => {
+    try {
+      const res = await api.get('/payroll/hours', { params: { start_date: timesheetRange.start, end_date: timesheetRange.end } });
+      setManualHours(res.data);
+    } catch (err) { console.error('Error loading hours:', err); }
+  }, [api, timesheetRange]);
+
+  const loadTransactions = useCallback(async () => {
+    try {
+      const params = {};
+      if (txnEmployee && txnEmployee !== 'all') params.employee_id = txnEmployee;
+      const res = await api.get('/payroll/transactions', { params });
+      setTransactions(res.data);
+    } catch (err) { console.error('Error loading transactions:', err); }
+  }, [api, txnEmployee]);
+
+  const loadJobs = useCallback(async () => {
+    try {
+      const res = await api.get('/jobs');
+      setJobs(Array.isArray(res.data) ? res.data : res.data.jobs || []);
+    } catch { /* ignore */ }
+  }, [api]);
+
+  useEffect(() => {
+    if (!canViewPayroll) return;
+    setLoading(true);
+    Promise.all([fetchEmployees(), loadJobs()]).finally(() => setLoading(false));
+  }, [canViewPayroll, fetchEmployees, loadJobs]);
+
+  useEffect(() => { if (canViewPayroll) loadPayPeriod(); }, [canViewPayroll, loadPayPeriod]);
+  useEffect(() => { if (canViewPayroll) loadTimesheet(); }, [canViewPayroll, loadTimesheet]);
+  useEffect(() => { if (canViewPayroll) loadManualHours(); }, [canViewPayroll, loadManualHours]);
+  useEffect(() => { if (canViewPayroll) loadTransactions(); }, [canViewPayroll, loadTransactions]);
+
   if (!canViewPayroll) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
-        <AlertTriangle className="h-12 w-12 mb-4" style={{ color: '#d97706' }} />
-        <h2 className="text-xl font-semibold mb-2" style={{ color: '#1A1A1A' }}>Access Denied</h2>
-        <p style={{ color: '#5A5A5A' }}>You don't have permission to view payroll.</p>
+        <AlertTriangle className="h-12 w-12 mb-4 text-amber-500" />
+        <h2 className="text-xl font-semibold mb-2 text-white">Access Denied</h2>
+        <p className="text-slate-400">You don't have permission to view payroll.</p>
       </div>
     );
   }
 
-  const loadReport = async () => {
+  // Manual hours handlers
+  const handleAddHours = async (e) => {
+    e.preventDefault();
+    if (!hoursForm.employee_id || !hoursForm.hours) {
+      toast.error('Employee and hours are required');
+      return;
+    }
     try {
-      const reportData = await getPayrollReport(dateRange.start, dateRange.end);
-      // Handle both array and object format from backend
-      if (reportData && reportData.employees) {
-        setReport(reportData.employees);
-      } else if (Array.isArray(reportData)) {
-        setReport(reportData);
+      const payload = { ...hoursForm, hours: parseFloat(hoursForm.hours) };
+      if (!payload.job_id) delete payload.job_id;
+      
+      if (editingEntry) {
+        await api.put(`/payroll/hours/${editingEntry.id}`, {
+          hours: payload.hours, description: payload.description,
+          task_type: payload.task_type, date: payload.date
+        });
+        toast.success('Hours updated');
       } else {
-        setReport([]);
+        await api.post('/payroll/hours', payload);
+        toast.success('Hours added');
       }
+      setShowAddHours(false);
+      setEditingEntry(null);
+      setHoursForm({ employee_id: '', date: new Date().toISOString().split('T')[0], hours: '', description: '', job_id: '', task_type: 'general' });
+      loadManualHours();
+      loadTimesheet();
+      loadPayPeriod();
     } catch (err) {
-      console.error('Error loading report:', err);
-      setReport([]);
+      toast.error(err.response?.data?.detail || 'Failed to save hours');
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleDeleteHours = async (id) => {
+    if (!window.confirm('Delete this hours entry?')) return;
+    try {
+      await api.delete(`/payroll/hours/${id}`);
+      toast.success('Hours entry deleted');
+      loadManualHours();
+      loadTimesheet();
+      loadPayPeriod();
+    } catch { toast.error('Failed to delete'); }
+  };
+
+  const handleEditHours = (entry) => {
+    setEditingEntry(entry);
+    setHoursForm({
+      employee_id: entry.employee_id,
+      date: entry.date, hours: String(entry.hours),
+      description: entry.description || '', job_id: entry.job_id || '',
+      task_type: entry.task_type || 'general'
+    });
+    setShowAddHours(true);
+  };
+
+  // Transaction handlers
+  const handleAddTransaction = async (e) => {
     e.preventDefault();
-    if (!formData.employee_id) {
-      toast.error('Please select an employee');
-      return;
-    }
-    if (formData.amount <= 0) {
-      toast.error('Amount must be greater than 0');
+    if (!txnForm.employee_id || !txnForm.amount) {
+      toast.error('Employee and amount are required');
       return;
     }
     try {
-      await createPayrollTransaction(formData);
+      await api.post('/payroll/transactions', { ...txnForm, amount: parseFloat(txnForm.amount) });
       toast.success('Transaction recorded');
-      setIsDialogOpen(false);
-      setFormData({
-        employee_id: '',
-        type: 'earnings',
-        amount: 0,
-        description: '',
-        date: new Date().toISOString().split('T')[0]
-      });
-      if (selectedEmployee === formData.employee_id) {
-        await loadEmployeeData();
-      }
-      await loadReport();
-    } catch (err) {
-      toast.error('Failed to record transaction');
-    }
+      setShowAddTxn(false);
+      setTxnForm({ employee_id: '', type: 'earnings', amount: '', description: '', date: new Date().toISOString().split('T')[0] });
+      loadTransactions();
+      loadPayPeriod();
+    } catch { toast.error('Failed to record transaction'); }
   };
 
   const getTypeIcon = (type) => {
-    switch (type) {
-      case 'earnings': return <TrendingUp className="h-4 w-4 text-green-400" />;
-      case 'advance': return <Minus className="h-4 w-4 text-yellow-400" />;
-      case 'payment': return <TrendingDown className="h-4 w-4 text-blue-400" />;
-      default: return null;
-    }
+    if (type === 'earnings') return <TrendingUp className="h-3.5 w-3.5 text-green-400" />;
+    if (type === 'advance') return <Minus className="h-3.5 w-3.5 text-amber-400" />;
+    return <TrendingDown className="h-3.5 w-3.5 text-blue-400" />;
   };
 
-  const getTypeColor = (type) => {
-    switch (type) {
-      case 'earnings': return 'text-green-400';
-      case 'advance': return 'text-yellow-400';
-      case 'payment': return 'text-blue-400';
-      default: return '';
-    }
-  };
+  const totals = payPeriod?.totals || {};
 
   return (
     <div className="space-y-6 animate-fade-in" data-testid="payroll-page">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-white">Payroll</h1>
-          <p className="text-slate-300 mt-1">Manage employee earnings and payments</p>
+          <h1 className="text-3xl font-bold tracking-tight text-white">Admin Payroll</h1>
+          <p className="text-slate-400 mt-1">
+            {payPeriod ? `Pay Period: ${payPeriod.period_start} to ${payPeriod.period_end}` : 'Manage employee hours, pay & transactions'}
+          </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="neon-glow" data-testid="add-transaction-btn">
-              <Plus className="h-4 w-4 mr-2" /> Add Transaction
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[400px]">
-            <DialogHeader>
-              <DialogTitle className="font-heading uppercase">New Transaction</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Select value={periodType} onValueChange={setPeriodType}>
+            <SelectTrigger className="w-[140px]" data-testid="period-type-select">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="weekly">Weekly</SelectItem>
+              <SelectItem value="biweekly">Bi-Weekly</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <StatCard label="Total Hours" value={totals.total_hours || 0} icon={Clock} color="text-blue-400" bgColor="bg-blue-500/10" />
+        <StatCard label="Regular Hours" value={totals.regular_hours || 0} icon={Timer} color="text-green-400" bgColor="bg-green-500/10" />
+        <StatCard label="Overtime Hours" value={totals.overtime_hours || 0} icon={AlertTriangle} color="text-amber-400" bgColor="bg-amber-500/10" />
+        <StatCard label="Gross Pay" value={formatCurrency(totals.gross_pay || 0)} icon={DollarSign} color="text-emerald-400" bgColor="bg-emerald-500/10" />
+        <StatCard label="Net Owed" value={formatCurrency(totals.net_owed || 0)} icon={TrendingUp} color="text-purple-400" bgColor="bg-purple-500/10" />
+      </div>
+
+      {/* Tabbed Content */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="bg-slate-800/50 border border-slate-700">
+          <TabsTrigger value="overview" data-testid="tab-overview">
+            <Users className="h-4 w-4 mr-1.5" /> Overview
+          </TabsTrigger>
+          <TabsTrigger value="timesheet" data-testid="tab-timesheet">
+            <CalendarDays className="h-4 w-4 mr-1.5" /> Time Sheets
+          </TabsTrigger>
+          <TabsTrigger value="hours" data-testid="tab-hours">
+            <Clock className="h-4 w-4 mr-1.5" /> Manual Hours
+          </TabsTrigger>
+          <TabsTrigger value="transactions" data-testid="tab-transactions">
+            <DollarSign className="h-4 w-4 mr-1.5" /> Transactions
+          </TabsTrigger>
+        </TabsList>
+
+        {/* OVERVIEW TAB */}
+        <TabsContent value="overview">
+          <Card className="bg-card border-border/50">
+            <CardHeader>
+              <CardTitle className="text-lg">Pay Period Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!payPeriod?.employees?.length ? (
+                <p className="text-muted-foreground text-center py-8">No employees found. Add employees first.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Employee</TableHead>
+                      <TableHead className="text-right">Rate</TableHead>
+                      <TableHead className="text-right">Hours</TableHead>
+                      <TableHead className="text-right">OT</TableHead>
+                      <TableHead className="text-right">Gross Pay</TableHead>
+                      <TableHead className="text-right">Advances</TableHead>
+                      <TableHead className="text-right">Paid</TableHead>
+                      <TableHead className="text-right">Net Owed</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {payPeriod.employees.map((emp) => (
+                      <TableRow key={emp.employee_id} data-testid={`overview-row-${emp.employee_id}`}>
+                        <TableCell className="font-medium">{emp.employee_name}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">{formatCurrency(emp.hourly_rate)}/hr</TableCell>
+                        <TableCell className="text-right">{emp.total_hours}</TableCell>
+                        <TableCell className="text-right">
+                          {emp.overtime_hours > 0 ? (
+                            <Badge variant="outline" className="text-amber-400 border-amber-400/30">{emp.overtime_hours} hrs</Badge>
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell className="text-right text-green-400 font-medium">{formatCurrency(emp.gross_pay)}</TableCell>
+                        <TableCell className="text-right text-amber-400">{formatCurrency(emp.advances)}</TableCell>
+                        <TableCell className="text-right text-blue-400">{formatCurrency(emp.payments_made)}</TableCell>
+                        <TableCell className={`text-right font-bold ${emp.net_owed >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {formatCurrency(emp.net_owed)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TIMESHEET TAB */}
+        <TabsContent value="timesheet">
+          <Card className="bg-card border-border/50">
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <CardTitle className="text-lg">Consolidated Time Sheet</CardTitle>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                    <SelectTrigger className="w-[180px]" data-testid="timesheet-employee-filter">
+                      <SelectValue placeholder="All Employees" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Employees</SelectItem>
+                      {employees.map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input type="date" value={timesheetRange.start}
+                    onChange={(e) => setTimesheetRange(prev => ({ ...prev, start: e.target.value }))}
+                    className="w-[145px]" data-testid="timesheet-start-date" />
+                  <span className="text-muted-foreground text-sm">to</span>
+                  <Input type="date" value={timesheetRange.end}
+                    onChange={(e) => setTimesheetRange(prev => ({ ...prev, end: e.target.value }))}
+                    className="w-[145px]" data-testid="timesheet-end-date" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {!timesheet?.employees?.length ? (
+                <p className="text-muted-foreground text-center py-8">No time entries found for this period.</p>
+              ) : (
+                <div className="space-y-6">
+                  {timesheet.employees.map((emp) => (
+                    <div key={emp.employee_id} className="border border-border/50 rounded-lg overflow-hidden" data-testid={`timesheet-${emp.employee_id}`}>
+                      <div className="p-4 bg-slate-800/30 flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold text-white">{emp.employee_name}</h3>
+                          <p className="text-sm text-muted-foreground">{formatCurrency(emp.hourly_rate)}/hr</p>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm">
+                          <div className="text-center">
+                            <p className="text-muted-foreground">Regular</p>
+                            <p className="font-bold text-green-400">{emp.regular_hours} hrs</p>
+                          </div>
+                          {emp.overtime_hours > 0 && (
+                            <div className="text-center">
+                              <p className="text-muted-foreground">Overtime</p>
+                              <p className="font-bold text-amber-400">{emp.overtime_hours} hrs</p>
+                            </div>
+                          )}
+                          <div className="text-center">
+                            <p className="text-muted-foreground">Total Pay</p>
+                            <p className="font-bold text-emerald-400">{formatCurrency(emp.total_pay)}</p>
+                          </div>
+                        </div>
+                      </div>
+                      {emp.entries.length > 0 && (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Source</TableHead>
+                              <TableHead>Job</TableHead>
+                              <TableHead>Task</TableHead>
+                              <TableHead className="text-right">Hours</TableHead>
+                              <TableHead className="text-right">Pay</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {emp.entries.map((entry, idx) => (
+                              <TableRow key={entry.id || idx}>
+                                <TableCell className="text-sm">{entry.date}</TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className={entry.source === 'job_timer' ? 'text-blue-400 border-blue-400/30' : 'text-purple-400 border-purple-400/30'}>
+                                    {entry.source === 'job_timer' ? 'Timer' : 'Manual'}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-sm text-muted-foreground">{entry.job_name || '-'}</TableCell>
+                                <TableCell className="text-sm capitalize">{entry.task_type}</TableCell>
+                                <TableCell className="text-right font-medium">{entry.hours}</TableCell>
+                                <TableCell className="text-right text-green-400">{formatCurrency(entry.pay)}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* MANUAL HOURS TAB */}
+        <TabsContent value="hours">
+          <Card className="bg-card border-border/50">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Manual Hours</CardTitle>
+                <Button onClick={() => { setEditingEntry(null); setHoursForm({ employee_id: '', date: new Date().toISOString().split('T')[0], hours: '', description: '', job_id: '', task_type: 'general' }); setShowAddHours(true); }} data-testid="add-hours-btn">
+                  <Plus className="h-4 w-4 mr-1.5" /> Add Hours
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {manualHours.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">No manual hours entries. Click "Add Hours" to record hours manually.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Employee</TableHead>
+                      <TableHead>Task</TableHead>
+                      <TableHead>Job</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Hours</TableHead>
+                      <TableHead className="text-right">Pay</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {manualHours.map((entry) => {
+                      const emp = employees.find(e => e.id === entry.employee_id);
+                      return (
+                        <TableRow key={entry.id} data-testid={`hours-row-${entry.id}`}>
+                          <TableCell className="text-sm">{entry.date}</TableCell>
+                          <TableCell className="font-medium">{emp?.name || entry.employee_id}</TableCell>
+                          <TableCell className="capitalize text-sm">{entry.task_type}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{entry.job_name || '-'}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{entry.description || '-'}</TableCell>
+                          <TableCell className="text-right font-medium">{entry.hours}</TableCell>
+                          <TableCell className="text-right text-green-400">{formatCurrency(entry.gross_pay)}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button variant="ghost" size="sm" onClick={() => handleEditHours(entry)} data-testid={`edit-hours-${entry.id}`}>
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => handleDeleteHours(entry.id)} data-testid={`delete-hours-${entry.id}`}>
+                                <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TRANSACTIONS TAB */}
+        <TabsContent value="transactions">
+          <Card className="bg-card border-border/50">
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <CardTitle className="text-lg">Payroll Transactions</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Select value={txnEmployee} onValueChange={setTxnEmployee}>
+                    <SelectTrigger className="w-[180px]" data-testid="txn-employee-filter">
+                      <SelectValue placeholder="All Employees" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Employees</SelectItem>
+                      {employees.map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button onClick={() => { setTxnForm({ employee_id: '', type: 'earnings', amount: '', description: '', date: new Date().toISOString().split('T')[0] }); setShowAddTxn(true); }} data-testid="add-transaction-btn">
+                    <Plus className="h-4 w-4 mr-1.5" /> Add Transaction
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {transactions.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">No transactions found.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Employee</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {transactions.map((txn) => {
+                      const emp = employees.find(e => e.id === txn.employee_id);
+                      const typeColor = txn.type === 'earnings' ? 'text-green-400' : txn.type === 'advance' ? 'text-amber-400' : 'text-blue-400';
+                      return (
+                        <TableRow key={txn.id} data-testid={`txn-row-${txn.id}`}>
+                          <TableCell className="text-sm">{formatDate(txn.date)}</TableCell>
+                          <TableCell className="font-medium">{emp?.name || txn.employee_id}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1.5">
+                              {getTypeIcon(txn.type)}
+                              <span className="capitalize text-sm">{txn.type}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{txn.description || '-'}</TableCell>
+                          <TableCell className={`text-right font-bold ${typeColor}`}>{formatCurrency(txn.amount)}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Balance Info Card */}
+          <Card className="bg-card border-border/50 mt-4">
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-blue-400" /> Balance Formula
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm space-y-2">
+              <div className="flex items-center gap-3">
+                <Badge className="bg-green-500/20 text-green-400">Earnings</Badge>
+                <span className="text-muted-foreground">Hours x Rate = Money owed to employee</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge className="bg-amber-500/20 text-amber-400">Advances</Badge>
+                <span className="text-muted-foreground">Money borrowed by employee (reduces balance)</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge className="bg-blue-500/20 text-blue-400">Payments</Badge>
+                <span className="text-muted-foreground">Wages paid to employee (reduces balance)</span>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Add/Edit Hours Dialog */}
+      <Dialog open={showAddHours} onOpenChange={setShowAddHours}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle>{editingEntry ? 'Edit Hours' : 'Add Manual Hours'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddHours} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Employee *</Label>
+              <Select value={hoursForm.employee_id} onValueChange={(val) => setHoursForm({ ...hoursForm, employee_id: val })} disabled={!!editingEntry}>
+                <SelectTrigger data-testid="hours-employee-select"><SelectValue placeholder="Select employee" /></SelectTrigger>
+                <SelectContent>
+                  {employees.map((emp) => (
+                    <SelectItem key={emp.id} value={emp.id}>{emp.name} ({formatCurrency(emp.hourly_rate)}/hr)</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>Employee *</Label>
-                <Select
-                  value={formData.employee_id}
-                  onValueChange={(val) => setFormData({ ...formData, employee_id: val })}
-                >
-                  <SelectTrigger data-testid="payroll-employee-select">
-                    <SelectValue placeholder="Select employee" />
-                  </SelectTrigger>
+                <Label>Date *</Label>
+                <Input type="date" value={hoursForm.date}
+                  onChange={(e) => setHoursForm({ ...hoursForm, date: e.target.value })}
+                  data-testid="hours-date-input" />
+              </div>
+              <div className="space-y-2">
+                <Label>Hours *</Label>
+                <Input type="number" step="0.25" min="0" placeholder="0.00"
+                  value={hoursForm.hours}
+                  onChange={(e) => setHoursForm({ ...hoursForm, hours: e.target.value })}
+                  data-testid="hours-amount-input" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Task Type</Label>
+              <Select value={hoursForm.task_type} onValueChange={(val) => setHoursForm({ ...hoursForm, task_type: val })}>
+                <SelectTrigger data-testid="hours-task-select"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {TASK_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Job (optional)</Label>
+              <Select value={hoursForm.job_id || 'none'} onValueChange={(val) => setHoursForm({ ...hoursForm, job_id: val === 'none' ? '' : val })}>
+                <SelectTrigger data-testid="hours-job-select"><SelectValue placeholder="No job" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No job</SelectItem>
+                  {jobs.slice(0, 50).map((j) => (
+                    <SelectItem key={j.id} value={j.id}>{j.name || j.title || j.id}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Input value={hoursForm.description} placeholder="Optional notes"
+                onChange={(e) => setHoursForm({ ...hoursForm, description: e.target.value })}
+                data-testid="hours-description-input" />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setShowAddHours(false)}>Cancel</Button>
+              <Button type="submit" data-testid="hours-submit-btn">{editingEntry ? 'Update' : 'Add Hours'}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Transaction Dialog */}
+      <Dialog open={showAddTxn} onOpenChange={setShowAddTxn}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>New Transaction</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddTransaction} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Employee *</Label>
+              <Select value={txnForm.employee_id} onValueChange={(val) => setTxnForm({ ...txnForm, employee_id: val })}>
+                <SelectTrigger data-testid="txn-employee-select"><SelectValue placeholder="Select employee" /></SelectTrigger>
+                <SelectContent>
+                  {employees.map((emp) => (
+                    <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Type *</Label>
+                <Select value={txnForm.type} onValueChange={(val) => setTxnForm({ ...txnForm, type: val })}>
+                  <SelectTrigger data-testid="txn-type-select"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {employees.map((emp) => (
-                      <SelectItem key={emp.id} value={emp.id}>
-                        {emp.name}
-                      </SelectItem>
+                    {TRANSACTION_TYPES.map((t) => (
+                      <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Type *</Label>
-                  <Select
-                    value={formData.type}
-                    onValueChange={(val) => setFormData({ ...formData, type: val })}
-                  >
-                    <SelectTrigger data-testid="payroll-type-select">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {transactionTypes.map((t) => (
-                        <SelectItem key={t} value={t}>
-                          {t.charAt(0).toUpperCase() + t.slice(1)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Amount *</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.amount}
-                    onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
-                    data-testid="payroll-amount-input"
-                  />
-                </div>
-              </div>
               <div className="space-y-2">
-                <Label>Date</Label>
-                <Input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  data-testid="payroll-date-input"
-                />
+                <Label>Amount *</Label>
+                <Input type="number" step="0.01" min="0" placeholder="0.00"
+                  value={txnForm.amount}
+                  onChange={(e) => setTxnForm({ ...txnForm, amount: e.target.value })}
+                  data-testid="txn-amount-input" />
               </div>
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Input
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Optional notes"
-                  data-testid="payroll-description-input"
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" data-testid="payroll-submit-btn">Record</Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Employee Selector & Balance */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="bg-card border-border/50 lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="font-heading uppercase">Employee Ledger</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                <SelectTrigger data-testid="ledger-employee-select">
-                  <SelectValue placeholder="Select employee to view ledger" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.map((emp) => (
-                    <SelectItem key={emp.id} value={emp.id}>
-                      {emp.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {selectedEmployee && balance && (
-                <div className="grid grid-cols-4 gap-3">
-                  <div className="p-3 bg-green-500/10 rounded-lg text-center">
-                    <p className="text-xs text-muted-foreground">Earnings</p>
-                    <p className="text-lg font-bold text-green-400">
-                      {formatCurrency(balance.total_earnings)}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-yellow-500/10 rounded-lg text-center">
-                    <p className="text-xs text-muted-foreground">Advances</p>
-                    <p className="text-lg font-bold text-yellow-400">
-                      {formatCurrency(balance.total_advances)}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-blue-500/10 rounded-lg text-center">
-                    <p className="text-xs text-muted-foreground">Payments</p>
-                    <p className="text-lg font-bold text-blue-400">
-                      {formatCurrency(balance.total_payments)}
-                    </p>
-                  </div>
-                  <div className={`p-3 rounded-lg text-center ${balance.balance >= 0 ? 'bg-primary/10' : 'bg-red-500/10'}`}>
-                    <p className="text-xs text-muted-foreground">Balance</p>
-                    <p className={`text-lg font-bold ${balance.balance >= 0 ? 'text-primary' : 'text-red-400'}`}>
-                      {formatCurrency(balance.balance)}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {selectedEmployee && transactions.length > 0 && (
-                <div className="max-h-[300px] overflow-y-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {transactions.map((txn, idx) => (
-                        <TableRow key={txn.id} className={idx % 2 === 0 ? '' : 'bg-muted/30'}>
-                          <TableCell className="text-sm">{formatDate(txn.date)}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              {getTypeIcon(txn.type)}
-                              <span className="capitalize">{txn.type}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {txn.description || '-'}
-                          </TableCell>
-                          <TableCell className={`text-right font-bold ${getTypeColor(txn.type)}`}>
-                            {formatCurrency(txn.amount)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Balance Explanation */}
-        <Card className="bg-card border-border/50">
-          <CardHeader>
-            <CardTitle className="font-heading uppercase flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-primary" />
-              Balance Info
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm">
-            <div className="p-3 bg-muted/30 rounded-lg">
-              <p className="font-medium text-green-400">Earnings</p>
-              <p className="text-muted-foreground">Hours × Rate = Money owed to employee</p>
+            <div className="space-y-2">
+              <Label>Date</Label>
+              <Input type="date" value={txnForm.date}
+                onChange={(e) => setTxnForm({ ...txnForm, date: e.target.value })}
+                data-testid="txn-date-input" />
             </div>
-            <div className="p-3 bg-muted/30 rounded-lg">
-              <p className="font-medium text-yellow-400">Advances</p>
-              <p className="text-muted-foreground">Money borrowed by employee (reduces balance)</p>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Input value={txnForm.description} placeholder="Optional notes"
+                onChange={(e) => setTxnForm({ ...txnForm, description: e.target.value })}
+                data-testid="txn-description-input" />
             </div>
-            <div className="p-3 bg-muted/30 rounded-lg">
-              <p className="font-medium text-blue-400">Payments</p>
-              <p className="text-muted-foreground">Wages paid to employee (reduces balance)</p>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setShowAddTxn(false)}>Cancel</Button>
+              <Button type="submit" data-testid="txn-submit-btn">Record</Button>
             </div>
-            <div className="p-3 bg-primary/10 rounded-lg border border-primary/30">
-              <p className="font-medium text-primary">Balance Formula</p>
-              <p className="text-muted-foreground">Earnings - Advances - Payments</p>
-              <p className="text-xs mt-2 text-muted-foreground">
-                Positive = Employer owes employee<br/>
-                Negative = Employee overpaid
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Payroll Report */}
-      <Card className="bg-card border-border/50">
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <CardTitle className="font-heading uppercase">Payroll Report</CardTitle>
-            <div className="flex items-center gap-2">
-              <Input
-                type="date"
-                value={dateRange.start}
-                onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                className="w-[150px]"
-                data-testid="report-start-date"
-              />
-              <span className="text-muted-foreground">to</span>
-              <Input
-                type="date"
-                value={dateRange.end}
-                onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                className="w-[150px]"
-                data-testid="report-end-date"
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {report.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No data for selected period</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Employee</TableHead>
-                  <TableHead className="text-right">Earnings</TableHead>
-                  <TableHead className="text-right">Advances</TableHead>
-                  <TableHead className="text-right">Payments</TableHead>
-                  <TableHead className="text-right">Period Balance</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {report.map((row, idx) => (
-                  <TableRow key={row.employee_id} className={idx % 2 === 0 ? '' : 'bg-muted/30'}>
-                    <TableCell className="font-medium">{row.employee_name}</TableCell>
-                    <TableCell className="text-right text-green-400">
-                      {formatCurrency(row.period_earnings)}
-                    </TableCell>
-                    <TableCell className="text-right text-yellow-400">
-                      {formatCurrency(row.period_advances)}
-                    </TableCell>
-                    <TableCell className="text-right text-blue-400">
-                      {formatCurrency(row.period_payments)}
-                    </TableCell>
-                    <TableCell className={`text-right font-bold ${row.period_balance >= 0 ? 'text-primary' : 'text-red-400'}`}>
-                      {formatCurrency(row.period_balance)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
