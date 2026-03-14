@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useAuth, Permission } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
@@ -19,6 +20,7 @@ export default function CompanySettings() {
   const canEditSettings = hasPermission(Permission.SETTINGS_EDIT) || isOwner();
   
   const { getTenant, updateTenant, fetchTenant } = useApp();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [tenant, setTenant] = useState(null);
@@ -844,6 +846,30 @@ export default function CompanySettings() {
               </p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Data Management Card */}
+      <Card className="border" style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }}>
+        <CardHeader>
+          <CardTitle style={{ color: '#1A1A1A' }}>Data Management</CardTitle>
+          <CardDescription style={{ color: '#5A5A5A' }}>
+            Backup and restore your business data
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <button
+            onClick={() => navigate('/settings/backup')}
+            className="w-full p-4 rounded-lg text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+            style={{ background: '#F5F7FA' }}
+            data-testid="settings-backup-link"
+          >
+            <div>
+              <p className="font-medium" style={{ color: '#1A1A1A' }}>Backup & Restore</p>
+              <p className="text-sm mt-1" style={{ color: '#5A5A5A' }}>Download your data or restore from a previous backup</p>
+            </div>
+            <span style={{ color: '#5A5A5A' }}>&rarr;</span>
+          </button>
         </CardContent>
       </Card>
     </div>

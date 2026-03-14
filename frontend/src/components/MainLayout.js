@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Menu, Eye, ExternalLink, ChevronDown, X, User, Clock, Globe } from 'lucide-react';
+import { Menu, Eye, ExternalLink, ChevronDown, X, User, Clock, Globe, Download } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
+import { useApp } from '../context/AppContext';
 import { TopAppBar, PrimaryNav, ActionToolbar, MobileNav } from './ribbon';
 import { TrialCountdown } from './TrialLockout';
 import DevPanel from './DevPanel';
@@ -20,9 +21,24 @@ export const MainLayout = ({ children }) => {
     localStorage.getItem('preview_product_line') || 'os_business'
   );
   const [scrolled, setScrolled] = useState(false);
+  const [showBackupReminder, setShowBackupReminder] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { api } = useApp();
+
+  // Check backup status for owner
+  const checkBackup = useCallback(async () => {
+    if (user?.role !== 'owner') return;
+    const dismissed = sessionStorage.getItem('backup_reminder_dismissed');
+    if (dismissed) return;
+    try {
+      const res = await api.get('/backup/status');
+      if (res.data?.needs_reminder) setShowBackupReminder(true);
+    } catch { /* ignore */ }
+  }, [user?.role, api]);
+
+  useEffect(() => { checkBackup(); }, [checkBackup]);
   
   // Track scroll for shadow effect
   useEffect(() => {
@@ -126,6 +142,23 @@ export const MainLayout = ({ children }) => {
             className="max-w-[1400px] mx-auto"
             style={{ backgroundColor: 'transparent' }}
           >
+            {/* Weekly backup reminder */}
+            {showBackupReminder && (
+              <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-center justify-between" data-testid="backup-reminder">
+                <div className="flex items-center gap-3">
+                  <Download className="w-5 h-5 text-amber-400" />
+                  <p className="text-sm text-amber-300">
+                    It's been over a week since your last backup.{' '}
+                    <button onClick={() => navigate('/settings/backup')} className="underline font-medium text-amber-400 hover:text-amber-300">
+                      Download a backup now
+                    </button>
+                  </p>
+                </div>
+                <button onClick={() => { setShowBackupReminder(false); sessionStorage.setItem('backup_reminder_dismissed', '1'); }} className="text-gray-500 hover:text-white">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
             {/* Children render their own cards - no wrapper card here */}
             {children}
           </div>
