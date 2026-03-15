@@ -62,6 +62,7 @@ export const tabSubItems = {
   ],
   reports: [
     { label: 'Financials', icon: DollarSign, path: '/financials' },
+    { label: 'Profit & Margin Analytics', icon: BarChart3, path: '/reports/profit-margin' },
     { label: 'Productivity', icon: BarChart3, path: '/productivity' },
   ],
   community: [
@@ -105,6 +106,7 @@ const routeToNavItem = {
   '/ai-tools': 'ai-tools',
   '/ai-assistant': 'ai-tools',
   '/financials': 'reports',
+  '/reports/profit-margin': 'reports',
   '/productivity': 'reports',
   '/community': 'community',
   '/docs': 'community',

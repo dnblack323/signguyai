@@ -1,0 +1,131 @@
+{
+  "summary": "Profit & Margin Analytics testing completed (iteration 57). All 23 backend API tests passed covering: dashboard endpoint with all required response fields (metrics, category_rows, job_rows, customer_rows, trend_rows, low_margin_jobs, preferences), time range filters (30d, 90d, this_year, custom), category filters, widget preferences persistence, CSV/XLSX/PDF exports, tenant isolation, and authentication. Frontend testing passed: page loads at /reports/profit-margin via Reports navigation, metrics cards visible, filters working, export buttons functional, Simple View toggle and save preferences working, job profitability table with sort controls working. No regression on /financials page (loads with UI buttons visible) and /pricing-calculator/settings page (all 4 tabs functional).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "features_verified": {
+    "GET /api/profit-analytics/dashboard": {
+      "status": "PASS",
+      "description": "Returns metrics (revenue, profit, avg_job_value, avg_margin), category_rows, job_rows, customer_rows, trend_rows, low_margin_jobs, preferences"
+    },
+    "Dashboard time range filters (30d, 90d, this_year)": {
+      "status": "PASS",
+      "description": "All preset time ranges return filtered data correctly"
+    },
+    "Dashboard custom date range": {
+      "status": "PASS",
+      "description": "Custom start_date/end_date with range_key=custom works correctly"
+    },
+    "Dashboard category filter": {
+      "status": "PASS",
+      "description": "Category filter restricts results to specified category (banners, vehicle_wraps, etc.)"
+    },
+    "PUT /api/profit-analytics/preferences": {
+      "status": "PASS",
+      "description": "Saves simple_mode, widget_order, enabled_widgets - persists across dashboard requests"
+    },
+    "GET /api/profit-analytics/export (CSV)": {
+      "status": "PASS",
+      "description": "Returns downloadable CSV file with job profitability data"
+    },
+    "GET /api/profit-analytics/export (XLSX)": {
+      "status": "PASS",
+      "description": "Returns downloadable XLSX file with Jobs, Customers, Categories sheets"
+    },
+    "GET /api/profit-analytics/export (PDF)": {
+      "status": "PASS",
+      "description": "Returns downloadable PDF with metrics summary and job table"
+    },
+    "Tenant isolation": {
+      "status": "PASS",
+      "description": "Dashboard data and preferences are tenant-scoped, unauthenticated requests return 401"
+    },
+    "Financial-role access control": {
+      "status": "PASS",
+      "description": "ensure_reporting_access() requires owner/admin role or FINANCIALS_VIEW permission"
+    },
+    "Underpriced job detection": {
+      "status": "PASS",
+      "description": "Jobs with profit_margin significantly below benchmark_margin are flagged as underpriced"
+    },
+    "Customer profitability aggregation": {
+      "status": "PASS",
+      "description": "customer_rows correctly aggregate total_revenue, total_profit, average_margin, total_jobs per customer"
+    },
+    "Job profitability table sorting": {
+      "status": "PASS",
+      "description": "Frontend sort buttons for profit, profit_margin, revenue work correctly"
+    },
+    "Frontend route /reports/profit-margin": {
+      "status": "PASS",
+      "description": "Page loads via Reports > Profit & Margin Analytics navigation"
+    },
+    "Frontend metrics cards": {
+      "status": "PASS",
+      "description": "Revenue, Profit, Average Job Value, Average Profit Margin cards all display"
+    },
+    "Frontend filters (time range, category)": {
+      "status": "PASS",
+      "description": "Time range dropdown and category filter dropdown work with Refresh button"
+    },
+    "Frontend export buttons": {
+      "status": "PASS",
+      "description": "CSV, XLSX, PDF export buttons visible and functional"
+    },
+    "Frontend Simple View toggle": {
+      "status": "PASS",
+      "description": "Toggle checkbox persists state, Save dashboard settings shows success toast"
+    },
+    "No regression on /financials": {
+      "status": "PASS",
+      "description": "Page loads with Enter Daily Sales and Add Expense buttons visible"
+    },
+    "No regression on /pricing-calculator/settings": {
+      "status": "PASS",
+      "description": "All 4 tabs (Material Costs, Labor & Overhead, Category Defaults, Selling Benchmarks) load correctly"
+    }
+  },
+  "known_issues": {
+    "financials_backend_missing": {
+      "issue": "Financials page frontend exists but backend routes (/api/financials/sales, /api/financials/expenses, /api/financials/summary) return 404",
+      "severity": "PRE-EXISTING",
+      "note": "This is a known gap documented in routes/__init__.py as 'optional, low priority'. Not a regression from Profit Analytics feature."
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_profit_analytics.py",
+    "/app/test_reports/pytest/profit_analytics_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "profit_analytics.py uses LazyDB pattern for database access to avoid circular imports",
+    "ensure_reporting_access() properly checks owner/admin role or FINANCIALS_VIEW permission",
+    "load_dashboard_rows() fetches jobs, job_items, customers, pricing_configuration within tenant scope",
+    "estimate_benchmark_margin() uses selling_price_benchmarks from pricing_configuration to detect underpriced work",
+    "build_dashboard_payload() correctly aggregates data into category_rows, job_rows, customer_rows, trend_rows, low_margin_jobs",
+    "Export functions use pandas for CSV/XLSX and reportlab for PDF generation",
+    "Frontend ProfitMarginAnalytics.js has proper data-testid attributes on all interactive elements",
+    "Widget preferences are saved per-tenant in profit_analytics_preferences collection"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_profit_analytics.py"
+  ],
+  "success_rate": {
+    "backend": "100% - All 23 profit analytics API tests passed",
+    "frontend": "100% - Page loads, all UI elements functional, navigation working"
+  },
+  "test_credentials": {
+    "admin_email": "thesigntistslab@gmail.com",
+    "admin_password": "password123"
+  },
+  "seed_data_creation": "Existing seed job 'Analytics Seed Job' used for testing with Banners category, $240 revenue, $98.81 cost, $141.19 profit, 58.8% margin",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Profit & Margin Analytics feature fully implemented and tested at /reports/profit-margin. Key endpoints: GET /api/profit-analytics/dashboard (with range_key, start_date, end_date, category query params), PUT /api/profit-analytics/preferences, GET /api/profit-analytics/export?format=csv|xlsx|pdf. Dashboard returns metrics, category_rows, job_rows, customer_rows, trend_rows, low_margin_jobs, preferences. Data is derived from cost_snapshot fields stored on job_items. Underpriced detection compares profit_margin against benchmark_margin with 10% threshold. Frontend has all data-testid attributes for testing. Note: Existing Financials page at /financials has no backend routes - this is pre-existing and not related to Profit Analytics."
+}

@@ -275,6 +275,7 @@ const ReportsToolbar = ({ navigate }) => (
       <RibbonButton icon={TrendingUp} label="Profit" onClick={() => navigate('/financials')} />
       <RibbonButton icon={BarChart3} label="Revenue" onClick={() => navigate('/financials')} />
       <RibbonButton icon={PieChart} label="Costs" onClick={() => navigate('/financials')} />
+      <RibbonButton icon={LineChart} label="Margins" onClick={() => navigate('/reports/profit-margin')} />
     </RibbonGroup>
 
     <GroupSeparator />

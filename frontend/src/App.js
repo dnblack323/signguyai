@@ -21,6 +21,7 @@ import TimeClock from "./pages/TimeClock";
 import Payroll from "./pages/Payroll";
 import Productivity from "./pages/Productivity";
 import Financials from "./pages/Financials";
+import ProfitMarginAnalytics from "./pages/ProfitMarginAnalytics";
 import AITools from "./pages/AITools";
 import AIAssistant from "./pages/AIAssistant";
 import Webstores from "./pages/Webstores";
@@ -158,6 +159,7 @@ function ProtectedRoutes() {
           <Route path="/payroll" element={<Payroll />} />
           <Route path="/productivity" element={<Productivity />} />
           <Route path="/financials" element={<Financials />} />
+          <Route path="/reports/profit-margin" element={<ProfitMarginAnalytics />} />
           <Route path="/ai-tools" element={<AITools />} />
           <Route path="/ai-assistant" element={<AIAssistant />} />
           <Route path="/webstores" element={<Webstores />} />
