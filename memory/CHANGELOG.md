@@ -39,6 +39,23 @@
 - Expanded audit completed via `/app/test_reports/iteration_55.json`
 - Result: **100% backend + 100% frontend pass** for all 8 calculator categories
 
+## March 15, 2026 - Historical Invoice Import + AI Pricing Analysis
+
+### New Feature: Pricing Setup (`/settings/pricing-setup`)
+- Added a tenant-specific workflow for historical invoice uploads inside Company Settings / Pricing Setup
+- Supports **PDF, CSV, XLSX, XLS** invoice files
+- Added import history, field mapping review, category override review, AI analysis, and benchmark review states
+
+### AI Benchmark Pipeline
+- GPT-5.2 now analyzes normalized invoice data to generate selling benchmark suggestions
+- Suggestions include confidence levels: **High / Medium / Low**
+- Review workflow supports **Accept / Edit / Ignore** before any value is saved
+- Accepted suggestions update **selling_price_benchmarks only** and do not change company cost settings
+
+### Testing
+- Full feature validation completed via `/app/test_reports/iteration_56.json`
+- Result: **100% backend + 100% frontend pass** for historical pricing setup workflow
+
 
 ## March 14, 2026 - Admin Payroll Enhancement + Document Library Update
 

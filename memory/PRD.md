@@ -141,9 +141,15 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
   - All calculator categories now pull tenant settings from `/api/pricing/defaults`: Promotional, Cut Vinyl, Services, Banners, Rigid Signs, Apparel, Vehicle Wraps, Custom
   - Calculator now returns and stores `material_cost`, `labor_cost`, `overhead_cost`, `total_cost`, `selling_price`, `profit_amount`, `profit_margin_percent`
   - Job and quote estimate records can preserve `pricing_category`, `pricing_data`, and `cost_snapshot` (`profit`/`profit_margin` compatibility included)
+- [x] **Historical Invoice Import + AI Pricing Analysis (Mar 15, 2026):**
+  - New **Pricing Setup** workflow at `/settings/pricing-setup`
+  - Supports **PDF, CSV, XLSX, XLS** invoice uploads per tenant
+  - Mapping/review step for description, quantity, total, dimension, and category fields
+  - AI-assisted benchmark suggestions with **High / Medium / Low** confidence levels
+  - Review flow supports **Accept / Edit / Ignore** before saving suggestions
+  - Accepted values save to **selling benchmarks only**, never to cost settings
 
 ## Upcoming Tasks (P1)
-- [ ] Build Historical Invoice Import + AI Pricing Analysis workflow with human review before saving benchmarks
 - [ ] Add pricing analytics views using stored cost snapshots (margin by category, customer profitability, job profitability)
 - [ ] Complete Billing System Logic - track first 100 founders, $19.99 credit, AI Tools Add-On
 - [ ] Re-enable Trial Lockout System - fix root cause, not just disable
