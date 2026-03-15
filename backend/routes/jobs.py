@@ -244,6 +244,11 @@ async def get_job_details(
     
     # Get activity log
     activities = await db.job_activities.find({"job_id": job_id}, {"_id": 0}).sort("created_at", -1).to_list(100)
+
+    portal_proofs = await db.artwork_proofs.find({"job_id": job_id, "tenant_id": current_user.tenant_id}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    portal_conversations = await db.conversations.find({"tenant_id": current_user.tenant_id, "related_job_id": job_id}, {"_id": 0}).sort("last_message_at", -1).to_list(100)
+    portal_documents = await db.portal_documents.find({"tenant_id": current_user.tenant_id, "$or": [{"job_id": job_id}, {"related_job_id": job_id}]}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    portal_forms = await db.portal_form_requests.find({"tenant_id": current_user.tenant_id, "job_id": job_id}, {"_id": 0}).sort("sent_at", -1).to_list(100)
     
     # Calculate financial snapshot
     quote_total = quote.get("total", 0) if quote else 0
@@ -260,6 +265,10 @@ async def get_job_details(
         "assigned_employee_details": assigned_employee_details,
         "notes": notes,
         "activities": activities,
+        "portal_proofs": portal_proofs,
+        "portal_conversations": portal_conversations,
+        "portal_documents": portal_documents,
+        "portal_forms": portal_forms,
         "financial_snapshot": {
             "quote_total": quote_total,
             "invoice_total": invoice_total,

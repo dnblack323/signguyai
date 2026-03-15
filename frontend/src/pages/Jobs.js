@@ -1194,7 +1194,7 @@ export function JobDetails() {
     );
   }
 
-  const { job, customer, quote, invoice, job_items, assigned_employee_details = [], notes, activities, financial_snapshot } = jobData;
+  const { job, customer, quote, invoice, job_items, assigned_employee_details = [], notes, activities, financial_snapshot, portal_proofs = [], portal_conversations = [], portal_documents = [], portal_forms = [] } = jobData;
   const isArchived = job.is_archived || job.status === 'archived';
 
   return (
@@ -1427,6 +1427,9 @@ export function JobDetails() {
           </TabsTrigger>
           <TabsTrigger value="timeline">
             <GitBranch className="h-4 w-4 mr-2" /> Timeline
+          </TabsTrigger>
+          <TabsTrigger value="customer_portal">
+            <MessageSquare className="h-4 w-4 mr-2" /> Customer Portal
           </TabsTrigger>
         </TabsList>
 
@@ -2068,6 +2071,88 @@ export function JobDetails() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="customer_portal" className="mt-4">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <Card className="bg-card border-border/50">
+              <CardHeader>
+                <CardTitle className="font-heading uppercase">Proofs / Approvals</CardTitle>
+                <CardDescription>Customer-facing proof activity for this job</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {portal_proofs.length === 0 ? <p className="text-sm text-muted-foreground">No proofs sent for this job.</p> : portal_proofs.map((proof) => (
+                  <div key={proof.id} className="flex items-center justify-between rounded-lg border p-3" data-testid={`job-portal-proof-${proof.id}`}>
+                    <div>
+                      <p className="font-medium">Version {proof.version}</p>
+                      <p className="text-xs text-muted-foreground">{formatDate(proof.created_at)}</p>
+                    </div>
+                    <Badge className={cn(getStatusColor(proof.status), 'capitalize')}>{proof.status?.replace('_', ' ')}</Badge>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card border-border/50">
+              <CardHeader>
+                <CardTitle className="font-heading uppercase">Messages</CardTitle>
+                <CardDescription>Customer conversations tied to this job</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {portal_conversations.length === 0 ? <p className="text-sm text-muted-foreground">No job-specific customer conversations yet.</p> : portal_conversations.map((conversation) => (
+                  <div key={conversation.id} className="rounded-lg border p-3" data-testid={`job-portal-conversation-${conversation.id}`}>
+                    <p className="font-medium">{conversation.subject}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{conversation.last_message_preview}</p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card border-border/50">
+              <CardHeader>
+                <CardTitle className="font-heading uppercase">Forms / Questionnaires</CardTitle>
+                <CardDescription>Portal form requests and submission state</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {portal_forms.length === 0 ? <p className="text-sm text-muted-foreground">No forms sent for this job.</p> : portal_forms.map((form) => (
+                  <div key={form.id} className="flex items-center justify-between rounded-lg border p-3" data-testid={`job-portal-form-${form.id}`}>
+                    <div>
+                      <p className="font-medium">{form.questionnaire_name}</p>
+                      <p className="text-xs text-muted-foreground">Sent {formatDate(form.sent_at)} {form.due_date ? `· Due ${formatDate(form.due_date)}` : ''}</p>
+                    </div>
+                    <Badge variant="outline">{form.status?.replace('_', ' ')}</Badge>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card border-border/50">
+              <CardHeader>
+                <CardTitle className="font-heading uppercase">Documents & Invoice</CardTitle>
+                <CardDescription>Customer-visible files and invoice status</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {portal_documents.length === 0 ? <p className="text-sm text-muted-foreground">No customer-visible documents linked yet.</p> : portal_documents.map((doc) => (
+                  <div key={doc.id} className="flex items-center justify-between rounded-lg border p-3" data-testid={`job-portal-document-${doc.id}`}>
+                    <div>
+                      <p className="font-medium">{doc.document_name || 'Document'}</p>
+                      <p className="text-xs text-muted-foreground">{formatDate(doc.created_at)}</p>
+                    </div>
+                    <Badge variant="outline">{doc.viewed_at ? 'Viewed' : 'Unviewed'}</Badge>
+                  </div>
+                ))}
+                {invoice && (
+                  <div className="rounded-lg border p-3 bg-muted/20" data-testid="job-portal-invoice-summary">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium">Invoice #{invoice.id.slice(0, 8).toUpperCase()}</p>
+                      <Badge className={cn(getStatusColor(invoice.status), 'capitalize')}>{invoice.status}</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">Portal viewed: {invoice.portal_viewed_at ? formatDateTime(invoice.portal_viewed_at) : 'Not yet'}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
 

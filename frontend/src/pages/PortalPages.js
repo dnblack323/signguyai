@@ -172,6 +172,7 @@ export function PortalInvoices() {
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState([]);
   const [filter, setFilter] = useState('all');
+  const [payingInvoiceId, setPayingInvoiceId] = useState('');
   const customerName = localStorage.getItem('portal_customer_name') || 'Customer';
 
   const fetchInvoices = useCallback(async () => {
@@ -227,6 +228,29 @@ export function PortalInvoices() {
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
+  };
+
+  const handlePayNow = async (invoiceId) => {
+    const token = localStorage.getItem('portal_token');
+    setPayingInvoiceId(invoiceId);
+    try {
+      const response = await fetch(`${API_URL}/api/portal/invoices/${invoiceId}/pay`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ origin_url: window.location.origin })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'Failed to start payment');
+      window.location.href = data.url;
+    } catch (err) {
+      console.error('Error creating invoice payment:', err);
+      alert(err.message || 'Unable to start payment');
+    } finally {
+      setPayingInvoiceId('');
+    }
   };
 
   const getStatusConfig = (status) => {
@@ -319,8 +343,8 @@ export function PortalInvoices() {
                           <a href={`${API_URL}/api/portal/invoices/${invoice.id}/download`} target="_blank" rel="noopener noreferrer">
                             <Button variant="outline" size="sm">Download PDF</Button>
                           </a>
-                          <Button size="sm" className="bg-teal-500 hover:bg-teal-600" disabled>
-                            Pay Now
+                          <Button size="sm" className="bg-teal-500 hover:bg-teal-600" onClick={() => handlePayNow(invoice.id)} disabled={payingInvoiceId === invoice.id} data-testid={`portal-pay-invoice-${invoice.id}`}>
+                            {payingInvoiceId === invoice.id ? 'Starting...' : 'Pay Now'}
                           </Button>
                         </div>
                       </div>

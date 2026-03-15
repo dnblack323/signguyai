@@ -652,6 +652,88 @@ async def mark_invoice_viewed(
     return {"message": "Invoice view recorded"}
 
 
+@router.post("/invoices/{invoice_id}/pay")
+async def create_portal_invoice_payment(
+    invoice_id: str,
+    payload: Dict[str, Any] = Body(...),
+    customer: dict = Depends(get_current_portal_customer)
+):
+    invoice = await db.invoices.find_one({"id": invoice_id, "customer_id": customer["id"]}, {"_id": 0})
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    if invoice.get("status") == "paid":
+        raise HTTPException(status_code=400, detail="Invoice already paid")
+
+    tenant = await db.tenants.find_one({"id": customer.get("tenant_id")}, {"_id": 0})
+    if not tenant or not tenant.get("stripe_connect_account_id"):
+        raise HTTPException(status_code=400, detail="Online payments are not enabled for this shop")
+
+    from routes.stripe_connect import stripe, get_tenant_tier, get_platform_fee_percent
+
+    origin_url = payload.get("origin_url")
+    if not origin_url:
+        raise HTTPException(status_code=400, detail="origin_url is required")
+
+    account_id = tenant["stripe_connect_account_id"]
+    tier = await get_tenant_tier(customer.get("tenant_id"))
+    fee_percent = get_platform_fee_percent(tier)
+    amount = float(invoice.get("total", 0))
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Invalid invoice amount")
+
+    amount_cents = int(amount * 100)
+    platform_fee_cents = int(amount_cents * fee_percent)
+
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[{
+                "price_data": {
+                    "currency": "usd",
+                    "unit_amount": amount_cents,
+                    "product_data": {
+                        "name": f"Invoice #{invoice.get('invoice_number', invoice_id[:8])}",
+                        "description": "Portal invoice payment"
+                    }
+                },
+                "quantity": 1
+            }],
+            mode="payment",
+            success_url=f"{origin_url}/customer-portal/invoices?payment=success&session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{origin_url}/customer-portal/invoices?payment=cancelled",
+            customer_email=customer.get("email"),
+            payment_intent_data={
+                "application_fee_amount": platform_fee_cents,
+                "transfer_data": {"destination": account_id}
+            },
+            metadata={
+                "type": "invoice",
+                "invoice_id": invoice_id,
+                "tenant_id": customer.get("tenant_id"),
+                "portal_customer_id": customer.get("id"),
+                "platform_fee_percent": str(fee_percent * 100)
+            }
+        )
+
+        await db.payment_transactions.insert_one({
+            "id": session.id,
+            "tenant_id": customer.get("tenant_id"),
+            "type": "invoice",
+            "reference_id": invoice_id,
+            "amount": amount,
+            "platform_fee": platform_fee_cents / 100,
+            "currency": "usd",
+            "status": "pending",
+            "stripe_session_id": session.id,
+            "connected_account_id": account_id,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+
+        return {"url": session.url, "session_id": session.id}
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
 # ============== PORTAL DOCUMENTS ==============
 
 @router.get("/documents")
