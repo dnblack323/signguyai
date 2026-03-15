@@ -278,7 +278,11 @@ export function PortalOrderDetail() {
             {order.description && (
               <p className="text-slate-600 mb-4">{order.description}</p>
             )}
-            <div className="flex gap-6 text-sm">
+            <div className="flex flex-wrap gap-6 text-sm">
+              <div>
+                <span className="text-slate-500">Job Number:</span>
+                <span className="ml-2 font-medium text-slate-900">{order.id.slice(0, 8).toUpperCase()}</span>
+              </div>
               {order.due_date && (
                 <div>
                   <span className="text-slate-500">Due Date:</span>
@@ -288,6 +292,25 @@ export function PortalOrderDetail() {
             </div>
           </CardContent>
         </Card>
+
+        {order.customer_status_timeline?.length > 0 && (
+          <Card className="border-slate-200">
+            <CardHeader>
+              <CardTitle className="text-lg">Status Timeline</CardTitle>
+              <CardDescription>Customer-facing progress updates only.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
+                {order.customer_status_timeline.map((item, index) => (
+                  <div key={`${item.label}-${index}`} className="rounded-lg border border-slate-200 p-4" data-testid={`portal-order-status-${index}`}>
+                    <p className="font-medium text-slate-900">{item.label}</p>
+                    <Badge className={item.status === 'complete' ? 'bg-green-100 text-green-700 mt-2' : item.status === 'current' ? 'bg-amber-100 text-amber-700 mt-2' : 'bg-slate-100 text-slate-700 mt-2'}>{item.status}</Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Line Items */}
         {order.items?.length > 0 && (
@@ -384,6 +407,90 @@ export function PortalOrderDetail() {
             </CardContent>
           </Card>
         )}
+
+        <div className="grid lg:grid-cols-2 gap-6">
+          <Card className="border-slate-200">
+            <CardHeader>
+              <CardTitle className="text-lg">Forms / Questionnaires</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {order.forms?.length > 0 ? order.forms.map((form) => (
+                <Link key={form.id} to={`/customer-portal/forms/${form.id}`} className="block p-3 rounded-lg border border-slate-200 hover:border-teal-300 hover:bg-slate-50 transition-colors mb-3 last:mb-0">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-slate-900">{form.questionnaire_name}</p>
+                      <p className="text-sm text-slate-500">{form.instructions || 'Complete the requested form'}</p>
+                    </div>
+                    <Badge className={form.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}>{form.status.replace('_', ' ')}</Badge>
+                  </div>
+                </Link>
+              )) : <p className="text-slate-500">No forms linked to this job.</p>}
+            </CardContent>
+          </Card>
+
+          <Card className="border-slate-200">
+            <CardHeader>
+              <CardTitle className="text-lg">Messages</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {order.conversations?.length > 0 ? order.conversations.map((conversation) => (
+                <Link key={conversation.id} to={`/customer-portal/messages/${conversation.id}`} className="block p-3 rounded-lg border border-slate-200 hover:border-teal-300 hover:bg-slate-50 transition-colors mb-3 last:mb-0">
+                  <p className="font-medium text-slate-900">{conversation.subject}</p>
+                  <p className="text-sm text-slate-500">{conversation.last_message_preview}</p>
+                </Link>
+              )) : <p className="text-slate-500">No job-specific messages yet.</p>}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-6">
+          <Card className="border-slate-200">
+            <CardHeader>
+              <CardTitle className="text-lg">Documents</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {order.documents?.length > 0 ? order.documents.map((doc) => (
+                <Link key={doc.id} to="/customer-portal/documents" className="block p-3 rounded-lg border border-slate-200 hover:border-teal-300 hover:bg-slate-50 transition-colors mb-3 last:mb-0">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-slate-900">{doc.document_name || 'Document'}</p>
+                      <p className="text-sm text-slate-500">Shared {formatDate(doc.created_at)}</p>
+                    </div>
+                    {!doc.viewed_at && <Badge className="bg-teal-100 text-teal-700">New</Badge>}
+                  </div>
+                </Link>
+              )) : <p className="text-slate-500">No customer-visible documents linked to this job.</p>}
+            </CardContent>
+          </Card>
+
+          {order.invoice && (
+            <Card className="border-slate-200">
+              <CardHeader>
+                <CardTitle className="text-lg">Invoice</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Status</span>
+                  <Badge className={getStatusColor(order.invoice.status)}>{order.invoice.status}</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Total</span>
+                  <span className="font-semibold text-slate-900">{formatCurrency(order.invoice.total)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Balance Due</span>
+                  <span className="font-semibold text-slate-900">{formatCurrency((order.invoice.total || 0) - (order.invoice.amount_paid || 0))}</span>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <a href={`${API_URL}/api/portal/invoices/${order.invoice.id}/download`} target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline">Download PDF</Button>
+                  </a>
+                  <Link to="/customer-portal/invoices"><Button className="bg-teal-500 hover:bg-teal-600">Open Invoices</Button></Link>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     </PortalLayout>
   );

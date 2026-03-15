@@ -26,6 +26,7 @@ function PortalLayout({ children, activeNav, customerName }) {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/customer-portal' },
     { id: 'orders', label: 'Orders', icon: Briefcase, path: '/customer-portal/orders' },
+    { id: 'forms', label: 'Forms / Questionnaires', icon: FileText, path: '/customer-portal/forms' },
     { id: 'quotes', label: 'Quotes', icon: FileText, path: '/customer-portal/quotes' },
     { id: 'invoices', label: 'Invoices', icon: Receipt, path: '/customer-portal/invoices' },
     { id: 'documents', label: 'Documents', icon: FileText, path: '/customer-portal/documents' },
@@ -201,7 +202,7 @@ export default function PortalDashboard() {
     );
   }
 
-  const { stats, upcoming_appointments, recent_jobs, recent_invoices } = dashboard || {};
+  const { stats, upcoming_appointments, recent_jobs, recent_invoices, recent_documents, pending_forms, awaiting_approval } = dashboard || {};
 
   return (
     <PortalLayout activeNav="dashboard" customerName={customerName}>
@@ -213,7 +214,7 @@ export default function PortalDashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" data-testid="portal-stats-grid">
+        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4" data-testid="portal-stats-grid">
           <Card className="border-slate-200">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -297,10 +298,38 @@ export default function PortalDashboard() {
               </div>
             </CardContent>
           </Card>
+
+          <Card className="border-slate-200">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-cyan-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-slate-900">{stats?.pending_forms || 0}</p>
+                  <p className="text-xs text-slate-500">Pending Forms</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-slate-200">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-indigo-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-slate-900">{stats?.recent_documents || 0}</p>
+                  <p className="text-xs text-slate-500">New Docs</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Quick Actions */}
-        {(stats?.pending_proofs > 0 || stats?.unread_messages > 0) && (
+        {(stats?.pending_proofs > 0 || stats?.unread_messages > 0 || stats?.pending_forms > 0) && (
           <Card className="border-teal-200 bg-teal-50">
             <CardContent className="p-4">
               <h3 className="font-semibold text-teal-800 mb-3">Action Required</h3>
@@ -318,6 +347,14 @@ export default function PortalDashboard() {
                     <Button variant="outline" className="border-teal-300 text-teal-700 hover:bg-teal-100">
                       <MessageSquare className="h-4 w-4 mr-2" />
                       {stats.unread_messages} New Message{stats.unread_messages > 1 ? 's' : ''}
+                    </Button>
+                  </Link>
+                )}
+                {stats?.pending_forms > 0 && (
+                  <Link to="/customer-portal/forms">
+                    <Button variant="outline" className="border-teal-300 text-teal-700 hover:bg-teal-100">
+                      <FileText className="h-4 w-4 mr-2" />
+                      {stats.pending_forms} Pending Form{stats.pending_forms > 1 ? 's' : ''}
                     </Button>
                   </Link>
                 )}
@@ -404,6 +441,84 @@ export default function PortalDashboard() {
               ) : (
                 <p className="text-slate-500 text-center py-8">No invoices yet</p>
               )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-slate-200">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Pending Forms</CardTitle>
+                <Link to="/customer-portal/forms">
+                  <Button variant="ghost" size="sm" className="text-teal-600">
+                    View All <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {pending_forms?.length > 0 ? (
+                <div className="space-y-3">
+                  {pending_forms.map((formRequest) => (
+                    <Link key={formRequest.id} to={`/customer-portal/forms/${formRequest.id}`} className="block p-3 rounded-lg border border-slate-200 hover:border-teal-300 hover:bg-slate-50 transition-colors">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="font-medium text-slate-900">{formRequest.questionnaire_name}</p>
+                          <p className="text-sm text-slate-500">Due: {formatDate(formRequest.due_date || formRequest.sent_at)}</p>
+                        </div>
+                        <Badge className={getStatusColor(formRequest.status)}>{formRequest.status}</Badge>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-slate-500 text-center py-8">No pending forms</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-6">
+          <Card className="border-slate-200">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Awaiting Approval</CardTitle>
+                <Link to="/customer-portal/proofs"><Button variant="ghost" size="sm" className="text-teal-600">View All <ChevronRight className="h-4 w-4 ml-1" /></Button></Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {awaiting_approval?.length > 0 ? awaiting_approval.map((proof) => (
+                <Link key={proof.id} to={`/customer-portal/proofs/${proof.id}`} className="block p-3 rounded-lg border border-slate-200 hover:border-teal-300 hover:bg-slate-50 transition-colors mb-3 last:mb-0">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-slate-900">Version {proof.version}</p>
+                      <p className="text-sm text-slate-500">{proof.created_at ? formatDate(proof.created_at) : '-'}</p>
+                    </div>
+                    <Badge className="bg-amber-100 text-amber-700">Pending Review</Badge>
+                  </div>
+                </Link>
+              )) : <p className="text-slate-500 text-center py-8">No approvals waiting</p>}
+            </CardContent>
+          </Card>
+
+          <Card className="border-slate-200">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Recent Documents</CardTitle>
+                <Link to="/customer-portal/documents"><Button variant="ghost" size="sm" className="text-teal-600">View All <ChevronRight className="h-4 w-4 ml-1" /></Button></Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {recent_documents?.length > 0 ? recent_documents.map((doc) => (
+                <Link key={doc.id} to="/customer-portal/documents" className="block p-3 rounded-lg border border-slate-200 hover:border-teal-300 hover:bg-slate-50 transition-colors mb-3 last:mb-0">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-slate-900">{doc.document_name || 'Document'}</p>
+                      <p className="text-sm text-slate-500">Shared {formatDate(doc.created_at)}</p>
+                    </div>
+                    {!doc.viewed_at && <Badge className="bg-teal-100 text-teal-700">New</Badge>}
+                  </div>
+                </Link>
+              )) : <p className="text-slate-500 text-center py-8">No recent documents</p>}
             </CardContent>
           </Card>
         </div>

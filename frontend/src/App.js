@@ -51,6 +51,7 @@ import { PortalMessages, PortalConversation } from "./pages/PortalMessages";
 import PortalProfile from "./pages/PortalProfile";
 import PortalDocuments from "./pages/PortalDocuments";
 import { PortalQuotes, PortalInvoices, PortalAppointments } from "./pages/PortalPages";
+import { PortalForms, PortalFormDetail } from "./pages/PortalForms";
 
 // Employee Portal Pages
 import EmployeePortalLogin from "./pages/EmployeePortalLogin";
@@ -267,6 +268,8 @@ function App() {
                 <Route path="/customer-portal" element={<PortalDashboard />} />
                 <Route path="/customer-portal/orders" element={<PortalOrders />} />
                 <Route path="/customer-portal/orders/:orderId" element={<PortalOrderDetail />} />
+                <Route path="/customer-portal/forms" element={<PortalForms />} />
+                <Route path="/customer-portal/forms/:requestId" element={<PortalFormDetail />} />
                 <Route path="/customer-portal/quotes" element={<PortalQuotes />} />
                 <Route path="/customer-portal/invoices" element={<PortalInvoices />} />
                 <Route path="/customer-portal/documents" element={<PortalDocuments />} />

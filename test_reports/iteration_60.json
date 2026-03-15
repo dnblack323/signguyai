@@ -1,0 +1,126 @@
+{
+  "summary": "Customer Portal Forms / Questionnaires iteration testing completed. All 18 backend API tests passed (1 skipped - no proofs for test customer). Key features verified: Portal forms navigation, GET /api/portal/forms with status filtering, GET /api/portal/forms/{request_id} returns request + questionnaire and marks as opened, POST /api/portal/forms/{request_id}/submit creates response and customer_form document, GET /api/admin-portal/forms returns sent requests with customer/job context, POST /api/admin-portal/forms/send creates form request (fixed ObjectId serialization bug), GET /api/portal/dashboard returns enriched stats including pending_forms/recent_documents/awaiting_approval, GET /api/portal/orders/{job_id} returns forms/messages/documents/invoice/customer_status_timeline sections, GET /api/portal/invoices/{invoice_id}/download returns PDF. Frontend UI verified: Portal Forms/Questionnaires nav tab with filter buttons and forms list, Form detail page with questions and submit button, Admin Portal Forms tab with Send Form dialog, Order detail page with Status Timeline (7 steps) and Forms/Messages/Documents/Invoice sections.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/admin-portal/forms/send",
+        "issue": "FIXED: MongoDB ObjectId not excluded from response causing 500 error - added request.pop('_id', None) before return",
+        "status": "RESOLVED"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "features_verified": {
+    "Portal Forms Navigation": {
+      "status": "PASS",
+      "description": "Forms / Questionnaires nav item added to portal navigation, links to /customer-portal/forms"
+    },
+    "GET /api/portal/dashboard enriched stats": {
+      "status": "PASS",
+      "description": "Returns pending_forms count in stats, recent_documents (unread docs), plus pending_forms/awaiting_approval/recent_documents arrays for widgets"
+    },
+    "GET /api/portal/forms": {
+      "status": "PASS",
+      "description": "Lists form requests scoped to logged-in customer, supports ?status= filter parameter"
+    },
+    "GET /api/portal/forms/{request_id}": {
+      "status": "PASS",
+      "description": "Returns request + questionnaire, marks form as opened (opened_at set, status to in_progress)"
+    },
+    "POST /api/portal/forms/{request_id}/submit": {
+      "status": "PASS",
+      "description": "Saves questionnaire response, updates request status to completed, creates customer_form document linked to customer/job"
+    },
+    "GET /api/admin-portal/forms": {
+      "status": "PASS",
+      "description": "Returns sent form requests with customer and job context for monitoring"
+    },
+    "POST /api/admin-portal/forms/send": {
+      "status": "PASS",
+      "description": "Admin can send questionnaire to customer via portal (after ObjectId fix)"
+    },
+    "GET /api/portal/orders/{job_id} enriched": {
+      "status": "PASS",
+      "description": "Returns customer_status_timeline (7 steps), forms, conversations, documents sections when data exists"
+    },
+    "GET /api/portal/invoices/{invoice_id}/download": {
+      "status": "PASS",
+      "description": "Returns application/pdf with content-disposition attachment header"
+    },
+    "Portal Dashboard widgets": {
+      "status": "PASS",
+      "description": "Shows Pending Forms stat card, pending forms widget with links, Action Required section with pending forms count"
+    },
+    "Portal Forms List Page": {
+      "status": "PASS",
+      "description": "Shows forms list with filter buttons (all/pending/in_progress/completed/overdue), status badges, Open Form/View Submission buttons"
+    },
+    "Portal Form Detail Page": {
+      "status": "PASS",
+      "description": "Displays questionnaire name/description, form fields with proper input types, submit button, submitted banner for completed forms"
+    },
+    "Admin Portal Forms Tab": {
+      "status": "PASS",
+      "description": "Forms tab with badge count, list of sent forms with customer/status, Send Form dialog with customer/job/questionnaire/due date/instructions fields"
+    },
+    "Portal Order Detail Enriched Sections": {
+      "status": "PASS",
+      "description": "Shows Status Timeline (Quote Approved→Completed→Invoice), Forms/Questionnaires, Messages, Documents, Invoice sections with Download PDF button"
+    },
+    "No regression: portal login": {
+      "status": "PASS",
+      "description": "Portal login works correctly"
+    },
+    "No regression: portal messages": {
+      "status": "PASS",
+      "description": "GET /api/portal/conversations works"
+    },
+    "No regression: portal documents": {
+      "status": "PASS",
+      "description": "GET /api/portal/documents works"
+    },
+    "No regression: admin portal messages/artwork/documents tabs": {
+      "status": "PASS",
+      "description": "All admin portal tabs working"
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_customer_portal_forms.py",
+    "/app/test_reports/pytest/customer_portal_forms_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "portal.py: build_customer_status_timeline() creates 7-step customer-facing timeline based on job status, proofs, forms, invoice",
+    "portal.py: format_form_response_document() renders questionnaire answers as text document for customer_form record",
+    "portal.py: submit_portal_form() validates required fields, creates QuestionnaireResponse, creates customer_form document in documents collection",
+    "portal.py: download_portal_invoice_pdf() generates PDF with ReportLab including invoice header, line items table, total",
+    "admin_portal.py: send_form_request() creates portal_form_request and customer notification (fixed ObjectId bug)",
+    "PortalDashboard.js: Shows pending_forms stat, pending_forms widget, Action Required section with forms count",
+    "PortalForms.js: PortalForms list component with filter buttons, PortalFormDetail with dynamic form rendering",
+    "PortalOrders.js: PortalOrderDetail shows customer_status_timeline, forms, conversations, documents, invoice sections",
+    "AdminPortal.js: Forms tab with Send Form dialog using Customer/Job/Questionnaire/DueDate/Instructions fields"
+  ],
+  "updated_files": [
+    "/app/backend/routes/admin_portal.py",
+    "/app/backend/tests/test_customer_portal_forms.py"
+  ],
+  "success_rate": {
+    "backend": "100% (18 passed, 1 skipped due to no test proofs)",
+    "frontend": "100% - All portal forms UI elements verified"
+  },
+  "test_credentials": {
+    "admin_email": "thesigntistslab@gmail.com",
+    "admin_password": "password123",
+    "portal_customer_email": "portal1773603307@example.com",
+    "portal_customer_password": "password123"
+  },
+  "seed_data_creation": "Created test job 'Portal Test Sign Project' (a361155a-...) and invoice ($500) for portal customer to enable order detail and invoice PDF testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Customer portal forms fully tested. Key endpoints: GET /api/portal/forms (list), GET /api/portal/forms/{id} (detail), POST /api/portal/forms/{id}/submit (submit), POST /api/admin-portal/forms/send (admin send). Portal dashboard returns enriched stats (pending_forms, recent_documents count) and widget arrays. Order detail at GET /api/portal/orders/{id} returns customer_status_timeline, forms, conversations, documents, invoice. Invoice PDF download at GET /api/portal/invoices/{id}/download. Portal proof version history at GET /api/portal/proofs/{id} returns version_history array. Test customer: portal1773603307@example.com / password123. Has 5 forms (2 completed, 3 pending/in_progress), 1 order with invoice."
+}

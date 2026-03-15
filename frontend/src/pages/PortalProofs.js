@@ -382,6 +382,22 @@ export function PortalProofDetail() {
                     <p className="text-slate-900">{proof.customer_comment}</p>
                   </div>
                 )}
+                {proof.version_history?.length > 0 && (
+                  <div>
+                    <p className="text-sm text-slate-500 mb-2">Version History</p>
+                    <div className="space-y-2">
+                      {proof.version_history.map((version) => (
+                        <div key={version.id} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm" data-testid={`portal-proof-version-${version.id}`}>
+                          <div>
+                            <p className="font-medium text-slate-900">Version {version.version}</p>
+                            <p className="text-xs text-slate-500">{formatDate(version.created_at)}</p>
+                          </div>
+                          <Badge className={getStatusConfig(version.status).color}>{getStatusConfig(version.status).label}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

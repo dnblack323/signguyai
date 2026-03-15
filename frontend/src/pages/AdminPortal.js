@@ -56,6 +56,17 @@ export default function AdminPortal() {
   // Documents state
   const [sharedDocuments, setSharedDocuments] = useState([]);
 
+  // Forms state
+  const [formRequests, setFormRequests] = useState([]);
+  const [showSendForm, setShowSendForm] = useState(false);
+  const [questionnaires, setQuestionnaires] = useState([]);
+  const [formCustomerId, setFormCustomerId] = useState('');
+  const [formJobId, setFormJobId] = useState('');
+  const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState('');
+  const [formInstructions, setFormInstructions] = useState('');
+  const [formDueDate, setFormDueDate] = useState('');
+  const [sendingForm, setSendingForm] = useState(false);
+
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -68,6 +79,7 @@ export default function AdminPortal() {
     if (activeTab === 'messages') loadConversations();
     if (activeTab === 'artwork') loadArtworkQueue();
     if (activeTab === 'documents') loadSharedDocuments();
+    if (activeTab === 'forms') loadFormRequests();
   }, [activeTab]);
 
   useEffect(() => {
@@ -307,6 +319,78 @@ export default function AdminPortal() {
     }
   };
 
+  const loadQuestionnaires = async () => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch(`${API}/api/questionnaires`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setQuestionnaires(data.filter((item) => item.status === 'active'));
+      }
+    } catch (err) {
+      console.error('Error loading questionnaires:', err);
+    }
+  };
+
+  const loadFormRequests = async () => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch(`${API}/api/admin-portal/forms`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setFormRequests(await res.json());
+      }
+      loadQuestionnaires();
+    } catch (err) {
+      console.error('Error loading form requests:', err);
+    }
+  };
+
+  const handleSendForm = async () => {
+    if (!formCustomerId || !selectedQuestionnaireId) {
+      toast.error('Select a customer and questionnaire');
+      return;
+    }
+    setSendingForm(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch(`${API}/api/admin-portal/forms/send`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          customer_id: formCustomerId,
+          questionnaire_id: selectedQuestionnaireId,
+          job_id: formJobId || null,
+          instructions: formInstructions,
+          due_date: formDueDate || null
+        })
+      });
+      if (res.ok) {
+        toast.success('Form sent to customer portal');
+        setShowSendForm(false);
+        setFormCustomerId('');
+        setFormJobId('');
+        setSelectedQuestionnaireId('');
+        setFormInstructions('');
+        setFormDueDate('');
+        loadFormRequests();
+        loadDashboard();
+      } else {
+        const err = await res.json();
+        toast.error(err.detail || 'Failed to send form');
+      }
+    } catch (err) {
+      toast.error('Network error');
+    }
+    setSendingForm(false);
+  };
+
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
@@ -404,7 +488,7 @@ export default function AdminPortal() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
+        <TabsList className="grid w-full grid-cols-4 max-w-2xl">
           <TabsTrigger value="messages" className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4" />
             Messages
@@ -422,6 +506,13 @@ export default function AdminPortal() {
           <TabsTrigger value="documents" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             Documents
+          </TabsTrigger>
+          <TabsTrigger value="forms" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Forms
+            {dashboard?.forms?.pending > 0 && (
+              <Badge className="bg-cyan-500 text-xs">{dashboard.forms.pending}</Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
@@ -710,7 +801,87 @@ export default function AdminPortal() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="forms" className="mt-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Forms / Questionnaires</CardTitle>
+                <Button className="bg-teal-500 hover:bg-teal-600" onClick={() => setShowSendForm(true)}>
+                  <Plus className="h-4 w-4 mr-2" /> Send Form
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {formRequests.length === 0 ? (
+                <div className="text-center py-12 text-slate-500">
+                  <FileText className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+                  <p>No portal forms sent yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {formRequests.map((request) => (
+                    <div key={request.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50">
+                      <div>
+                        <p className="font-medium">{request.questionnaire_name}</p>
+                        <p className="text-sm text-slate-600">{request.customer?.name} {request.job?.name ? `• ${request.job.name}` : ''}</p>
+                        <p className="text-xs text-slate-400">Sent {formatDate(request.sent_at)} {request.due_date ? `• Due ${formatDate(request.due_date)}` : ''}</p>
+                      </div>
+                      <Badge className={request.status === 'completed' ? 'bg-green-100 text-green-800' : request.status === 'overdue' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}>
+                        {request.status.replace('_', ' ')}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      <Dialog open={showSendForm} onOpenChange={setShowSendForm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Questionnaire</DialogTitle>
+            <DialogDescription>Send a form to a customer and optionally tie it to a job.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Customer</Label>
+              <Select value={formCustomerId} onValueChange={(value) => { setFormCustomerId(value); setFormJobId(''); loadCustomerJobs(value); }}>
+                <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
+                <SelectContent>{customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Job (optional)</Label>
+              <Select value={formJobId} onValueChange={setFormJobId}>
+                <SelectTrigger><SelectValue placeholder="Select job" /></SelectTrigger>
+                <SelectContent>{customerJobs.map((j) => <SelectItem key={j.id} value={j.id}>{j.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Questionnaire</Label>
+              <Select value={selectedQuestionnaireId} onValueChange={setSelectedQuestionnaireId}>
+                <SelectTrigger><SelectValue placeholder="Select questionnaire" /></SelectTrigger>
+                <SelectContent>{questionnaires.map((q) => <SelectItem key={q.id} value={q.id}>{q.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Due Date</Label>
+              <Input type="date" value={formDueDate} onChange={(e) => setFormDueDate(e.target.value)} />
+            </div>
+            <div>
+              <Label>Instructions</Label>
+              <Textarea value={formInstructions} onChange={(e) => setFormInstructions(e.target.value)} rows={3} placeholder="Add instructions for the customer..." />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSendForm(false)}>Cancel</Button>
+            <Button className="bg-teal-500 hover:bg-teal-600" onClick={handleSendForm} disabled={sendingForm}>{sendingForm ? 'Sending...' : 'Send Form'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* New Conversation Dialog */}
       <Dialog open={showNewConversation} onOpenChange={setShowNewConversation}>

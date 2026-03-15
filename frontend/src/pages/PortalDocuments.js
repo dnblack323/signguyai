@@ -28,6 +28,7 @@ function PortalLayout({ children, activeNav, customerName }) {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/customer-portal' },
     { id: 'orders', label: 'Orders', icon: Briefcase, path: '/customer-portal/orders' },
+    { id: 'forms', label: 'Forms / Questionnaires', icon: FileText, path: '/customer-portal/forms' },
     { id: 'quotes', label: 'Quotes', icon: FileText, path: '/customer-portal/quotes' },
     { id: 'invoices', label: 'Invoices', icon: Receipt, path: '/customer-portal/invoices' },
     { id: 'documents', label: 'Documents', icon: FolderOpen, path: '/customer-portal/documents' },

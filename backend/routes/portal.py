@@ -12,11 +12,20 @@ This module contains all routes for the customer-facing portal:
 - Artwork proof approval
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Body
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from typing import List, Optional, Dict
+from fastapi.responses import StreamingResponse
+from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 import jwt
+import uuid
+import base64
+from io import BytesIO
+
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
 
 from models import (
     Conversation, ConversationMessage, MessageType,
@@ -25,6 +34,7 @@ from models import (
     CustomerPortalLogin, CustomerPortalRegister, CustomerPortalToken,
     CustomerProfileUpdate, ConversationCreate, MessageCreate, ProofResponseCreate
 )
+from models.questionnaires import QuestionnaireResponse
 
 # Import from server module
 from server import (
@@ -34,6 +44,39 @@ from server import (
 )
 
 router = APIRouter(prefix="/portal", tags=["Customer Portal"])
+
+
+def build_customer_status_timeline(job: dict, proofs: List[dict], form_requests: List[dict], invoice: Optional[dict]) -> List[dict]:
+    timeline = []
+    timeline.append({"label": "Quote Approved" if job.get("status") != "quoted" else "Quote Sent", "status": "complete" if job.get("status") != "quoted" else "current"})
+    timeline.append({"label": "Design In Progress", "status": "complete" if proofs else ("current" if job.get("status") in ["approved", "design"] else "upcoming")})
+    proof_pending = any(proof.get("status") == "pending" for proof in proofs)
+    proof_approved = any(proof.get("status") == "approved" for proof in proofs)
+    timeline.append({"label": "Awaiting Artwork Approval", "status": "complete" if proof_approved else ("current" if proof_pending else "upcoming")})
+    form_pending = any(request.get("status") in ["pending", "in_progress", "overdue"] for request in form_requests)
+    if form_requests:
+        timeline.append({"label": "Forms / Questionnaire", "status": "complete" if not form_pending else "current"})
+    timeline.append({"label": "In Production", "status": "complete" if job.get("status") in ["installed", "complete"] else ("current" if job.get("status") in ["in_production", "production"] else "upcoming")})
+    timeline.append({"label": "Scheduled for Pickup / Install", "status": "complete" if job.get("status") in ["installed", "complete"] else ("current" if job.get("status") in ["scheduled", "install_scheduled"] else "upcoming")})
+    timeline.append({"label": "Completed", "status": "complete" if job.get("status") == "complete" else "upcoming"})
+    if invoice:
+        timeline.append({"label": "Invoice Paid" if invoice.get("status") == "paid" else "Invoice Unpaid", "status": "complete" if invoice.get("status") == "paid" else "current"})
+    return timeline
+
+
+def format_form_response_document(questionnaire: dict, answers: Dict[str, Any], customer_name: str, submitted_at: str) -> str:
+    question_map = {question.get("id"): question for question in questionnaire.get("questions", [])}
+    lines = [
+        f"Questionnaire Submission: {questionnaire.get('name')}",
+        f"Submitted by: {customer_name}",
+        f"Submitted at: {submitted_at}",
+        "",
+    ]
+    for question_id, answer in answers.items():
+        label = question_map.get(question_id, {}).get("label", question_id)
+        rendered_answer = ", ".join(answer) if isinstance(answer, list) else str(answer)
+        lines.append(f"{label}: {rendered_answer}")
+    return "\n".join(lines)
 
 
 # ============== PORTAL AUTH HELPER ==============
@@ -209,6 +252,16 @@ async def get_portal_dashboard(customer: dict = Depends(get_current_portal_custo
     
     # Get unread notifications
     unread_notifications = await db.customer_notifications.count_documents({"customer_id": customer_id, "is_read": False})
+
+    pending_forms = await db.portal_form_requests.count_documents({
+        "customer_id": customer_id,
+        "status": {"$in": ["pending", "in_progress", "overdue"]}
+    })
+
+    unread_docs = await db.portal_documents.count_documents({
+        "customer_id": customer_id,
+        "viewed_at": None
+    })
     
     # Get upcoming appointments
     today = datetime.now(timezone.utc).date().isoformat()
@@ -228,6 +281,21 @@ async def get_portal_dashboard(customer: dict = Depends(get_current_portal_custo
         {"customer_id": customer_id},
         {"_id": 0}
     ).sort("created_at", -1).limit(5).to_list(5)
+
+    recent_documents = await db.portal_documents.find(
+        {"customer_id": customer_id},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(5).to_list(5)
+
+    pending_form_requests = await db.portal_form_requests.find(
+        {"customer_id": customer_id, "status": {"$in": ["pending", "in_progress", "overdue"]}},
+        {"_id": 0}
+    ).sort("due_date", 1).limit(5).to_list(5)
+
+    awaiting_approval = await db.artwork_proofs.find(
+        {"customer_id": customer_id, "status": "pending"},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(5).to_list(5)
     
     return {
         "stats": {
@@ -236,11 +304,18 @@ async def get_portal_dashboard(customer: dict = Depends(get_current_portal_custo
             "pending_invoices": pending_invoices,
             "pending_proofs": pending_proofs,
             "unread_messages": unread_messages,
-            "unread_notifications": unread_notifications
+            "unread_notifications": unread_notifications,
+            "pending_forms": pending_forms,
+            "recent_documents": unread_docs,
+            "overdue_invoices": len([inv for inv in recent_invoices if inv.get("status") == "overdue"]),
+            "paid_invoices": len([inv for inv in recent_invoices if inv.get("status") == "paid"])
         },
         "upcoming_appointments": upcoming_appointments,
         "recent_jobs": recent_jobs,
-        "recent_invoices": recent_invoices
+        "recent_invoices": recent_invoices,
+        "recent_documents": recent_documents,
+        "pending_forms": pending_form_requests,
+        "awaiting_approval": awaiting_approval
     }
 
 
@@ -253,7 +328,7 @@ async def get_portal_orders(
 ):
     """Get customer's orders (jobs)"""
     query = {"customer_id": customer["id"]}
-    if status:
+    if status and status not in ["active", "awaiting_approval", "completed", "archived"]:
         query["status"] = status
     
     jobs = await db.jobs.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
@@ -262,7 +337,26 @@ async def get_portal_orders(
     for job in jobs:
         items = await db.job_items.find({"job_id": job["id"]}, {"_id": 0}).to_list(50)
         job["items"] = items
+        proofs = await db.artwork_proofs.find({"job_id": job["id"], "customer_id": customer["id"]}, {"_id": 0}).to_list(20)
+        invoice = await db.invoices.find_one({"id": job.get("invoice_id")}, {"_id": 0}) if job.get("invoice_id") else None
+        job["approval_status"] = "awaiting_approval" if any(proof.get("status") == "pending" for proof in proofs) else ("approved" if any(proof.get("status") == "approved" for proof in proofs) else "not_required")
+        job["invoice_status"] = invoice.get("status") if invoice else None
+        if status == "active" and job.get("status") in ["complete", "archived"]:
+            continue
+        if status == "awaiting_approval" and job["approval_status"] != "awaiting_approval":
+            continue
+        if status == "completed" and job.get("status") != "complete":
+            continue
+        if status == "archived" and job.get("status") != "archived":
+            continue
     
+    if status in ["active", "awaiting_approval", "completed", "archived"]:
+        jobs = [job for job in jobs if not (
+            (status == "active" and job.get("status") in ["complete", "archived"]) or
+            (status == "awaiting_approval" and job.get("approval_status") != "awaiting_approval") or
+            (status == "completed" and job.get("status") != "complete") or
+            (status == "archived" and job.get("status") != "archived")
+        )]
     return jobs
 
 
@@ -293,6 +387,26 @@ async def get_portal_order_detail(
     # Get artwork proofs
     proofs = await db.artwork_proofs.find({"job_id": job_id}, {"_id": 0}).sort("created_at", -1).to_list(20)
     job["proofs"] = proofs
+
+    portal_docs = await db.portal_documents.find(
+        {"customer_id": customer["id"], "$or": [{"job_id": job_id}, {"related_job_id": job_id}]},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    job["documents"] = portal_docs
+
+    form_requests = await db.portal_form_requests.find(
+        {"customer_id": customer["id"], "job_id": job_id},
+        {"_id": 0}
+    ).sort("sent_at", -1).to_list(50)
+    job["forms"] = form_requests
+
+    conversations = await db.conversations.find(
+        {"customer_id": customer["id"], "related_job_id": job_id},
+        {"_id": 0}
+    ).sort("last_message_at", -1).to_list(50)
+    job["conversations"] = conversations
+
+    job["customer_status_timeline"] = build_customer_status_timeline(job, proofs, form_requests, job.get("invoice"))
     
     return job
 
@@ -475,6 +589,12 @@ async def get_portal_proof_detail(
     # Get job info
     job = await db.jobs.find_one({"id": proof["job_id"]}, {"_id": 0})
     proof["job"] = job
+
+    history = await db.artwork_proofs.find(
+        {"job_id": proof["job_id"], "customer_id": customer["id"]},
+        {"_id": 0, "id": 1, "version": 1, "status": 1, "created_at": 1, "customer_comment": 1, "description": 1}
+    ).sort("version", -1).to_list(20)
+    proof["version_history"] = history
     
     return proof
 
@@ -518,6 +638,18 @@ async def respond_to_proof(
     await db.customer_notifications.insert_one(notification.model_dump())
     
     return {"message": f"Proof {status_text}", "status": input.status.value}
+
+
+@router.post("/invoices/{invoice_id}/viewed")
+async def mark_invoice_viewed(
+    invoice_id: str,
+    customer: dict = Depends(get_current_portal_customer)
+):
+    invoice = await db.invoices.find_one({"id": invoice_id, "customer_id": customer["id"]}, {"_id": 0})
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    await db.invoices.update_one({"id": invoice_id}, {"$set": {"portal_viewed_at": datetime.now(timezone.utc).isoformat()}})
+    return {"message": "Invoice view recorded"}
 
 
 # ============== PORTAL DOCUMENTS ==============
@@ -573,4 +705,180 @@ async def get_portal_document_detail(
         )
     
     return portal_doc
+
+
+# ============== PORTAL FORMS / QUESTIONNAIRES ==============
+
+@router.get("/forms")
+async def get_portal_forms(
+    status: Optional[str] = None,
+    customer: dict = Depends(get_current_portal_customer)
+):
+    query = {"customer_id": customer["id"]}
+    if status:
+        query["status"] = status
+    requests = await db.portal_form_requests.find(query, {"_id": 0}).sort("sent_at", -1).to_list(200)
+    return requests
+
+
+@router.get("/forms/{request_id}")
+async def get_portal_form_detail(
+    request_id: str,
+    customer: dict = Depends(get_current_portal_customer)
+):
+    form_request = await db.portal_form_requests.find_one({"id": request_id, "customer_id": customer["id"]}, {"_id": 0})
+    if not form_request:
+        raise HTTPException(status_code=404, detail="Form request not found")
+
+    questionnaire = await db.questionnaires.find_one(
+        {"id": form_request.get("questionnaire_id")},
+        {"_id": 0, "tenant_id": 0, "created_by": 0}
+    )
+    if not questionnaire:
+        raise HTTPException(status_code=404, detail="Questionnaire not found")
+
+    if not form_request.get("opened_at"):
+        await db.portal_form_requests.update_one(
+            {"id": request_id},
+            {"$set": {"opened_at": datetime.now(timezone.utc).isoformat(), "status": "in_progress"}}
+        )
+        form_request["opened_at"] = datetime.now(timezone.utc).isoformat()
+        form_request["status"] = "in_progress"
+
+    existing_response = None
+    if form_request.get("response_id"):
+        existing_response = await db.questionnaire_responses.find_one({"id": form_request.get("response_id")}, {"_id": 0})
+
+    return {
+        "request": form_request,
+        "questionnaire": questionnaire,
+        "existing_response": existing_response,
+    }
+
+
+@router.post("/forms/{request_id}/submit")
+async def submit_portal_form(
+    request_id: str,
+    payload: Dict[str, Any] = Body(...),
+    customer: dict = Depends(get_current_portal_customer)
+):
+    form_request = await db.portal_form_requests.find_one({"id": request_id, "customer_id": customer["id"]}, {"_id": 0})
+    if not form_request:
+        raise HTTPException(status_code=404, detail="Form request not found")
+
+    questionnaire = await db.questionnaires.find_one({"id": form_request.get("questionnaire_id")}, {"_id": 0})
+    if not questionnaire:
+        raise HTTPException(status_code=404, detail="Questionnaire not found")
+
+    answers = payload.get("answers", {})
+    for question in questionnaire.get("questions", []):
+        if question.get("required") and question.get("type") not in ["heading", "paragraph"]:
+            question_id = question.get("id")
+            answer = answers.get(question_id)
+            if not answer or (isinstance(answer, list) and len(answer) == 0):
+                raise HTTPException(status_code=400, detail=f"Required field missing: {question.get('label')}")
+
+    now = datetime.now(timezone.utc).isoformat()
+    response = QuestionnaireResponse(
+        tenant_id=questionnaire["tenant_id"],
+        questionnaire_id=questionnaire["id"],
+        questionnaire_name=questionnaire["name"],
+        answers=answers,
+        job_id=form_request.get("job_id"),
+        customer_id=customer["id"],
+        customer_name=customer.get("name"),
+        customer_email=customer.get("email"),
+        submitted_at=now,
+    )
+    await db.questionnaire_responses.insert_one(response.model_dump())
+    await db.questionnaires.update_one({"id": questionnaire["id"]}, {"$inc": {"response_count": 1}})
+
+    rendered_text = format_form_response_document(questionnaire, answers, customer.get("name", "Customer"), now)
+    document_id = str(uuid.uuid4())
+    encoded_data = base64.b64encode(rendered_text.encode("utf-8")).decode("utf-8")
+    document = {
+        "id": document_id,
+        "tenant_id": customer.get("tenant_id"),
+        "name": f"{questionnaire.get('name')} Submission",
+        "description": f"Portal form submission for {customer.get('name')}",
+        "category": "customer_form",
+        "file_type": "text/plain",
+        "file_size": len(rendered_text.encode("utf-8")),
+        "file_data": encoded_data,
+        "original_filename": f"{questionnaire.get('name', 'form').replace(' ', '_').lower()}_submission.txt",
+        "is_template": False,
+        "tags": ["portal-form", "questionnaire-submission"],
+        "linked_jobs": [form_request.get("job_id")] if form_request.get("job_id") else [],
+        "linked_customers": [customer["id"]],
+        "status": "active",
+        "uploaded_by": customer["id"],
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.documents.insert_one(document)
+
+    portal_doc = {
+        "id": str(uuid.uuid4()),
+        "tenant_id": customer.get("tenant_id"),
+        "customer_id": customer["id"],
+        "document_id": document_id,
+        "document_name": document["name"],
+        "document_category": "customer_form",
+        "message": "Completed form submission",
+        "status": "unread",
+        "job_id": form_request.get("job_id"),
+        "related_job_id": form_request.get("job_id"),
+        "created_at": now,
+        "created_by": customer["id"],
+    }
+    await db.portal_documents.insert_one(portal_doc)
+
+    await db.portal_form_requests.update_one(
+        {"id": request_id},
+        {"$set": {"status": "completed", "submitted_at": now, "response_id": response.id, "document_id": document_id}}
+    )
+
+    notification = CustomerNotification(
+        tenant_id=customer.get("tenant_id"),
+        customer_id=customer["id"],
+        notification_type="form_submitted",
+        title="Form submitted",
+        message=f"{customer.get('name')} submitted {questionnaire.get('name')}",
+        related_id=response.id,
+    )
+    await db.customer_notifications.insert_one(notification.model_dump())
+
+    return {"message": questionnaire.get("thank_you_message", "Thank you for your submission!"), "response_id": response.id, "document_id": document_id}
+
+
+@router.get("/invoices/{invoice_id}/download")
+async def download_portal_invoice_pdf(
+    invoice_id: str,
+    customer: dict = Depends(get_current_portal_customer)
+):
+    invoice = await db.invoices.find_one({"id": invoice_id, "customer_id": customer["id"]}, {"_id": 0})
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+
+    output = BytesIO()
+    doc = SimpleDocTemplate(output, pagesize=letter)
+    styles = getSampleStyleSheet()
+    elements = [Paragraph(f"Invoice #{invoice['id'][:8].upper()}", styles['Title']), Spacer(1, 12)]
+    elements.append(Paragraph(f"Customer: {customer.get('name', 'Customer')}", styles['BodyText']))
+    elements.append(Paragraph(f"Date: {invoice.get('created_at', '')[:10]}", styles['BodyText']))
+    elements.append(Paragraph(f"Due: {invoice.get('due_date', 'N/A')}", styles['BodyText']))
+    elements.append(Spacer(1, 12))
+    table_data = [["Description", "Qty", "Unit Price", "Total"]]
+    for item in invoice.get("line_items", []):
+        table_data.append([item.get("description", "Item"), item.get("quantity", 1), f"${item.get('unit_price', 0):.2f}", f"${item.get('total', 0):.2f}"])
+    table_data.append(["", "", "Total", f"${invoice.get('total', 0):.2f}"])
+    table = Table(table_data)
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+    ]))
+    elements.append(table)
+    doc.build(elements)
+    output.seek(0)
+    return StreamingResponse(output, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename=invoice_{invoice['id'][:8].upper()}.pdf"})
 

@@ -203,6 +203,18 @@ export function PortalInvoices() {
   }, [navigate, filter]);
 
   useEffect(() => {
+    const token = localStorage.getItem('portal_token');
+    if (token) {
+      invoices.forEach((invoice) => {
+        fetch(`${API_URL}/api/portal/invoices/${invoice.id}/viewed`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        }).catch(() => null);
+      });
+    }
+  }, [invoices]);
+
+  useEffect(() => {
     fetchInvoices();
   }, [fetchInvoices]);
 
@@ -302,6 +314,14 @@ export function PortalInvoices() {
                           <span className="text-lg font-bold text-amber-900">
                             {formatCurrency(balanceDue)}
                           </span>
+                        </div>
+                        <div className="flex gap-2 mt-3">
+                          <a href={`${API_URL}/api/portal/invoices/${invoice.id}/download`} target="_blank" rel="noopener noreferrer">
+                            <Button variant="outline" size="sm">Download PDF</Button>
+                          </a>
+                          <Button size="sm" className="bg-teal-500 hover:bg-teal-600" disabled>
+                            Pay Now
+                          </Button>
                         </div>
                       </div>
                     )}

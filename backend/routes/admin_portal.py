@@ -61,6 +61,14 @@ class ArtworkSendCreate(BaseModel):
     watermarked_url: Optional[str] = None
 
 
+class PortalFormSendCreate(BaseModel):
+    customer_id: str
+    questionnaire_id: str
+    job_id: Optional[str] = None
+    instructions: Optional[str] = None
+    due_date: Optional[str] = None
+
+
 # ============== DASHBOARD ==============
 
 @router.get("/dashboard")
@@ -98,7 +106,6 @@ async def get_admin_portal_dashboard(
     })
     
     # Recently approved (last 7 days)
-    from datetime import timedelta
     week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
     recent_approved = await db.artwork_proofs.count_documents({
         "tenant_id": tenant_id,
@@ -116,6 +123,17 @@ async def get_admin_portal_dashboard(
         "tenant_id": tenant_id,
         "viewed_at": None
     })
+
+    pending_forms = await db.portal_form_requests.count_documents({
+        "tenant_id": tenant_id,
+        "status": {"$in": ["pending", "in_progress", "overdue"]}
+    })
+
+    recent_form_submissions = await db.portal_form_requests.count_documents({
+        "tenant_id": tenant_id,
+        "status": "completed",
+        "submitted_at": {"$gte": week_ago}
+    })
     
     return {
         "messages": {
@@ -130,6 +148,10 @@ async def get_admin_portal_dashboard(
         "documents": {
             "total_shared": shared_documents,
             "unviewed": unviewed_documents
+        },
+        "forms": {
+            "pending": pending_forms,
+            "recent_submissions": recent_form_submissions
         }
     }
 
@@ -547,6 +569,82 @@ async def share_document_with_multiple_customers(
         shared_count += 1
     
     return {"message": f"Document shared with {shared_count} customers"}
+
+
+# ============== FORMS / QUESTIONNAIRE MANAGEMENT ==============
+
+@router.get("/forms")
+async def get_form_requests(
+    customer_id: Optional[str] = None,
+    job_id: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    query = {"tenant_id": current_user.tenant_id}
+    if customer_id:
+        query["customer_id"] = customer_id
+    if job_id:
+        query["job_id"] = job_id
+    if status:
+        query["status"] = status
+
+    requests = await db.portal_form_requests.find(query, {"_id": 0}).sort("sent_at", -1).to_list(500)
+    for request in requests:
+        request["customer"] = await db.customers.find_one({"id": request.get("customer_id")}, {"_id": 0, "id": 1, "name": 1, "email": 1})
+        if request.get("job_id"):
+            request["job"] = await db.jobs.find_one({"id": request.get("job_id")}, {"_id": 0, "id": 1, "name": 1})
+    return requests
+
+
+@router.post("/forms/send")
+async def send_form_request(
+    input: PortalFormSendCreate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    customer = await db.customers.find_one({"id": input.customer_id, "tenant_id": current_user.tenant_id}, {"_id": 0})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    questionnaire = await db.questionnaires.find_one({"id": input.questionnaire_id, "tenant_id": current_user.tenant_id}, {"_id": 0})
+    if not questionnaire:
+        raise HTTPException(status_code=404, detail="Questionnaire not found")
+
+    if input.job_id:
+        job = await db.jobs.find_one({"id": input.job_id, "tenant_id": current_user.tenant_id}, {"_id": 0})
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found")
+
+    now = datetime.now(timezone.utc).isoformat()
+    request = {
+        "id": str(uuid.uuid4()),
+        "tenant_id": current_user.tenant_id,
+        "customer_id": input.customer_id,
+        "job_id": input.job_id,
+        "questionnaire_id": input.questionnaire_id,
+        "questionnaire_name": questionnaire.get("name"),
+        "instructions": input.instructions,
+        "due_date": input.due_date,
+        "status": "pending",
+        "sent_at": now,
+        "created_at": now,
+        "created_by": current_user.id,
+    }
+    await db.portal_form_requests.insert_one(request)
+
+    notification = CustomerNotification(
+        tenant_id=current_user.tenant_id,
+        customer_id=input.customer_id,
+        notification_type="form_request",
+        title="New Form Request",
+        message=f"Please complete {questionnaire.get('name')}",
+        link=f"/customer-portal/forms/{request['id']}",
+        related_id=request["id"],
+    )
+    await db.customer_notifications.insert_one(notification.model_dump())
+
+    # Remove MongoDB _id before returning
+    request.pop("_id", None)
+    return request
 
 
 # ============== ARTWORK APPROVALS ==============
