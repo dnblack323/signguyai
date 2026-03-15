@@ -11,7 +11,7 @@
 
 ### Pricing Engine Upgrade
 - `GET/PUT /api/pricing/defaults` now reads/writes tenant pricing configuration consistently
-- Banners, Rigid Signs, and Vehicle Wrap calculators now use company settings for cost math
+- All 8 calculator categories now use company settings for cost math
 - Calculator responses now include: `material_cost`, `labor_cost`, `overhead_cost`, `total_cost`, `selling_price`, `profit_amount`, `profit_margin_percent`
 
 ### Estimate Storage Upgrade
@@ -22,6 +22,22 @@
 - Manual smoke test passed on preview for login + `/pricing-calculator/settings`
 - Backend/API verification passed for defaults + calculator math + job snapshot persistence
 - Test report: `/app/test_reports/iteration_54.json`
+
+## March 15, 2026 - Pricing Expansion to Remaining Calculators
+
+### Expanded Calculator Coverage
+- Added company-based settings support to **Cut Vinyl**, **Apparel**, **Services**, and **Custom / Miscellaneous** calculators
+- Also removed remaining hardcoded pricing paths from **Promotional** calculations so all active calculator categories use tenant settings
+- Added new material presets: `apparel_blank`, `apparel_decoration`, `misc_material`
+- Expanded category defaults + selling benchmarks to support all calculator categories
+
+### Consistent Cost Snapshot Storage
+- Calculator-generated snapshots now include `material_cost`, `labor_cost`, `overhead_cost`, `total_cost`, `selling_price`, `profit`, `profit_margin`, plus compatibility fields
+- Job items persist these snapshots consistently across categories for future analytics
+
+### Testing
+- Expanded audit completed via `/app/test_reports/iteration_55.json`
+- Result: **100% backend + 100% frontend pass** for all 8 calculator categories
 
 
 ## March 14, 2026 - Admin Payroll Enhancement + Document Library Update
