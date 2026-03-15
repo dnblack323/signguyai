@@ -71,6 +71,7 @@ export const tabSubItems = {
   ],
   settings: [
     { label: 'Company', icon: Settings, path: '/settings' },
+    { label: 'Pricing Setup', icon: ClipboardList, path: '/settings/pricing-setup' },
     { label: 'Pricing & Costs', icon: DollarSign, path: '/pricing-calculator/settings' },
     { label: 'Email Templates', icon: Mail, path: '/settings/email-templates' },
     { label: 'Production', icon: Wrench, path: '/settings/production' },
@@ -85,6 +86,7 @@ const routeToNavItem = {
   '/jobs': 'jobs',
   '/quotes': 'jobs',
   '/approvals': 'jobs',
+  '/settings/pricing-setup': 'settings',
   '/pricing-calculator/settings': 'settings',
   '/invoices': 'billing',
   '/admin/payments': 'billing',

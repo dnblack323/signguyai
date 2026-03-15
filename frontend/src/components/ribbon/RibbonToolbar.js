@@ -8,7 +8,7 @@ import {
   Store, Package, ShoppingCart, Wallet, Share2, Ticket,
   Sparkles, Wand2, Type, Mail, FileEdit, MessageSquare, TrendingUp, BarChart3,
   PieChart, LineChart, Timer, AlertTriangle,
-  Settings, Shield, Lock
+  Settings, Shield, Lock, ClipboardList
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { SplitButton } from './DropdownMenu';
@@ -305,6 +305,7 @@ const SettingsToolbar = ({ navigate }) => (
   <div className="flex items-stretch h-full">
     <RibbonGroup title="Company">
       <RibbonButton icon={Building} label="Business" onClick={() => navigate('/settings')} />
+      <RibbonButton icon={ClipboardList} label="Setup" onClick={() => navigate('/settings/pricing-setup')} />
       <RibbonButton icon={DollarSign} label="Pricing" onClick={() => navigate('/pricing-calculator/settings')} />
       <RibbonButton icon={DollarSign} label="Taxes" onClick={() => navigate('/settings')} />
     </RibbonGroup>

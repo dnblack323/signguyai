@@ -849,6 +849,30 @@ export default function CompanySettings() {
         </CardContent>
       </Card>
 
+      {/* Pricing Setup Card */}
+      <Card className="border" style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }}>
+        <CardHeader>
+          <CardTitle style={{ color: '#1A1A1A' }}>Pricing Setup</CardTitle>
+          <CardDescription style={{ color: '#5A5A5A' }}>
+            Configure cost settings and import historical invoices for AI benchmark review
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <button
+            onClick={() => navigate('/settings/pricing-setup')}
+            className="w-full p-4 rounded-lg text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+            style={{ background: '#F5F7FA' }}
+            data-testid="settings-pricing-setup-link"
+          >
+            <div>
+              <p className="font-medium" style={{ color: '#1A1A1A' }}>Historical Invoice Import & Pricing Setup</p>
+              <p className="text-sm mt-1" style={{ color: '#5A5A5A' }}>Review AI-generated selling benchmarks before saving them to pricing settings</p>
+            </div>
+            <span style={{ color: '#5A5A5A' }}>&rarr;</span>
+          </button>
+        </CardContent>
+      </Card>
+
       {/* Data Management Card */}
       <Card className="border" style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }}>
         <CardHeader>

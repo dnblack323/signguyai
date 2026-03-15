@@ -32,6 +32,7 @@ import Login from "./pages/Login";
 import UserManagement from "./pages/UserManagement";
 import Pricing from "./pages/Pricing";
 import PricingSettings from "./pages/PricingSettings";
+import PricingSetup from "./pages/PricingSetup";
 import CompanySettings from "./pages/CompanySettings";
 import ProductionSettings from "./pages/settings/ProductionSettings";
 import BackupRestore from "./pages/settings/BackupRestore";
@@ -163,6 +164,7 @@ function ProtectedRoutes() {
           <Route path="/products" element={<Products />} />
           <Route path="/users" element={<UserManagement />} />
           <Route path="/settings" element={<CompanySettings />} />
+          <Route path="/settings/pricing-setup" element={<PricingSetup />} />
           <Route path="/settings/email-templates" element={<EmailTemplates />} />
           <Route path="/settings/production" element={<ProductionSettings />} />
           <Route path="/settings/backup" element={<BackupRestore />} />

@@ -1,0 +1,112 @@
+{
+  "summary": "Historical Invoice Import + AI Pricing Analysis testing completed (iteration 56). All 15 backend API tests passed covering: file upload (CSV, XLSX, PDF), tenant-scoped import sessions, field mapping, AI analysis with confidence levels, Accept/Edit/Ignore review workflow, and benchmark-only saves. Frontend UI testing passed: PricingSetup page loads at /settings/pricing-setup, navigation from Company Settings works, upload card displays, import history list shows existing sessions, field mapping review with all 5 fields works, suggestions review card displays with confidence levels. No regression on /pricing-calculator/settings page. Selling Price Benchmarks remain separate from Cost Settings as designed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "features_verified": {
+    "GET /api/pricing-setup/imports": {
+      "status": "PASS",
+      "description": "Returns tenant-scoped list of import sessions"
+    },
+    "POST /api/pricing-setup/imports (CSV upload)": {
+      "status": "PASS",
+      "description": "Creates import session with CSV file, returns file metadata, preview columns, mapping suggestions"
+    },
+    "GET /api/pricing-setup/imports/{id}": {
+      "status": "PASS",
+      "description": "Returns specific tenant-scoped import with files, mapping, normalized_rows, status"
+    },
+    "PUT /api/pricing-setup/imports/{id}/mapping": {
+      "status": "PASS",
+      "description": "Saves field mapping (description_field, quantity_field, total_field, dimension_field, category_field, category_overrides), builds normalized rows"
+    },
+    "POST /api/pricing-setup/imports/{id}/analyze": {
+      "status": "PASS",
+      "description": "Runs AI analysis using GPT-5.2, returns suggestions with confidence levels (High/Medium/Low), analysis_summary with invoice_count, line_item_count, categories_detected"
+    },
+    "POST /api/pricing-setup/imports/{id}/review (Accept/Edit/Ignore)": {
+      "status": "PASS",
+      "description": "Processes decisions array with suggestion_id, status (accepted/ignored/edited), final_value. Saves to selling_price_benchmarks ONLY"
+    },
+    "Tenant isolation": {
+      "status": "PASS",
+      "description": "Imports are tenant-scoped, fake import ID returns 404, admin/owner access required"
+    },
+    "Benchmarks separate from Cost Settings": {
+      "status": "PASS",
+      "description": "selling_price_benchmarks updated by review, category_defaults (cost settings) remain unchanged"
+    },
+    "No regression on /pricing-calculator/settings": {
+      "status": "PASS",
+      "description": "GET/PUT /api/pricing/defaults still works, pricing calculator still functional"
+    },
+    "Confidence levels in suggestions": {
+      "status": "PASS",
+      "description": "All suggestions have valid confidence (High/Medium/Low) based on sample_count and complete_samples"
+    },
+    "Category override mapping": {
+      "status": "PASS",
+      "description": "category_overrides in mapping payload correctly override category_final for specific descriptions"
+    },
+    "Frontend /settings/pricing-setup page loads": {
+      "status": "PASS",
+      "description": "Page loads with data-testid='pricing-setup-page', two tabs (Pricing & Cost Settings, Historical Invoice Import)"
+    },
+    "Frontend upload workflow UI": {
+      "status": "PASS",
+      "description": "Upload card, file input (CSV/XLSX/PDF), upload button all present and functional"
+    },
+    "Frontend import history list": {
+      "status": "PASS",
+      "description": "Import sessions displayed with file count, status badge, created date. Clickable to load details"
+    },
+    "Frontend field mapping UI": {
+      "status": "PASS",
+      "description": "5 field mapping dropdowns (Description, Quantity, Total, Dimension, Category) with columns from uploaded files"
+    },
+    "Frontend suggestions review UI": {
+      "status": "PASS",
+      "description": "Suggestions card shows category_label, benchmark_field, suggested_value, confidence badge, Accept/Ignore buttons"
+    },
+    "Navigation Settings > Pricing Setup": {
+      "status": "PASS",
+      "description": "Accessible via Company Settings card and Settings sub-navigation"
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_pricing_setup.py",
+    "/app/test_reports/pytest/pricing_setup_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "pricing_setup.py routes use tenant_id from current_user for all queries ensuring tenant isolation",
+    "ensure_admin_access() helper checks user.role in ['owner', 'admin'] before allowing import management",
+    "ai_analyze_category_metrics() uses GPT-5.2 via emergentintegrations with EMERGENT_LLM_KEY",
+    "calculate_confidence() returns High/Medium/Low based on sample_count >= 12 and complete_samples >= 8 thresholds",
+    "review endpoint writes only to selling_price_benchmarks collection, not pricing_configuration cost fields",
+    "normalize_structured_rows() uses pandas to parse CSV/XLSX, ai_extract_pdf_rows() uses GPT-5.2 for PDF text extraction",
+    "Frontend PricingSetup.js properly handles all import states (mapping_required, ready_for_analysis, analyzed, reviewed)",
+    "File upload accepts .pdf, .csv, .xlsx, .xls extensions with proper MIME type handling"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_pricing_setup.py"
+  ],
+  "success_rate": {
+    "backend": "100% - All 15 pricing setup API tests passed",
+    "frontend": "100% - PricingSetup page loads, all UI elements functional, navigation working"
+  },
+  "test_credentials": {
+    "admin_email": "thesigntistslab@gmail.com",
+    "admin_password": "password123"
+  },
+  "seed_data_creation": "Created 3 test import sessions with CSV files during backend tests. These remain in database as designed (no cleanup endpoint - imports are retained for audit/history).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Historical Invoice Import + AI Pricing Analysis feature fully implemented and tested. Key endpoints: POST /api/pricing-setup/imports (file upload), PUT .../mapping (field mapping), POST .../analyze (AI analysis with GPT-5.2), POST .../review (Accept/Edit/Ignore to selling_price_benchmarks). Frontend page at /settings/pricing-setup has 2 tabs: Pricing & Cost Settings (links to /pricing-calculator/settings) and Historical Invoice Import (main workflow). Import sessions show status flow: mapping_required -> ready_for_analysis -> analyzed -> reviewed. Suggestions have confidence levels (High/Medium/Low). Review saves ONLY to selling_price_benchmarks, never to cost settings. Tenant isolation enforced via tenant_id in all queries. Admin/owner role required."
+}
