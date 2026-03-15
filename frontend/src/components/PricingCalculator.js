@@ -426,6 +426,8 @@ export default function PricingCalculator({
       overhead_cost: calculation?.overhead_cost || 0,
       total_cost: totalCost,
       selling_price: finalPrice,
+      profit: profitAmount,
+      profit_margin: profitMarginPercent,
       profit_amount: profitAmount,
       profit_margin_percent: profitMarginPercent,
       estimated_labor_minutes: calculation?.estimated_labor_minutes || 0,

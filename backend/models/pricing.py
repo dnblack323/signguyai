@@ -43,6 +43,9 @@ class PricingDefaults(BaseModel):
         {"id": "foam-board-cost", "key": "foam_board", "name": "Foam Board Cost Per Sq Ft", "category": "material", "cost_per_unit": 2.15, "unit_type": "sqft", "is_active": True},
         {"id": "ink-cost", "key": "ink", "name": "Ink Cost Per Sq Ft", "category": "optional", "cost_per_unit": 0.35, "unit_type": "sqft", "is_active": True},
         {"id": "transfer-tape-cost", "key": "transfer_tape", "name": "Transfer Tape Cost Per Sq Ft", "category": "optional", "cost_per_unit": 0.2, "unit_type": "sqft", "is_active": True},
+        {"id": "apparel-blank-cost", "key": "apparel_blank", "name": "Apparel Blank Cost Per Item", "category": "material", "cost_per_unit": 5.0, "unit_type": "each", "is_active": True},
+        {"id": "apparel-decoration-cost", "key": "apparel_decoration", "name": "Apparel Decoration Cost Per Print", "category": "material", "cost_per_unit": 2.5, "unit_type": "each", "is_active": True},
+        {"id": "misc-material-cost", "key": "misc_material", "name": "Custom / Misc Material Cost Per Item", "category": "material", "cost_per_unit": 10.0, "unit_type": "each", "is_active": True},
         {"id": "acrylic-sheet-cost", "key": "acrylic_sheet", "name": "Acrylic Sheet Cost Per Sq Ft", "category": "material", "cost_per_unit": 5.5, "unit_type": "sqft", "is_active": True},
         {"id": "rigid-sign-board-cost", "key": "rigid_sign_board", "name": "Rigid Sign Board Cost Per Sq Ft", "category": "material", "cost_per_unit": 2.85, "unit_type": "sqft", "is_active": True},
     ])
@@ -78,11 +81,47 @@ class PricingDefaults(BaseModel):
             "minimum_charge": 55.0,
             "default_material_keys": ["coroplast", "aluminum_composite", "foam_board", "ink"],
         },
+        "cut_vinyl": {
+            "label": "Cut Vinyl",
+            "default_labor_hours_per_sqft": 0.1,
+            "default_markup_multiplier": 2.3,
+            "target_profit_margin_percent": 40.0,
+            "minimum_charge": 25.0,
+            "default_material_keys": ["vinyl", "transfer_tape"],
+        },
+        "apparel": {
+            "label": "Apparel",
+            "default_labor_hours_per_unit": 0.08,
+            "default_markup_multiplier": 2.15,
+            "target_profit_margin_percent": 38.0,
+            "minimum_charge": 60.0,
+            "default_material_keys": ["apparel_blank", "apparel_decoration"],
+        },
+        "services": {
+            "label": "Services",
+            "default_labor_hours": 1.0,
+            "default_markup_multiplier": 1.8,
+            "target_profit_margin_percent": 35.0,
+            "minimum_charge": 75.0,
+            "default_material_keys": ["misc_material"],
+        },
+        "custom": {
+            "label": "Custom / Miscellaneous",
+            "default_labor_hours_per_unit": 0.25,
+            "default_markup_multiplier": 2.25,
+            "target_profit_margin_percent": 38.0,
+            "minimum_charge": 50.0,
+            "default_material_keys": ["misc_material"],
+        },
     })
     selling_price_benchmarks: Dict[str, Any] = Field(default_factory=lambda: {
         "vehicle_wraps": {"label": "Vehicle Wraps", "average_sell_price_per_sqft": 18.75, "average_order_total": 2850.0, "minimum_charge": 950.0},
         "banners": {"label": "Banners", "average_sell_price_per_sqft": 8.25, "average_order_total": 245.0, "minimum_charge": 45.0},
         "rigid_signs": {"label": "Rigid Signs", "average_sell_price_per_sqft": 12.4, "average_order_total": 310.0, "minimum_charge": 65.0},
+        "cut_vinyl": {"label": "Cut Vinyl", "average_sell_price_per_sqft": 7.5, "average_order_total": 125.0, "minimum_charge": 30.0},
+        "apparel": {"label": "Apparel", "average_sell_price_per_unit": 24.0, "average_order_total": 420.0, "minimum_charge": 75.0},
+        "services": {"label": "Services", "average_sell_price_per_hour": 110.0, "average_order_total": 240.0, "minimum_charge": 85.0},
+        "custom": {"label": "Custom / Miscellaneous", "average_sell_price_per_unit": 75.0, "average_order_total": 280.0, "minimum_charge": 60.0},
     })
     
     # Labor rates

@@ -33,12 +33,19 @@ const MATERIAL_PRESETS = [
   { key: 'foam_board', name: 'Foam Board Cost Per Sq Ft', category: 'material', unit_type: 'sqft' },
   { key: 'ink', name: 'Ink Cost Per Sq Ft', category: 'optional', unit_type: 'sqft' },
   { key: 'transfer_tape', name: 'Transfer Tape Cost Per Sq Ft', category: 'optional', unit_type: 'sqft' },
+  { key: 'apparel_blank', name: 'Apparel Blank Cost Per Item', category: 'material', unit_type: 'each' },
+  { key: 'apparel_decoration', name: 'Apparel Decoration Cost Per Print', category: 'material', unit_type: 'each' },
+  { key: 'misc_material', name: 'Custom / Misc Material Cost Per Item', category: 'material', unit_type: 'each' },
 ];
 
 const CATEGORY_ORDER = [
-  { key: 'vehicle_wraps', label: 'Vehicle Wraps' },
-  { key: 'banners', label: 'Banners' },
-  { key: 'rigid_signs', label: 'Rigid Signs' },
+  { key: 'vehicle_wraps', label: 'Vehicle Wraps', laborField: 'default_labor_hours_per_sqft', laborLabel: 'Labor Hours Per Sq Ft', benchmarkField: 'average_sell_price_per_sqft', benchmarkLabel: 'Average Sell Price / Sq Ft' },
+  { key: 'banners', label: 'Banners', laborField: 'default_labor_hours_per_sqft', laborLabel: 'Labor Hours Per Sq Ft', benchmarkField: 'average_sell_price_per_sqft', benchmarkLabel: 'Average Sell Price / Sq Ft' },
+  { key: 'rigid_signs', label: 'Rigid Signs', laborField: 'default_labor_hours_per_sqft', laborLabel: 'Labor Hours Per Sq Ft', benchmarkField: 'average_sell_price_per_sqft', benchmarkLabel: 'Average Sell Price / Sq Ft' },
+  { key: 'cut_vinyl', label: 'Cut Vinyl', laborField: 'default_labor_hours_per_sqft', laborLabel: 'Labor Hours Per Sq Ft', benchmarkField: 'average_sell_price_per_sqft', benchmarkLabel: 'Average Sell Price / Sq Ft' },
+  { key: 'apparel', label: 'Apparel', laborField: 'default_labor_hours_per_unit', laborLabel: 'Labor Hours Per Item', benchmarkField: 'average_sell_price_per_unit', benchmarkLabel: 'Average Sell Price / Item' },
+  { key: 'services', label: 'Services', laborField: 'default_labor_hours', laborLabel: 'Default Labor Hours', benchmarkField: 'average_sell_price_per_hour', benchmarkLabel: 'Average Sell Price / Hour' },
+  { key: 'custom', label: 'Custom / Miscellaneous', laborField: 'default_labor_hours_per_unit', laborLabel: 'Labor Hours Per Item', benchmarkField: 'average_sell_price_per_unit', benchmarkLabel: 'Average Sell Price / Item' },
 ];
 
 const createMaterial = (seed = {}) => ({
@@ -76,12 +83,48 @@ const defaultCategoryDefaults = {
     minimum_charge: 55,
     default_material_keys: ['coroplast', 'aluminum_composite', 'foam_board', 'ink'],
   },
+  cut_vinyl: {
+    label: 'Cut Vinyl',
+    default_labor_hours_per_sqft: 0.1,
+    default_markup_multiplier: 2.3,
+    target_profit_margin_percent: 40,
+    minimum_charge: 25,
+    default_material_keys: ['vinyl', 'transfer_tape'],
+  },
+  apparel: {
+    label: 'Apparel',
+    default_labor_hours_per_unit: 0.08,
+    default_markup_multiplier: 2.15,
+    target_profit_margin_percent: 38,
+    minimum_charge: 60,
+    default_material_keys: ['apparel_blank', 'apparel_decoration'],
+  },
+  services: {
+    label: 'Services',
+    default_labor_hours: 1,
+    default_markup_multiplier: 1.8,
+    target_profit_margin_percent: 35,
+    minimum_charge: 75,
+    default_material_keys: ['misc_material'],
+  },
+  custom: {
+    label: 'Custom / Miscellaneous',
+    default_labor_hours_per_unit: 0.25,
+    default_markup_multiplier: 2.25,
+    target_profit_margin_percent: 38,
+    minimum_charge: 50,
+    default_material_keys: ['misc_material'],
+  },
 };
 
 const defaultBenchmarks = {
   vehicle_wraps: { label: 'Vehicle Wraps', average_sell_price_per_sqft: 18.75, average_order_total: 2850, minimum_charge: 950 },
   banners: { label: 'Banners', average_sell_price_per_sqft: 8.25, average_order_total: 245, minimum_charge: 45 },
   rigid_signs: { label: 'Rigid Signs', average_sell_price_per_sqft: 12.4, average_order_total: 310, minimum_charge: 65 },
+  cut_vinyl: { label: 'Cut Vinyl', average_sell_price_per_sqft: 7.5, average_order_total: 125, minimum_charge: 30 },
+  apparel: { label: 'Apparel', average_sell_price_per_unit: 24, average_order_total: 420, minimum_charge: 75 },
+  services: { label: 'Services', average_sell_price_per_hour: 110, average_order_total: 240, minimum_charge: 85 },
+  custom: { label: 'Custom / Miscellaneous', average_sell_price_per_unit: 75, average_order_total: 280, minimum_charge: 60 },
 };
 
 export default function PricingSettings() {
@@ -474,7 +517,7 @@ export default function PricingSettings() {
         </TabsContent>
 
         <TabsContent value="categories" className="space-y-4">
-          <div className="grid gap-4 xl:grid-cols-3">
+          <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
             {CATEGORY_ORDER.map((category) => {
               const values = settings.category_defaults[category.key] || defaultCategoryDefaults[category.key];
               return (
@@ -485,7 +528,7 @@ export default function PricingSettings() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {[
-                      ['default_labor_hours_per_sqft', 'Labor Hours Per Sq Ft'],
+                      [category.laborField, category.laborLabel],
                       ['default_markup_multiplier', 'Default Markup'],
                       ['target_profit_margin_percent', 'Target Margin %'],
                       ['minimum_charge', 'Minimum Charge'],
@@ -539,7 +582,7 @@ export default function PricingSettings() {
             </CardHeader>
           </Card>
 
-          <div className="grid gap-4 xl:grid-cols-3">
+          <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
             {CATEGORY_ORDER.map((category) => {
               const values = settings.selling_price_benchmarks[category.key] || defaultBenchmarks[category.key];
               return (
@@ -550,7 +593,7 @@ export default function PricingSettings() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {[
-                      ['average_sell_price_per_sqft', 'Average Sell Price / Sq Ft'],
+                      [category.benchmarkField, category.benchmarkLabel],
                       ['average_order_total', 'Average Order Total'],
                       ['minimum_charge', 'Reference Minimum Charge'],
                     ].map(([field, label]) => (

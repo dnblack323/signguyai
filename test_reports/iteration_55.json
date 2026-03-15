@@ -1,0 +1,106 @@
+{
+  "summary": "Pricing Expansion testing completed (iteration 55). All 16 backend API tests passed for the expanded company-based pricing system. Calculator endpoints for cut_vinyl, apparel, services, custom now use tenant company settings and return full cost breakdowns including material_cost, labor_cost, overhead_cost, total_cost, selling_price, profit_amount, profit_margin_percent. Re-tested digital_print/banner, rigid_signs, vehicle_graphics - all still working correctly. Promotional calculator uses tenant settings. Job item creation preserves pricing_category and cost_snapshot fields consistently across categories. Profit calculations are internally consistent: selling_price - total_cost == profit_amount. Frontend Settings page loads with all 4 tabs (Material Costs, Labor & Overhead, Category Defaults, Selling Benchmarks) and shows expanded materials including apparel_blank, apparel_decoration, misc_material.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "features_verified": {
+    "POST /api/pricing/calculate (cut_vinyl)": {
+      "status": "PASS",
+      "description": "Returns full cost breakdown with material_cost, labor_cost, overhead_cost, total_cost, selling_price, profit_amount, profit_margin_percent. Breakdown includes vinyl_type, square_feet."
+    },
+    "POST /api/pricing/calculate (apparel)": {
+      "status": "PASS",
+      "description": "Returns full cost breakdown for apparel with garment_cost, decoration_cost, print_locations. Uses tenant apparel_blank and apparel_decoration material costs."
+    },
+    "POST /api/pricing/calculate (services)": {
+      "status": "PASS",
+      "description": "Returns full cost breakdown for services with service_type, hourly_rate, hours. Uses tenant installer_hourly_rate and design_hourly_rate."
+    },
+    "POST /api/pricing/calculate (custom)": {
+      "status": "PASS",
+      "description": "Returns full cost breakdown for custom/misc items with labor_hours, hourly_rate, overhead_cost."
+    },
+    "POST /api/pricing/calculate (digital_print/banner) re-test": {
+      "status": "PASS",
+      "description": "Continues to work with full cost breakdown including grommets, hemming, lamination costs."
+    },
+    "POST /api/pricing/calculate (rigid_signs) re-test": {
+      "status": "PASS",
+      "description": "Continues to work with substrate costs, laminate, and finishing costs."
+    },
+    "POST /api/pricing/calculate (vehicle_graphics) re-test": {
+      "status": "PASS",
+      "description": "Continues to work with vehicle_type, coverage_type, actual_sqft, install_hours."
+    },
+    "POST /api/pricing/calculate (promotional)": {
+      "status": "PASS",
+      "description": "Uses tenant settings (production_hourly_rate, overhead, markup). Returns full cost breakdown with price_per_item."
+    },
+    "GET /api/pricing/defaults (all categories)": {
+      "status": "PASS",
+      "description": "Returns category_defaults for all 7 categories: vehicle_wraps, banners, rigid_signs, cut_vinyl, apparel, services, custom. Each has default_markup_multiplier, target_profit_margin_percent."
+    },
+    "Job item creation with cost_snapshot (cut_vinyl)": {
+      "status": "PASS",
+      "description": "Job item created with pricing_category='cut_vinyl' and cost_snapshot containing material_cost, labor_cost, overhead_cost, total_cost, selling_price, profit, profit_margin."
+    },
+    "Job item creation with cost_snapshot (apparel)": {
+      "status": "PASS",
+      "description": "Job item created with pricing_category='apparel' and cost_snapshot persisted correctly."
+    },
+    "Job item creation with cost_snapshot (services)": {
+      "status": "PASS",
+      "description": "Job item created with pricing_category='services' and cost_snapshot persisted correctly."
+    },
+    "Job items persistence verification": {
+      "status": "PASS",
+      "description": "All job items retrieved via GET /api/jobs/{id}/items have pricing_category and cost_snapshot fields."
+    },
+    "Profit consistency across categories": {
+      "status": "PASS",
+      "description": "All 8 calculator categories tested: selling_price - total_cost == profit_amount consistently."
+    },
+    "Frontend Settings page loads": {
+      "status": "PASS",
+      "description": "Page at /pricing-calculator/settings loads with data-testid='pricing-settings-page'. Shows 10 tracked materials, 7 reference benchmarks."
+    },
+    "Frontend Settings 4 tabs": {
+      "status": "PASS",
+      "description": "Material Costs, Labor & Overhead, Category Defaults, Selling Benchmarks tabs all present and functional."
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_pricing_expansion.py",
+    "/app/test_reports/pytest/pricing_expansion_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "All 8 calculator functions (calculate_promotional, calculate_cut_vinyl, calculate_services, calculate_digital_print, calculate_rigid_signs, calculate_apparel, calculate_vehicle_graphics, calculate_custom) use get_pricing_defaults() to fetch tenant-specific settings",
+    "create_pricing_result() helper properly calculates profit_amount and profit_margin_percent from selling_price - production_cost",
+    "JobItem model includes pricing_category, pricing_data, cost_snapshot, production_cost, profit_amount, profit_margin_percent fields",
+    "PricingDefaults model has comprehensive category_defaults for all 7 categories with appropriate labor fields (per_sqft vs per_unit vs per_hour)",
+    "Frontend PricingSettings.js CATEGORY_ORDER array defines all 7 categories with correct laborField and benchmarkField mappings",
+    "Frontend correctly merges server category_defaults with local defaultCategoryDefaults to ensure all categories display"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_pricing_expansion.py"
+  ],
+  "success_rate": {
+    "backend": "100% - All 16 pricing expansion API tests passed",
+    "frontend": "100% - Settings page loads with all tabs, materials, and category configuration"
+  },
+  "test_credentials": {
+    "admin_email": "thesigntistslab@gmail.com",
+    "admin_password": "password123"
+  },
+  "seed_data_creation": "Created and cleaned up TEST_Pricing_Expansion_Customer, TEST_Pricing_Expansion_Job, and 3 test job items (cut_vinyl, apparel, services) during backend tests",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Pricing system fully expanded and tested across all 8 categories (digital_print, rigid_signs, vehicle_graphics, cut_vinyl, apparel, services, custom, promotional). All calculators use tenant company pricing/cost settings via get_pricing_defaults(). POST /api/pricing/calculate returns consistent cost_snapshot with material_cost, labor_cost, overhead_cost, total_cost, selling_price, profit_amount, profit_margin_percent. Job items preserve pricing_category and cost_snapshot when created from calculator output. Settings page at /pricing-calculator/settings has 4 tabs for managing Material Costs, Labor & Overhead, Category Defaults, and Selling Benchmarks."
+}

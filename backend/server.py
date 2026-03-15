@@ -317,8 +317,21 @@ def get_complexity_multiplier(complexity: int, base: float = 1.0, max_mult: floa
 
 def get_quantity_discount(quantity: float, quantity_breaks: dict) -> float:
     """Calculate quantity discount based on breaks"""
-    for qty, discount in sorted(quantity_breaks.items(), key=lambda x: int(x[0]), reverse=True):
-        if quantity >= int(qty):
+    normalized_breaks = []
+
+    for qty_key, discount_value in quantity_breaks.items():
+        if isinstance(discount_value, dict):
+            min_qty = float(discount_value.get("min_qty", 0) or 0)
+            discount = float(discount_value.get("discount_percent", 0) or 0) / 100
+        else:
+            min_qty = float(qty_key)
+            discount = float(discount_value or 0)
+            if discount > 1:
+                discount /= 100
+        normalized_breaks.append((min_qty, discount))
+
+    for min_qty, discount in sorted(normalized_breaks, key=lambda item: item[0], reverse=True):
+        if quantity >= min_qty:
             return discount
     return 0
 
@@ -357,23 +370,16 @@ def create_pricing_result(
 
 
 async def calculate_promotional(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate pricing for promotional products - Setup fee is OPTIONAL"""
-    base_cost = data.unit_cost or 0
+    """Calculate promotional items using tenant settings and optional overrides."""
+    category_config = get_category_pricing_config(defaults, "custom")
+    material_cost_map = get_material_cost_map(defaults)
+    base_cost = data.unit_cost or material_cost_map.get("misc_material", 0)
     product_type = data.promo_product_type
-    if product_type == "magnets":
-        base_cost = base_cost or 1.50
-    elif product_type == "yard_signs":
-        base_cost = base_cost or 5.00
-    elif product_type == "stickers":
-        base_cost = base_cost or 0.25
-    elif product_type == "license_plates":
-        base_cost = base_cost or 2.00
-    elif product_type == "branded_items":
-        base_cost = base_cost or 3.00
-    else:
-        base_cost = base_cost or 2.00
     
     material_cost = base_cost * quantity
+    labor_hours = float(category_config.get("default_labor_hours_per_unit", 0.25) or 0.25) * quantity
+    production_rate = float(defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75)) or 0)
+    labor_cost = labor_hours * production_rate
     
     # Setup fee is OPTIONAL - only if checkbox is checked
     include_setup = getattr(data, 'include_setup_fee', False)
@@ -381,11 +387,18 @@ async def calculate_promotional(data: JobItemPricingData, quantity: float, defau
     if include_setup:
         setup_fee = data.setup_fee or defaults.get("promo_setup_fee", 15.0)
     
-    # Markup (setup fee not marked up)
-    markup = data.markup_percent / 100 if data.markup_percent else defaults.get("default_markup", 1.0)
-    if markup < 1:  # If percentage given (e.g., 100 = 100%)
-        markup = 1 + markup
-    suggested_price = material_cost * markup + setup_fee
+    markup_multiplier = (
+        1 + (data.markup_percent / 100)
+        if data.markup_percent is not None
+        else category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5))
+    )
+    pre_overhead_total = material_cost + labor_cost + setup_fee
+    overhead_cost = calculate_overhead_cost(pre_overhead_total, labor_hours, defaults, category_config)
+    suggested_price = resolve_selling_price(
+        pre_overhead_total + overhead_cost,
+        markup_multiplier,
+        category_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40.0)),
+    )
     
     # Quantity discount
     discount = get_quantity_discount(quantity, defaults.get("quantity_breaks", {}))
@@ -394,9 +407,10 @@ async def calculate_promotional(data: JobItemPricingData, quantity: float, defau
     
     return create_pricing_result(
         material_cost=material_cost,
-        labor_cost=0,
+        labor_cost=labor_cost,
         setup_cost=setup_fee,
         additional_costs=0,
+        overhead_cost=overhead_cost,
         suggested_price=suggested_price,
         breakdown={
             "product_type": product_type,
@@ -404,7 +418,10 @@ async def calculate_promotional(data: JobItemPricingData, quantity: float, defau
             "quantity": quantity,
             "setup_fee": setup_fee,
             "setup_included": include_setup,
-            "markup": markup,
+            "markup_multiplier": markup_multiplier,
+            "labor_hours": round(labor_hours, 2),
+            "production_rate": production_rate,
+            "overhead_cost": round(overhead_cost, 2),
             "quantity_discount": discount,
             "price_per_item": round(suggested_price / quantity, 2) if quantity > 0 else 0
         }
@@ -412,67 +429,63 @@ async def calculate_promotional(data: JobItemPricingData, quantity: float, defau
 
 
 async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate pricing for cut vinyl - Industry standard $5-8/sqft final price"""
+    """Calculate cut vinyl using tenant cost settings."""
     width = data.width_inches or 12
     height = data.length_inches or 12
     sqft = (width * height) / 144
-    
-    # Material costs per sqft (shop cost)
-    vinyl_costs = {
-        "oracal_651": 0.50,
-        "oracal_751": 0.75,
-        "oracal_951": 1.00,
-        "avery_hp750": 0.85,
-        "reflective": 2.50,
-        "specialty": 1.50,
-        "custom": getattr(data, 'material_cost_override', None) or 1.00
-    }
-    
+
     vinyl_type = data.vinyl_type or "oracal_651"
-    cost_per_sqft = vinyl_costs.get(vinyl_type, 0.50)
-    
-    material_cost = sqft * cost_per_sqft * quantity
-    
-    # Labor: Flat rate approach - simpler and more predictable
-    # Base labor: $2/sqft for simple, scales with complexity
+    material_cost_map = get_material_cost_map(defaults)
+    category_config = get_category_pricing_config(defaults, "cut_vinyl")
+
+    vinyl_cost_per_sqft = material_cost_map.get("vinyl", 1.25)
+    transfer_tape_cost_per_sqft = material_cost_map.get("transfer_tape", 0)
+    color_count = max(data.num_colors or 1, 1)
+    material_cost = sqft * quantity * (vinyl_cost_per_sqft + (transfer_tape_cost_per_sqft * color_count))
+
     complexity = data.complexity or 1
-    labor_per_sqft = 1.50 + (complexity - 1) * 0.50  # $1.50-$6/sqft labor based on complexity
-    labor_cost = sqft * labor_per_sqft * quantity
-    
-    # Setup fee is OPTIONAL - only included if checkbox is checked (include_setup_fee=True)
+    labor_hours_per_sqft = float(category_config.get("default_labor_hours_per_sqft", 0.1) or 0)
+    complexity_multiplier = 1 + max(complexity - 1, 0) * 0.08
+    labor_hours = sqft * quantity * labor_hours_per_sqft * complexity_multiplier
+    production_rate = float(defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75)) or 0)
+    labor_cost = labor_hours * production_rate
+
     include_setup = getattr(data, 'include_setup_fee', False)
     setup_fee = data.setup_fee or 0
     if include_setup and setup_fee == 0:
-        setup_fee = defaults.get("default_setup_fee", 15.0)  # Default $15 if checked but no amount specified
+        setup_fee = defaults.get("setup_fee_vinyl", 15.0)
     elif not include_setup:
         setup_fee = 0
-    
-    # Target final price: $5-8/sqft for simple vinyl (industry standard)
-    # Material ~$0.50-1 + Labor ~$1.50-2 = ~$2-3 cost, markup to $5-8
-    markup = defaults.get("vinyl_markup", 2.0)
-    suggested_price = (material_cost + labor_cost) * markup + setup_fee  # Setup fee not marked up
-    
-    # Minimum price for very small decals
-    min_price = 5.00
-    if suggested_price < min_price:
-        suggested_price = min_price
-    
-    # Estimate labor time (for display only)
-    estimated_minutes = 3 + (sqft * 2 * complexity)  # 3 min base + 2 min/sqft * complexity
-    
+
+    pre_overhead_total = material_cost + labor_cost + setup_fee
+    overhead_cost = calculate_overhead_cost(pre_overhead_total, labor_hours, defaults, category_config)
+    suggested_price = resolve_selling_price(
+        pre_overhead_total + overhead_cost,
+        category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5)),
+        category_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40.0)),
+    )
+    suggested_price = max(
+        suggested_price,
+        float(category_config.get("minimum_charge", defaults.get("minimum_vinyl_charge", 5.0)) or 5.0),
+    )
+
     return create_pricing_result(
         material_cost=material_cost,
         labor_cost=labor_cost,
         setup_cost=setup_fee,
         additional_costs=0,
+        overhead_cost=overhead_cost,
         suggested_price=suggested_price,
-        estimated_labor_minutes=estimated_minutes * quantity,
+        estimated_labor_minutes=labor_hours * 60,
         breakdown={
             "dimensions": f"{width}\" x {height}\"",
             "square_feet": round(sqft, 2),
             "vinyl_type": vinyl_type,
-            "cost_per_sqft": cost_per_sqft,
-            "labor_per_sqft": labor_per_sqft,
+            "vinyl_cost_per_sqft": vinyl_cost_per_sqft,
+            "transfer_tape_cost_per_sqft": transfer_tape_cost_per_sqft,
+            "labor_hours": round(labor_hours, 2),
+            "production_rate": production_rate,
+            "overhead_cost": round(overhead_cost, 2),
             "setup_fee": setup_fee,
             "setup_included": include_setup,
             "price_per_sqft": round(suggested_price / sqft, 2) if sqft > 0 else 0
@@ -481,45 +494,56 @@ async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, default
 
 
 async def calculate_services(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate pricing for services (design, installation, etc.) - FIXED"""
-    hourly_rate = defaults.get("hourly_rate", 65)  # Was 75
-    hours = data.estimated_hours or 1
-    
-    # Reduced service rate multipliers
+    """Calculate services using tenant labor and pricing settings."""
+    category_config = get_category_pricing_config(defaults, "services")
+    material_cost_map = get_material_cost_map(defaults)
+    hours = data.estimated_hours or float(category_config.get("default_labor_hours", 1.0) or 1.0)
+
+    production_rate = float(defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75)) or 0)
     service_rates = {
-        "design": hourly_rate * 1.0,       # Was 1.2 - design at base rate
-        "installation": hourly_rate * 1.25, # Was 1.5
-        "removal": hourly_rate * 1.1,       # Was 1.3
-        "site_survey": hourly_rate * 0.75,  # Was 1.0 - site survey is quick
-        "consultation": hourly_rate * 0.75, # Was 1.0
-        "travel": hourly_rate * 0.5,        # Was 0.75
-        "other_labor": hourly_rate
+        "design": float(defaults.get("design_hourly_rate", production_rate) or production_rate),
+        "installation": float(defaults.get("installer_hourly_rate", defaults.get("install_hourly_rate", production_rate)) or production_rate),
+        "removal": float(defaults.get("installer_hourly_rate", defaults.get("install_hourly_rate", production_rate)) or production_rate),
+        "site_survey": float(defaults.get("installer_hourly_rate", defaults.get("install_hourly_rate", production_rate)) or production_rate),
+        "consultation": production_rate,
+        "travel": float(defaults.get("installer_hourly_rate", defaults.get("install_hourly_rate", production_rate)) or production_rate),
+        "other_labor": production_rate,
     }
-    
+
     service_type = data.service_type or "other_labor"
-    rate = service_rates.get(service_type, hourly_rate)
-    
+    rate = data.hourly_rate_override or service_rates.get(service_type, production_rate)
+
     labor_cost = rate * hours * quantity
-    material_cost = getattr(data, 'material_cost_override', None) or 0
-    
-    total_cost = labor_cost + material_cost
-    
-    # Service markup is already reasonable at 1.5x
-    markup = defaults.get("service_markup", 1.5)
-    suggested_price = total_cost * markup
-    
+    material_cost = (data.unit_cost or 0) * quantity
+    if material_cost == 0 and service_type in ["installation", "removal", "other_labor"]:
+        material_cost = material_cost_map.get("misc_material", 0)
+
+    pre_overhead_total = material_cost + labor_cost
+    overhead_cost = calculate_overhead_cost(pre_overhead_total, hours * quantity, defaults, category_config)
+    suggested_price = resolve_selling_price(
+        pre_overhead_total + overhead_cost,
+        category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5)),
+        category_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40.0)),
+    )
+    suggested_price = max(
+        suggested_price,
+        float(category_config.get("minimum_charge", defaults.get("minimum_service_charge", 0)) or 0),
+    )
+
     return create_pricing_result(
         material_cost=material_cost,
         labor_cost=labor_cost,
         setup_cost=0,
         additional_costs=0,
+        overhead_cost=overhead_cost,
         suggested_price=suggested_price,
         estimated_labor_minutes=hours * 60,
         breakdown={
             "service_type": service_type,
             "hourly_rate": rate,
             "hours": hours,
-            "quantity": quantity
+            "quantity": quantity,
+            "overhead_cost": round(overhead_cost, 2),
         }
     )
 
@@ -691,82 +715,64 @@ async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defau
 
 
 async def calculate_apparel(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate pricing for apparel decoration - Setup fee is ONE TIME, not per item"""
-    garment_costs = {
-        "tshirt": 5.00,
-        "hoodie": 18.00,
-        "hat": 8.00,
-        "polo": 12.00,
-        "tank": 4.00,
-        "longsleeve": 8.00,
-        "jacket": 25.00,
-        "other": data.blank_cost_override or 10.00
-    }
-    
+    """Calculate apparel using tenant cost settings."""
+    category_config = get_category_pricing_config(defaults, "apparel")
+    material_cost_map = get_material_cost_map(defaults)
+
     apparel_type = data.apparel_type or "tshirt"
-    garment_cost = garment_costs.get(apparel_type, 5.00)
-    
-    transfer_costs = {
-        "htv": 3.00,
-        "screen_print": 2.00 if quantity >= 24 else 5.00,
-        "dtf": 4.00,
-        "sublimation": 5.00,
-        "embroidery": 8.00
-    }
-    
+    garment_cost = data.blank_cost_override or material_cost_map.get("apparel_blank", 5.0)
+
     transfer_type = data.transfer_type or "htv"
-    decoration_cost = transfer_costs.get(transfer_type, 3.00)
-    
+    decoration_cost = material_cost_map.get("apparel_decoration", 2.5)
     num_locations = data.num_print_locations or 1
     decoration_cost *= num_locations
-    
-    # Per-item cost (garment + decoration)
+
     per_item_cost = garment_cost + decoration_cost
     material_cost = per_item_cost * quantity
-    
-    # Labor per item (not exponential with quantity)
-    time_per_item = 0.1 if transfer_type == "screen_print" else 0.25
-    hourly_rate = defaults.get("hourly_rate", 50)  # $50/hr for apparel work
-    labor_cost = time_per_item * quantity * hourly_rate
-    
-    # Setup fee is OPTIONAL and ONE TIME (not per item!)
-    # Only add if include_setup_fee checkbox is checked
+
+    time_per_item = float(category_config.get("default_labor_hours_per_unit", 0.08) or 0.08)
+    production_rate = float(defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75)) or 0)
+    labor_cost = time_per_item * quantity * production_rate
+
     include_setup = getattr(data, 'include_setup_fee', False)
     setup_fee = 0
     if include_setup:
-        base_setup = data.setup_fee or defaults.get("apparel_setup_fee", 25.0)
-        # For screen print, add per-color screen setup
-        if transfer_type == "screen_print":
-            num_colors = data.num_colors or 1
-            base_setup += num_colors * 15  # $15 per screen/color
-        setup_fee = base_setup  # ONE TIME - not multiplied by quantity!
-    
-    # Markup
-    markup = defaults.get("apparel_markup", 1.8)
-    suggested_price = (material_cost + labor_cost) * markup + setup_fee  # Setup not marked up
-    
-    # Quantity discount (larger orders get discount)
-    discount = get_quantity_discount(quantity, {"12": 0.05, "24": 0.10, "48": 0.15, "100": 0.20})
-    if discount > 0:
-        suggested_price *= (1 - discount)
-    
+        setup_fee = data.setup_fee or (
+            defaults.get("setup_fee_apparel_screen", 35.0)
+            if transfer_type == "screen_print"
+            else defaults.get("setup_fee_apparel_dtf", 20.0)
+        )
+
+    pre_overhead_total = material_cost + labor_cost + setup_fee
+    overhead_cost = calculate_overhead_cost(pre_overhead_total, time_per_item * quantity, defaults, category_config)
+    suggested_price = resolve_selling_price(
+        pre_overhead_total + overhead_cost,
+        category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5)),
+        category_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40.0)),
+    )
+    suggested_price = max(
+        suggested_price,
+        float(category_config.get("minimum_charge", defaults.get("minimum_order", 0)) or 0),
+    )
+
     return create_pricing_result(
         material_cost=material_cost,
         labor_cost=labor_cost,
         setup_cost=setup_fee,
         additional_costs=0,
+        overhead_cost=overhead_cost,
         suggested_price=suggested_price,
         estimated_labor_minutes=time_per_item * quantity * 60,
         breakdown={
             "apparel_type": apparel_type,
             "garment_cost": garment_cost,
             "transfer_type": transfer_type,
-            "decoration_cost_per_location": transfer_costs.get(transfer_type, 3.00),
+            "decoration_cost_per_location": material_cost_map.get("apparel_decoration", 2.5),
             "print_locations": num_locations,
             "per_item_cost": round(per_item_cost, 2),
             "setup_fee": setup_fee,
             "setup_included": include_setup,
-            "quantity_discount": discount,
+            "overhead_cost": round(overhead_cost, 2),
             "price_per_item": round(suggested_price / quantity, 2) if quantity > 0 else 0
         }
     )
@@ -867,33 +873,47 @@ async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, 
 
 
 async def calculate_custom(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate pricing for custom items"""
-    material_cost = (getattr(data, 'material_cost_override', None) or 0) * quantity
-    
-    hourly_rate = defaults.get("hourly_rate", 75)
-    labor_hours = data.estimated_hours or 1
-    labor_cost = labor_hours * hourly_rate * quantity
-    
-    total_cost = material_cost + labor_cost
-    
-    markup = defaults.get("default_markup", 2.5)
-    suggested_price = total_cost * markup
-    
+    """Calculate custom items using tenant cost settings."""
+    category_config = get_category_pricing_config(defaults, "custom")
+    material_cost_map = get_material_cost_map(defaults)
+    material_cost = (data.unit_cost or material_cost_map.get("misc_material", 0)) * quantity
+
+    hourly_rate = data.hourly_rate_override or float(defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75)) or 0)
+    labor_hours = data.estimated_hours or (float(category_config.get("default_labor_hours_per_unit", 0.25) or 0.25) * quantity)
+    labor_cost = labor_hours * hourly_rate
+
+    pre_overhead_total = material_cost + labor_cost
+    overhead_cost = calculate_overhead_cost(pre_overhead_total, labor_hours, defaults, category_config)
+    markup_percent = data.markup_percent if data.markup_percent is not None else None
+    markup_multiplier = (1 + (markup_percent / 100)) if markup_percent is not None else category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5))
+    suggested_price = resolve_selling_price(
+        pre_overhead_total + overhead_cost,
+        markup_multiplier,
+        category_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40.0)),
+    )
+
     custom_price = data.price_override if data.override_enabled else None
     if custom_price:
         suggested_price = custom_price * quantity
-    
+
+    suggested_price = max(
+        suggested_price,
+        float(category_config.get("minimum_charge", defaults.get("minimum_order", 0)) or 0),
+    )
+
     return create_pricing_result(
         material_cost=material_cost,
         labor_cost=labor_cost,
         setup_cost=0,
         additional_costs=0,
+        overhead_cost=overhead_cost,
         suggested_price=suggested_price,
         estimated_labor_minutes=labor_hours * 60,
         breakdown={
             "custom_item": True,
             "labor_hours": labor_hours,
-            "hourly_rate": hourly_rate
+            "hourly_rate": hourly_rate,
+            "overhead_cost": round(overhead_cost, 2),
         }
     )
 
