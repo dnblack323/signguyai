@@ -14,11 +14,51 @@ from models import UserInDB
 from models.production_timeline import (
     ProductionTimeline, TimelineStageEntry, TimelineStageUpdate,
     WorkflowTemplate, WorkflowStage, TimelineAnalytics,
-    DEFAULT_WORKFLOW_TEMPLATES, ProductionCategory
+    DEFAULT_WORKFLOW_TEMPLATES, SIMPLE_WORKFLOW_TEMPLATES, ProductionCategory
 )
 
 
 router = APIRouter(prefix="/production-timeline", tags=["Production Timeline"])
+
+DEFAULT_WORKFLOW_SETTINGS = {
+    "workflow_mode": "detailed",
+    "category_template_map": {},
+}
+
+
+async def get_workflow_settings(tenant_id: str) -> dict:
+    settings = await db.production_workflow_settings.find_one({"tenant_id": tenant_id}, {"_id": 0})
+    return {**DEFAULT_WORKFLOW_SETTINGS, **(settings or {})}
+
+
+def get_default_template_collection(workflow_mode: str):
+    return SIMPLE_WORKFLOW_TEMPLATES if workflow_mode == "simple" else DEFAULT_WORKFLOW_TEMPLATES
+
+
+@router.get("/settings")
+async def get_production_workflow_settings(
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    return await get_workflow_settings(current_user.tenant_id)
+
+
+@router.put("/settings")
+async def update_production_workflow_settings(
+    settings: dict,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    payload = {
+        "tenant_id": current_user.tenant_id,
+        "workflow_mode": settings.get("workflow_mode", "detailed"),
+        "category_template_map": settings.get("category_template_map", {}),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.production_workflow_settings.update_one(
+        {"tenant_id": current_user.tenant_id},
+        {"$set": payload},
+        upsert=True,
+    )
+    return await get_workflow_settings(current_user.tenant_id)
 
 
 # ============== WORKFLOW TEMPLATES ==============
@@ -243,6 +283,7 @@ async def enable_timeline_for_line_item(
     Creates the timeline with stages based on the selected template/category.
     """
     tenant_id = current_user.tenant_id
+    workflow_settings = await get_workflow_settings(tenant_id)
     
     # Check if timeline already exists
     existing = await db.production_timelines.find_one(
@@ -253,22 +294,23 @@ async def enable_timeline_for_line_item(
     
     # Get template stages
     stages_data = []
-    if template_id and not template_id.startswith("default_"):
+    selected_template_id = template_id or workflow_settings.get("category_template_map", {}).get(category)
+
+    if selected_template_id and not selected_template_id.startswith("default_"):
         # Custom template
         template = await db.workflow_templates.find_one(
-            {"id": template_id, "tenant_id": tenant_id},
+            {"id": selected_template_id, "tenant_id": tenant_id},
             {"_id": 0}
         )
         if template:
             stages_data = template.get("stages", [])
     
     if not stages_data:
-        # Use default template for category
-        if category in DEFAULT_WORKFLOW_TEMPLATES:
-            stages_data = DEFAULT_WORKFLOW_TEMPLATES[category]["stages"]
+        default_templates = get_default_template_collection(workflow_settings.get("workflow_mode", "detailed"))
+        if category in default_templates:
+            stages_data = default_templates[category]["stages"]
         else:
-            # Fallback to printed_signs if category not found
-            stages_data = DEFAULT_WORKFLOW_TEMPLATES[ProductionCategory.PRINTED_SIGNS.value]["stages"]
+            stages_data = default_templates[ProductionCategory.PRINTED_SIGNS.value]["stages"]
     
     # Create timeline stages
     stages = []
@@ -291,7 +333,7 @@ async def enable_timeline_for_line_item(
         tenant_id=tenant_id,
         job_id=job_id,
         line_item_id=line_item_id,
-        workflow_template_id=template_id,
+        workflow_template_id=selected_template_id,
         category=category,
         enabled=True,
         current_stage_order=2 if len(stages) > 1 else 1,  # Move past "Job Created"

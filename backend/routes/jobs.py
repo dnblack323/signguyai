@@ -262,6 +262,150 @@ async def get_job_details(
     }
 
 
+@router.get("/{job_id}/history")
+async def get_job_history(
+    job_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Get a unified chronological history for a job."""
+    job = await db.jobs.find_one(
+        {"id": job_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    events = []
+
+    activity_group_map = {
+        "created": "general",
+        "status_changed": "general",
+        "quote_converted": "general",
+        "invoice_created": "financial",
+        "item_added": "general",
+        "item_updated": "general",
+        "item_deleted": "general",
+        "note_added": "general",
+        "completed": "production",
+        "archived": "general",
+        "unarchived": "general",
+    }
+
+    activities = await db.job_activities.find({"job_id": job_id}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    for activity in activities:
+        events.append({
+            "id": activity.get("id"),
+            "event_type": activity.get("activity_type"),
+            "title": activity.get("description"),
+            "description": activity.get("description"),
+            "user_name": activity.get("user_name") or "System",
+            "timestamp": activity.get("created_at"),
+            "filter_group": activity_group_map.get(activity.get("activity_type"), "general"),
+            "related_type": None,
+            "related_id": None,
+        })
+
+    proofs = await db.artwork_proofs.find(
+        {"job_id": job_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    for proof in proofs:
+        events.append({
+            "id": f"proof-created-{proof.get('id')}",
+            "event_type": "artwork_uploaded",
+            "title": f"Artwork version {proof.get('version', 1)} uploaded",
+            "description": f"Proof status: {proof.get('status', 'draft')}",
+            "user_name": proof.get("created_by") or "Designer",
+            "timestamp": proof.get("created_at"),
+            "filter_group": "artwork",
+            "related_type": "proof",
+            "related_id": proof.get("id"),
+        })
+        if proof.get("status") in ["approved", "revision_requested"]:
+            events.append({
+                "id": f"proof-status-{proof.get('id')}",
+                "event_type": proof.get("status"),
+                "title": "Approved by Customer" if proof.get("status") == "approved" else "Proof revision requested",
+                "description": proof.get("customer_notes") or proof.get("notes") or "Customer responded to proof",
+                "user_name": proof.get("customer_name") or "Customer",
+                "timestamp": proof.get("updated_at") or proof.get("created_at"),
+                "filter_group": "customer",
+                "related_type": "proof",
+                "related_id": proof.get("id"),
+            })
+
+    timelines = await db.production_timelines.find(
+        {"job_id": job_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    ).to_list(200)
+    for timeline in timelines:
+        for stage in timeline.get("stages", []):
+            if stage.get("started_at"):
+                events.append({
+                    "id": f"stage-start-{timeline.get('id')}-{stage.get('stage_order')}",
+                    "event_type": "production_stage_started",
+                    "title": f"{stage.get('stage_name')} Started",
+                    "description": stage.get("notes") or "Production stage started",
+                    "user_name": stage.get("assigned_user_name") or "Production",
+                    "timestamp": stage.get("started_at"),
+                    "filter_group": "production",
+                    "related_type": "timeline",
+                    "related_id": timeline.get("id"),
+                    "duration_minutes": stage.get("duration_minutes"),
+                })
+            if stage.get("completed_at"):
+                events.append({
+                    "id": f"stage-complete-{timeline.get('id')}-{stage.get('stage_order')}",
+                    "event_type": "production_stage_completed",
+                    "title": f"{stage.get('stage_name')} Completed",
+                    "description": stage.get("notes") or "Production stage completed",
+                    "user_name": stage.get("assigned_user_name") or "Production",
+                    "timestamp": stage.get("completed_at"),
+                    "filter_group": "production",
+                    "related_type": "timeline",
+                    "related_id": timeline.get("id"),
+                    "duration_minutes": stage.get("duration_minutes"),
+                })
+
+    documents = await db.documents.find(
+        {"tenant_id": current_user.tenant_id, "linked_jobs": job_id},
+        {"_id": 0, "id": 1, "name": 1, "created_at": 1, "updated_at": 1}
+    ).to_list(100)
+    for doc in documents:
+        events.append({
+            "id": f"document-{doc.get('id')}",
+            "event_type": "document_uploaded",
+            "title": f"Document uploaded: {doc.get('name')}",
+            "description": "Document linked to job",
+            "user_name": "Team",
+            "timestamp": doc.get("updated_at") or doc.get("created_at"),
+            "filter_group": "documents",
+            "related_type": "document",
+            "related_id": doc.get("id"),
+        })
+
+    if job.get("invoice_id"):
+        invoice = await db.invoices.find_one(
+            {"id": job.get("invoice_id"), "tenant_id": current_user.tenant_id},
+            {"_id": 0}
+        )
+        if invoice and invoice.get("amount_paid", 0) > 0:
+            events.append({
+                "id": f"invoice-paid-{invoice.get('id')}",
+                "event_type": "invoice_paid",
+                "title": "Invoice paid",
+                "description": f"Payment recorded for {invoice.get('amount_paid', 0):.2f}",
+                "user_name": "Billing",
+                "timestamp": invoice.get("paid_date") or invoice.get("updated_at") or invoice.get("created_at"),
+                "filter_group": "financial",
+                "related_type": "invoice",
+                "related_id": invoice.get("id"),
+            })
+
+    events.sort(key=lambda event: event.get("timestamp") or "", reverse=True)
+    return events
+
+
 @router.put("/{job_id}", response_model=Job)
 async def update_job(
     job_id: str, 

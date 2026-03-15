@@ -97,6 +97,57 @@ DEFAULT_WORKFLOW_TEMPLATES = {
     }
 }
 
+SIMPLE_WORKFLOW_TEMPLATES = {
+    ProductionCategory.VEHICLE_WRAP.value: {
+        "name": "Vehicle Wrap - Simple",
+        "stages": [
+            {"name": "Design", "order": 1},
+            {"name": "Production", "order": 2},
+            {"name": "Installation / Completion", "order": 3, "is_final": True},
+        ],
+    },
+    ProductionCategory.PRINTED_SIGNS.value: {
+        "name": "Printed Signs - Simple",
+        "stages": [
+            {"name": "Design", "order": 1},
+            {"name": "Production", "order": 2},
+            {"name": "Installation / Completion", "order": 3, "is_final": True},
+        ],
+    },
+    ProductionCategory.CUT_VINYL.value: {
+        "name": "Cut Vinyl - Simple",
+        "stages": [
+            {"name": "Design", "order": 1},
+            {"name": "Production", "order": 2},
+            {"name": "Installation / Completion", "order": 3, "is_final": True},
+        ],
+    },
+    ProductionCategory.BANNERS.value: {
+        "name": "Banners - Simple",
+        "stages": [
+            {"name": "Design", "order": 1},
+            {"name": "Production", "order": 2},
+            {"name": "Installation / Completion", "order": 3, "is_final": True},
+        ],
+    },
+    ProductionCategory.APPAREL.value: {
+        "name": "Apparel - Simple",
+        "stages": [
+            {"name": "Design", "order": 1},
+            {"name": "Production", "order": 2},
+            {"name": "Installation / Completion", "order": 3, "is_final": True},
+        ],
+    },
+    ProductionCategory.CUSTOM.value: {
+        "name": "Custom - Simple",
+        "stages": [
+            {"name": "Design", "order": 1},
+            {"name": "Production", "order": 2},
+            {"name": "Installation / Completion", "order": 3, "is_final": True},
+        ],
+    },
+}
+
 
 class WorkflowStage(BaseModel):
     """Definition of a single workflow stage"""

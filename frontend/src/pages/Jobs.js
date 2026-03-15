@@ -49,6 +49,7 @@ import {
   GitBranch, ArrowRight, ArrowRightCircle, Filter
 } from 'lucide-react';
 import { TimelineToggle } from '../components/ProductionTimeline';
+import { JobHistoryPanel } from '../components/JobHistoryPanel';
 import { toast } from 'sonner';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
 import PricingCalculatorModal, { PricingCalculatorButton } from '../components/PricingCalculatorModal';
@@ -788,6 +789,7 @@ export function JobDetails() {
   // Invoice preview modal state
   const [previewInvoiceId, setPreviewInvoiceId] = useState(null);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [showHistoryPanel, setShowHistoryPanel] = useState(false);
   
   // Schedule task form
   const [scheduleFormData, setScheduleFormData] = useState({
@@ -1264,6 +1266,9 @@ export function JobDetails() {
                   <Receipt className="h-4 w-4 mr-2" /> View Invoice
                 </Button>
               )}
+              <Button variant="outline" onClick={() => setShowHistoryPanel(true)} data-testid="view-job-history-btn">
+                <GitBranch className="h-4 w-4 mr-2" /> View Timeline
+              </Button>
               {job.status !== 'complete' && !isArchived && (
                 <Button variant="outline" onClick={handleComplete}>
                   <CheckCircle className="h-4 w-4 mr-2" /> Mark Complete
@@ -1992,6 +1997,17 @@ export function JobDetails() {
         onClose={() => {
           setIsInvoiceModalOpen(false);
           setPreviewInvoiceId(null);
+        }}
+      />
+
+      <JobHistoryPanel
+        isOpen={showHistoryPanel}
+        onClose={() => setShowHistoryPanel(false)}
+        jobId={job.id}
+        jobName={job.name}
+        onOpenInvoice={(invoiceId) => {
+          setPreviewInvoiceId(invoiceId);
+          setIsInvoiceModalOpen(true);
         }}
       />
 

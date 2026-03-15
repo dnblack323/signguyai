@@ -34,6 +34,9 @@ export default function ProductionSettings() {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [workflowMode, setWorkflowMode] = useState('detailed');
+  const [savingWorkflowMode, setSavingWorkflowMode] = useState(false);
+  const [categoryTemplateMap, setCategoryTemplateMap] = useState({});
   
   // Edit mode
   const [editingStages, setEditingStages] = useState([]);
@@ -50,9 +53,23 @@ export default function ProductionSettings() {
   const [stageReport, setStageReport] = useState([]);
 
   useEffect(() => {
+    loadWorkflowSettings();
     loadTemplates();
     loadAnalytics();
   }, []);
+
+  const loadWorkflowSettings = async () => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const res = await axios.get(`${API}/api/production-timeline/settings`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setWorkflowMode(res.data?.workflow_mode || 'detailed');
+      setCategoryTemplateMap(res.data?.category_template_map || {});
+    } catch (err) {
+      console.error('Failed to load workflow settings:', err);
+    }
+  };
 
   const loadTemplates = async () => {
     try {
@@ -275,6 +292,51 @@ export default function ProductionSettings() {
         </div>
       </div>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Workflow Mode</CardTitle>
+          <CardDescription>Choose a simple, detailed, or custom production workflow mode for new timelines.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div className="w-full md:max-w-sm">
+            <Label>Workflow Mode</Label>
+            <Select value={workflowMode} onValueChange={setWorkflowMode}>
+              <SelectTrigger className="mt-2" data-testid="production-workflow-mode-select">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="simple">Simple Workflow</SelectItem>
+                <SelectItem value="detailed">Detailed Workflow</SelectItem>
+                <SelectItem value="custom">Custom Workflow</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            onClick={async () => {
+              setSavingWorkflowMode(true);
+              try {
+                const token = localStorage.getItem('auth_token');
+                await axios.put(
+                  `${API}/api/production-timeline/settings`,
+                  { workflow_mode: workflowMode, category_template_map: categoryTemplateMap },
+                  { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
+                );
+                toast.success('Workflow mode saved');
+              } catch (err) {
+                toast.error('Failed to save workflow mode');
+              } finally {
+                setSavingWorkflowMode(false);
+              }
+            }}
+            disabled={savingWorkflowMode}
+            data-testid="production-workflow-mode-save-button"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            {savingWorkflowMode ? 'Saving...' : 'Save Workflow Mode'}
+          </Button>
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="templates">
         <TabsList>
           <TabsTrigger value="templates" className="flex items-center gap-2">
@@ -339,11 +401,16 @@ export default function ProductionSettings() {
                           <CardDescription>Default template (read-only)</CardDescription>
                         </div>
                       ) : (
-                        <Input
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          className="text-lg font-semibold"
-                        />
+                        <div className="space-y-2">
+                          <Input
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            className="text-lg font-semibold"
+                          />
+                          {categoryTemplateMap[selectedTemplate.category] === selectedTemplate.id && (
+                            <Badge variant="outline" data-testid="production-template-active-badge">Active for category</Badge>
+                          )}
+                        </div>
                       )
                     ) : (
                       <CardTitle className="text-slate-400">Select a template</CardTitle>
@@ -351,6 +418,28 @@ export default function ProductionSettings() {
                   </div>
                   {selectedTemplate && !selectedTemplate.is_default && (
                     <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          const nextMap = { ...categoryTemplateMap, [selectedTemplate.category]: selectedTemplate.id };
+                          setCategoryTemplateMap(nextMap);
+                          try {
+                            const token = localStorage.getItem('auth_token');
+                            await axios.put(
+                              `${API}/api/production-timeline/settings`,
+                              { workflow_mode: workflowMode, category_template_map: nextMap },
+                              { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
+                            );
+                            toast.success('Template set as active workflow for this category');
+                          } catch (err) {
+                            toast.error('Failed to assign template to category');
+                          }
+                        }}
+                        data-testid="production-template-assign-button"
+                      >
+                        Use for Category
+                      </Button>
                       <Button variant="outline" size="sm" onClick={handleDeleteTemplate}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
