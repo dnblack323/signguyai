@@ -69,6 +69,22 @@
 - Result: **100% backend + 100% frontend pass** for profit analytics
 - Pre-existing note from testing: legacy `/financials` frontend exists but its backend routes are still missing and were not introduced by this phase
 
+## March 15, 2026 - Production Workflow + Job History Integration
+
+### Workflow Settings Upgrade
+- Added tenant-specific workflow settings endpoint: `GET/PUT /api/production-timeline/settings`
+- Added **Workflow Mode** selector in Settings → Production (`Simple`, `Detailed`, `Custom`)
+- Custom templates can now be assigned to a category as the active workflow
+
+### Job History Upgrade
+- Added unified job history endpoint: `/api/jobs/{job_id}/history`
+- Job Details now includes a **View Timeline** button that opens a scrollable, filterable history panel
+- History combines job activities, artwork/proof events, production stage events, linked documents, and invoice/payment events
+
+### Testing
+- Full feature validation completed via `/app/test_reports/iteration_58.json`
+- Result: **100% backend + 100% frontend pass** for the production workflow + timeline scope
+
 
 ## March 14, 2026 - Admin Payroll Enhancement + Document Library Update
 

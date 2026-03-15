@@ -4,7 +4,6 @@
 - [x] Fix login "network error" (CORS preflight issue) - FIXED March 12, 2026
 
 ## P1 - High Priority
-- [ ] Production Workflow + Timeline audit
 - [ ] Employee Portal audit
 - [ ] Customer Portal audit
 - [ ] AI Credits / AI Tools verification

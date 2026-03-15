@@ -154,9 +154,14 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
   - Profit by category, job profitability table, customer profitability report, and underpriced job detection
   - Time range and category filters plus CSV / XLSX / PDF exports
   - Tenant-scoped widget preferences with **Simple View** toggle and reorderable widgets
+- [x] **Production Workflow + Job History Integration (Mar 15, 2026):**
+  - New unified job history feed at `/api/jobs/{job_id}/history`
+  - Job Details now includes a visible **View Timeline** action that opens a filterable history panel
+  - Production workflow settings now support tenant-specific **Simple / Detailed / Custom** mode selection
+  - Active custom template can be assigned per category from Settings → Production Workflow
+  - Production stage start/completion events now surface in unified job history alongside approvals, documents, and financial events
 
 ## Upcoming Tasks (P1)
-- [ ] Production Workflow + Timeline audit
 - [ ] Employee Portal audit
 - [ ] Customer Portal audit
 - [ ] AI Credits / AI Tools verification
