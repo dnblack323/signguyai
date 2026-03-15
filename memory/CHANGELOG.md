@@ -1,6 +1,29 @@
 # SignGuy AI - Changelog
 
 
+## March 15, 2026 - Company-Based Pricing Foundation
+
+### New Feature: Pricing & Cost Settings (`/pricing-calculator/settings`)
+- Rebuilt pricing settings into a tenant-specific pricing control center
+- Added editable material costs, labor rates, overhead settings, category defaults, and selling price benchmarks
+- Explicitly separated **Selling Price Benchmarks** from **Actual Cost Settings** to avoid fake-profit math
+- Added Settings ribbon access: **Settings → Pricing & Costs**
+
+### Pricing Engine Upgrade
+- `GET/PUT /api/pricing/defaults` now reads/writes tenant pricing configuration consistently
+- Banners, Rigid Signs, and Vehicle Wrap calculators now use company settings for cost math
+- Calculator responses now include: `material_cost`, `labor_cost`, `overhead_cost`, `total_cost`, `selling_price`, `profit_amount`, `profit_margin_percent`
+
+### Estimate Storage Upgrade
+- Job/quote estimate items can now preserve `pricing_category`, `pricing_data`, and `cost_snapshot`
+- Invoice line items created from jobs retain pricing metadata for later analytics/reporting
+
+### Testing
+- Manual smoke test passed on preview for login + `/pricing-calculator/settings`
+- Backend/API verification passed for defaults + calculator math + job snapshot persistence
+- Test report: `/app/test_reports/iteration_54.json`
+
+
 ## March 14, 2026 - Admin Payroll Enhancement + Document Library Update
 
 ### Major Enhancement: Admin Payroll Page (`/payroll`)

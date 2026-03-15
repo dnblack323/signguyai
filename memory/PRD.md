@@ -135,8 +135,17 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
   - Analyzes current pricing and provides actionable recommendations
   - Suggests quantity tiers, upsells, margin improvements
   - Purple-themed UI with Sparkles icon
+- [x] **Company-Based Pricing Foundation (Mar 15, 2026):**
+  - New **Pricing & Cost Settings** page at `/pricing-calculator/settings`
+  - Tenant-specific material costs, labor rates, overhead settings, category defaults, and separated selling benchmarks
+  - Banners, Rigid Signs, and Vehicle Wrap calculators now pull company settings from `/api/pricing/defaults`
+  - Calculator now returns and stores `material_cost`, `labor_cost`, `overhead_cost`, `total_cost`, `selling_price`, `profit_amount`, `profit_margin_percent`
+  - Job and quote estimate records can preserve `pricing_category`, `pricing_data`, and `cost_snapshot`
 
 ## Upcoming Tasks (P1)
+- [ ] Expand company-based pricing settings to remaining calculators (Cut Vinyl, Apparel, Services, Custom)
+- [ ] Build Historical Invoice Import + AI Pricing Analysis workflow with human review before saving benchmarks
+- [ ] Add pricing analytics views using stored cost snapshots (margin by category, customer profitability, job profitability)
 - [ ] Complete Billing System Logic - track first 100 founders, $19.99 credit, AI Tools Add-On
 - [ ] Re-enable Trial Lockout System - fix root cause, not just disable
 - [x] **Pricing Calculator Major Overhaul (Feb 18, 2026):** FIXED - Industry-standard pricing
