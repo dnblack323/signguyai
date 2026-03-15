@@ -160,9 +160,13 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
   - Production workflow settings now support tenant-specific **Simple / Detailed / Custom** mode selection
   - Active custom template can be assigned per category from Settings → Production Workflow
   - Production stage start/completion events now surface in unified job history alongside approvals, documents, and financial events
+- [x] **Employee Portal + Production Tracking Integration (Mar 15, 2026):**
+  - Employee portal dashboard now shows **Personal Work Summary** and **My Assigned Jobs**
+  - New employee job detail view at `/employee-portal/jobs/{jobId}` with stage **Start / Pause / Complete** controls
+  - Admins can assign employees to jobs from Job Details and assign specific stages from the production timeline editor
+  - Assigned-job discovery now respects both whole-job assignment and stage-level assignment
 
 ## Upcoming Tasks (P1)
-- [ ] Employee Portal audit
 - [ ] Customer Portal audit
 - [ ] AI Credits / AI Tools verification
 - [ ] Onboarding system verification
