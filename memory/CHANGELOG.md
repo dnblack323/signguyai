@@ -56,6 +56,19 @@
 - Full feature validation completed via `/app/test_reports/iteration_56.json`
 - Result: **100% backend + 100% frontend pass** for historical pricing setup workflow
 
+## March 15, 2026 - Profit & Margin Analytics Dashboard
+
+### New Feature: Profit & Margin Analytics (`/reports/profit-margin`)
+- Added tenant-specific reporting dashboard powered by stored `cost_snapshot` data + selling benchmarks
+- Includes top metrics, profit by category, job profitability table, customer profitability report, and underpriced job detection
+- Added time range filters, category filters, CSV/XLSX/PDF export options, and widget customization
+- Added **Simple View** toggle so reporting stays usable without over-complication
+
+### Testing
+- Full feature validation completed via `/app/test_reports/iteration_57.json`
+- Result: **100% backend + 100% frontend pass** for profit analytics
+- Pre-existing note from testing: legacy `/financials` frontend exists but its backend routes are still missing and were not introduced by this phase
+
 
 ## March 14, 2026 - Admin Payroll Enhancement + Document Library Update
 

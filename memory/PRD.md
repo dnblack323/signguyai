@@ -148,9 +148,19 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
   - AI-assisted benchmark suggestions with **High / Medium / Low** confidence levels
   - Review flow supports **Accept / Edit / Ignore** before saving suggestions
   - Accepted values save to **selling benchmarks only**, never to cost settings
+- [x] **Profit & Margin Analytics Dashboard (Mar 15, 2026):**
+  - New report page at `/reports/profit-margin`
+  - Top-level metrics: revenue, profit, average job value, average profit margin
+  - Profit by category, job profitability table, customer profitability report, and underpriced job detection
+  - Time range and category filters plus CSV / XLSX / PDF exports
+  - Tenant-scoped widget preferences with **Simple View** toggle and reorderable widgets
 
 ## Upcoming Tasks (P1)
-- [ ] Add pricing analytics views using stored cost snapshots (margin by category, customer profitability, job profitability)
+- [ ] Production Workflow + Timeline audit
+- [ ] Employee Portal audit
+- [ ] Customer Portal audit
+- [ ] AI Credits / AI Tools verification
+- [ ] Onboarding system verification
 - [ ] Complete Billing System Logic - track first 100 founders, $19.99 credit, AI Tools Add-On
 - [ ] Re-enable Trial Lockout System - fix root cause, not just disable
 - [x] **Pricing Calculator Major Overhaul (Feb 18, 2026):** FIXED - Industry-standard pricing

@@ -4,7 +4,11 @@
 - [x] Fix login "network error" (CORS preflight issue) - FIXED March 12, 2026
 
 ## P1 - High Priority
-- [ ] Profit analytics dashboard using stored estimate cost snapshots
+- [ ] Production Workflow + Timeline audit
+- [ ] Employee Portal audit
+- [ ] Customer Portal audit
+- [ ] AI Credits / AI Tools verification
+- [ ] Onboarding system verification
 - [ ] Founders Edition Stripe Integration - Wire Stripe Price IDs (user has provided them in .env) into plan management
 - [ ] Dark Shell / Light Workspace UI Refactor - Apply ShellCard.jsx layout to all pages (Dashboard, Customers, Products, etc.)
 
@@ -16,6 +20,7 @@
 ## Backlog
 - [ ] Learning calculator that compares estimated vs actual production time/material usage
 - [ ] Add cleanup/archive controls for historical invoice import sessions
+- [ ] Restore or replace legacy `/financials` backend APIs (pre-existing gap discovered during analytics testing)
 - [ ] BNPL Payments integration
 - [ ] SMS Notifications
 - [ ] QuickBooks integration
