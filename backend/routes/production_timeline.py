@@ -501,7 +501,7 @@ async def update_timeline_stage(
                     start = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
                     end = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
                     stage["duration_minutes"] = int((end - start).total_seconds() / 60)
-                except:
+                except Exception:
                     pass
             
             updated = True

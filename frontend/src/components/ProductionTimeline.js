@@ -44,6 +44,7 @@ export function ProductionTimelinePanel({
   const [advancing, setAdvancing] = useState(false);
   const [editingStage, setEditingStage] = useState(null);
   const [editForm, setEditForm] = useState({});
+  const [employees, setEmployees] = useState([]);
 
   useEffect(() => {
     if (timeline) {
@@ -51,6 +52,24 @@ export function ProductionTimelinePanel({
       setCurrentStageOrder(timeline.current_stage_order || 1);
     }
   }, [timeline]);
+
+  useEffect(() => {
+    const loadEmployees = async () => {
+      try {
+        const token = localStorage.getItem('auth_token');
+        const res = await axios.get(`${API}/api/employees`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        setEmployees(res.data || []);
+      } catch (err) {
+        console.error('Failed to load employees for timeline editor:', err);
+      }
+    };
+
+    if (isOpen) {
+      loadEmployees();
+    }
+  }, [isOpen]);
 
   const formatDuration = (minutes) => {
     if (!minutes && minutes !== 0) return '-';
@@ -109,6 +128,7 @@ export function ProductionTimelinePanel({
   const handleEditStage = (stage) => {
     setEditingStage(stage);
     setEditForm({
+      assigned_user_id: stage.assigned_user_id || '',
       notes: stage.notes || '',
       manual_start_override: stage.started_at ? stage.started_at.slice(0, 16) : '',
       manual_end_override: stage.completed_at ? stage.completed_at.slice(0, 16) : ''
@@ -124,6 +144,11 @@ export function ProductionTimelinePanel({
       
       if (editForm.notes !== editingStage.notes) {
         updateData.notes = editForm.notes;
+      }
+      if (editForm.assigned_user_id !== (editingStage.assigned_user_id || '')) {
+        const assignedEmployee = employees.find((employee) => employee.id === editForm.assigned_user_id);
+        updateData.assigned_user_id = editForm.assigned_user_id || null;
+        updateData.assigned_user_name = assignedEmployee?.name || null;
       }
       if (editForm.manual_start_override && editForm.manual_start_override !== editingStage.started_at?.slice(0, 16)) {
         updateData.manual_start_override = new Date(editForm.manual_start_override).toISOString();
@@ -297,6 +322,21 @@ export function ProductionTimelinePanel({
           </DialogHeader>
           
           <div className="space-y-4 py-4">
+            <div>
+              <Label>Assigned Employee</Label>
+              <Select value={editForm.assigned_user_id || 'unassigned'} onValueChange={(value) => setEditForm({...editForm, assigned_user_id: value === 'unassigned' ? '' : value})}>
+                <SelectTrigger className="mt-2" data-testid="timeline-stage-assigned-employee-select">
+                  <SelectValue placeholder="Unassigned" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {employees.map((employee) => (
+                    <SelectItem key={employee.id} value={employee.id}>{employee.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div>
               <Label>Start Time (Override)</Label>
               <Input

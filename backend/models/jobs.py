@@ -65,6 +65,7 @@ class JobBase(BaseModel):
     description: Optional[str] = None
     status: JobStatus = JobStatus.QUOTE
     due_date: Optional[str] = None
+    assigned_employees: List[str] = []
     # Quote-stage fields
     line_items: List[JobLineItem] = []  # Used in quote stage
     notes: Optional[str] = None
@@ -77,6 +78,7 @@ class JobUpdate(BaseModel):
     description: Optional[str] = None
     status: Optional[JobStatus] = None
     due_date: Optional[str] = None
+    assigned_employees: Optional[List[str]] = None
     line_items: Optional[List[JobLineItem]] = None
     notes: Optional[str] = None
 

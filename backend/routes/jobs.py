@@ -218,6 +218,13 @@ async def get_job_details(
     
     # Get customer
     customer = await db.customers.find_one({"id": job["customer_id"]}, {"_id": 0})
+
+    assigned_employee_details = []
+    if job.get("assigned_employees"):
+        assigned_employee_details = await db.employees.find(
+            {"id": {"$in": job.get("assigned_employees", [])}, "tenant_id": current_user.tenant_id},
+            {"_id": 0, "id": 1, "name": 1, "role": 1}
+        ).to_list(100)
     
     # Get quote if exists
     quote = None
@@ -250,6 +257,7 @@ async def get_job_details(
         "quote": quote,
         "invoice": invoice,
         "job_items": job_items,
+        "assigned_employee_details": assigned_employee_details,
         "notes": notes,
         "activities": activities,
         "financial_snapshot": {
@@ -474,6 +482,34 @@ async def update_job(
         {"_id": 0}
     )
     return updated_job
+
+
+@router.put("/{job_id}/assign-employees")
+async def assign_employees_to_job(
+    job_id: str,
+    payload: dict,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Assign employees to an entire job."""
+    job = await db.jobs.find_one({"id": job_id, "tenant_id": current_user.tenant_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    employee_ids = payload.get("employee_ids", [])
+
+    valid_employees = await db.employees.find(
+        {"id": {"$in": employee_ids}, "tenant_id": current_user.tenant_id},
+        {"_id": 0, "id": 1, "name": 1}
+    ).to_list(200)
+    valid_employee_ids = [employee["id"] for employee in valid_employees]
+
+    await db.jobs.update_one(
+        {"id": job_id, "tenant_id": current_user.tenant_id},
+        {"$set": {"assigned_employees": valid_employee_ids, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    await log_job_activity(job_id, JobActivityType.ITEM_UPDATED, f"Assigned employees updated: {', '.join([e['name'] for e in valid_employees]) or 'none'}")
+
+    return {"assigned_employees": valid_employees}
 
 
 @router.delete("/{job_id}")

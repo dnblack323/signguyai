@@ -113,6 +113,8 @@ export default function EmployeePortalDashboard() {
   const [loading, setLoading] = useState(true);
   const [clockStatus, setClockStatus] = useState(null);
   const [punching, setPunching] = useState(false);
+  const [assignedJobs, setAssignedJobs] = useState([]);
+  const [workSummary, setWorkSummary] = useState(null);
   
   const employeeName = localStorage.getItem('employee_name') || 'Employee';
   const token = localStorage.getItem('employee_token');
@@ -127,10 +129,20 @@ export default function EmployeePortalDashboard() {
 
   const loadClockStatus = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/employee-portal/time-clock/status`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setClockStatus(res.data);
+      const [statusRes, jobsRes, summaryRes] = await Promise.all([
+        axios.get(`${API_URL}/api/employee-portal/time-clock/status`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${API_URL}/api/employee-portal/jobs`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${API_URL}/api/employee-portal/work-summary`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+      setClockStatus(statusRes.data);
+      setAssignedJobs(jobsRes.data || []);
+      setWorkSummary(summaryRes.data);
     } catch (err) {
       console.error('Failed to load clock status:', err);
       if (err.response?.status === 401) {
@@ -337,6 +349,60 @@ export default function EmployeePortalDashboard() {
             </Card>
           </Link>
         </div>
+
+        <Card style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)' }} data-testid="employee-work-summary-card">
+          <CardHeader>
+            <CardTitle style={{ color: 'var(--text)' }}>Personal Work Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }}>
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Today’s Completed Stages</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--text)' }}>{workSummary?.completed_stages_today || 0}</p>
+              </div>
+              <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }}>
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Assigned Jobs</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--text)' }}>{workSummary?.assigned_jobs_count || assignedJobs.length}</p>
+              </div>
+              <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }}>
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Hours Today</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--text)' }}>{formatHours(workSummary?.today_hours_worked || 0)}</p>
+              </div>
+              <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }}>
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Hours This Week</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--text)' }}>{formatHours(workSummary?.week_hours_worked || 0)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)' }} data-testid="employee-assigned-jobs-card">
+          <CardHeader>
+            <CardTitle style={{ color: 'var(--text)' }}>My Assigned Jobs</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {assignedJobs.length === 0 ? (
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No jobs assigned right now.</p>
+            ) : assignedJobs.map((job) => (
+              <Link key={job.id} to={`/employee-portal/jobs/${job.id}`} data-testid={`employee-assigned-job-${job.id}`}>
+                <div className="flex items-center justify-between rounded-lg p-4 hover:shadow-sm transition-shadow" style={{ backgroundColor: 'var(--surface-2)' }}>
+                  <div>
+                    <p className="font-medium" style={{ color: 'var(--text)' }}>{job.job_name}</p>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {job.customer_name} · {job.current_production_stage || 'No active stage'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <Badge className={job.priority === 'urgent' ? 'bg-red-500/20 text-red-400 border-red-500/40' : 'bg-blue-500/20 text-blue-400 border-blue-500/40'}>
+                      {job.priority}
+                    </Badge>
+                    <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>{job.due_date || 'No due date'}</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
       </div>
     </EmployeePortalLayout>
   );

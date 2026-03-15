@@ -77,6 +77,28 @@ class EmployeeTask(BaseModel):
     created_at: str
 
 
+class AssignedJobSummary(BaseModel):
+    id: str
+    job_number: str
+    job_name: str
+    customer_name: str
+    job_type: str
+    current_production_stage: Optional[str] = None
+    priority: str = "normal"
+    due_date: Optional[str] = None
+
+
+class EmployeeWorkSummary(BaseModel):
+    today_hours_worked: float
+    week_hours_worked: float
+    completed_stages_today: int
+    assigned_jobs_count: int
+
+
+class StageActionRequest(BaseModel):
+    action: str  # start, pause, complete
+
+
 class TimeLogEntry(BaseModel):
     id: str
     action: str
@@ -129,6 +151,25 @@ def extract_token(authorization: str) -> str:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing or invalid authorization header")
     return authorization.replace("Bearer ", "")
+
+
+async def get_assigned_job_ids(employee: dict) -> List[str]:
+    tenant_id = employee.get("tenant_id")
+    employee_id = employee.get("id")
+    jobs = await db.jobs.find(
+        {"tenant_id": tenant_id, "assigned_employees": employee_id},
+        {"_id": 0, "id": 1}
+    ).to_list(500)
+    job_ids = {job["id"] for job in jobs}
+
+    timeline_jobs = await db.production_timelines.find(
+        {"tenant_id": tenant_id, "stages.assigned_user_id": employee_id},
+        {"_id": 0, "job_id": 1}
+    ).to_list(500)
+    for timeline in timeline_jobs:
+        if timeline.get("job_id"):
+            job_ids.add(timeline["job_id"])
+    return list(job_ids)
 
 
 # ============== AUTH ROUTES ==============
@@ -487,6 +528,166 @@ async def get_employee_tasks(
         ))
     
     return result
+
+
+@router.get("/jobs", response_model=List[AssignedJobSummary])
+async def get_assigned_jobs(authorization: str = Header(default="")):
+    """Get jobs assigned to the current employee."""
+    token = extract_token(authorization)
+    employee = await get_current_employee(token)
+    job_ids = await get_assigned_job_ids(employee)
+
+    jobs = await db.jobs.find(
+        {"tenant_id": employee["tenant_id"], "id": {"$in": job_ids}},
+        {"_id": 0}
+    ).sort("due_date", 1).to_list(200)
+
+    result = []
+    for job in jobs:
+        customer = await db.customers.find_one({"id": job.get("customer_id")}, {"_id": 0, "name": 1})
+        timelines = await db.production_timelines.find(
+            {"job_id": job["id"], "tenant_id": employee["tenant_id"]},
+            {"_id": 0, "current_stage_order": 1, "stages": 1}
+        ).to_list(20)
+        current_stage = None
+        if timelines:
+            for timeline in timelines:
+                match = next((stage for stage in timeline.get("stages", []) if stage.get("stage_order") == timeline.get("current_stage_order")), None)
+                if match:
+                    current_stage = match.get("stage_name")
+                    break
+
+        result.append(AssignedJobSummary(
+            id=job["id"],
+            job_number=job["id"][:8].upper(),
+            job_name=job.get("name", "Untitled Job"),
+            customer_name=customer.get("name", "Unknown") if customer else "Unknown",
+            job_type=job.get("status", "job"),
+            current_production_stage=current_stage,
+            priority="urgent" if job.get("due_date") and job.get("due_date") <= datetime.now(timezone.utc).date().isoformat() else "normal",
+            due_date=job.get("due_date"),
+        ))
+    return result
+
+
+@router.get("/jobs/{job_id}")
+async def get_employee_job_detail(job_id: str, authorization: str = Header(default="")):
+    token = extract_token(authorization)
+    employee = await get_current_employee(token)
+    job_ids = await get_assigned_job_ids(employee)
+    if job_id not in job_ids:
+        raise HTTPException(status_code=404, detail="Assigned job not found")
+
+    job = await db.jobs.find_one({"id": job_id, "tenant_id": employee["tenant_id"]}, {"_id": 0})
+    customer = await db.customers.find_one({"id": job.get("customer_id")}, {"_id": 0, "name": 1}) if job else None
+    job_items = await db.job_items.find({"job_id": job_id}, {"_id": 0}).to_list(200)
+    timelines = await db.production_timelines.find({"job_id": job_id, "tenant_id": employee["tenant_id"]}, {"_id": 0}).to_list(200)
+    return {
+        "job": job,
+        "customer_name": customer.get("name", "Unknown") if customer else "Unknown",
+        "job_items": job_items,
+        "timelines": timelines,
+    }
+
+
+@router.get("/work-summary", response_model=EmployeeWorkSummary)
+async def get_employee_work_summary(authorization: str = Header(default="")):
+    token = extract_token(authorization)
+    employee = await get_current_employee(token)
+    job_ids = await get_assigned_job_ids(employee)
+    today = datetime.now(timezone.utc).date().isoformat()
+    week_start = (datetime.now(timezone.utc) - timedelta(days=datetime.now(timezone.utc).weekday())).date().isoformat()
+
+    status = await get_time_clock_status(authorization)
+    today_hours = status.total_hours_today
+
+    week_logs = await db.timelogs.find(
+        {"employee_id": employee["id"], "timestamp": {"$gte": f"{week_start}T00:00:00"}},
+        {"_id": 0}
+    ).sort("timestamp", 1).to_list(500)
+    week_hours = 0
+    work_start = None
+    for log in week_logs:
+        action = log.get("action")
+        ts = datetime.fromisoformat(log.get("timestamp").replace("Z", "+00:00"))
+        if action == "start_work":
+            work_start = ts
+        elif action in ["break_start", "end_work"] and work_start:
+            week_hours += (ts - work_start).total_seconds() / 3600
+            work_start = None
+        elif action == "break_end":
+            work_start = ts
+
+    completed_stages_today = await db.production_timelines.count_documents({
+        "tenant_id": employee["tenant_id"],
+        "stages": {"$elemMatch": {"assigned_user_id": employee["id"], "completed_at": {"$regex": f"^{today}"}}}
+    })
+
+    return EmployeeWorkSummary(
+        today_hours_worked=round(today_hours, 2),
+        week_hours_worked=round(week_hours, 2),
+        completed_stages_today=completed_stages_today,
+        assigned_jobs_count=len(job_ids),
+    )
+
+
+@router.post("/jobs/{job_id}/timeline/{timeline_id}/stage/{stage_order}")
+async def act_on_stage(
+    job_id: str,
+    timeline_id: str,
+    stage_order: int,
+    request: StageActionRequest,
+    authorization: str = Header(default="")
+):
+    token = extract_token(authorization)
+    employee = await get_current_employee(token)
+    job_ids = await get_assigned_job_ids(employee)
+    if job_id not in job_ids:
+        raise HTTPException(status_code=404, detail="Assigned job not found")
+
+    timeline = await db.production_timelines.find_one(
+        {"id": timeline_id, "job_id": job_id, "tenant_id": employee["tenant_id"]},
+        {"_id": 0}
+    )
+    if not timeline:
+        raise HTTPException(status_code=404, detail="Timeline not found")
+
+    stages = timeline.get("stages", [])
+    now = datetime.now(timezone.utc).isoformat()
+    action = request.action
+    if action not in ["start", "pause", "complete"]:
+        raise HTTPException(status_code=400, detail="Invalid stage action")
+
+    for stage in stages:
+        if stage.get("stage_order") == stage_order:
+            stage["assigned_user_id"] = employee["id"]
+            stage["assigned_user_name"] = employee.get("name")
+            if action == "start":
+                stage["status"] = "in_progress"
+                stage["started_at"] = stage.get("started_at") or now
+            elif action == "pause":
+                stage["status"] = "paused"
+            elif action == "complete":
+                stage["status"] = "completed"
+                stage["started_at"] = stage.get("started_at") or now
+                stage["completed_at"] = now
+                start = datetime.fromisoformat(stage["started_at"].replace("Z", "+00:00"))
+                end = datetime.fromisoformat(now.replace("Z", "+00:00"))
+                stage["duration_minutes"] = int((end - start).total_seconds() / 60)
+                if timeline.get("current_stage_order") == stage_order:
+                    timeline["current_stage_order"] = stage_order + 1
+            break
+
+    if all(stage.get("status") == "completed" for stage in stages):
+        timeline["completed_at"] = now
+
+    await db.production_timelines.update_one(
+        {"id": timeline_id},
+        {"$set": {"stages": stages, "current_stage_order": timeline.get("current_stage_order", stage_order), "updated_at": now, "completed_at": timeline.get("completed_at")}}
+    )
+
+    action_messages = {"start": "started", "pause": "paused", "complete": "completed"}
+    return {"message": f"Stage {action_messages.get(action, action + 'ed')}", "timeline_id": timeline_id, "stage_order": stage_order}
 
 
 @router.put("/tasks/{task_id}/complete")

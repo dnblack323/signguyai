@@ -751,7 +751,7 @@ export function JobDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { 
-    customers, fetchCustomers,
+    customers, fetchCustomers, employees, fetchEmployees,
     getJobDetails, updateJob, completeJob, archiveJob, unarchiveJob,
     createInvoiceFromJob, fetchJobs,
     fetchJobItems, createJobItem, updateJobItem, deleteJobItem,
@@ -765,6 +765,7 @@ export function JobDetails() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
+  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [newNote, setNewNote] = useState('');
@@ -798,6 +799,7 @@ export function JobDetails() {
     due_date: '',
     due_time: '09:00'
   });
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState([]);
   
   const [itemFormData, setItemFormData] = useState({
     item_type: 'other',
@@ -852,8 +854,13 @@ export function JobDetails() {
   useEffect(() => {
     loadJobDetails();
     fetchCustomers();
+    fetchEmployees();
     loadTimeTracking();
   }, [id]);
+
+  useEffect(() => {
+    setSelectedEmployeeIds(jobData?.job?.assigned_employees || []);
+  }, [jobData?.job?.assigned_employees]);
 
   // Update running time every second when timer is active
   useEffect(() => {
@@ -1031,6 +1038,26 @@ export function JobDetails() {
     setIsScheduleDialogOpen(true);
   };
 
+  const handleSaveAssignments = async (employeeIds) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/jobs/${id}/assign-employees`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ employee_ids: employeeIds }),
+      });
+      if (!response.ok) throw new Error('Failed to save assignments');
+      await loadJobDetails();
+      toast.success('Assigned employees updated');
+      setIsAssignDialogOpen(false);
+    } catch (err) {
+      toast.error('Failed to save assigned employees');
+    }
+  };
+
   const handleScheduleSubmit = async (e) => {
     e.preventDefault();
     if (!scheduleFormData.title.trim()) {
@@ -1167,7 +1194,7 @@ export function JobDetails() {
     );
   }
 
-  const { job, customer, quote, invoice, job_items, notes, activities, financial_snapshot } = jobData;
+  const { job, customer, quote, invoice, job_items, assigned_employee_details = [], notes, activities, financial_snapshot } = jobData;
   const isArchived = job.is_archived || job.status === 'archived';
 
   return (
@@ -1328,6 +1355,60 @@ export function JobDetails() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="bg-card border-border/50" data-testid="job-assigned-employees-card">
+        <CardHeader>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <CardTitle className="font-heading uppercase">Assigned Employees</CardTitle>
+              <CardDescription>Assign employees to the whole job. Stage-level assignment is available inside timeline stage editing.</CardDescription>
+            </div>
+            <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" data-testid="manage-job-assignments-btn">Manage</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[520px]">
+                <DialogHeader>
+                  <DialogTitle>Assign Employees</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3 py-4">
+                  {employees.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No employees found for this company.</p>
+                  ) : employees.map((employee) => (
+                    <label key={employee.id} className="flex items-center justify-between rounded-lg border p-3">
+                      <div>
+                        <p className="font-medium">{employee.name}</p>
+                        <p className="text-xs text-muted-foreground">{employee.role || 'staff'}</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={selectedEmployeeIds.includes(employee.id)}
+                        onChange={(event) => setSelectedEmployeeIds((current) => event.target.checked ? [...current, employee.id] : current.filter((idValue) => idValue !== employee.id))}
+                        data-testid={`assign-employee-checkbox-${employee.id}`}
+                      />
+                    </label>
+                  ))}
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setIsAssignDialogOpen(false)}>Cancel</Button>
+                  <Button onClick={() => handleSaveAssignments(selectedEmployeeIds)} data-testid="save-job-assignments-btn">Save Assignments</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {assigned_employee_details.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No employees assigned yet.</p>
+            ) : assigned_employee_details.map((employee) => (
+              <Badge key={employee.id} variant="outline" data-testid={`assigned-employee-badge-${employee.id}`}>
+                {employee.name}
+              </Badge>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Tabs: Line Items, Notes, Activity, Time Tracking */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>

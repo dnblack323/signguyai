@@ -55,6 +55,7 @@ import { PortalQuotes, PortalInvoices, PortalAppointments } from "./pages/Portal
 // Employee Portal Pages
 import EmployeePortalLogin from "./pages/EmployeePortalLogin";
 import EmployeePortalDashboard from "./pages/EmployeePortalDashboard";
+import EmployeePortalJob from "./pages/EmployeePortalJob";
 import EmployeePortalPay from "./pages/EmployeePortalPay";
 import EmployeePortalTasks from "./pages/EmployeePortalTasks";
 import EmployeePortalProfile from "./pages/EmployeePortalProfile";
@@ -279,6 +280,7 @@ function App() {
                 {/* Employee Portal Routes - Separate Auth */}
                 <Route path="/employee-portal/login" element={<EmployeePortalLogin />} />
                 <Route path="/employee-portal" element={<EmployeePortalDashboard />} />
+                <Route path="/employee-portal/jobs/:jobId" element={<EmployeePortalJob />} />
                 <Route path="/employee-portal/pay" element={<EmployeePortalPay />} />
                 <Route path="/employee-portal/tasks" element={<EmployeePortalTasks />} />
                 <Route path="/employee-portal/profile" element={<EmployeePortalProfile />} />
