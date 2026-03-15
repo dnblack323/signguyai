@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { ArrowLeft, CheckCircle2, FileUp, Loader2, Settings2, Sparkles, UploadCloud } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth, Permission } from '../context/AuthContext';
+import { useAICreditGuard } from '../components/credits/AICreditConfirmationDialog';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 const CATEGORY_OPTIONS = [
@@ -25,6 +26,7 @@ const formatNumber = (value) => Number(value || 0).toFixed(2);
 
 export default function PricingSetup() {
   const { hasPermission, isOwner, isAdminOrOwner } = useAuth();
+  const { runGuardedAction, dialog: creditDialog } = useAICreditGuard();
   const canView = hasPermission(Permission.SETTINGS_VIEW) || isAdminOrOwner();
   const canEdit = hasPermission(Permission.SETTINGS_EDIT) || isOwner();
 
@@ -201,28 +203,36 @@ export default function PricingSetup() {
     const token = getToken();
     if (!token) return;
 
-    setAnalyzing(true);
-    try {
-      const response = await fetch(`${API_URL}/api/pricing-setup/imports/${selectedImportId}/analyze`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ excluded_row_ids: excludedRowIds }),
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Analysis failed');
-      }
+    await runGuardedAction({
+      actionType: 'historical_invoice_analysis',
+      featureName: 'Historical Invoice AI Analysis',
+      execute: async () => {
+        setAnalyzing(true);
+        try {
+          const response = await fetch(`${API_URL}/api/pricing-setup/imports/${selectedImportId}/analyze`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ excluded_row_ids: excludedRowIds }),
+          });
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Analysis failed');
+          }
 
-      toast.success('AI pricing analysis complete');
-      await loadImportDetail(selectedImportId);
-    } catch (error) {
-      toast.error(error.message || 'Analysis failed');
-    } finally {
-      setAnalyzing(false);
-    }
+          toast.success('AI pricing analysis complete');
+          await loadImportDetail(selectedImportId);
+          return response.json;
+        } catch (error) {
+          toast.error(error.message || 'Analysis failed');
+          throw error;
+        } finally {
+          setAnalyzing(false);
+        }
+      }
+    });
   };
 
   const handleSaveReview = async () => {
@@ -277,6 +287,7 @@ export default function PricingSetup() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6" data-testid="pricing-setup-page">
+      {creditDialog}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-3">
           <Link to="/settings">

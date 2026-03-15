@@ -1,0 +1,110 @@
+{
+  "summary": "AI Credit System Testing - All 15 backend tests passed. Frontend credit popup verified on Product Description Generator, AI Assistant, AI Tools (Logo Creator - high cost), and Floating Assistant. Credit modal with Admin Usage Summary verified. Credit costs correctly assigned (Low=1, Medium=2, High=3). Monthly credits deducted before purchased credits. Failed AI actions do not deduct credits. Preflight endpoint returns correct warning logic for high-cost actions, low balance, and purchased credit usage.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "features_verified": {
+    "GET /api/credits/preflight": {
+      "status": "PASS",
+      "description": "Returns credit_cost, monthly_credits, purchased_credits, total_credits, sufficient_credits, should_show_popup, popup_reasons (high_cost_action, low_balance, purchased_credits_needed, cost_changed), will_use_purchased, monthly_credits_to_use, purchased_credits_to_use"
+    },
+    "GET /api/credits/preferences": {
+      "status": "PASS",
+      "description": "Returns hide_ai_credit_popup (boolean) and acknowledged_costs (dict) per user/tenant"
+    },
+    "PUT /api/credits/preferences": {
+      "status": "PASS",
+      "description": "Persists hide_ai_credit_popup and acknowledged_costs, verified with GET after PUT"
+    },
+    "GET /api/credits/balance": {
+      "status": "PASS",
+      "description": "Returns monthly_credits, purchased_credits, total_credits, is_low_credits, low_credits_threshold"
+    },
+    "GET /api/credits/costs": {
+      "status": "PASS",
+      "description": "Returns all 58+ AI actions with correct costs (1, 2, or 3). product_description=2, ai_business_assistant=2, historical_invoice_analysis=3, pricing_advisor=1, assistant_chat=2, assistant_parse_action=1"
+    },
+    "GET /api/credits/admin-summary": {
+      "status": "PASS",
+      "description": "Returns balance, total_ai_credits_used, monthly_credits_consumed, purchased_credits_consumed, by_tool (list with action_type/credits_used/count), by_user, recent_usage. Visible in credit modal for admin/owner."
+    },
+    "GET /api/credits/history": {
+      "status": "PASS",
+      "description": "Returns paginated transaction history with tenant_id, transaction_type, amount, balance_after"
+    },
+    "GET /api/credits/packs": {
+      "status": "PASS",
+      "description": "Returns 3 credit packs: pack_100 ($10), pack_300 ($25 POPULAR), pack_1000 ($60 40% OFF)"
+    },
+    "Invalid tool no credit deduction": {
+      "status": "PASS",
+      "description": "POST /api/ai/generate with invalid tool returns 400/500 without deducting credits"
+    },
+    "Monthly credits deducted first": {
+      "status": "PASS",
+      "description": "Preflight correctly calculates monthly_credits_to_use before purchased_credits_to_use"
+    },
+    "AI Credit Confirmation Dialog - Product Description": {
+      "status": "PASS",
+      "description": "Dialog appears with action name, 2 credit cost, monthly/purchased/total balances, warning badges (Confirmation enabled, Cost changed), hide checkbox with explanation, Cancel/Continue buttons"
+    },
+    "AI Credit Confirmation Dialog - AI Assistant": {
+      "status": "PASS",
+      "description": "Dialog appears when sending message in AI Business Assistant chat"
+    },
+    "AI Credit Confirmation Dialog - AI Tools (High Cost)": {
+      "status": "PASS",
+      "description": "Logo Creator (3 credits) shows dialog with 'High-cost action' badge, dialog reappears even when hide preference is set due to warning condition"
+    },
+    "AI Credit Confirmation Dialog - Floating Assistant": {
+      "status": "PASS",
+      "description": "Floating Assistant chat triggers credit confirmation dialog"
+    },
+    "Credit Balance in Header": {
+      "status": "PASS",
+      "description": "Credit balance button shows total balance, clicking opens credit modal with balances, buy packs, and admin usage summary"
+    },
+    "Admin AI Usage Summary in Modal": {
+      "status": "PASS",
+      "description": "Shows Total Used, Monthly Consumed, Purchased Consumed, Top Tools (with credit counts), Recent Usage (with timestamps and success status)"
+    },
+    "Hide Preference Warning Logic": {
+      "status": "PASS",
+      "description": "Popup reappears on warning cases (high-cost action, cost changed) even when hide preference is enabled. Checkbox explanation states: 'The popup will still reappear for high-cost actions, low-balance warnings, cost changes, or when purchased credits will be used.'"
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_ai_credit_system.py",
+    "/app/test_reports/pytest/ai_credit_system_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "credits.py: Preflight endpoint correctly calculates warning reasons and deduction plan",
+    "credit_service.py: preview_credit_usage, deduct_credits_after_success, log_failed_ai_usage functions properly integrated",
+    "founders_config.py: AI_CREDIT_COSTS dict maps 58+ AI actions to 1/2/3 credits based on compute intensity",
+    "ai.py: All AI endpoints check credits via preview_credit_usage before execution, deduct only after success",
+    "AICreditConfirmationDialog.js: Shows action name, cost, balances, warning badges, hide checkbox with proper explanation",
+    "CreditBalance.js: Header button shows balance, modal shows buy packs and admin usage summary for admin/owner"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_ai_credit_system.py"
+  ],
+  "success_rate": {
+    "backend": "100% (15/15 tests passed)",
+    "frontend": "100% - All credit popup and modal features verified"
+  },
+  "test_credentials": {
+    "admin_email": "thesigntistslab@gmail.com",
+    "admin_password": "password123"
+  },
+  "seed_data_creation": "None - used existing account with 999995 monthly credits and 999999 purchased credits",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "AI Credit System fully tested. All 15 backend tests pass. Frontend credit confirmation dialog verified on: Products page (product description generator), AI Assistant, AI Tools (Pricing Intelligence, Logo Creator), and Floating Assistant. Credit modal shows buy packs and admin usage summary. Warning logic works - popup reappears for high-cost actions even when hide preference is set. Credit costs: Low=1, Medium=2, High=3. Monthly credits deducted before purchased credits."
+}

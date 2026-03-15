@@ -237,6 +237,71 @@ for tool in TWO_CREDIT_TOOLS:
 for tool in THREE_CREDIT_TOOLS:
     AI_CREDIT_COSTS[tool] = 3
 
+# Exact application tool/action mappings from the live codebase
+AI_CREDIT_COSTS.update({
+    # Design/image generation tools (HIGH = 3)
+    "logo_refresher": 3,
+    "generative_fill": 3,
+    "text_to_image": 3,
+    "ai_sign_designer": 3,
+    "ai_banner_designer": 3,
+    "mockup_creator": 3,
+    "vehicle_wrap_mockup": 3,
+    "logo_creator": 3,
+    "race_number_designer": 3,
+    "driver_name_plate": 3,
+    "race_team_branding": 3,
+    "historical_invoice_analysis": 3,
+
+    # Medium tools (2)
+    "permit_research": 2,
+    "photo_enhancer": 2,
+    "image_vectorizer": 2,
+    "font_identifier": 2,
+    "branding_kit_generator": 2,
+    "business_copywriter": 2,
+    "document_composer": 2,
+    "pricing_intelligence": 2,
+    "blog_creator": 2,
+    "completed_job_post": 2,
+    "social_pack_generator": 2,
+    "content_calendar": 2,
+    "campaign_builder": 2,
+    "wrap_cost_calculator": 2,
+    "product_description": 2,
+    "ai_business_assistant": 2,
+    "assistant_chat": 2,
+
+    # Low tools (1)
+    "idea_brainstormer": 1,
+    "social_job_post": 1,
+    "pricing_advisor": 1,
+    "tagline_generator": 1,
+    "brand_color_advisor": 1,
+    "brand_voice_guide": 1,
+    "review_responder": 1,
+    "assistant_parse_action": 1,
+    "invoice_send": 1,
+    "invoice_reminder": 1,
+    "invoice_overdue": 1,
+    "quote_send": 1,
+    "quote_followup": 1,
+    "approval_request": 1,
+    "job_update": 1,
+    "job_complete": 1,
+    "thank_you": 1,
+
+    # Hidden but callable backend-only tools
+    "proposal_writer": 2,
+    "email_templates": 2,
+    "seo_content": 2,
+    "showcase_post": 2,
+
+    # Internal AI pipeline actions
+    "historical_invoice_pdf_extract": 3,
+    "historical_invoice_benchmark_synthesis": 2,
+})
+
 # Default cost for unknown tools
 AI_CREDIT_COSTS["default"] = 1
 

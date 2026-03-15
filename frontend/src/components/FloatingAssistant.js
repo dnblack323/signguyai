@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { useAICreditGuard } from './credits/AICreditConfirmationDialog';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -26,6 +27,7 @@ const quickActions = [
 
 export default function FloatingAssistant() {
   const { token, user } = useAuth();
+  const { runGuardedAction, dialog: creditDialog } = useAICreditGuard();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState([
@@ -75,23 +77,30 @@ What would you like to do?`,
         setMessages(prev => [...prev, actionResult]);
       } else {
         // Fall back to regular assistant chat
-        const response = await axios.post(
-          `${API_URL}/api/ai/assistant`,
-          {
-            message: messageText.trim(),
-            session_id: sessionId,
-            conversation_history: messages.slice(-10)
-          },
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
+        await runGuardedAction({
+          actionType: 'assistant_chat',
+          featureName: 'Floating AI Assistant',
+          execute: async () => {
+            const response = await axios.post(
+              `${API_URL}/api/ai/assistant`,
+              {
+                message: messageText.trim(),
+                session_id: sessionId,
+                conversation_history: messages.slice(-10)
+              },
+              {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                }
+              }
+            );
 
-        const assistantMessage = { role: 'assistant', content: response.data.response };
-        setMessages(prev => [...prev, assistantMessage]);
+            const assistantMessage = { role: 'assistant', content: response.data.response };
+            setMessages(prev => [...prev, assistantMessage]);
+            return response.data;
+          }
+        });
       }
     } catch (error) {
       console.error('Error:', error);
@@ -130,19 +139,26 @@ What would you like to do?`,
     return null; // No action detected, use regular chat
   };
 
+  const runParseAction = async (message, actionType) => {
+    return await runGuardedAction({
+      actionType: 'assistant_parse_action',
+      featureName: `Assistant action parser: ${actionType}`,
+      execute: async () => {
+        const parseResponse = await axios.post(
+          `${API_URL}/api/ai/assistant/parse-action`,
+          { message, action_type: actionType },
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+        return parseResponse.data;
+      }
+    });
+  };
+
   const handleCreateJobIntent = async (message) => {
     try {
       // Use AI to parse the job details
-      const parseResponse = await axios.post(
-        `${API_URL}/api/ai/assistant/parse-action`,
-        {
-          message: message,
-          action_type: 'create_job'
-        },
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
-      
-      const parsed = parseResponse.data;
+      const parsed = await runParseAction(message, 'create_job');
+      if (!parsed) return null;
       
       if (parsed.needs_more_info) {
         return {
@@ -177,16 +193,8 @@ What would you like to do?`,
 
   const handleCreateAppointmentIntent = async (message) => {
     try {
-      const parseResponse = await axios.post(
-        `${API_URL}/api/ai/assistant/parse-action`,
-        {
-          message: message,
-          action_type: 'create_calendar_event'
-        },
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
-      
-      const parsed = parseResponse.data;
+      const parsed = await runParseAction(message, 'create_calendar_event');
+      if (!parsed) return null;
       
       if (parsed.needs_more_info) {
         return {
@@ -227,16 +235,8 @@ What would you like to do?`,
 
   const handleLogTimeIntent = async (message) => {
     try {
-      const parseResponse = await axios.post(
-        `${API_URL}/api/ai/assistant/parse-action`,
-        {
-          message: message,
-          action_type: 'log_time_entry'
-        },
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
-      
-      const parsed = parseResponse.data;
+      const parsed = await runParseAction(message, 'log_time_entry');
+      if (!parsed) return null;
       
       if (parsed.needs_more_info) {
         return {
@@ -350,6 +350,8 @@ What would you like to do?`,
   }
 
   return (
+    <>
+    {creditDialog}
     <div
       className={`fixed z-50 bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col transition-all duration-200 ${
         isMinimized 
@@ -529,5 +531,6 @@ What would you like to do?`,
         </>
       )}
     </div>
+    </>
   );
 }

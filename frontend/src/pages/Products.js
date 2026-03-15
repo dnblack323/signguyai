@@ -38,6 +38,7 @@ import {
 import { toast } from 'sonner';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { useAICreditGuard } from '../components/credits/AICreditConfirmationDialog';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -68,6 +69,7 @@ const getCategoryColor = (category) => {
 export default function Products() {
   const { getProducts, createProduct, updateProduct, deleteProduct } = useApp();
   const { token } = useAuth();
+  const { runGuardedAction, dialog: creditDialog } = useAICreditGuard();
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -108,33 +110,40 @@ export default function Products() {
       return;
     }
 
-    setGeneratingDescription(true);
-    try {
-      const response = await axios.post(
-        `${API_URL}/api/ai/generate-product-description`,
-        {
-          product_name: formData.name,
-          product_category: categoryOptions.find(c => c.value === formData.category)?.label || 'Other',
-          product_features: formData.description || '', // Use existing description as features hint
-          target_audience: 'small businesses and consumers',
-          tone: 'professional',
-          price: parseFloat(formData.retail_price) || 0,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+    await runGuardedAction({
+      actionType: 'product_description',
+      featureName: 'Product Description Generator',
+      execute: async () => {
+        setGeneratingDescription(true);
+        try {
+          const response = await axios.post(
+            `${API_URL}/api/ai/generate-product-description`,
+            {
+              product_name: formData.name,
+              product_category: categoryOptions.find(c => c.value === formData.category)?.label || 'Other',
+              product_features: formData.description || '',
+              target_audience: 'small businesses and consumers',
+              tone: 'professional',
+              price: parseFloat(formData.retail_price) || 0,
+            },
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
 
-      // Use the full description or just the main content
-      const newDescription = response.data.description;
-      setFormData({ ...formData, description: newDescription });
-      toast.success('Description generated!');
-    } catch (error) {
-      console.error('Failed to generate description:', error);
-      toast.error(error.response?.data?.detail || 'Failed to generate description');
-    } finally {
-      setGeneratingDescription(false);
-    }
+          const newDescription = response.data.description;
+          setFormData({ ...formData, description: newDescription });
+          toast.success('Description generated!');
+          return response.data;
+        } catch (error) {
+          console.error('Failed to generate description:', error);
+          toast.error(error.response?.data?.detail || 'Failed to generate description');
+          throw error;
+        } finally {
+          setGeneratingDescription(false);
+        }
+      }
+    });
   };
 
   useEffect(() => {
@@ -365,6 +374,7 @@ export default function Products() {
 
   return (
     <div className="space-y-6 animate-fade-in" data-testid="products-page">
+      {creditDialog}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

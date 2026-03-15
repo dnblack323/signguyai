@@ -15,6 +15,7 @@ from pypdf import PdfReader
 
 from core.auth_deps import get_current_active_user
 from models import UserInDB
+from services.credit_service import preview_credit_usage, deduct_credits_after_success, log_failed_ai_usage
 
 load_dotenv()
 
@@ -599,43 +600,73 @@ async def analyze_import(
     ensure_admin_access(current_user)
     import_doc = await get_import_or_404(import_id, current_user.tenant_id)
 
-    normalized_rows = import_doc.get("normalized_rows") or await build_normalized_rows(import_doc)
-    excluded_ids = set(payload.excluded_row_ids)
-    for row in normalized_rows:
-        row["excluded"] = row["row_id"] in excluded_ids
+    preview = await preview_credit_usage(db, current_user.tenant_id, "historical_invoice_analysis")
+    if not preview["sufficient_credits"]:
+        raise HTTPException(status_code=402, detail=f"Insufficient credits. Need {preview['credit_cost']}, have {preview['total_credits']}.")
 
-    summary = summarize_aggregates(normalized_rows)
-    ai_notes = await ai_analyze_category_metrics(summary["category_metrics"], import_id)
-    notes_by_category = {item["category_key"]: item for item in ai_notes.get("categories", [])} if ai_notes else {}
+    try:
+        normalized_rows = import_doc.get("normalized_rows") or await build_normalized_rows(import_doc)
+        excluded_ids = set(payload.excluded_row_ids)
+        for row in normalized_rows:
+            row["excluded"] = row["row_id"] in excluded_ids
 
-    suggestions = []
-    for suggestion in summary["suggestions"]:
-        category_notes = notes_by_category.get(suggestion["category_key"], {})
-        suggestions.append({
-            **suggestion,
-            "summary": category_notes.get("summary", ""),
-            "pattern_notes": category_notes.get("pattern_notes", []),
-            "confidence_reason": category_notes.get("confidence_reason", "Confidence is based on sample size and data completeness."),
-            "final_value": suggestion["suggested_value"],
-        })
+        summary = summarize_aggregates(normalized_rows)
+        ai_notes = await ai_analyze_category_metrics(summary["category_metrics"], import_id)
+        notes_by_category = {item["category_key"]: item for item in ai_notes.get("categories", [])} if ai_notes else {}
 
-    analysis_summary = {
-        **summary,
-        "categories_detected": [item["category_key"] for item in summary["top_categories"]],
-        "outlier_rows": [row for row in normalized_rows if row.get("is_outlier")],
-    }
+        suggestions = []
+        for suggestion in summary["suggestions"]:
+            category_notes = notes_by_category.get(suggestion["category_key"], {})
+            suggestions.append({
+                **suggestion,
+                "summary": category_notes.get("summary", ""),
+                "pattern_notes": category_notes.get("pattern_notes", []),
+                "confidence_reason": category_notes.get("confidence_reason", "Confidence is based on sample size and data completeness."),
+                "final_value": suggestion["suggested_value"],
+            })
 
-    await db.pricing_imports.update_one(
-        {"id": import_id, "tenant_id": current_user.tenant_id},
-        {"$set": {
-            "normalized_rows": normalized_rows,
-            "analysis_summary": analysis_summary,
-            "suggestions": suggestions,
-            "status": "analyzed",
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }}
-    )
-    return await get_import_or_404(import_id, current_user.tenant_id)
+        analysis_summary = {
+            **summary,
+            "categories_detected": [item["category_key"] for item in summary["top_categories"]],
+            "outlier_rows": [row for row in normalized_rows if row.get("is_outlier")],
+        }
+
+        await db.pricing_imports.update_one(
+            {"id": import_id, "tenant_id": current_user.tenant_id},
+            {"$set": {
+                "normalized_rows": normalized_rows,
+                "analysis_summary": analysis_summary,
+                "suggestions": suggestions,
+                "status": "analyzed",
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }}
+        )
+
+        await deduct_credits_after_success(
+            db,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            action_type="historical_invoice_analysis",
+            module="Historical Invoice Import",
+            feature_name="historical_invoice_analysis",
+            metadata={
+                "import_id": import_id,
+                "pdf_file_count": len([f for f in import_doc.get('files', []) if f.get('extension') == '.pdf']),
+                "file_count": len(import_doc.get('files', [])),
+            },
+        )
+        return await get_import_or_404(import_id, current_user.tenant_id)
+    except Exception:
+        await log_failed_ai_usage(
+            db,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            action_type="historical_invoice_analysis",
+            module="Historical Invoice Import",
+            feature_name="historical_invoice_analysis",
+            metadata={"import_id": import_id},
+        )
+        raise
 
 
 @router.post("/imports/{import_id}/review")

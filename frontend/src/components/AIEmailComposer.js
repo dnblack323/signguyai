@@ -20,6 +20,7 @@ import {
 import { Sparkles, Mail, Loader2, Copy, Check, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { useAICreditGuard } from './credits/AICreditConfirmationDialog';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -76,6 +77,7 @@ export default function AIEmailComposer({
   context = {},
   onSend 
 }) {
+  const { runGuardedAction, dialog: creditDialog } = useAICreditGuard();
   const [loading, setLoading] = useState(false);
   const [generatedSubject, setGeneratedSubject] = useState('');
   const [generatedBody, setGeneratedBody] = useState('');
@@ -85,36 +87,44 @@ export default function AIEmailComposer({
   const [copied, setCopied] = useState(false);
 
   const generateEmail = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.post(
-        `${API_URL}/api/ai/generate-email`,
-        {
-          email_type: selectedType,
-          tone: selectedTone,
-          context: {
-            ...context,
-            additional_notes: additionalContext,
-          },
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+    await runGuardedAction({
+      actionType: selectedType,
+      featureName: emailTypes[selectedType]?.label || selectedType,
+      execute: async () => {
+        setLoading(true);
+        try {
+          const token = localStorage.getItem('auth_token');
+          const response = await axios.post(
+            `${API_URL}/api/ai/generate-email`,
+            {
+              email_type: selectedType,
+              tone: selectedTone,
+              context: {
+                ...context,
+                additional_notes: additionalContext,
+              },
+            },
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
 
-      setGeneratedSubject(response.data.subject);
-      setGeneratedBody(response.data.body);
-      toast.success('Email draft generated!');
-    } catch (error) {
-      console.error('Error generating email:', error);
-      toast.error('Failed to generate email. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+          setGeneratedSubject(response.data.subject);
+          setGeneratedBody(response.data.body);
+          toast.success('Email draft generated!');
+          return response.data;
+        } catch (error) {
+          console.error('Error generating email:', error);
+          toast.error(error.response?.data?.detail || 'Failed to generate email. Please try again.');
+          throw error;
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
   };
 
   const handleCopy = () => {
@@ -148,6 +158,7 @@ export default function AIEmailComposer({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      {creditDialog}
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

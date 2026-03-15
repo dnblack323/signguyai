@@ -33,6 +33,7 @@ import {
   FileDown, FolderPlus, Users
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAICreditGuard } from '../components/credits/AICreditConfirmationDialog';
 
 const aiTools = [
   // NEW AI Tools
@@ -495,6 +496,7 @@ const categories = [
 export default function AITools() {
   const navigate = useNavigate();
   const { generateAIContent, fetchAIHistory, generateAIImages, api, customers, fetchCustomers } = useApp();
+  const { runGuardedAction, dialog: creditDialog } = useAICreditGuard();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedTool, setSelectedTool] = useState(aiTools[0]);
   const [formData, setFormData] = useState({});
@@ -604,43 +606,39 @@ export default function AITools() {
       return;
     }
 
-    setLoading(true);
-    setResult(null);
-    setGeneratedImages([]);
-    setSelectedImageIndex(null);
-    
-    try {
-      // Check if this tool generates images
-      if (selectedTool.generatesImages) {
-        toast.info(`Generating ${selectedTool.imageCount} design options... This may take up to a minute.`);
-        
-        // Generate images
-        const imageResponse = await generateAIImages(selectedTool.id, formData, selectedTool.imageCount);
-        if (imageResponse && imageResponse.images && imageResponse.images.length > 0) {
-          setGeneratedImages(imageResponse.images);
-          toast.success(`Generated ${imageResponse.images.length} design options!`);
-        } else {
-          toast.error('No images were generated. Please try again.');
-        }
-        
-        // Also get text guidance for image-generating tools (design notes)
+    await runGuardedAction({
+      actionType: selectedTool.id,
+      featureName: selectedTool.name,
+      execute: async () => {
+        setLoading(true);
+        setResult(null);
+        setGeneratedImages([]);
+        setSelectedImageIndex(null);
+
         try {
-          const textResponse = await generateAIContent(selectedTool.id, formData);
-          setResult(textResponse);
-        } catch (e) {
-          // Text is optional for pure image generation tools
+          if (selectedTool.generatesImages) {
+            toast.info(`Generating ${selectedTool.imageCount} design options... This may take up to a minute.`);
+            const imageResponse = await generateAIImages(selectedTool.id, formData, selectedTool.imageCount);
+            if (imageResponse && imageResponse.images && imageResponse.images.length > 0) {
+              setGeneratedImages(imageResponse.images);
+              toast.success(`Generated ${imageResponse.images.length} design options!`);
+            } else {
+              toast.error('No images were generated. Please try again.');
+            }
+          } else {
+            const response = await generateAIContent(selectedTool.id, formData);
+            setResult(response);
+            toast.success('Generated successfully!');
+          }
+        } catch (err) {
+          console.error('Generation error:', err);
+          toast.error(err.response?.data?.detail || err.message || 'Generation failed. Please try again.');
+          throw err;
+        } finally {
+          setLoading(false);
         }
-      } else {
-        // Text-only generation
-        const response = await generateAIContent(selectedTool.id, formData);
-        setResult(response);
-        toast.success('Generated successfully!');
       }
-    } catch (err) {
-      console.error('Generation error:', err);
-      toast.error(err.response?.data?.detail || 'Generation failed. Please try again.');
-    }
-    setLoading(false);
+    });
   };
 
   const handleSelectImage = (index) => {
@@ -649,24 +647,32 @@ export default function AITools() {
   };
 
   const handleRegenerateImage = async (index) => {
-    toast.info('Regenerating this option...');
-    setLoading(true);
-    try {
-      const imageResponse = await generateAIImages(selectedTool.id, {
-        ...formData,
-        modification_notes: formData.modification_notes || ''
-      }, 1);
-      
-      if (imageResponse && imageResponse.images && imageResponse.images[0]) {
-        const newImages = [...generatedImages];
-        newImages[index] = imageResponse.images[0];
-        setGeneratedImages(newImages);
-        toast.success('Design regenerated!');
+    await runGuardedAction({
+      actionType: selectedTool.id,
+      featureName: `${selectedTool.name} (Regenerate)`,
+      execute: async () => {
+        toast.info('Regenerating this option...');
+        setLoading(true);
+        try {
+          const imageResponse = await generateAIImages(selectedTool.id, {
+            ...formData,
+            modification_notes: formData.modification_notes || ''
+          }, 1);
+          
+          if (imageResponse && imageResponse.images && imageResponse.images[0]) {
+            const newImages = [...generatedImages];
+            newImages[index] = imageResponse.images[0];
+            setGeneratedImages(newImages);
+            toast.success('Design regenerated!');
+          }
+        } catch (err) {
+          toast.error('Failed to regenerate');
+          throw err;
+        } finally {
+          setLoading(false);
+        }
       }
-    } catch (err) {
-      toast.error('Failed to regenerate');
-    }
-    setLoading(false);
+    });
   };
 
   const loadHistory = async () => {
@@ -800,6 +806,7 @@ export default function AITools() {
 
   return (
     <div className="space-y-6 animate-fade-in" data-testid="ai-tools-page">
+      {creditDialog}
       {/* Header */}
       <div>
           <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-white">AI Tools Suite</h1>

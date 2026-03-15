@@ -31,6 +31,13 @@ from services.founders_config import (
     LOW_CREDITS_THRESHOLD,
     CREDIT_PACKS
 )
+from services.credit_service import (
+    preview_credit_usage,
+    deduct_credits_after_success,
+    log_failed_ai_usage,
+    get_or_create_credit_record,
+    check_and_refill_monthly_credits as service_check_and_refill_monthly_credits,
+)
 
 router = APIRouter(prefix="/credits", tags=["AI Credits"])
 
@@ -44,103 +51,24 @@ if STRIPE_SECRET_KEY:
 
 async def get_or_create_user_credits(tenant_id: str) -> dict:
     """Get user credits record or create one if it doesn't exist"""
-    credits = await db.user_credits.find_one({"tenant_id": tenant_id}, {"_id": 0})
-    
-    if not credits:
-        # Create new credits record for Founders Edition user
-        now = datetime.now(timezone.utc)
-        period_end = now + relativedelta(months=1)
-        
-        new_credits = UserCredits(
-            tenant_id=tenant_id,
-            monthly_credits=FOUNDERS_EDITION_MONTHLY_CREDITS,
-            purchased_credits=0,
-            monthly_credits_granted_at=now.isoformat(),
-            monthly_credits_period_start=now.isoformat(),
-            monthly_credits_period_end=period_end.isoformat(),
-        )
-        credits_doc = new_credits.model_dump()
-        await db.user_credits.insert_one(credits_doc)
-        
-        # Record the initial grant transaction
-        transaction = CreditTransaction(
-            tenant_id=tenant_id,
-            transaction_type=CreditTransactionType.MONTHLY_GRANT,
-            amount=FOUNDERS_EDITION_MONTHLY_CREDITS,
-            balance_after=FOUNDERS_EDITION_MONTHLY_CREDITS,
-            monthly_balance_after=FOUNDERS_EDITION_MONTHLY_CREDITS,
-            purchased_balance_after=0,
-            description=f"Initial monthly credit grant: {FOUNDERS_EDITION_MONTHLY_CREDITS} credits"
-        )
-        await db.credit_transactions.insert_one(transaction.model_dump())
-        
-        credits = credits_doc
-    
-    return credits
+    return await get_or_create_credit_record(db, tenant_id)
 
 
 async def check_and_refill_monthly_credits(tenant_id: str) -> dict:
     """Check if monthly credits need to be refilled and do so if needed"""
-    credits = await get_or_create_user_credits(tenant_id)
-    
-    if not credits.get("monthly_credits_period_end"):
-        return credits
-    
-    period_end = datetime.fromisoformat(credits["monthly_credits_period_end"].replace("Z", "+00:00"))
-    now = datetime.now(timezone.utc)
-    
-    if now >= period_end:
-        # Time to refill! First expire remaining monthly credits
-        old_monthly = credits.get("monthly_credits", 0)
-        purchased = credits.get("purchased_credits", 0)
-        
-        # Record expiration if there were remaining credits
-        if old_monthly > 0:
-            expire_transaction = CreditTransaction(
-                tenant_id=tenant_id,
-                transaction_type=CreditTransactionType.MONTHLY_EXPIRE,
-                amount=-old_monthly,
-                balance_after=purchased + FOUNDERS_EDITION_MONTHLY_CREDITS,
-                monthly_balance_after=0,
-                purchased_balance_after=purchased,
-                description=f"Monthly credits expired: {old_monthly} credits"
-            )
-            await db.credit_transactions.insert_one(expire_transaction.model_dump())
-        
-        # Set new period
-        new_period_start = now
-        new_period_end = now + relativedelta(months=1)
-        
-        # Grant new monthly credits
-        await db.user_credits.update_one(
-            {"tenant_id": tenant_id},
-            {
-                "$set": {
-                    "monthly_credits": FOUNDERS_EDITION_MONTHLY_CREDITS,
-                    "monthly_credits_granted_at": now.isoformat(),
-                    "monthly_credits_period_start": new_period_start.isoformat(),
-                    "monthly_credits_period_end": new_period_end.isoformat(),
-                    "updated_at": now.isoformat()
-                }
-            }
-        )
-        
-        # Record the grant transaction
-        grant_transaction = CreditTransaction(
-            tenant_id=tenant_id,
-            transaction_type=CreditTransactionType.MONTHLY_GRANT,
-            amount=FOUNDERS_EDITION_MONTHLY_CREDITS,
-            balance_after=purchased + FOUNDERS_EDITION_MONTHLY_CREDITS,
-            monthly_balance_after=FOUNDERS_EDITION_MONTHLY_CREDITS,
-            purchased_balance_after=purchased,
-            description=f"Monthly credit grant: {FOUNDERS_EDITION_MONTHLY_CREDITS} credits"
-        )
-        await db.credit_transactions.insert_one(grant_transaction.model_dump())
-        
-        # Return updated credits
-        credits = await db.user_credits.find_one({"tenant_id": tenant_id}, {"_id": 0})
-    
-    return credits
+    return await service_check_and_refill_monthly_credits(db, tenant_id)
+
+
+def default_credit_preferences() -> dict:
+    return {
+        "hide_ai_credit_popup": False,
+        "acknowledged_costs": {},
+    }
+
+
+async def get_credit_preferences_for_user(user_id: str, tenant_id: str) -> dict:
+    prefs = await db.ai_credit_preferences.find_one({"user_id": user_id, "tenant_id": tenant_id}, {"_id": 0})
+    return {**default_credit_preferences(), **(prefs or {"user_id": user_id, "tenant_id": tenant_id})}
 
 
 # ============== ROUTES ==============
@@ -177,6 +105,62 @@ async def get_credit_balance(current_user: UserInDB = Depends(get_current_active
     )
 
 
+@router.get("/preferences")
+async def get_credit_preferences(current_user: UserInDB = Depends(get_current_active_user)):
+    return await get_credit_preferences_for_user(current_user.id, current_user.tenant_id)
+
+
+@router.put("/preferences")
+async def update_credit_preferences(payload: Dict[str, Any], current_user: UserInDB = Depends(get_current_active_user)):
+    current = await get_credit_preferences_for_user(current_user.id, current_user.tenant_id)
+    updated = {
+        **current,
+        "hide_ai_credit_popup": payload.get("hide_ai_credit_popup", current.get("hide_ai_credit_popup", False)),
+        "acknowledged_costs": payload.get("acknowledged_costs", current.get("acknowledged_costs", {})),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.ai_credit_preferences.update_one(
+        {"user_id": current_user.id, "tenant_id": current_user.tenant_id},
+        {"$set": updated},
+        upsert=True,
+    )
+    updated.pop("_id", None)
+    return updated
+
+
+@router.post("/preflight")
+async def preflight_ai_credit_check(
+    payload: Dict[str, Any],
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    action_type = payload.get("action_type")
+    if not action_type:
+        raise HTTPException(status_code=400, detail="action_type is required")
+
+    preview = await preview_credit_usage(db, current_user.tenant_id, action_type, payload.get("credits_required"))
+    prefs = await get_credit_preferences_for_user(current_user.id, current_user.tenant_id)
+    acknowledged_cost = (prefs.get("acknowledged_costs") or {}).get(action_type)
+
+    popup_reasons = []
+    if not prefs.get("hide_ai_credit_popup"):
+        popup_reasons.append("preference_off")
+    if acknowledged_cost != preview["credit_cost"]:
+        popup_reasons.append("cost_changed")
+    if preview["is_low_credits"] or preview["total_credits"] < preview["credit_cost"]:
+        popup_reasons.append("low_balance")
+    if preview["will_use_purchased"]:
+        popup_reasons.append("purchased_credits_needed")
+    if preview["credit_cost"] >= 3:
+        popup_reasons.append("high_cost_action")
+
+    return {
+        **preview,
+        "preferences": prefs,
+        "should_show_popup": len(popup_reasons) > 0,
+        "popup_reasons": popup_reasons,
+    }
+
+
 @router.post("/use", response_model=CreditUsageResponse)
 async def use_credits(
     request: CreditUsageRequest,
@@ -188,78 +172,40 @@ async def use_credits(
     """
     tenant_id = current_user.tenant_id
     
-    # Check and refill if needed
-    credits = await check_and_refill_monthly_credits(tenant_id)
-    
-    monthly = credits.get("monthly_credits", 0)
-    purchased = credits.get("purchased_credits", 0)
-    total = monthly + purchased
-    threshold = credits.get("low_credits_threshold", 20)
-    
-    credits_needed = request.credits_required
-    
-    # Check if user has enough credits
-    if total < credits_needed:
+    preview = await preview_credit_usage(db, tenant_id, request.action_type, request.credits_required)
+    if not preview["sufficient_credits"]:
         return CreditUsageResponse(
             success=False,
             credits_used=0,
             monthly_credits_used=0,
             purchased_credits_used=0,
-            remaining_monthly=monthly,
-            remaining_purchased=purchased,
-            remaining_total=total,
-            is_low_credits=total <= threshold,
-            message=f"Insufficient credits. Need {credits_needed}, have {total}."
+            remaining_monthly=preview["monthly_credits"],
+            remaining_purchased=preview["purchased_credits"],
+            remaining_total=preview["total_credits"],
+            is_low_credits=preview["is_low_credits"],
+            message=f"Insufficient credits. Need {preview['credit_cost']}, have {preview['total_credits']}."
         )
-    
-    # Use monthly credits first, then purchased
-    monthly_used = min(monthly, credits_needed)
-    purchased_used = credits_needed - monthly_used
-    
-    new_monthly = monthly - monthly_used
-    new_purchased = purchased - purchased_used
-    new_total = new_monthly + new_purchased
-    
-    # Update database
-    await db.user_credits.update_one(
-        {"tenant_id": tenant_id},
-        {
-            "$set": {
-                "monthly_credits": new_monthly,
-                "purchased_credits": new_purchased,
-                "updated_at": datetime.now(timezone.utc).isoformat()
-            }
-        }
-    )
-    
-    # Record transaction
-    transaction = CreditTransaction(
+    result = await deduct_credits_after_success(
+        db,
         tenant_id=tenant_id,
-        transaction_type=CreditTransactionType.AI_USAGE,
-        amount=-credits_needed,
-        balance_after=new_total,
-        monthly_balance_after=new_monthly,
-        purchased_balance_after=new_purchased,
-        description=f"AI action: {request.action_type}",
-        metadata={
-            "action_type": request.action_type,
-            "monthly_used": monthly_used,
-            "purchased_used": purchased_used,
-            **request.metadata
-        }
+        user_id=current_user.id,
+        action_type=request.action_type,
+        module=request.metadata.get("module", "manual"),
+        feature_name=request.metadata.get("feature_name", request.action_type),
+        metadata=request.metadata,
+        credits_required=request.credits_required,
     )
-    await db.credit_transactions.insert_one(transaction.model_dump())
     
     return CreditUsageResponse(
         success=True,
-        credits_used=credits_needed,
-        monthly_credits_used=monthly_used,
-        purchased_credits_used=purchased_used,
-        remaining_monthly=new_monthly,
-        remaining_purchased=new_purchased,
-        remaining_total=new_total,
-        is_low_credits=new_total <= threshold,
-        message=f"Used {credits_needed} credits for {request.action_type}"
+        credits_used=result["credit_cost"],
+        monthly_credits_used=result["monthly_credits_to_use"],
+        purchased_credits_used=result["purchased_credits_to_use"],
+        remaining_monthly=result["remaining_monthly"],
+        remaining_purchased=result["remaining_purchased"],
+        remaining_total=result["remaining_total"],
+        is_low_credits=result["remaining_total"] <= result["low_credits_threshold"],
+        message=f"Used {result['credit_cost']} credits for {request.action_type}"
     )
 
 
@@ -456,4 +402,39 @@ async def get_all_credit_costs(current_user: UserInDB = Depends(get_current_acti
     from services.founders_config import AI_CREDIT_COSTS
     return {
         "costs": AI_CREDIT_COSTS
+    }
+
+
+@router.get("/admin-summary")
+async def get_admin_credit_summary(current_user: UserInDB = Depends(get_current_active_user)):
+    if current_user.role not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Only admins and owners can view AI usage summary")
+
+    tenant_id = current_user.tenant_id
+    balance = await get_credit_balance(current_user)
+    usage_entries = await db.ai_usage_logs.find({"tenant_id": tenant_id}, {"_id": 0}).sort("created_at", -1).limit(100).to_list(100)
+
+    by_tool = {}
+    by_user = {}
+    for entry in usage_entries:
+        tool_key = entry.get("action_type")
+        user_key = entry.get("user_id")
+        by_tool.setdefault(tool_key, {"action_type": tool_key, "credits_used": 0, "count": 0})
+        by_tool[tool_key]["credits_used"] += entry.get("credits_charged", 0)
+        by_tool[tool_key]["count"] += 1
+        by_user.setdefault(user_key, {"user_id": user_key, "credits_used": 0, "count": 0})
+        by_user[user_key]["credits_used"] += entry.get("credits_charged", 0)
+        by_user[user_key]["count"] += 1
+
+    monthly_consumed = sum(entry.get("monthly_credits_used", 0) for entry in usage_entries if entry.get("status") == "success")
+    purchased_consumed = sum(entry.get("purchased_credits_used", 0) for entry in usage_entries if entry.get("status") == "success")
+
+    return {
+        "balance": balance.model_dump() if hasattr(balance, 'model_dump') else balance,
+        "total_ai_credits_used": sum(entry.get("credits_charged", 0) for entry in usage_entries if entry.get("status") == "success"),
+        "monthly_credits_consumed": monthly_consumed,
+        "purchased_credits_consumed": purchased_consumed,
+        "by_tool": sorted(by_tool.values(), key=lambda item: item["credits_used"], reverse=True),
+        "by_user": sorted(by_user.values(), key=lambda item: item["credits_used"], reverse=True),
+        "recent_usage": usage_entries[:20],
     }

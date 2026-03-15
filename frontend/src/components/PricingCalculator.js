@@ -17,6 +17,7 @@ import {
   Save, Star, Trash2, FolderOpen, Sparkles, Lightbulb, Target
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAICreditGuard } from './credits/AICreditConfirmationDialog';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -146,6 +147,7 @@ export default function PricingCalculator({
   initialData = null,
   embedded = false 
 }) {
+  const { runGuardedAction, dialog: creditDialog } = useAICreditGuard();
   const [category, setCategory] = useState(initialCategory || '');
   const [quantity, setQuantity] = useState(1);
   const [complexity, setComplexity] = useState(1);  // Default to 1 (simple) - was 5
@@ -199,43 +201,51 @@ export default function PricingCalculator({
     const token = getToken();
     if (!token) return;
     
-    setLoadingAiSuggestions(true);
-    try {
-      const response = await fetch(`${API_URL}/api/ai/generate`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          tool: 'pricing_advisor',
-          input_data: {
-            category: category,
-            quantity: quantity,
-            current_price: calculation?.selling_price || calculation?.suggested_price || 0,
-            production_cost: calculation?.production_cost || 0,
-            profit_margin: calculation?.profit_margin_percent || 0,
-            complexity: complexity,
-            pricing_data: pricingData,
-            breakdown: calculation?.breakdown || {}
+    await runGuardedAction({
+      actionType: 'pricing_advisor',
+      featureName: 'AI Pricing Advisor',
+      execute: async () => {
+        setLoadingAiSuggestions(true);
+        try {
+          const response = await fetch(`${API_URL}/api/ai/generate`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              tool: 'pricing_advisor',
+              input_data: {
+                category: category,
+                quantity: quantity,
+                current_price: calculation?.selling_price || calculation?.suggested_price || 0,
+                production_cost: calculation?.production_cost || 0,
+                profit_margin: calculation?.profit_margin_percent || 0,
+                complexity: complexity,
+                pricing_data: pricingData,
+                breakdown: calculation?.breakdown || {}
+              }
+            })
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setAiSuggestions(data.content);
+            setShowAiSuggestions(true);
+            toast.success('AI suggestions generated!');
+            return data;
           }
-        })
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setAiSuggestions(data.content);
-        setShowAiSuggestions(true);
-        toast.success('AI suggestions generated!');
-      } else {
-        toast.error('Failed to get AI suggestions');
+          toast.error('Failed to get AI suggestions');
+          throw new Error('Failed to get AI suggestions');
+        } catch (err) {
+          console.error('Error fetching AI suggestions:', err);
+          toast.error(err.message || 'Failed to connect to AI service');
+          throw err;
+        } finally {
+          setLoadingAiSuggestions(false);
+        }
       }
-    } catch (err) {
-      console.error('Error fetching AI suggestions:', err);
-      toast.error('Failed to connect to AI service');
-    } finally {
-      setLoadingAiSuggestions(false);
-    }
+    });
   };
 
   // Fetch templates
@@ -941,6 +951,7 @@ export default function PricingCalculator({
 
   return (
     <div className={embedded ? '' : 'max-w-4xl mx-auto'}>
+      {creditDialog}
       <Card className="border-slate-200">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">

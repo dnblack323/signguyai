@@ -20,6 +20,7 @@ load_dotenv()
 
 from server import db, get_current_active_user
 from models import UserInDB
+from services.credit_service import preview_credit_usage, deduct_credits_after_success, log_failed_ai_usage
 
 router = APIRouter(prefix="/ai", tags=["AI Tools"])
 
@@ -983,24 +984,25 @@ async def generate_ai_content(
 ):
     """Generate AI text content"""
     from services.multi_product_gate import get_multi_product_feature_gate
-    from services.credit_service import check_and_deduct_credits
-    
     # Check feature access
     gate = get_multi_product_feature_gate(db)
     await gate.require_feature(current_user.tenant_id, "ai_tools", "text_generation")
-    
-    # Check and deduct credits
-    success, credits_used, message = await check_and_deduct_credits(
-        db, 
-        current_user.tenant_id, 
-        request.tool,
-        {"tool": request.tool}
-    )
-    if not success:
-        raise HTTPException(status_code=402, detail=message)
+
+    preview = await preview_credit_usage(db, current_user.tenant_id, request.tool)
+    if not preview["sufficient_credits"]:
+        raise HTTPException(status_code=402, detail=f"Insufficient credits. Need {preview['credit_cost']}, have {preview['total_credits']}.")
     
     try:
         result = await generate_text_content(request.tool, request.input_data)
+        credit_result = await deduct_credits_after_success(
+            db,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            action_type=request.tool,
+            module="AI Tools",
+            feature_name=request.tool,
+            metadata={"tool": request.tool, **(request.input_data or {})},
+        )
         
         # Save to history
         history_entry = {
@@ -1011,15 +1013,24 @@ async def generate_ai_content(
             "images": None,
             "tenant_id": current_user.tenant_id,
             "user_id": current_user.id,
-            "credits_used": credits_used,
+            "credits_used": credit_result["credit_cost"],
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.ai_history.insert_one(history_entry)
         
-        return {"content": result, "id": history_entry["id"], "credits_used": credits_used}
+        return {"content": result, "id": history_entry["id"], "credits_used": credit_result["credit_cost"]}
     except HTTPException:
         raise
     except Exception as e:
+        await log_failed_ai_usage(
+            db,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            action_type=request.tool,
+            module="AI Tools",
+            feature_name=request.tool,
+            metadata={"tool": request.tool},
+        )
         print(f"AI generation error: {e}")
         raise HTTPException(status_code=500, detail=f"AI generation failed: {str(e)}")
 
@@ -1031,27 +1042,29 @@ async def generate_ai_images(
 ):
     """Generate AI images"""
     from services.multi_product_gate import get_multi_product_feature_gate
-    from services.credit_service import check_and_deduct_credits
-    
     # Check feature access
     gate = get_multi_product_feature_gate(db)
     await gate.require_feature(current_user.tenant_id, "ai_tools", "image_generation")
-    
-    # Check and deduct credits for image generation
-    success, credits_used, message = await check_and_deduct_credits(
-        db, 
-        current_user.tenant_id, 
-        "image_generation",
-        {"tool": request.tool, "image_count": request.image_count}
-    )
-    if not success:
-        raise HTTPException(status_code=402, detail=message)
+
+    preview = await preview_credit_usage(db, current_user.tenant_id, request.tool)
+    if not preview["sufficient_credits"]:
+        raise HTTPException(status_code=402, detail=f"Insufficient credits. Need {preview['credit_cost']}, have {preview['total_credits']}.")
     
     try:
         images = await generate_images(request.tool, request.input_data, request.image_count)
         
         if not images:
             raise HTTPException(status_code=500, detail="No images were generated")
+
+        credit_result = await deduct_credits_after_success(
+            db,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            action_type=request.tool,
+            module="AI Tools",
+            feature_name=request.tool,
+            metadata={"tool": request.tool, "image_count": request.image_count, **(request.input_data or {})},
+        )
         
         # Save to history
         history_entry = {
@@ -1062,14 +1075,24 @@ async def generate_ai_images(
             "images": images,
             "tenant_id": current_user.tenant_id,
             "user_id": current_user.id,
+            "credits_used": credit_result["credit_cost"],
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.ai_history.insert_one(history_entry)
         
-        return {"images": images, "id": history_entry["id"]}
+        return {"images": images, "id": history_entry["id"], "credits_used": credit_result["credit_cost"]}
     except HTTPException:
         raise
     except Exception as e:
+        await log_failed_ai_usage(
+            db,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            action_type=request.tool,
+            module="AI Tools",
+            feature_name=request.tool,
+            metadata={"tool": request.tool, "image_count": request.image_count},
+        )
         print(f"AI image generation error: {e}")
         raise HTTPException(status_code=500, detail=f"Image generation failed: {str(e)}")
 
@@ -1146,8 +1169,21 @@ async def generate_product_description(
             "price": request.price if request.price > 0 else "competitive",
         }
         
+        preview = await preview_credit_usage(db, current_user.tenant_id, "product_description")
+        if not preview["sufficient_credits"]:
+            raise HTTPException(status_code=402, detail=f"Insufficient credits. Need {preview['credit_cost']}, have {preview['total_credits']}.")
+
         # Generate using existing infrastructure
         result = await generate_text_content("product_description", input_data)
+        credit_result = await deduct_credits_after_success(
+            db,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            action_type="product_description",
+            module="Products",
+            feature_name="product_description",
+            metadata=input_data,
+        )
         
         # Parse the response to extract structured data
         parsed = parse_product_description(result)
@@ -1161,6 +1197,7 @@ async def generate_product_description(
             "images": None,
             "tenant_id": current_user.tenant_id,
             "user_id": current_user.id,
+            "credits_used": credit_result["credit_cost"],
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.ai_history.insert_one(history_entry)
@@ -1175,6 +1212,15 @@ async def generate_product_description(
     except HTTPException:
         raise
     except Exception as e:
+        await log_failed_ai_usage(
+            db,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            action_type="product_description",
+            module="Products",
+            feature_name="product_description",
+            metadata={"product_name": request.product_name},
+        )
         print(f"Product description generation error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to generate product description: {str(e)}")
 
@@ -1378,6 +1424,10 @@ async def ai_business_assistant(
     if not EMERGENT_LLM_KEY:
         raise HTTPException(status_code=500, detail="AI service not configured")
     
+    preview = await preview_credit_usage(db, current_user.tenant_id, "ai_business_assistant")
+    if not preview["sufficient_credits"]:
+        raise HTTPException(status_code=402, detail=f"Insufficient credits. Need {preview['credit_cost']}, have {preview['total_credits']}.")
+
     # Check feature access
     gate = get_multi_product_feature_gate(db)
     await gate.require_feature(current_user.tenant_id, "ai_assistant", "assistant_access")
@@ -1514,9 +1564,18 @@ Note: For personalized insights based on their actual business data, users can u
         
         # Send message and get response
         response = await chat.send_message(UserMessage(text=full_prompt))
+        await deduct_credits_after_success(
+            db,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            action_type="ai_business_assistant",
+            module="AI Assistant",
+            feature_name="ai_business_assistant",
+            metadata={"session_id": request.session_id, "message": request.message[:200]},
+        )
         
-        # Log AI usage
-        await db.ai_usage_logs.insert_one({
+        # Log assistant conversation metadata separately from the credit ledger
+        await db.ai_assistant_logs.insert_one({
             "tenant_id": current_user.tenant_id,
             "user_id": current_user.id,
             "tool": "business_assistant",
@@ -1526,6 +1585,15 @@ Note: For personalized insights based on their actual business data, users can u
         return {"response": response}
         
     except Exception as e:
+        await log_failed_ai_usage(
+            db,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            action_type="ai_business_assistant",
+            module="AI Assistant",
+            feature_name="ai_business_assistant",
+            metadata={"session_id": request.session_id},
+        )
         print(f"AI Assistant error: {e}")
         raise HTTPException(status_code=500, detail=f"Assistant error: {str(e)}")
 
@@ -1566,6 +1634,10 @@ async def generate_email(
     if email_type not in EMAIL_TYPE_PROMPTS:
         raise HTTPException(status_code=400, detail=f"Unknown email type: {email_type}")
     
+    preview = await preview_credit_usage(db, current_user.tenant_id, email_type)
+    if not preview["sufficient_credits"]:
+        raise HTTPException(status_code=402, detail=f"Insufficient credits. Need {preview['credit_cost']}, have {preview['total_credits']}.")
+
     try:
         # Build context string from provided context
         context = request.context
@@ -1625,6 +1697,15 @@ Write a complete email with subject line and body. Sign off as "SignGuy AI Team"
         
         # Generate email
         response = await chat.send_message(UserMessage(text=prompt))
+        await deduct_credits_after_success(
+            db,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            action_type=email_type,
+            module="AI Email Composer",
+            feature_name=email_type,
+            metadata=context,
+        )
         
         # Parse the response to extract subject and body
         subject = ""
@@ -1650,6 +1731,15 @@ Write a complete email with subject line and body. Sign off as "SignGuy AI Team"
         }
         
     except Exception as e:
+        await log_failed_ai_usage(
+            db,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            action_type=email_type,
+            module="AI Email Composer",
+            feature_name=email_type,
+            metadata=request.context,
+        )
         print(f"Email generation error: {e}")
         raise HTTPException(status_code=500, detail=f"Email generation error: {str(e)}")
 
@@ -1933,6 +2023,10 @@ async def parse_action_intent(
     if not EMERGENT_LLM_KEY:
         raise HTTPException(status_code=500, detail="AI service not configured")
     
+    preview = await preview_credit_usage(db, current_user.tenant_id, "assistant_parse_action")
+    if not preview["sufficient_credits"]:
+        raise HTTPException(status_code=402, detail=f"Insufficient credits. Need {preview['credit_cost']}, have {preview['total_credits']}.")
+
     # Get context data for better parsing
     tenant_id = current_user.tenant_id
     
@@ -1970,7 +2064,7 @@ If you cannot determine enough info to create a job, return:
 Respond ONLY with valid JSON, nothing else."""
 
     elif request.action_type == "create_calendar_event":
-        system_prompt = f"""You are a parsing assistant. Extract appointment/event details from the user's message.
+        system_prompt = """You are a parsing assistant. Extract appointment/event details from the user's message.
 
 Return a JSON object with these fields:
 - title: Event title (required)
@@ -2048,6 +2142,15 @@ Respond ONLY with valid JSON, nothing else."""
                             parsed["job_id"] = j["id"]
                             break
             
+            await deduct_credits_after_success(
+                db,
+                tenant_id=current_user.tenant_id,
+                user_id=current_user.id,
+                action_type="assistant_parse_action",
+                module="Floating Assistant",
+                feature_name=request.action_type,
+                metadata={"requested_action_type": request.action_type},
+            )
             return {"parameters": parsed} if not parsed.get("needs_more_info") else parsed
             
         except json.JSONDecodeError:
@@ -2058,6 +2161,15 @@ Respond ONLY with valid JSON, nothing else."""
             }
             
     except Exception as e:
+        await log_failed_ai_usage(
+            db,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            action_type="assistant_parse_action",
+            module="Floating Assistant",
+            feature_name=request.action_type,
+            metadata={"requested_action_type": request.action_type},
+        )
         print(f"Parse action error: {e}")
         return {
             "needs_more_info": True,

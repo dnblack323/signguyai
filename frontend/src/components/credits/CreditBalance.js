@@ -141,10 +141,12 @@ export const CreditPurchaseModal = ({ open, onOpenChange, credits, onPurchaseCom
   const [packs, setPacks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [purchasing, setPurchasing] = useState(null);
+  const [adminSummary, setAdminSummary] = useState(null);
 
   useEffect(() => {
     if (open) {
       fetchPacks();
+      fetchAdminSummary();
     }
   }, [open]);
 
@@ -192,6 +194,23 @@ export const CreditPurchaseModal = ({ open, onOpenChange, credits, onPurchaseCom
       toast.error('Failed to process purchase');
     } finally {
       setPurchasing(null);
+    }
+  };
+
+  const fetchAdminSummary = async () => {
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_URL}/api/credits/admin-summary`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAdminSummary(data);
+      } else {
+        setAdminSummary(null);
+      }
+    } catch (error) {
+      setAdminSummary(null);
     }
   };
 
@@ -320,6 +339,53 @@ export const CreditPurchaseModal = ({ open, onOpenChange, credits, onPurchaseCom
             Purchased credits never expire • Secure payment via Stripe
           </p>
         </div>
+
+        {adminSummary && (
+          <div className="space-y-3 mt-6 border-t pt-6" data-testid="admin-ai-usage-summary">
+            <h4 className="font-medium text-sm text-gray-700">Admin AI Usage Summary</h4>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-3 bg-slate-50 rounded-lg">
+                <p className="text-xs text-slate-500">Total Used</p>
+                <p className="text-lg font-semibold">{adminSummary.total_ai_credits_used}</p>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-lg">
+                <p className="text-xs text-slate-500">Monthly Consumed</p>
+                <p className="text-lg font-semibold">{adminSummary.monthly_credits_consumed}</p>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-lg">
+                <p className="text-xs text-slate-500">Purchased Consumed</p>
+                <p className="text-lg font-semibold">{adminSummary.purchased_credits_consumed}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="rounded-lg border p-3">
+                <p className="text-xs uppercase text-slate-500 mb-2">Top Tools</p>
+                <div className="space-y-2">
+                  {(adminSummary.by_tool || []).slice(0, 5).map((tool) => (
+                    <div key={tool.action_type} className="flex items-center justify-between text-sm">
+                      <span className="text-slate-700">{tool.action_type}</span>
+                      <span className="font-medium">{tool.credits_used} cr</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-xs uppercase text-slate-500 mb-2">Recent Usage</p>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {(adminSummary.recent_usage || []).slice(0, 6).map((item) => (
+                    <div key={item.id} className="text-sm border-b last:border-b-0 pb-2 last:pb-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-slate-700">{item.feature_name || item.action_type}</span>
+                        <Badge variant="outline">{item.status}</Badge>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">{item.credits_charged} credits • {new Date(item.created_at).toLocaleString()}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

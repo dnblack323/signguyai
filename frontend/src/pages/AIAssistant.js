@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import { useAICreditGuard } from '../components/credits/AICreditConfirmationDialog';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -28,6 +29,7 @@ const suggestedPrompts = [
 export default function AIAssistant() {
   const navigate = useNavigate();
   const { token } = useAuth();
+  const { runGuardedAction, dialog: creditDialog } = useAICreditGuard();
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
@@ -65,26 +67,32 @@ What can I help you with today?`
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        `${API_URL}/api/ai/assistant`,
-        {
-          message: messageText.trim(),
-          session_id: sessionId,
-          conversation_history: messages.slice(-10) // Send last 10 messages for context
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      await runGuardedAction({
+        actionType: 'ai_business_assistant',
+        featureName: 'AI Business Assistant',
+        execute: async () => {
+          const response = await axios.post(
+            `${API_URL}/api/ai/assistant`,
+            {
+              message: messageText.trim(),
+              session_id: sessionId,
+              conversation_history: messages.slice(-10)
+            },
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
 
-      const assistantMessage = { role: 'assistant', content: response.data.response };
-      setMessages(prev => [...prev, assistantMessage]);
+          const assistantMessage = { role: 'assistant', content: response.data.response };
+          setMessages(prev => [...prev, assistantMessage]);
+        }
+      });
     } catch (error) {
       console.error('Error:', error);
-      toast.error('Failed to get response. Please try again.');
+      toast.error(error.response?.data?.detail || 'Failed to get response. Please try again.');
       // Remove the user message if we failed
       setMessages(prev => prev.slice(0, -1));
       setInput(messageText);
@@ -121,6 +129,7 @@ What can I help you with today?`
 
   return (
     <div className="h-[calc(100vh-8rem)] flex flex-col">
+      {creditDialog}
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-4">
