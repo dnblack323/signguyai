@@ -101,6 +101,27 @@
 - Full feature validation completed via `/app/test_reports/iteration_59.json`
 - Result: **100% backend + 100% frontend pass** for the employee portal + production tracking scope
 
+## March 15, 2026 - AI Credit Usage System Audit + Enforcement
+
+### Credit Engine Upgrade
+- Added `/api/credits/preflight`, `/api/credits/preferences`, and `/api/credits/admin-summary`
+- AI actions now preview available balance first and deduct **only after success**
+- Monthly credits are consumed before purchased credits; failed AI actions do not deduct
+- Added unified AI usage ledger with tool/action, user, tenant, source balance, and success/failure status
+
+### Popup + Balance UX
+- Added shared AI credit confirmation popup with action name, credit cost, monthly balance, purchased balance, total balance, and hide preference
+- Popup reappears for warning cases: cost changes, low balance, purchased-credit usage, and high-cost actions
+- Added admin AI usage summary inside the credit balance modal
+
+### Coverage
+- User-facing popup coverage verified on: AI Tools Suite, AI Business Assistant, Floating Assistant, AI Email Composer, Product Description Generator, Pricing Advisor, and Historical Invoice Analysis
+- Backend credit enforcement verified for generic AI generation endpoints and assistant/email/product-description flows
+
+### Testing
+- Full feature validation completed via `/app/test_reports/iteration_62.json`
+- Result: **100% backend + 100% frontend pass** for AI credit system scope
+
 
 ## March 14, 2026 - Admin Payroll Enhancement + Document Library Update
 

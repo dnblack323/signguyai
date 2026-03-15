@@ -5,7 +5,6 @@
 
 ## P1 - High Priority
 - [ ] Customer Portal audit
-- [ ] AI Credits / AI Tools verification
 - [ ] Onboarding system verification
 - [ ] Founders Edition Stripe Integration - Wire Stripe Price IDs (user has provided them in .env) into plan management
 - [ ] Dark Shell / Light Workspace UI Refactor - Apply ShellCard.jsx layout to all pages (Dashboard, Customers, Products, etc.)

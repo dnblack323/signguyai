@@ -165,10 +165,15 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
   - New employee job detail view at `/employee-portal/jobs/{jobId}` with stage **Start / Pause / Complete** controls
   - Admins can assign employees to jobs from Job Details and assign specific stages from the production timeline editor
   - Assigned-job discovery now respects both whole-job assignment and stage-level assignment
+- [x] **AI Credits / AI Tools Verification + Enforcement (Mar 15, 2026):**
+  - Added per-user AI credit preflight, popup preference storage, and warning-based popup reappearance logic
+  - Added shared AI credit confirmation popup across user-facing AI surfaces
+  - AI endpoints now preview credits first and deduct only after successful completion
+  - Added AI usage ledger + admin usage summary in the credit modal
+  - Verified Low=1, Medium=2, High=3 cost mapping across 58+ AI actions
 
 ## Upcoming Tasks (P1)
 - [ ] Customer Portal audit
-- [ ] AI Credits / AI Tools verification
 - [ ] Onboarding system verification
 - [ ] Complete Billing System Logic - track first 100 founders, $19.99 credit, AI Tools Add-On
 - [ ] Re-enable Trial Lockout System - fix root cause, not just disable
