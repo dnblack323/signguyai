@@ -245,7 +245,10 @@ export function JobsList() {
     const newLineItem = {
       description: itemData.description || 'Calculated Item',
       quantity: itemData.quantity || 1,
-      unit_price: itemData.unit_price || itemData.line_total || 0
+      unit_price: itemData.unit_price || itemData.line_total || 0,
+      pricing_category: itemData.pricing_category || itemData.category,
+      pricing_data: itemData.pricing_data,
+      cost_snapshot: itemData.cost_snapshot
     };
     
     // Add the calculated item to line items
@@ -800,7 +803,13 @@ export function JobDetails() {
     quantity: 1,
     unit_price: '',
     status: 'pending',
-    notes: ''
+    notes: '',
+    pricing_category: null,
+    pricing_data: null,
+    cost_snapshot: null,
+    production_cost: 0,
+    profit_amount: 0,
+    profit_margin_percent: 0,
   });
 
   // Handle calculated item from pricing calculator
@@ -821,10 +830,16 @@ export function JobDetails() {
       item_type: itemTypeMap[calculatedData.category] || 'other',
       description: calculatedData.description || `${calculatedData.category} - Qty ${calculatedData.quantity}`,
       quantity: calculatedData.quantity || 1,
-      unit_price: calculatedData.unit_price || calculatedData.suggested_price || 0,
+      unit_price: calculatedData.unit_price || calculatedData.selling_price || calculatedData.suggested_price || 0,
       status: 'pending',
-      notes: calculatedData.pricing_breakdown ? 
-        `Cost: $${calculatedData.production_cost?.toFixed(2)} | Profit: $${calculatedData.profit_amount?.toFixed(2)} (${calculatedData.profit_margin_percent?.toFixed(0)}%)` : ''
+      notes: calculatedData.cost_snapshot ? 
+        `Cost: $${calculatedData.cost_snapshot.total_cost?.toFixed(2)} | Profit: $${calculatedData.cost_snapshot.profit_amount?.toFixed(2)} (${calculatedData.cost_snapshot.profit_margin_percent?.toFixed(0)}%)` : '',
+      pricing_category: calculatedData.pricing_category || calculatedData.category,
+      pricing_data: calculatedData.pricing_data,
+      cost_snapshot: calculatedData.cost_snapshot,
+      production_cost: calculatedData.production_cost || calculatedData.cost_snapshot?.total_cost || 0,
+      profit_amount: calculatedData.profit_amount || calculatedData.cost_snapshot?.profit_amount || 0,
+      profit_margin_percent: calculatedData.profit_margin_percent || calculatedData.cost_snapshot?.profit_margin_percent || 0,
     });
     
     setIsCalculatorOpen(false);
@@ -1066,7 +1081,13 @@ export function JobDetails() {
       quantity: item.quantity,
       unit_price: item.unit_price,
       status: item.status,
-      notes: item.notes || ''
+      notes: item.notes || '',
+      pricing_category: item.pricing_category,
+      pricing_data: item.pricing_data,
+      cost_snapshot: item.cost_snapshot,
+      production_cost: item.production_cost || item.cost_snapshot?.total_cost || 0,
+      profit_amount: item.profit_amount || item.cost_snapshot?.profit_amount || 0,
+      profit_margin_percent: item.profit_margin_percent || item.cost_snapshot?.profit_margin_percent || 0,
     });
     setIsItemDialogOpen(true);
   };
@@ -1101,7 +1122,13 @@ export function JobDetails() {
       quantity: 1,
       unit_price: '',
       status: 'pending',
-      notes: ''
+      notes: '',
+      pricing_category: null,
+      pricing_data: null,
+      cost_snapshot: null,
+      production_cost: 0,
+      profit_amount: 0,
+      profit_margin_percent: 0,
     });
     setEditingItem(null);
     setIsItemDialogOpen(false);

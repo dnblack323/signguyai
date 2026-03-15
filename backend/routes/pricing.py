@@ -75,25 +75,54 @@ async def get_my_pricing_defaults(current_user: UserInDB = Depends(get_current_a
     return defaults
 
 
+@router.get("/settings")
+async def get_my_pricing_settings(current_user: UserInDB = Depends(get_current_active_user)):
+    """Alias for pricing defaults/settings."""
+    return await get_pricing_defaults(current_user.tenant_id)
+
+
 @router.put("/defaults")
 async def update_pricing_defaults(
     updates: Dict[str, Any],
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Update pricing defaults for current tenant"""
+    if current_user.role not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Only owners and admins can update pricing settings")
+
     tenant_id = current_user.tenant_id
-    
-    # Ensure defaults exist
-    await get_pricing_defaults(tenant_id)
-    
-    # Update
-    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
-    await db.pricing_defaults.update_one(
+
+    current_defaults = await get_pricing_defaults(tenant_id)
+    merged = {**current_defaults, **updates}
+    if "category_defaults" in updates:
+        merged["category_defaults"] = {
+            **current_defaults.get("category_defaults", {}),
+            **updates.get("category_defaults", {}),
+        }
+    if "selling_price_benchmarks" in updates:
+        merged["selling_price_benchmarks"] = {
+            **current_defaults.get("selling_price_benchmarks", {}),
+            **updates.get("selling_price_benchmarks", {}),
+        }
+
+    merged["tenant_id"] = tenant_id
+    merged["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.pricing_configuration.update_one(
         {"tenant_id": tenant_id},
-        {"$set": updates}
+        {"$set": merged},
+        upsert=True,
     )
-    
+
     return await get_pricing_defaults(tenant_id)
+
+
+@router.put("/settings")
+async def update_pricing_settings(
+    updates: Dict[str, Any],
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Alias for updating pricing settings."""
+    return await update_pricing_defaults(updates, current_user)
 
 
 # ============== MATERIALS CATALOG ==============

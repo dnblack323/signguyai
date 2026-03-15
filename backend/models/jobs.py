@@ -18,6 +18,9 @@ class QuoteLineItem(BaseModel):
     quantity: float = 1
     unit_price: float
     total: float = 0
+    pricing_category: Optional[str] = None
+    pricing_data: Optional[Dict[str, Any]] = None
+    cost_snapshot: Optional[Dict[str, Any]] = None
 
 class QuoteBase(BaseModel):
     customer_id: str
@@ -50,6 +53,9 @@ class JobLineItem(BaseModel):
     quantity: float = 1
     unit_price: float = 0
     total: float = 0
+    pricing_category: Optional[str] = None
+    pricing_data: Optional[Dict[str, Any]] = None
+    cost_snapshot: Optional[Dict[str, Any]] = None
 
 
 # ============== JOB MODELS ==============
@@ -130,6 +136,12 @@ class JobItemBase(BaseModel):
     unit_price: float = 0
     status: JobItemStatus = JobItemStatus.PENDING
     notes: Optional[str] = None
+    pricing_category: Optional[str] = None
+    pricing_data: Optional[Dict[str, Any]] = None
+    cost_snapshot: Optional[Dict[str, Any]] = None
+    production_cost: float = 0
+    profit_amount: float = 0
+    profit_margin_percent: float = 0
 
 class JobItemCreate(BaseModel):
     item_type: JobItemType = JobItemType.OTHER
@@ -138,6 +150,12 @@ class JobItemCreate(BaseModel):
     unit_price: float = 0
     status: JobItemStatus = JobItemStatus.PENDING
     notes: Optional[str] = None
+    pricing_category: Optional[str] = None
+    pricing_data: Optional[Dict[str, Any]] = None
+    cost_snapshot: Optional[Dict[str, Any]] = None
+    production_cost: float = 0
+    profit_amount: float = 0
+    profit_margin_percent: float = 0
 
 class JobItemUpdate(BaseModel):
     item_type: Optional[JobItemType] = None
@@ -146,6 +164,12 @@ class JobItemUpdate(BaseModel):
     unit_price: Optional[float] = None
     status: Optional[JobItemStatus] = None
     notes: Optional[str] = None
+    pricing_category: Optional[str] = None
+    pricing_data: Optional[Dict[str, Any]] = None
+    cost_snapshot: Optional[Dict[str, Any]] = None
+    production_cost: Optional[float] = None
+    profit_amount: Optional[float] = None
+    profit_margin_percent: Optional[float] = None
 
 class JobItem(JobItemBase):
     model_config = ConfigDict(extra="ignore")
@@ -203,6 +227,8 @@ class InvoiceLineItem(BaseModel):
     unit_price: float = 0
     total: float = 0
     job_item_id: Optional[str] = None
+    pricing_category: Optional[str] = None
+    cost_snapshot: Optional[Dict[str, Any]] = None
 
 class InvoiceBase(BaseModel):
     customer_id: str

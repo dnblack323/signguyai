@@ -568,7 +568,13 @@ async def create_job_item(
         unit_price=input.unit_price,
         line_total=line_total,
         status=input.status,
-        notes=input.notes
+        notes=input.notes,
+        pricing_category=input.pricing_category,
+        pricing_data=input.pricing_data,
+        cost_snapshot=input.cost_snapshot,
+        production_cost=input.production_cost,
+        profit_amount=input.profit_amount,
+        profit_margin_percent=input.profit_margin_percent,
     )
     doc = job_item.model_dump()
     await db.job_items.insert_one(doc)

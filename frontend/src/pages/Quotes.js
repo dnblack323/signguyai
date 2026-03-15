@@ -80,7 +80,10 @@ export default function Quotes() {
     const newItem = {
       description: calculatedData.description || `${calculatedData.category} - Qty ${calculatedData.quantity}`,
       quantity: calculatedData.quantity || 1,
-      unit_price: calculatedData.unit_price || calculatedData.suggested_price || 0
+      unit_price: calculatedData.unit_price || calculatedData.selling_price || calculatedData.suggested_price || 0,
+      pricing_category: calculatedData.pricing_category || calculatedData.category,
+      pricing_data: calculatedData.pricing_data,
+      cost_snapshot: calculatedData.cost_snapshot
     };
     
     // If the last item is empty, replace it; otherwise add a new one

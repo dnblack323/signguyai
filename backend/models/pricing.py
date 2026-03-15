@@ -18,6 +18,7 @@ class MaterialConfig(BaseModel):
     """Individual material/product configuration with costs"""
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    key: str
     name: str
     category: str
     cost_per_unit: float = 0
@@ -31,6 +32,58 @@ class PricingDefaults(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
+
+    # Company-specific cost settings foundation
+    materials: List[Dict[str, Any]] = Field(default_factory=lambda: [
+        {"id": "vinyl-cost", "key": "vinyl", "name": "Vinyl Cost Per Sq Ft", "category": "material", "cost_per_unit": 1.25, "unit_type": "sqft", "is_active": True},
+        {"id": "laminate-cost", "key": "laminate", "name": "Laminate Cost Per Sq Ft", "category": "material", "cost_per_unit": 0.65, "unit_type": "sqft", "is_active": True},
+        {"id": "banner-material-cost", "key": "banner_material", "name": "Banner Material Cost Per Sq Ft", "category": "material", "cost_per_unit": 0.9, "unit_type": "sqft", "is_active": True},
+        {"id": "coroplast-cost", "key": "coroplast", "name": "Coroplast Cost Per Sq Ft", "category": "material", "cost_per_unit": 1.35, "unit_type": "sqft", "is_active": True},
+        {"id": "aluminum-composite-cost", "key": "aluminum_composite", "name": "Aluminum Composite Cost Per Sq Ft", "category": "material", "cost_per_unit": 3.75, "unit_type": "sqft", "is_active": True},
+        {"id": "foam-board-cost", "key": "foam_board", "name": "Foam Board Cost Per Sq Ft", "category": "material", "cost_per_unit": 2.15, "unit_type": "sqft", "is_active": True},
+        {"id": "ink-cost", "key": "ink", "name": "Ink Cost Per Sq Ft", "category": "optional", "cost_per_unit": 0.35, "unit_type": "sqft", "is_active": True},
+        {"id": "transfer-tape-cost", "key": "transfer_tape", "name": "Transfer Tape Cost Per Sq Ft", "category": "optional", "cost_per_unit": 0.2, "unit_type": "sqft", "is_active": True},
+        {"id": "acrylic-sheet-cost", "key": "acrylic_sheet", "name": "Acrylic Sheet Cost Per Sq Ft", "category": "material", "cost_per_unit": 5.5, "unit_type": "sqft", "is_active": True},
+        {"id": "rigid-sign-board-cost", "key": "rigid_sign_board", "name": "Rigid Sign Board Cost Per Sq Ft", "category": "material", "cost_per_unit": 2.85, "unit_type": "sqft", "is_active": True},
+    ])
+    production_hourly_rate: float = 28.0
+    installer_hourly_rate: float = 40.0
+    overhead_percentage: float = 15.0
+    shop_overhead_per_hour: float = 0.0
+    apply_overhead_to_jobs: bool = True
+    target_profit_margin_percent: float = 40.0
+    default_markup_multiplier: float = 2.5
+    category_defaults: Dict[str, Any] = Field(default_factory=lambda: {
+        "vehicle_wraps": {
+            "label": "Vehicle Wraps",
+            "default_labor_hours_per_sqft": 0.12,
+            "default_markup_multiplier": 2.4,
+            "target_profit_margin_percent": 42.0,
+            "minimum_charge": 850.0,
+            "default_material_keys": ["vinyl", "laminate", "ink"],
+        },
+        "banners": {
+            "label": "Banners",
+            "default_labor_hours_per_sqft": 0.06,
+            "default_markup_multiplier": 2.35,
+            "target_profit_margin_percent": 40.0,
+            "minimum_charge": 35.0,
+            "default_material_keys": ["banner_material", "ink"],
+        },
+        "rigid_signs": {
+            "label": "Rigid Signs",
+            "default_labor_hours_per_sqft": 0.08,
+            "default_markup_multiplier": 2.45,
+            "target_profit_margin_percent": 41.0,
+            "minimum_charge": 55.0,
+            "default_material_keys": ["coroplast", "aluminum_composite", "foam_board", "ink"],
+        },
+    })
+    selling_price_benchmarks: Dict[str, Any] = Field(default_factory=lambda: {
+        "vehicle_wraps": {"label": "Vehicle Wraps", "average_sell_price_per_sqft": 18.75, "average_order_total": 2850.0, "minimum_charge": 950.0},
+        "banners": {"label": "Banners", "average_sell_price_per_sqft": 8.25, "average_order_total": 245.0, "minimum_charge": 45.0},
+        "rigid_signs": {"label": "Rigid Signs", "average_sell_price_per_sqft": 12.4, "average_order_total": 310.0, "minimum_charge": 65.0},
+    })
     
     # Labor rates
     hourly_rate: float = 75.0
@@ -88,9 +141,12 @@ class PricingCalculation(BaseModel):
     labor_cost: float = 0
     setup_cost: float = 0
     additional_costs: float = 0
+    overhead_cost: float = 0
     
     production_cost: float = 0
+    total_cost: float = 0
     suggested_price: float = 0
+    selling_price: float = 0
     
     markup_percent: float = 0
     profit_margin_percent: float = 0

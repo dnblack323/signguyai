@@ -305,6 +305,7 @@ const SettingsToolbar = ({ navigate }) => (
   <div className="flex items-stretch h-full">
     <RibbonGroup title="Company">
       <RibbonButton icon={Building} label="Business" onClick={() => navigate('/settings')} />
+      <RibbonButton icon={DollarSign} label="Pricing" onClick={() => navigate('/pricing-calculator/settings')} />
       <RibbonButton icon={DollarSign} label="Taxes" onClick={() => navigate('/settings')} />
     </RibbonGroup>
 

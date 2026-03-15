@@ -41,7 +41,10 @@ async def create_quote(
             description=item.description,
             quantity=item.quantity,
             unit_price=item.unit_price,
-            total=item_total
+            total=item_total,
+            pricing_category=getattr(item, "pricing_category", None),
+            pricing_data=getattr(item, "pricing_data", None),
+            cost_snapshot=getattr(item, "cost_snapshot", None),
         ))
         total += item_total
     
@@ -141,7 +144,7 @@ async def delete_quote(
     if quote.get("job_id"):
         raise HTTPException(status_code=400, detail="Cannot delete quote that has been converted to job")
     
-    result = await db.quotes.delete_one({"id": quote_id})
+    await db.quotes.delete_one({"id": quote_id})
     return {"message": "Quote deleted"}
 
 
@@ -182,7 +185,13 @@ async def convert_quote_to_job(
             quantity=item.get("quantity", 1),
             unit_price=item.get("unit_price", 0),
             line_total=item.get("total", item.get("quantity", 1) * item.get("unit_price", 0)),
-            status=JobItemStatus.PENDING
+            status=JobItemStatus.PENDING,
+            pricing_category=item.get("pricing_category"),
+            pricing_data=item.get("pricing_data"),
+            cost_snapshot=item.get("cost_snapshot"),
+            production_cost=(item.get("cost_snapshot") or {}).get("total_cost", 0),
+            profit_amount=(item.get("cost_snapshot") or {}).get("profit_amount", 0),
+            profit_margin_percent=(item.get("cost_snapshot") or {}).get("profit_margin_percent", 0),
         )
         await db.job_items.insert_one(job_item.model_dump())
     

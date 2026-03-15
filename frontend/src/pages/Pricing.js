@@ -18,9 +18,9 @@ export default function PricingPage() {
           <p className="text-gray-500 mt-1">Calculate pricing for quotes and jobs</p>
         </div>
         <Link to="/pricing-calculator/settings">
-          <Button variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-100">
+          <Button variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-100" data-testid="pricing-settings-link-button">
             <Settings className="h-4 w-4 mr-2" />
-            Pricing Settings
+            Pricing & Cost Settings
           </Button>
         </Link>
       </div>

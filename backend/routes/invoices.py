@@ -135,7 +135,7 @@ async def delete_invoice(
             {"$unset": {"invoice_id": ""}}
         )
     
-    result = await db.invoices.delete_one({"id": invoice_id})
+    await db.invoices.delete_one({"id": invoice_id})
     return {"message": "Invoice deleted"}
 
 
@@ -166,7 +166,9 @@ async def create_invoice_from_job(
                 quantity=item.get("quantity", 1),
                 unit_price=item.get("unit_price", 0),
                 total=item.get("line_total", 0),
-                job_item_id=item.get("id")
+                job_item_id=item.get("id"),
+                pricing_category=item.get("pricing_category"),
+                cost_snapshot=item.get("cost_snapshot"),
             )
             invoice_line_items.append(line_item)
             total += item.get("line_total", 0)
@@ -288,7 +290,7 @@ async def send_invoice_to_portal(
     
     return {
         "message": "Invoice sent to customer portal",
-        "portal_url": f"/portal/invoices",
+        "portal_url": "/portal/invoices",
         "customer_name": customer.get("name"),
         "customer_email": customer.get("email")
     }

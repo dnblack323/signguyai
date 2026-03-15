@@ -241,12 +241,71 @@ async def log_job_activity(
 
 async def get_pricing_defaults(tenant_id: str) -> dict:
     """Get pricing defaults for a tenant, or return system defaults"""
+    base_defaults = PricingDefaults(tenant_id=tenant_id).model_dump()
     config = await db.pricing_configuration.find_one({"tenant_id": tenant_id}, {"_id": 0})
-    if config:
-        return config
-    
-    # Return system defaults if no tenant-specific config
-    return PricingDefaults(tenant_id=tenant_id).model_dump()
+
+    if not config:
+        config = await db.pricing_defaults.find_one({"tenant_id": tenant_id}, {"_id": 0})
+
+    if not config:
+        return base_defaults
+
+    merged = {**base_defaults, **config}
+    merged["materials"] = config.get("materials") or base_defaults.get("materials", [])
+    merged["category_defaults"] = {
+        **base_defaults.get("category_defaults", {}),
+        **config.get("category_defaults", {}),
+    }
+    merged["selling_price_benchmarks"] = {
+        **base_defaults.get("selling_price_benchmarks", {}),
+        **config.get("selling_price_benchmarks", {}),
+    }
+    return merged
+
+
+def get_material_cost_map(defaults: dict) -> dict:
+    material_map = {}
+    for material in defaults.get("materials", []):
+        key = material.get("key") or material.get("id")
+        if key:
+            material_map[key] = float(material.get("cost_per_unit", 0) or 0)
+    return material_map
+
+
+def get_category_pricing_config(defaults: dict, category_key: str) -> dict:
+    return {
+        "default_labor_hours_per_sqft": 0,
+        "default_markup_multiplier": defaults.get("default_markup_multiplier", 2.5),
+        "target_profit_margin_percent": defaults.get("target_profit_margin_percent", 40.0),
+        "minimum_charge": defaults.get("minimum_order", 0),
+        **defaults.get("category_defaults", {}).get(category_key, {}),
+    }
+
+
+def calculate_overhead_cost(base_cost: float, labor_hours: float, defaults: dict, category_config: dict) -> float:
+    if not defaults.get("apply_overhead_to_jobs", True):
+        return 0
+
+    overhead_percent = float(
+        category_config.get("overhead_percentage", defaults.get("overhead_percentage", 0)) or 0
+    )
+    shop_overhead_per_hour = float(
+        category_config.get("shop_overhead_per_hour", defaults.get("shop_overhead_per_hour", 0)) or 0
+    )
+    return (base_cost * (overhead_percent / 100)) + (labor_hours * shop_overhead_per_hour)
+
+
+def resolve_selling_price(total_cost: float, markup_multiplier: float, target_margin_percent: float) -> float:
+    safe_total_cost = max(float(total_cost or 0), 0)
+    safe_markup = max(float(markup_multiplier or 1), 1.0)
+    markup_price = safe_total_cost * safe_markup
+
+    margin_price = 0
+    margin_decimal = float(target_margin_percent or 0) / 100
+    if 0 < margin_decimal < 0.95:
+        margin_price = safe_total_cost / (1 - margin_decimal)
+
+    return max(markup_price, margin_price, safe_total_cost)
 
 
 def get_complexity_multiplier(complexity: int, base: float = 1.0, max_mult: float = 1.5) -> float:
@@ -270,11 +329,12 @@ def create_pricing_result(
     setup_cost: float,
     additional_costs: float,
     suggested_price: float,
+    overhead_cost: float = 0,
     estimated_labor_minutes: float = 0,
     breakdown: dict = None
 ) -> PricingCalculation:
     """Create a PricingCalculation with properly calculated profit fields"""
-    production_cost = material_cost + labor_cost + setup_cost + additional_costs
+    production_cost = material_cost + labor_cost + setup_cost + additional_costs + overhead_cost
     profit_amount = suggested_price - production_cost
     profit_margin_percent = round((profit_amount / suggested_price * 100), 1) if suggested_price > 0 else 0
     
@@ -283,8 +343,11 @@ def create_pricing_result(
         labor_cost=round(labor_cost, 2),
         setup_cost=round(setup_cost, 2),
         additional_costs=round(additional_costs, 2),
+        overhead_cost=round(overhead_cost, 2),
         production_cost=round(production_cost, 2),
+        total_cost=round(production_cost, 2),
         suggested_price=round(suggested_price, 2),
+        selling_price=round(suggested_price, 2),
         markup_percent=round((suggested_price / production_cost - 1) * 100, 1) if production_cost > 0 else 0,
         profit_margin_percent=profit_margin_percent,
         profit_amount=round(profit_amount, 2),
@@ -317,8 +380,6 @@ async def calculate_promotional(data: JobItemPricingData, quantity: float, defau
     setup_fee = 0
     if include_setup:
         setup_fee = data.setup_fee or defaults.get("promo_setup_fee", 15.0)
-    
-    total_cost = material_cost + setup_fee
     
     # Markup (setup fee not marked up)
     markup = data.markup_percent / 100 if data.markup_percent else defaults.get("default_markup", 1.0)
@@ -385,8 +446,6 @@ async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, default
         setup_fee = defaults.get("default_setup_fee", 15.0)  # Default $15 if checked but no amount specified
     elif not include_setup:
         setup_fee = 0
-    
-    total_cost = material_cost + labor_cost + setup_fee
     
     # Target final price: $5-8/sqft for simple vinyl (industry standard)
     # Material ~$0.50-1 + Labor ~$1.50-2 = ~$2-3 cost, markup to $5-8
@@ -466,28 +525,22 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
 
 
 async def calculate_digital_print(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate pricing for digital prints - Industry standard $4-12/sqft final price"""
+    """Calculate banner-first pricing using tenant cost settings."""
     width = data.width_inches or 24
     height = data.length_inches or 36
     sqft = (width * height) / 144
-    
-    # Material costs per sqft (shop cost)
-    material_costs = {
-        "banner_13oz": 0.75,
-        "banner_18oz": 1.00,
-        "vinyl_adhesive": 1.50,
-        "poster_paper": 0.50,
-        "canvas": 2.50,
-        "backlit": 3.00,
-        "perforated": 2.50,
-        "custom": getattr(data, 'material_cost_override', None) or 1.00
-    }
-    
+
     material = data.print_material or "banner_13oz"
-    cost_per_sqft = material_costs.get(material, 1.00)
-    
-    material_cost = sqft * cost_per_sqft * quantity
-    
+    is_banner_job = material.startswith("banner_")
+    category_key = "banners" if is_banner_job else "digital_print"
+    category_config = get_category_pricing_config(defaults, category_key)
+    material_cost_map = get_material_cost_map(defaults)
+
+    material_cost_per_sqft = material_cost_map.get("banner_material", 0.9) if is_banner_job else material_cost_map.get("vinyl", 1.25)
+    ink_cost_per_sqft = material_cost_map.get("ink", 0)
+    laminate_cost_per_sqft = material_cost_map.get("laminate", 0) if data.laminate else 0
+    material_cost = sqft * quantity * (material_cost_per_sqft + ink_cost_per_sqft + laminate_cost_per_sqft)
+
     finishing_cost = 0
     grommets = getattr(data, 'grommets', False)
     hemming = getattr(data, 'hemming', False)
@@ -497,52 +550,50 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
         finishing_cost += 1.00 * quantity
     if hemming:
         finishing_cost += 0.50 * quantity
-    if lamination:
-        material_cost *= 1.25  # 25% increase for lamination
-    
-    # Labor: Flat rate per sqft approach - more predictable
-    labor_per_sqft = 1.00  # $1/sqft base labor for printing
-    labor_cost = sqft * labor_per_sqft * quantity
-    
+
+    labor_hours = sqft * quantity * float(category_config.get("default_labor_hours_per_sqft", 0.06) or 0)
+    production_rate = float(defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75)) or 0)
+    labor_cost = labor_hours * production_rate
+
     # Setup fee is OPTIONAL - only included if checkbox is checked
     include_setup = getattr(data, 'include_setup_fee', False)
     setup_fee = data.setup_fee or 0
     if include_setup and setup_fee == 0:
-        setup_fee = defaults.get("default_setup_fee", 20.0)  # Default $20 for digital print
+        setup_fee = defaults.get("setup_fee_print", 20.0)
     elif not include_setup:
         setup_fee = 0
-    
-    total_cost = material_cost + labor_cost + finishing_cost
-    
-    # Target: $4-12/sqft final price depending on material
-    # Banner ~$4-6/sqft, adhesive vinyl ~$8-10/sqft, specialty ~$10-15/sqft
-    markup = defaults.get("print_markup", 2.5)  # 2.5x markup on cost
-    suggested_price = total_cost * markup + setup_fee
-    
-    # Minimum price for small prints
-    min_price = 15.00
-    if suggested_price < min_price:
-        suggested_price = min_price
-    
-    # Estimate labor time (for display only)
-    estimated_minutes = 10 + (sqft * 1.5)  # 10 min setup + 1.5 min/sqft
-    
+
+    pre_overhead_total = material_cost + labor_cost + finishing_cost + setup_fee
+    overhead_cost = calculate_overhead_cost(pre_overhead_total, labor_hours, defaults, category_config)
+    suggested_price = resolve_selling_price(
+        pre_overhead_total + overhead_cost,
+        category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5)),
+        category_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40.0)),
+    )
+    suggested_price = max(suggested_price, float(category_config.get("minimum_charge", 15.0) or 15.0))
+
     return create_pricing_result(
         material_cost=material_cost + finishing_cost,
         labor_cost=labor_cost,
         setup_cost=setup_fee,
         additional_costs=0,
+        overhead_cost=overhead_cost,
         suggested_price=suggested_price,
-        estimated_labor_minutes=estimated_minutes * quantity,
+        estimated_labor_minutes=labor_hours * 60,
         breakdown={
             "dimensions": f"{width}\" x {height}\"",
             "square_feet": round(sqft, 2),
             "material": material,
-            "cost_per_sqft": cost_per_sqft,
+            "material_cost_per_sqft": material_cost_per_sqft,
+            "ink_cost_per_sqft": ink_cost_per_sqft,
+            "laminate_cost_per_sqft": laminate_cost_per_sqft,
             "finishing_cost": round(finishing_cost, 2),
             "grommets": grommets,
             "hemming": hemming,
             "lamination": lamination,
+            "labor_hours": round(labor_hours, 2),
+            "production_rate": production_rate,
+            "overhead_cost": round(overhead_cost, 2),
             "setup_fee": setup_fee,
             "setup_included": include_setup,
             "price_per_sqft": round(suggested_price / sqft, 2) if sqft > 0 else 0
@@ -551,34 +602,33 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
 
 
 async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate pricing for rigid signs - Industry standard, optional setup fee"""
+    """Calculate rigid signs using company cost settings."""
     width = data.width_inches or 24
     height = data.length_inches or 18
     sqft = (width * height) / 144
-    
-    # Substrate costs per sqft
-    substrate_costs = {
-        "coroplast_4mm": 1.00,
-        "coroplast_10mm": 1.50,
-        "aluminum_040": 3.00,
-        "aluminum_063": 4.50,
-        "aluminum_080": 6.00,
-        "pvc_3mm": 2.50,
-        "pvc_6mm": 3.50,
-        "acrylic": 6.00,
-        "dibond": 7.00,
-        "mdo": 5.00,
-        "custom": getattr(data, 'material_cost_override', None) or 3.00
-    }
-    
+
     substrate = data.substrate_type or "coroplast_4mm"
-    cost_per_sqft = substrate_costs.get(substrate, 2.00)
-    
-    substrate_cost = sqft * cost_per_sqft * quantity
-    
-    # Print cost
-    print_cost = sqft * 1.50 * quantity
-    
+    category_config = get_category_pricing_config(defaults, "rigid_signs")
+    material_cost_map = get_material_cost_map(defaults)
+    substrate_key_map = {
+        "coroplast_4mm": "coroplast",
+        "coroplast_10mm": "coroplast",
+        "aluminum_040": "aluminum_composite",
+        "aluminum_063": "aluminum_composite",
+        "aluminum_080": "aluminum_composite",
+        "dibond": "aluminum_composite",
+        "pvc_3mm": "foam_board",
+        "pvc_6mm": "foam_board",
+        "acrylic": "acrylic_sheet",
+        "mdo": "rigid_sign_board",
+    }
+    material_key = substrate_key_map.get(substrate, "coroplast")
+    substrate_cost_per_sqft = material_cost_map.get(material_key, 2.0)
+    ink_cost_per_sqft = material_cost_map.get("ink", 0)
+    laminate_cost_per_sqft = material_cost_map.get("laminate", 0) if data.laminate else 0
+
+    material_cost = sqft * quantity * (substrate_cost_per_sqft + ink_cost_per_sqft + laminate_cost_per_sqft)
+
     # Finishing costs
     finishing_cost = 0
     if getattr(data, 'rounded_corners', False):
@@ -587,50 +637,51 @@ async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defau
         finishing_cost += (getattr(data, 'num_holes', 4) or 4) * 0.25 * quantity
     if getattr(data, 'stand', False) or getattr(data, 'stake', False):
         finishing_cost += 3.00 * quantity
-    
-    # Double-sided adds 75% more material
+
     if data.double_sided:
-        print_cost *= 1.75
-    
-    # Labor: Flat rate per sqft
-    labor_per_sqft = 2.00
-    labor_cost = sqft * labor_per_sqft * quantity
-    
+        material_cost *= 1.75
+
+    labor_hours = sqft * quantity * float(category_config.get("default_labor_hours_per_sqft", 0.08) or 0)
+    production_rate = float(defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75)) or 0)
+    labor_cost = labor_hours * production_rate
+
     # Setup fee is OPTIONAL
     include_setup = getattr(data, 'include_setup_fee', False)
     setup_fee = 0
     if include_setup:
-        setup_fee = data.setup_fee or defaults.get("sign_setup_fee", 20.0)
-    
-    material_cost = substrate_cost + print_cost
-    total_cost = material_cost + labor_cost + finishing_cost
-    
-    # Markup
-    markup = defaults.get("sign_markup", 2.0)
-    suggested_price = total_cost * markup + setup_fee
-    
-    # Minimum price
-    min_price = 15.00
-    if suggested_price < min_price:
-        suggested_price = min_price
-    
-    # Estimate labor time
-    estimated_minutes = 10 + (sqft * 3)
-    
+        setup_fee = data.setup_fee or defaults.get("minimum_sign_charge", 20.0)
+
+    pre_overhead_total = material_cost + labor_cost + finishing_cost + setup_fee
+    overhead_cost = calculate_overhead_cost(pre_overhead_total, labor_hours, defaults, category_config)
+    suggested_price = resolve_selling_price(
+        pre_overhead_total + overhead_cost,
+        category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5)),
+        category_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40.0)),
+    )
+    suggested_price = max(
+        suggested_price,
+        float(category_config.get("minimum_charge", defaults.get("minimum_sign_charge", 15.0)) or 15.0),
+    )
+
     return create_pricing_result(
         material_cost=material_cost + finishing_cost,
         labor_cost=labor_cost,
         setup_cost=setup_fee,
         additional_costs=0,
+        overhead_cost=overhead_cost,
         suggested_price=suggested_price,
-        estimated_labor_minutes=estimated_minutes * quantity,
+        estimated_labor_minutes=labor_hours * 60,
         breakdown={
             "dimensions": f"{width}\" x {height}\"",
             "square_feet": round(sqft, 2),
             "substrate": substrate,
-            "substrate_cost_per_sqft": cost_per_sqft,
-            "print_cost": round(print_cost, 2),
+            "substrate_cost_per_sqft": substrate_cost_per_sqft,
+            "ink_cost_per_sqft": ink_cost_per_sqft,
+            "laminate_cost_per_sqft": laminate_cost_per_sqft,
             "finishing_cost": round(finishing_cost, 2),
+            "labor_hours": round(labor_hours, 2),
+            "production_rate": production_rate,
+            "overhead_cost": round(overhead_cost, 2),
             "double_sided": data.double_sided,
             "setup_fee": setup_fee,
             "setup_included": include_setup,
@@ -690,8 +741,6 @@ async def calculate_apparel(data: JobItemPricingData, quantity: float, defaults:
             base_setup += num_colors * 15  # $15 per screen/color
         setup_fee = base_setup  # ONE TIME - not multiplied by quantity!
     
-    total_cost = material_cost + labor_cost + setup_fee
-    
     # Markup
     markup = defaults.get("apparel_markup", 1.8)
     suggested_price = (material_cost + labor_cost) * markup + setup_fee  # Setup not marked up
@@ -724,8 +773,7 @@ async def calculate_apparel(data: JobItemPricingData, quantity: float, defaults:
 
 
 async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate pricing for vehicle graphics - Industry standard, optional setup fee"""
-    # Vehicle square footage estimates
+    """Calculate vehicle wraps using company cost settings."""
     vehicle_sqft = {
         "car_sedan": 120,
         "car_suv": 160,
@@ -749,63 +797,68 @@ async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, 
     
     vehicle_type = data.vehicle_type or "van_cargo"
     base_sqft = vehicle_sqft.get(vehicle_type, 200)
-    
+
     coverage = data.coverage_type or "partial"
     actual_sqft = base_sqft * coverage_multipliers.get(coverage, 0.25)
-    
-    # Material costs per sqft
-    material_cost_sqft = 2.50  # Base vinyl
-    wrap_type = getattr(data, 'wrap_type', None)
-    if wrap_type == "color_change":
-        material_cost_sqft = 4.00
-    elif wrap_type == "printed":
-        material_cost_sqft = 3.50
-    
-    material_cost = actual_sqft * material_cost_sqft * quantity
-    
-    # Installation labor - flat rate per sqft
-    install_per_sqft = 8.00  # $8/sqft installed (industry standard)
-    labor_cost = actual_sqft * install_per_sqft * quantity
-    
-    # Design cost (optional)
+
+    category_config = get_category_pricing_config(defaults, "vehicle_wraps")
+    material_cost_map = get_material_cost_map(defaults)
+    vinyl_cost_per_sqft = material_cost_map.get("vinyl", 1.25)
+    laminate_cost_per_sqft = material_cost_map.get("laminate", 0.65)
+    ink_cost_per_sqft = material_cost_map.get("ink", 0.35)
+
+    material_cost = actual_sqft * quantity * (vinyl_cost_per_sqft + laminate_cost_per_sqft + ink_cost_per_sqft)
+
+    install_hours = actual_sqft * quantity * float(category_config.get("default_labor_hours_per_sqft", 0.12) or 0)
+    installer_rate = float(defaults.get("installer_hourly_rate", defaults.get("install_hourly_rate", 95)) or 0)
+    labor_cost = install_hours * installer_rate
+
     design_cost = 0
     include_design = getattr(data, 'include_design', False)
+    design_hours = 0
     if include_design:
         complexity = data.complexity or 2
-        design_cost = 100 * complexity
-    
-    # Setup fee is OPTIONAL
+        design_hours = max(1, complexity * 0.5)
+        design_cost = design_hours * float(defaults.get("design_hourly_rate", 85) or 0)
+
     include_setup = getattr(data, 'include_setup_fee', False)
     setup_fee = 0
     if include_setup:
-        setup_fee = data.setup_fee or defaults.get("vehicle_setup_fee", 50.0)
-    
-    total_cost = material_cost + labor_cost + design_cost
-    
-    # Markup - vehicle graphics already include labor, so lower markup
-    markup = defaults.get("vehicle_markup", 1.3)
-    suggested_price = total_cost * markup + setup_fee + design_cost
-    
-    # Estimate labor hours
-    hours_per_sqft = 0.10
-    labor_hours = actual_sqft * hours_per_sqft
-    
+        setup_fee = data.setup_fee or defaults.get("minimum_wrap_charge", 50.0)
+
+    pre_overhead_total = material_cost + labor_cost + design_cost + setup_fee
+    overhead_cost = calculate_overhead_cost(pre_overhead_total, install_hours + design_hours, defaults, category_config)
+    suggested_price = resolve_selling_price(
+        pre_overhead_total + overhead_cost,
+        category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5)),
+        category_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40.0)),
+    )
+    suggested_price = max(
+        suggested_price,
+        float(category_config.get("minimum_charge", defaults.get("minimum_wrap_charge", 500.0)) or 500.0),
+    )
+
     return create_pricing_result(
         material_cost=material_cost,
         labor_cost=labor_cost,
         setup_cost=setup_fee,
         additional_costs=design_cost,
+        overhead_cost=overhead_cost,
         suggested_price=suggested_price,
-        estimated_labor_minutes=labor_hours * 60 * quantity,
+        estimated_labor_minutes=(install_hours + design_hours) * 60,
         breakdown={
             "vehicle_type": vehicle_type,
             "coverage": coverage,
             "base_sqft": base_sqft,
             "actual_sqft": round(actual_sqft, 2),
-            "material_cost_per_sqft": material_cost_sqft,
-            "install_per_sqft": install_per_sqft,
-            "install_hours": round(labor_hours, 2),
+            "vinyl_cost_per_sqft": vinyl_cost_per_sqft,
+            "laminate_cost_per_sqft": laminate_cost_per_sqft,
+            "ink_cost_per_sqft": ink_cost_per_sqft,
+            "installer_rate": installer_rate,
+            "install_hours": round(install_hours, 2),
+            "design_hours": round(design_hours, 2),
             "design_cost": design_cost,
+            "overhead_cost": round(overhead_cost, 2),
             "setup_fee": setup_fee,
             "setup_included": include_setup,
             "total_per_vehicle": round(suggested_price / quantity, 2) if quantity > 0 else 0

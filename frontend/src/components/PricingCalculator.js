@@ -157,8 +157,11 @@ export default function PricingCalculator({
     labor_cost: 0,
     setup_cost: 0,
     additional_costs: 0,
+    overhead_cost: 0,
     production_cost: 0,
+    total_cost: 0,
     suggested_price: 0,
+    selling_price: 0,
     markup_percent: 0,
     profit_margin_percent: 0,
     profit_amount: 0,
@@ -209,7 +212,7 @@ export default function PricingCalculator({
           input_data: {
             category: category,
             quantity: quantity,
-            current_price: calculation?.suggested_price || 0,
+            current_price: calculation?.selling_price || calculation?.suggested_price || 0,
             production_cost: calculation?.production_cost || 0,
             profit_margin: calculation?.profit_margin_percent || 0,
             complexity: complexity,
@@ -305,7 +308,7 @@ export default function PricingCalculator({
     setCategory(template.category);
     setPricingData(template.pricing_data || {});
     setQuantity(template.quantity || 1);
-    setComplexity(template.pricing_data?.complexity || 5);
+    setComplexity(template.pricing_data?.complexity || 1);
     setDescription(template.name);
     setShowTemplates(false);
     toast.success(`Loaded: ${template.name}`);
@@ -409,9 +412,28 @@ export default function PricingCalculator({
 
     const finalPrice = overrideEnabled && overridePrice 
       ? parseFloat(overridePrice) 
-      : calculation?.suggested_price || 0;
+      : calculation?.selling_price || calculation?.suggested_price || 0;
+
+    const totalCost = calculation?.total_cost || calculation?.production_cost || 0;
+    const profitAmount = finalPrice - totalCost;
+    const profitMarginPercent = finalPrice > 0 ? Number(((profitAmount / finalPrice) * 100).toFixed(1)) : 0;
+
+    const costSnapshot = {
+      material_cost: calculation?.material_cost || 0,
+      labor_cost: calculation?.labor_cost || 0,
+      setup_cost: calculation?.setup_cost || 0,
+      additional_costs: calculation?.additional_costs || 0,
+      overhead_cost: calculation?.overhead_cost || 0,
+      total_cost: totalCost,
+      selling_price: finalPrice,
+      profit_amount: profitAmount,
+      profit_margin_percent: profitMarginPercent,
+      estimated_labor_minutes: calculation?.estimated_labor_minutes || 0,
+      breakdown: calculation?.breakdown || {}
+    };
 
     const itemData = {
+      category,
       description: description || getCategoryName(category),
       quantity,
       unit_price: finalPrice / quantity,
@@ -425,7 +447,10 @@ export default function PricingCalculator({
         override_enabled: overrideEnabled
       },
       pricing_calculation: calculation,
-      production_cost: calculation?.production_cost || 0,
+      cost_snapshot: costSnapshot,
+      production_cost: totalCost,
+      profit_amount: profitAmount,
+      profit_margin_percent: profitMarginPercent,
       notes
     };
 
@@ -932,6 +957,7 @@ export default function PricingCalculator({
                 size="sm"
                 onClick={() => setShowTemplates(true)}
                 className="border-slate-300"
+                data-testid="pricing-templates-button"
               >
                 <FolderOpen className="h-4 w-4 mr-2" />
                 Templates ({templates.length})
@@ -942,6 +968,7 @@ export default function PricingCalculator({
                   size="sm"
                   onClick={() => setShowSaveDialog(true)}
                   className="border-teal-300 text-teal-600 hover:bg-teal-50"
+                  data-testid="pricing-save-template-button"
                 >
                   <Save className="h-4 w-4 mr-2" />
                   Save as Template
@@ -965,6 +992,7 @@ export default function PricingCalculator({
                       setPricingData({});
                       setCalculation(null);
                     }}
+                    data-testid={`pricing-category-${cat.id}`}
                     className={`p-3 rounded-lg border text-left transition-all ${
                       category === cat.id
                         ? 'border-teal-500 bg-teal-50 ring-1 ring-teal-500'
@@ -993,6 +1021,7 @@ export default function PricingCalculator({
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder={`e.g., ${getCategoryName(category)} for customer`}
                   className="mt-1"
+                  data-testid="pricing-description-input"
                 />
               </div>
 
@@ -1011,6 +1040,7 @@ export default function PricingCalculator({
                     value={quantity}
                     onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
                     className="mt-1"
+                    data-testid="pricing-quantity-input"
                   />
                 </div>
                 <div>
@@ -1035,6 +1065,7 @@ export default function PricingCalculator({
                       id="include_setup"
                       checked={includeSetupFee}
                       onCheckedChange={setIncludeSetupFee}
+                      data-testid="pricing-setup-fee-checkbox"
                     />
                     <div className="flex-1">
                       <Label htmlFor="include_setup" className="cursor-pointer font-normal">
@@ -1072,22 +1103,31 @@ export default function PricingCalculator({
               ) : calculation ? (
                 <div className="space-y-4">
                   {/* Summary Cards */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="p-4 bg-slate-100 rounded-lg">
-                      <p className="text-xs text-slate-500 uppercase">Production Cost</p>
-                      <p className="text-xl font-bold text-slate-700">{formatCurrency(calculation.production_cost)}</p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+                    <div className="p-4 bg-slate-100 rounded-lg" data-testid="pricing-material-cost-card">
+                      <p className="text-xs text-slate-500 uppercase">Material</p>
+                      <p className="text-xl font-bold text-slate-700">{formatCurrency(calculation.material_cost)}</p>
                     </div>
-                    <div className="p-4 bg-teal-100 rounded-lg">
-                      <p className="text-xs text-teal-600 uppercase">Suggested Price</p>
-                      <p className="text-xl font-bold text-teal-700">{formatCurrency(calculation.suggested_price)}</p>
+                    <div className="p-4 bg-amber-100 rounded-lg" data-testid="pricing-labor-cost-card">
+                      <p className="text-xs text-amber-700 uppercase">Labor</p>
+                      <p className="text-xl font-bold text-amber-800">{formatCurrency(calculation.labor_cost)}</p>
                     </div>
-                    <div className="p-4 bg-green-100 rounded-lg">
+                    <div className="p-4 bg-violet-100 rounded-lg" data-testid="pricing-overhead-cost-card">
+                      <p className="text-xs text-violet-700 uppercase">Overhead</p>
+                      <p className="text-xl font-bold text-violet-800">{formatCurrency(calculation.overhead_cost || 0)}</p>
+                    </div>
+                    <div className="p-4 bg-slate-100 rounded-lg" data-testid="pricing-total-cost-card">
+                      <p className="text-xs text-slate-500 uppercase">Total Cost</p>
+                      <p className="text-xl font-bold text-slate-700">{formatCurrency(calculation.total_cost || calculation.production_cost)}</p>
+                    </div>
+                    <div className="p-4 bg-teal-100 rounded-lg" data-testid="pricing-selling-price-card">
+                      <p className="text-xs text-teal-600 uppercase">Selling Price</p>
+                      <p className="text-xl font-bold text-teal-700">{formatCurrency(calculation.selling_price || calculation.suggested_price)}</p>
+                    </div>
+                    <div className="p-4 bg-green-100 rounded-lg" data-testid="pricing-profit-card">
                       <p className="text-xs text-green-600 uppercase">Profit</p>
                       <p className="text-xl font-bold text-green-700">{formatCurrency(calculation.profit_amount)}</p>
-                    </div>
-                    <div className="p-4 bg-blue-100 rounded-lg">
-                      <p className="text-xs text-blue-600 uppercase">Margin</p>
-                      <p className="text-xl font-bold text-blue-700">{calculation.profit_margin_percent}%</p>
+                      <p className="text-xs text-green-700 mt-1">{calculation.profit_margin_percent}% margin</p>
                     </div>
                   </div>
 
@@ -1095,6 +1135,7 @@ export default function PricingCalculator({
                   <button
                     onClick={() => setShowBreakdown(!showBreakdown)}
                     className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-800"
+                    data-testid="pricing-breakdown-toggle"
                   >
                     {showBreakdown ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     {showBreakdown ? 'Hide' : 'Show'} Pricing Breakdown
@@ -1102,13 +1143,17 @@ export default function PricingCalculator({
 
                   {showBreakdown && (
                     <div className="p-4 bg-slate-50 rounded-lg space-y-2 text-sm">
-                      <div className="flex justify-between">
+                      <div className="flex justify-between" data-testid="pricing-breakdown-material-cost">
                         <span className="text-slate-600">Material Cost:</span>
                         <span className="font-medium">{formatCurrency(calculation.material_cost)}</span>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between" data-testid="pricing-breakdown-labor-cost">
                         <span className="text-slate-600">Labor Cost:</span>
                         <span className="font-medium">{formatCurrency(calculation.labor_cost)}</span>
+                      </div>
+                      <div className="flex justify-between" data-testid="pricing-breakdown-overhead-cost">
+                        <span className="text-slate-600">Overhead:</span>
+                        <span className="font-medium">{formatCurrency(calculation.overhead_cost || 0)}</span>
                       </div>
                       {calculation.setup_cost > 0 && (
                         <div className="flex justify-between">
@@ -1122,6 +1167,18 @@ export default function PricingCalculator({
                           <span className="font-medium">{formatCurrency(calculation.additional_costs)}</span>
                         </div>
                       )}
+                      <div className="flex justify-between pt-2 border-t border-slate-200" data-testid="pricing-breakdown-total-cost">
+                        <span className="text-slate-700 font-medium">Total Cost:</span>
+                        <span className="font-semibold">{formatCurrency(calculation.total_cost || calculation.production_cost)}</span>
+                      </div>
+                      <div className="flex justify-between" data-testid="pricing-breakdown-selling-price">
+                        <span className="text-slate-700 font-medium">Selling Price:</span>
+                        <span className="font-semibold text-teal-700">{formatCurrency(calculation.selling_price || calculation.suggested_price)}</span>
+                      </div>
+                      <div className="flex justify-between" data-testid="pricing-breakdown-profit">
+                        <span className="text-slate-700 font-medium">Profit:</span>
+                        <span className="font-semibold text-green-700">{formatCurrency(calculation.profit_amount)}</span>
+                      </div>
                       {calculation.estimated_labor_minutes > 0 && (
                         <div className="flex justify-between pt-2 border-t border-slate-200">
                           <span className="text-slate-600">Estimated Labor:</span>
@@ -1167,6 +1224,7 @@ export default function PricingCalculator({
                         onClick={fetchAiSuggestions}
                         disabled={loadingAiSuggestions}
                         className="border-purple-300 text-purple-700 hover:bg-purple-100"
+                        data-testid="pricing-ai-suggestions-button"
                       >
                         {loadingAiSuggestions ? (
                           <>
@@ -1215,6 +1273,7 @@ export default function PricingCalculator({
                         id="override"
                         checked={overrideEnabled}
                         onCheckedChange={setOverrideEnabled}
+                        data-testid="pricing-override-checkbox"
                       />
                       <Label htmlFor="override" className="cursor-pointer font-medium">Override Price</Label>
                     </div>
@@ -1226,8 +1285,9 @@ export default function PricingCalculator({
                           step="0.01"
                           value={overridePrice}
                           onChange={(e) => setOverridePrice(e.target.value)}
-                          placeholder={calculation.suggested_price.toFixed(2)}
+                          placeholder={(calculation.selling_price || calculation.suggested_price).toFixed(2)}
                           className="text-lg font-bold"
+                          data-testid="pricing-override-input"
                         />
                       </div>
                     )}
@@ -1253,7 +1313,7 @@ export default function PricingCalculator({
                         {formatCurrency(
                           overrideEnabled && overridePrice 
                             ? parseFloat(overridePrice) 
-                            : calculation.suggested_price
+                            : (calculation.selling_price || calculation.suggested_price)
                         )}
                       </p>
                     </div>
@@ -1261,6 +1321,7 @@ export default function PricingCalculator({
                       size="lg"
                       onClick={handleAddItem}
                       className="bg-white text-teal-600 hover:bg-teal-50"
+                      data-testid="pricing-add-item-button"
                     >
                       <CheckCircle className="h-5 w-5 mr-2" />
                       Add Item
