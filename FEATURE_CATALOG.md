@@ -1,5 +1,5 @@
 # SignGuy AI - Complete Feature Catalog
-**Updated: March 14, 2026**
+**Updated: March 16, 2026**
 **Version: Current Build**
 
 ---
@@ -46,9 +46,10 @@
 - Clocked In employees widget
 - Quick Actions: New Customer, New Quote, New Job, Time Clock
 - Recent AI Documents widget (last 5, with create link)
-- Dynamic Onboarding Checklist (10-step, real-time progress)
+- Dynamic onboarding launcher with progress summary
+- Resume Setup link into tiered onboarding hub
 
-**Integrations:** Dashboard API endpoints (`/api/dashboard/stats`, `/api/dashboard/pending-approvals`, `/api/dashboard/unread-messages`, `/api/dashboard/clocked-in`, `/api/dashboard/todays-schedule`, `/api/dashboard/onboarding-status`, `/api/dashboard/recent-ai-documents`)
+**Integrations:** Dashboard API endpoints (`/api/dashboard/stats`, `/api/dashboard/pending-approvals`, `/api/dashboard/unread-messages`, `/api/dashboard/clocked-in`, `/api/dashboard/todays-schedule`, `/api/dashboard/onboarding-status`, `/api/dashboard/recent-ai-documents`) plus onboarding session/status APIs (`/api/onboarding/status`, `/api/onboarding/session`)
 
 **Status:** WORKING
 
@@ -67,6 +68,9 @@
 - Customer notes and tags
 - Tax exempt status flag
 - Portal access toggle (enables Customer Portal login)
+- Portal status badge in customer detail modal
+- **Invite to Portal** button on customer detail modal
+- Temporary 6-digit portal PIN generation for first-time portal access
 - Customer-specific pricing toggle
 - CSV Import with column mapping and template download
 - Bulk create/update customers
@@ -102,11 +106,17 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 - Convert quote to job (approve button on quote rows)
 - Job time tracking (start/stop timer per job with task types)
 - Job Status Timeline (visual flow diagram with checkmarks, status history, time-in-status)
+- Unified Job History feed (`/api/jobs/{job_id}/history`)
+- Customer Portal tab on job detail page (proofs, forms, messages, documents, invoices)
+- Whole-job employee assignment
+- Stage-level assignment support via production timeline editor
 - Fully clickable job list rows
 
 **Data:** `jobs`, `job_items`, `job_notes`, `job_activities`, `job_time_entries`
 
-**Status:** WORKING
+**Status:** PARTIALLY WORKING
+
+**Note:** The newer Profit & Margin Analytics report is the validated financial reporting surface. The legacy `/financials` area still has a pre-existing backend gap for some `/api/financials/*` routes.
 
 ---
 
@@ -313,6 +323,9 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 - Save to Document Library button
 - Send to Customer button (with customer selection)
 - Credit system integration (1-3 credits per action)
+- Pre-run credit confirmation popup
+- Per-user "Do not show again" preference with warning-based reappearance
+- Admin AI usage summary and usage ledger
 
 **Integrations:** OpenAI GPT-5.2 (text), GPT Image 1 (images), Emergent LLM Key
 
@@ -412,6 +425,7 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 - AI-generated documents: Save from AI Tools to library
 - Tags system
 - Activity logging
+- Customer form submissions saved back into the document library as `customer_form` documents
 
 **Data:** `documents`, `document_activities`, `portal_documents`
 
@@ -430,6 +444,9 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 - Customer portal integration
 - Response tracking
 - AI summary of questionnaire responses
+- Admin-side form sending into customer portal
+- Portal form request statuses: pending, in_progress, overdue, completed
+- Completed portal form submissions stored in document library and linked back to the job/customer
 
 **Data:** `questionnaires`, `questionnaire_responses`
 
@@ -439,7 +456,7 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 
 ## 18. PRICING CALCULATOR
 
-**Where it lives:** `/pricing-calculator`, `/pricing-calculator/settings`
+**Where it lives:** `/pricing-calculator`, `/pricing-calculator/settings`, `/settings/pricing-setup`
 
 **Sub-features:**
 - **8 Category-based pricing:**
@@ -457,6 +474,8 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 - Industry-standard pricing (aligned with market rates)
 - Pricing templates (save/load configurations)
 - Per-tenant default customization
+- Historical Invoice Import + AI Pricing Analysis workflow
+- Selling benchmark review with confidence levels and accept/edit/ignore actions
 - AI Pricing Advisor integration
 
 **Data:** `pricing_defaults`, `pricing_templates`
@@ -521,6 +540,8 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 **Sub-features:**
 - Company name, address, contact info
 - Logo upload
+- Owner/business email stored with tenant profile
+- Customer portal settings toggles (approvals, messaging, document sharing, invoice payments)
 - Website URL
 - Time tracking settings (per job, per line item, employee portal, kiosk mode, auto-suggest)
 - Data Management section (link to Backup)
@@ -588,18 +609,19 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 
 | Page | Route | Features |
 |------|-------|----------|
-| Login | `/customer-portal/login` | Email/password, magic link |
-| Dashboard | `/customer-portal` | Overview, stats, pending approvals |
-| Orders | `/customer-portal/orders` | Order list and detail view |
+| Login | `/customer-portal/login` | Email/password or temporary invite PIN guidance |
+| Dashboard | `/customer-portal` | Active jobs, approvals, unread messages, recent documents, pending forms, invoice summary |
+| Orders | `/customer-portal/orders` | Order list, detail view, customer-facing status timeline |
 | Quotes | `/customer-portal/quotes` | Quote list |
-| Invoices | `/customer-portal/invoices` | Invoice list and payment status |
+| Invoices | `/customer-portal/invoices` | Invoice list, PDF download, payment status, Pay Now flow when Stripe is connected |
 | Documents | `/customer-portal/documents` | View shared documents with "New" badge |
 | Messages | `/customer-portal/messages` | Conversations with file attachments |
-| Proofs | `/customer-portal/proofs` | Artwork proof approval/revision |
+| Proofs | `/customer-portal/proofs` | Artwork proof approval/revision + version history |
+| Forms | `/customer-portal/forms` | Receive and complete questionnaires/forms |
 | Appointments | `/customer-portal/appointments` | Scheduling (5 types, 6 statuses) |
 | Profile | `/customer-portal/profile` | Contact info, notification preferences |
 
-**Data:** `customers`, `conversations`, `conversation_messages`, `artwork_proofs`, `customer_notifications`, `portal_documents`, `magic_links`
+**Data:** `customers`, `conversations`, `conversation_messages`, `artwork_proofs`, `customer_notifications`, `portal_documents`, `portal_form_requests`, `questionnaire_responses`, `magic_links`
 
 **Status:** WORKING
 
@@ -616,7 +638,8 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 | Page | Route | Features |
 |------|-------|----------|
 | Login | `/employee-portal/login` | Email + PIN authentication |
-| Dashboard | `/employee-portal` | Clock status, today's hours, week summary |
+| Dashboard | `/employee-portal` | Clock status, today/weekly work summary, assigned jobs |
+| Job Detail | `/employee-portal/jobs/:jobId` | Assigned job detail with stage start/pause/complete actions |
 | Pay | `/employee-portal/pay` | Earnings, YTD, payment history, balance |
 | Tasks | `/employee-portal/tasks` | Assigned tasks, mark complete |
 | Profile | `/employee-portal/profile` | Profile image upload, clock history, PIN |
@@ -692,6 +715,11 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 - Low credits warning at < 10 credits
 - Purchase modal with pack options
 - Monthly credits consumed first, then purchased
+- Credit preflight endpoint with popup decision logic
+- Per-user popup preference storage
+- Popup forced on warnings: high-cost action, low balance, purchased-credit usage, cost changes
+- Usage ledger with success/failure state and source balance tracking
+- Admin/owner usage summary in credit modal
 
 **API:** `/api/credits/balance`, `/api/credits/use`, `/api/credits/packs`, `/api/credits/purchase`, `/api/credits/history`, `/api/credits/costs`
 
@@ -749,6 +777,8 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 - View all conversations across customers
 - Reply to customer messages
 - Message status tracking
+- Forms / Questionnaire manager (send and review portal form requests)
+- Portal dashboard widgets for approvals, unread messages, unpaid invoices, recent document activity, and pending forms
 
 **Status:** WORKING
 
@@ -783,6 +813,9 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 - Highlighted current stage
 - Status change history with timestamps
 - Time spent in each previous status
+- Workflow mode selection: Simple / Detailed / Custom
+- Category-to-template assignment for custom workflows
+- Unified timeline/history access via Job Details "View Timeline"
 
 **Status:** WORKING
 
@@ -871,12 +904,31 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 **Where it lives:** `/docs/*`
 
 **Pages:**
-- Overview, Getting Started (5-step walkthrough)
-- Feature docs: Customers, Quotes & Jobs, Invoicing, Pricing Calculator
-- Advanced docs: AI Tools Suite, Time Tracking, Employee Management
-- Webstores, Customer Portal, Financials, Productivity
+- Overview, Getting Started (now aligned with Quick Start / Standard Setup / Full Optimization)
+- Feature docs: Customers, Quotes & Jobs, Invoicing, Pricing System
+- Advanced docs: AI Tools & Credits, Time Tracking, Employee Management
+- Webstores, Customer Portal, Financial Tracking, Productivity
 - FAQ section with collapsible questions
 - Mobile hamburger menu with slide-out sidebar
+
+**Status:** WORKING
+
+---
+
+## 38. TIERED ONBOARDING HUB
+
+**Where it lives:** `/onboarding`, Dashboard onboarding card
+
+**Sub-features:**
+- 3 onboarding tiers: Quick Start, Standard Setup, Full Optimization
+- Checklist + guided walkthrough presentation
+- Back / Next / Mark Complete / Finish Later actions
+- Resume Setup behavior per tenant
+- Saved onboarding session (current tier + current step)
+- Step-level onboarding analytics: completed count, finish-later count, last activity, resume step
+- Inline quick-start actions for workflow mode, first employee, basic pricing, and customer portal enablement
+
+**Data:** `onboarding_progress`, plus derived status from `tenants`, `employees`, `customers`, `jobs`, `pricing_configuration`, `workflow_templates`, `production_workflow_settings`, `portal_form_requests`, `community_posts`
 
 **Status:** WORKING
 
@@ -916,8 +968,8 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 
 | Portal | Pages |
 |--------|-------|
-| Customer Portal | Login, Dashboard, Orders, Quotes, Invoices, Documents, Messages, Proofs, Appointments, Profile |
-| Employee Portal | Login, Dashboard, Pay, Tasks, Profile |
+| Customer Portal | Login, Dashboard, Orders, Quotes, Invoices, Documents, Messages, Proofs, Forms, Appointments, Profile |
+| Employee Portal | Login, Dashboard, Job Detail, Pay, Tasks, Profile |
 
 ## Public Pages
 
@@ -1177,4 +1229,4 @@ SignGuy AI
 
 ---
 
-*Document generated from comprehensive codebase audit. Last updated: March 14, 2026.*
+*Document generated from comprehensive codebase audit. Last updated: March 16, 2026.*
