@@ -171,10 +171,15 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
   - AI endpoints now preview credits first and deduct only after successful completion
   - Added AI usage ledger + admin usage summary in the credit modal
   - Verified Low=1, Medium=2, High=3 cost mapping across 58+ AI actions
+- [x] **Tiered Onboarding + Portal Invite Flow (Mar 15, 2026):**
+  - Added protected onboarding hub at `/onboarding` with **Quick Start**, **Standard Setup**, and **Full Optimization** tiers
+  - Added checklist + guided walkthrough format with **Back / Next / Mark Complete / Finish Later** controls
+  - Added inline quick-start actions for workflow mode, first employee, basic pricing, and customer portal enablement
+  - Added **Invite to Portal** on customer records with temporary 6-digit PIN generation and portal enablement
+  - Portal login now explains password vs temporary PIN flow
 
 ## Upcoming Tasks (P1)
-- [ ] Customer Portal audit
-- [ ] Onboarding system verification
+- [ ] Optional deeper customer portal polish (multi-contact controls, richer notifications, and broader activity visibility)
 - [ ] Complete Billing System Logic - track first 100 founders, $19.99 credit, AI Tools Add-On
 - [ ] Re-enable Trial Lockout System - fix root cause, not just disable
 - [x] **Pricing Calculator Major Overhaul (Feb 18, 2026):** FIXED - Industry-standard pricing

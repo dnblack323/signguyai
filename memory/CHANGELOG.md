@@ -122,6 +122,24 @@
 - Full feature validation completed via `/app/test_reports/iteration_62.json`
 - Result: **100% backend + 100% frontend pass** for AI credit system scope
 
+## March 15, 2026 - Tiered Onboarding + Portal Invite Flow
+
+### Onboarding Hub
+- Added new onboarding page at `/onboarding`
+- Added three onboarding tiers: **Quick Start**, **Standard Setup**, **Full Optimization**
+- Added checklist + guided walkthrough format with skip-friendly **Finish Later** behavior
+- Added inline quick-start actions for workflow mode, first employee, basic pricing, and customer portal enablement
+
+### Customer Portal Invite Flow
+- Added `POST /api/customers/{customer_id}/invite-portal`
+- Customer detail modal now shows portal status and **Invite to Portal** button
+- Portal invite generates a temporary 6-digit PIN and enables portal access
+- Portal login page now explains that customers can use the temporary PIN from the invitation email
+
+### Testing
+- Full feature validation completed via `/app/test_reports/iteration_63.json`
+- Result: **100% backend + 100% frontend pass** for onboarding + portal invite scope
+
 
 ## March 14, 2026 - Admin Payroll Enhancement + Document Library Update
 
