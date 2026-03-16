@@ -147,6 +147,19 @@
 - Dashboard onboarding card now acts as a clearer **Resume Setup** launcher
 - Follow-up validation completed via `/app/test_reports/iteration_64.json` with **100% backend + 100% frontend pass** for resume + analytics improvements
 
+## March 16, 2026 - Documentation Refresh + Feature Catalog Update
+
+### Documentation Refresh
+- Refreshed all 14 in-app docs pages with more complete, training-style content
+- Updated docs to reflect the current onboarding model, portal invite flow, AI credit system, production workflow history, employee portal, pricing setup, and profit analytics
+
+### Feature Catalog Update
+- Updated `/app/FEATURE_CATALOG.md` to include onboarding hub, portal invite flow, historical invoice analysis, AI credit system improvements, and newer portal/production systems
+
+### Testing
+- Full docs verification completed via `/app/test_reports/iteration_65.json`
+- Result: **100% frontend pass** for all docs pages + feature catalog verification
+
 
 ## March 14, 2026 - Admin Payroll Enhancement + Document Library Update
 

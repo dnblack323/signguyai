@@ -179,6 +179,10 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
   - Portal login now explains password vs temporary PIN flow
   - Added tenant-specific onboarding session persistence so owners/admins can resume the right tier/step automatically
   - Added step-level onboarding analytics (overall complete, finish later count, last activity, resume step)
+- [x] **Documentation Refresh + Feature Catalog Update (Mar 16, 2026):**
+  - Refreshed all in-app documentation pages into a more complete training-style format
+  - Updated docs to reflect onboarding tiers, portal invite flow, historical invoice analysis, AI credit behavior, employee portal, profit analytics, and production timeline history
+  - Updated `/app/FEATURE_CATALOG.md` with newer systems including onboarding hub, portal invite, AI credits, and pricing setup / historical invoice analysis
 
 ## Upcoming Tasks (P1)
 - [ ] Optional deeper customer portal polish (multi-contact controls, richer notifications, and broader activity visibility)
