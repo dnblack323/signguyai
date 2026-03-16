@@ -1115,6 +1115,7 @@ from routes.credits import router as credits_router
 from routes.dev import router as dev_router
 from routes.pricing_setup import router as pricing_setup_router
 from routes.profit_analytics import router as profit_analytics_router
+from routes.onboarding import router as onboarding_router
 
 # Include all routers in the api_router
 api_router.include_router(auth_router)
@@ -1153,6 +1154,7 @@ api_router.include_router(credits_router)  # AI Credits system
 api_router.include_router(dev_router)  # Dev/Admin testing panel
 api_router.include_router(pricing_setup_router)  # Historical invoice import + pricing setup
 api_router.include_router(profit_analytics_router)  # Profit & margin analytics dashboard
+api_router.include_router(onboarding_router)  # Tiered onboarding walkthrough
 api_router.include_router(admin_portal_router)  # Admin Portal Communications Hub
 api_router.include_router(production_timeline_router)  # Production Timeline Tracking
 

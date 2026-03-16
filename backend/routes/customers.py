@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional
 from datetime import datetime, timezone
 from pydantic import BaseModel
+import random
 
 from models import (
     Customer, CustomerCreate, CustomerUpdate, CustomerStatus,
@@ -22,6 +23,7 @@ from server import (
     db, logger,
     get_current_active_user, has_permission
 )
+from server import get_password_hash
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
@@ -43,6 +45,12 @@ class CustomerImportResponse(BaseModel):
     created: int
     updated: int
     errors: List[str]
+
+
+class PortalInviteResponse(BaseModel):
+    message: str
+    portal_enabled: bool
+    temporary_pin: str
 
 
 @router.post("", response_model=Customer)
@@ -182,6 +190,60 @@ async def get_customer(
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
     return customer
+
+
+@router.post("/{customer_id}/invite-portal", response_model=PortalInviteResponse)
+async def invite_customer_to_portal(
+    customer_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    customer = await db.customers.find_one({"id": customer_id, "tenant_id": current_user.tenant_id}, {"_id": 0})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    if not customer.get("email"):
+        raise HTTPException(status_code=400, detail="Customer needs an email address before portal access can be invited")
+
+    temporary_pin = f"{random.randint(100000, 999999)}"
+    hashed = get_password_hash(temporary_pin)
+    now = datetime.now(timezone.utc).isoformat()
+    await db.customers.update_one(
+        {"id": customer_id, "tenant_id": current_user.tenant_id},
+        {"$set": {
+            "portal_enabled": True,
+            "portal_password_hash": hashed,
+            "portal_invited_at": now,
+            "updated_at": now,
+        }}
+    )
+
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0})
+    portal_link = f"{tenant.get('portal_url') or ''}/customer-portal/login" if tenant else "/customer-portal/login"
+
+    try:
+        from services.email_service import email_service
+        html = f"""
+        <h2>Your Customer Portal is Ready</h2>
+        <p>Hi {customer.get('name')},</p>
+        <p>You have been invited to access your SignGuy AI customer portal.</p>
+        <p><strong>Portal Login:</strong> {customer.get('email')}</p>
+        <p><strong>Temporary PIN:</strong> {temporary_pin}</p>
+        <p>Please sign in and change your password after your first login.</p>
+        <p><a href=\"{portal_link}\">Open Customer Portal</a></p>
+        """
+        await email_service.send_email(
+            to_email=customer.get("email"),
+            subject="Your Customer Portal Invitation",
+            html_content=html,
+            tenant_id=current_user.tenant_id,
+        )
+    except Exception as exc:
+        logger.error(f"Failed to send portal invitation email: {exc}")
+
+    return PortalInviteResponse(
+        message="Portal invitation created",
+        portal_enabled=True,
+        temporary_pin=temporary_pin,
+    )
 
 
 @router.put("/{customer_id}", response_model=Customer)

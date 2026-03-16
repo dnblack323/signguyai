@@ -72,6 +72,7 @@ export default function Customers() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [detailTab, setDetailTab] = useState('overview');
+  const [invitingPortal, setInvitingPortal] = useState(false);
 
   // CSV Import state
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -206,6 +207,27 @@ export default function Customers() {
     setFormData({ name: '', company: '', phone: '', email: '', status: 'lead', notes: '' });
     setEditingCustomer(null);
     setIsDialogOpen(false);
+  };
+
+  const handleInviteToPortal = async (customer) => {
+    if (!customer?.email) {
+      toast.error('Add an email address before inviting this customer to the portal');
+      return;
+    }
+    setInvitingPortal(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const res = await axios.post(`${API_URL}/api/customers/${customer.id}/invite-portal`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success(`Portal invited. Temporary PIN: ${res.data.temporary_pin}`);
+      await loadCustomers();
+      const refreshed = await axios.get(`${API_URL}/api/customers/${customer.id}`, { headers: { Authorization: `Bearer ${token}` } });
+      setSelectedCustomer(refreshed.data);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to invite customer to portal');
+    }
+    setInvitingPortal(false);
   };
 
   // CSV Import Functions
@@ -969,6 +991,33 @@ export default function Customers() {
                             {formatDate(selectedCustomer.created_at)}
                           </p>
                         </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-medium mb-3 flex items-center gap-2">
+                        <Eye className="h-4 w-4" /> Customer Portal
+                      </h4>
+                      <div className="p-4 bg-muted/30 rounded-lg flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Portal Status</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge className={selectedCustomer.portal_enabled ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'}>
+                              {selectedCustomer.portal_enabled ? 'Invited / Enabled' : 'Not Invited'}
+                            </Badge>
+                            <p className="text-sm text-muted-foreground">
+                              Customer must exist in the database before they can log in to the portal.
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          onClick={() => handleInviteToPortal(selectedCustomer)}
+                          disabled={invitingPortal || !selectedCustomer.email}
+                          data-testid="invite-customer-to-portal-btn"
+                        >
+                          {invitingPortal ? 'Inviting...' : 'Invite to Portal'}
+                        </Button>
                       </div>
                     </div>
 

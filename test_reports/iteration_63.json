@@ -1,0 +1,97 @@
+{
+  "summary": "Tiered Onboarding System and Portal Invite Flow Testing Complete. Backend: 14/14 tests passed for onboarding status API, step status updates (completed/finish_later/incomplete), and customer portal invite with 6-digit PIN. Frontend: Onboarding hub loads with all 3 tier cards (Quick Start, Standard Setup, Full Optimization), guided walkthrough panel with lesson text, inline actions (workflow mode, employee form, pricing inputs, portal settings), Mark Complete and Finish Later buttons. Customer page shows 'Invite to Portal' button and portal status badge in detail modal. Portal login page clearly explains temporary PIN flow.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "features_verified": {
+    "GET /api/onboarding/status": {
+      "status": "PASS",
+      "description": "Returns step_statuses dict with all onboarding step IDs and their status (completed/finish_later/incomplete based on derived state or manual override)"
+    },
+    "PUT /api/onboarding/steps/{step_id}": {
+      "status": "PASS",
+      "description": "Persists completed/finish_later/incomplete status. Invalid status returns 400."
+    },
+    "POST /api/customers/{customer_id}/invite-portal": {
+      "status": "PASS",
+      "description": "Enables portal_enabled, returns 6-digit temporary_pin. Requires customer email (400 if missing). Returns 404 for invalid customer."
+    },
+    "Dashboard onboarding card": {
+      "status": "PASS",
+      "description": "Onboarding checklist card shows progress and links to /onboarding hub"
+    },
+    "Onboarding hub tier cards": {
+      "status": "PASS",
+      "description": "Quick Start (10 min), Standard Setup (30 min), Full Optimization (60 min) cards with progress percentages"
+    },
+    "Quick Start inline actions": {
+      "status": "PASS",
+      "description": "Workflow mode dropdown + save, Employee name/email/role inputs + add, Pricing vinyl/banner/coroplast/rate inputs + save, Portal toggles (approvals, messaging, documents, payments) + save"
+    },
+    "Guided walkthrough navigation": {
+      "status": "PASS",
+      "description": "Back/Next buttons, Finish Later for optional steps, Mark Complete for all steps"
+    },
+    "Company Profile step": {
+      "status": "PASS",
+      "description": "Points to Company Settings (/settings) with lesson explaining business email/company profile flow"
+    },
+    "Customer Invite to Portal": {
+      "status": "PASS",
+      "description": "'Invite to Portal' button visible in customer detail modal, portal status badge shows Invited/Enabled after invite"
+    },
+    "Portal login page": {
+      "status": "PASS",
+      "description": "Explains password or temporary PIN flow with text: 'If you were invited by the shop, use the temporary PIN from the invitation email and change it after login.'"
+    },
+    "No regression - Dashboard": {
+      "status": "PASS",
+      "description": "Dashboard loads with stats, widgets, onboarding card"
+    },
+    "No regression - Company Settings": {
+      "status": "PASS",
+      "description": "Company info form, logo upload, time tracking settings, employee portal permissions all load correctly"
+    },
+    "No regression - Production Settings": {
+      "status": "PASS",
+      "description": "Workflow mode dropdown, workflow templates by category all working"
+    },
+    "No regression - Customer detail modal": {
+      "status": "PASS",
+      "description": "Opens on customer row click, shows overview/jobs/invoices/quotes tabs, customer portal section with invite button"
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_onboarding_portal_invite.py",
+    "/app/test_reports/pytest/onboarding_portal_invite_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "onboarding.py: compute_step_statuses correctly derives status from data (employees, pricing config, workflow settings) and manual overrides",
+    "customers.py: invite_customer_to_portal generates 6-digit PIN, hashes with bcrypt, updates portal_enabled and portal_invited_at",
+    "OnboardingHub.js: Proper tier structure with 8 Quick Start, 11 Standard, 12 Full Optimization steps. Inline actions render based on step.type",
+    "OnboardingChecklist.js: Dashboard widget shows progress and dismissible state stored in localStorage",
+    "PortalLogin.js: Clear explanation of password vs temporary PIN with helpful user guidance text"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_onboarding_portal_invite.py"
+  ],
+  "success_rate": {
+    "backend": "100% (14/14 tests passed)",
+    "frontend": "100% - All onboarding and portal invite features verified"
+  },
+  "test_credentials": {
+    "admin_email": "thesigntistslab@gmail.com",
+    "admin_password": "password123"
+  },
+  "seed_data_creation": "Created test customers with unique emails for portal invite testing (prefixed TEST_Portal_Customer_ and TEST_NoEmail_Customer_)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Tiered onboarding system fully tested. 3 tiers (Quick Start/Standard/Full Optimization) with checklist + guided walkthrough. Inline actions work for workflow mode, employee, pricing, and portal settings. Portal invite generates 6-digit PIN visible in response. Customer detail modal shows portal status badge and invite button. Portal login page explains temporary PIN flow. No regressions found in dashboard, company settings, production settings, or customer modal."
+}

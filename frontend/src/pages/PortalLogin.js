@@ -153,17 +153,18 @@ export default function PortalLogin() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password" className="text-slate-300">Password</Label>
+                    <Label htmlFor="login-password" className="text-slate-300">Password or Temporary PIN</Label>
                     <Input
                       id="login-password"
                       type="password"
-                      placeholder="Enter your password"
+                      placeholder="Enter your password or invite PIN"
                       value={loginForm.password}
                       onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
                       required
                       className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
                       data-testid="portal-login-password"
                     />
+                    <p className="text-xs text-slate-500">If you were invited by the shop, use the temporary PIN from the invitation email and change it after login.</p>
                   </div>
                   <Button 
                     type="submit" 
