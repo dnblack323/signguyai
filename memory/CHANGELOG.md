@@ -140,6 +140,12 @@
 - Full feature validation completed via `/app/test_reports/iteration_63.json`
 - Result: **100% backend + 100% frontend pass** for onboarding + portal invite scope
 
+### Follow-up Improvement: Resume + Analytics
+- Added onboarding session persistence via `/api/onboarding/session`
+- Onboarding hub now remembers current tier/step per tenant and resumes there automatically
+- Added analytics cards showing overall completed steps, finish later count, last activity, and current resume step
+- Dashboard onboarding card now acts as a clearer **Resume Setup** launcher
+
 
 ## March 14, 2026 - Admin Payroll Enhancement + Document Library Update
 

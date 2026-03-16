@@ -15,6 +15,11 @@ class StepStatusUpdate(BaseModel):
     status: str  # completed | finish_later | incomplete
 
 
+class OnboardingSessionUpdate(BaseModel):
+    current_tier: str
+    current_step_id: str
+
+
 async def compute_step_statuses(tenant_id: str) -> Dict[str, str]:
     tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0}) or {}
     pricing_config = await db.pricing_configuration.find_one({"tenant_id": tenant_id}, {"_id": 0}) or {}
@@ -92,9 +97,27 @@ async def get_onboarding_program_status(current_user: UserInDB = Depends(get_cur
     tenant_id = current_user.tenant_id
     progress = await db.onboarding_progress.find_one({"tenant_id": tenant_id}, {"_id": 0}) or {"step_statuses": {}}
     step_statuses = await compute_step_statuses(tenant_id)
+
+    tier_map = {
+        "quick_start": [key for key in step_statuses if key.startswith("quick_")],
+        "standard_setup": [key for key in step_statuses if key.startswith("standard_")],
+        "full_optimization": [key for key in step_statuses if key.startswith("full_")],
+    }
+    analytics = {}
+    for tier_id, step_ids in tier_map.items():
+        completed = len([step_id for step_id in step_ids if step_statuses.get(step_id) == "completed"])
+        finish_later = len([step_id for step_id in step_ids if step_statuses.get(step_id) == "finish_later"])
+        analytics[tier_id] = {
+            "total_steps": len(step_ids),
+            "completed_steps": completed,
+            "finish_later_steps": finish_later,
+            "completion_percent": round((completed / len(step_ids)) * 100) if step_ids else 0,
+        }
+
     return {
         "step_statuses": step_statuses,
         "progress": progress,
+        "analytics": analytics,
     }
 
 
@@ -126,3 +149,29 @@ async def update_onboarding_step(
         upsert=True,
     )
     return {"step_id": step_id, "status": payload.status}
+
+
+@router.put("/session")
+async def update_onboarding_session(
+    payload: OnboardingSessionUpdate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    progress = await db.onboarding_progress.find_one({"tenant_id": current_user.tenant_id}, {"_id": 0}) or {
+        "tenant_id": current_user.tenant_id,
+        "step_statuses": {},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    progress["current_tier"] = payload.current_tier
+    progress["current_step_id"] = payload.current_step_id
+    progress["last_opened_at"] = datetime.now(timezone.utc).isoformat()
+    progress["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.onboarding_progress.update_one(
+        {"tenant_id": current_user.tenant_id},
+        {"$set": progress},
+        upsert=True,
+    )
+    return {
+        "current_tier": payload.current_tier,
+        "current_step_id": payload.current_step_id,
+        "last_opened_at": progress["last_opened_at"],
+    }

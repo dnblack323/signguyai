@@ -177,6 +177,8 @@ Create a comprehensive SaaS product for sign shops called "SignGuy AI" with:
   - Added inline quick-start actions for workflow mode, first employee, basic pricing, and customer portal enablement
   - Added **Invite to Portal** on customer records with temporary 6-digit PIN generation and portal enablement
   - Portal login now explains password vs temporary PIN flow
+  - Added tenant-specific onboarding session persistence so owners/admins can resume the right tier/step automatically
+  - Added step-level onboarding analytics (overall complete, finish later count, last activity, resume step)
 
 ## Upcoming Tasks (P1)
 - [ ] Optional deeper customer portal polish (multi-contact controls, richer notifications, and broader activity visibility)

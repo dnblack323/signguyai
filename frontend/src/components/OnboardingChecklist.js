@@ -98,7 +98,7 @@ export default function OnboardingChecklist({ onDismiss }) {
 
         <Link to="/onboarding">
           <Button variant="outline" size="sm" className="w-full" data-testid="open-onboarding-hub-btn">
-            Open Onboarding Hub
+            Resume Setup
             <ChevronRight className="w-4 h-4 ml-1" />
           </Button>
         </Link>

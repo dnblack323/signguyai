@@ -5,6 +5,7 @@
 
 ## P1 - High Priority
 - [ ] Optional deeper customer portal polish (multi-contact controls, richer notifications, more activity tracking)
+- [ ] Optional onboarding polish (step-level completion analytics export, richer tenant setup telemetry)
 - [ ] Founders Edition Stripe Integration - Wire Stripe Price IDs (user has provided them in .env) into plan management
 - [ ] Dark Shell / Light Workspace UI Refactor - Apply ShellCard.jsx layout to all pages (Dashboard, Customers, Products, etc.)
 

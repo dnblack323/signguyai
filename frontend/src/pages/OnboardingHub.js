@@ -104,6 +104,19 @@ export default function OnboardingHub() {
       const data = await res.json();
       setProgram(data);
 
+      const savedTier = data.progress?.current_tier;
+      const savedStepId = data.progress?.current_step_id;
+      const savedTierConfig = TIERS.find((tier) => tier.id === savedTier);
+      if (savedTierConfig && savedStepId) {
+        const savedStepIndex = savedTierConfig.steps.findIndex((step) => step.id === savedStepId);
+        if (savedStepIndex >= 0) {
+          setSelectedTierId(savedTierConfig.id);
+          setCurrentStepIndex(savedStepIndex);
+          setLoading(false);
+          return;
+        }
+      }
+
       const firstIncompleteTier = TIERS.find((tier) => tier.steps.some((step) => (data.step_statuses?.[step.id] || 'incomplete') !== 'completed'));
       if (firstIncompleteTier) {
         setSelectedTierId(firstIncompleteTier.id);
@@ -120,6 +133,28 @@ export default function OnboardingHub() {
 
   const selectedTier = useMemo(() => TIERS.find((tier) => tier.id === selectedTierId) || TIERS[0], [selectedTierId]);
   const selectedStep = selectedTier.steps[currentStepIndex];
+  const analytics = program?.analytics || {};
+  const finishLaterSteps = Object.entries(program?.step_statuses || {}).filter(([, status]) => status === 'finish_later');
+
+  useEffect(() => {
+    const saveSession = async () => {
+      if (!selectedTierId || !selectedTier?.steps?.[currentStepIndex]) return;
+      const token = localStorage.getItem('auth_token');
+      await fetch(`${API}/onboarding/session`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          current_tier: selectedTierId,
+          current_step_id: selectedTier.steps[currentStepIndex].id,
+        }),
+      });
+    };
+
+    saveSession();
+  }, [selectedTierId, currentStepIndex, selectedTier]);
 
   const getStepStatus = (stepId) => program?.step_statuses?.[stepId] || 'incomplete';
   const selectedTierCompleteCount = selectedTier.steps.filter((step) => getStepStatus(step.id) === 'completed').length;
@@ -319,6 +354,33 @@ export default function OnboardingHub() {
         })}
       </div>
 
+      <div className="grid gap-4 xl:grid-cols-4">
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-xs uppercase text-slate-400">Overall Completed</p>
+            <p className="text-2xl font-bold text-slate-900 mt-2">{Object.values(program?.step_statuses || {}).filter((value) => value === 'completed').length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-xs uppercase text-slate-400">Finish Later</p>
+            <p className="text-2xl font-bold text-slate-900 mt-2">{finishLaterSteps.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-xs uppercase text-slate-400">Last Activity</p>
+            <p className="text-sm font-semibold text-slate-900 mt-2">{program?.progress?.last_opened_at ? new Date(program.progress.last_opened_at).toLocaleString() : 'Not started yet'}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-xs uppercase text-slate-400">Resume Step</p>
+            <p className="text-sm font-semibold text-slate-900 mt-2">{selectedStep.title}</p>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <Card>
           <CardHeader>
@@ -404,6 +466,13 @@ export default function OnboardingHub() {
               <div className="rounded-xl border border-green-400/40 bg-green-500/10 p-4 text-green-200" data-testid={`onboarding-tier-complete-${selectedTier.id}`}>
                 <div className="flex items-center gap-2 font-medium"><Sparkles className="h-4 w-4" /> {selectedTier.title} Complete</div>
                 <p className="text-sm mt-2">Great — this tier is complete. You can continue into the next tier or revisit any step later.</p>
+              </div>
+            )}
+
+            {finishLaterSteps.length > 0 && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900" data-testid="onboarding-finish-later-summary">
+                <p className="font-medium">Finish Later Queue</p>
+                <p className="text-sm mt-1">You currently have {finishLaterSteps.length} step(s) marked to finish later. Resume them anytime from this hub.</p>
               </div>
             )}
           </CardContent>
