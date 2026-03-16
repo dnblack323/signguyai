@@ -19,6 +19,7 @@
 - [ ] Learning calculator that compares estimated vs actual production time/material usage
 - [ ] Add cleanup/archive controls for historical invoice import sessions
 - [ ] Restore or replace legacy `/financials` backend APIs (pre-existing gap discovered during analytics testing)
+- [ ] Optional data cleanup / migration for any legacy jobs created before line-item sync fix
 - [ ] BNPL Payments integration
 - [ ] SMS Notifications
 - [ ] QuickBooks integration

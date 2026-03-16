@@ -160,6 +160,24 @@
 - Full docs verification completed via `/app/test_reports/iteration_65.json`
 - Result: **100% frontend pass** for all docs pages + feature catalog verification
 
+## March 16, 2026 - Bug Fix: Job Line Items Disappearing on Job Ticket
+
+### Fix
+- Jobs created with embedded `line_items` now sync automatically into the `job_items` collection
+- Job Details and direct job-items endpoints now recover legacy embedded line items if `job_items` were never created
+- Invoice creation from job now uses the synced items so invoice line items match the job ticket
+
+### Coverage
+- Fixed and verified for:
+  - Jobs page creation flow
+  - Save & Add Job flow from Customers
+  - Quote approval / conversion path
+  - Pricing calculator-added items
+
+### Testing
+- Full regression verification completed via `/app/test_reports/iteration_66.json`
+- Result: **100% backend + 100% frontend pass** for line item sync behavior
+
 
 ## March 14, 2026 - Admin Payroll Enhancement + Document Library Update
 
