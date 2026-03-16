@@ -178,6 +178,27 @@
 - Full regression verification completed via `/app/test_reports/iteration_66.json`
 - Result: **100% backend + 100% frontend pass** for line item sync behavior
 
+## March 16, 2026 - Quality of Life Batch: Jobs, Customers, Kanban, Voice Assistant
+
+### Customer + Job Creation UX
+- Added **New Job** button inside the customer detail popup
+- Added inline **New Customer** creation inside both New Job and New Quote dialogs
+- Customer creation now allows **Name OR Company** (both blank is blocked)
+- Customer phone inputs now auto-format to `(###) ###-####`
+
+### Kanban Fix
+- Fixed Productivity Kanban board to use current job status values (`quote`, `approved`, `in_progress`, `completed`, `invoiced`)
+- Restored drag-and-drop stage movement behavior
+
+### AI Business Assistant Voice
+- Added voice input control (microphone capture → Whisper transcription)
+- Added voice output control (OpenAI TTS playback for assistant replies)
+- Added backend voice endpoints for transcription and speech generation
+
+### Testing
+- Full verification completed via `/app/test_reports/iteration_67.json`
+- Result: **100% backend + 100% frontend pass** for this quality-of-life feature batch
+
 
 ## March 14, 2026 - Admin Payroll Enhancement + Document Library Update
 
