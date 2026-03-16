@@ -139,13 +139,16 @@ export function JobsList() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { 
     jobs, customers, fetchJobs, fetchCustomers, 
-    createJob, updateJob, deleteJob, completeJob, archiveJob, approveJob
+    createJob, updateJob, deleteJob, completeJob, archiveJob, approveJob, createCustomer
   } = useApp();
   const [loading, setLoading] = useState(true);
   // Get filter from URL params, default to 'all'
   const filterType = searchParams.get('filter') || 'all';
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showPricingCalculator, setShowPricingCalculator] = useState(false);
+  const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
+  const [creatingCustomer, setCreatingCustomer] = useState(false);
+  const [newCustomerForm, setNewCustomerForm] = useState({ name: '', company: '', email: '', phone: '' });
   const [createMode, setCreateMode] = useState('quote'); // 'quote' or 'job'
   const [formData, setFormData] = useState({
     customer_id: '',
@@ -206,6 +209,33 @@ export function JobsList() {
       fetchCustomers()
     ]);
     setLoading(false);
+  };
+
+  const formatPhoneInput = (value) => {
+    const digits = value.replace(/\D/g, '').slice(0, 10);
+    if (digits.length === 0) return '';
+    if (digits.length < 4) return `(${digits}`;
+    if (digits.length < 7) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  };
+
+  const handleCreateInlineCustomer = async () => {
+    if (!newCustomerForm.name.trim() && !newCustomerForm.company.trim()) {
+      toast.error('Name or Company is required');
+      return;
+    }
+    setCreatingCustomer(true);
+    try {
+      const customer = await createCustomer({ ...newCustomerForm, status: 'lead', notes: '' });
+      await fetchCustomers();
+      setFormData((prev) => ({ ...prev, customer_id: customer.id }));
+      setNewCustomerForm({ name: '', company: '', email: '', phone: '' });
+      setIsCreateCustomerOpen(false);
+      toast.success('Customer created and selected');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to create customer');
+    }
+    setCreatingCustomer(false);
   };
 
   const setFilterType = (newFilter) => {
@@ -476,19 +506,24 @@ export function JobsList() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Customer *</Label>
-                <Select
-                  value={formData.customer_id}
-                  onValueChange={(val) => setFormData({ ...formData, customer_id: val })}
-                >
-                  <SelectTrigger data-testid="job-customer-select">
-                    <SelectValue placeholder="Select customer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customers.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select
+                    value={formData.customer_id}
+                    onValueChange={(val) => setFormData({ ...formData, customer_id: val })}
+                  >
+                    <SelectTrigger className="flex-1" data-testid="job-customer-select">
+                      <SelectValue placeholder="Select customer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name || c.company}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button type="button" variant="outline" onClick={() => setIsCreateCustomerOpen(true)} data-testid="job-create-customer-inline-btn">
+                    New Customer
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Due Date</Label>
@@ -599,6 +634,43 @@ export function JobsList() {
         onClose={() => setShowPricingCalculator(false)}
         onItemCalculated={handlePricingCalculatorItem}
       />
+
+      <Dialog open={isCreateCustomerOpen} onOpenChange={setIsCreateCustomerOpen}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>Create Customer</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Name</Label>
+                <Input value={newCustomerForm.name} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, name: e.target.value })} data-testid="inline-customer-name-input" />
+              </div>
+              <div className="space-y-2">
+                <Label>Company</Label>
+                <Input value={newCustomerForm.company} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, company: e.target.value })} data-testid="inline-customer-company-input" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">Name or Company is required.</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input type="email" value={newCustomerForm.email} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, email: e.target.value })} data-testid="inline-customer-email-input" />
+              </div>
+              <div className="space-y-2">
+                <Label>Phone</Label>
+                <Input value={newCustomerForm.phone} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, phone: formatPhoneInput(e.target.value) })} data-testid="inline-customer-phone-input" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsCreateCustomerOpen(false)}>Cancel</Button>
+              <Button type="button" onClick={handleCreateInlineCustomer} disabled={creatingCustomer} data-testid="inline-customer-submit-btn">
+                {creatingCustomer ? 'Creating...' : 'Create Customer'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
         {/* Jobs Table Content */}
         {loading ? (

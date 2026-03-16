@@ -46,6 +46,14 @@ import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+const formatPhoneInput = (value) => {
+  const digits = value.replace(/\D/g, '').slice(0, 10);
+  if (digits.length === 0) return '';
+  if (digits.length < 4) return `(${digits}`;
+  if (digits.length < 7) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+};
+
 const statusOptions = ['lead', 'active', 'inactive'];
 
 export default function Customers() {
@@ -159,6 +167,10 @@ export default function Customers() {
 
   const handleSubmit = async (e, addJobAfter = false) => {
     e.preventDefault();
+    if (!formData.name.trim() && !formData.company.trim()) {
+      toast.error('Name or Company is required');
+      return;
+    }
     try {
       if (editingCustomer) {
         await updateCustomer(editingCustomer.id, formData);
@@ -171,7 +183,7 @@ export default function Customers() {
         
         // If "Save & Add Job" was clicked, navigate to jobs page with customer pre-selected
         if (addJobAfter && newCustomer) {
-          navigate(`/jobs?new=true&customer_id=${newCustomer.id}&customer_name=${encodeURIComponent(newCustomer.name)}`);
+          navigate(`/jobs?new=true&customer_id=${newCustomer.id}&customer_name=${encodeURIComponent(newCustomer.name || newCustomer.company)}`);
         }
       }
     } catch (err) {
@@ -597,9 +609,9 @@ export default function Customers() {
                       id="name"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
                       data-testid="customer-name-input"
                     />
+                    <p className="text-xs text-muted-foreground">Name or Company is required.</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="company">Company</Label>
@@ -627,7 +639,7 @@ export default function Customers() {
                     <Input
                     id="phone"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, phone: formatPhoneInput(e.target.value) })}
                     data-testid="customer-phone-input"
                   />
                 </div>
@@ -1154,9 +1166,14 @@ export default function Customers() {
                   <Button variant="outline" onClick={() => { setIsDetailOpen(false); handleEdit(selectedCustomer); }}>
                     <Edit2 className="h-4 w-4 mr-2" /> Edit Customer
                   </Button>
-                  <Button variant="outline" onClick={() => setIsDetailOpen(false)}>
-                    Close
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => { setIsDetailOpen(false); navigate(`/jobs?new=true&customer_id=${selectedCustomer.id}&customer_name=${encodeURIComponent(selectedCustomer.name || selectedCustomer.company || 'Customer')}`); }} data-testid="customer-popup-new-job-btn">
+                      <Briefcase className="h-4 w-4 mr-2" /> New Job
+                    </Button>
+                    <Button variant="outline" onClick={() => setIsDetailOpen(false)}>
+                      Close
+                    </Button>
+                  </div>
                 </div>
               </>
             );

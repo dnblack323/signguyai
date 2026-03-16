@@ -11,7 +11,7 @@ from .enums import CustomerStatus, MessageType, ProofStatus, AppointmentType, Ap
 
 # ============== CUSTOMER MODELS ==============
 class CustomerBase(BaseModel):
-    name: str
+    name: Optional[str] = None
     company: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None

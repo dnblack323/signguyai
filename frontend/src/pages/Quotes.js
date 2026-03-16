@@ -46,7 +46,7 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 export default function Quotes() {
   const { 
     quotes, customers, fetchQuotes, fetchCustomers, 
-    createQuote, updateQuote, convertQuoteToJob 
+    createQuote, updateQuote, convertQuoteToJob, createCustomer 
   } = useApp();
   const { token } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -73,6 +73,36 @@ export default function Quotes() {
   
   // Pricing calculator modal state
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
+  const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
+  const [creatingCustomer, setCreatingCustomer] = useState(false);
+  const [newCustomerForm, setNewCustomerForm] = useState({ name: '', company: '', email: '', phone: '' });
+
+  const formatPhoneInput = (value) => {
+    const digits = value.replace(/\D/g, '').slice(0, 10);
+    if (digits.length === 0) return '';
+    if (digits.length < 4) return `(${digits}`;
+    if (digits.length < 7) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  };
+
+  const handleCreateInlineCustomer = async () => {
+    if (!newCustomerForm.name.trim() && !newCustomerForm.company.trim()) {
+      toast.error('Name or Company is required');
+      return;
+    }
+    setCreatingCustomer(true);
+    try {
+      const customer = await createCustomer({ ...newCustomerForm, status: 'lead', notes: '' });
+      await fetchCustomers();
+      setFormData((prev) => ({ ...prev, customer_id: customer.id }));
+      setNewCustomerForm({ name: '', company: '', email: '', phone: '' });
+      setIsCreateCustomerOpen(false);
+      toast.success('Customer created and selected');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to create customer');
+    }
+    setCreatingCustomer(false);
+  };
 
   // Handle calculated item from pricing calculator
   const handleCalculatedItem = (calculatedData) => {
@@ -309,22 +339,29 @@ export default function Quotes() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Customer *</Label>
-                  <Select
-                    value={formData.customer_id}
-                    onValueChange={(val) => setFormData({ ...formData, customer_id: val })}
-                    disabled={!!editingQuote}
-                  >
-                    <SelectTrigger data-testid="quote-customer-select">
-                      <SelectValue placeholder="Select customer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customers.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2">
+                    <Select
+                      value={formData.customer_id}
+                      onValueChange={(val) => setFormData({ ...formData, customer_id: val })}
+                      disabled={!!editingQuote}
+                    >
+                      <SelectTrigger className="flex-1" data-testid="quote-customer-select">
+                        <SelectValue placeholder="Select customer" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {customers.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name || c.company}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {!editingQuote && (
+                      <Button type="button" variant="outline" onClick={() => setIsCreateCustomerOpen(true)} data-testid="quote-create-customer-inline-btn">
+                        New Customer
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Status</Label>
@@ -838,6 +875,43 @@ export default function Quotes() {
               </div>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCreateCustomerOpen} onOpenChange={setIsCreateCustomerOpen}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>Create Customer</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Name</Label>
+                <Input value={newCustomerForm.name} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, name: e.target.value })} data-testid="quote-inline-customer-name-input" />
+              </div>
+              <div className="space-y-2">
+                <Label>Company</Label>
+                <Input value={newCustomerForm.company} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, company: e.target.value })} data-testid="quote-inline-customer-company-input" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">Name or Company is required.</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input type="email" value={newCustomerForm.email} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, email: e.target.value })} data-testid="quote-inline-customer-email-input" />
+              </div>
+              <div className="space-y-2">
+                <Label>Phone</Label>
+                <Input value={newCustomerForm.phone} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, phone: formatPhoneInput(e.target.value) })} data-testid="quote-inline-customer-phone-input" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsCreateCustomerOpen(false)}>Cancel</Button>
+              <Button type="button" onClick={handleCreateInlineCustomer} disabled={creatingCustomer} data-testid="quote-inline-customer-submit-btn">
+                {creatingCustomer ? 'Creating...' : 'Create Customer'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 

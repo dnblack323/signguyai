@@ -8,7 +8,7 @@ import { Badge } from '../components/ui/badge';
 import { 
   Sparkles, Send, ArrowLeft, Loader2, User, Bot, 
   Lightbulb, DollarSign, Users, Briefcase, TrendingUp,
-  Clock, FileText, RefreshCw
+  Clock, FileText, RefreshCw, Mic, MicOff, Volume2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
@@ -46,7 +46,12 @@ What can I help you with today?`
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [voiceLoading, setVoiceLoading] = useState(false);
   const [sessionId] = useState(() => `assistant_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const streamRef = useRef(null);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
 
@@ -57,6 +62,108 @@ What can I help you with today?`
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks?.().forEach((track) => track.stop());
+    };
+  }, []);
+
+  const playVoice = async (text) => {
+    if (!text?.trim()) return;
+    await runGuardedAction({
+      actionType: 'voice_tts',
+      featureName: 'Business Assistant Voice Output',
+      execute: async () => {
+        setVoiceLoading(true);
+        try {
+          const response = await axios.post(
+            `${API_URL}/api/ai/voice/speak`,
+            { text, voice: 'alloy', speed: 1.0 },
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+          const audio = new Audio(`data:${response.data.mime_type};base64,${response.data.audio_base64}`);
+          await audio.play();
+          return response.data;
+        } finally {
+          setVoiceLoading(false);
+        }
+      }
+    });
+  };
+
+  const stopRecording = async () => {
+    return new Promise((resolve) => {
+      if (!mediaRecorderRef.current) {
+        resolve(null);
+        return;
+      }
+      mediaRecorderRef.current.onstop = async () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        audioChunksRef.current = [];
+        streamRef.current?.getTracks?.().forEach((track) => track.stop());
+        streamRef.current = null;
+        mediaRecorderRef.current = null;
+        setIsRecording(false);
+        resolve(blob);
+      };
+      mediaRecorderRef.current.stop();
+    });
+  };
+
+  const handleVoiceInput = async () => {
+    if (isRecording) {
+      const audioBlob = await stopRecording();
+      if (!audioBlob) return;
+
+      await runGuardedAction({
+        actionType: 'voice_transcription',
+        featureName: 'Business Assistant Voice Input',
+        execute: async () => {
+          setVoiceLoading(true);
+          try {
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'assistant-input.webm');
+            const response = await axios.post(`${API_URL}/api/ai/voice/transcribe`, formData, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'multipart/form-data'
+              }
+            });
+            if (response.data?.text) {
+              setInput(response.data.text);
+              toast.success('Voice captured. Review and send, or edit the text first.');
+            }
+            return response.data;
+          } finally {
+            setVoiceLoading(false);
+          }
+        }
+      });
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
+      };
+      recorder.start();
+      setIsRecording(true);
+      toast.info('Recording started. Click the mic again to stop.');
+    } catch (error) {
+      toast.error('Microphone access failed. Please allow microphone access and try again.');
+    }
+  };
 
   const handleSend = async (messageText = input) => {
     if (!messageText.trim() || loading) return;
@@ -88,6 +195,7 @@ What can I help you with today?`
 
           const assistantMessage = { role: 'assistant', content: response.data.response };
           setMessages(prev => [...prev, assistantMessage]);
+          return assistantMessage;
         }
       });
     } catch (error) {
@@ -256,6 +364,16 @@ What can I help you with today?`
               rows={1}
               disabled={loading}
             />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleVoiceInput}
+            disabled={voiceLoading || loading}
+            className={isRecording ? 'border-red-400 text-red-600' : ''}
+            data-testid="assistant-voice-input-button"
+          >
+            {voiceLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+          </Button>
             <Button
               onClick={() => handleSend()}
               disabled={!input.trim() || loading}
@@ -268,8 +386,24 @@ What can I help you with today?`
               )}
             </Button>
           </div>
+          <div className="flex items-center justify-center mt-3">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                const lastAssistant = [...messages].reverse().find((msg) => msg.role === 'assistant');
+                if (lastAssistant) playVoice(lastAssistant.content);
+              }}
+              disabled={voiceLoading || !messages.some((msg) => msg.role === 'assistant')}
+              data-testid="assistant-voice-output-button"
+            >
+              {voiceLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Volume2 className="h-4 w-4 mr-2" />}
+              Read last reply aloud
+            </Button>
+          </div>
           <p className="text-xs text-gray-400 text-center mt-2">
-            AI responses are suggestions only. Always verify important business decisions.
+            AI responses are suggestions only. Always verify important business decisions. Voice input and voice output are available in this assistant.
           </p>
         </div>
       </Card>

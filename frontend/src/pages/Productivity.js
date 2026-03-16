@@ -117,7 +117,7 @@ export default function Productivity() {
     .map(t => new Date(t.due_date));
 
   // Group jobs by status for Kanban
-  const jobStatuses = ['quoted', 'approved', 'in_production', 'installed', 'complete'];
+  const jobStatuses = ['quote', 'approved', 'in_progress', 'completed', 'invoiced'];
   const jobsByStatus = jobStatuses.reduce((acc, status) => {
     acc[status] = jobs.filter(j => j.status === status);
     return acc;
@@ -127,6 +127,7 @@ export default function Productivity() {
   const handleDragStart = (e, job) => {
     setDraggedJob(job);
     e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', job.id);
   };
 
   const handleDragOver = (e) => {
@@ -143,6 +144,7 @@ export default function Productivity() {
     
     try {
       await updateJob(draggedJob.id, { status: newStatus });
+      await fetchJobs();
       toast.success(`Job moved to ${newStatus.replace('_', ' ')}`);
     } catch (err) {
       toast.error('Failed to update job status');
@@ -433,7 +435,7 @@ export default function Productivity() {
                     <Card 
                       key={job.id} 
                       className={cn(
-                        "cursor-pointer transition-all hover:shadow-md",
+                        "cursor-pointer transition-all hover:shadow-md active:cursor-grabbing",
                         draggedJob?.id === job.id && "opacity-50"
                       )}
                       style={{ 
@@ -452,7 +454,7 @@ export default function Productivity() {
                           </p>
                         )}
                         <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                          Drag to change status
+                          Drag to change stage
                         </p>
                       </CardContent>
                     </Card>

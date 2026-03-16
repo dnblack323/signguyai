@@ -281,6 +281,8 @@ AI_CREDIT_COSTS.update({
     "brand_voice_guide": 1,
     "review_responder": 1,
     "assistant_parse_action": 1,
+    "voice_transcription": 1,
+    "voice_tts": 1,
     "invoice_send": 1,
     "invoice_reminder": 1,
     "invoice_overdue": 1,

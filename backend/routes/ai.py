@@ -7,7 +7,7 @@ This module contains routes for AI-powered tools:
 - AI history
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Header
+from fastapi import APIRouter, HTTPException, Depends, Header, UploadFile, File
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field
@@ -26,6 +26,7 @@ router = APIRouter(prefix="/ai", tags=["AI Tools"])
 
 # Get API key
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 
 
 # ============== MODELS ==============
@@ -1288,6 +1289,12 @@ class AIAssistantRequest(BaseModel):
     conversation_history: Optional[List[Dict[str, str]]] = None
 
 
+class VoiceSpeakRequest(BaseModel):
+    text: str
+    voice: str = "alloy"
+    speed: float = 1.0
+
+
 async def get_shop_context(tenant_id: str) -> dict:
     """Fetch comprehensive shop data for AI context"""
     from datetime import datetime, timedelta, timezone
@@ -1596,6 +1603,103 @@ Note: For personalized insights based on their actual business data, users can u
         )
         print(f"AI Assistant error: {e}")
         raise HTTPException(status_code=500, detail=f"Assistant error: {str(e)}")
+
+
+@router.post("/voice/transcribe")
+async def transcribe_voice_input(
+    audio: UploadFile = File(...),
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Transcribe assistant voice input using OpenAI Whisper."""
+    if not OPENAI_API_KEY:
+        raise HTTPException(status_code=500, detail="Voice input is not configured")
+
+    preview = await preview_credit_usage(db, current_user.tenant_id, "voice_transcription", 1)
+    if not preview["sufficient_credits"]:
+        raise HTTPException(status_code=402, detail=f"Insufficient credits. Need {preview['credit_cost']}, have {preview['total_credits']}.")
+
+    try:
+        from emergentintegrations.llm.openai.speech_to_text import OpenAISpeechToText
+
+        stt = OpenAISpeechToText(api_key=OPENAI_API_KEY)
+        transcription = await stt.transcribe(audio.file, model="whisper-1")
+        text = transcription.get("text") if isinstance(transcription, dict) else str(transcription)
+
+        await deduct_credits_after_success(
+            db,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            action_type="voice_transcription",
+            module="AI Assistant Voice",
+            feature_name="voice_transcription",
+            metadata={"filename": audio.filename, "content_type": audio.content_type},
+            credits_required=1,
+        )
+
+        return {"text": text or ""}
+    except Exception as e:
+        await log_failed_ai_usage(
+            db,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            action_type="voice_transcription",
+            module="AI Assistant Voice",
+            feature_name="voice_transcription",
+            metadata={"filename": audio.filename},
+        )
+        raise HTTPException(status_code=500, detail=f"Voice transcription failed: {str(e)}")
+
+
+@router.post("/voice/speak")
+async def generate_voice_output(
+    request: VoiceSpeakRequest,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Generate assistant voice output using OpenAI TTS."""
+    if not OPENAI_API_KEY:
+        raise HTTPException(status_code=500, detail="Voice output is not configured")
+    if not request.text.strip():
+        raise HTTPException(status_code=400, detail="Text is required")
+
+    preview = await preview_credit_usage(db, current_user.tenant_id, "voice_tts", 1)
+    if not preview["sufficient_credits"]:
+        raise HTTPException(status_code=402, detail=f"Insufficient credits. Need {preview['credit_cost']}, have {preview['total_credits']}.")
+
+    try:
+        from emergentintegrations.llm.openai.text_to_speech import OpenAITextToSpeech
+
+        tts = OpenAITextToSpeech(api_key=OPENAI_API_KEY)
+        audio_base64 = await tts.generate_speech_base64(
+            text=request.text[:4000],
+            model="tts-1",
+            voice=request.voice,
+            speed=request.speed,
+            response_format="mp3"
+        )
+
+        await deduct_credits_after_success(
+            db,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            action_type="voice_tts",
+            module="AI Assistant Voice",
+            feature_name="voice_tts",
+            metadata={"voice": request.voice, "speed": request.speed, "text_length": len(request.text)},
+            credits_required=1,
+        )
+
+        return {"audio_base64": audio_base64, "mime_type": "audio/mp3"}
+    except Exception as e:
+        await log_failed_ai_usage(
+            db,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            action_type="voice_tts",
+            module="AI Assistant Voice",
+            feature_name="voice_tts",
+            metadata={"voice": request.voice},
+        )
+        raise HTTPException(status_code=500, detail=f"Voice output failed: {str(e)}")
 
 
 # ============== AI EMAIL GENERATOR ==============

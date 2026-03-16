@@ -29,7 +29,7 @@ router = APIRouter(prefix="/customers", tags=["Customers"])
 
 
 class CustomerImportItem(BaseModel):
-    name: str
+    name: Optional[str] = None
     company: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
@@ -59,7 +59,13 @@ async def create_customer(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Create a new customer and optionally send welcome email"""
-    customer = Customer(**input.model_dump())
+    payload = input.model_dump()
+    resolved_name = (payload.get("name") or "").strip() or (payload.get("company") or "").strip()
+    if not resolved_name:
+        raise HTTPException(status_code=400, detail="Name or Company is required")
+    payload["name"] = resolved_name
+
+    customer = Customer(**payload)
     customer.tenant_id = current_user.tenant_id
     doc = customer.model_dump()
     await db.customers.insert_one(doc)
@@ -100,8 +106,9 @@ async def import_customers(
     for i, item in enumerate(request.customers):
         try:
             # Validate name
-            if not item.name or not item.name.strip():
-                errors.append(f"Row {i + 1}: Name is required")
+            resolved_name = (item.name or '').strip() or (item.company or '').strip()
+            if not resolved_name:
+                errors.append(f"Row {i + 1}: Name or Company is required")
                 continue
             
             # Check for existing customer with same email (if email provided)
@@ -123,6 +130,7 @@ async def import_customers(
                     "name": item.name.strip(),
                     "updated_at": datetime.now(timezone.utc).isoformat()
                 }
+                update_data["name"] = resolved_name
                 if item.company:
                     update_data["company"] = item.company.strip()
                 if item.phone:
@@ -139,7 +147,7 @@ async def import_customers(
             else:
                 # Create new customer
                 customer = Customer(
-                    name=item.name.strip(),
+                    name=resolved_name,
                     company=item.company.strip() if item.company else None,
                     email=item.email.strip() if item.email else None,
                     phone=item.phone.strip() if item.phone else None,
@@ -254,13 +262,24 @@ async def update_customer(
 ):
     """Update a customer"""
     update_data = {k: v for k, v in input.model_dump().items() if v is not None}
+    existing_customer = await db.customers.find_one(
+        {"id": customer_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    if not existing_customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    resolved_name = (update_data.get("name") if "name" in update_data else existing_customer.get("name") or '').strip() or (
+        update_data.get("company") if "company" in update_data else existing_customer.get("company") or ''
+    ).strip()
+    if not resolved_name:
+        raise HTTPException(status_code=400, detail="Name or Company is required")
+    update_data["name"] = resolved_name
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
-    result = await db.customers.update_one(
+    await db.customers.update_one(
         {"id": customer_id, "tenant_id": current_user.tenant_id}, 
         {"$set": update_data}
     )
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Customer not found")
     customer = await db.customers.find_one({"id": customer_id}, {"_id": 0})
     return customer
 
@@ -271,10 +290,10 @@ async def delete_customer(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Delete a customer"""
-    result = await db.customers.delete_one(
+    delete_result = await db.customers.delete_one(
         {"id": customer_id, "tenant_id": current_user.tenant_id}
     )
-    if result.deleted_count == 0:
+    if delete_result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Customer not found")
     return {"message": "Customer deleted"}
 
