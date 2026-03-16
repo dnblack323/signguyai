@@ -15,7 +15,7 @@ IMPORTANT: Quotes are now jobs with status="quote"
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Query
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 
 from models import (
@@ -85,9 +85,66 @@ async def log_job_activity(
     await db.job_activities.insert_one(activity.model_dump())
 
 
+def infer_job_item_type_from_embedded_line_item(item: Dict[str, Any]) -> JobItemType:
+    pricing_category = item.get("pricing_category")
+    mapping = {
+        "digital_print": JobItemType.BANNER,
+        "rigid_signs": JobItemType.YARD_SIGN,
+        "cut_vinyl": JobItemType.DECAL,
+        "vehicle_graphics": JobItemType.VEHICLE_GRAPHICS,
+        "services": JobItemType.DESIGN,
+    }
+    return mapping.get(pricing_category, JobItemType.OTHER)
+
+
+async def sync_job_items_from_embedded_line_items(job: Dict[str, Any], replace_existing: bool = False) -> List[Dict[str, Any]]:
+    """Ensure legacy embedded line_items are also represented in the job_items collection."""
+    embedded_items = job.get("line_items") or []
+    if not embedded_items:
+        return await db.job_items.find({"job_id": job["id"]}, {"_id": 0}).to_list(1000)
+
+    existing_items = await db.job_items.find({"job_id": job["id"]}, {"_id": 0}).to_list(1000)
+    if existing_items and not replace_existing:
+        return existing_items
+
+    if replace_existing and existing_items:
+        await db.job_items.delete_many({"job_id": job["id"]})
+
+    synced_items = []
+    for item in embedded_items:
+        quantity = float(item.get("quantity", 1) or 1)
+        unit_price = float(item.get("unit_price", 0) or 0)
+        line_total = float(item.get("line_total", item.get("total", quantity * unit_price)) or 0)
+        cost_snapshot = item.get("cost_snapshot")
+        job_item = JobItem(
+            job_id=job["id"],
+            item_type=infer_job_item_type_from_embedded_line_item(item),
+            description=item.get("description", ""),
+            quantity=quantity,
+            unit_price=unit_price,
+            line_total=line_total,
+            status=JobItemStatus.PENDING,
+            notes=item.get("notes"),
+            pricing_category=item.get("pricing_category"),
+            pricing_data=item.get("pricing_data"),
+            cost_snapshot=cost_snapshot,
+            production_cost=(cost_snapshot or {}).get("total_cost", 0),
+            profit_amount=(cost_snapshot or {}).get("profit_amount", (cost_snapshot or {}).get("profit", 0)),
+            profit_margin_percent=(cost_snapshot or {}).get("profit_margin_percent", (cost_snapshot or {}).get("profit_margin", 0)),
+        )
+        doc = job_item.model_dump()
+        await db.job_items.insert_one(doc)
+        synced_items.append(doc)
+
+    return synced_items
+
+
 async def recalculate_job_subtotal(job_id: str) -> float:
     """Recalculate and update job subtotal from items"""
-    job_items = await db.job_items.find({"job_id": job_id}, {"_id": 0}).to_list(1000)
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        return 0
+    job_items = await sync_job_items_from_embedded_line_items(job)
     subtotal = sum(item.get("line_total", 0) for item in job_items)
     await db.jobs.update_one(
         {"id": job_id}, 
@@ -130,6 +187,7 @@ async def create_job(
     job.tenant_id = current_user.tenant_id
     doc = job.model_dump()
     await db.jobs.insert_one(doc)
+    await sync_job_items_from_embedded_line_items(doc, replace_existing=True)
     
     # Log creation
     activity_desc = f"Quote '{job.name}' created" if job.status == JobStatus.QUOTE else f"Job '{job.name}' created"
@@ -236,8 +294,8 @@ async def get_job_details(
     if job.get("invoice_id"):
         invoice = await db.invoices.find_one({"id": job["invoice_id"]}, {"_id": 0})
     
-    # Get job items
-    job_items = await db.job_items.find({"job_id": job_id}, {"_id": 0}).to_list(1000)
+    # Get job items (sync embedded legacy items if needed)
+    job_items = await sync_job_items_from_embedded_line_items(job)
     
     # Get job notes
     notes = await db.job_notes.find({"job_id": job_id}, {"_id": 0}).sort("created_at", -1).to_list(100)
@@ -490,6 +548,8 @@ async def update_job(
         {"id": job_id, "tenant_id": current_user.tenant_id}, 
         {"_id": 0}
     )
+    if "line_items" in update_data:
+        await sync_job_items_from_embedded_line_items(updated_job, replace_existing=True)
     return updated_job
 
 
@@ -783,8 +843,10 @@ async def get_job_items(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Get all items for a job"""
-    job_items = await db.job_items.find({"job_id": job_id}, {"_id": 0}).to_list(1000)
-    return job_items
+    job = await db.jobs.find_one({"id": job_id, "tenant_id": current_user.tenant_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return await sync_job_items_from_embedded_line_items(job)
 
 
 # ============== JOB ITEMS (standalone routes) ==============

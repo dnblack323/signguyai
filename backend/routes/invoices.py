@@ -22,6 +22,7 @@ from server import (
     db, logger,
     get_current_active_user, has_permission, log_job_activity
 )
+from routes.jobs import sync_job_items_from_embedded_line_items
 
 router = APIRouter(prefix="/invoices", tags=["Invoices"])
 
@@ -153,7 +154,7 @@ async def create_invoice_from_job(
         raise HTTPException(status_code=404, detail="Job not found")
     
     # Get job items and create invoice line items
-    job_items = await db.job_items.find({"job_id": job_id}, {"_id": 0}).to_list(1000)
+    job_items = await sync_job_items_from_embedded_line_items(job)
     
     invoice_line_items = []
     total = 0
