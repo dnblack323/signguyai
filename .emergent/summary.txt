@@ -1,37 +1,50 @@
 <analysis>**original_problem_statement:**
-The user initially reported a critical network error on login which was a recurring issue. After a lengthy debugging process, this was identified as a combination of an account-specific data payload issue (a 3MB base64 logo in a tenant API response) and a platform-level routing problem where the production frontend was pointing to a dead backend deployment URL.
-
-While the production login issue was being investigated (and is currently blocked by platform support), the user requested the agent to verify and reinstate several features that might have been lost during a production rollback. This included:
-1.  Ability to upload images when adding products to webstores.
-2.  Ensuring the AI credit system and trial extension features exist.
-3.  Verifying the detailed line-item production timeline feature.
-4.  Adding extensive, detailed information to the public-facing pricing page.
-5.  A system for tenants to back up and restore their own data (jobs, customers, etc.).
-6.  A Community Hub for tenants to report bugs, request features, and see a searchable Q&A board.
-7.  A major navigation overhaul to a Microsoft Office style ribbon to improve accessibility of all features.
-8.  A new Admin Payroll page.
-9.  A new Document Library for reusable templates and interactive questionnaires.
+The user initiated this session with a request to investigate a recurring production login error. While that was identified as a platform-level issue, the user then provided a comprehensive and detailed list of new features to be built. This included, in sequence:
+1.  A company-based, multi-tenant pricing calculator system.
+2.  A historical invoice import and AI analysis tool for pricing benchmark suggestions.
+3.  A Profit & Margin Analytics dashboard.
+4.  A complete job production timeline system with configurable workflows.
+5.  A full Employee Portal for time tracking and job management.
+6.  A comprehensive Customer Portal for approvals, communication, and payments.
+7.  A full audit of all AI features in the application.
+8.  Implementation and enforcement of an AI credit usage and billing system.
+9.  A tiered (Quick Start, Standard, Full Optimization) onboarding system for new tenants.
+10. A UI overhaul to a Dark Shell / Light Workspace layout.
+11. A full update of all documentation and the feature catalog.
+12. A bug fix for disappearing line items on new jobs.
+13. A batch of UX improvements and the addition of voice I/O to the Business Assistant.
 
 **PRODUCT REQUIREMENTS:**
--   **Fix Production Login (P0 - BLOCKED):** Resolve the 400 preflight error on production, which has been identified as a platform routing issue.
--   **Feature Reinstatement (Completed):** Ensure webstore product image uploads, AI credit system, and production timelines are functional.
--   **Pricing Page Transparency (Completed):** Update the landing/pricing page with detailed information about plans, credits, and billing.
--   **Tenant Data Backup (Completed):** Allow tenants to download and restore a JSON backup of their data.
--   **Community Hub (Completed):** A forum for bug reports, feature requests, and a searchable Q&A.
--   **UI/Nav Overhaul (In Progress):** Refactor the main navigation into a Microsoft Office-style ribbon.
--   **Admin Payroll Page (Not Started):** A new page for employee time tracking, job assignments, and payroll-related tasks.
--   **Document Library (Not Started):** A system for creating, storing, and sending documents and interactive questionnaires.
+-   **Company-Based Pricing (Completed):** All pricing calculators must use tenant-specific cost and markup settings.
+-   **Invoice AI Analysis (Completed):** Allow tenants to upload historical invoices for AI-driven pricing benchmark suggestions.
+-   **Profit Analytics (Completed):** Build dashboards to analyze profit by job, category, and customer using stored  data.
+-   **Production Workflow (Completed):** Implement a job timeline system with tenant-configurable stages (Simple, Detailed, Custom).
+-   **Employee Portal (Completed):** Create a portal for employees to clock in/out and manage assigned production tasks.
+-   **Customer Portal (Completed):** Build a full portal for customers to approve artwork, message staff, access documents, complete forms, and pay invoices.
+-   **AI Feature Audit (Completed):** Generate a complete inventory of all AI-powered features.
+-   **AI Credit System (Completed):** Implement a credit-based billing system for all AI actions, with cost previews and robust deduction logic.
+-   **Onboarding System (Completed):** Create a guided, multi-tiered onboarding experience for new tenants.
+-   **UI Overhaul (In Progress):** Refactor the application layout to a Dark Shell / Light Workspace theme with multiple content cards per page, instead of single mega-cards.
+-   **Fix Production Login (P0 - BLOCKED):** Resolve the recurring CORS 400 preflight error on production, identified as a platform routing issue.
+-   **Bug Fixes & UX (Completed):** Address various bugs and user-requested UX improvements as they arise.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-featured SaaS for sign shops with job/customer management, webstores, a customer portal, an admin communications hub, and an AI assistant. The codebase in the preview environment contains all recently requested features: product image uploads, data backup/restore, a community hub, and a complete pricing page. However, the live production environment is down due to a platform-level routing issue causing a 400 preflight error on login attempts because the frontend is pointing to a non-existent backend deployment. The agent has started a major navigation overhaul to improve feature discovery.
+The application is a feature-rich, multi-tenant SaaS platform for sign shops. A massive amount of functionality was added in this session, including new systems for company-based pricing, invoice analysis, profit analytics, production workflows, an employee portal, a customer portal, AI credit management, and a guided onboarding wizard. The backend models and APIs have been significantly expanded to support this, and the frontend has many new pages and components.
+
+However, the production environment remains inaccessible due to a recurring platform-level CORS error. The preview environment is fully functional and includes all the newly developed features. The UI overhaul to a Dark Shell / Light Workspace theme has been requested but is not yet widely implemented.
 
 **Last working item**:
--   Last item agent was working: A major navigation and UI overhaul. The user requested a Microsoft Office style ribbon layout to make all the application's features (including recently added ones) easily accessible. The agent was in the process of implementing this by restructuring  with the new navigation hierarchy and was about to update  to render the new sub-items.
--   Status: IN PROGRESS
--   Agent Testing Done: N
--   Which testing method agent to use? frontend testing agent
+-   Last item agent was working: The agent implemented a batch of user-requested improvements and a new feature. This bundle included:
+    1.  Fixing drag-and-drop on the Kanban board.
+    2.  Adding a Create New Customer dialog accessible from the New Job/Quote forms.
+    3.  Enforcing a Name OR Company requirement during customer creation.
+    4.  Adding automatic phone number formatting.
+    5.  Integrating voice input (Whisper) and output (TTS) into the Business Assistant using a user-provided OpenAI key.
+-   Status: USER VERIFICATION PENDING
+-   Agent Testing Done: Y
+-   Which testing method agent to use? testing_agent_fork
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
@@ -39,129 +52,159 @@ The application is a full-featured SaaS for sign shops with job/customer managem
 
 **Issues Detail:**
 -   **Issue 1: Production login is completely broken**
-    -   **Attempted fixes:** The agent went through multiple debugging cycles.
-        1.  **CORS Code:** Several attempts to change the backend CORS middleware in  failed to fix the production issue and sometimes made it worse. The code was reverted to its original state.
-        2.  **Payload Size:** A 2.95MB base64 logo in the  response was found to be the cause of the *admin account-specific* timeout. This was fixed by moving the logo to a dedicated  endpoint. This fix is correct and present in the current code.
-        3.  **Root Cause Identification:** The agent correctly identified the final, persistent issue: the production frontend () is making API calls to , which returns a  with the body . This is a platform routing issue, not an application code issue.
-    -   **Next debug checklist:**
-        1.  Ask the user for an update from Emergent Platform Support regarding the production routing issue. The agent cannot fix this.
-        2.  Once the user confirms the platform issue is resolved, perform a single  test against the live production login endpoint () to verify it's reachable and returns a valid response (not Deployment not found).
-        3.  Test login in the production browser.
+    -   **Attempted fixes:** The agent investigated using the deployment agent and confirmed the issue is not in the application code but is a platform-level deployment/routing problem, consistent with previous occurrences. The agent provided the user with a pre-written message to send to Emergent Support.
+    -   **Next debug checklist:** The agent cannot fix this. The next step is for the user to contact Emergent Support and await a resolution from the platform infrastructure team.
     -   **Why fix this issue and what will be achieved with the fix?** The entire production application is unusable. Fixing this will restore access for all users.
     -   **Status:** BLOCKED
     -   **Is recurring issue?** Y
     -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** Blocked on Emergent Platform Support resolving the production deployment routing.
+    -   **Blocked on other issue:** Blocked on Emergent Platform Support.
 
 **In progress Task List**:
 -   Task 1: Complete Navigation and UI Overhaul (P1)
 
 **Task Detail:**
 -   **Task 1: Complete Navigation and UI Overhaul**
-    -   **Where to resume:** The agent has defined the new navigation structure in . The next step is to update  to render the sub-menu items based on the active primary tab, and then connect all the links to their respective pages.
-    -   **What will be achieved with this?** A clear, organized, and fully accessible navigation system that exposes all existing features to the user, resolving their complaint about many pages being hidden.
-    -   **Status:** IN PROGRESS
+    -   **Where to resume:** The user has requested a Dark Shell / Light Workspace layout. This involves replacing page-wide mega-cards with multiple, smaller, light-themed cards on a dark page background. The  page was specified as the starting point. This task should also include finishing the Office-style ribbon navigation started in a previous session.
+    -   **What will be achieved with this?** A modern, consistent, and visually appealing user interface across the entire application that improves readability and organization.
+    -   **Status:** NOT STARTED
     -   **Should Test frontend/backend/both after fix?** frontend
-    -   **Blocked on something:** The P0 production login issue, while not a direct code dependency, takes priority. Work can continue on this task in the preview environment while waiting for the production fix.
+    -   **Blocked on something:** No.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   (P1) Implement Admin Payroll Page: Create backend models/routes and a frontend page for payroll, time tracking, and employee management as requested by the user.
-    -   (P1) Implement Document Library & Questionnaires: Build the feature for creating, managing, and sending document templates and interactive forms to customers.
-    -   (P1) Complete Founders Edition Implementation: This is still blocked waiting for Stripe Price IDs from the user.
+    -   (P0) User verification of the last batch of fixes (Kanban, customer creation, phone format, name validation) and the new voice assistant feature.
+    -   (P1) Add new job button in the customer info popup/modal, as requested in message #827.
+    -   (P2) Complete Founders Edition Implementation (Blocked on user for Stripe Price IDs).
 -   **Future Tasks:**
-    -   (P2) Apply Dark Shell / Light Workspace Layout to All Pages: Ensure UI consistency across older pages.
+    -   (P2) Implement the advanced features from the Full Optimization onboarding tier (e.g., workflow automation rules, advanced analytics dashboards).
+    -   (P2) Implement the learning calculator concept mentioned in the initial pricing notes.
     -   (P2) Archive Legacy Pricing.
     -   (P2) Vehicle Wrap AI Tool (Full Spec).
     -   (P2) Master Product List.
 
 **Completed work in this session**
--   **Production Login Issue Diagnosis (DONE):** Identified the root cause of the production outage as a platform routing issue (Deployment not found) and distinguished it from the secondary account-specific payload size issue, which was also fixed.
--   **Webstore Product Image Uploads (DONE):** Added a file upload UI to the Add Product form in  and ensured the backend handles the base64 image data. Added image thumbnails to the product list.
--   **Pricing Page Content (DONE):** Fully implemented all 8 sections of the user's detailed specification for the  page, including details on credit packs, billing rules, FAQs, and usage policies.
--   **Tenant Data Backup & Restore (DONE):** Created backend endpoints (, ) and a new settings page () for tenants to manage their own data backups. Excluded image data to keep file sizes manageable. Added a dismissible weekly backup reminder banner.
--   **Community Hub (DONE):** Built a full-featured community forum at  for users to post bug reports and feature requests. Includes backend APIs and a complete frontend with search, filtering, voting, and admin-only replies/status changes.
--   **Feature Verification (DONE):** Confirmed that the Line-Item Production Timeline and AI Credits/Trial Extension systems were still present and functional in the codebase.
+-   **Company-Based Pricing System (DONE):** Refactored all calculators to use tenant-specific settings.
+-   **Historical Invoice AI Analysis (DONE):** Built a workflow for users to upload invoices to generate pricing benchmarks.
+-   **Profit & Margin Analytics (DONE):** Created a new reporting dashboard.
+-   **Production Workflow & Job Timeline (DONE):** Built a system for configurable production stages and a unified job history view.
+-   **Employee Portal (DONE):** Created a dedicated portal for employees to manage tasks and track time.
+-   **Customer Portal (DONE):** Built a comprehensive portal for customer communication, approvals, forms, and payments.
+-   **AI Feature Audit (DONE):** Generated  listing all 58 AI features.
+-   **AI Credit System (DONE):** Implemented a full credit management system (preview, deduction, logging) for all AI tools.
+-   **Tiered Onboarding System (DONE):** Created a new guided onboarding experience.
+-   **Documentation Overhaul (DONE):** Rewrote all docs pages and updated .
+-   **Line Item Bug Fix (DONE):** Resolved an issue where line items were not appearing on job tickets.
+-   **UX/UI Batch Fixes (DONE):** Fixed Kanban drag-and-drop, added inline customer creation, enforced name/company validation, and formatted phone numbers.
+-   **Voice Assistant (DONE):** Added voice input/output to the Business Assistant.
 
 **Earlier issues found/mentioned but not fixed**
--   None. The primary reported issue (login) was the main focus and is now tracked as blocked. All other user requests were addressed.
+-   **Issue 1: Add new job button in customer info popup was requested but not implemented.**
+    -   **Debug checklist:** This was part of a batch request in message #827. The agent needs to locate the customer information popup/modal component and add a Create Job button that links to the new job page, pre-filling the customer information.
+    -   **Why to solve this issue and what will be achieved with this?** It's a direct user request that improves workflow efficiency for admins.
+    -   **Should Test frontend/backend/both after fix:** frontend
+    -   **Is recurring issue?** N
 
 **Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork:** network error on login.
+-   **Issue recurrence in previous fork:** Production login failure (CORS error 400 preflight).
 -   **Recurrence count:** 5+
--   **Status:** BLOCKED. The issue has evolved and has now been conclusively identified as a platform infrastructure problem, distinct from previous code-level bugs that caused similar symptoms.
+-   **Status:** BLOCKED. This remains a platform-level infrastructure problem.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Platform vs. Application Debugging:** Differentiating between application code bugs (e.g., large data payloads, CORS config) and platform infrastructure issues (e.g., routing, dead deployments). The key learning was that a  can originate from the platform's routing layer, not just the application.
--   **Data Payload Optimization:** Moving large base64 image data out of a core API response () into a dedicated, on-demand endpoint () to prevent timeouts and fix account-specific login failures.
--   **Data Backup/Restore:** Exporting data from multiple MongoDB collections related to a single tenant, filtering out large/unnecessary fields (like images), and creating a single JSON file for download.
--   **Ribbon-Style Navigation:** Structuring navigation data in a nested format to create a primary tab bar with a context-switching secondary action bar, mimicking a desktop application UI.
+-   **Full-Stack Development:** FastAPI backend, React frontend, MongoDB database.
+-   **Multi-Tenancy:** All new features are tenant-isolated.
+-   **AI Integration:** Extensive use of OpenAI APIs for text, image generation, speech-to-text (Whisper), and text-to-speech, managed by both the Emergent LLM Key and a user-provided key.
+-   **Complex Data Modeling:** Designed and implemented schemas for pricing, production workflows, AI credit logging, onboarding progress, and customer portal activities.
+-   **Component-Based UI:** Extensive use of React components for building complex interfaces like dashboards, portals, and wizards.
+-   **Third-Party Integration:** Stripe for payments.
+-   **Automated Testing:** Heavy reliance on the  to validate large feature implementations.
 
 **key DB schema**
--   **community_posts:** 
--   **community_replies:** 
--   The backup system queries collections such as , , , , , , etc., based on .
+-   **companies:** Extended with , , .
+-   **users:** Extended with  (e.g., ).
+-   **customers:** Enforced  or  validation; added .
+-   **jobs:** Added  object for detailed profit tracking and  array.
+-   **production_stages:** New collection for tracking the progress of individual stages in a job's workflow.
+-   **production_workflows:** New collection for storing tenant-defined custom workflow templates.
+-   **ai_credit_logs:** New collection for creating a ledger of every AI credit transaction.
+-   **onboarding_progress:** New collection to persist a tenant's state in the onboarding wizard.
+-   **customer_forms:** New collection to manage forms sent to customers and their submission status.
+
+**changes in tech stack**
+-   Backend dependencies , , and  were added for parsing various document formats during historical invoice import.
 
 **All files of reference**
--   : Contains the CORS configuration. It was modified multiple times and reverted to its original state.
--   : Modified to separate the large  from the main tenant data response.
--   : **(New)** Frontend for the tenant backup feature.
--   : **(New)** Frontend for the bug report/feature request forum.
--   : **(Updated)** Heavily modified to include all user-specified pricing and policy details.
--   : **(Updated)** Modified to add product image upload functionality.
--   : **(Updated)** Contains the new data structure for the ribbon navigation overhaul.
+-   : **(New)** Generated list of all 58 AI features and their properties.
+-   : **(Updated)** All documentation files were rewritten to reflect the current state of the application.
+-   : **(Updated)** The main feature list was updated to include all new systems.
+-   : **(Updated)** Added new endpoints for voice transcription and synthesis.
+-   : **(New)** Contains the core logic for AI credit validation, preview, and deduction.
+-   : **(New)** The main component for the tiered, guided onboarding experience.
+-   : **(Updated)** Modified to include microphone controls and audio playback for voice interaction.
+-   : **(New)** A reusable modal component that gates all AI features, showing cost and balances.
+-   : **(Updated)** Patched to fix a bug where line items were not being correctly saved/retrieved.
+-   , , : **(Updated)** To support inline customer creation, phone number formatting, and new validation rules.
 
 **Areas that need refactoring**:
--   The navigation system is currently being refactored (, ).
--   Older pages still need to adopt the  component for UI consistency with the Dark Shell / Light Workspace theme.
+-   The UI needs a systematic overhaul to implement the Dark Shell / Light Workspace design pattern. Most pages currently use a single large, page-wide card and should be broken into multiple smaller cards to improve layout and readability.
+-   The main navigation (, ) is still in a transitional state from a previous refactor and should be finalized as part of the UI overhaul.
 
 **key api endpoints**
--   : **(New)** Downloads a JSON backup of all tenant data.
--   : **(New)** Restores tenant data from an uploaded JSON file.
--   : **(New)** Fetches all posts for the community hub.
--   : **(New)** Creates a new post.
--   : **(New)** Adds a reply to a post.
--   : **(New)** Serves the tenant's logo image, separating it from the main tenant data endpoint.
--   : **(BUGGY on Production)** The endpoint that is failing on production due to the platform routing issue. It works correctly in the preview environment.
+-   : **(New)** Accepts audio data and returns a text transcription.
+-   : **(New)** Accepts text and returns synthesized speech audio.
+-   : **(New)** Creates a portal account for a customer and sends an invitation.
+-   , : **(New)** APIs to manage the state of the new tenant onboarding wizard.
+-   : **(New)** API to check the credit cost of an AI action before execution.
+-   : **(Updated/Fixed)** The creation logic was patched to ensure  are correctly persisted and retrieved.
+-   : **(Updated/Fixed)** Logic patched to correctly pull line items from older job records.
 
 **Critical Info for New Agent**
--   **PRODUCTION IS DOWN:** The top priority is the production login failure. This is **NOT a code issue** right now. It's a platform routing problem (Deployment not found). Do not attempt to fix it by changing CORS or auth code. Ask the user for an update from Emergent support. Once they confirm routing is fixed, verify it with  before doing anything else.
--   **Resume Navigation Overhaul:** While waiting for the production fix, the next user-requested task is to complete the major navigation overhaul. The plan is laid out in ; you need to implement the rendering logic in  and connect all the links.
--   **New Features Pending:** The user has requested an Admin Payroll page and a Document Library. These should be tackled after the navigation is complete.
+-   **PRODUCTION IS DOWN:** This is the top priority external blocker. It's a recurring platform-level routing problem. Do not attempt to fix it with application code. The user has been instructed on how to contact Emergent Support.
+-   **VERIFY LAST BATCH:** The most recent work was a bundle of UX fixes and a new voice assistant feature. This is pending user testing and verification.
+-   **UI OVERHAUL NEXT:** The next major creative task is to implement the Dark Shell / Light Workspace UI, starting with the  page. This is a high-priority user request.
+-   **MISSED FEATURE:** The user requested a new job button in customer info popup. This was overlooked and should be implemented.
+-   **OpenAI Key:** The user provided a direct  which is stored in . This key is used for the new voice input/output features.
+-   **FOLLOW USER'S ROADMAP:** The user has provided a clear, prioritized list of remaining systems to audit and improve. Follow this order for future work after the immediate UI tasks are addressed.
 
 **documents and test reports created in this job**
--    (covered the initial CORS fix)
--   The agent also created and updated  in the process.
+-   
+-    (all files updated)
+-    (updated)
+-    (updated)
+-    (updated)
+-    through  (and others)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **i also need an admin payroll page... (PENDING)** - User requested a new payroll page, a document library, and a complete overhaul of the navigation to a Microsoft Office style.
-2.  **do we hqave an admin portal... (PENDING)** - User asked about the admin portal and requested a new message board area for bug reports and feature requests. (This led to the creation of the Community Hub).
-3.  **i need a way that they can report bugs... (COMPLETED)** - This was the initial prompt for the Community Hub.
-4.  **for now keep it up to the tenant to download the backup... (COMPLETED)** - User provided specs for the tenant-managed backup feature.
-5.  **is it possible to create a way for tenants to make a backup... (COMPLETED)** - User's initial request for a data backup feature.
-6.  **add and fill in gaps (COMPLETED)** - User asked the agent to implement all missing sections on the pricing page.
-7.  **is this already done? (COMPLETED)** - User provided a large spec for the pricing page and asked for a gap analysis.
-8.  **what about detailed production timeline... (COMPLETED)** - User asked to verify if the production timeline feature existed.
-9.  **is there currently a system that uses credits... (COMPLETED)** - User asked to verify if the AI credit and trial extension features existed.
-10. **after rollback i need to make sure all features are restored... (COMPLETED)** - User asked to verify the webstore product image upload feature.
+1.  **User Message (LATEST):** here is open ai key... - User provided the OpenAI key for the voice feature. Status: **COMPLETED**.
+2.  **User Message:** if we use other option for the voice will that work? - User asking about voice integration options. Status: **ADDRESSED**.
+3.  **User Message:** CBA - User making a selection from agent's proposed plan. Status: **ADDRESSED**.
+4.  **User Message:** need add new job button... - User provided a batch of bug reports and feature requests. Status: **MOSTLY COMPLETED** (one item was missed).
+5.  **User Message:** i added from B and they were A... - User providing clarification for the line item bug. Status: **ADDRESSED**.
+6.  **User Message:** when i create new job and add line items...they disappear - User reporting a critical bug. Status: **COMPLETED**.
+7.  **User Message:** update the documentation... - User requested a full update of docs and the feature catalog. Status: **COMPLETED**.
+8.  **User Message:** continue - User instruction. Status: **ADDRESSED**.
+9.  **User Message:** getting CORS error 400 preflight error AGAIN... - User reporting the recurring production login failure. Status: **BLOCKED** (Platform issue).
+10. **User Message:** do improvements u suggested - User approving agent's plan to enhance the onboarding system. Status: **COMPLETED**.
 
 **Project Health Check:**
--   **Broken:** The live production environment is completely inaccessible due to a platform-level routing issue, resulting in a 400 error on all API calls.
+-   **Broken:** The live production environment is completely inaccessible due to a platform routing issue.
 
 **3rd Party Integrations**
--   **Stripe:** In use for payments. Awaiting user-provided Price IDs to complete the Founders Edition integration.
--   **OpenAI:** Used for AI tools, configured with the Emergent LLM Key.
--   **SendGrid:** Used for transactional emails.
--   **qrcode.react:** Used for generating QR codes for webstores.
+-   **Stripe:** Used for payments. Requires User API Key.
+-   **OpenAI GPT-4 (Text Generation):** Used for most AI tools. Uses Emergent LLM Key.
+-   **OpenAI DALL-E (Image Generation):** Used for image creation tools. Uses Emergent LLM Key.
+-   **OpenAI Whisper (Speech-to-Text) & TTS (Text-to-Speech):** Used for the new voice assistant feature. Requires User-provided .
+-   **SendGrid:** Used for transactional emails. Requires User API Key.
+-   **qrcode.react:** Frontend library for generating QR codes.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES, for the initial (incorrect) CORS fix.
+-   **Testing agent used after significant changes:** YES. The testing agent was used extensively to validate all major new features.
 -   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:** None in this session.
--   **Known regressions:** The entire production application is down.
+-   **Test files created:** None. The testing agent generates its own tests.
+-   **Known regressions:** The entire production application is down due to a recurring platform issue.
 
 **Credentials to test flow:**
 -   **Admin Email:** 
@@ -170,4 +213,5 @@ The application is a full-featured SaaS for sign shops with job/customer managem
 -   **Regular User Password:** 
 
 **What agent forgot to execute**
-The agent was actively working on the user's latest and largest request (navigation, payroll, docs) when the session ended. Nothing was forgotten, but the task is large and in its early stages.</analysis>
+-   **Add new job button in customer info popup:** This was part of a batch request in message #827 but was overlooked.
+-   **Dark Shell / Light Workspace UI Overhaul:** This was requested in message #742 and acknowledged by the agent, but was not implemented due to other tasks taking priority.</analysis>
