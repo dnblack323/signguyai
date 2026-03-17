@@ -178,6 +178,44 @@ async def login(input: UserLogin):
     return Token(access_token=access_token, expires_in=expires_in)
 
 
+@router.post("/recover-password")
+async def recover_owner_password(email: str, new_password: str):
+    """
+    Recovery endpoint for tenant owners who cannot log in.
+    Verifies the email belongs to the tenant owner, then resets the password.
+    Only works for owner-role accounts, verified by matching the tenant's owner_email.
+    """
+    email_lower = email.lower()
+    
+    # Find user
+    user = await db.users.find_one({"email": email_lower}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="No account found with this email")
+    
+    # Only allow for owner accounts
+    if user.get("role") != "owner":
+        raise HTTPException(status_code=403, detail="Password recovery is only available for account owners. Contact your admin.")
+    
+    # Verify this email is the actual tenant owner
+    tenant = await db.tenants.find_one({"id": user.get("tenant_id")}, {"_id": 0})
+    if not tenant or tenant.get("owner_email", "").lower() != email_lower:
+        raise HTTPException(status_code=403, detail="Could not verify account ownership")
+    
+    # Validate new password
+    if len(new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    
+    # Reset password
+    hashed_password = get_password_hash(new_password)
+    await db.users.update_one(
+        {"email": email_lower},
+        {"$set": {"hashed_password": hashed_password, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Password has been reset successfully. You can now log in with your new password."}
+
+
+
 # ============== USER PROFILE ROUTES ==============
 
 @users_router.get("/me", response_model=User)

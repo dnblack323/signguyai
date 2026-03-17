@@ -7,7 +7,9 @@ import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Checkbox } from '../components/ui/checkbox';
-import { Loader2, Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
+import { Loader2, Eye, EyeOff, LogIn, UserPlus, KeyRound, ArrowLeft } from 'lucide-react';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 export default function Login() {
   const navigate = useNavigate();
@@ -42,6 +44,12 @@ export default function Login() {
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetNewPassword, setResetNewPassword] = useState('');
+  const [resetConfirmPassword, setResetConfirmPassword] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
+  const [resetError, setResetError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -92,9 +100,169 @@ export default function Login() {
     clearError();
     setPassword('');
     setConfirmPassword('');
+    setShowForgotPassword(false);
+  };
+
+  const handlePasswordReset = async (e) => {
+    e.preventDefault();
+    setResetError('');
+    setResetMessage('');
+
+    if (!resetEmail) {
+      setResetError('Email is required');
+      return;
+    }
+    if (!resetNewPassword || resetNewPassword.length < 6) {
+      setResetError('New password must be at least 6 characters');
+      return;
+    }
+    if (resetNewPassword !== resetConfirmPassword) {
+      setResetError('Passwords do not match');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(
+        `${API_URL}/api/auth/recover-password?email=${encodeURIComponent(resetEmail)}&new_password=${encodeURIComponent(resetNewPassword)}`,
+        { method: 'POST' }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setResetMessage(data.message || 'Password reset successfully!');
+        setResetEmail('');
+        setResetNewPassword('');
+        setResetConfirmPassword('');
+      } else {
+        let msg = 'Password reset failed';
+        try {
+          const data = await response.json();
+          msg = data.detail || msg;
+        } catch {}
+        setResetError(msg);
+      }
+    } catch {
+      setResetError('Network error. Please try again.');
+    }
+    setIsLoading(false);
   };
 
   const displayError = localError || error;
+
+  // Forgot Password view
+  if (showForgotPassword) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg)' }}>
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center mb-4">
+              <img 
+                src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/ht3r57hi_sgai%20slant.png" 
+                alt="SignGuy AI" 
+                className="h-32 w-auto"
+              />
+            </div>
+            <p style={{ color: 'var(--text-muted-on-dark)' }} className="mt-2">Sign Shop Operating System</p>
+          </div>
+
+          <Card className="border shadow-xl" style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)' }}>
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-2xl text-center font-heading" style={{ color: 'var(--text)' }}>
+                Reset Password
+              </CardTitle>
+              <CardDescription className="text-center" style={{ color: 'var(--text-muted)' }}>
+                Enter your owner email and a new password
+              </CardDescription>
+            </CardHeader>
+
+            <form onSubmit={handlePasswordReset}>
+              <CardContent className="space-y-4">
+                {resetError && (
+                  <Alert variant="destructive" className="border-red-300" style={{ backgroundColor: 'var(--danger-soft)' }}>
+                    <AlertDescription className="text-red-600">{resetError}</AlertDescription>
+                  </Alert>
+                )}
+                {resetMessage && (
+                  <Alert className="border-green-300 bg-green-50">
+                    <AlertDescription className="text-green-700">{resetMessage}</AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="resetEmail" style={{ color: 'var(--text)' }}>Owner Email</Label>
+                  <Input
+                    id="resetEmail"
+                    data-testid="reset-email-input"
+                    type="email"
+                    placeholder="owner@example.com"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)', color: 'var(--text)' }}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="resetNewPassword" style={{ color: 'var(--text)' }}>New Password</Label>
+                  <Input
+                    id="resetNewPassword"
+                    data-testid="reset-new-password-input"
+                    type="password"
+                    placeholder="Min 6 characters"
+                    value={resetNewPassword}
+                    onChange={(e) => setResetNewPassword(e.target.value)}
+                    style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)', color: 'var(--text)' }}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="resetConfirmPassword" style={{ color: 'var(--text)' }}>Confirm New Password</Label>
+                  <Input
+                    id="resetConfirmPassword"
+                    data-testid="reset-confirm-password-input"
+                    type="password"
+                    placeholder="Repeat password"
+                    value={resetConfirmPassword}
+                    onChange={(e) => setResetConfirmPassword(e.target.value)}
+                    style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)', color: 'var(--text)' }}
+                  />
+                </div>
+              </CardContent>
+
+              <CardFooter className="flex flex-col space-y-4">
+                <Button
+                  type="submit"
+                  data-testid="reset-password-submit-btn"
+                  className="w-full text-white font-medium bg-[#2F8BFB] hover:bg-[#1E7AF0]"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <KeyRound className="mr-2 h-4 w-4" />
+                  )}
+                  {isLoading ? 'Resetting...' : 'Reset Password'}
+                </Button>
+
+                <button
+                  type="button"
+                  onClick={() => { setShowForgotPassword(false); setResetError(''); setResetMessage(''); }}
+                  data-testid="back-to-login-btn"
+                  className="text-sm hover:underline flex items-center justify-center gap-1"
+                  style={{ color: 'var(--accent)' }}
+                >
+                  <ArrowLeft className="h-3 w-3" /> Back to login
+                </button>
+              </CardFooter>
+            </form>
+          </Card>
+
+          <p className="text-center text-xs mt-6" style={{ color: 'var(--text-muted-on-dark)' }}>
+            &copy; {new Date().getFullYear()} SignGuy AI. All rights reserved.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg)' }}>
@@ -214,20 +382,31 @@ export default function Login() {
 
               {/* Remember Me - Only show for login */}
               {!isRegister && (
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="rememberMe"
-                    data-testid="remember-me-checkbox"
-                    checked={rememberMe}
-                    onCheckedChange={setRememberMe}
-                  />
-                  <Label 
-                    htmlFor="rememberMe" 
-                    className="text-sm cursor-pointer"
-                    style={{ color: 'var(--text-muted)' }}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="rememberMe"
+                      data-testid="remember-me-checkbox"
+                      checked={rememberMe}
+                      onCheckedChange={setRememberMe}
+                    />
+                    <Label 
+                      htmlFor="rememberMe" 
+                      className="text-sm cursor-pointer"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Remember me for 30 days
+                    </Label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    data-testid="forgot-password-link"
+                    className="text-sm hover:underline"
+                    style={{ color: 'var(--accent)' }}
                   >
-                    Remember me for 30 days
-                  </Label>
+                    Forgot password?
+                  </button>
                 </div>
               )}
             </CardContent>

@@ -153,19 +153,26 @@ export function AuthProvider({ children }) {
         }),
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem('auth_token', data.access_token);
-        setToken(data.access_token);
-        await fetchUserProfile(data.access_token);
-        return { success: true };
-      } else {
-        setError(data.detail || 'Registration failed');
-        return { success: false, error: data.detail || 'Registration failed' };
+      if (!response.ok) {
+        let errorMsg = 'Registration failed';
+        try {
+          const data = await response.json();
+          errorMsg = data.detail || errorMsg;
+        } catch {
+          errorMsg = `Server error (${response.status}). Please try again.`;
+        }
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
       }
+
+      const data = await response.json();
+      localStorage.setItem('auth_token', data.access_token);
+      setToken(data.access_token);
+      await fetchUserProfile(data.access_token);
+      return { success: true };
     } catch (err) {
-      const errorMsg = 'Network error. Please try again.';
+      console.error('Registration error:', err);
+      const errorMsg = 'Network error. Please check your connection and try again.';
       setError(errorMsg);
       return { success: false, error: errorMsg };
     }
@@ -183,19 +190,32 @@ export function AuthProvider({ children }) {
         body: JSON.stringify({ email, password, remember_me: rememberMe }),
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem('auth_token', data.access_token);
-        setToken(data.access_token);
-        await fetchUserProfile(data.access_token);
-        return { success: true };
-      } else {
-        setError(data.detail || 'Login failed');
-        return { success: false, error: data.detail || 'Login failed' };
+      if (!response.ok) {
+        let errorMsg = 'Login failed';
+        try {
+          const data = await response.json();
+          errorMsg = data.detail || errorMsg;
+        } catch {
+          if (response.status === 401) {
+            errorMsg = 'Invalid email or password';
+          } else if (response.status === 400) {
+            errorMsg = 'Account is disabled';
+          } else {
+            errorMsg = `Server error (${response.status}). Please try again.`;
+          }
+        }
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
       }
+
+      const data = await response.json();
+      localStorage.setItem('auth_token', data.access_token);
+      setToken(data.access_token);
+      await fetchUserProfile(data.access_token);
+      return { success: true };
     } catch (err) {
-      const errorMsg = 'Network error. Please try again.';
+      console.error('Login error:', err);
+      const errorMsg = 'Network error. Please check your connection and try again.';
       setError(errorMsg);
       return { success: false, error: errorMsg };
     }
