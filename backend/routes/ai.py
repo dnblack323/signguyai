@@ -1620,10 +1620,29 @@ async def transcribe_voice_input(
 
     try:
         from emergentintegrations.llm.openai.speech_to_text import OpenAISpeechToText
+        import tempfile, os
 
-        stt = OpenAISpeechToText(api_key=OPENAI_API_KEY)
-        transcription = await stt.transcribe(audio.file, model="whisper-1")
-        text = transcription.get("text") if isinstance(transcription, dict) else str(transcription)
+        # Save uploaded file to a temp file with proper extension
+        ext = (audio.filename or "audio.webm").rsplit(".", 1)[-1] or "webm"
+        with tempfile.NamedTemporaryFile(suffix=f".{ext}", delete=False) as tmp:
+            content = await audio.read()
+            tmp.write(content)
+            tmp_path = tmp.name
+
+        try:
+            stt = OpenAISpeechToText(api_key=OPENAI_API_KEY)
+            # Open as file object with proper name for the library
+            with open(tmp_path, "rb") as audio_file:
+                transcription = await stt.transcribe(audio_file, model="whisper-1")
+            # Extract text from response - handle dict, object with .text, or string
+            if isinstance(transcription, dict):
+                text = transcription.get("text", "")
+            elif hasattr(transcription, 'text'):
+                text = transcription.text
+            else:
+                text = str(transcription)
+        finally:
+            os.unlink(tmp_path)
 
         await deduct_credits_after_success(
             db,
