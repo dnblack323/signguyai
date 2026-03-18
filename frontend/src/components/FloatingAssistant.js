@@ -7,7 +7,7 @@ import { ScrollArea } from './ui/scroll-area';
 import {
   Bot, Send, X, Minimize2, Maximize2, Loader2, User,
   Sparkles, CheckCircle2, AlertCircle, Briefcase, Calendar,
-  FileText, Clock, Users, DollarSign
+  FileText, Clock, Users, DollarSign, Mic, MicOff, Volume2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -47,9 +47,14 @@ What would you like to do?`,
   const [loading, setLoading] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
   const [sessionId] = useState(() => `floating_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const [isRecording, setIsRecording] = useState(false);
+  const [voiceLoading, setVoiceLoading] = useState(false);
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const streamRef = useRef(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -60,6 +65,93 @@ What would you like to do?`,
       inputRef.current?.focus();
     }
   }, [isOpen, isMinimized]);
+
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks?.().forEach((track) => track.stop());
+    };
+  }, []);
+
+  const stopRecording = async () => {
+    return new Promise((resolve) => {
+      if (!mediaRecorderRef.current) { resolve(null); return; }
+      mediaRecorderRef.current.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        audioChunksRef.current = [];
+        streamRef.current?.getTracks?.().forEach((t) => t.stop());
+        streamRef.current = null;
+        mediaRecorderRef.current = null;
+        setIsRecording(false);
+        resolve(blob);
+      };
+      mediaRecorderRef.current.stop();
+    });
+  };
+
+  const handleVoiceInput = async () => {
+    if (isRecording) {
+      const audioBlob = await stopRecording();
+      if (!audioBlob) return;
+      await runGuardedAction({
+        actionType: 'voice_transcription',
+        featureName: 'Floating Assistant Voice Input',
+        execute: async () => {
+          setVoiceLoading(true);
+          try {
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'assistant-input.webm');
+            const response = await axios.post(`${API_URL}/api/ai/voice/transcribe`, formData, {
+              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
+            });
+            if (response.data.text) {
+              setInput(response.data.text);
+              toast.success('Voice captured');
+            }
+          } finally {
+            setVoiceLoading(false);
+          }
+        }
+      });
+    } else {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        streamRef.current = stream;
+        const recorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = recorder;
+        audioChunksRef.current = [];
+        recorder.ondataavailable = (event) => {
+          if (event.data.size > 0) audioChunksRef.current.push(event.data);
+        };
+        recorder.start();
+        setIsRecording(true);
+        toast.info('Recording... click mic again to stop');
+      } catch {
+        toast.error('Microphone access denied');
+      }
+    }
+  };
+
+  const playVoice = async (text) => {
+    if (!text?.trim()) return;
+    await runGuardedAction({
+      actionType: 'voice_tts',
+      featureName: 'Floating Assistant Voice Output',
+      execute: async () => {
+        setVoiceLoading(true);
+        try {
+          const response = await axios.post(
+            `${API_URL}/api/ai/voice/speak`,
+            { text, voice: 'alloy', speed: 1.0 },
+            { headers: { 'Authorization': `Bearer ${token}` } }
+          );
+          const audio = new Audio(`data:${response.data.mime_type};base64,${response.data.audio_base64}`);
+          await audio.play();
+        } finally {
+          setVoiceLoading(false);
+        }
+      }
+    });
+  };
 
   const handleSend = async (messageText = input) => {
     if (!messageText.trim() || loading) return;
@@ -503,7 +595,7 @@ What would you like to do?`,
 
           {/* Input Area */}
           <div className="p-3 border-t">
-            <div className="flex gap-2">
+            <div className="flex gap-1.5 items-end">
               <Textarea
                 ref={inputRef}
                 value={input}
@@ -515,9 +607,19 @@ What would you like to do?`,
                 disabled={loading}
               />
               <Button
+                onClick={handleVoiceInput}
+                disabled={voiceLoading || loading}
+                variant="outline"
+                size="sm"
+                className={`px-2.5 flex-shrink-0 ${isRecording ? 'border-red-400 text-red-600 bg-red-50' : ''}`}
+                data-testid="floating-assistant-mic-btn"
+              >
+                {voiceLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+              <Button
                 onClick={() => handleSend()}
                 disabled={!input.trim() || loading}
-                className="bg-purple-500 hover:bg-purple-600 px-3"
+                className="bg-purple-500 hover:bg-purple-600 px-2.5 flex-shrink-0"
                 size="sm"
               >
                 {loading ? (
@@ -527,6 +629,22 @@ What would you like to do?`,
                 )}
               </Button>
             </div>
+            {messages.length > 1 && (
+              <div className="flex justify-center mt-1.5">
+                <button
+                  onClick={() => {
+                    const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
+                    if (lastAssistant) playVoice(lastAssistant.content);
+                  }}
+                  disabled={voiceLoading || !messages.some((m) => m.role === 'assistant')}
+                  className="flex items-center gap-1 text-xs text-slate-500 hover:text-purple-600 disabled:opacity-40 transition-colors"
+                  data-testid="floating-assistant-speak-btn"
+                >
+                  {voiceLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Volume2 className="h-3 w-3" />}
+                  Read aloud
+                </button>
+              </div>
+            )}
           </div>
         </>
       )}
