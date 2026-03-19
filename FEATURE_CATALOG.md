@@ -1,5 +1,5 @@
 # SignGuy AI - Complete Feature Catalog
-**Updated: March 16, 2026**
+**Updated: March 18, 2026**
 **Version: Current Build**
 
 ---
@@ -24,6 +24,8 @@
 - Founder account flag (special access to promo codes, tier preview)
 - Auto-create tenant on first user registration
 - Assign owner role to first user of tenant
+- **Password Recovery ("Forgot Password?")** — Owner accounts can reset password directly from login page via verified tenant ownership
+- Improved error handling — login/register now show clear error messages instead of generic "Network error" on proxy/CORS issues
 
 **Data:** `users`, `tenants`
 
@@ -350,8 +352,11 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
   - Top customers by spend
   - Employee count & webstore stats
 - Conversation chat interface
+- **Voice Input (Speech-to-Text)** — Microphone button to dictate queries using OpenAI Whisper
+- **Voice Output (Text-to-Speech)** — "Read Aloud" button to hear AI responses spoken using OpenAI TTS
+- Session-based conversation history
 
-**Integrations:** OpenAI GPT-5.2, Emergent LLM Key
+**Integrations:** OpenAI GPT-5.2, Emergent LLM Key, OpenAI Whisper (STT), OpenAI TTS
 
 **Status:** WORKING
 
@@ -365,6 +370,28 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 - AI-powered pricing suggestions
 - Analyzes current pricing and provides actionable recommendations
 - Suggests quantity tiers, upsells, margin improvements
+
+**Status:** WORKING
+
+---
+
+## 13b. FLOATING AI ASSISTANT
+
+**Where it lives:** Bottom-right corner of all authenticated pages (persistent widget)
+
+**Sub-features:**
+- Collapsible chat bubble with minimize/expand/close controls
+- Full conversational AI assistant (same GPT-5.2 backend as main assistant)
+- Quick action buttons: Create a new job, Schedule appointment, Create invoice, Look up customer info
+- Smart context — aware of current page/section the user is on
+- Action execution — can create jobs, look up customers, and more directly from chat
+- Confirmation dialogs for destructive/create actions
+- **Voice Input (Speech-to-Text)** — Microphone button to dictate queries using OpenAI Whisper
+- **Voice Output (Text-to-Speech)** — "Read aloud" link to hear the last AI response spoken via OpenAI TTS
+- Session-based conversations with unique session IDs
+- Accessible from any page without leaving current workflow
+
+**Integrations:** OpenAI GPT-5.2, Emergent LLM Key, OpenAI Whisper (STT), OpenAI TTS
 
 **Status:** WORKING
 
@@ -1059,6 +1086,11 @@ Landing, Features, Pricing, About, Contact, Docs, Storefronts, Questionnaires, P
 - GPT Image 1 for image generation
 - Via `emergentintegrations` library
 
+## OpenAI (via User-Provided API Key)
+- Whisper for speech-to-text (voice input on AI Assistant + Floating Assistant)
+- TTS for text-to-speech (voice output on AI Assistant + Floating Assistant)
+- Requires `OPENAI_API_KEY` in backend/.env
+
 ## SendGrid
 - Transactional emails (quotes, invoices, proofs, orders, portal notifications)
 - Contact form submissions
@@ -1133,7 +1165,8 @@ SignGuy AI
 |
 +-- Tools
 |   +-- AI Tools Suite (28+ tools, 4 categories + Racing)
-|   +-- AI Business Assistant (context-aware chat)
+|   +-- AI Business Assistant (context-aware chat + voice I/O)
+|   +-- Floating AI Assistant (persistent chat widget + voice I/O)
 |   +-- AI Pricing Advisor
 |   +-- AI Email Composer
 |   +-- Artwork Approvals (watermarking, portal integration)
@@ -1223,10 +1256,10 @@ SignGuy AI
 | Every role and permission? | Yes - 3 roles, 23 permissions |
 | Implemented vs not implemented separated? | Yes - Section E |
 | Sub-features for every module? | Yes |
-| New features since Dec 2025 included? | Yes - Community Hub, Backup, Payroll Enhancement, Document Library, Credit System, Ribbon Nav, Racing Tools, Questionnaires |
+| New features since Dec 2025 included? | Yes - Community Hub, Backup, Payroll Enhancement, Document Library, Credit System, Ribbon Nav, Racing Tools, Questionnaires, Voice I/O, Floating Assistant, Password Recovery, Production Workflow, Employee Portal, Customer Portal, Onboarding System |
 | All AI tools listed? | Yes - 28+ tools across 5 categories |
-| All integrations documented? | Yes - Stripe, OpenAI, SendGrid, reportlab, qrcode.react |
+| All integrations documented? | Yes - Stripe, OpenAI (GPT-5.2, GPT Image 1, Whisper STT, TTS), SendGrid, reportlab, qrcode.react |
 
 ---
 
-*Document generated from comprehensive codebase audit. Last updated: March 16, 2026.*
+*Document generated from comprehensive codebase audit. Last updated: March 18, 2026.*
