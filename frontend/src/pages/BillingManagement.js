@@ -1,79 +1,45 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { 
-  Crown, Sparkles, Zap, Check, ArrowRight, Shield, 
-  Building2, Store, Cpu, CreditCard, Calendar, 
-  ChevronRight, AlertCircle, RefreshCw, ExternalLink
+import {
+  Crown, Sparkles, Shield, CreditCard, Check,
+  ExternalLink, RefreshCw, AlertCircle, Loader2,
+  Coins, Package, ArrowRight, Zap
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-// Product line configurations
-const productLineConfig = {
-  os: {
-    name: 'SignGuy AI OS',
-    icon: Building2,
-    gradient: 'from-blue-500 to-indigo-600',
-    color: 'blue',
-  },
-  webstores: {
-    name: 'SignGuy Webstores',
-    icon: Store,
-    gradient: 'from-emerald-500 to-teal-600',
-    color: 'emerald',
-  },
-  ai_studio: {
-    name: 'SignGuy AI Studio',
-    icon: Cpu,
-    gradient: 'from-purple-500 to-pink-600',
-    color: 'purple',
-  },
-};
-
-const planIconMap = {
-  os_starter: Zap,
-  os_pro: Sparkles,
-  os_business: Crown,
-  ws_launch: Zap,
-  ws_growth: Sparkles,
-  ws_scale: Crown,
-  ai_basic: Zap,
-  ai_pro: Sparkles,
-  ai_max: Crown,
-};
-
 export default function BillingManagement() {
   const navigate = useNavigate();
   const { isAuthenticated, token } = useAuth();
-  const [subscription, setSubscription] = useState(null);
+  const [planData, setPlanData] = useState(null);
   const [paymentHistory, setPaymentHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [cancelLoading, setCancelLoading] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login', { state: { from: '/billing' } });
       return;
     }
-    fetchSubscription();
+    fetchPlanData();
     fetchPaymentHistory();
   }, [isAuthenticated]);
 
-  const fetchSubscription = async () => {
+  const fetchPlanData = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/billing/subscription/v2`, {
+      const response = await axios.get(`${API_URL}/api/billing/founders/plan`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setSubscription(response.data);
+      setPlanData(response.data);
     } catch (error) {
-      console.error('Failed to fetch subscription:', error);
-      toast.error('Failed to load subscription data');
+      console.error('Failed to fetch plan:', error);
+      toast.error('Failed to load billing data');
     } finally {
       setLoading(false);
     }
@@ -85,12 +51,42 @@ export default function BillingManagement() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setPaymentHistory(response.data.transactions || []);
+    } catch {}
+  };
+
+  const handleSubscribe = async (interval) => {
+    setCheckoutLoading(interval);
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/billing/founders/checkout`,
+        { billing_interval: interval, origin_url: window.location.origin },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      window.location.href = response.data.checkout_url;
     } catch (error) {
-      console.error('Failed to fetch payment history:', error);
+      toast.error(error.response?.data?.detail || 'Checkout failed');
+    } finally {
+      setCheckoutLoading(null);
     }
   };
 
-  const handleManageSubscription = async () => {
+  const handleBuyCredits = async (packId) => {
+    setCheckoutLoading(packId);
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/billing/founders/purchase-credits`,
+        { pack_id: packId, origin_url: window.location.origin },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      window.location.href = response.data.checkout_url;
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Purchase failed');
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
+
+  const handleManageStripe = async () => {
     try {
       const response = await axios.post(
         `${API_URL}/api/billing/portal`,
@@ -98,117 +94,145 @@ export default function BillingManagement() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       window.location.href = response.data.url;
-    } catch (error) {
-      console.error('Portal error:', error);
-      toast.error('Failed to open billing portal');
+    } catch {
+      toast.error('Failed to open Stripe portal');
     }
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
       </div>
     );
   }
 
-  if (!subscription) {
-    return (
-      <div className="p-6">
-        <Card className="bg-[#111826] text-white border-[#1E293B]">
-          <CardContent className="p-8 text-center">
-            <AlertCircle className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-white mb-2">No Active Subscription</h2>
-            <p className="text-gray-400 mb-6">Choose a plan to get started with SignGuy AI</p>
-            <Link to="/pricing-plans">
-              <Button className="bg-[#2F8BFB] hover:bg-[#1E7AF0]">
-                View Plans <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  if (!planData) return null;
 
-  const productConfig = productLineConfig[subscription.product_line] || productLineConfig.os;
-  const ProductIcon = productConfig.icon;
-  const PlanIcon = planIconMap[subscription.plan_type] || Zap;
+  const { plan, fees, credit_packs, spots, tenant_status, credit_balance } = planData;
+  const isSubscribed = tenant_status?.is_subscribed;
+  const isFounder = tenant_status?.is_founder;
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="p-6 max-w-5xl mx-auto space-y-6" data-testid="billing-page">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-white">Billing & Subscription</h1>
-        <Button 
-          onClick={handleManageSubscription}
-          variant="outline"
-          className="border-[#2F8BFB] text-[#2F8BFB] hover:bg-[#2F8BFB]/10"
-        >
-          <ExternalLink className="w-4 h-4 mr-2" />
-          Manage in Stripe
-        </Button>
+        {isSubscribed && (
+          <Button
+            onClick={handleManageStripe}
+            variant="outline"
+            className="border-[#2F8BFB] text-[#2F8BFB] hover:bg-[#2F8BFB]/10"
+          >
+            <ExternalLink className="w-4 h-4 mr-2" />
+            Manage in Stripe
+          </Button>
+        )}
       </div>
 
-      {/* Current Plan Card */}
+      {/* Founders Edition Plan Card */}
       <Card className="bg-[#111826] text-white border-[#1E293B] overflow-hidden">
-        <div className={`h-2 bg-gradient-to-r ${productConfig.gradient}`}></div>
+        <div className="h-2 bg-gradient-to-r from-amber-500 to-orange-500"></div>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl bg-${productConfig.color}-500/10`}>
-                <ProductIcon className={`w-6 h-6 text-${productConfig.color}-400`} />
+              <div className="p-3 rounded-xl bg-amber-500/10">
+                <Crown className="w-6 h-6 text-amber-400" />
               </div>
               <div>
                 <CardTitle className="text-white flex items-center gap-2">
-                  {subscription.plan_display_name}
-                  {subscription.is_founder && (
+                  {plan.plan_name}
+                  {isFounder && (
                     <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
-                      <Crown className="w-3 h-3 mr-1" /> Founder #{subscription.founder_number || ''}
+                      <Crown className="w-3 h-3 mr-1" /> Founder
                     </Badge>
                   )}
                 </CardTitle>
-                <CardDescription>{subscription.product_line_display}</CardDescription>
+                <p className="text-sm text-gray-400">
+                  {spots.spots_remaining} of {spots.total_spots} founder spots remaining
+                </p>
               </div>
             </div>
-            <Badge 
-              variant="outline" 
-              className={subscription.status === 'active' 
-                ? 'border-emerald-500/50 text-emerald-400' 
+            <Badge
+              variant="outline"
+              className={isSubscribed
+                ? 'border-emerald-500/50 text-emerald-400'
                 : 'border-yellow-500/50 text-yellow-400'
               }
             >
-              {subscription.status === 'active' ? 'Active' : subscription.status}
+              {isSubscribed ? 'Active' : 'Not Subscribed'}
             </Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Pricing Info */}
+          {/* Pricing */}
           <div className="grid md:grid-cols-3 gap-4">
             <div className="bg-[#0B0F17] rounded-lg p-4">
-              <p className="text-sm text-gray-400 mb-1">Current Rate</p>
+              <p className="text-sm text-gray-400 mb-1">Monthly</p>
               <p className="text-2xl font-bold text-white">
-                ${subscription.is_founder 
-                  ? subscription.pricing?.founder_monthly 
-                  : subscription.pricing?.monthly}
-                <span className="text-sm font-normal text-gray-400">/mo</span>
+                ${plan.price_monthly}<span className="text-sm font-normal text-gray-400">/mo</span>
               </p>
-              {subscription.is_founder && (
-                <p className="text-xs text-amber-400 mt-1">Founder rate locked in</p>
-              )}
+              {isFounder && <p className="text-xs text-amber-400 mt-1">Lifetime rate locked</p>}
             </div>
             <div className="bg-[#0B0F17] rounded-lg p-4">
-              <p className="text-sm text-gray-400 mb-1">Billing Cycle</p>
-              <p className="text-lg font-semibold text-white capitalize">
-                {subscription.billing_interval}
+              <p className="text-sm text-gray-400 mb-1">Annual</p>
+              <p className="text-2xl font-bold text-white">
+                ${plan.price_annual}<span className="text-sm font-normal text-gray-400">/yr</span>
               </p>
+              <p className="text-xs text-emerald-400 mt-1">Save ${plan.price_monthly * 12 - plan.price_annual}/yr</p>
             </div>
             <div className="bg-[#0B0F17] rounded-lg p-4">
-              <p className="text-sm text-gray-400 mb-1">Next Billing Date</p>
-              <p className="text-lg font-semibold text-white">
-                {subscription.current_period_end 
-                  ? new Date(subscription.current_period_end).toLocaleDateString()
-                  : 'N/A'}
-              </p>
+              <p className="text-sm text-gray-400 mb-1">Promo Code</p>
+              <p className="text-lg font-bold text-amber-400">FOUNDERS</p>
+              <p className="text-xs text-gray-400 mt-1">50% off at checkout</p>
+            </div>
+          </div>
+
+          {/* Subscribe Buttons */}
+          {!isSubscribed && (
+            <div className="flex gap-3">
+              <Button
+                onClick={() => handleSubscribe('monthly')}
+                disabled={checkoutLoading !== null}
+                className="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-medium"
+                data-testid="subscribe-monthly-btn"
+              >
+                {checkoutLoading === 'monthly' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Crown className="h-4 w-4 mr-2" />}
+                Subscribe Monthly - ${plan.price_monthly}/mo
+              </Button>
+              <Button
+                onClick={() => handleSubscribe('annual')}
+                disabled={checkoutLoading !== null}
+                variant="outline"
+                className="flex-1 border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
+                data-testid="subscribe-annual-btn"
+              >
+                {checkoutLoading === 'annual' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                Subscribe Annual - ${plan.price_annual}/yr
+              </Button>
+            </div>
+          )}
+
+          {/* What's Included */}
+          <div className="bg-[#0B0F17] rounded-lg p-4">
+            <h3 className="font-medium text-white mb-3 flex items-center gap-2">
+              <Check className="w-4 h-4 text-emerald-400" />
+              Everything Included
+            </h3>
+            <div className="grid md:grid-cols-2 gap-2 text-sm text-gray-300">
+              {['Full Shop Management (CRM, Jobs, Invoices, Payroll)',
+                'All AI Tools (28+ tools, Business Assistant, Voice)',
+                'Customer & Employee Portals',
+                'Unlimited Webstores (B2B, Fundraiser, Creator)',
+                'Production Workflow & Timeline',
+                'Document Library & Questionnaires',
+                `${plan.ai_credits_monthly} AI Credits/month`,
+                'Priority Support & Lifetime Pricing Lock',
+              ].map((feature) => (
+                <div key={feature} className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <span>{feature}</span>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -220,44 +244,86 @@ export default function BillingManagement() {
             </h3>
             <div className="grid md:grid-cols-2 gap-4 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-400">Invoice Payments</span>
-                <span className="text-white font-medium">
-                  {subscription.processing_fees?.invoice === 0 
-                    ? 'Not Available' 
-                    : `${subscription.processing_fees?.invoice}%`}
-                </span>
+                <span className="text-gray-400">Platform Processing</span>
+                <span className="text-white font-medium">{fees.platform_processing_percent}% + ${fees.platform_processing_fixed.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Webstore Sales</span>
-                <span className="text-white font-medium">
-                  {subscription.processing_fees?.webstore === 0 
-                    ? 'Not Available' 
-                    : `${subscription.processing_fees?.webstore}%`}
-                </span>
+                <span className="text-gray-400">Webstore Additional Fee</span>
+                <span className="text-white font-medium">{fees.webstore_additional_percent}%</span>
               </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">{fees.note}</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* AI Credits */}
+      <Card className="bg-[#111826] text-white border-[#1E293B]">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Coins className="w-5 h-5 text-amber-400" />
+            AI Credits
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Balance */}
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="bg-[#0B0F17] rounded-lg p-4 text-center">
+              <p className="text-sm text-gray-400">Monthly Credits</p>
+              <p className="text-2xl font-bold text-white">{credit_balance.monthly_credits}</p>
+              <p className="text-xs text-gray-500">of {credit_balance.monthly_allowance} / resets monthly</p>
+            </div>
+            <div className="bg-[#0B0F17] rounded-lg p-4 text-center">
+              <p className="text-sm text-gray-400">Purchased Credits</p>
+              <p className="text-2xl font-bold text-emerald-400">{credit_balance.purchased_credits}</p>
+              <p className="text-xs text-gray-500">never expire while active</p>
+            </div>
+            <div className="bg-[#0B0F17] rounded-lg p-4 text-center">
+              <p className="text-sm text-gray-400">Total Available</p>
+              <p className="text-2xl font-bold text-amber-400">{credit_balance.total_available}</p>
+              <p className="text-xs text-gray-500">ready to use</p>
             </div>
           </div>
 
-          {/* Upgrade Options */}
-          {subscription.upgrade_options && subscription.upgrade_options.length > 0 && (
-            <div>
-              <h3 className="font-medium text-white mb-3">Upgrade Options</h3>
-              <div className="flex flex-wrap gap-3">
-                {subscription.upgrade_options.map(option => (
-                  <Link 
-                    key={option.plan_type}
-                    to={`/pricing-plans`}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#0B0F17] rounded-lg hover:bg-[#1a2235] transition"
+          {/* Credit Packs */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-400 mb-3">Purchase Additional Credits</h3>
+            <div className="grid md:grid-cols-3 gap-3">
+              {credit_packs.map((pack) => (
+                <div
+                  key={pack.pack_id}
+                  className="bg-[#0B0F17] rounded-lg p-4 border border-[#1E293B] hover:border-amber-500/30 transition"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <Package className="w-4 h-4 text-amber-400" />
+                    <span className="font-medium text-white">{pack.label}</span>
+                  </div>
+                  <p className="text-2xl font-bold text-white mb-1">${pack.price}</p>
+                  <p className="text-xs text-gray-400 mb-3">{pack.description}</p>
+                  <Button
+                    onClick={() => handleBuyCredits(pack.pack_id)}
+                    disabled={checkoutLoading !== null}
+                    className="w-full bg-[#2F8BFB] hover:bg-[#1E7AF0] text-white"
+                    size="sm"
+                    data-testid={`buy-credits-${pack.pack_id}`}
                   >
-                    <span className="text-gray-300">{option.display_name}</span>
-                    <span className="text-gray-500">•</span>
-                    <span className="text-[#2F8BFB]">${option.monthly_price}/mo</span>
-                    <ChevronRight className="w-4 h-4 text-gray-500" />
-                  </Link>
-                ))}
-              </div>
+                    {checkoutLoading === pack.pack_id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>Buy Now</>
+                    )}
+                  </Button>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
+
+          {/* Credit Info */}
+          <div className="bg-[#0B0F17] rounded-lg p-4 text-sm text-gray-400 space-y-1">
+            <p><Zap className="w-3 h-3 inline mr-1 text-amber-400" />Monthly credits ({credit_balance.monthly_allowance}/mo) reset each billing cycle and do not roll over.</p>
+            <p><Zap className="w-3 h-3 inline mr-1 text-emerald-400" />Purchased credits never expire as long as your account is active.</p>
+            <p><Zap className="w-3 h-3 inline mr-1 text-blue-400" />Credits are used first from monthly allowance, then from purchased balance.</p>
+          </div>
         </CardContent>
       </Card>
 
@@ -274,8 +340,8 @@ export default function BillingManagement() {
             <p className="text-gray-400 text-center py-4">No payment history yet</p>
           ) : (
             <div className="space-y-3">
-              {paymentHistory.slice(0, 5).map((payment) => (
-                <div 
+              {paymentHistory.slice(0, 10).map((payment) => (
+                <div
                   key={payment.id}
                   className="flex items-center justify-between p-3 bg-[#0B0F17] rounded-lg"
                 >
@@ -291,65 +357,22 @@ export default function BillingManagement() {
                     </div>
                     <div>
                       <p className="text-white font-medium">
-                        {payment.plan || 'Subscription Payment'}
+                        {payment.plan || 'Payment'}
                       </p>
                       <p className="text-sm text-gray-400">
                         {new Date(payment.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-white font-medium">
-                      ${payment.amount?.toFixed(2)} {payment.currency?.toUpperCase()}
-                    </p>
-                    {payment.is_founder && (
-                      <Badge className="bg-amber-500/20 text-amber-400 text-xs">
-                        Founder
-                      </Badge>
-                    )}
-                  </div>
+                  <p className="text-white font-medium">
+                    ${payment.amount?.toFixed(2)}
+                  </p>
                 </div>
               ))}
             </div>
           )}
         </CardContent>
       </Card>
-
-      {/* Quick Links */}
-      <div className="grid md:grid-cols-2 gap-4">
-        <Link to="/pricing-plans">
-          <Card className="bg-[#111826] text-white border-[#1E293B] hover:border-[#2F8BFB]/50 transition cursor-pointer">
-            <CardContent className="p-6 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-[#2F8BFB]/10 rounded-lg">
-                  <ArrowRight className="w-5 h-5 text-[#2F8BFB]" />
-                </div>
-                <div>
-                  <p className="text-white font-medium">Compare Plans</p>
-                  <p className="text-sm text-gray-400">See all available options</p>
-                </div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-gray-500" />
-            </CardContent>
-          </Card>
-        </Link>
-        <Link to="/settings">
-          <Card className="bg-[#111826] text-white border-[#1E293B] hover:border-[#2F8BFB]/50 transition cursor-pointer">
-            <CardContent className="p-6 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-[#2F8BFB]/10 rounded-lg">
-                  <Calendar className="w-5 h-5 text-[#2F8BFB]" />
-                </div>
-                <div>
-                  <p className="text-white font-medium">Account Settings</p>
-                  <p className="text-sm text-gray-400">Manage your account</p>
-                </div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-gray-500" />
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
     </div>
   );
 }

@@ -257,7 +257,7 @@ export default function LandingPage() {
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>
-            <Link to="/pricing">
+            <Link to="/pricing-plans">
               <Button size="lg" variant="outline" className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-8 py-6 text-lg h-auto bg-transparent">
                 View Pricing
               </Button>

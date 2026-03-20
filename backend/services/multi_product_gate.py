@@ -91,6 +91,15 @@ class MultiProductFeatureGate:
         Check if a tenant can access a feature.
         Returns detailed result including usage info for LIMITED features.
         """
+        # Founders Edition: all features allowed
+        tenant = await self.db.tenants.find_one({"id": tenant_id}, {"_id": 0, "plan": 1, "is_founder": 1})
+        if tenant and (tenant.get("plan") == "founders_edition" or tenant.get("is_founder")):
+            return FeatureCheckResult(
+                allowed=True,
+                feature=f"{category}.{feature}",
+                status=FeatureStatus.ON
+            )
+        
         feature_value = await self.get_feature_value(tenant_id, category, feature)
         
         # OFF = Not allowed

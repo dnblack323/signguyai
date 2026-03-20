@@ -35,9 +35,10 @@ stripe.api_key = os.environ.get('STRIPE_SECRET_KEY') or os.environ.get('STRIPE_A
 
 # Platform fee percentages by tier
 PLATFORM_FEES = {
-    "starter": 0.03,    # 3% for Tier 1
-    "pro": 0.02,        # 2% for Tier 2
-    "business": 0.01,   # 1% for Tier 3
+    "starter": 0.022,    # All Founders: 2.2% platform processing
+    "pro": 0.022,        # All Founders: 2.2% platform processing
+    "business": 0.022,   # All Founders: 2.2% platform processing
+    "founders_edition": 0.022,  # 2.2% platform processing
 }
 
 
@@ -102,7 +103,7 @@ class WebstoreCheckoutRequest(BaseModel):
 
 def get_platform_fee_percent(tier: str) -> float:
     """Get platform fee percentage for a tier"""
-    return PLATFORM_FEES.get(tier, 0.03)  # Default to 3%
+    return PLATFORM_FEES.get(tier, 0.022)  # Default to 2.2% (Founders)
 
 
 async def get_tenant_tier(tenant_id: str) -> str:

@@ -1394,3 +1394,216 @@ async def _activate_subscription_v2(
 async def _activate_subscription(db, session_id: str, metadata: dict):
     """Legacy activation function - redirects to v2"""
     await _activate_subscription_v2(db, session_id, metadata)
+
+
+
+# ============================================================================
+# FOUNDERS EDITION ENDPOINTS (Active Plan - All other tiers archived)
+# ============================================================================
+
+@router.get("/founders/plan")
+async def get_founders_plan_info(
+    db=Depends(get_db),
+    current_user: UserInDB = Depends(get_current_user_billing)
+):
+    """Get the Founders Edition plan details and current tenant status."""
+    from config.founders_plan import get_founders_plan, get_processing_fees, get_founders_spot_count, get_credit_packs
+    
+    plan = get_founders_plan()
+    fees = get_processing_fees()
+    packs = get_credit_packs()
+    
+    # Count founders
+    founder_count = await db.tenants.count_documents({"is_founder": True})
+    spots = get_founders_spot_count(founder_count)
+    
+    # Get tenant info
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0})
+    is_subscribed = tenant.get("plan") == "founders_edition" if tenant else False
+    is_founder = tenant.get("is_founder", False) if tenant else False
+    
+    # Get credit balance
+    credits_doc = await db.ai_credits.find_one(
+        {"tenant_id": current_user.tenant_id}, {"_id": 0}
+    )
+    credit_balance = {
+        "monthly_credits": credits_doc.get("monthly_credits", 0) if credits_doc else 0,
+        "purchased_credits": credits_doc.get("purchased_credits", 0) if credits_doc else 0,
+        "total_available": (credits_doc.get("monthly_credits", 0) + credits_doc.get("purchased_credits", 0)) if credits_doc else 0,
+        "monthly_allowance": plan["ai_credits_monthly"],
+        "monthly_rollover": plan["monthly_credit_rollover"],
+        "purchased_rollover": plan["purchased_credit_rollover"],
+    }
+    
+    return {
+        "plan": plan,
+        "fees": fees,
+        "credit_packs": packs,
+        "spots": spots,
+        "tenant_status": {
+            "is_subscribed": is_subscribed,
+            "is_founder": is_founder,
+            "tenant_name": tenant.get("name", "") if tenant else "",
+        },
+        "credit_balance": credit_balance,
+    }
+
+
+@router.post("/founders/checkout")
+async def create_founders_checkout(
+    request: Request,
+    db=Depends(get_db),
+    current_user: UserInDB = Depends(get_current_user_billing)
+):
+    """Create Stripe checkout for Founders Edition subscription."""
+    import stripe
+    from config.founders_plan import (
+        STRIPE_PRICE_FOUNDERS_MONTHLY, STRIPE_PRICE_FOUNDERS_ANNUAL,
+        STRIPE_COUPON_FOUNDERS, FOUNDERS_PROMO_CODE
+    )
+    
+    api_key = os.environ.get("STRIPE_SECRET_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Stripe not configured")
+    stripe.api_key = api_key
+    
+    body = await request.json()
+    interval = body.get("billing_interval", "monthly")
+    origin_url = body.get("origin_url", "")
+    use_promo = body.get("use_promo", False)
+    
+    price_id = STRIPE_PRICE_FOUNDERS_ANNUAL if interval == "annual" else STRIPE_PRICE_FOUNDERS_MONTHLY
+    if not price_id:
+        raise HTTPException(status_code=500, detail=f"Stripe price ID not configured for {interval}")
+    
+    # Check spots
+    founder_count = await db.tenants.count_documents({"is_founder": True})
+    from config.founders_plan import get_founders_spot_count
+    spots = get_founders_spot_count(founder_count)
+    
+    # Allow existing founders to re-subscribe even if spots are full
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0})
+    is_existing_founder = tenant.get("is_founder", False) if tenant else False
+    if not spots["is_available"] and not is_existing_founder:
+        raise HTTPException(status_code=400, detail="All Founder spots are taken")
+    
+    origin = origin_url.rstrip("/") if origin_url else ""
+    success_url = f"{origin}/billing?checkout=success&session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{origin}/billing?checkout=cancel"
+    
+    # Allow promo codes to be entered at checkout (e.g., FOUNDERS for 50% off)
+    checkout_params = {
+        "mode": "subscription",
+        "payment_method_types": ["card"],
+        "line_items": [{"price": price_id, "quantity": 1}],
+        "success_url": success_url,
+        "cancel_url": cancel_url,
+        "customer_email": current_user.email,
+        "allow_promotion_codes": True,
+        "metadata": {
+            "tenant_id": current_user.tenant_id,
+            "user_id": current_user.id,
+            "plan": "founders_edition",
+            "billing_interval": interval,
+            "is_founder": "true",
+        },
+    }
+    
+    try:
+        session = stripe.checkout.Session.create(**checkout_params)
+        return {"checkout_url": session.url, "session_id": session.id}
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/founders/purchase-credits")
+async def purchase_credits_founders(
+    request: Request,
+    db=Depends(get_db),
+    current_user: UserInDB = Depends(get_current_user_billing)
+):
+    """Create Stripe checkout for credit pack purchase."""
+    import stripe
+    from config.founders_plan import CREDIT_PACK_STRIPE_MAP, CREDIT_PACKS
+    
+    api_key = os.environ.get("STRIPE_SECRET_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Stripe not configured")
+    stripe.api_key = api_key
+    
+    body = await request.json()
+    pack_id = body.get("pack_id", "")
+    origin_url = body.get("origin_url", "")
+    
+    if pack_id not in CREDIT_PACKS:
+        raise HTTPException(status_code=400, detail=f"Invalid pack. Choose from: {list(CREDIT_PACKS.keys())}")
+    
+    price_id = CREDIT_PACK_STRIPE_MAP.get(pack_id, "")
+    if not price_id:
+        raise HTTPException(status_code=500, detail=f"Stripe price ID not configured for {pack_id}")
+    
+    pack = CREDIT_PACKS[pack_id]
+    origin = origin_url.rstrip("/") if origin_url else ""
+    success_url = f"{origin}/billing?credits=success&session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{origin}/billing?credits=cancel"
+    
+    try:
+        session = stripe.checkout.Session.create(
+            mode="payment",
+            payment_method_types=["card"],
+            line_items=[{"price": price_id, "quantity": 1}],
+            success_url=success_url,
+            cancel_url=cancel_url,
+            customer_email=current_user.email,
+            metadata={
+                "tenant_id": current_user.tenant_id,
+                "user_id": current_user.id,
+                "type": "credit_pack",
+                "pack_id": pack_id,
+                "credits": str(pack["credits"]),
+            },
+        )
+        return {"checkout_url": session.url, "session_id": session.id, "pack": pack}
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/founders/credits")
+async def get_founders_credit_balance(
+    db=Depends(get_db),
+    current_user: UserInDB = Depends(get_current_user_billing)
+):
+    """Get current credit balance with rollover info."""
+    from config.founders_plan import FOUNDERS_PLAN
+    
+    credits_doc = await db.ai_credits.find_one(
+        {"tenant_id": current_user.tenant_id}, {"_id": 0}
+    )
+    
+    monthly = credits_doc.get("monthly_credits", 0) if credits_doc else 0
+    purchased = credits_doc.get("purchased_credits", 0) if credits_doc else 0
+    
+    return {
+        "monthly_credits": monthly,
+        "purchased_credits": purchased,
+        "total_available": monthly + purchased,
+        "monthly_allowance": FOUNDERS_PLAN["ai_credits_monthly"],
+        "monthly_rollover": False,
+        "purchased_rollover": True,
+        "note": "Monthly credits reset each billing cycle. Purchased credits never expire while your account is active.",
+    }
+
+
+@router.get("/founders/fees")
+async def get_founders_fees():
+    """Get Founders Edition processing fees."""
+    from config.founders_plan import get_processing_fees
+    return get_processing_fees()
+
+
+@router.get("/founders/spots")
+async def get_founders_spots(db=Depends(get_db)):
+    """Get remaining Founders Edition spots (public endpoint)."""
+    from config.founders_plan import get_founders_spot_count
+    founder_count = await db.tenants.count_documents({"is_founder": True})
+    return get_founders_spot_count(founder_count)

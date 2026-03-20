@@ -260,19 +260,17 @@ async def get_my_ui_visibility(current_user: UserInDB = Depends(get_current_acti
     return await gate.get_ui_visibility(current_user.tenant_id)
 
 
-@router.get("/my-processing-fees", response_model=ProcessingFeeInfo)
+@router.get("/my-processing-fees")
 async def get_my_processing_fees(current_user: UserInDB = Depends(get_current_active_user)):
-    """Get processing fee information for the current user"""
-    gate = get_multi_product_feature_gate(db)
-    fees = await gate.get_processing_fees(current_user.tenant_id)
-    
-    return ProcessingFeeInfo(
-        invoice_fee_percent=fees.invoice_fee_percent,
-        webstore_fee_percent=fees.webstore_fee_percent,
-        stripe_connect_enabled=fees.stripe_connect_enabled,
-        online_payments_enabled=fees.online_payments_enabled,
-        fee_explanation="Platform fees help cover secure payment processing, compliance, and infrastructure costs."
-    )
+    """Get processing fee information - Founders Edition fees."""
+    return {
+        "invoice_fee_percent": 2.2,
+        "webstore_fee_percent": 2.0,
+        "platform_processing_fixed": 0.20,
+        "stripe_connect_enabled": True,
+        "online_payments_enabled": True,
+        "fee_explanation": "Platform processing fee of 2.2% + $0.20 per transaction. Webstore sales have an additional 2% platform fee. Stripe's standard fees (2.9% + $0.30) apply on top."
+    }
 
 
 @router.post("/check-feature")

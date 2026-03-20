@@ -209,25 +209,22 @@ function App() {
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/contact" element={<ContactPage />} />
                 
-                {/* Marketing - Product Overview Pages */}
-                <Route path="/platform" element={<PlatformPage />} />
-                <Route path="/webstores-overview" element={<WebstoresMarketingPage />} />
-                <Route path="/ai-studio" element={<AIStudioPage />} />
+                {/* Marketing - Archived Tier Pages (redirect to Founders pricing) */}
+                <Route path="/platform" element={<Navigate to="/pricing-plans" replace />} />
+                <Route path="/webstores-overview" element={<Navigate to="/pricing-plans" replace />} />
+                <Route path="/ai-studio" element={<Navigate to="/pricing-plans" replace />} />
                 
-                {/* Marketing - OS Plan Detail Pages */}
-                <Route path="/starter" element={<StarterPlanPage />} />
-                <Route path="/pro" element={<ProPlanPage />} />
-                <Route path="/business" element={<BusinessPlanPage />} />
+                <Route path="/starter" element={<Navigate to="/pricing-plans" replace />} />
+                <Route path="/pro" element={<Navigate to="/pricing-plans" replace />} />
+                <Route path="/business" element={<Navigate to="/pricing-plans" replace />} />
                 
-                {/* Marketing - Webstore Plan Detail Pages */}
-                <Route path="/webstore-launch" element={<WebstoreLaunchPage />} />
-                <Route path="/webstore-growth" element={<WebstoreGrowthPage />} />
-                <Route path="/webstore-scale" element={<WebstoreScalePage />} />
+                <Route path="/webstore-launch" element={<Navigate to="/pricing-plans" replace />} />
+                <Route path="/webstore-growth" element={<Navigate to="/pricing-plans" replace />} />
+                <Route path="/webstore-scale" element={<Navigate to="/pricing-plans" replace />} />
                 
-                {/* Marketing - AI Studio Plan Detail Pages */}
-                <Route path="/ai-basic" element={<AIBasicPage />} />
-                <Route path="/ai-pro" element={<AIProPage />} />
-                <Route path="/ai-max" element={<AIMaxPage />} />
+                <Route path="/ai-basic" element={<Navigate to="/pricing-plans" replace />} />
+                <Route path="/ai-pro" element={<Navigate to="/pricing-plans" replace />} />
+                <Route path="/ai-max" element={<Navigate to="/pricing-plans" replace />} />
                 
                 {/* Auth Routes - Public */}
                 <Route path="/login" element={<Login />} />
@@ -259,7 +256,7 @@ function App() {
                 
                 {/* Public Pricing Page - New Multi-Product Version */}
                 <Route path="/pricing-plans" element={<PricingPlansV2 />} />
-                <Route path="/pricing-plans-old" element={<PricingPage />} />
+                <Route path="/pricing-plans-old" element={<Navigate to="/pricing-plans" replace />} />
                 
                 {/* Billing Routes */}
                 <Route path="/billing/success" element={<BillingSuccess />} />
