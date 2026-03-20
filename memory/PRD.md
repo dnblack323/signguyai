@@ -1,7 +1,7 @@
 # SignGuy AI - Product Requirements Document
 
-> **Last Updated:** March 18, 2026
-> **Version:** 4.1
+> **Last Updated:** March 20, 2026
+> **Version:** 4.2
 
 ---
 
@@ -18,6 +18,17 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ---
 
 ## What's Been Implemented
+
+### Session: March 20, 2026
+- **Stage 1 Critical Fixes (ALL DONE):**
+  - AI Rate Limiter Fix: All 9 AI endpoints in `ai.py` now use `request: Request, data: PydanticModel` pattern
+  - Promo Code Backend: Added `POST /api/billing/apply-promo` endpoint with full validation
+  - Promo Code `free_days` type: Backend and frontend support added
+  - TrialLockout promo input: Users on lockout screen can now enter promo codes
+  - AI Credit Audit: Verified all 28+ tools have credit costs assigned (1-3 credits)
+  - AI Credit Confirmation Popup: Verified preflight, "don't show again", low balance warnings
+  - Invoice Line Items: Verified fallback chain (job_items → line_items → subtotal → quote.total)
+- **Testing:** 14/14 backend tests passed, 100% frontend verification (iteration_70)
 
 ### Session: March 18, 2026
 - **Founders Edition Only Billing:** Simplified entire billing system from multi-tier (9 plans, 3 product lines) to Founders-only ($99/mo, $594/yr). All other tiers archived.
@@ -69,16 +80,16 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ## Prioritized Backlog
 
 ### P0 - Critical
-- Production login CORS (Platform issue - BLOCKED on Emergent Support)
+- ~~AI Tools rate limiter parameter fix~~ DONE
+- ~~Promo code apply-promo endpoint~~ DONE
+- ~~free_days promo type~~ DONE
 
 ### P1 - High Priority (from user notes)
-- Reinstate: AI Tools rate limiter parameter fix (request vs data)
-- Reinstate: Trial Lockout promo code input
-- Reinstate: Backend /apply-promo endpoint
-- Reinstate: free_days promo type
 - Reinstate: Terms of Service page
 - Reinstate: Privacy Policy page
 - Reinstate: Landing page Founders-focused rewrite
+- Color scheme update (gold → purple/blue)
+- Update documentation to Founders-only model
 - "New Job" button in customer info popup
 - UI Overhaul ("Dark Shell / Light Workspace")
 
