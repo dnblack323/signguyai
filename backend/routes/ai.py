@@ -7,7 +7,7 @@ This module contains routes for AI-powered tools:
 - AI history
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Header, UploadFile, File
+from fastapi import APIRouter, HTTPException, Depends, Header, Request, UploadFile, File
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field
@@ -980,7 +980,8 @@ async def generate_images(tool: str, input_data: Dict[str, Any], count: int = 3)
 
 @router.post("/generate")
 async def generate_ai_content(
-    request: AIGenerateRequest,
+    request: Request,
+    data: AIGenerateRequest,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Generate AI text content"""
@@ -989,27 +990,27 @@ async def generate_ai_content(
     gate = get_multi_product_feature_gate(db)
     await gate.require_feature(current_user.tenant_id, "ai_tools", "text_generation")
 
-    preview = await preview_credit_usage(db, current_user.tenant_id, request.tool)
+    preview = await preview_credit_usage(db, current_user.tenant_id, data.tool)
     if not preview["sufficient_credits"]:
         raise HTTPException(status_code=402, detail=f"Insufficient credits. Need {preview['credit_cost']}, have {preview['total_credits']}.")
     
     try:
-        result = await generate_text_content(request.tool, request.input_data)
+        result = await generate_text_content(data.tool, data.input_data)
         credit_result = await deduct_credits_after_success(
             db,
             tenant_id=current_user.tenant_id,
             user_id=current_user.id,
-            action_type=request.tool,
+            action_type=data.tool,
             module="AI Tools",
-            feature_name=request.tool,
-            metadata={"tool": request.tool, **(request.input_data or {})},
+            feature_name=data.tool,
+            metadata={"tool": data.tool, **(data.input_data or {})},
         )
         
         # Save to history
         history_entry = {
             "id": str(uuid.uuid4()),
-            "tool": request.tool,
-            "input_data": request.input_data,
+            "tool": data.tool,
+            "input_data": data.input_data,
             "output": result,
             "images": None,
             "tenant_id": current_user.tenant_id,
@@ -1027,10 +1028,10 @@ async def generate_ai_content(
             db,
             tenant_id=current_user.tenant_id,
             user_id=current_user.id,
-            action_type=request.tool,
+            action_type=data.tool,
             module="AI Tools",
-            feature_name=request.tool,
-            metadata={"tool": request.tool},
+            feature_name=data.tool,
+            metadata={"tool": data.tool},
         )
         print(f"AI generation error: {e}")
         raise HTTPException(status_code=500, detail=f"AI generation failed: {str(e)}")
@@ -1038,7 +1039,8 @@ async def generate_ai_content(
 
 @router.post("/generate-images")
 async def generate_ai_images(
-    request: AIGenerateImageRequest,
+    request: Request,
+    data: AIGenerateImageRequest,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Generate AI images"""
@@ -1047,12 +1049,12 @@ async def generate_ai_images(
     gate = get_multi_product_feature_gate(db)
     await gate.require_feature(current_user.tenant_id, "ai_tools", "image_generation")
 
-    preview = await preview_credit_usage(db, current_user.tenant_id, request.tool)
+    preview = await preview_credit_usage(db, current_user.tenant_id, data.tool)
     if not preview["sufficient_credits"]:
         raise HTTPException(status_code=402, detail=f"Insufficient credits. Need {preview['credit_cost']}, have {preview['total_credits']}.")
     
     try:
-        images = await generate_images(request.tool, request.input_data, request.image_count)
+        images = await generate_images(data.tool, data.input_data, data.image_count)
         
         if not images:
             raise HTTPException(status_code=500, detail="No images were generated")
@@ -1061,17 +1063,17 @@ async def generate_ai_images(
             db,
             tenant_id=current_user.tenant_id,
             user_id=current_user.id,
-            action_type=request.tool,
+            action_type=data.tool,
             module="AI Tools",
-            feature_name=request.tool,
-            metadata={"tool": request.tool, "image_count": request.image_count, **(request.input_data or {})},
+            feature_name=data.tool,
+            metadata={"tool": data.tool, "image_count": data.image_count, **(data.input_data or {})},
         )
         
         # Save to history
         history_entry = {
             "id": str(uuid.uuid4()),
-            "tool": request.tool,
-            "input_data": request.input_data,
+            "tool": data.tool,
+            "input_data": data.input_data,
             "output": None,
             "images": images,
             "tenant_id": current_user.tenant_id,
@@ -1089,10 +1091,10 @@ async def generate_ai_images(
             db,
             tenant_id=current_user.tenant_id,
             user_id=current_user.id,
-            action_type=request.tool,
+            action_type=data.tool,
             module="AI Tools",
-            feature_name=request.tool,
-            metadata={"tool": request.tool, "image_count": request.image_count},
+            feature_name=data.tool,
+            metadata={"tool": data.tool, "image_count": data.image_count},
         )
         print(f"AI image generation error: {e}")
         raise HTTPException(status_code=500, detail=f"Image generation failed: {str(e)}")
@@ -1139,7 +1141,8 @@ class ProductDescriptionResponse(BaseModel):
 
 @router.post("/generate-product-description")
 async def generate_product_description(
-    request: ProductDescriptionRequest,
+    request: Request,
+    data: ProductDescriptionRequest,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """
@@ -1157,17 +1160,17 @@ async def generate_product_description(
     
     # Validate tone
     valid_tones = ["professional", "friendly", "enthusiastic", "premium", "technical", "casual"]
-    tone = request.tone.lower() if request.tone.lower() in valid_tones else "professional"
+    tone = data.tone.lower() if data.tone.lower() in valid_tones else "professional"
     
     try:
         # Prepare input data for the template
         input_data = {
-            "product_name": request.product_name,
-            "product_category": request.product_category,
-            "product_features": request.product_features or "Standard quality product",
-            "target_audience": request.target_audience or "general consumers",
+            "product_name": data.product_name,
+            "product_category": data.product_category,
+            "product_features": data.product_features or "Standard quality product",
+            "target_audience": data.target_audience or "general consumers",
             "tone": tone,
-            "price": request.price if request.price > 0 else "competitive",
+            "price": data.price if data.price > 0 else "competitive",
         }
         
         preview = await preview_credit_usage(db, current_user.tenant_id, "product_description")
@@ -1220,7 +1223,7 @@ async def generate_product_description(
             action_type="product_description",
             module="Products",
             feature_name="product_description",
-            metadata={"product_name": request.product_name},
+            metadata={"product_name": data.product_name},
         )
         print(f"Product description generation error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to generate product description: {str(e)}")
@@ -1421,7 +1424,8 @@ async def get_shop_context(tenant_id: str) -> dict:
 
 @router.post("/assistant")
 async def ai_business_assistant(
-    request: AIAssistantRequest,
+    request: Request,
+    data: AIAssistantRequest,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """AI Business Assistant - Chat interface for sign shop operations with real shop data"""
@@ -1499,8 +1503,8 @@ To get personalized insights based on your actual business data, please upgrade 
         # Build conversation context from history
         # Build conversation context from history
         context_messages = ""
-        if request.conversation_history:
-            for msg in request.conversation_history[-6:]:  # Last 6 messages for context
+        if data.conversation_history:
+            for msg in data.conversation_history[-6:]:  # Last 6 messages for context
                 role = "User" if msg.get("role") == "user" else "Assistant"
                 context_messages += f"{role}: {msg.get('content', '')}\n\n"
         
@@ -1559,15 +1563,15 @@ Note: For personalized insights based on their actual business data, users can u
         # Initialize chat with the session
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
-            session_id=request.session_id,
+            session_id=data.session_id,
             system_message=system_message
         ).with_model("openai", "gpt-5.2")
         
         # Build the prompt with context
         if context_messages:
-            full_prompt = f"Previous conversation:\n{context_messages}\nUser's new message: {request.message}"
+            full_prompt = f"Previous conversation:\n{context_messages}\nUser's new message: {data.message}"
         else:
-            full_prompt = request.message
+            full_prompt = data.message
         
         # Send message and get response
         response = await chat.send_message(UserMessage(text=full_prompt))
@@ -1578,7 +1582,7 @@ Note: For personalized insights based on their actual business data, users can u
             action_type="ai_business_assistant",
             module="AI Assistant",
             feature_name="ai_business_assistant",
-            metadata={"session_id": request.session_id, "message": request.message[:200]},
+            metadata={"session_id": data.session_id, "message": data.message[:200]},
         )
         
         # Log assistant conversation metadata separately from the credit ledger
@@ -1599,7 +1603,7 @@ Note: For personalized insights based on their actual business data, users can u
             action_type="ai_business_assistant",
             module="AI Assistant",
             feature_name="ai_business_assistant",
-            metadata={"session_id": request.session_id},
+            metadata={"session_id": data.session_id},
         )
         print(f"AI Assistant error: {e}")
         raise HTTPException(status_code=500, detail=f"Assistant error: {str(e)}")
@@ -1671,13 +1675,14 @@ async def transcribe_voice_input(
 
 @router.post("/voice/speak")
 async def generate_voice_output(
-    request: VoiceSpeakRequest,
+    request: Request,
+    data: VoiceSpeakRequest,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Generate assistant voice output using OpenAI TTS."""
     if not OPENAI_API_KEY:
         raise HTTPException(status_code=500, detail="Voice output is not configured")
-    if not request.text.strip():
+    if not data.text.strip():
         raise HTTPException(status_code=400, detail="Text is required")
 
     preview = await preview_credit_usage(db, current_user.tenant_id, "voice_tts", 1)
@@ -1689,10 +1694,10 @@ async def generate_voice_output(
 
         tts = OpenAITextToSpeech(api_key=OPENAI_API_KEY)
         audio_base64 = await tts.generate_speech_base64(
-            text=request.text[:4000],
+            text=data.text[:4000],
             model="tts-1",
-            voice=request.voice,
-            speed=request.speed,
+            voice=data.voice,
+            speed=data.speed,
             response_format="mp3"
         )
 
@@ -1703,7 +1708,7 @@ async def generate_voice_output(
             action_type="voice_tts",
             module="AI Assistant Voice",
             feature_name="voice_tts",
-            metadata={"voice": request.voice, "speed": request.speed, "text_length": len(request.text)},
+            metadata={"voice": data.voice, "speed": data.speed, "text_length": len(data.text)},
             credits_required=1,
         )
 
@@ -1716,7 +1721,7 @@ async def generate_voice_output(
             action_type="voice_tts",
             module="AI Assistant Voice",
             feature_name="voice_tts",
-            metadata={"voice": request.voice},
+            metadata={"voice": data.voice},
         )
         raise HTTPException(status_code=500, detail=f"Voice output failed: {str(e)}")
 
@@ -1744,7 +1749,8 @@ EMAIL_TYPE_PROMPTS = {
 
 @router.post("/generate-email")
 async def generate_email(
-    request: EmailGenerateRequest,
+    request: Request,
+    data: EmailGenerateRequest,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Generate professional email content using AI"""
@@ -1753,7 +1759,7 @@ async def generate_email(
     if not EMERGENT_LLM_KEY:
         raise HTTPException(status_code=500, detail="AI service not configured")
     
-    email_type = request.email_type
+    email_type = data.email_type
     if email_type not in EMAIL_TYPE_PROMPTS:
         raise HTTPException(status_code=400, detail=f"Unknown email type: {email_type}")
     
@@ -1763,7 +1769,7 @@ async def generate_email(
 
     try:
         # Build context string from provided context
-        context = request.context
+        context = data.context
         context_parts = []
         
         if context.get("customer_name"):
@@ -1804,7 +1810,7 @@ SUBJECT: [Your subject line here]
         
         prompt = f"""{EMAIL_TYPE_PROMPTS[email_type]}
 
-Tone: {request.tone}
+Tone: {data.tone}
 
 Context:
 {context_str}
@@ -1861,7 +1867,7 @@ Write a complete email with subject line and body. Sign off as "SignGuy AI Team"
             action_type=email_type,
             module="AI Email Composer",
             feature_name=email_type,
-            metadata=request.context,
+            metadata=data.context,
         )
         print(f"Email generation error: {e}")
         raise HTTPException(status_code=500, detail=f"Email generation error: {str(e)}")
@@ -1891,7 +1897,8 @@ class ConfirmActionRequest(BaseModel):
 
 @router.post("/assistant/action")
 async def execute_assistant_action(
-    request: ExecuteActionRequest,
+    request: Request,
+    data: ExecuteActionRequest,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """
@@ -1915,24 +1922,24 @@ async def execute_assistant_action(
     - categorize_expense
     """
     try:
-        action_type = ActionType(request.action_type)
+        action_type = ActionType(data.action_type)
     except ValueError:
         raise HTTPException(
             status_code=400, 
-            detail=f"Invalid action type: {request.action_type}. Valid types: {[a.value for a in ActionType]}"
+            detail=f"Invalid action type: {data.action_type}. Valid types: {[a.value for a in ActionType]}"
         )
     
     actions = get_ai_assistant_actions(db)
     
     action_request = ActionRequest(
         action_type=action_type,
-        parameters=request.parameters
+        parameters=data.parameters
     )
     
     response = await actions.execute_action(
         user=current_user,
         action_request=action_request,
-        confirmed=request.confirmed
+        confirmed=data.confirmed
     )
     
     return response.model_dump()
@@ -1940,7 +1947,8 @@ async def execute_assistant_action(
 
 @router.post("/assistant/action/confirm")
 async def confirm_assistant_action(
-    request: ConfirmActionRequest,
+    request: Request,
+    data: ConfirmActionRequest,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """
@@ -1953,7 +1961,7 @@ async def confirm_assistant_action(
     
     # Get the pending action from audit log
     pending = await db.ai_action_audit.find_one({
-        "action_id": request.action_id,
+        "action_id": data.action_id,
         "tenant_id": current_user.tenant_id,
         "status": ActionStatus.PENDING_CONFIRMATION.value
     }, {"_id": 0})
@@ -1964,17 +1972,17 @@ async def confirm_assistant_action(
             detail="Pending action not found or already processed"
         )
     
-    if not request.confirm:
+    if not data.confirm:
         # Cancel the action
         await db.ai_action_audit.update_one(
-            {"action_id": request.action_id},
+            {"action_id": data.action_id},
             {"$set": {
                 "status": ActionStatus.CANCELLED.value,
                 "cancelled_at": datetime.now(timezone.utc).isoformat()
             }}
         )
         return {
-            "action_id": request.action_id,
+            "action_id": data.action_id,
             "status": ActionStatus.CANCELLED.value,
             "message": "Action cancelled"
         }
@@ -1998,7 +2006,7 @@ async def confirm_assistant_action(
     
     # Update the original audit entry
     await db.ai_action_audit.update_one(
-        {"action_id": request.action_id},
+        {"action_id": data.action_id},
         {"$set": {
             "status": response.status.value,
             "confirmed_at": datetime.now(timezone.utc).isoformat()
@@ -2130,7 +2138,8 @@ class ParseActionRequest(BaseModel):
 
 @router.post("/assistant/parse-action")
 async def parse_action_intent(
-    request: ParseActionRequest,
+    request: Request,
+    data: ParseActionRequest,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """
@@ -2168,7 +2177,7 @@ async def parse_action_intent(
     job_names = [j['name'] for j in active_jobs]
     
     # Build parsing prompt based on action type
-    if request.action_type == "create_job":
+    if data.action_type == "create_job":
         system_prompt = f"""You are a parsing assistant. Extract job details from the user's message.
 
 Known customers: {', '.join(customer_names[:10]) if customer_names else 'None yet'}
@@ -2186,7 +2195,7 @@ If you cannot determine enough info to create a job, return:
 
 Respond ONLY with valid JSON, nothing else."""
 
-    elif request.action_type == "create_calendar_event":
+    elif data.action_type == "create_calendar_event":
         system_prompt = """You are a parsing assistant. Extract appointment/event details from the user's message.
 
 Return a JSON object with these fields:
@@ -2203,7 +2212,7 @@ If you cannot determine the required fields, return:
 
 Respond ONLY with valid JSON, nothing else."""
 
-    elif request.action_type == "log_time_entry":
+    elif data.action_type == "log_time_entry":
         system_prompt = f"""You are a parsing assistant. Extract time entry details from the user's message.
 
 Known jobs: {', '.join(job_names[:10]) if job_names else 'None active'}
@@ -2237,7 +2246,7 @@ Respond ONLY with valid JSON, nothing else."""
             system_message=system_prompt
         ).with_model("openai", "gpt-5.2")
         
-        response = await chat.send_message(UserMessage(text=request.message))
+        response = await chat.send_message(UserMessage(text=data.message))
         
         # Try to parse as JSON
         try:
@@ -2251,14 +2260,14 @@ Respond ONLY with valid JSON, nothing else."""
             
             # If we got parameters, try to match customer/job IDs
             if not parsed.get("needs_more_info"):
-                if request.action_type == "create_job" and parsed.get("customer_name"):
+                if data.action_type == "create_job" and parsed.get("customer_name"):
                     # Try to match customer
                     for c in recent_customers:
                         if parsed["customer_name"].lower() in c["name"].lower():
                             parsed["customer_id"] = c["id"]
                             break
                 
-                if request.action_type == "log_time_entry" and parsed.get("job_name"):
+                if data.action_type == "log_time_entry" and parsed.get("job_name"):
                     # Try to match job
                     for j in active_jobs:
                         if parsed["job_name"].lower() in j["name"].lower():
@@ -2271,8 +2280,8 @@ Respond ONLY with valid JSON, nothing else."""
                 user_id=current_user.id,
                 action_type="assistant_parse_action",
                 module="Floating Assistant",
-                feature_name=request.action_type,
-                metadata={"requested_action_type": request.action_type},
+                feature_name=data.action_type,
+                metadata={"requested_action_type": data.action_type},
             )
             return {"parameters": parsed} if not parsed.get("needs_more_info") else parsed
             
@@ -2290,8 +2299,8 @@ Respond ONLY with valid JSON, nothing else."""
             user_id=current_user.id,
             action_type="assistant_parse_action",
             module="Floating Assistant",
-            feature_name=request.action_type,
-            metadata={"requested_action_type": request.action_type},
+            feature_name=data.action_type,
+            metadata={"requested_action_type": data.action_type},
         )
         print(f"Parse action error: {e}")
         return {

@@ -156,7 +156,9 @@ export default function PromoCodes() {
       case 'fixed':
         return `$${code.discount_value} off`;
       case 'free_trial':
-        return `${code.trial_days} days free`;
+        return `${code.trial_days} days free trial`;
+      case 'free_days':
+        return `${code.trial_days} extra days`;
       default:
         return 'Unknown';
     }
@@ -169,6 +171,7 @@ export default function PromoCodes() {
       case 'fixed':
         return <DollarSign className="h-4 w-4" />;
       case 'free_trial':
+      case 'free_days':
         return <Clock className="h-4 w-4" />;
       default:
         return <Ticket className="h-4 w-4" />;
@@ -393,12 +396,13 @@ export default function PromoCodes() {
                   <SelectItem value="percent">Percentage Off</SelectItem>
                   <SelectItem value="fixed">Fixed Amount Off</SelectItem>
                   <SelectItem value="free_trial">Free Extended Trial</SelectItem>
+                  <SelectItem value="free_days">Free Extra Days</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Discount Value */}
-            {formData.discount_type !== 'free_trial' && (
+            {formData.discount_type !== 'free_trial' && formData.discount_type !== 'free_days' && (
               <div>
                 <Label style={{ color: 'var(--text)' }}>
                   {formData.discount_type === 'percent' ? 'Discount Percent' : 'Discount Amount ($)'}
@@ -414,9 +418,11 @@ export default function PromoCodes() {
             )}
 
             {/* Trial Days */}
-            {formData.discount_type === 'free_trial' && (
+            {(formData.discount_type === 'free_trial' || formData.discount_type === 'free_days') && (
               <div>
-                <Label style={{ color: 'var(--text)' }}>Free Trial Days</Label>
+                <Label style={{ color: 'var(--text)' }}>
+                  {formData.discount_type === 'free_days' ? 'Extra Days to Add' : 'Free Trial Days'}
+                </Label>
                 <Input
                   type="number"
                   value={formData.trial_days}

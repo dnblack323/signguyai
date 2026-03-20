@@ -1607,3 +1607,106 @@ async def get_founders_spots(db=Depends(get_db)):
     from config.founders_plan import get_founders_spot_count
     founder_count = await db.tenants.count_documents({"is_founder": True})
     return get_founders_spot_count(founder_count)
+
+
+
+@router.post("/apply-promo")
+async def apply_promo_code(
+    request: Request,
+    current_user: UserInDB = Depends(get_current_user_billing),
+    db=Depends(get_db)
+):
+    """
+    Apply a promo code to the current tenant.
+    Supports discount types: percent, fixed, free_trial, free_days.
+    For free_days: extends the trial by the specified number of days.
+    """
+    body = await request.json()
+    code = (body.get("code") or "").upper().strip()
+    
+    if not code:
+        raise HTTPException(status_code=400, detail="Promo code is required")
+    
+    # Find and validate the promo code
+    promo = await db.promo_codes.find_one({"code": code, "is_active": True}, {"_id": 0})
+    if not promo:
+        raise HTTPException(status_code=404, detail="Invalid or inactive promo code")
+    
+    # Check expiration
+    if promo.get("expires_at"):
+        expires = datetime.fromisoformat(promo["expires_at"].replace("Z", "+00:00"))
+        if datetime.now(timezone.utc) > expires:
+            raise HTTPException(status_code=400, detail="This promo code has expired")
+    
+    # Check max uses
+    if promo.get("max_uses") is not None:
+        if promo.get("times_used", 0) >= promo["max_uses"]:
+            raise HTTPException(status_code=400, detail="This promo code has reached its usage limit")
+    
+    tenant_id = current_user.tenant_id
+    tenant = await db.tenants.find_one({"tenant_id": tenant_id}, {"_id": 0})
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    discount_type = promo["discount_type"]
+    result = {"code": code, "discount_type": discount_type, "applied": True}
+    
+    if discount_type in ["free_trial", "free_days"]:
+        extra_days = promo.get("trial_days", 14)
+        current_trial_end = tenant.get("trial_ends_at")
+        
+        if current_trial_end:
+            base = datetime.fromisoformat(current_trial_end.replace("Z", "+00:00"))
+        else:
+            base = datetime.now(timezone.utc)
+        
+        new_trial_end = base + timedelta(days=extra_days)
+        
+        await db.tenants.update_one(
+            {"tenant_id": tenant_id},
+            {"$set": {
+                "trial_ends_at": new_trial_end.isoformat(),
+                "promo_applied": code,
+                "promo_applied_at": datetime.now(timezone.utc).isoformat(),
+            }}
+        )
+        result["message"] = f"Trial extended by {extra_days} days"
+        result["new_trial_ends_at"] = new_trial_end.isoformat()
+        
+    elif discount_type == "percent":
+        await db.tenants.update_one(
+            {"tenant_id": tenant_id},
+            {"$set": {
+                "pending_discount": {
+                    "type": "percent",
+                    "value": promo.get("discount_value", 0),
+                    "code": code,
+                },
+                "promo_applied": code,
+                "promo_applied_at": datetime.now(timezone.utc).isoformat(),
+            }}
+        )
+        result["message"] = f"{promo.get('discount_value', 0)}% discount applied"
+        
+    elif discount_type == "fixed":
+        await db.tenants.update_one(
+            {"tenant_id": tenant_id},
+            {"$set": {
+                "pending_discount": {
+                    "type": "fixed",
+                    "value": promo.get("discount_value", 0),
+                    "code": code,
+                },
+                "promo_applied": code,
+                "promo_applied_at": datetime.now(timezone.utc).isoformat(),
+            }}
+        )
+        result["message"] = f"${promo.get('discount_value', 0)} discount applied"
+    
+    # Increment usage counter
+    await db.promo_codes.update_one(
+        {"code": code, "is_active": True},
+        {"$inc": {"times_used": 1}}
+    )
+    
+    return result

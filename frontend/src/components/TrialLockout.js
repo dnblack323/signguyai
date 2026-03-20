@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Lock, Clock, Rocket, ArrowRight, Star } from 'lucide-react';
+import { Lock, Clock, Rocket, ArrowRight, Star, Loader2, Tag } from 'lucide-react';
 import { Button } from './ui/button';
+import { Input } from './ui/input';
 import { useAuth } from '../context/AuthContext';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -63,6 +64,28 @@ export const TrialLockout = ({ children }) => {
 
 const LockoutScreen = () => {
   const navigate = useNavigate();
+  const { token } = useAuth();
+  const [promoCode, setPromoCode] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoMessage, setPromoMessage] = useState(null);
+
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) return;
+    setPromoLoading(true);
+    setPromoMessage(null);
+    try {
+      const res = await axios.post(`${API_URL}/api/billing/apply-promo`, 
+        { code: promoCode },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setPromoMessage({ type: 'success', text: res.data.message || 'Promo code applied!' });
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (err) {
+      setPromoMessage({ type: 'error', text: err.response?.data?.detail || 'Invalid promo code' });
+    } finally {
+      setPromoLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-[var(--bg-primary)]">
@@ -98,11 +121,45 @@ const LockoutScreen = () => {
             <Button
               onClick={() => navigate('/pricing')}
               className="w-full sm:w-auto px-8 py-6 text-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-90 text-black font-semibold shadow-lg shadow-amber-500/25"
+              data-testid="lockout-subscribe-btn"
             >
               <Rocket className="w-5 h-5 mr-2" />
               Get Founders Edition - $99/mo
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
+          </div>
+
+          {/* Promo Code Input */}
+          <div className="mb-8 max-w-sm mx-auto">
+            <p className="text-sm text-[var(--text-secondary)] mb-2">Have a promo code?</p>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]" />
+                <Input
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                  placeholder="Enter code"
+                  className="pl-9 font-mono bg-[var(--card-bg)] border-[var(--border-color)] text-[var(--text-primary)]"
+                  data-testid="lockout-promo-input"
+                  onKeyDown={(e) => e.key === 'Enter' && handleApplyPromo()}
+                />
+              </div>
+              <Button
+                onClick={handleApplyPromo}
+                disabled={promoLoading || !promoCode.trim()}
+                variant="outline"
+                className="border-[var(--border-color)]"
+                data-testid="lockout-promo-apply-btn"
+              >
+                {promoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
+              </Button>
+            </div>
+            {promoMessage && (
+              <p className={`text-sm mt-2 ${promoMessage.type === 'success' ? 'text-green-400' : 'text-red-400'}`}
+                 data-testid="lockout-promo-message">
+                {promoMessage.text}
+              </p>
+            )}
           </div>
 
           {/* Founder spots reminder */}
