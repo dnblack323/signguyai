@@ -1,705 +1,594 @@
 # SignGuy AI - Complete Build Roadmap & Feature Tracker
 
-> **Last Updated:** February 10, 2026  
-> **Version:** 2.2  
-> **Status:** Active Development
+> **Last Updated:** March 18, 2026  
+> **Version:** 4.0  
+> **Status:** Active Development - Feature-Rich SaaS Platform
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 1. [Project Overview](#project-overview)
-2. [Completed Features](#completed-features)
-3. [Current Sprint](#current-sprint)
-4. [Upcoming Features](#upcoming-features)
-5. [SaaS Requirements](#saas-requirements)
-6. [Technical Architecture](#technical-architecture)
-7. [API Reference](#api-reference)
-8. [Database Schema](#database-schema)
+2. [Platform Stats](#platform-stats)
+3. [Completed Features by Phase](#completed-features)
+4. [SaaS Readiness Scorecard](#saas-readiness)
+5. [Current Status & Active Tasks](#current-status)
+6. [Upcoming Features](#upcoming-features)
+7. [Future / Backlog](#future-backlog)
+8. [Technical Architecture](#technical-architecture)
 
 ---
 
-## 🎯 Project Overview
+## Project Overview
 
-**SignGuy AI** is a comprehensive web-based operating system for sign shops, designed to replace spreadsheets, notebooks, and disconnected tools with a unified platform for:
-
-- Customer Relationship Management
-- Quotes & Estimates
-- Job/Order Management
-- Invoicing & Payments
-- Employee Time Tracking & Payroll
-- Productivity & Scheduling
-- Financial Tracking
-- AI-Powered Design Tools
-- B2B/Fundraiser Webstores
+**SignGuy AI** is a comprehensive multi-tenant SaaS operating system for sign shops, print shops, and custom graphics businesses. It replaces spreadsheets, notebooks, and disconnected tools with a unified platform.
 
 **Target Market:** Sign shops, print shops, and custom graphics businesses  
-**Business Model:** SaaS subscription with tiered pricing
+**Business Model:** SaaS subscription with tiered pricing (3 product lines, 9 plans + Founders Edition)  
+**Tech Stack:** React 18 + FastAPI + MongoDB + OpenAI (GPT-5.2, Whisper, TTS, GPT Image 1)
 
 ---
 
-## ✅ COMPLETED FEATURES
+## Platform Stats (as of March 18, 2026)
 
-### Phase 1: Core Infrastructure ✓
-| Feature | Status | Date | Notes |
-|---------|--------|------|-------|
-| FastAPI Backend Setup | ✅ Done | Jan 2026 | Python, Motor async MongoDB |
-| React Frontend Setup | ✅ Done | Jan 2026 | React 18, Tailwind CSS, Shadcn UI |
-| MongoDB Database | ✅ Done | Jan 2026 | All collections configured |
-| Basic CRUD Operations | ✅ Done | Jan 2026 | All modules |
-| Hot Reload Development | ✅ Done | Jan 2026 | Frontend & Backend |
-
-### Phase 2: Customer Management ✓
-| Feature | Status | Date | Notes |
-|---------|--------|------|-------|
-| Customer List View | ✅ Done | Jan 2026 | Search, filter, pagination |
-| Customer Create/Edit | ✅ Done | Jan 2026 | Full form with validation |
-| Customer Status (Active/Lead/Inactive) | ✅ Done | Jan 2026 | Color-coded badges |
-| Customer Contact Info | ✅ Done | Jan 2026 | Name, email, phone, address |
-| Customer Notes | ✅ Done | Jan 2026 | Free-text notes field |
-
-### Phase 3: Quotes & Estimates ✓
-| Feature | Status | Date | Notes |
-|---------|--------|------|-------|
-| Quote List View | ✅ Done | Jan 2026 | Filter by status |
-| Quote Create/Edit | ✅ Done | Jan 2026 | Line items, totals |
-| Quote Line Items | ✅ Done | Jan 2026 | Description, qty, price |
-| Quote Status Workflow | ✅ Done | Jan 2026 | Draft → Sent → Approved/Declined |
-| Quote to Job Conversion | ✅ Done | Jan 2026 | One-click convert |
-| Quote Preview/Print | ✅ Done | Jan 2026 | Professional PDF-style view |
-| Quote Email (Mock) | ✅ Done | Jan 2026 | Opens email client |
-| **Magic Link Sharing** | ✅ Done | Feb 2026 | Customer portal access |
-
-### Phase 4: Jobs & Orders ✓
-| Feature | Status | Date | Notes |
-|---------|--------|------|-------|
-| Job List View | ✅ Done | Jan 2026 | Filter, search |
-| Job Create/Edit | ✅ Done | Jan 2026 | Full job details |
-| Job Items (Line Items) | ✅ Done | Jan 2026 | Per-job items list |
-| Job Status Workflow | ✅ Done | Jan 2026 | Quoted → Production → Complete → Delivered |
-| Job Detail Page | ✅ Done | Jan 2026 | Dedicated job view |
-| Job Due Dates | ✅ Done | Jan 2026 | Date picker, overdue alerts |
-| Job Scheduling Dialog | ✅ Done | Feb 2026 | Auto-fill job name, time input |
-| Job Cost Tracking | ✅ Done | Jan 2026 | Materials + labor |
-
-### Phase 5: Invoicing ✓
-| Feature | Status | Date | Notes |
-|---------|--------|------|-------|
-| Invoice List View | ✅ Done | Jan 2026 | Filter by status |
-| Invoice Create/Edit | ✅ Done | Jan 2026 | From job or manual |
-| Invoice from Job | ✅ Done | Jan 2026 | Auto-populate items |
-| Invoice Status Workflow | ✅ Done | Jan 2026 | Draft → Sent → Paid/Overdue |
-| Invoice Preview/Print | ✅ Done | Jan 2026 | Professional layout |
-| Payment Recording | ✅ Done | Jan 2026 | Track partial payments |
-| Overdue Invoice Alerts | ✅ Done | Jan 2026 | Dashboard warning |
-
-### Phase 6: Time Clock & Payroll ✓
-| Feature | Status | Date | Notes |
-|---------|--------|------|-------|
-| Employee Management | ✅ Done | Jan 2026 | Add/edit employees |
-| Clock In/Out | ✅ Done | Jan 2026 | Real-time tracking |
-| Time Entry History | ✅ Done | Jan 2026 | View all entries |
-| Manual Time Entry | ✅ Done | Jan 2026 | Add missed punches |
-| Break Tracking | ✅ Done | Jan 2026 | Paid/unpaid breaks |
-| Payroll Period View | ✅ Done | Jan 2026 | Weekly summary |
-| Hours Calculation | ✅ Done | Jan 2026 | Auto-calculate totals |
-| Overtime Calculation | ✅ Done | Jan 2026 | >40 hrs/week |
-
-### Phase 7: Productivity & Scheduling ✓
-| Feature | Status | Date | Notes |
-|---------|--------|------|-------|
-| Task List View | ✅ Done | Jan 2026 | All tasks |
-| Task Create/Edit | ✅ Done | Jan 2026 | Title, description, due date |
-| Task Assignment | ✅ Done | Jan 2026 | Assign to employees |
-| Task Status | ✅ Done | Jan 2026 | Todo → In Progress → Done |
-| Task Priority | ✅ Done | Jan 2026 | Low/Medium/High |
-| Calendar View | ✅ Done | Jan 2026 | Monthly calendar |
-| Job-Linked Tasks | ✅ Done | Jan 2026 | Link tasks to jobs |
-
-### Phase 8: Financial Tracking ✓
-| Feature | Status | Date | Notes |
-|---------|--------|------|-------|
-| Transaction List | ✅ Done | Jan 2026 | All transactions |
-| Income Recording | ✅ Done | Jan 2026 | Payment received |
-| Expense Recording | ✅ Done | Jan 2026 | Costs, purchases |
-| Transaction Categories | ✅ Done | Jan 2026 | Customizable |
-| Payment Methods | ✅ Done | Jan 2026 | Cash, Check, Credit, etc. |
-| Daily/Weekly/Monthly Views | ✅ Done | Jan 2026 | Filter by period |
-| Revenue Summary | ✅ Done | Jan 2026 | Totals by period |
-
-### Phase 9: AI Tools Suite ✓
-| Feature | Status | Date | Notes |
-|---------|--------|------|-------|
-| **Design Tools (6)** | | | |
-| Photo Enhancer Analyzer | ✅ Done | Feb 2026 | Vision analysis, print recommendations |
-| Vectorization Analyzer | ✅ Done | Feb 2026 | Vision analysis, guidance |
-| Font Identifier | ✅ Done | Feb 2026 | Vision-based font matching |
-| AI Sign Designer | ✅ Done | Feb 2026 | Image generation |
-| AI Banner Designer | ✅ Done | Feb 2026 | Image generation |
-| Mockup Creator | ✅ Done | Feb 2026 | Image generation |
-| **Branding Tools (2)** | | | |
-| Logo Creator | ✅ Done | Feb 2026 | Image generation |
-| Branding Kit Generator | ✅ Done | Feb 2026 | Text analysis |
-| **Business Tools (3)** | | | |
-| Business Copywriter | ✅ Done | Feb 2026 | Marketing copy |
-| Document Composer | ✅ Done | Feb 2026 | Proposals, contracts |
-| Pricing Intelligence | ✅ Done | Feb 2026 | Pricing analysis |
-| **Marketing Tools (4)** | | | |
-| Social Job Post Creator | ✅ Done | Feb 2026 | Social media content |
-| Social Media Pack Generator | ✅ Done | Feb 2026 | Multi-platform |
-| Content Calendar Creator | ✅ Done | Feb 2026 | Monthly planning |
-| Campaign Builder | ✅ Done | Feb 2026 | Full campaigns |
-
-### Phase 10: Webstores ✓
-| Feature | Status | Date | Notes |
-|---------|--------|------|-------|
-| Webstore Management | ✅ Done | Feb 2026 | Create/edit stores |
-| Store Types | ✅ Done | Feb 2026 | B2B, Fundraiser, Creator |
-| Product Catalog | ✅ Done | Feb 2026 | Master product list |
-| Product Assignment | ✅ Done | Feb 2026 | Assign to stores |
-| **Public Storefront** | ✅ Done | Feb 2026 | Customer-facing shop |
-| Custom Branding | ✅ Done | Feb 2026 | Logo, accent color |
-| Shopping Cart | ✅ Done | Feb 2026 | Add/remove items |
-| Checkout Flow | ✅ Done | Feb 2026 | Customer info, submit |
-| Order Management | ✅ Done | Feb 2026 | View/process orders |
-| Fundraiser Goals | ✅ Done | Feb 2026 | Track raised amount |
-
-### Phase 11: User Authentication ✓
-| Feature | Status | Date | Notes |
-|---------|--------|------|-------|
-| User Registration | ✅ Done | Feb 2026 | Email, password, name |
-| User Login | ✅ Done | Feb 2026 | JWT tokens |
-| Remember Me | ✅ Done | Feb 2026 | 30-day token |
-| Protected Routes | ✅ Done | Feb 2026 | Redirect to login |
-| User Profile Display | ✅ Done | Feb 2026 | Sidebar user info |
-| Logout | ✅ Done | Feb 2026 | Clear token |
-| Admin Password Reset | ✅ Done | Feb 2026 | Admin can reset |
-| User Management Page | ✅ Done | Feb 2026 | List, search users |
-| Enable/Disable Users | ✅ Done | Feb 2026 | Toggle active status |
-
-### Phase 12: Customer Portal (Magic Links) ✓
-| Feature | Status | Date | Notes |
-|---------|--------|------|-------|
-| Magic Link Generation | ✅ Done | Feb 2026 | Secure tokens |
-| Quote Portal View | ✅ Done | Feb 2026 | Customer sees quote |
-| Job Portal View | ✅ Done | Feb 2026 | Customer sees job |
-| Invoice Portal View | ✅ Done | Feb 2026 | Customer sees invoice |
-| Link Expiration | ✅ Done | Feb 2026 | 7-day default |
-| Share Link UI | ✅ Done | Feb 2026 | Button in quote preview |
-
-### Phase 13: UI/UX Design ✓
-| Feature | Status | Date | Notes |
-|---------|--------|------|-------|
-| **Unified Blended Theme** | ✅ Done | Feb 2026 | Dark shell + light panels |
-| Brand Colors | ✅ Done | Feb 2026 | #2F8BFB primary blue |
-| **Hover-Expanding Nav** | ✅ Done | Feb 2026 | Compact → expanded |
-| Flyout Submenus | ✅ Done | Feb 2026 | Category → items |
-| Responsive Design | ✅ Done | Feb 2026 | Mobile menu |
-| Theme Mode Removal | ✅ Done | Feb 2026 | Single unified theme |
-| Consistent Typography | ✅ Done | Feb 2026 | Barlow Condensed + Manrope |
-
-### Phase 14: Role-Based Access Control ✅ COMPLETE
-| Feature | Status | Date | Notes |
-|---------|--------|------|-------|
-| Permission Enum (39 permissions) | ✅ Done | Feb 2026 | Granular permissions |
-| Three User Roles | ✅ Done | Feb 2026 | Owner, Admin, Staff |
-| ROLE_PERMISSIONS Matrix | ✅ Done | Feb 2026 | Role → permissions mapping |
-| Backend Permission Checks | ✅ Done | Feb 2026 | require_permission decorator |
-| Admin Endpoints Protection | ✅ Done | Feb 2026 | 403 for unauthorized |
-| Frontend Permission Context | ✅ Done | Feb 2026 | hasPermission helper |
-| Navigation Filtering | ✅ Done | Feb 2026 | Hide nav by permission |
-| Protected Pages | ✅ Done | Feb 2026 | Access Denied component |
-| Role Badges | ✅ Done | Feb 2026 | Color-coded (amber/blue/gray) |
-| User Role Management | ✅ Done | Feb 2026 | Owner can change roles |
-| First User = Owner | ✅ Done | Feb 2026 | Auto-assign on first registration |
-
-**Permission Distribution:**
-| Role | Total Permissions | Key Access |
-|------|------------------|------------|
-| Owner | 39 | Full access + manage roles |
-| Admin | 30 | Operational access, view-only financials/payroll |
-| Staff | 7 | View customers/quotes/jobs, own timeclock, AI tools |
+| Metric | Count |
+|--------|-------|
+| Frontend Pages | 87 |
+| Frontend Components | 81 |
+| Frontend Routes | 98 |
+| Backend Route Files | 33 |
+| Backend API Endpoints | 289 |
+| Backend Services | 11 |
+| Backend Models | 12 |
+| MongoDB Collections | 58 |
+| AI Tools | 28+ |
+| Frontend Lines of Code | 50,414 |
+| Backend Lines of Code | 29,169 |
+| **Total Lines of Code** | **~80,000** |
 
 ---
 
-### Phase 15: Multi-Tenancy (SaaS Foundation) ✅ COMPLETE
-| Feature | Status | Date | Notes |
-|---------|--------|------|-------|
-| Tenant Model | ✅ Done | Feb 2026 | Company entity with settings |
-| Tenant ID on All Models | ✅ Done | Feb 2026 | Data isolation |
-| Tenant-Scoped Queries | ✅ Done | Feb 2026 | All API routes filter by tenant |
-| Auto-Assignment | ✅ Done | Feb 2026 | New records get tenant_id |
-| GET /api/tenant/current | ✅ Done | Feb 2026 | Returns tenant info |
-| PUT /api/tenant/settings | ✅ Done | Feb 2026 | Updates company settings |
-| Company Settings Page | ✅ Done | Feb 2026 | UI for editing company info |
-| First User Creates Tenant | ✅ Done | Feb 2026 | Auto-creates on registration |
-| Data Migration | ✅ Done | Feb 2026 | All records have tenant_id |
+## Completed Features by Phase
+
+### Phase 1: Core Infrastructure (Jan 2026)
+| Feature | Status |
+|---------|--------|
+| FastAPI Backend + React Frontend + MongoDB | DONE |
+| Hot Reload Development (Frontend & Backend) | DONE |
+| JWT Authentication (24hr expiry, 30-day remember me) | DONE |
+| Protected Routes + Redirect to Login | DONE |
+| User Registration, Login, Logout, Profile | DONE |
+| Password Recovery ("Forgot Password?" for owners) | DONE |
+| Improved Login Error Handling | DONE |
+
+### Phase 2: Customer Management (Jan 2026)
+| Feature | Status |
+|---------|--------|
+| Customer CRUD with search, filter, pagination | DONE |
+| Customer status tracking (Lead, Active, Inactive) | DONE |
+| Contact info, notes, tags, tax exempt flag | DONE |
+| CSV Import with column mapping + template download | DONE |
+| Customer-specific pricing toggle | DONE |
+| Portal access toggle + invite with temporary PIN | DONE |
+| Inline customer creation from Job/Quote forms | DONE |
+| Phone number auto-formatting | DONE |
+| Name OR Company validation enforcement | DONE |
+
+### Phase 3: Unified Jobs & Quotes (Jan 2026)
+| Feature | Status |
+|---------|--------|
+| Unified jobs/quotes system (quote is a job in "quote" stage) | DONE |
+| Status pipeline: quote -> approved -> in_progress -> completed -> invoiced -> archived | DONE |
+| Line items (11 types: Banner, Yard Sign, Decal, Wrap, etc.) | DONE |
+| Item status tracking (Pending, In Production, Done) | DONE |
+| Job notes with timestamps + activity log | DONE |
+| Convert quote to job (one-click approve) | DONE |
+| Job time tracking (start/stop timer per job) | DONE |
+| Job Status Timeline (visual flow + time-in-status) | DONE |
+| Unified Job History feed | DONE |
+| Customer Portal tab on job detail | DONE |
+| Whole-job + stage-level employee assignment | DONE |
+| Kanban board with drag-and-drop | DONE |
+
+### Phase 4: Invoicing (Jan 2026)
+| Feature | Status |
+|---------|--------|
+| Invoice CRUD with statuses (Draft, Sent, Paid, Overdue) | DONE |
+| Create invoice from job (auto-populate items) | DONE |
+| Tax calculation and auto-total | DONE |
+| Invoice number auto-generation + due date tracking | DONE |
+| PDF export (reportlab) | DONE |
+| Email send with AI-drafted email option | DONE |
+| Invoice preview modal | DONE |
+| Stripe Connect "Pay Link" button | DONE |
+
+### Phase 5: Time Clock & Payroll (Jan 2026)
+| Feature | Status |
+|---------|--------|
+| Clock in/out with sequence validation | DONE |
+| Break start/end tracking | DONE |
+| Time entries per job with task type selection | DONE |
+| Manual time entry + edit/delete | DONE |
+| Real-time running timer display (HH:MM:SS) | DONE |
+| Time reports by employee and by job | DONE |
+| Kiosk mode (simplified clock-in interface) | DONE |
+| Auto-suggest time entry on job status change | DONE |
+| Admin Payroll - Overview Tab (pay period summary) | DONE |
+| Admin Payroll - Time Sheets Tab (consolidated view) | DONE |
+| Admin Payroll - Manual Hours Tab (CRUD) | DONE |
+| Admin Payroll - Transactions Tab (earnings, advances, payments) | DONE |
+| Overtime calculation (1.5x over 40hrs/week) | DONE |
+
+### Phase 6: Productivity & Financial Tracking (Jan 2026)
+| Feature | Status |
+|---------|--------|
+| Task management (create, assign, track, link to jobs) | DONE |
+| Productivity dashboard | DONE |
+| Revenue tracking by period | DONE |
+| Expense tracking (21 categories) | DONE |
+| Profit calculation + monthly summaries | DONE |
+
+### Phase 7: AI Tools Suite (Feb 2026)
+| Feature | Status |
+|---------|--------|
+| Design Tools (11): Photo Enhancer, Vectorizer, Font ID, Sign Designer, Banner Designer, Logo Refresher, Generative Fill, Text-to-Image, Logo Creator, Mockup Creator, Vehicle Wrap Mockup | DONE |
+| Business Tools (6): Tagline Generator, Brand Color Advisor, Brand Voice Guide, Proposal Writer, Review Responder, Pricing Intelligence | DONE |
+| Marketing Tools (6): Blog Creator, Job Post Creator, Showcase Post, Social Pack, Content Calendar, Campaign Builder | DONE |
+| Racing Tools (4): Race Number Designer, Driver Name Plate, Wrap Cost Calculator, Race Team Branding Kit | DONE |
+| Additional: Email Templates, SEO Content, Business Copywriter, Document Composer, AI Product Description Generator, Branding Kit Generator | DONE |
+| AI History + Save to Job + Download PDF + Send to Customer | DONE |
+| Credit system integration (1-3 credits per action) | DONE |
+| Pre-run credit confirmation popup with per-user preference | DONE |
+
+### Phase 8: AI Business Assistant (Feb 2026)
+| Feature | Status |
+|---------|--------|
+| Natural language business queries with shop data context | DONE |
+| Context: customer/job/revenue/invoice/employee stats | DONE |
+| Conversation chat interface with sessions | DONE |
+| Voice Input - Whisper STT (AI Assistant page) | DONE |
+| Voice Output - OpenAI TTS (AI Assistant page) | DONE |
+
+### Phase 9: Floating AI Assistant (Mar 2026)
+| Feature | Status |
+|---------|--------|
+| Persistent bottom-right chat widget on all pages | DONE |
+| Quick action buttons (Create job, Schedule, Invoice, Lookup) | DONE |
+| Action execution from chat (create jobs, lookup customers) | DONE |
+| Confirmation dialogs for create/destructive actions | DONE |
+| Voice Input - Whisper STT | DONE |
+| Voice Output - OpenAI TTS ("Read aloud") | DONE |
+| Session-based conversations with unique IDs | DONE |
+
+### Phase 10: Webstores & Commerce (Feb 2026)
+| Feature | Status |
+|---------|--------|
+| 3 Store Types: B2B, Fundraiser, Creator | DONE |
+| Store management (name, type, status, branding) | DONE |
+| Product catalog (5 categories, images, variants, AI descriptions) | DONE |
+| Public storefront with cart + checkout | DONE |
+| Stripe Connect integration for payments | DONE |
+| Order management with auto-create job + customer | DONE |
+| QR code generation for store URLs | DONE |
+| Fundraiser features (goals, progress, profit %) | DONE |
+| Creator features (commission, payout tracking) | DONE |
+| Analytics dashboard (KPIs, sales trends, top products) | DONE |
+| Payouts tab | DONE |
+
+### Phase 11: Role-Based Access Control (Feb 2026)
+| Feature | Status |
+|---------|--------|
+| 3 User Roles: Owner, Admin, Staff | DONE |
+| 23+ permission types | DONE |
+| Backend permission checks (require_permission decorator) | DONE |
+| Frontend permission context (hasPermission helper) | DONE |
+| Navigation filtering by permission | DONE |
+| Protected pages with Access Denied component | DONE |
+| Role badges (color-coded) | DONE |
+| User management page (list, search, role change) | DONE |
+
+### Phase 12: Multi-Tenancy (Feb 2026)
+| Feature | Status |
+|---------|--------|
+| Tenant model with settings | DONE |
+| Tenant ID on all models | DONE |
+| Tenant-scoped queries on all API routes | DONE |
+| Auto-tenant creation on first registration | DONE |
+| Security audit: 28 tests, 100% pass rate, cross-tenant blocked | DONE |
+
+### Phase 13: Artwork Approvals (Feb 2026)
+| Feature | Status |
+|---------|--------|
+| Upload artwork with client-side watermarking | DONE |
+| Approval workflow (Pending, Approved, Revision, Rejected) | DONE |
+| Version tracking + customer feedback | DONE |
+| Customer Portal integration | DONE |
+
+### Phase 14: Document Library & Forms (Feb 2026)
+| Feature | Status |
+|---------|--------|
+| File upload with drag-and-drop (12 categories) | DONE |
+| Template system (reusable documents) | DONE |
+| 3 send methods: Email PDF, Customer Portal, As Form | DONE |
+| Questionnaires with multiple question types | DONE |
+| Pre-built templates (Vehicle Wrap, Logo Brief, etc.) | DONE |
+| Public shareable link for form completion | DONE |
+| AI summary of questionnaire responses | DONE |
+
+### Phase 15: Company-Based Pricing System (Mar 2026)
+| Feature | Status |
+|---------|--------|
+| 8 category-based pricing calculators | DONE |
+| Tenant-specific cost & markup settings | DONE |
+| Material configurations (vinyl, print, substrates) | DONE |
+| Complexity slider (1.0x - 2.0x multiplier) | DONE |
+| Pricing templates (save/load) | DONE |
+| Historical Invoice Import + AI Pricing Benchmark Analysis | DONE |
+| AI Pricing Advisor integration | DONE |
+
+### Phase 16: Profit & Margin Analytics (Mar 2026)
+| Feature | Status |
+|---------|--------|
+| Profit dashboard by job, category, and customer | DONE |
+| Cost snapshot data on jobs | DONE |
+
+### Phase 17: Production Workflow & Timeline (Mar 2026)
+| Feature | Status |
+|---------|--------|
+| Configurable production stages (Simple, Detailed, Custom) | DONE |
+| Visual timeline with status flow + checkmarks | DONE |
+| Time-in-status tracking | DONE |
+| Category-to-template assignment | DONE |
+| Unified timeline/history via Job Details | DONE |
+
+### Phase 18: Employee Portal (Mar 2026)
+| Feature | Status |
+|---------|--------|
+| PIN-based login | DONE |
+| Dashboard (clock status, work summary, assigned jobs) | DONE |
+| Job detail with stage start/pause/complete actions | DONE |
+| Pay history (earnings, YTD, balance) | DONE |
+| Task management | DONE |
+| Profile (image upload, clock history) | DONE |
+| Configurable permissions per tenant | DONE |
+
+### Phase 19: Customer Portal (Mar 2026)
+| Feature | Status |
+|---------|--------|
+| Email/password login + temporary invite PIN | DONE |
+| Dashboard (active jobs, approvals, messages, docs, forms, invoices) | DONE |
+| Orders + Quotes (list + detail views) | DONE |
+| Invoices (list, PDF download, Pay Now via Stripe) | DONE |
+| Documents (view shared docs, "New" badge) | DONE |
+| Messages (conversations with file attachments) | DONE |
+| Proofs (artwork approval/revision + version history) | DONE |
+| Forms (receive and complete questionnaires) | DONE |
+| Appointments (5 types, 6 statuses) | DONE |
+| Profile (contact info, notification preferences) | DONE |
+
+### Phase 20: Billing & AI Credits (Mar 2026)
+| Feature | Status |
+|---------|--------|
+| Multi-Product Plans: SignGuy OS (3), Webstores (3), AI Studio (3) | DONE |
+| Founders Edition ($99/mo, 150 credits, lifetime lock) | DONE |
+| Stripe Checkout (subscription + one-time) | DONE |
+| 14 Stripe Price IDs configured | DONE |
+| Webhook handling (subscription lifecycle) | DONE |
+| AI Credit System (150/mo for Founders) | DONE |
+| Credit packs via Stripe ($10/100, $25/300, $60/1000) | DONE |
+| Pre-run credit confirmation + cost preview | DONE |
+| Usage ledger + admin summary | DONE |
+| Low credits warning + purchase modal | DONE |
+
+### Phase 21: Onboarding System (Mar 2026)
+| Feature | Status |
+|---------|--------|
+| 3 Tiers: Quick Start, Standard Setup, Full Optimization | DONE |
+| Checklist + guided walkthrough | DONE |
+| Resume/Finish Later with session persistence | DONE |
+| Step-level analytics | DONE |
+| Dashboard onboarding card with progress | DONE |
+
+### Phase 22: Navigation & UI Structure (Feb-Mar 2026)
+| Feature | Status |
+|---------|--------|
+| Office-Style Ribbon Navigation (3 rows) | DONE |
+| 11 primary tabs with contextual sub-navigation | DONE |
+| Mobile hamburger menu with overlay | DONE |
+| Customizable Quick Toolbar (18 shortcuts, up to 10 active) | DONE |
+| Floating AI Assistant widget | DONE |
+
+### Phase 23: Community & Documentation (Feb 2026)
+| Feature | Status |
+|---------|--------|
+| Community Hub (bug reports, feature requests, Q&A, upvotes) | DONE |
+| Documentation site (15+ pages with mobile sidebar) | DONE |
+| Contact Support email link | DONE |
+
+### Phase 24: Marketing Website (Feb 2026)
+| Feature | Status |
+|---------|--------|
+| Landing Page (hero, features, AI showcase, pricing, FAQ) | DONE |
+| Features page | DONE |
+| About, Contact pages | DONE |
+| Founders Edition Pricing page | DONE |
+| Multi-Product Pricing (tabbed, 3 product lines) | DONE |
+| 9 Plan Detail Pages | DONE |
+| 3 Product Line Overview Pages (OS, Webstores, AI Studio) | DONE |
+| Why Founder page | DONE |
+
+### Phase 25: Data Management (Feb 2026)
+| Feature | Status |
+|---------|--------|
+| Tenant data export as JSON | DONE |
+| Restore with preview summary + confirmation | DONE |
+| Weekly backup reminder banner | DONE |
+
+### Phase 26: Email & Notifications (Feb 2026)
+| Feature | Status |
+|---------|--------|
+| SendGrid integration for transactional email | DONE |
+| Email templates (6 types with variable placeholders) | DONE |
+| AI Email Composer (contextual drafting) | DONE |
+| Customer portal notifications | DONE |
+
+### Phase 27: Promo Codes (Feb 2026)
+| Feature | Status |
+|---------|--------|
+| Code creation (%, $, free trial discounts) | DONE |
+| Usage limits, expiration dates, tracking | DONE |
+| Founder-only access | DONE |
 
 ---
 
-### Phase 16: Webstores Phase 2 - Enhanced Dashboard ✅ COMPLETE
-| Feature | Status | Date | Notes |
-|---------|--------|------|-------|
-| Analytics Endpoint | ✅ Done | Feb 2026 | GET /api/webstores/v2/{id}/analytics |
-| KPI Cards | ✅ Done | Feb 2026 | Revenue, Orders, Profit, Avg Order Value |
-| Sales Trend Chart | ✅ Done | Feb 2026 | Bar chart showing last 14 days |
-| Top Products | ✅ Done | Feb 2026 | Ranked list with quantity & revenue |
-| Order Status Breakdown | ✅ Done | Feb 2026 | Pending/Processing/Completed/Total |
-| Fundraiser Progress | ✅ Done | Feb 2026 | Goal, raised, %, days remaining |
-| Orders Tab | ✅ Done | Feb 2026 | Full order list with customer details |
-| Payouts Tab | ✅ Done | Feb 2026 | Balance tracking, record payouts |
-| Email Notifications | ✅ Done | Feb 2026 | SendGrid integration (optional) |
-| Long Logo Integration | ✅ Done | Feb 2026 | Expanded sidebar header |
+## SaaS Readiness Scorecard
+
+### Category Breakdown
+
+#### 1. Core Product Features (100% Complete)
+| Item | Status | Weight |
+|------|--------|--------|
+| CRM / Customer Management | DONE | 5% |
+| Jobs / Quotes / Pipeline | DONE | 5% |
+| Invoicing / Payments | DONE | 5% |
+| Time Clock / Payroll | DONE | 5% |
+| AI Tools (28+ tools) | DONE | 5% |
+| Webstores / E-Commerce | DONE | 5% |
+| Document Library / Forms | DONE | 3% |
+| Pricing Calculator | DONE | 3% |
+| **Subtotal** | **36/36** | **36%** |
+
+#### 2. Multi-Tenancy & Security (90% Complete)
+| Item | Status | Weight |
+|------|--------|--------|
+| Multi-tenant data isolation | DONE | 5% |
+| JWT Authentication | DONE | 3% |
+| Role-Based Access Control (3 roles, 23+ perms) | DONE | 3% |
+| Security audit (28 tests, 100% pass) | DONE | 3% |
+| Password recovery / reset | DONE | 1% |
+| Rate limiting | NOT DONE | 2% |
+| Input sanitization / XSS prevention | PARTIAL | 1% |
+| **Subtotal** | **16/18** | **16%** |
+
+#### 3. Billing & Monetization (95% Complete)
+| Item | Status | Weight |
+|------|--------|--------|
+| Stripe subscriptions (9 plans, 3 product lines) | DONE | 4% |
+| Stripe Connect (webstore payments) | DONE | 2% |
+| Stripe webhooks (lifecycle events) | DONE | 2% |
+| AI credit billing system | DONE | 2% |
+| Credit pack purchases | DONE | 1% |
+| Founders Edition pricing | DONE | 1% |
+| Failed payment / dunning handling | NOT DONE | 1% |
+| **Subtotal** | **12/13** | **12%** |
+
+#### 4. User Portals (100% Complete)
+| Item | Status | Weight |
+|------|--------|--------|
+| Customer Portal (10 pages, full feature set) | DONE | 5% |
+| Employee Portal (6 pages, PIN auth) | DONE | 3% |
+| Admin Portal / Communications Hub | DONE | 2% |
+| **Subtotal** | **10/10** | **10%** |
+
+#### 5. Onboarding & User Experience (85% Complete)
+| Item | Status | Weight |
+|------|--------|--------|
+| Tiered onboarding (3 tiers, guided walkthrough) | DONE | 3% |
+| In-app documentation (15+ pages) | DONE | 2% |
+| Community Hub (support, feedback) | DONE | 2% |
+| Marketing website (landing, features, pricing) | DONE | 2% |
+| UI Overhaul (Dark Shell / Light Workspace) | NOT DONE | 2% |
+| Mobile responsiveness optimization | PARTIAL | 1% |
+| **Subtotal** | **10/12** | **10%** |
+
+#### 6. Integrations (90% Complete)
+| Item | Status | Weight |
+|------|--------|--------|
+| OpenAI GPT-5.2 (text generation) | DONE | 2% |
+| OpenAI GPT Image 1 (image generation) | DONE | 1% |
+| OpenAI Whisper (speech-to-text) | DONE | 1% |
+| OpenAI TTS (text-to-speech) | DONE | 1% |
+| Stripe (subscriptions + Connect) | DONE | 2% |
+| SendGrid (transactional email) | DONE | 1% |
+| PDF Generation (reportlab) | DONE | 1% |
+| QuickBooks / Accounting integration | NOT DONE | 1% |
+| **Subtotal** | **9/10** | **9%** |
+
+#### 7. Operations & Compliance (50% Complete)
+| Item | Status | Weight |
+|------|--------|--------|
+| Data backup & restore | DONE | 2% |
+| Email templates (6 types) | DONE | 1% |
+| Terms of Service / Privacy Policy pages | NOT DONE | 1% |
+| Cookie consent banner | NOT DONE | 1% |
+| GDPR compliance tools (data export/deletion) | NOT DONE | 1% |
+| Uptime / status page | NOT DONE | 1% |
+| Error boundary / graceful error handling | NOT DONE | 1% |
+| **Subtotal** | **3/7** | **3%** |
 
 ---
 
-## 🔄 CURRENT SPRINT
+### OVERALL SAAS READINESS
 
-### Sprint 8: Smart Pricing Engine (In Progress)
-**Goal:** Real-time profit margin calculators
-
-| Task | Priority | Status | Assignee |
-|------|----------|--------|----------|
-| Materials Cost Tracking | P0 | 🔲 Todo | - |
-| Labor Cost Calculation | P0 | 🔲 Todo | - |
-| Real-Time Profit Display | P0 | 🔲 Todo | - |
-| Price Suggestions | P1 | 🔲 Todo | - |
-
----
-
-## 📅 UPCOMING FEATURES
-
-### Sprint 9: Artwork Approval System
-**Timeline:** After Smart Pricing
-
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| Materials Cost Tracking | Track material costs per job | P0 |
-| Labor Cost Calculation | Track labor hours × rate | P0 |
-| Real-Time Profit Display | Show margin on quotes/jobs | P0 |
-| Price Suggestions | AI-powered pricing recommendations | P1 |
-
-### Sprint 9: Artwork Approval System
-**Timeline:** After Smart Pricing
-**Goal:** Isolate data between companies
-
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| Design Upload | Upload proofs/mockups | P0 |
-| Approval Workflow | Request → Review → Approve/Reject | P0 |
-| Customer Comments | Feedback on designs | P1 |
-| Revision Tracking | Version history | P1 |
-| Email Notifications | Alert customer on new proofs | P2 |
-
-### Sprint 10: Subscription & Billing
-**Timeline:** After Artwork Approval
-**Goal:** Monetize with Stripe subscriptions
-
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| Stripe Integration | Payment processing | P0 |
-| Subscription Plans | Free, Pro, Enterprise | P0 |
-| Plan Feature Gating | Restrict by subscription | P0 |
-| Billing Portal | Manage subscription | P1 |
-| Usage Tracking | Track AI credits, storage | P1 |
-| Invoices | Subscription invoices | P1 |
-
-**Proposed Pricing Tiers:**
-| Plan | Price/mo | Users | AI Credits | Webstores | Features |
-|------|----------|-------|------------|-----------|----------|
-| **Free** | $0 | 1 | 10/mo | 1 | Basic modules |
-| **Pro** | $49 | 5 | 100/mo | 5 | All modules |
-| **Business** | $99 | 15 | 500/mo | Unlimited | Priority support |
-| **Enterprise** | Custom | Unlimited | Unlimited | Unlimited | White-label, API |
-
-### Sprint 11: Customer Portal (Full)
-**Timeline:** After Billing
-**Goal:** Allow customers to create accounts
-
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| Customer Registration | Sign up under a company | P1 |
-| Customer Login | Separate from admin | P1 |
-| Customer Dashboard | View their quotes, jobs, invoices | P1 |
-| Artwork Approval | Approve/reject designs | P1 |
-| Order History | Past orders from webstores | P2 |
-| Profile Management | Update contact info | P2 |
-
----
-
-## 🐛 KNOWN ISSUES
-
-### P1 - High Priority
-| Issue | Description | Status |
-|-------|-------------|--------|
-| Customer Portal Empty Descriptions | Quote line item descriptions not showing in portal | 🔲 Todo |
-
-### P2 - Medium Priority
-| Issue | Description | Status |
-|-------|-------------|--------|
-| Accessibility Warnings | Minor ARIA/contrast issues from old test reports | 🔲 Todo |
-
----
-
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| Proof Upload | Upload design files to job | P0 |
-| Approval Request | Send to customer via magic link | P0 |
-| Approval UI | Customer approve/reject/comment | P0 |
-| Approval History | Track all approvals | P1 |
-| Revision Tracking | Version history | P1 |
-| Email Notifications | Notify on upload/approval | P2 |
-
-### Sprint 11: Enhanced Reporting
-**Timeline:** After Artwork Approval
-**Goal:** Business intelligence and analytics
-
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| Sales Dashboard | Revenue, quotes, conversion | P1 |
-| Customer Reports | Top customers, retention | P1 |
-| Job Reports | Turnaround time, profitability | P1 |
-| Employee Reports | Hours, productivity | P1 |
-| Financial Reports | P&L, cash flow | P1 |
-| PDF Export | Download reports | P1 |
-| CSV Export | Data export | P1 |
-| Scheduled Reports | Email weekly/monthly | P2 |
-
-### Sprint 12: Smart Pricing Engine
-**Timeline:** After Reporting
-**Goal:** Category-specific pricing calculators
-
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| Apparel Calculator | Qty breaks, colors, locations | P1 |
-| Banner Calculator | Size, material, finishing | P1 |
-| Sign Calculator | Type, materials, installation | P1 |
-| Vehicle Wrap Calculator | Coverage, complexity | P1 |
-| Profit Margin Display | Real-time profit calc | P1 |
-| Pricing Templates | Save common configurations | P2 |
-| Price Book | Master price list | P2 |
-
-### Sprint 13: Email Integration
-**Timeline:** After Pricing
-**Goal:** Real email sending/receiving
-
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| SendGrid/Resend Integration | Transactional email | P0 |
-| Quote Email | Send quote to customer | P0 |
-| Invoice Email | Send invoice to customer | P0 |
-| Reminder Emails | Overdue invoice reminders | P1 |
-| Approval Request Email | Send proof for approval | P1 |
-| Welcome Email | New customer/user | P2 |
-| Custom Email Templates | Branded emails | P2 |
-
-### Sprint 14: Mobile Optimization
-**Timeline:** After Email
-**Goal:** Field-friendly mobile experience
-
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| Responsive Time Clock | Easy mobile clock in/out | P1 |
-| Mobile Job Updates | Update status from field | P1 |
-| Photo Capture | Add job photos from phone | P1 |
-| GPS Check-in | Location with time entries | P2 |
-| Offline Mode | Work without internet | P3 |
-| Push Notifications | Mobile alerts | P3 |
-
-### Sprint 15: Integrations
-**Timeline:** After Mobile
-**Goal:** Connect with other business tools
-
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| QuickBooks Online | Sync invoices, payments | P1 |
-| Google Calendar | Sync tasks, due dates | P2 |
-| Zapier | Connect to 1000+ apps | P2 |
-| API Access | Public REST API | P2 |
-| Webhooks | Event notifications | P2 |
-| Stripe Connect | Customer payments | P1 |
-
----
-
-## 🏢 SAAS REQUIREMENTS CHECKLIST
-
-### Infrastructure
-- [ ] Multi-tenant database architecture
-- [ ] Tenant isolation middleware
-- [ ] Subdomain routing (optional)
-- [ ] SSL certificates
-- [ ] CDN for assets
-- [ ] Backup system
-- [ ] Monitoring & alerting
-
-### Security
-- [x] JWT authentication
-- [ ] Role-based access control
-- [ ] Rate limiting
-- [ ] Input validation/sanitization
-- [ ] SQL injection prevention (MongoDB)
-- [ ] XSS prevention
-- [ ] CSRF protection
-- [ ] Data encryption at rest
-- [ ] Audit logging
-
-### Billing
-- [ ] Stripe subscription integration
-- [ ] Plan management
-- [ ] Usage metering
-- [ ] Upgrade/downgrade flow
-- [ ] Failed payment handling
-- [ ] Cancellation flow
-- [ ] Refund handling
-
-### Compliance
-- [ ] Terms of Service
-- [ ] Privacy Policy
-- [ ] GDPR compliance (if EU)
-- [ ] Data export (user request)
-- [ ] Data deletion (user request)
-- [ ] Cookie consent
-
-### Operations
-- [ ] User onboarding flow
-- [ ] In-app help/documentation
-- [ ] Support ticket system
-- [ ] Changelog/release notes
-- [ ] Uptime status page
-- [ ] Email support
-
----
-
-## 🏗️ TECHNICAL ARCHITECTURE
-
-### Current Stack
 ```
-Frontend:
-├── React 18
-├── React Router v6
-├── Tailwind CSS
-├── Shadcn UI Components
-├── Axios (API calls)
-└── Context API (State)
+Core Product Features:     ████████████████████ 36/36  (100%)
+Multi-Tenancy & Security:  ████████████████░░░░ 16/18  ( 90%)
+Billing & Monetization:    ███████████████████░ 12/13  ( 95%)
+User Portals:              ████████████████████ 10/10  (100%)
+Onboarding & UX:           █████████████████░░░ 10/12  ( 85%)
+Integrations:              ██████████████████░░  9/10  ( 90%)
+Operations & Compliance:   ██████░░░░░░░░░░░░░░  3/7   ( 50%)
 
-Backend:
-├── FastAPI (Python)
-├── Motor (Async MongoDB)
-├── Pydantic (Validation)
-├── PyJWT (Authentication)
-├── Passlib (Password hashing)
-└── emergentintegrations (AI)
+TOTAL:                     ████████████████░░░░ 96/106 
+```
+
+### SAAS READINESS: 90.5%
+
+**Breakdown:**
+- **96 of 106 weighted items complete**
+- **10 remaining items** needed for full production SaaS:
+  1. Rate limiting (P1)
+  2. Failed payment / dunning handling (P2)
+  3. UI Overhaul - Dark Shell / Light Workspace (P1)
+  4. Mobile responsiveness optimization (P2)
+  5. QuickBooks / accounting integration (P3)
+  6. Terms of Service / Privacy Policy pages (P1)
+  7. Cookie consent banner (P2)
+  8. GDPR compliance tools (P2)
+  9. Uptime / status page (P3)
+  10. Error boundary / graceful error handling (P2)
+
+---
+
+## Current Status
+
+### What's Working
+| Area | Status | Endpoints |
+|------|--------|-----------|
+| Authentication & RBAC | WORKING | 12+ |
+| Customer CRM | WORKING | 15+ |
+| Jobs & Quotes | WORKING | 25+ |
+| Invoicing | WORKING | 15+ |
+| Time Clock & Payroll | WORKING | 20+ |
+| AI Tools (28+ tools) | WORKING | 30+ |
+| AI Assistants (page + floating, with voice) | WORKING | 10+ |
+| Webstores | WORKING | 25+ |
+| Customer Portal | WORKING | 30+ |
+| Employee Portal | WORKING | 15+ |
+| Pricing System | WORKING | 15+ |
+| Production Workflow | WORKING | 10+ |
+| Billing & Credits | WORKING | 20+ |
+| Community & Docs | WORKING | 10+ |
+| Backup & Restore | WORKING | 5+ |
+| Marketing Website | WORKING | N/A |
+| Onboarding | WORKING | 8+ |
+
+### Known Issues
+| Issue | Priority | Status |
+|-------|----------|--------|
+| Production login CORS 400 preflight | P0 | BLOCKED - Platform issue, not app code |
+| Legacy `/financials` routes gap | P2 | Low priority |
+
+---
+
+## Active Tasks
+
+| Task | Priority | Status |
+|------|----------|--------|
+| "Dark Shell / Light Workspace" UI Overhaul | P1 | NOT STARTED |
+| Add "New Job" button in customer info popup | P1 | NOT STARTED |
+| Finalize ribbon navigation cleanup | P1 | NOT STARTED |
+
+---
+
+## Upcoming Features (P1-P2)
+
+| Feature | Priority | Blocked? |
+|---------|----------|----------|
+| UI Overhaul (Dark Shell / Light Workspace) | P1 | No |
+| "New Job" button in customer popup | P1 | No |
+| Terms of Service / Privacy Policy pages | P1 | No |
+| Rate limiting on API endpoints | P1 | No |
+| Founders Edition Stripe Price IDs | P2 | Yes - awaiting user |
+| Failed payment / dunning handling | P2 | No |
+| Cookie consent banner | P2 | No |
+| Error boundary implementation | P2 | No |
+| GDPR data export/deletion tools | P2 | No |
+| Mobile responsiveness pass | P2 | No |
+
+---
+
+## Future / Backlog (P3)
+
+| Feature | Description |
+|---------|-------------|
+| Full Optimization onboarding tier | Workflow automation rules, advanced analytics |
+| Learning Calculator | Calculator that improves pricing over time |
+| Archive Legacy Pricing | Remove old pricing pages/routes |
+| Vehicle Wrap AI Tool (Full Spec) | Complete wrap design & estimation |
+| Master Product List | Centralized catalog across tenants |
+| Custom Domain Support | Custom URLs for webstores |
+| SMS Notifications (Twilio) | Text alerts for customers |
+| QuickBooks Integration | Sync invoices, payments |
+| BNPL (Affirm/Klarna) | Buy now pay later |
+| Zapier Integration | Connect to 1000+ apps |
+| Scheduled Reports | Auto-generated email reports |
+| Advanced Analytics | Trend analysis, forecasting |
+| Uptime / Status Page | Public service status |
+| SEO Optimization | Meta tags, Open Graph, sitemap |
+| Analytics / Telemetry | Usage tracking, funnel analysis |
+| i18n / Localization | Multi-language support |
+
+---
+
+## Technical Architecture
+
+### Stack Summary
+```
+Frontend (50,414 LOC):
+  React 18, React Router v6, Tailwind CSS, Shadcn UI
+  Axios, Context API, Lucide React icons
+  Fonts: Barlow Condensed + Manrope
+  87 pages, 81 components, 98 routes
+
+Backend (29,169 LOC):
+  FastAPI, Motor (Async MongoDB), Pydantic, PyJWT
+  emergentintegrations (AI), reportlab (PDF)
+  pdfplumber, openpyxl, xlrd (doc parsing)
+  33 route files, 289 endpoints, 11 services, 12 models
 
 Database:
-├── MongoDB
-├── Collections: customers, quotes, jobs, invoices,
-│   employees, time_entries, tasks, transactions,
-│   webstores, products, orders, users, magic_links
-└── Indexes: id, tenant_id (future)
+  MongoDB - 58 collections
+  Full multi-tenant isolation (verified)
 
-AI Services:
-├── OpenAI GPT-5.2 (Text generation)
-├── Gemini 2.5 Flash (Vision analysis)
-└── OpenAI gpt-image-1 (Image generation)
+Integrations:
+  OpenAI GPT-5.2 (text) via Emergent LLM Key
+  OpenAI GPT Image 1 (images) via Emergent LLM Key
+  OpenAI Whisper STT via user OPENAI_API_KEY
+  OpenAI TTS via user OPENAI_API_KEY
+  Stripe (subscriptions, Connect, webhooks)
+  SendGrid (transactional email)
 ```
 
-### Target SaaS Architecture
+### Key Directories
 ```
-┌─────────────────────────────────────────────────────┐
-│                    Load Balancer                      │
-└─────────────────────────────────────────────────────┘
-                           │
-          ┌────────────────┼────────────────┐
-          ▼                ▼                ▼
-    ┌──────────┐    ┌──────────┐    ┌──────────┐
-    │ Frontend │    │ Frontend │    │ Frontend │
-    │ (CDN)    │    │ (CDN)    │    │ (CDN)    │
-    └──────────┘    └──────────┘    └──────────┘
-          │                │                │
-          └────────────────┼────────────────┘
-                           ▼
-                    ┌──────────┐
-                    │   API    │
-                    │ Gateway  │
-                    └──────────┘
-                           │
-          ┌────────────────┼────────────────┐
-          ▼                ▼                ▼
-    ┌──────────┐    ┌──────────┐    ┌──────────┐
-    │ Backend  │    │ Backend  │    │ Backend  │
-    │ Instance │    │ Instance │    │ Instance │
-    └──────────┘    └──────────┘    └──────────┘
-          │                │                │
-          └────────────────┼────────────────┘
-                           ▼
-          ┌────────────────────────────────┐
-          │         MongoDB Atlas          │
-          │    (Sharded, Multi-Region)     │
-          └────────────────────────────────┘
+/app/
+  backend/
+    routes/    (33 files) - API endpoint handlers
+    models/    (12 files) - Pydantic data models
+    services/  (11 files) - Business logic layer
+    server.py  (1193 lines) - App setup, middleware, router mounting
+  frontend/
+    src/pages/       (87 files) - Page components
+    src/components/  (81 files) - Reusable UI + ribbon nav
+    src/context/     - AuthContext, state management
+    src/hooks/       - Custom React hooks
+    App.js           - Route definitions and layout
+  memory/            - Project documentation
+  docs/              - User-facing help docs
+  FEATURE_CATALOG.md - Complete feature inventory
 ```
 
 ---
 
-## 📡 API REFERENCE
-
-### Authentication
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/auth/register` | POST | Create new user account |
-| `/api/auth/login` | POST | Login, returns JWT |
-| `/api/users/me` | GET | Get current user profile |
-| `/api/users/me` | PUT | Update user profile |
-| `/api/admin/users` | GET | List all users (admin) |
-| `/api/admin/users/{id}/reset-password` | POST | Reset user password |
-| `/api/admin/users/{id}/status` | PUT | Enable/disable user |
-
-### Magic Links
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/magic-links` | POST | Create magic link |
-| `/api/magic-links` | GET | List magic links |
-| `/api/magic-links/{id}` | DELETE | Revoke magic link |
-| `/api/portal/{token}` | GET | Access via magic link (public) |
-
-### Core Modules
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/customers` | GET/POST | List/create customers |
-| `/api/customers/{id}` | GET/PUT/DELETE | Single customer |
-| `/api/quotes` | GET/POST | List/create quotes |
-| `/api/quotes/{id}` | GET/PUT/DELETE | Single quote |
-| `/api/quotes/{id}/convert-to-job` | POST | Convert to job |
-| `/api/jobs` | GET/POST | List/create jobs |
-| `/api/jobs/{id}` | GET/PUT/DELETE | Single job |
-| `/api/invoices` | GET/POST | List/create invoices |
-| `/api/invoices/{id}` | GET/PUT/DELETE | Single invoice |
-
-### AI Tools
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/ai/generate` | POST | Text/analysis generation |
-| `/api/ai/generate-images` | POST | Image generation |
-
----
-
-## 📊 DATABASE SCHEMA
-
-### Users Collection
-```javascript
-{
-  id: "uuid",
-  email: "user@example.com",
-  hashed_password: "...",
-  full_name: "John Smith",
-  company_name: "Smith Signs",
-  is_active: true,
-  // Future: tenant_id, role
-  created_at: "ISO8601",
-  updated_at: "ISO8601"
-}
-```
-
-### Customers Collection
-```javascript
-{
-  id: "uuid",
-  // Future: tenant_id
-  name: "Customer Name",
-  company: "Company Inc",
-  email: "customer@email.com",
-  phone: "555-1234",
-  address: "123 Main St",
-  status: "active|lead|inactive",
-  notes: "...",
-  created_at: "ISO8601"
-}
-```
-
-### Magic Links Collection
-```javascript
-{
-  id: "uuid",
-  token: "secure_random_token",
-  resource_type: "quote|job|invoice",
-  resource_id: "uuid",
-  customer_email: "optional@email.com",
-  expires_at: "ISO8601",
-  is_used: false,
-  created_at: "ISO8601"
-}
-```
-
----
-
-## 📝 DEVELOPMENT NOTES
-
-### Code Conventions
-- Use UUID for all IDs (`str(uuid.uuid4())`)
-- Exclude `_id` from MongoDB responses
-- Use ISO8601 for all dates
-- Pydantic models for validation
-- React Context for state management
-- Lucide React for icons
-
-### Testing
-- Backend tests: `/app/backend/tests/`
-- Test reports: `/app/test_reports/`
-- Run: `pytest -v`
-
-### Environment Variables
-```env
-# Backend (.env)
-MONGO_URL="mongodb://localhost:27017"
-DB_NAME="signguy_ai"
-EMERGENT_LLM_KEY="sk-emergent-..."
-JWT_SECRET_KEY="..."
-
-# Frontend (.env)
-REACT_APP_BACKEND_URL="https://..."
-```
-
----
-
-## 📈 PROGRESS TRACKER
-
-### Overall Completion
-```
-Phase 1-13 (Core App):     ████████████████████ 100%
-Phase 14 (RBAC):           ░░░░░░░░░░░░░░░░░░░░   0%
-Phase 15 (Multi-Tenant):   ░░░░░░░░░░░░░░░░░░░░   0%
-Phase 16 (Billing):        ░░░░░░░░░░░░░░░░░░░░   0%
-Phase 17 (Customer Portal):░░░░░░░░░░░░░░░░░░░░   0%
-Phase 18+ (Enhancements):  ░░░░░░░░░░░░░░░░░░░░   0%
-
-Total SaaS Ready:          ████████░░░░░░░░░░░░  40%
-```
-
-### Feature Count
-- **Completed Features:** 85+
-- **Remaining for MVP SaaS:** ~25
-- **Nice-to-Have Features:** ~40
-
----
-
-## 🚀 NEXT SESSION CHECKLIST
-
-When you log in next, here's what to work on:
-
-### Priority 1 (Must Do)
-- [ ] Apply blended theme to remaining pages (Customers, Jobs, Quotes, etc.)
-- [ ] Implement Role-Based Access Control (RBAC)
-- [ ] Add User Roles: Owner, Admin, Staff
-
-### Priority 2 (Should Do)
-- [ ] Multi-tenant data isolation
-- [ ] Company settings page
-- [ ] Add magic link sharing to Jobs and Invoices
-
-### Priority 3 (Nice to Have)
-- [ ] Stripe subscription integration
-- [ ] Full customer portal with accounts
-- [ ] Artwork approval system
-
----
-
-*This document is automatically updated as features are completed.*
-*Last session: February 8, 2026*
+*This document is maintained as the master build tracker for SignGuy AI.*  
+*Last session: March 18, 2026*
