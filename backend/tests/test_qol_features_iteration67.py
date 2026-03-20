@@ -20,7 +20,7 @@ import requests
 import os
 import io
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://sign-shop-suite.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://ultimate-todo.preview.emergentagent.com').rstrip('/')
 ADMIN_EMAIL = "thesigntistslab@gmail.com"
 ADMIN_PASSWORD = "password123"
 
