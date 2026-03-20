@@ -1024,6 +1024,8 @@ async def get_subscription_v2(
             "tier_1": PlanType.OS_STARTER,
             "tier_2": PlanType.OS_PRO,
             "tier_3": PlanType.OS_BUSINESS,
+            "founders_edition": PlanType.OS_BUSINESS,
+            "free_trial": PlanType.OS_STARTER,
         }
         plan_type = legacy_map.get(plan_str.lower(), PlanType.OS_STARTER)
     

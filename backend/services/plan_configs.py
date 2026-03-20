@@ -926,5 +926,7 @@ def legacy_tier_to_plan(tier: str, is_founder: bool = False) -> PlanType:
         "tier_1": PlanType.OS_STARTER,
         "tier_2": PlanType.OS_PRO,
         "tier_3": PlanType.OS_BUSINESS,
+        "founders_edition": PlanType.OS_BUSINESS,
+        "free_trial": PlanType.OS_STARTER,
     }
     return mapping.get(tier.lower(), PlanType.OS_STARTER)

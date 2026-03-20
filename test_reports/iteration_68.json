@@ -1,0 +1,104 @@
+{
+  "summary": "Iteration 68 - Billing features comprehensive testing. All 29 backend API tests passed (100%). Frontend UI verified: Billing page shows Business plan with Founder # badge, $99/mo pricing, 1% invoice / 2% webstore fees. Credit balance, packs ($10/100, $25/300, $60/1000), and Stripe checkout URL generation all working. Founders_edition plan correctly resolves to os_business.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "note": "Fee discrepancy between founders_config.py and plan_configs.py",
+        "details": "founders_config.py shows platform_processing_percent=2.2% + $0.20 fixed vs plan_configs.py shows invoice_fee_percent=1.0%. The billing UI correctly displays 1% from plan_configs. The 2.2%+$0.20 in founders_config appears to represent full payment processing (including Stripe base), while 1% is just platform fee. Webstore fee is consistent at 2%.",
+        "status": "Flagged as potential alignment issue per main agent request"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results": {
+    "backend_tests": {
+      "total": 29,
+      "passed": 29,
+      "failed": 0,
+      "tests": [
+        "test_subscription_v2_returns_valid_response - PASS",
+        "test_founders_edition_maps_to_os_business - PASS (plan_type=os_business, is_founder=True)",
+        "test_subscription_v2_has_correct_pricing - PASS (Founder pricing $99/mo confirmed)",
+        "test_subscription_v2_has_processing_fees - PASS (Invoice=1%, Webstore=2%)",
+        "test_founders_edition_details - PASS ($99/mo, max 100 spots)",
+        "test_founders_promo_code_validation - PASS (FOUNDERS code valid)",
+        "test_invalid_promo_code - PASS (correctly rejected)",
+        "test_credit_balance - PASS (monthly + purchased credits returned)",
+        "test_credit_packs_available - PASS (3 packs: $10/100, $25/300, $60/1000)",
+        "test_credit_costs_endpoint - PASS (104 action types)",
+        "test_single_action_credit_cost - PASS (text_generation=1 credit)",
+        "test_credit_history - PASS (transactions returned)",
+        "test_credit_pack_purchase_generates_checkout_url - PASS (Stripe URL generated)",
+        "test_processing_fee_explanation - PASS (353 char explanation)",
+        "test_my_processing_fees - PASS (Invoice=1%, Webstore=2%)",
+        "test_stripe_connect_status - PASS (platform_fee=1%)",
+        "test_checkout_v2_generates_url - PASS (valid Stripe checkout URL)",
+        "test_checkout_v2_invalid_plan - PASS (correctly rejected)",
+        "test_checkout_v2_annual_only_for_business - PASS (restriction enforced)",
+        "test_all_plans_grouped - PASS (3 product lines)",
+        "test_os_plans - PASS (os_starter, os_pro, os_business)",
+        "test_founder_status - PASS (2/100 used, available=True)",
+        "test_plan_details - PASS ($149/mo standard, $99/mo founder)",
+        "test_my_plan - PASS (os_business, is_founder=true)",
+        "test_subscription_legacy - PASS",
+        "test_trial_status - PASS (is_trial=false, is_locked=false)",
+        "test_founder_status_legacy - PASS (100 remaining)",
+        "test_payment_history - PASS (3 transactions)",
+        "test_credit_preflight - PASS (cost preview working)"
+      ]
+    },
+    "frontend_tests": {
+      "billing_page_plan_display": "PASS - Business plan with Founder # badge visible",
+      "billing_page_pricing": "PASS - $99/mo founder rate displayed with 'Founder rate locked in' text",
+      "billing_page_processing_fees": "PASS - Invoice Payments: 1%, Webstore Sales: 2%",
+      "billing_page_product_line": "PASS - SignGuy AI OS displayed",
+      "billing_page_payment_history": "PASS - os_business transactions shown with $99.00 USD Founder badge",
+      "billing_page_billing_cycle": "PASS - Monthly cycle displayed",
+      "settings_founders_edition": "PASS - FOUNDERS_EDITION badge visible on settings page",
+      "pricing_plans_founder_pricing": "PASS - Starter $29, Pro $59, Business $99 founder prices shown",
+      "pricing_plans_spots": "PASS - 98 of 100 spots remaining shown",
+      "credit_balance_header": "PASS - 1999983 credits shown in header"
+    }
+  },
+  "features_verified": [
+    "Founders Edition plan resolves to os_business with $99/mo - VERIFIED",
+    "AI Credit balance display in header - VERIFIED",
+    "Credit cost preview API (/credits/preflight) - VERIFIED",
+    "AI Credit packs: $10/100, $25/300, $60/1000 - VERIFIED",
+    "Credit pack purchase generates Stripe checkout URL - VERIFIED (DO NOT FOLLOW - LIVE KEYS)",
+    "Processing fees: 1% invoice, 2% webstore for Business/Founders - VERIFIED",
+    "Stripe Connect status shows 1% platform fee for Business tier - VERIFIED",
+    "Multi-product checkout/v2 generates valid Stripe checkout URLs - VERIFIED",
+    "Billing subscription/v2 returns plan_type=os_business, is_founder=true - VERIFIED",
+    "Founders Edition details endpoint pricing and features - VERIFIED",
+    "FOUNDERS promo code validation - VERIFIED",
+    "Processing fee explanation endpoint - VERIFIED",
+    "Credit history tracking - VERIFIED",
+    "Billing page shows Business plan with Founder badge, $99/mo, fees - VERIFIED"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_billing_features_iteration68.py",
+    "/app/test_reports/pytest/billing_features_iteration68_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "FEE CONFIGURATION DISCREPANCY (as flagged by main agent): founders_config.py has platform_processing_percent=2.2% + $0.20 fixed fee, while plan_configs.py has invoice_fee_percent=1.0% for os_business. The UI correctly uses 1% from plan_configs. The 2.2%+$0.20 appears to be the TOTAL payment processing (Stripe base + platform), while 1%/2% are just the PLATFORM fees. Consider adding comments to clarify this distinction to avoid confusion."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_billing_features_iteration68.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "seed_data_creation": "None - used existing admin account thesigntistslab@gmail.com",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All billing features verified working. founders_edition correctly maps to os_business with founder=true. Pricing: $99/mo founder, $149/mo standard. Processing fees: 1% invoice, 2% webstore. 3 credit packs available ($10/100, $25/300, $60/1000). Stripe checkouts generate valid URLs but DO NOT FOLLOW as LIVE keys are configured. There's a cosmetic discrepancy between founders_config.py (2.2%+$0.20 total processing) and plan_configs.py (1% platform invoice fee) - these appear to represent different fee concepts (total vs platform-only).",
+  "notes": "IMPORTANT: Stripe has LIVE keys configured. Test verified checkout URLs are generated but did NOT follow them to avoid actual payments. The admin tenant shows 'trialing' status which is the current subscription state - all billing features still function correctly."
+}

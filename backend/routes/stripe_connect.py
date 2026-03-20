@@ -106,7 +106,28 @@ def get_platform_fee_percent(tier: str) -> float:
 
 
 async def get_tenant_tier(tenant_id: str) -> str:
-    """Get tenant's subscription tier"""
+    """Get tenant's subscription tier from the plan system"""
+    tenant = await db.tenants.find_one(
+        {"id": tenant_id},
+        {"_id": 0, "plan": 1, "is_founder": 1}
+    )
+    if not tenant:
+        return "starter"
+    
+    plan = tenant.get("plan", "")
+    is_founder = tenant.get("is_founder", False)
+    
+    # Map plan to tier for fee calculation
+    if plan in ("os_business", "founders_edition") or (is_founder and plan == "founders_edition"):
+        return "business"
+    elif plan in ("os_pro",):
+        return "pro"
+    elif plan in ("business", "tier_3"):
+        return "business"
+    elif plan in ("pro", "tier_2"):
+        return "pro"
+    
+    # Check subscriptions collection as fallback
     subscription = await db.subscriptions.find_one(
         {"tenant_id": tenant_id},
         {"_id": 0, "tier": 1}
