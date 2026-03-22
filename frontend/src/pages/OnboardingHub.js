@@ -345,7 +345,7 @@ export default function OnboardingHub() {
                   <span>{completeCount} / {tier.steps.length} complete</span>
                   <span>{Math.round((completeCount / tier.steps.length) * 100)}%</span>
                 </div>
-                <Button variant={selectedTierId === tier.id ? 'default' : 'outline'} className="w-full" onClick={() => { setSelectedTierId(tier.id); setCurrentStepIndex(0); }}>
+                <Button variant={selectedTierId === tier.id ? 'default' : 'outline'} className="w-full" onClick={() => { setSelectedTierId(tier.id); setCurrentStepIndex(0); setTimeout(() => document.getElementById('onboarding-steps')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }}>
                   {selectedTierId === tier.id ? 'Current Tier' : 'Open Tier'}
                 </Button>
               </CardContent>
@@ -381,7 +381,7 @@ export default function OnboardingHub() {
         </Card>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+      <div id="onboarding-steps" className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <Card>
           <CardHeader>
             <CardTitle className="text-slate-900">{selectedTier.title} Checklist</CardTitle>
