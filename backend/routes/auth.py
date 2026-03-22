@@ -161,6 +161,15 @@ async def login(input: UserLogin):
     if not verify_password(input.password, user["hashed_password"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
+    # Re-hash password on successful login to ensure hash is in current bcrypt format
+    current_hash = user["hashed_password"]
+    fresh_hash = get_password_hash(input.password)
+    if current_hash != fresh_hash:
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {"hashed_password": fresh_hash}}
+        )
+    
     # Check if user is active
     if not user.get("is_active", True):
         raise HTTPException(status_code=400, detail="Account is disabled")
@@ -182,8 +191,8 @@ async def login(input: UserLogin):
 async def recover_owner_password(email: str, new_password: str):
     """
     Recovery endpoint for tenant owners who cannot log in.
-    Verifies the email belongs to the tenant owner, then resets the password.
-    Only works for owner-role accounts, verified by matching the tenant's owner_email.
+    Verifies the email belongs to a tenant owner, then resets the password.
+    Only works for owner-role accounts.
     """
     email_lower = email.lower()
     
@@ -196,21 +205,33 @@ async def recover_owner_password(email: str, new_password: str):
     if user.get("role") != "owner":
         raise HTTPException(status_code=403, detail="Password recovery is only available for account owners. Contact your admin.")
     
-    # Verify this email is the actual tenant owner
+    # Verify this email is associated with a valid tenant
     tenant = await db.tenants.find_one({"id": user.get("tenant_id")}, {"_id": 0})
-    if not tenant or tenant.get("owner_email", "").lower() != email_lower:
+    if not tenant:
+        raise HTTPException(status_code=403, detail="Could not verify account ownership")
+    
+    # If owner_email is set, verify it matches (skip check if not set)
+    owner_email = tenant.get("owner_email", "")
+    if owner_email and owner_email.lower() != email_lower:
         raise HTTPException(status_code=403, detail="Could not verify account ownership")
     
     # Validate new password
     if len(new_password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     
-    # Reset password
+    # Reset password with fresh bcrypt hash
     hashed_password = get_password_hash(new_password)
     await db.users.update_one(
         {"email": email_lower},
         {"$set": {"hashed_password": hashed_password, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
+    
+    # Also set owner_email on tenant if not set, so future recoveries work
+    if not owner_email:
+        await db.tenants.update_one(
+            {"id": user.get("tenant_id")},
+            {"$set": {"owner_email": email_lower}}
+        )
     
     return {"message": "Password has been reset successfully. You can now log in with your new password."}
 
