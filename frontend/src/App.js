@@ -84,6 +84,8 @@ import FoundersEditionPricing from "./pages/FoundersEditionPricing";
 import WhyFounderPage from "./pages/WhyFounderPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 // Marketing Pages - Product Overviews
 import {
@@ -208,6 +210,8 @@ function App() {
                 <Route path="/why-founder" element={<WhyFounderPage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/contact" element={<ContactPage />} />
+                <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
                 
                 {/* Marketing - Archived Tier Pages (redirect to Founders pricing) */}
                 <Route path="/platform" element={<Navigate to="/pricing-plans" replace />} />

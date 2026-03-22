@@ -131,18 +131,18 @@ export default function BillingManagement() {
 
       {/* Founders Edition Plan Card */}
       <Card className="bg-[#111826] text-white border-[#1E293B] overflow-hidden">
-        <div className="h-2 bg-gradient-to-r from-amber-500 to-orange-500"></div>
+        <div className="h-2 bg-gradient-to-r from-violet-500 to-purple-500"></div>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-amber-500/10">
-                <Crown className="w-6 h-6 text-amber-400" />
+              <div className="p-3 rounded-xl bg-violet-500/10">
+                <Crown className="w-6 h-6 text-violet-400" />
               </div>
               <div>
                 <CardTitle className="text-white flex items-center gap-2">
                   {plan.plan_name}
                   {isFounder && (
-                    <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
+                    <Badge className="bg-violet-500/20 text-violet-400 border-violet-500/30">
                       <Crown className="w-3 h-3 mr-1" /> Founder
                     </Badge>
                   )}
@@ -171,7 +171,7 @@ export default function BillingManagement() {
               <p className="text-2xl font-bold text-white">
                 ${plan.price_monthly}<span className="text-sm font-normal text-gray-400">/mo</span>
               </p>
-              {isFounder && <p className="text-xs text-amber-400 mt-1">Lifetime rate locked</p>}
+              {isFounder && <p className="text-xs text-violet-400 mt-1">Lifetime rate locked</p>}
             </div>
             <div className="bg-[#0B0F17] rounded-lg p-4">
               <p className="text-sm text-gray-400 mb-1">Annual</p>
@@ -182,7 +182,7 @@ export default function BillingManagement() {
             </div>
             <div className="bg-[#0B0F17] rounded-lg p-4">
               <p className="text-sm text-gray-400 mb-1">Promo Code</p>
-              <p className="text-lg font-bold text-amber-400">FOUNDERS</p>
+              <p className="text-lg font-bold text-violet-400">FOUNDERS</p>
               <p className="text-xs text-gray-400 mt-1">50% off at checkout</p>
             </div>
           </div>
@@ -193,7 +193,7 @@ export default function BillingManagement() {
               <Button
                 onClick={() => handleSubscribe('monthly')}
                 disabled={checkoutLoading !== null}
-                className="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-medium"
+                className="flex-1 bg-violet-500 hover:bg-violet-600 text-white font-medium"
                 data-testid="subscribe-monthly-btn"
               >
                 {checkoutLoading === 'monthly' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Crown className="h-4 w-4 mr-2" />}
@@ -203,7 +203,7 @@ export default function BillingManagement() {
                 onClick={() => handleSubscribe('annual')}
                 disabled={checkoutLoading !== null}
                 variant="outline"
-                className="flex-1 border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
+                className="flex-1 border-violet-500/50 text-violet-400 hover:bg-violet-500/10"
                 data-testid="subscribe-annual-btn"
               >
                 {checkoutLoading === 'annual' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
@@ -261,7 +261,7 @@ export default function BillingManagement() {
       <Card className="bg-[#111826] text-white border-[#1E293B]">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
-            <Coins className="w-5 h-5 text-amber-400" />
+            <Coins className="w-5 h-5 text-violet-400" />
             AI Credits
           </CardTitle>
         </CardHeader>
@@ -280,7 +280,7 @@ export default function BillingManagement() {
             </div>
             <div className="bg-[#0B0F17] rounded-lg p-4 text-center">
               <p className="text-sm text-gray-400">Total Available</p>
-              <p className="text-2xl font-bold text-amber-400">{credit_balance.total_available}</p>
+              <p className="text-2xl font-bold text-violet-400">{credit_balance.total_available}</p>
               <p className="text-xs text-gray-500">ready to use</p>
             </div>
           </div>
@@ -292,10 +292,10 @@ export default function BillingManagement() {
               {credit_packs.map((pack) => (
                 <div
                   key={pack.pack_id}
-                  className="bg-[#0B0F17] rounded-lg p-4 border border-[#1E293B] hover:border-amber-500/30 transition"
+                  className="bg-[#0B0F17] rounded-lg p-4 border border-[#1E293B] hover:border-violet-500/30 transition"
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <Package className="w-4 h-4 text-amber-400" />
+                    <Package className="w-4 h-4 text-violet-400" />
                     <span className="font-medium text-white">{pack.label}</span>
                   </div>
                   <p className="text-2xl font-bold text-white mb-1">${pack.price}</p>
@@ -320,7 +320,7 @@ export default function BillingManagement() {
 
           {/* Credit Info */}
           <div className="bg-[#0B0F17] rounded-lg p-4 text-sm text-gray-400 space-y-1">
-            <p><Zap className="w-3 h-3 inline mr-1 text-amber-400" />Monthly credits ({credit_balance.monthly_allowance}/mo) reset each billing cycle and do not roll over.</p>
+            <p><Zap className="w-3 h-3 inline mr-1 text-violet-400" />Monthly credits ({credit_balance.monthly_allowance}/mo) reset each billing cycle and do not roll over.</p>
             <p><Zap className="w-3 h-3 inline mr-1 text-emerald-400" />Purchased credits never expire as long as your account is active.</p>
             <p><Zap className="w-3 h-3 inline mr-1 text-blue-400" />Credits are used first from monthly allowance, then from purchased balance.</p>
           </div>

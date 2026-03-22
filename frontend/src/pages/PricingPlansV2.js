@@ -72,7 +72,7 @@ export default function PricingPlansV2() {
       <div className="max-w-4xl mx-auto px-6 py-16">
         {/* Header */}
         <div className="text-center mb-12">
-          <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 mb-4 px-3 py-1">
+          <Badge className="bg-violet-500/20 text-violet-400 border-violet-500/30 mb-4 px-3 py-1">
             <Crown className="w-3 h-3 mr-1" /> Limited to {spots?.total_spots || 100} Founding Members
           </Badge>
           <h1 className="text-4xl sm:text-5xl font-bold mb-4">
@@ -83,9 +83,9 @@ export default function PricingPlansV2() {
             Be one of the first {spots?.total_spots || 100} and keep this price forever.
           </p>
           {spots && (
-            <div className="mt-4 inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-full px-4 py-2">
-              <Users className="w-4 h-4 text-amber-400" />
-              <span className="text-sm text-amber-300">
+            <div className="mt-4 inline-flex items-center gap-2 bg-violet-500/10 border border-violet-500/20 rounded-full px-4 py-2">
+              <Users className="w-4 h-4 text-violet-400" />
+              <span className="text-sm text-violet-300">
                 <strong>{spots.spots_remaining}</strong> of {spots.total_spots} spots remaining
               </span>
             </div>
@@ -93,15 +93,15 @@ export default function PricingPlansV2() {
         </div>
 
         {/* Pricing Card */}
-        <Card className="bg-[#111826] border-amber-500/30 overflow-hidden mb-12" data-testid="founders-pricing-card">
-          <div className="h-2 bg-gradient-to-r from-amber-500 to-orange-500"></div>
+        <Card className="bg-[#111826] border-violet-500/30 overflow-hidden mb-12" data-testid="founders-pricing-card">
+          <div className="h-2 bg-gradient-to-r from-violet-500 to-purple-500"></div>
           <CardContent className="p-8">
             <div className="grid md:grid-cols-2 gap-8">
               {/* Left - Pricing */}
               <div>
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="p-3 rounded-xl bg-amber-500/10">
-                    <Crown className="w-8 h-8 text-amber-400" />
+                  <div className="p-3 rounded-xl bg-violet-500/10">
+                    <Crown className="w-8 h-8 text-violet-400" />
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold">Founders Edition</h2>
@@ -116,12 +116,12 @@ export default function PricingPlansV2() {
                       <p className="text-sm text-gray-400">Monthly</p>
                       <p className="text-3xl font-bold">$99<span className="text-base font-normal text-gray-400">/mo</span></p>
                     </div>
-                    <Badge className="bg-amber-500/20 text-amber-400 text-xs">FOUNDERS price</Badge>
+                    <Badge className="bg-violet-500/20 text-violet-400 text-xs">FOUNDERS price</Badge>
                   </div>
                   <Button
                     onClick={() => handleCheckout('monthly')}
                     disabled={checkoutLoading !== null}
-                    className="w-full bg-amber-500 hover:bg-amber-600 text-black font-semibold"
+                    className="w-full bg-violet-500 hover:bg-violet-600 text-white font-semibold"
                     data-testid="checkout-monthly-btn"
                   >
                     {checkoutLoading === 'monthly' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowRight className="h-4 w-4 mr-2" />}
@@ -130,7 +130,7 @@ export default function PricingPlansV2() {
                 </div>
 
                 {/* Annual */}
-                <div className="bg-[#0B0F17] rounded-xl p-5 border border-amber-500/20">
+                <div className="bg-[#0B0F17] rounded-xl p-5 border border-violet-500/20">
                   <div className="flex items-end justify-between mb-3">
                     <div>
                       <p className="text-sm text-gray-400">Annual</p>
@@ -142,7 +142,7 @@ export default function PricingPlansV2() {
                     onClick={() => handleCheckout('annual')}
                     disabled={checkoutLoading !== null}
                     variant="outline"
-                    className="w-full border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
+                    className="w-full border-violet-500/50 text-violet-400 hover:bg-violet-500/10"
                     data-testid="checkout-annual-btn"
                   >
                     {checkoutLoading === 'annual' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
@@ -151,9 +151,9 @@ export default function PricingPlansV2() {
                 </div>
 
                 {/* Promo */}
-                <div className="mt-4 bg-amber-500/5 border border-amber-500/20 rounded-lg p-3 text-center">
-                  <p className="text-sm text-amber-300">
-                    Use promo code <strong className="text-amber-400">FOUNDERS</strong> at checkout for 50% off
+                <div className="mt-4 bg-violet-500/5 border border-violet-500/20 rounded-lg p-3 text-center">
+                  <p className="text-sm text-violet-300">
+                    Use promo code <strong className="text-violet-400">FOUNDERS</strong> at checkout for 50% off
                   </p>
                 </div>
               </div>
@@ -161,7 +161,7 @@ export default function PricingPlansV2() {
               {/* Right - Features */}
               <div>
                 <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <Sparkles className="w-4 h-4 text-violet-400" />
                   Everything Included
                 </h3>
                 <div className="space-y-2.5">
@@ -191,10 +191,10 @@ export default function PricingPlansV2() {
             ].map((pack) => (
               <Card
                 key={pack.id}
-                className={`bg-[#111826] border-[#1E293B] ${pack.popular ? 'border-[#2F8BFB]/50' : ''} ${pack.best ? 'border-amber-500/50' : ''}`}
+                className={`bg-[#111826] border-[#1E293B] ${pack.popular ? 'border-[#2F8BFB]/50' : ''} ${pack.best ? 'border-violet-500/50' : ''}`}
               >
                 <CardContent className="p-6 text-center">
-                  <Package className="w-8 h-8 text-amber-400 mx-auto mb-3" />
+                  <Package className="w-8 h-8 text-violet-400 mx-auto mb-3" />
                   <h3 className="font-bold text-lg text-white mb-1">{pack.label}</h3>
                   <p className="text-3xl font-bold text-white mb-1">${pack.price}</p>
                   <p className="text-xs text-gray-400 mb-4">
@@ -251,7 +251,7 @@ export default function PricingPlansV2() {
           <Card className="bg-[#111826] border-[#1E293B]">
             <CardContent className="p-6">
               <h3 className="font-bold text-white mb-4 flex items-center gap-2">
-                <Zap className="w-5 h-5 text-amber-400" />
+                <Zap className="w-5 h-5 text-violet-400" />
                 How AI Credits Work
               </h3>
               <div className="space-y-2 text-sm text-gray-300">

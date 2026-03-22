@@ -92,7 +92,7 @@ const LockoutScreen = () => {
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-red-500/5 via-transparent to-transparent" />
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-500/10 rounded-full blur-3xl" />
       
       <div className="relative min-h-screen flex flex-col items-center justify-center p-4">
         <div className="max-w-lg w-full text-center">
@@ -101,7 +101,7 @@ const LockoutScreen = () => {
             <div className="w-24 h-24 rounded-full bg-red-500/10 flex items-center justify-center mx-auto">
               <Lock className="w-12 h-12 text-red-500" />
             </div>
-            <div className="absolute -top-2 -right-2 w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center shadow-lg animate-bounce">
+            <div className="absolute -top-2 -right-2 w-10 h-10 rounded-full bg-violet-500 flex items-center justify-center shadow-lg animate-bounce">
               <Clock className="w-5 h-5 text-white" />
             </div>
           </div>
@@ -120,7 +120,7 @@ const LockoutScreen = () => {
           <div className="space-y-4 mb-8">
             <Button
               onClick={() => navigate('/pricing')}
-              className="w-full sm:w-auto px-8 py-6 text-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-90 text-black font-semibold shadow-lg shadow-amber-500/25"
+              className="w-full sm:w-auto px-8 py-6 text-lg bg-gradient-to-r from-violet-500 to-purple-500 hover:opacity-90 text-white font-semibold shadow-lg shadow-violet-500/25"
               data-testid="lockout-subscribe-btn"
             >
               <Rocket className="w-5 h-5 mr-2" />
@@ -163,9 +163,9 @@ const LockoutScreen = () => {
           </div>
 
           {/* Founder spots reminder */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/30 mb-8">
-            <Star className="w-4 h-4 text-amber-500" />
-            <span className="text-sm text-amber-400">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/30 mb-8">
+            <Star className="w-4 h-4 text-violet-500" />
+            <span className="text-sm text-violet-400">
               Only 100 Founder spots available - lock in lifetime pricing!
             </span>
           </div>
@@ -187,7 +187,7 @@ const LockoutScreen = () => {
                 'And much more...'
               ].map((feature) => (
                 <div key={feature} className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-violet-500" />
                   {feature}
                 </div>
               ))}
@@ -196,7 +196,7 @@ const LockoutScreen = () => {
 
           {/* Founder pricing reminder */}
           <p className="mt-8 text-sm text-[var(--text-secondary)]">
-            <span className="text-amber-400 font-semibold">Founders Edition</span> — 
+            <span className="text-violet-400 font-semibold">Founders Edition</span> — 
             All features, lifetime locked pricing, no restrictions
           </p>
         </div>
@@ -246,7 +246,7 @@ export const TrialCountdown = () => {
     <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
       isUrgent 
         ? 'bg-red-500/10 text-red-500 border border-red-500/30'
-        : 'bg-amber-500/10 text-amber-500 border border-amber-500/30'
+        : 'bg-violet-500/10 text-violet-500 border border-violet-500/30'
     }`}>
       <Clock className="w-3.5 h-3.5" />
       <span>

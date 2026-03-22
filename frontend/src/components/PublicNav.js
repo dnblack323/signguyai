@@ -54,7 +54,7 @@ export function PublicNav() {
                 </Button>
               </Link>
               <Link to="/register">
-                <Button className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-semibold text-sm">
+                <Button className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white font-semibold text-sm">
                   Get Founders Edition
                 </Button>
               </Link>
@@ -81,7 +81,7 @@ export function PublicNav() {
                 to={link.href}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`px-4 py-2 text-sm ${
-                  isActive(link.href) ? 'text-amber-400' : 'text-gray-300'
+                  isActive(link.href) ? 'text-violet-400' : 'text-gray-300'
                 }`}
               >
                 {link.label}
@@ -96,7 +96,7 @@ export function PublicNav() {
                 Log In
               </Link>
               <Link to="/register" onClick={() => setMobileMenuOpen(false)}>
-                <Button className="w-full mt-2 bg-gradient-to-r from-amber-500 to-orange-500 text-black font-semibold">
+                <Button className="w-full mt-2 bg-gradient-to-r from-violet-500 to-purple-500 text-white font-semibold">
                   Get Founders Edition
                 </Button>
               </Link>
@@ -144,8 +144,8 @@ export function PublicFooter() {
           <div>
             <h4 className="text-white font-semibold mb-4">Legal</h4>
             <ul className="space-y-2">
-              <li><a href="#" className="text-gray-400 hover:text-white text-sm">Privacy Policy</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white text-sm">Terms of Service</a></li>
+              <li><Link to="/privacy" className="text-gray-400 hover:text-white text-sm">Privacy Policy</Link></li>
+              <li><Link to="/terms" className="text-gray-400 hover:text-white text-sm">Terms of Service</Link></li>
             </ul>
           </div>
         </div>

@@ -18,14 +18,14 @@ export default function WhyFounderPage() {
       {/* Hero Section */}
       <section className="pt-20 pb-16 px-4">
         <div className="max-w-5xl mx-auto text-center">
-          <Badge className="mb-6 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-400 border border-amber-500/30 px-4 py-1.5">
+          <Badge className="mb-6 bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-400 border border-violet-500/30 px-4 py-1.5">
             <Crown className="w-4 h-4 mr-2" />
             Founder Access - Limited to 100 Shops
           </Badge>
           
           <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
             Turn Your Sign Shop Into an<br />
-            <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">Intelligent System.</span>
+            <span className="bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">Intelligent System.</span>
           </h1>
           
           <p className="text-xl text-gray-400 max-w-3xl mx-auto mb-8">
@@ -36,13 +36,13 @@ export default function WhyFounderPage() {
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/register">
-              <Button size="lg" className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-semibold px-8 py-6 text-lg h-auto">
+              <Button size="lg" className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white font-semibold px-8 py-6 text-lg h-auto">
                 Apply for Founder Access
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>
             <Link to="/pricing">
-              <Button size="lg" variant="outline" className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-8 py-6 text-lg h-auto bg-transparent">
+              <Button size="lg" variant="outline" className="border-violet-500/30 text-violet-400 hover:bg-violet-500/10 px-8 py-6 text-lg h-auto bg-transparent">
                 See Founder Pricing
               </Button>
             </Link>
@@ -55,7 +55,7 @@ export default function WhyFounderPage() {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="p-4 bg-[#111826] rounded-xl border border-white/10">
-              <Briefcase className="w-8 h-8 text-amber-400 mb-3" />
+              <Briefcase className="w-8 h-8 text-violet-400 mb-3" />
               <p className="font-semibold text-white">Job Stages</p>
               <p className="text-xs text-gray-500">Visual production tracking</p>
             </div>
@@ -76,7 +76,7 @@ export default function WhyFounderPage() {
             </div>
           </div>
           <p className="text-center text-sm text-gray-500 mt-4">
-            Not just pretty UI. <span className="text-amber-400">Show intelligence.</span>
+            Not just pretty UI. <span className="text-violet-400">Show intelligence.</span>
           </p>
         </div>
       </section>
@@ -124,7 +124,7 @@ export default function WhyFounderPage() {
               <div className="hidden md:block w-px bg-gray-700" />
               <div className="flex-1 text-center p-4">
                 <p className="text-gray-500 text-sm">Founder shops run on</p>
-                <p className="text-xl font-bold text-amber-400">Data</p>
+                <p className="text-xl font-bold text-violet-400">Data</p>
               </div>
             </div>
           </div>
@@ -137,7 +137,7 @@ export default function WhyFounderPage() {
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               This Isn't Just Software.<br />
-              <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">It Learns Your Shop.</span>
+              <span className="bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">It Learns Your Shop.</span>
             </h2>
           </div>
 
@@ -251,7 +251,7 @@ export default function WhyFounderPage() {
             {/* Smart Scheduling */}
             <div className="p-6 bg-[#0B0F17] rounded-xl border border-white/10">
               <div className="flex items-center gap-3 mb-4">
-                <Calendar className="w-6 h-6 text-amber-400" />
+                <Calendar className="w-6 h-6 text-violet-400" />
                 <h4 className="font-bold text-white">Smart Scheduling Calendar</h4>
               </div>
               <ul className="space-y-2 text-sm text-gray-400 mb-4">
@@ -261,7 +261,7 @@ export default function WhyFounderPage() {
                 <li>• Avoid overbooking</li>
                 <li>• Sync workflow with production stages</li>
               </ul>
-              <p className="text-xs text-amber-400">
+              <p className="text-xs text-violet-400">
                 <strong>Founder Advantage:</strong> Clear visibility prevents bottlenecks before they happen.
               </p>
             </div>
@@ -304,9 +304,9 @@ export default function WhyFounderPage() {
           </div>
 
           {/* Webstore System */}
-          <div className="mt-8 p-8 bg-[#0B0F17] rounded-xl border border-amber-500/30">
+          <div className="mt-8 p-8 bg-[#0B0F17] rounded-xl border border-violet-500/30">
             <div className="flex items-center gap-3 mb-4">
-              <Store className="w-8 h-8 text-amber-400" />
+              <Store className="w-8 h-8 text-violet-400" />
               <h4 className="text-xl font-bold text-white">Webstore System</h4>
             </div>
             <div className="grid md:grid-cols-3 gap-4 mb-4">
@@ -317,12 +317,12 @@ export default function WhyFounderPage() {
               <div className="text-sm text-gray-400">• Track orders connected to jobs</div>
               <div className="text-sm text-gray-400">• Integrated with customer portal</div>
             </div>
-            <p className="text-amber-400 font-medium">
+            <p className="text-violet-400 font-medium">
               Founder Advantage: Recurring revenue without managing separate platforms.
             </p>
           </div>
 
-          <div className="mt-8 text-center p-6 bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-xl border border-amber-500/20">
+          <div className="mt-8 text-center p-6 bg-gradient-to-r from-violet-500/10 to-purple-500/10 rounded-xl border border-violet-500/20">
             <p className="text-lg text-gray-300">
               This isn't separate software stitched together.<br />
               <span className="text-white font-semibold">It's one connected system</span> where labor, pricing, workflow, payroll, and AI intelligence all feed into each other.
@@ -335,7 +335,7 @@ export default function WhyFounderPage() {
       <section className="py-20 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <FolderOpen className="w-12 h-12 text-amber-400 mx-auto mb-4" />
+            <FolderOpen className="w-12 h-12 text-violet-400 mx-auto mb-4" />
             <h2 className="text-3xl font-bold mb-4">Complete Portal System</h2>
           </div>
 
@@ -376,7 +376,7 @@ export default function WhyFounderPage() {
             </Card>
           </div>
 
-          <p className="text-center text-amber-400 mt-6">
+          <p className="text-center text-violet-400 mt-6">
             <strong>Founder Advantage:</strong> No more scattered documents or lost communication.
           </p>
         </div>
@@ -410,22 +410,22 @@ export default function WhyFounderPage() {
               </div>
             </div>
 
-            <div className="p-6 bg-[#111826] rounded-xl border border-amber-500/30">
+            <div className="p-6 bg-[#111826] rounded-xl border border-violet-500/30">
               <h4 className="font-bold text-white mb-4 flex items-center gap-2">
-                <Zap className="w-5 h-5 text-amber-400" />
+                <Zap className="w-5 h-5 text-violet-400" />
                 In Progress
               </h4>
               <div className="space-y-3 text-gray-400">
-                <div className="p-3 bg-amber-500/10 rounded-lg">
-                  <p className="font-medium text-amber-400">Advanced Wrap Module</p>
+                <div className="p-3 bg-violet-500/10 rounded-lg">
+                  <p className="font-medium text-violet-400">Advanced Wrap Module</p>
                   <p className="text-xs">Vehicle wrap design intelligence</p>
                 </div>
-                <div className="p-3 bg-amber-500/10 rounded-lg">
-                  <p className="font-medium text-amber-400">Advanced Race Car Design Module</p>
+                <div className="p-3 bg-violet-500/10 rounded-lg">
+                  <p className="font-medium text-violet-400">Advanced Race Car Design Module</p>
                   <p className="text-xs">Specialized racing graphics tools</p>
                 </div>
               </div>
-              <p className="text-amber-400 text-sm mt-4">
+              <p className="text-violet-400 text-sm mt-4">
                 <strong>Founder Advantage:</strong> First access to advanced wrap intelligence tools before public launch.
               </p>
             </div>
@@ -441,12 +441,12 @@ export default function WhyFounderPage() {
       <section className="py-20 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
-            <Brain className="w-12 h-12 text-amber-400 mx-auto mb-4" />
+            <Brain className="w-12 h-12 text-violet-400 mx-auto mb-4" />
             <h2 className="text-3xl font-bold mb-4">The AI Business Brain</h2>
             <p className="text-xl text-gray-400">Ask Your Shop Questions. Get Real Answers.</p>
           </div>
 
-          <Card className="bg-[#111826] border-amber-500/30">
+          <Card className="bg-[#111826] border-violet-500/30">
             <CardContent className="p-8">
               <p className="text-gray-300 mb-6">Your AI Business Assistant can:</p>
               <div className="grid md:grid-cols-3 gap-3 mb-6">
@@ -464,13 +464,13 @@ export default function WhyFounderPage() {
                   "Brainstorm business ideas"
                 ].map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-sm text-gray-400">
-                    <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-violet-400 shrink-0" />
                     {item}
                   </div>
                 ))}
               </div>
-              <div className="p-4 bg-amber-500/10 rounded-lg border border-amber-500/20 text-center">
-                <p className="text-amber-400 font-medium">
+              <div className="p-4 bg-violet-500/10 rounded-lg border border-violet-500/20 text-center">
+                <p className="text-violet-400 font-medium">
                   Founder Advantage: You don't just use tools. You have a business co-pilot.
                 </p>
               </div>
@@ -519,12 +519,12 @@ export default function WhyFounderPage() {
       <section className="py-20 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
-            <Crown className="w-12 h-12 text-amber-400 mx-auto mb-4" />
+            <Crown className="w-12 h-12 text-violet-400 mx-auto mb-4" />
             <h2 className="text-3xl font-bold mb-4">Why Founder Access Matters Now</h2>
             <p className="text-xl text-gray-400">We're Opening Founder Access Before Public Launch.</p>
           </div>
 
-          <Card className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/30">
+          <Card className="bg-gradient-to-br from-violet-500/10 to-purple-500/10 border-violet-500/30">
             <CardContent className="p-8">
               <p className="text-white font-semibold mb-4">Founder shops:</p>
               <ul className="space-y-3 mb-8">
@@ -536,7 +536,7 @@ export default function WhyFounderPage() {
                   "Get direct communication during rollout"
                 ].map((item, idx) => (
                   <li key={idx} className="flex items-center gap-3 text-gray-300">
-                    <CheckCircle2 className="w-5 h-5 text-amber-400" />
+                    <CheckCircle2 className="w-5 h-5 text-violet-400" />
                     {item}
                   </li>
                 ))}
@@ -544,7 +544,7 @@ export default function WhyFounderPage() {
 
               <div className="p-4 bg-[#0B0F17] rounded-lg text-center">
                 <p className="text-gray-400 mb-2">Public release pricing will be higher.</p>
-                <p className="text-amber-400 font-semibold text-lg">Founder rates are permanent while active.</p>
+                <p className="text-violet-400 font-semibold text-lg">Founder rates are permanent while active.</p>
                 <p className="text-gray-500 text-sm mt-2">No hype. Just math.</p>
               </div>
             </CardContent>
@@ -553,10 +553,10 @@ export default function WhyFounderPage() {
       </section>
 
       {/* Final CTA */}
-      <section className="py-20 px-4 bg-gradient-to-b from-amber-900/20 to-transparent">
+      <section className="py-20 px-4 bg-gradient-to-b from-violet-900/20 to-transparent">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            The Shops That Measure, <span className="text-amber-400">Win.</span>
+            The Shops That Measure, <span className="text-violet-400">Win.</span>
           </h2>
           
           <p className="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
@@ -570,13 +570,13 @@ export default function WhyFounderPage() {
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/register">
-              <Button size="lg" className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-semibold px-8 py-6 text-lg h-auto">
+              <Button size="lg" className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white font-semibold px-8 py-6 text-lg h-auto">
                 Apply for Founder Access
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>
             <Link to="/pricing">
-              <Button size="lg" variant="outline" className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-8 py-6 text-lg h-auto bg-transparent">
+              <Button size="lg" variant="outline" className="border-violet-500/30 text-violet-400 hover:bg-violet-500/10 px-8 py-6 text-lg h-auto bg-transparent">
                 See Founder Pricing
               </Button>
             </Link>

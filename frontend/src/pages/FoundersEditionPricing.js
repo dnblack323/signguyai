@@ -91,11 +91,11 @@ export default function FoundersEditionPricing() {
             Start with 48-Hour Free Trial - No Credit Card Required
           </Badge>
           
-          <Badge className="mb-4 bg-gradient-to-r from-amber-500/30 to-orange-500/30 text-amber-300 border-amber-500/50 px-4 py-1.5 ml-2">
+          <Badge className="mb-4 bg-gradient-to-r from-violet-500/30 to-purple-500/30 text-violet-300 border-violet-500/50 px-4 py-1.5 ml-2">
             <Crown className="w-4 h-4 mr-2" />
             Limited to 100 Founding Shops
           </Badge>
-          <h1 className="text-4xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-white via-amber-100 to-amber-300 bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-white via-violet-100 to-violet-300 bg-clip-text text-transparent">
             Founders Edition
           </h1>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-8">
@@ -103,17 +103,17 @@ export default function FoundersEditionPricing() {
           </p>
           
           {/* Spots Remaining Counter */}
-          <div className="inline-flex items-center gap-3 bg-[#111826] border border-amber-500/30 rounded-full px-6 py-3">
+          <div className="inline-flex items-center gap-3 bg-[#111826] border border-violet-500/30 rounded-full px-6 py-3">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-amber-300 font-semibold">
+              <span className="text-violet-300 font-semibold">
                 {founders.spots_remaining} spots remaining
               </span>
             </div>
             <div className="w-px h-6 bg-gray-700" />
             <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
               <div 
-                className="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-500"
+                className="h-full bg-gradient-to-r from-violet-500 to-purple-500 transition-all duration-500"
                 style={{ width: `${spotsPercentage}%` }}
               />
             </div>
@@ -124,13 +124,13 @@ export default function FoundersEditionPricing() {
       {/* Founder Promotion Banner */}
       <section className="pt-16 pb-4 px-4">
         <div className="max-w-4xl mx-auto">
-          <div className="p-6 bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-xl border border-amber-500/30 text-center">
-            <Badge className="mb-3 bg-amber-500/20 text-amber-400 text-sm px-4 py-1">
+          <div className="p-6 bg-gradient-to-r from-violet-500/10 to-purple-500/10 rounded-xl border border-violet-500/30 text-center">
+            <Badge className="mb-3 bg-violet-500/20 text-violet-400 text-sm px-4 py-1">
               <Crown className="w-4 h-4 mr-1" />
               Founder Launch Offer
             </Badge>
             <p className="text-white font-medium mb-1">
-              Promo code <span className="text-amber-400 font-bold">FOUNDERS</span> gives 50% off the annual plan
+              Promo code <span className="text-violet-400 font-bold">FOUNDERS</span> gives 50% off the annual plan
             </p>
             <p className="text-gray-400 text-sm mb-3">
               Available for the first 100 customers only — {founders.spots_remaining} spots remaining
@@ -145,9 +145,9 @@ export default function FoundersEditionPricing() {
       {/* Main Pricing Card */}
       <section className="py-12 px-4">
         <div className="max-w-4xl mx-auto">
-          <Card className="bg-gradient-to-b from-[#111826] to-[#0d1420] border-2 border-amber-500/50 overflow-hidden">
+          <Card className="bg-gradient-to-b from-[#111826] to-[#0d1420] border-2 border-violet-500/50 overflow-hidden">
             {/* Header Banner */}
-            <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-black text-center py-2 font-bold">
+            <div className="bg-gradient-to-r from-violet-500 to-purple-500 text-white text-center py-2 font-bold">
               <Crown className="inline w-4 h-4 mr-2" />
               FOUNDERS EDITION - LIFETIME LOCKED PRICING
             </div>
@@ -162,7 +162,7 @@ export default function FoundersEditionPricing() {
                       onClick={() => setBillingCycle('monthly')}
                       className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
                         billingCycle === 'monthly' 
-                          ? 'bg-amber-500 text-black' 
+                          ? 'bg-violet-500 text-white' 
                           : 'text-gray-400 hover:text-white'
                       }`}
                     >
@@ -172,7 +172,7 @@ export default function FoundersEditionPricing() {
                       onClick={() => setBillingCycle('annual')}
                       className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
                         billingCycle === 'annual' 
-                          ? 'bg-amber-500 text-black' 
+                          ? 'bg-violet-500 text-white' 
                           : 'text-gray-400 hover:text-white'
                       }`}
                     >
@@ -211,8 +211,8 @@ export default function FoundersEditionPricing() {
 
                   {/* Promo Code */}
                   {billingCycle === 'monthly' && (
-                    <div className="mb-6 p-4 bg-[#0B0F17] rounded-lg border border-dashed border-amber-500/30">
-                      <p className="text-sm text-amber-300 mb-2">Have a promo code?</p>
+                    <div className="mb-6 p-4 bg-[#0B0F17] rounded-lg border border-dashed border-violet-500/30">
+                      <p className="text-sm text-violet-300 mb-2">Have a promo code?</p>
                       <div className="flex gap-2">
                         <Input
                           placeholder="Enter code"
@@ -223,7 +223,7 @@ export default function FoundersEditionPricing() {
                         <Button 
                           onClick={handleApplyPromo}
                           variant="outline" 
-                          className="border-amber-500 text-amber-400 hover:bg-amber-500/20"
+                          className="border-violet-500 text-violet-400 hover:bg-violet-500/20"
                         >
                           Apply
                         </Button>
@@ -255,7 +255,7 @@ export default function FoundersEditionPricing() {
                   {/* CTA Button */}
                   <Button 
                     onClick={() => navigate('/register')}
-                    className="w-full py-6 text-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-bold"
+                    className="w-full py-6 text-lg bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white font-bold"
                     data-testid="get-founders-btn"
                   >
                     Get Founders Edition
@@ -273,7 +273,7 @@ export default function FoundersEditionPricing() {
                 {/* Right: Features */}
                 <div>
                   <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-amber-400" />
+                    <Sparkles className="w-5 h-5 text-violet-400" />
                     Everything Included
                   </h3>
                   
@@ -281,7 +281,7 @@ export default function FoundersEditionPricing() {
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     {features.map((feature, idx) => (
                       <div key={idx} className="flex items-start gap-2 p-3 bg-[#0B0F17] rounded-lg">
-                        <feature.icon className="w-5 h-5 text-amber-400 mt-0.5 shrink-0" />
+                        <feature.icon className="w-5 h-5 text-violet-400 mt-0.5 shrink-0" />
                         <div>
                           <p className="text-sm font-medium text-white">{feature.title}</p>
                           <p className="text-xs text-gray-500">{feature.desc}</p>
@@ -398,15 +398,15 @@ export default function FoundersEditionPricing() {
             <h4 className="text-white font-semibold mb-3">Credit Rules:</h4>
             <ul className="space-y-2 text-sm text-gray-400 mb-4">
               <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-violet-400 mt-0.5 shrink-0" />
                 Monthly credits expire on your billing date
               </li>
               <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-violet-400 mt-0.5 shrink-0" />
                 Monthly credits are used before purchased credits
               </li>
               <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-violet-400 mt-0.5 shrink-0" />
                 Purchased credits remain valid while your subscription is active
               </li>
             </ul>
@@ -472,10 +472,10 @@ export default function FoundersEditionPricing() {
             {/* Example UI */}
             <div className="p-4 bg-[#0B0F17] rounded-lg border border-gray-600 max-w-sm mx-auto mb-4">
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-4 h-4 text-amber-400" />
+                <Sparkles className="w-4 h-4 text-violet-400" />
                 <span className="text-white text-sm font-medium">AI Credit Check</span>
               </div>
-              <p className="text-gray-300 text-sm mb-1">This action will cost <span className="text-amber-400 font-bold">2 credits</span>.</p>
+              <p className="text-gray-300 text-sm mb-1">This action will cost <span className="text-violet-400 font-bold">2 credits</span>.</p>
               <p className="text-gray-500 text-sm">Remaining credits: <span className="text-white font-medium">118</span></p>
               <div className="mt-3 pt-3 border-t border-gray-700 flex items-center gap-2">
                 <input type="checkbox" className="rounded border-gray-600" readOnly />
@@ -562,8 +562,8 @@ export default function FoundersEditionPricing() {
             </div>
             
             {/* Enhanced Fee Explanation */}
-            <div className="p-4 bg-[#111826] rounded-lg border border-amber-500/20">
-              <h3 className="font-semibold text-amber-400 mb-3 flex items-center gap-2">
+            <div className="p-4 bg-[#111826] rounded-lg border border-violet-500/20">
+              <h3 className="font-semibold text-violet-400 mb-3 flex items-center gap-2">
                 <Percent className="w-4 h-4" />
                 What are the fees and what do they cover?
               </h3>
@@ -572,7 +572,7 @@ export default function FoundersEditionPricing() {
                 <div className="p-3 bg-[#0B0F17] rounded-lg">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-white font-medium">Platform Processing Fee</span>
-                    <span className="text-amber-400 font-semibold">2.2% + $0.20</span>
+                    <span className="text-violet-400 font-semibold">2.2% + $0.20</span>
                   </div>
                   <p className="text-gray-400 text-xs mb-2">
                     This fee covers everything you need to accept payments and run your business:
@@ -593,7 +593,7 @@ export default function FoundersEditionPricing() {
                 <div className="p-3 bg-[#0B0F17] rounded-lg">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-white font-medium">Additional Webstore Fee</span>
-                    <span className="text-amber-400 font-semibold">2.0%</span>
+                    <span className="text-violet-400 font-semibold">2.0%</span>
                   </div>
                   <p className="text-gray-400 text-xs mb-2">
                     Only charged when you make sales through your webstores. Covers:
@@ -637,7 +637,7 @@ export default function FoundersEditionPricing() {
       {/* Final CTA */}
       <section className="py-16 px-4">
         <div className="max-w-2xl mx-auto text-center">
-          <Crown className="w-12 h-12 mx-auto mb-4 text-amber-400" />
+          <Crown className="w-12 h-12 mx-auto mb-4 text-violet-400" />
           <h2 className="text-3xl font-bold mb-4">Join the Founding 100</h2>
           <p className="text-gray-400 mb-8">
             Lock in lifetime pricing before spots run out.
@@ -645,7 +645,7 @@ export default function FoundersEditionPricing() {
           <Button 
             onClick={() => navigate('/register')}
             size="lg"
-            className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-bold px-8 py-6 text-lg"
+            className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white font-bold px-8 py-6 text-lg"
           >
             Get Founders Edition Now
             <ArrowRight className="ml-2 w-5 h-5" />

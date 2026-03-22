@@ -66,14 +66,14 @@ export default function LandingPage() {
             48-Hour Free Trial - No Credit Card Required
           </Badge>
           
-          <Badge className="mb-6 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-400 border border-amber-500/30 px-4 py-1.5 ml-2">
+          <Badge className="mb-6 bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-400 border border-violet-500/30 px-4 py-1.5 ml-2">
             <Crown className="w-4 h-4 mr-2" />
             Founders Edition - Only 100 Spots
           </Badge>
           
           <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
             The AI-Powered Operating System<br />
-            <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">for Sign Shops</span>
+            <span className="bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">for Sign Shops</span>
           </h1>
           
           <p className="text-xl text-gray-400 max-w-3xl mx-auto mb-8">
@@ -83,7 +83,7 @@ export default function LandingPage() {
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/register">
-              <Button size="lg" className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-semibold px-8 py-6 text-lg h-auto">
+              <Button size="lg" className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white font-semibold px-8 py-6 text-lg h-auto">
                 Start Free Trial
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
@@ -123,10 +123,10 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Shop Management */}
-            <Card className="bg-[#111826] text-white border-amber-500/30">
+            <Card className="bg-[#111826] text-white border-violet-500/30">
               <CardContent className="p-8">
-                <div className="w-14 h-14 bg-amber-500/20 rounded-xl flex items-center justify-center mb-6">
-                  <Building2 className="w-7 h-7 text-amber-400" />
+                <div className="w-14 h-14 bg-violet-500/20 rounded-xl flex items-center justify-center mb-6">
+                  <Building2 className="w-7 h-7 text-violet-400" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-3">Shop Management</h3>
                 <p className="text-gray-400 mb-4">
@@ -150,10 +150,10 @@ export default function LandingPage() {
             </Card>
 
             {/* Webstores */}
-            <Card className="bg-[#111826] text-white border-amber-500/30">
+            <Card className="bg-[#111826] text-white border-violet-500/30">
               <CardContent className="p-8">
-                <div className="w-14 h-14 bg-amber-500/20 rounded-xl flex items-center justify-center mb-6">
-                  <Store className="w-7 h-7 text-amber-400" />
+                <div className="w-14 h-14 bg-violet-500/20 rounded-xl flex items-center justify-center mb-6">
+                  <Store className="w-7 h-7 text-violet-400" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-3">Webstores</h3>
                 <p className="text-gray-400 mb-4">
@@ -177,10 +177,10 @@ export default function LandingPage() {
             </Card>
 
             {/* AI Tools */}
-            <Card className="bg-[#111826] text-white border-amber-500/30">
+            <Card className="bg-[#111826] text-white border-violet-500/30">
               <CardContent className="p-8">
-                <div className="w-14 h-14 bg-amber-500/20 rounded-xl flex items-center justify-center mb-6">
-                  <Sparkles className="w-7 h-7 text-amber-400" />
+                <div className="w-14 h-14 bg-violet-500/20 rounded-xl flex items-center justify-center mb-6">
+                  <Sparkles className="w-7 h-7 text-violet-400" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-3">AI Tools</h3>
                 <p className="text-gray-400 mb-4">
@@ -219,8 +219,8 @@ export default function LandingPage() {
               const Icon = feature.icon;
               return (
                 <div key={feature.title} className="p-6 bg-white/5 border border-white/10 rounded-xl">
-                  <div className="w-12 h-12 bg-amber-500/20 rounded-lg flex items-center justify-center mb-4">
-                    <Icon className="w-6 h-6 text-amber-400" />
+                  <div className="w-12 h-12 bg-violet-500/20 rounded-lg flex items-center justify-center mb-4">
+                    <Icon className="w-6 h-6 text-violet-400" />
                   </div>
                   <h3 className="font-semibold mb-2">{feature.title}</h3>
                   <p className="text-sm text-gray-400">{feature.desc}</p>
@@ -231,7 +231,7 @@ export default function LandingPage() {
 
           <div className="text-center mt-12">
             <Link to="/features">
-              <Button variant="outline" className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 bg-transparent">
+              <Button variant="outline" className="border-violet-500/30 text-violet-400 hover:bg-violet-500/10 bg-transparent">
                 See All Features
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
@@ -241,9 +241,9 @@ export default function LandingPage() {
       </section>
 
       {/* Section 4: CTA - Founders Edition */}
-      <section className="py-20 px-4 bg-gradient-to-b from-amber-900/20 to-transparent">
+      <section className="py-20 px-4 bg-gradient-to-b from-violet-900/20 to-transparent">
         <div className="max-w-4xl mx-auto text-center">
-          <Crown className="w-12 h-12 mx-auto mb-4 text-amber-400" />
+          <Crown className="w-12 h-12 mx-auto mb-4 text-violet-400" />
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Join the Founding 100
           </h2>
@@ -252,13 +252,13 @@ export default function LandingPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/register">
-              <Button size="lg" className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-semibold px-8 py-6 text-lg h-auto">
+              <Button size="lg" className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white font-semibold px-8 py-6 text-lg h-auto">
                 Get Founders Edition
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>
             <Link to="/pricing-plans">
-              <Button size="lg" variant="outline" className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-8 py-6 text-lg h-auto bg-transparent">
+              <Button size="lg" variant="outline" className="border-violet-500/30 text-violet-400 hover:bg-violet-500/10 px-8 py-6 text-lg h-auto bg-transparent">
                 View Pricing
               </Button>
             </Link>
