@@ -35,6 +35,9 @@ import Pricing from "./pages/Pricing";
 import PricingSettings from "./pages/PricingSettings";
 import PricingSetup from "./pages/PricingSetup";
 import OnboardingHub from "./pages/OnboardingHub";
+import OrdersPage from "./pages/OrdersPage";
+import OrderDetail from "./pages/OrderDetail";
+import NewOrderForm from "./pages/NewOrderForm";
 import CompanySettings from "./pages/CompanySettings";
 import ProductionSettings from "./pages/settings/ProductionSettings";
 import BackupRestore from "./pages/settings/BackupRestore";
@@ -153,7 +156,14 @@ function ProtectedRoutes() {
         <Routes>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/customers" element={<Customers />} />
+          {/* Orders - New 4-layer system */}
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/orders/new" element={<NewOrderForm />} />
+          <Route path="/orders/:id" element={<OrderDetail />} />
+          <Route path="/orders/:id/add-ticket" element={<NewOrderForm />} />
+          {/* Legacy Jobs (kept for backwards compatibility) */}
           {/* Quotes redirect to Jobs with filter - quotes are now jobs with status=quote */}
+          <Route path="/quotes" element={<Navigate to="/jobs?filter=quotes" replace />} />
           <Route path="/quotes" element={<Navigate to="/jobs?filter=quotes" replace />} />
           <Route path="/jobs" element={<Jobs />} />
           <Route path="/jobs/:id" element={<JobDetails />} />

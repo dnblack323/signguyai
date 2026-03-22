@@ -5,13 +5,14 @@ import {
   Store, Sparkles, BarChart3, Settings, MessageCircle,
   Clock, DollarSign, FileCheck, Package, Tag,
   ClipboardList, BookOpen, HelpCircle, UserCog, Wallet,
-  Shield, Wrench, Mail, FolderOpen, Send
+  Shield, Wrench, Mail, FolderOpen, Send, Clipboard
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 // Primary navigation tabs - Office ribbon style grouped
 const primaryNavItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+  { id: 'orders', label: 'Orders', icon: Package, path: '/orders' },
   { id: 'jobs', label: 'Jobs', icon: Briefcase, path: '/jobs' },
   { id: 'billing', label: 'Billing', icon: Receipt, path: '/invoices' },
   { id: 'customers', label: 'Customers', icon: Users, path: '/customers' },
@@ -26,6 +27,10 @@ const primaryNavItems = [
 
 // Sub-navigation items per tab (shown in ActionToolbar)
 export const tabSubItems = {
+  orders: [
+    { label: 'All Orders', icon: Package, path: '/orders' },
+    { label: 'New Order', icon: ClipboardList, path: '/orders/new' },
+  ],
   jobs: [
     { label: 'All Jobs', icon: Briefcase, path: '/jobs' },
     { label: 'Quotes', icon: FileText, path: '/jobs?filter=quotes' },
@@ -84,6 +89,7 @@ export const tabSubItems = {
 // Route to nav item mapping
 const routeToNavItem = {
   '/dashboard': 'dashboard',
+  '/orders': 'orders',
   '/jobs': 'jobs',
   '/quotes': 'jobs',
   '/approvals': 'jobs',
