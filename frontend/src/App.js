@@ -86,6 +86,7 @@ import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import ProductionSetup from "./pages/ProductionSetup";
 
 // Marketing Pages - Product Overviews
 import {
@@ -212,6 +213,7 @@ function App() {
                 <Route path="/contact" element={<ContactPage />} />
                 <Route path="/terms" element={<TermsOfService />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/setup" element={<ProductionSetup />} />
                 
                 {/* Marketing - Archived Tier Pages (redirect to Founders pricing) */}
                 <Route path="/platform" element={<Navigate to="/pricing-plans" replace />} />
