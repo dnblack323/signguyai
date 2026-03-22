@@ -1155,6 +1155,10 @@ from routes.dev import router as dev_router
 from routes.pricing_setup import router as pricing_setup_router
 from routes.profit_analytics import router as profit_analytics_router
 from routes.onboarding import router as onboarding_router
+from routes.orders import router as shop_orders_router
+from routes.job_tickets import router as job_tickets_router
+from routes.production_tasks import router as production_tasks_router
+from routes.workflow_templates import router as workflow_templates_router
 
 # Include all routers in the api_router
 api_router.include_router(auth_router)
@@ -1196,6 +1200,10 @@ api_router.include_router(profit_analytics_router)  # Profit & margin analytics 
 api_router.include_router(onboarding_router)  # Tiered onboarding walkthrough
 api_router.include_router(admin_portal_router)  # Admin Portal Communications Hub
 api_router.include_router(production_timeline_router)  # Production Timeline Tracking
+api_router.include_router(shop_orders_router)  # Shop Order System (Layer 1)
+api_router.include_router(job_tickets_router)  # Job Tickets (Layer 2)
+api_router.include_router(production_tasks_router)  # Production Tasks (Layer 4)
+api_router.include_router(workflow_templates_router)  # Workflow Templates (Admin)
 
 # Backup & Restore
 from routes.backup import setup_backup_routes
