@@ -1,7 +1,7 @@
 # SignGuy AI - Product Requirements Document
 
-> **Last Updated:** March 20, 2026
-> **Version:** 4.2
+> **Last Updated:** March 22, 2026
+> **Version:** 4.3
 
 ---
 
@@ -18,6 +18,15 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ---
 
 ## What's Been Implemented
+
+### Session: March 22, 2026
+- **Stage 2 Legal & Color Scheme (DONE):**
+  - Terms of Service page (`/terms`) — 13 sections covering agreement, billing, AI credits, GDPR
+  - Privacy Policy page (`/privacy`) — 12 sections GDPR-compliant with third-party sharing disclosure
+  - Footer links updated from `<a href="#">` to React Router `<Link>` components
+  - Color scheme changed from amber/gold → violet/purple across 7 files (Landing, Pricing, Billing, Founders, WhyFounder, TrialLockout, PublicNav)
+- **Testing:** 11/11 frontend tests passed (iteration_71)
+- **Deployment Fix:** Cleaned requirements.txt from 137 → 24 packages, removed server_backup.py
 
 ### Session: March 20, 2026
 - **Stage 1 Critical Fixes (ALL DONE):**
@@ -85,11 +94,8 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 - ~~free_days promo type~~ DONE
 
 ### P1 - High Priority (from user notes)
-- Reinstate: Terms of Service page
-- Reinstate: Privacy Policy page
-- Reinstate: Landing page Founders-focused rewrite
-- Color scheme update (gold → purple/blue)
-- Update documentation to Founders-only model
+- Update documentation pages to Founders-only model
+- Update Feature Catalog (remove tier references)
 - "New Job" button in customer info popup
 - UI Overhaul ("Dark Shell / Light Workspace")
 

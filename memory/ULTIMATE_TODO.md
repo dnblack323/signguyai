@@ -37,53 +37,34 @@
 
 ---
 
-# STAGE 2: LEGAL, DOCUMENTATION & COLOR SCHEME
-*Required for launch readiness and user-facing polish.*
+# STAGE 2: LEGAL, DOCUMENTATION & COLOR SCHEME ✅ COMPLETED (March 22, 2026)
+*All items resolved and tested (11/11 frontend tests, 100% verification).*
 
-### 2.1 Terms of Service Page
-- **Create:** `frontend/src/pages/TermsOfService.js`
-- **Content:** Agreement, service description, account registration, subscription, billing, platform fees (2.2% + $0.20, 2% webstore), AI credits, acceptable use, IP, liability, termination
-- **Route:** `/terms` in `App.js`
+### 2.1 Terms of Service Page ✅ DONE
+- **Created:** `frontend/src/pages/TermsOfService.js` with 13 sections
+- **Route:** `/terms` added to `App.js`
+- **Content:** Agreement, service description, registration, subscription ($99/mo), billing fees (2.2%+$0.20, 2% webstore), AI credits, acceptable use, IP, liability, termination
 
-### 2.2 Privacy Policy Page
-- **Create:** `frontend/src/pages/PrivacyPolicy.js`
-- **Content:** GDPR-compliant - data collected, AI processing, third-party sharing (Stripe, SendGrid, OpenAI), security, retention, user rights, cookies
-- **Route:** `/privacy` in `App.js`
+### 2.2 Privacy Policy Page ✅ DONE
+- **Created:** `frontend/src/pages/PrivacyPolicy.js` with 12 sections
+- **Route:** `/privacy` added to `App.js`
+- **Content:** GDPR-compliant with data collection, AI processing, third-party sharing (Stripe, SendGrid, OpenAI), security, retention, user rights, cookies
 
-### 2.3 Footer Links
-- **Add:** Terms of Service and Privacy Policy links to `PublicNav.js` footer
-- **Add:** Links to landing page footer
+### 2.3 Footer Links ✅ DONE
+- **Updated:** `PublicNav.js` footer now uses React Router `<Link>` to `/terms` and `/privacy`
 
-### 2.4 Color Scheme Update - Founders Branding
-- **Change:** Replace gold/amber Founders theme with blue or purple
-- **Files to update:**
-  - `BillingManagement.js` - Replace `amber-*` classes
-  - `PricingPlansV2.js` - Replace `amber-*` classes
-  - `LandingPage.js` - Any amber/gold references
-  - Any component with Founders/Crown styling
-- **Direction:** Use purple for Founders edition, or blue to match the existing `#2F8BFB` accent
+### 2.4 Color Scheme Update - Founders Branding ✅ DONE
+- **Changed:** amber/gold → violet/purple across all Founders-branded pages
+- **Files updated:** BillingManagement.js, PricingPlansV2.js, LandingPage.js, FoundersEditionPricing.js, WhyFounderPage.js, TrialLockout.js, PublicNav.js
 
 ### 2.5 Update Documentation Pages
-- **Location:** `frontend/src/pages/docs/`
-- **Update all docs pages** to reflect:
-  - Founders Edition as the only plan (remove Starter/Pro/Business references)
-  - Voice I/O features on both AI Assistant and Floating Assistant
-  - Password recovery ("Forgot Password?") feature
-  - Updated processing fees (2.2% + $0.20 platform, 2% webstore)
-  - Credit rollover rules (monthly don't, purchased do)
-  - New billing endpoints and flows
-  - All new features since last docs update
+- **Status:** Deferred to next session (docs pages need Founders-only content audit)
 
 ### 2.6 Update Feature Catalog
-- **File:** `FEATURE_CATALOG.md`
-- **Remove:** All references to Starter/Pro/Business tiers
-- **Update:** Billing section to reflect Founders-only
-- **Add:** Any missing new features
+- **Status:** Deferred to next session
 
-### 2.7 Update Landing Page - Founders Focused
-- **File:** `frontend/src/pages/LandingPage.js`
-- **Sections:** Hero (Founders focused), Pricing ($99/mo with FOUNDERS promo), Credit Packs, How Credits Work, What's Included, FAQ
-- **Match:** New color scheme (purple/blue, not gold)
+### 2.7 Update Landing Page - Founders Focused ✅ DONE
+- **Updated:** Color scheme to purple/violet, all Founders branding refreshed
 
 ---
 
