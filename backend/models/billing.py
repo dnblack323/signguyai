@@ -455,3 +455,6 @@ class TrialStatus(BaseModel):
     is_locked: bool = False
     can_upgrade: bool = True
     extended_trial_paid: bool = False
+    is_grace_period: bool = False
+    grace_days_remaining: Optional[float] = None
+    read_only: bool = False

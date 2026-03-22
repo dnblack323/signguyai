@@ -151,6 +151,33 @@ async def get_current_active_user(current_user: UserInDB = Depends(get_current_u
     return current_user
 
 
+async def require_write_access(current_user: UserInDB = Depends(get_current_active_user)) -> UserInDB:
+    """Block write operations if the tenant is in grace period (read-only mode).
+    Use this dependency on POST/PUT/DELETE routes that create or modify business data."""
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0, "is_platform_owner": 1, "is_founder": 1, "subscription_status": 1, "subscription_ended_at": 1})
+    if not tenant:
+        return current_user
+    if tenant.get("is_platform_owner"):
+        return current_user
+    if tenant.get("subscription_status") == "active":
+        return current_user
+    if tenant.get("is_founder") and tenant.get("subscription_ended_at"):
+        from datetime import timedelta
+        try:
+            ended = datetime.fromisoformat(tenant["subscription_ended_at"].replace("Z", "+00:00"))
+            if ended.tzinfo is None:
+                ended = ended.replace(tzinfo=timezone.utc)
+            grace_end = ended + timedelta(days=14)
+            if datetime.now(timezone.utc) < grace_end:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Your account is in a 14-day grace period (read-only). Please resubscribe to add new data."
+                )
+        except (ValueError, TypeError):
+            pass
+    return current_user
+
+
 # ============== PERMISSION HELPER ==============
 
 def has_permission(user: UserInDB, permission: Permission) -> bool:

@@ -252,6 +252,44 @@ async def get_trial_status(
                 can_upgrade=False
             )
         
+        # Founder grace period: 14 days read-only after subscription lapses
+        GRACE_PERIOD_DAYS = 14
+        if tenant.get("is_founder") and tenant.get("subscription_status") in ("cancelled", "past_due", "unpaid", "expired", None):
+            subscription_ended_at = tenant.get("subscription_ended_at")
+            if subscription_ended_at:
+                try:
+                    ended = datetime.fromisoformat(subscription_ended_at.replace("Z", "+00:00"))
+                    if ended.tzinfo is None:
+                        ended = ended.replace(tzinfo=timezone.utc)
+                    grace_end = ended + timedelta(days=GRACE_PERIOD_DAYS)
+                    now = datetime.now(timezone.utc)
+                    if now < grace_end:
+                        grace_remaining = (grace_end - now).total_seconds() / 86400
+                        return TrialStatus(
+                            is_trial=False,
+                            is_locked=False,
+                            is_grace_period=True,
+                            grace_days_remaining=round(grace_remaining, 1),
+                            read_only=True,
+                            can_upgrade=True
+                        )
+                except (ValueError, TypeError):
+                    pass
+            # No subscription_ended_at recorded yet — start grace now
+            if not subscription_ended_at:
+                await db.tenants.update_one(
+                    {"id": current_user.tenant_id},
+                    {"$set": {"subscription_ended_at": datetime.now(timezone.utc).isoformat()}}
+                )
+                return TrialStatus(
+                    is_trial=False,
+                    is_locked=False,
+                    is_grace_period=True,
+                    grace_days_remaining=float(GRACE_PERIOD_DAYS),
+                    read_only=True,
+                    can_upgrade=True
+                )
+        
         # Founders Edition active subscribers are never locked (legacy check)
         if tenant.get("plan") == "founders_edition" and tenant.get("founder_lifetime_lock"):
             return TrialStatus(

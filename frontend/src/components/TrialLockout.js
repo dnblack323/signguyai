@@ -58,6 +58,16 @@ export const TrialLockout = ({ children }) => {
     return <LockoutScreen />;
   }
 
+  // Grace period - read-only mode with banner
+  if (trialStatus?.is_grace_period && trialStatus?.read_only) {
+    return (
+      <>
+        <GracePeriodBanner daysRemaining={trialStatus.grace_days_remaining} />
+        {children}
+      </>
+    );
+  }
+
   // Otherwise, render children normally
   return children;
 };
@@ -200,6 +210,40 @@ const LockoutScreen = () => {
             All features, lifetime locked pricing, no restrictions
           </p>
         </div>
+      </div>
+    </div>
+  );
+};
+
+// Grace period banner - read-only mode notification
+const GracePeriodBanner = ({ daysRemaining }) => {
+  const navigate = useNavigate();
+  const days = Math.ceil(daysRemaining || 0);
+  const isUrgent = days <= 3;
+
+  return (
+    <div className={`fixed top-0 left-0 right-0 z-[60] px-4 py-3 text-center text-sm font-medium ${
+      isUrgent
+        ? 'bg-red-600 text-white'
+        : 'bg-violet-600 text-white'
+    }`} data-testid="grace-period-banner">
+      <div className="max-w-4xl mx-auto flex items-center justify-center gap-3 flex-wrap">
+        <Lock className="w-4 h-4 flex-shrink-0" />
+        <span>
+          Your subscription has lapsed. You have <strong>{days} day{days !== 1 ? 's' : ''}</strong> of read-only access remaining.
+          You can view data and download backups, but cannot add new data.
+        </span>
+        <button
+          onClick={() => navigate('/pricing')}
+          className={`px-4 py-1 rounded-full text-xs font-bold transition ${
+            isUrgent
+              ? 'bg-white text-red-600 hover:bg-red-50'
+              : 'bg-white text-violet-600 hover:bg-violet-50'
+          }`}
+          data-testid="grace-period-resubscribe-btn"
+        >
+          Resubscribe Now
+        </button>
       </div>
     </div>
   );
