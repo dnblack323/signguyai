@@ -236,7 +236,23 @@ async def get_trial_status(
     )
     
     if tenant:
+        # Platform owner is never locked
+        if tenant.get("is_platform_owner"):
+            return TrialStatus(
+                is_trial=False,
+                is_locked=False,
+                can_upgrade=False
+            )
+        
         # Founders Edition active subscribers are never locked
+        if tenant.get("is_founder") and tenant.get("subscription_status") == "active":
+            return TrialStatus(
+                is_trial=False,
+                is_locked=False,
+                can_upgrade=False
+            )
+        
+        # Founders Edition active subscribers are never locked (legacy check)
         if tenant.get("plan") == "founders_edition" and tenant.get("founder_lifetime_lock"):
             return TrialStatus(
                 is_trial=False,
