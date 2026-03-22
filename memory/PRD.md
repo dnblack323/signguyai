@@ -1,7 +1,7 @@
 # SignGuy AI - Product Requirements Document
 
 > **Last Updated:** March 22, 2026
-> **Version:** 4.3
+> **Version:** 5.0
 
 ---
 
@@ -19,7 +19,22 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
-### Session: March 22, 2026
+### Session: March 22, 2026 (Phase 1: Order System)
+- **NEW 4-Layer Workflow System (DONE - Backend):**
+  - Layer 1: Orders (master record with auto-numbering ORD-XXXX)
+  - Layer 2: Job Tickets (production detail per item, category-based)
+  - Layer 3: Quotes generated from job tickets (financial layer)
+  - Layer 4: Production Tasks (auto-generated from category workflow templates)
+  - 6 Default Workflow Templates: Rigid Signs (11), Banners (12), Cut Vinyl (8), Vehicle Wrap (14), Apparel (11), Promo/Misc (5)
+  - Status roll-up: tasks→tickets→orders with partial completion logic
+  - Activity logging for all status changes
+  - Production board grouped by department/status
+  - Admin workflow template CRUD
+- **Testing:** 21/21 backend tests passed (iteration_72)
+- **New Files:** models/orders.py, services/workflow_engine.py, routes/orders.py, routes/job_tickets.py, routes/production_tasks.py, routes/workflow_templates.py
+- **New Collections:** orders, job_tickets, production_tasks, workflow_templates, order_quotes, order_activities
+
+### Session: March 22, 2026 (Stage 2 + Fixes)
 - **Stage 2 Legal & Color Scheme (DONE):**
   - Terms of Service page (`/terms`) — 13 sections covering agreement, billing, AI credits, GDPR
   - Privacy Policy page (`/privacy`) — 12 sections GDPR-compliant with third-party sharing disclosure
