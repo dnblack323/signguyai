@@ -209,6 +209,18 @@ const LockoutScreen = () => {
             <span className="text-violet-400 font-semibold">Founders Edition</span> — 
             All features, lifetime locked pricing, no restrictions
           </p>
+
+          {/* Logout / Switch Account */}
+          <button
+            onClick={() => {
+              localStorage.removeItem('auth_token');
+              window.location.href = '/login';
+            }}
+            className="mt-6 text-sm text-slate-500 hover:text-white underline transition-colors"
+            data-testid="lockout-logout-btn"
+          >
+            Log out or switch account
+          </button>
         </div>
       </div>
     </div>

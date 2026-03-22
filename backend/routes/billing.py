@@ -298,6 +298,26 @@ async def get_trial_status(
                 can_upgrade=False
             )
         
+        # Safety net: if trial_ends_at is set and in the future, never lock out
+        trial_ends_at_raw = tenant.get("trial_ends_at")
+        if trial_ends_at_raw:
+            try:
+                te = datetime.fromisoformat(trial_ends_at_raw.replace("Z", "+00:00"))
+                if te.tzinfo is None:
+                    te = te.replace(tzinfo=timezone.utc)
+                now = datetime.now(timezone.utc)
+                if now < te:
+                    hours_remaining = (te - now).total_seconds() / 3600
+                    return TrialStatus(
+                        is_trial=True,
+                        trial_type="free_trial",
+                        hours_remaining=round(hours_remaining, 1),
+                        is_locked=False,
+                        can_upgrade=True
+                    )
+            except (ValueError, TypeError):
+                pass
+        
         # Check for 48-hour free trial
         if tenant.get("is_trial") or tenant.get("plan") == "free_trial":
             trial_ends_at = tenant.get("trial_ends_at")
@@ -1726,6 +1746,8 @@ async def apply_promo_code(
             {"id": tenant_id},
             {"$set": {
                 "trial_ends_at": new_trial_end.isoformat(),
+                "is_trial": True,
+                "plan": "free_trial",
                 "promo_applied": code,
                 "promo_applied_at": datetime.now(timezone.utc).isoformat(),
             }}
