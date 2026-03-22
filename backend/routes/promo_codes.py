@@ -200,12 +200,18 @@ async def validate_promo_code(data: PromoCodeValidation):
     
     # Check expiration
     if promo.get("expires_at"):
-        expires = datetime.fromisoformat(promo["expires_at"].replace("Z", "+00:00"))
-        if datetime.now(timezone.utc) > expires:
-            return PromoCodeValidationResponse(
-                valid=False,
-                message="This promo code has expired"
-            )
+        try:
+            expires_str = promo["expires_at"].replace("Z", "+00:00")
+            expires = datetime.fromisoformat(expires_str)
+            if expires.tzinfo is None:
+                expires = expires.replace(tzinfo=timezone.utc)
+            if datetime.now(timezone.utc) > expires:
+                return PromoCodeValidationResponse(
+                    valid=False,
+                    message="This promo code has expired"
+                )
+        except (ValueError, TypeError):
+            pass
     
     # Check max uses
     if promo.get("max_uses") is not None:

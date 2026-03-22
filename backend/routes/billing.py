@@ -1634,9 +1634,15 @@ async def apply_promo_code(
     
     # Check expiration
     if promo.get("expires_at"):
-        expires = datetime.fromisoformat(promo["expires_at"].replace("Z", "+00:00"))
-        if datetime.now(timezone.utc) > expires:
-            raise HTTPException(status_code=400, detail="This promo code has expired")
+        try:
+            expires_str = promo["expires_at"].replace("Z", "+00:00")
+            expires = datetime.fromisoformat(expires_str)
+            if expires.tzinfo is None:
+                expires = expires.replace(tzinfo=timezone.utc)
+            if datetime.now(timezone.utc) > expires:
+                raise HTTPException(status_code=400, detail="This promo code has expired")
+        except (ValueError, TypeError):
+            pass
     
     # Check max uses
     if promo.get("max_uses") is not None:
@@ -1644,7 +1650,7 @@ async def apply_promo_code(
             raise HTTPException(status_code=400, detail="This promo code has reached its usage limit")
     
     tenant_id = current_user.tenant_id
-    tenant = await db.tenants.find_one({"tenant_id": tenant_id}, {"_id": 0})
+    tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
     
@@ -1663,7 +1669,7 @@ async def apply_promo_code(
         new_trial_end = base + timedelta(days=extra_days)
         
         await db.tenants.update_one(
-            {"tenant_id": tenant_id},
+            {"id": tenant_id},
             {"$set": {
                 "trial_ends_at": new_trial_end.isoformat(),
                 "promo_applied": code,
@@ -1675,7 +1681,7 @@ async def apply_promo_code(
         
     elif discount_type == "percent":
         await db.tenants.update_one(
-            {"tenant_id": tenant_id},
+            {"id": tenant_id},
             {"$set": {
                 "pending_discount": {
                     "type": "percent",
@@ -1690,7 +1696,7 @@ async def apply_promo_code(
         
     elif discount_type == "fixed":
         await db.tenants.update_one(
-            {"tenant_id": tenant_id},
+            {"id": tenant_id},
             {"$set": {
                 "pending_discount": {
                     "type": "fixed",
