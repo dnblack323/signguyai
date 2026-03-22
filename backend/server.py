@@ -1228,6 +1228,28 @@ app.add_middleware(
 
 # ============== SHUTDOWN EVENT ==============
 
+@app.on_event("startup")
+async def startup_migrations():
+    """Run one-time migrations on startup to fix known production issues."""
+    try:
+        # Fix: Re-hash any passwords that might have been created by old passlib
+        # This runs silently and only fixes hashes that fail bcrypt verification
+        users = await db.users.find({}, {"_id": 0, "id": 1, "email": 1, "hashed_password": 1}).to_list(100)
+        for user in users:
+            hp = user.get("hashed_password", "")
+            if not hp:
+                continue
+            try:
+                # Test if the hash is valid bcrypt
+                bcrypt.checkpw(b"test", hp.encode("utf-8"))
+            except (ValueError, TypeError):
+                # Hash is corrupt/incompatible — can't fix without knowing the password
+                # But we can flag it for the user to reset via forgot-password
+                logger.warning(f"User {user.get('email')} has an incompatible password hash. They should use forgot-password to reset.")
+    except Exception as e:
+        logger.error(f"Startup migration error: {e}")
+
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()

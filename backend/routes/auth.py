@@ -236,6 +236,91 @@ async def recover_owner_password(email: str, new_password: str):
     return {"message": "Password has been reset successfully. You can now log in with your new password."}
 
 
+@router.post("/setup-admin")
+async def setup_admin_account(request_body: dict):
+    """
+    One-time production setup: reset admin password and seed promo codes.
+    Protected by JWT_SECRET_KEY — only someone with access to the .env can call this.
+    """
+    import os
+    import uuid as uuid_mod
+    
+    setup_key = request_body.get("setup_key", "")
+    expected_key = os.environ.get("JWT_SECRET_KEY", "")
+    
+    if not setup_key or setup_key != expected_key:
+        raise HTTPException(status_code=403, detail="Invalid setup key")
+    
+    results = []
+    
+    # 1. Reset admin password if email provided
+    email = request_body.get("email", "").lower().strip()
+    new_password = request_body.get("new_password", "")
+    if email and new_password:
+        user = await db.users.find_one({"email": email}, {"_id": 0})
+        if user:
+            hashed = get_password_hash(new_password)
+            await db.users.update_one({"email": email}, {"$set": {"hashed_password": hashed}})
+            results.append(f"Password reset for {email}")
+            
+            # Ensure tenant has owner_email and is_platform_owner
+            if user.get("role") == "owner" and user.get("tenant_id"):
+                await db.tenants.update_one(
+                    {"id": user["tenant_id"]},
+                    {"$set": {
+                        "owner_email": email,
+                        "is_platform_owner": True,
+                        "is_founder": True,
+                        "subscription_status": "active",
+                        "trial_ends_at": None,
+                    }}
+                )
+                results.append(f"Tenant updated: platform_owner=true, founder=true, active")
+        else:
+            results.append(f"User {email} not found")
+    
+    # 2. Seed promo codes if provided
+    promo_codes = request_body.get("promo_codes", [])
+    for pc in promo_codes:
+        code = pc.get("code", "").upper().strip()
+        if not code:
+            continue
+        existing = await db.promo_codes.find_one({"code": code})
+        if existing:
+            # Reset usage if requested
+            if pc.get("reset_usage"):
+                await db.promo_codes.update_one(
+                    {"code": code},
+                    {"$set": {
+                        "times_used": 0,
+                        "max_uses": pc.get("max_uses", existing.get("max_uses")),
+                        "is_active": True,
+                    }}
+                )
+                results.append(f"Promo {code}: usage reset")
+            else:
+                results.append(f"Promo {code}: already exists")
+        else:
+            promo_doc = {
+                "id": str(uuid_mod.uuid4()),
+                "tenant_id": pc.get("tenant_id", ""),
+                "code": code,
+                "description": pc.get("description", ""),
+                "discount_type": pc.get("discount_type", "free_trial"),
+                "discount_value": pc.get("discount_value", 0),
+                "trial_days": pc.get("trial_days", 14),
+                "max_uses": pc.get("max_uses"),
+                "times_used": 0,
+                "expires_at": pc.get("expires_at"),
+                "is_active": True,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+            await db.promo_codes.insert_one(promo_doc)
+            results.append(f"Promo {code}: created")
+    
+    return {"results": results}
+
+
 
 # ============== USER PROFILE ROUTES ==============
 
