@@ -255,3 +255,131 @@ async def get_order_activity(order_id: str, current_user: UserInDB = Depends(get
         {"_id": 0}
     ).sort("created_at", -1).to_list(100)
     return activities
+
+
+@router.post("/{order_id}/generate-invoice")
+async def generate_invoice_from_order(order_id: str, current_user: UserInDB = Depends(get_current_active_user)):
+    """Generate an invoice from job tickets attached to this order."""
+    order = await db.orders.find_one(
+        {"id": order_id, "tenant_id": current_user.tenant_id}, {"_id": 0}
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    tickets = await db.job_tickets.find(
+        {"order_id": order_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    ).to_list(100)
+
+    if not tickets:
+        raise HTTPException(status_code=400, detail="No job tickets to generate invoice from")
+
+    line_items = []
+    subtotal = 0.0
+    for t in tickets:
+        price = t.get("estimated_price", 0)
+        line_items.append({
+            "description": f"{t.get('item_name', 'Item')} — {t.get('item_category', '')} (Qty: {t.get('quantity', 1)})",
+            "quantity": t.get("quantity", 1),
+            "unit_price": price / max(t.get("quantity", 1), 1),
+            "total": price,
+            "job_ticket_id": t["id"],
+        })
+        subtotal += price
+
+    invoice_id = str(uuid.uuid4())
+    invoice_doc = {
+        "id": invoice_id,
+        "tenant_id": current_user.tenant_id,
+        "order_id": order_id,
+        "customer_id": order.get("customer_id", ""),
+        "customer_name": order.get("customer_name", ""),
+        "type": "invoice",
+        "status": "draft",
+        "line_items": line_items,
+        "subtotal": subtotal,
+        "tax": 0,
+        "discount": 0,
+        "total": subtotal,
+        "notes": "",
+        "due_date": order.get("requested_due_date"),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.order_quotes.insert_one(invoice_doc)
+
+    await db.orders.update_one(
+        {"id": order_id},
+        {"$push": {"linked_invoice_ids": invoice_id}, "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+
+    await log_activity(db, order_id, current_user.tenant_id, "invoice", invoice_id,
+                       "created", f"Invoice generated from {len(tickets)} job ticket(s), total ${subtotal:.2f}",
+                       user_id=current_user.id, user_name=current_user.full_name or "")
+
+    invoice_doc.pop("_id", None)
+    return invoice_doc
+
+
+@router.get("/{order_id}/financials")
+async def get_order_financials(order_id: str, current_user: UserInDB = Depends(get_current_active_user)):
+    """Get all quotes and invoices linked to this order."""
+    order = await db.orders.find_one(
+        {"id": order_id, "tenant_id": current_user.tenant_id}, {"_id": 0}
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    docs = await db.order_quotes.find(
+        {"order_id": order_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+
+    quotes = [d for d in docs if d.get("type") == "quote"]
+    invoices = [d for d in docs if d.get("type") == "invoice"]
+
+    return {"quotes": quotes, "invoices": invoices, "total_documents": len(docs)}
+
+
+@router.get("/{order_id}/production-summary")
+async def get_order_production_summary(order_id: str, current_user: UserInDB = Depends(get_current_active_user)):
+    """Get all production tasks across all tickets for this order."""
+    tasks = await db.production_tasks.find(
+        {"order_id": order_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    ).sort("stage_sequence", 1).to_list(500)
+
+    tickets = await db.job_tickets.find(
+        {"order_id": order_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0, "id": 1, "item_name": 1, "ticket_number": 1, "status": 1, "progress": 1, "item_category": 1}
+    ).to_list(100)
+
+    # Group tasks by ticket
+    by_ticket = {}
+    for task in tasks:
+        tid = task.get("job_ticket_id", "")
+        by_ticket.setdefault(tid, []).append(task)
+
+    # Group by department
+    by_dept = {}
+    for task in tasks:
+        dept = task.get("department", "unassigned")
+        by_dept.setdefault(dept, []).append(task)
+
+    total = len(tasks)
+    completed = sum(1 for t in tasks if t.get("status") == "complete")
+    on_hold = sum(1 for t in tasks if t.get("status") in ("on_hold", "rework"))
+
+    return {
+        "tasks": tasks,
+        "by_ticket": by_ticket,
+        "by_department": by_dept,
+        "tickets": tickets,
+        "summary": {
+            "total_tasks": total,
+            "completed": completed,
+            "on_hold": on_hold,
+            "progress": round((completed / total) * 100, 1) if total > 0 else 0,
+        }
+    }
+
