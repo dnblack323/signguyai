@@ -28,7 +28,7 @@ export default function DynamicCategoryFields({ category, specs, onChange, mode 
       .finally(() => setLoading(false));
   }, [category]);
 
-  if (loading) return <div className="flex items-center gap-2 py-4 text-slate-400 text-sm"><Loader2 className="w-4 h-4 animate-spin" /> Loading fields...</div>;
+  if (loading) return <div className="flex items-center gap-2 py-4 text-gray-500 text-sm"><Loader2 className="w-4 h-4 animate-spin" /> Loading fields...</div>;
   if (!schema?.fields) return null;
 
   const fields = schema.fields;
@@ -60,12 +60,12 @@ export default function DynamicCategoryFields({ category, specs, onChange, mode 
           if (!hasValues) return null;
           return (
             <div key={groupKey}>
-              <p className="text-xs text-slate-500 uppercase font-medium mb-2">{GROUP_LABELS[groupKey] || groupKey}</p>
+              <p className="text-xs text-gray-500 uppercase font-medium mb-2">{GROUP_LABELS[groupKey] || groupKey}</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {groupFields.filter(f => specs[f.key] !== undefined && specs[f.key] !== '' && specs[f.key] !== false).map(f => (
-                  <div key={f.key} className="bg-slate-800/50 rounded-lg p-3">
-                    <p className="text-xs text-slate-500 uppercase">{f.label}</p>
-                    <p className="text-white mt-1">
+                  <div key={f.key} className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500 uppercase">{f.label}</p>
+                    <p className="text-gray-900 mt-1">
                       {f.type === 'toggle' ? (specs[f.key] ? 'Yes' : 'No') : String(specs[f.key])}
                     </p>
                   </div>
@@ -82,13 +82,13 @@ export default function DynamicCategoryFields({ category, specs, onChange, mode 
     <div className="space-y-5" data-testid="dynamic-category-fields">
       {Object.entries(groups).map(([groupKey, groupFields]) => (
         <div key={groupKey}>
-          <p className="text-xs text-slate-500 uppercase font-medium mb-2">{GROUP_LABELS[groupKey] || groupKey}</p>
+          <p className="text-xs text-gray-500 uppercase font-medium mb-2">{GROUP_LABELS[groupKey] || groupKey}</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {groupFields.map(f => {
               if (f.type === 'toggle') {
                 return (
-                  <div key={f.key} className="flex items-center justify-between bg-slate-800/30 rounded-lg p-3">
-                    <Label className="text-slate-300 text-sm">{f.label}</Label>
+                  <div key={f.key} className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                    <Label className="text-gray-700 text-sm">{f.label}</Label>
                     <Switch
                       checked={specs[f.key] ?? f.default ?? false}
                       onCheckedChange={v => updateField(f.key, v)}
@@ -99,9 +99,9 @@ export default function DynamicCategoryFields({ category, specs, onChange, mode 
               if (f.type === 'select' && f.options) {
                 return (
                   <div key={f.key}>
-                    <Label className="text-slate-400 text-xs">{f.label}</Label>
+                    <Label className="text-gray-500 text-xs">{f.label}</Label>
                     <Select value={specs[f.key] || ''} onValueChange={v => updateField(f.key, v)}>
-                      <SelectTrigger className="bg-[#0B0F17] border-slate-600 text-white h-8 text-sm mt-1">
+                      <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900 h-8 text-sm mt-1">
                         <SelectValue placeholder={`Select ${f.label}`} />
                       </SelectTrigger>
                       <SelectContent>
@@ -115,12 +115,12 @@ export default function DynamicCategoryFields({ category, specs, onChange, mode 
               }
               return (
                 <div key={f.key}>
-                  <Label className="text-slate-400 text-xs">{f.label}</Label>
+                  <Label className="text-gray-500 text-xs">{f.label}</Label>
                   <Input
                     value={specs[f.key] || ''}
                     onChange={e => updateField(f.key, e.target.value)}
                     placeholder={f.placeholder || ''}
-                    className="bg-[#0B0F17] border-slate-600 text-white h-8 text-sm mt-1"
+                    className="bg-gray-50 border-gray-300 text-gray-900 h-8 text-sm mt-1"
                   />
                 </div>
               );
@@ -131,9 +131,9 @@ export default function DynamicCategoryFields({ category, specs, onChange, mode 
 
       {schema.pricing_config && (
         <div className="flex flex-wrap gap-2 pt-2">
-          <Badge variant="outline" className="text-xs text-slate-400">Min: ${schema.pricing_config.minimum_charge}</Badge>
-          <Badge variant="outline" className="text-xs text-slate-400">Markup: {schema.pricing_config.default_markup}x</Badge>
-          <Badge variant="outline" className="text-xs text-slate-400">Target: {schema.pricing_config.target_margin}%</Badge>
+          <Badge variant="outline" className="text-xs text-gray-500">Min: ${schema.pricing_config.minimum_charge}</Badge>
+          <Badge variant="outline" className="text-xs text-gray-500">Markup: {schema.pricing_config.default_markup}x</Badge>
+          <Badge variant="outline" className="text-xs text-gray-500">Target: {schema.pricing_config.target_margin}%</Badge>
         </div>
       )}
     </div>

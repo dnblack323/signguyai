@@ -23,7 +23,7 @@ const DEPT_COLORS = {
   delivery: 'border-lime-500/40',
 };
 const TASK_COLORS = {
-  not_started: 'bg-slate-700 text-slate-300', waiting: 'bg-yellow-500/15 text-yellow-400', ready: 'bg-blue-500/15 text-blue-400',
+  not_started: 'bg-gray-200 text-gray-700', waiting: 'bg-yellow-500/15 text-yellow-400', ready: 'bg-blue-500/15 text-blue-400',
   in_progress: 'bg-violet-500/15 text-violet-400', paused: 'bg-orange-500/15 text-orange-400', on_hold: 'bg-red-500/15 text-red-400',
   needs_review: 'bg-amber-500/15 text-amber-400', complete: 'bg-green-500/15 text-green-400', rework: 'bg-red-600/15 text-red-400',
 };
@@ -76,11 +76,11 @@ export default function ProductionBoard() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold text-white font-heading flex items-center gap-3"><Wrench className="w-8 h-8 text-violet-400" /> Production Board</h1>
-          <p className="text-slate-400 text-sm mt-1">{totalTasks} active tasks | {inProgress} in progress{onHold > 0 ? ` | ${onHold} flagged` : ''}</p>
+          <p className="text-slate-400 text-sm mt-1">Tasks} active tasks | {inProgress} in progress{onHold > 0 ? ` | ${onHold} flagged` : ''}</p>
         </div>
         <div className="flex gap-2">
           <Select value={view} onValueChange={setView}>
-            <SelectTrigger className="w-40 bg-[#0B0F17] border-slate-700 text-white">
+            <SelectTrigger className="w-40 bg-gray-50 border-gray-200 text-gray-900">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -89,8 +89,8 @@ export default function ProductionBoard() {
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-36 bg-[#0B0F17] border-slate-700 text-white">
-              <Filter className="w-4 h-4 mr-1 text-slate-400" />
+            <SelectTrigger className="w-36 bg-gray-50 border-gray-200 text-gray-900">
+              <Filter className="w-4 h-4 mr-1 text-gray-500" />
               <SelectValue placeholder="All" />
             </SelectTrigger>
             <SelectContent>
@@ -109,10 +109,10 @@ export default function ProductionBoard() {
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {Object.entries(groups).slice(0, 4).map(([key, tasks]) => (
-          <Card key={key} className={`bg-[#111826] border-slate-700 border-l-4 ${DEPT_COLORS[key] || 'border-slate-500/40'}`}>
+          <Card key={key} className={`bg-white border-gray-200 border-l-4 ${DEPT_COLORS[key] || 'border-slate-500/40'}`}>
             <CardContent className="p-3">
-              <p className="text-xs text-slate-500 uppercase">{DEPT_LABELS[key] || fmt(key)}</p>
-              <p className="text-2xl font-bold text-white mt-1">{tasks.length}</p>
+              <p className="text-xs text-gray-500 uppercase">{DEPT_LABELS[key] || fmt(key)}</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{tasks.length}</p>
             </CardContent>
           </Card>
         ))}
@@ -127,23 +127,23 @@ export default function ProductionBoard() {
             <div key={groupKey} data-testid={`board-group-${groupKey}`}>
               <div className="flex items-center gap-3 mb-3">
                 <div className={`w-3 h-3 rounded-full ${DEPT_COLORS[groupKey]?.replace('border-', 'bg-').replace('/40', '') || 'bg-slate-500'}`} />
-                <h2 className="text-lg font-bold text-white">{DEPT_LABELS[groupKey] || fmt(groupKey)}</h2>
-                <Badge variant="outline" className="text-slate-400">{filtered.length}</Badge>
+                <h2 className="text-lg font-bold text-gray-900">{DEPT_LABELS[groupKey] || fmt(groupKey)}</h2>
+                <Badge variant="outline" className="text-gray-500">{filtered.length}</Badge>
               </div>
               <div className="grid gap-2">
                 {filtered.map(task => (
-                  <Card key={task.id} className="bg-[#111826] border-slate-700 hover:border-slate-600 transition-colors" data-testid={`board-task-${task.id?.slice(0,8)}`}>
+                  <Card key={task.id} className="bg-white border-gray-200 hover:border-gray-300 transition-colors" data-testid={`board-task-${task.id?.slice(0,8)}`}>
                     <CardContent className="p-3">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0 flex-1">
                           <div className={`w-2 h-8 rounded-full flex-shrink-0 ${PRIORITY_DOT[task.ticket_priority] || PRIORITY_DOT.normal}`} />
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-white font-medium text-sm">{task.task_name}</span>
+                              <span className="text-gray-900 font-medium text-sm">{task.task_name}</span>
                               <Badge variant="outline" className={`text-xs ${TASK_COLORS[task.status]}`}>{fmt(task.status)}</Badge>
-                              {task.rework_flag && <Badge className="bg-red-500 text-white text-xs">Rework</Badge>}
+                              {task.rework_flag && <Badge className="bg-red-500 text-gray-900 text-xs">Rework</Badge>}
                             </div>
-                            <p className="text-xs text-slate-500 mt-0.5">
+                            <p className="text-xs text-gray-500 mt-0.5">
                               <span className="font-mono">{task.ticket_number}</span> — {task.ticket_name}
                               {task.ticket_due_date ? ` | Due: ${new Date(task.ticket_due_date).toLocaleDateString()}` : ''}
                             </p>

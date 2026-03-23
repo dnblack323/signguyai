@@ -22,14 +22,14 @@ const STATUS_COLORS = {
   new: 'bg-blue-500/15 text-blue-400 border-blue-500/30', awaiting_info: 'bg-yellow-500/15 text-yellow-400', awaiting_proof: 'bg-orange-500/15 text-orange-400',
   awaiting_approval: 'bg-amber-500/15 text-amber-400', approved: 'bg-teal-500/15 text-teal-400', queued: 'bg-indigo-500/15 text-indigo-400',
   in_production: 'bg-violet-500/15 text-violet-400', in_qc: 'bg-cyan-500/15 text-cyan-400', on_hold: 'bg-red-500/15 text-red-400',
-  ready: 'bg-green-500/15 text-green-400', completed: 'bg-green-600/15 text-green-300', rework: 'bg-red-500/15 text-red-400', cancelled: 'bg-slate-500/15 text-slate-400',
+  ready: 'bg-green-500/15 text-green-400', completed: 'bg-green-600/15 text-green-600', rework: 'bg-red-500/15 text-red-400', cancelled: 'bg-slate-500/15 text-gray-500',
 };
 const TASK_COLORS = {
-  not_started: 'bg-slate-700 text-slate-300', waiting: 'bg-yellow-500/15 text-yellow-400', ready: 'bg-blue-500/15 text-blue-400',
+  not_started: 'bg-gray-200 text-gray-700', waiting: 'bg-yellow-500/15 text-yellow-400', ready: 'bg-blue-500/15 text-blue-400',
   in_progress: 'bg-violet-500/15 text-violet-400', paused: 'bg-orange-500/15 text-orange-400', on_hold: 'bg-red-500/15 text-red-400',
   needs_review: 'bg-amber-500/15 text-amber-400', complete: 'bg-green-500/15 text-green-400', rework: 'bg-red-500/15 text-red-400',
 };
-const PRIORITY_COLORS = { rush: 'bg-red-500 text-white', urgent: 'bg-orange-500 text-white', high: 'bg-amber-500/80 text-black', normal: 'bg-slate-600 text-slate-200' };
+const PRIORITY_COLORS = { rush: 'bg-red-500 text-gray-900', urgent: 'bg-orange-500 text-gray-900', high: 'bg-amber-500/80 text-black', normal: 'bg-slate-600 text-slate-200' };
 const CATEGORY_LABELS = { rigid_signs: 'Rigid Signs', banners: 'Banners', cut_vinyl: 'Cut Vinyl', vehicle_wrap: 'Vehicle Wrap', apparel: 'Apparel', promo_misc: 'Promo / Misc', custom: 'Custom' };
 const fmt = (s) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
@@ -89,7 +89,7 @@ export default function JobTicketDetail() {
   };
 
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-violet-500" /></div>;
-  if (!ticket) return <div className="text-center py-20 text-slate-400">Ticket not found</div>;
+  if (!ticket) return <div className="text-center py-20 text-gray-500">Ticket not found</div>;
 
   const tasks = ticket.production_tasks || [];
   const specs = ticket.specs || {};
@@ -100,16 +100,16 @@ export default function JobTicketDetail() {
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(`/orders/${ticket.order_id}`)}><ArrowLeft className="w-5 h-5 text-slate-400" /></Button>
+          <Button variant="ghost" size="icon" onClick={() => navigate(`/orders/${ticket.order_id}`)}><ArrowLeft className="w-5 h-5 text-gray-500" /></Button>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-mono text-sm text-slate-400">{ticket.ticket_number}</span>
+              <span className="font-mono text-sm text-gray-500">{ticket.ticket_number}</span>
               <Badge variant="outline" className={STATUS_COLORS[ticket.status]}>{fmt(ticket.status)}</Badge>
               {ticket.priority !== 'normal' && <Badge className={PRIORITY_COLORS[ticket.priority]}>{ticket.priority}</Badge>}
               {ticket.production_flow_enabled && <Badge variant="outline" className="bg-violet-500/10 text-violet-400 border-violet-500/30 text-xs">Workflow</Badge>}
             </div>
             <h1 className="text-2xl font-bold text-white mt-1">{ticket.item_name}</h1>
-            <p className="text-slate-500 text-sm">{CATEGORY_LABELS[ticket.item_category] || ticket.item_category} | Qty: {ticket.quantity} {ticket.unit_type}</p>
+            <p className="text-slate-400 text-sm">{CATEGORY_LABELS[ticket.item_category] || ticket.item_category} | Qty: {ticket.quantity} {ticket.unit_type}</p>
           </div>
         </div>
       </div>
@@ -123,10 +123,10 @@ export default function JobTicketDetail() {
           { label: 'Due', value: ticket.due_date ? new Date(ticket.due_date).toLocaleDateString() : '-' },
           { label: 'Proof', value: fmt(ticket.proof_approval_status || 'none') },
         ].map(c => (
-          <Card key={c.label} className="bg-[#111826] border-slate-700">
+          <Card key={c.label} className="bg-white border-gray-200">
             <CardContent className="p-3 text-center">
-              <p className="text-xs text-slate-500 uppercase">{c.label}</p>
-              <p className="text-lg font-bold text-white mt-1">{c.value}</p>
+              <p className="text-xs text-gray-500 uppercase">{c.label}</p>
+              <p className="text-lg font-bold text-gray-900 mt-1">{c.value}</p>
             </CardContent>
           </Card>
         ))}
@@ -134,20 +134,20 @@ export default function JobTicketDetail() {
 
       {/* Progress bar */}
       {tasks.length > 0 && (
-        <div className="w-full h-3 bg-slate-700 rounded-full overflow-hidden">
+        <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
           <div className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full transition-all duration-500" style={{ width: `${ticket.progress || 0}%` }} />
         </div>
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-slate-700 overflow-x-auto">
+      <div className="flex gap-1 border-b border-gray-200 overflow-x-auto">
         {[
           { id: 'specs', label: 'Specs' },
           { id: 'production', label: `Production (${tasks.length})` },
           { id: 'artwork', label: 'Artwork / Files' },
           { id: 'notes', label: 'Notes' },
         ].map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${tab === t.id ? 'text-violet-400 border-violet-400' : 'text-slate-500 border-transparent hover:text-slate-300'}`}>
+          <button key={t.id} onClick={() => setTab(t.id)} className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${tab === t.id ? 'text-violet-400 border-violet-400' : 'text-gray-500 border-transparent hover:text-gray-700'}`}>
             {t.label}
           </button>
         ))}
@@ -156,16 +156,16 @@ export default function JobTicketDetail() {
       {/* SPECS TAB - with Live Pricing Panel */}
       {tab === 'specs' && (
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-5">
-          <Card className="bg-[#111826] border-slate-700">
+          <Card className="bg-white border-gray-200">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-white text-lg flex items-center gap-2"><Package className="w-5 h-5 text-violet-400" /> Item Specifications</CardTitle>
+                <CardTitle className="text-gray-900 text-lg flex items-center gap-2"><Package className="w-5 h-5 text-violet-400" /> Item Specifications</CardTitle>
                 {!editing ? (
-                  <Button variant="outline" size="sm" onClick={startEdit} className="gap-1 text-slate-300"><Edit3 className="w-3.5 h-3.5" /> Edit</Button>
+                  <Button variant="outline" size="sm" onClick={startEdit} className="gap-1 text-gray-700"><Edit3 className="w-3.5 h-3.5" /> Edit</Button>
                 ) : (
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
-                    <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white" onClick={saveEdit} disabled={saveLoading}>
+                    <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-gray-900" onClick={saveEdit} disabled={saveLoading}>
                       {saveLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : null} Save
                     </Button>
                   </div>
@@ -199,26 +199,26 @@ export default function JobTicketDetail() {
       {tab === 'production' && (
         <div className="space-y-2">
           {tasks.length === 0 ? (
-            <Card className="bg-[#111826] border-slate-700"><CardContent className="py-12 text-center text-slate-500">No production tasks. Enable workflow on this ticket to generate tasks.</CardContent></Card>
+            <Card className="bg-white border-gray-200"><CardContent className="py-12 text-center text-gray-500">No production tasks. Enable workflow on this ticket to generate tasks.</CardContent></Card>
           ) : tasks.map((task, i) => {
             const isComplete = task.status === 'complete';
             const isActive = task.status === 'in_progress';
             return (
-              <Card key={task.id} className={`bg-[#111826] border-slate-700 ${isActive ? 'border-l-4 border-l-violet-500' : isComplete ? 'border-l-4 border-l-green-500' : ''}`} data-testid={`task-${task.stage_sequence}`}>
+              <Card key={task.id} className={`bg-white border-gray-200 ${isActive ? 'border-l-4 border-l-violet-500' : isComplete ? 'border-l-4 border-l-green-500' : ''}`} data-testid={`task-${task.stage_sequence}`}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${isComplete ? 'bg-green-500/20 text-green-400' : isActive ? 'bg-violet-500/20 text-violet-400' : 'bg-slate-700 text-slate-400'}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${isComplete ? 'bg-green-100 text-green-600' : isActive ? 'bg-violet-100 text-violet-600' : 'bg-gray-200 text-gray-500'}`}>
                         {isComplete ? <CheckCircle className="w-4 h-4" /> : task.stage_sequence}
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-white font-medium">{task.task_name}</span>
+                          <span className="text-gray-900 font-medium">{task.task_name}</span>
                           <Badge variant="outline" className={TASK_COLORS[task.status] || TASK_COLORS.not_started}>{fmt(task.status)}</Badge>
                           {task.qc_required && <Badge variant="outline" className="text-xs bg-cyan-500/10 text-cyan-400 border-cyan-500/30">QC</Badge>}
-                          {task.rework_flag && <Badge className="bg-red-500 text-white text-xs">Rework</Badge>}
+                          {task.rework_flag && <Badge className="bg-red-500 text-gray-900 text-xs">Rework</Badge>}
                         </div>
-                        <p className="text-xs text-slate-500 mt-0.5">{fmt(task.department)}{task.assigned_to ? ` | ${task.assigned_to}` : ''}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{fmt(task.department)}{task.assigned_to ? ` | ${task.assigned_to}` : ''}</p>
                       </div>
                     </div>
                     <div className="flex gap-1 flex-shrink-0">
@@ -244,7 +244,7 @@ export default function JobTicketDetail() {
                       )}
                     </div>
                   </div>
-                  {task.notes && <p className="text-sm text-slate-400 mt-2 ml-11">{task.notes}</p>}
+                  {task.notes && <p className="text-sm text-gray-500 mt-2 ml-11">{task.notes}</p>}
                 </CardContent>
               </Card>
             );
@@ -254,17 +254,17 @@ export default function JobTicketDetail() {
 
       {/* ARTWORK TAB */}
       {tab === 'artwork' && (
-        <Card className="bg-[#111826] border-slate-700">
-          <CardHeader><CardTitle className="text-white text-lg flex items-center gap-2"><FileImage className="w-5 h-5 text-violet-400" /> Artwork & Files</CardTitle></CardHeader>
+        <Card className="bg-white border-gray-200">
+          <CardHeader><CardTitle className="text-gray-900 text-lg flex items-center gap-2"><FileImage className="w-5 h-5 text-violet-400" /> Artwork & Files</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {[
                 { label: 'Artwork Status', value: fmt(ticket.artwork_status), color: ticket.artwork_status === 'complete' ? 'text-green-400' : 'text-yellow-400' },
                 { label: 'Proof Status', value: fmt(ticket.proof_approval_status), color: ticket.proof_approval_status === 'approved' ? 'text-green-400' : 'text-amber-400' },
-                { label: 'Revisions', value: ticket.revision_count || 0, color: 'text-white' },
+                { label: 'Revisions', value: ticket.revision_count || 0, color: 'text-gray-900' },
               ].map(f => (
-                <div key={f.label} className="bg-slate-800/50 rounded-lg p-3">
-                  <p className="text-xs text-slate-500 uppercase">{f.label}</p>
+                <div key={f.label} className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-500 uppercase">{f.label}</p>
                   <p className={`text-lg font-bold mt-1 ${f.color}`}>{f.value}</p>
                 </div>
               ))}
@@ -277,11 +277,11 @@ export default function JobTicketDetail() {
               { label: 'Production Output', files: ticket.production_output_files },
             ].map(section => (
               <div key={section.label}>
-                <p className="text-sm font-medium text-slate-300 mb-2">{section.label}</p>
+                <p className="text-sm font-medium text-gray-700 mb-2">{section.label}</p>
                 {section.files?.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">{section.files.map((f, i) => <Badge key={i} variant="outline" className="text-slate-300">{f}</Badge>)}</div>
+                  <div className="flex flex-wrap gap-2">{section.files.map((f, i) => <Badge key={i} variant="outline" className="text-gray-700">{f}</Badge>)}</div>
                 ) : (
-                  <p className="text-sm text-slate-600">No files uploaded</p>
+                  <p className="text-sm text-gray-400">No files uploaded</p>
                 )}
               </div>
             ))}
@@ -299,13 +299,13 @@ export default function JobTicketDetail() {
             { label: 'Packaging Notes', value: ticket.packaging_notes, icon: Package },
             { label: 'Rework Notes', value: ticket.rework_notes, icon: RotateCcw },
           ].map(n => (
-            <Card key={n.label} className="bg-[#111826] border-slate-700">
+            <Card key={n.label} className="bg-white border-gray-200">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <n.icon className="w-4 h-4 text-slate-500" />
-                  <p className="text-sm font-medium text-slate-300">{n.label}</p>
+                  <n.icon className="w-4 h-4 text-gray-500" />
+                  <p className="text-sm font-medium text-gray-700">{n.label}</p>
                 </div>
-                <p className="text-white text-sm">{n.value || <span className="text-slate-600 italic">No notes</span>}</p>
+                <p className="text-gray-900 text-sm">{n.value || <span className="text-gray-400 italic">No notes</span>}</p>
               </CardContent>
             </Card>
           ))}

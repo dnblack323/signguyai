@@ -115,19 +115,19 @@ export default function NewOrderForm() {
   return (
     <div className="space-y-5 max-w-4xl" data-testid="new-order-form">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/orders')}><ArrowLeft className="w-5 h-5 text-slate-400" /></Button>
+        <Button variant="ghost" size="icon" onClick={() => navigate('/orders')}><ArrowLeft className="w-5 h-5 text-gray-500" /></Button>
         <h1 className="text-2xl font-bold text-white font-heading">New Order</h1>
       </div>
 
       {/* Customer Info */}
-      <Card className="bg-[#111826] border-slate-700">
-        <CardHeader><CardTitle className="text-white text-lg">Customer Information</CardTitle></CardHeader>
+      <Card className="bg-white border-gray-200">
+        <CardHeader><CardTitle className="text-gray-900 text-lg">Customer Information</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           {customers.length > 0 && (
             <div>
-              <Label className="text-slate-300">Select Existing Customer</Label>
+              <Label className="text-gray-700">Select Existing Customer</Label>
               <Select onValueChange={selectCustomer}>
-                <SelectTrigger className="bg-[#0B0F17] border-slate-600 text-white"><SelectValue placeholder="Or type new customer below" /></SelectTrigger>
+                <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900"><SelectValue placeholder="Or type new customer below" /></SelectTrigger>
                 <SelectContent>
                   {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}{c.company ? ` (${c.company})` : ''}</SelectItem>)}
                 </SelectContent>
@@ -135,22 +135,22 @@ export default function NewOrderForm() {
             </div>
           )}
           <div className="grid grid-cols-2 gap-3">
-            <div><Label className="text-slate-300">Customer Name *</Label><Input value={order.customer_name} onChange={e => updateOrder('customer_name', e.target.value)} className="bg-[#0B0F17] border-slate-600 text-white" data-testid="order-customer-name" /></div>
-            <div><Label className="text-slate-300">Company</Label><Input value={order.company_name} onChange={e => updateOrder('company_name', e.target.value)} className="bg-[#0B0F17] border-slate-600 text-white" /></div>
-            <div><Label className="text-slate-300">Phone</Label><Input value={order.phone} onChange={e => updateOrder('phone', e.target.value)} className="bg-[#0B0F17] border-slate-600 text-white" /></div>
-            <div><Label className="text-slate-300">Email</Label><Input value={order.email} onChange={e => updateOrder('email', e.target.value)} className="bg-[#0B0F17] border-slate-600 text-white" /></div>
+            <div><Label className="text-gray-700">Customer Name *</Label><Input value={order.customer_name} onChange={e => updateOrder('customer_name', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" data-testid="order-customer-name" /></div>
+            <div><Label className="text-gray-700">Company</Label><Input value={order.company_name} onChange={e => updateOrder('company_name', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" /></div>
+            <div><Label className="text-gray-700">Phone</Label><Input value={order.phone} onChange={e => updateOrder('phone', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" /></div>
+            <div><Label className="text-gray-700">Email</Label><Input value={order.email} onChange={e => updateOrder('email', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" /></div>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <div><Label className="text-slate-300">Source</Label>
+            <div><Label className="text-gray-700">Source</Label>
               <Select value={order.order_source} onValueChange={v => updateOrder('order_source', v)}>
-                <SelectTrigger className="bg-[#0B0F17] border-slate-600 text-white"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900"><SelectValue /></SelectTrigger>
                 <SelectContent>{SOURCES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><Label className="text-slate-300">Due Date</Label><Input type="date" value={order.requested_due_date} onChange={e => updateOrder('requested_due_date', e.target.value)} className="bg-[#0B0F17] border-slate-600 text-white" /></div>
-            <div><Label className="text-slate-300">Pickup / Delivery</Label>
+            <div><Label className="text-gray-700">Due Date</Label><Input type="date" value={order.requested_due_date} onChange={e => updateOrder('requested_due_date', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" /></div>
+            <div><Label className="text-gray-700">Pickup / Delivery</Label>
               <Select value={order.pickup_delivery_method} onValueChange={v => updateOrder('pickup_delivery_method', v)}>
-                <SelectTrigger className="bg-[#0B0F17] border-slate-600 text-white"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pickup">Pickup</SelectItem>
                   <SelectItem value="delivery">Delivery</SelectItem>
@@ -160,7 +160,7 @@ export default function NewOrderForm() {
               </Select>
             </div>
           </div>
-          <div><Label className="text-slate-300">Internal Notes</Label><Textarea value={order.internal_notes} onChange={e => updateOrder('internal_notes', e.target.value)} className="bg-[#0B0F17] border-slate-600 text-white" rows={2} /></div>
+          <div><Label className="text-gray-700">Internal Notes</Label><Textarea value={order.internal_notes} onChange={e => updateOrder('internal_notes', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" rows={2} /></div>
         </CardContent>
       </Card>
 
@@ -171,27 +171,27 @@ export default function NewOrderForm() {
       </div>
 
       {tickets.map((ticket, i) => (
-        <Card key={i} className="bg-[#111826] border-slate-700" data-testid={`ticket-form-${i}`}>
+        <Card key={i} className="bg-white border-gray-200" data-testid={`ticket-form-${i}`}>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-white text-base">Ticket {i + 1}</CardTitle>
+              <CardTitle className="text-gray-900 text-base">Ticket {i + 1}</CardTitle>
               {tickets.length > 1 && <Button variant="ghost" size="icon" onClick={() => removeTicket(i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>}
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2"><Label className="text-slate-300">Item Name *</Label><Input value={ticket.item_name} onChange={e => updateTicket(i, 'item_name', e.target.value)} placeholder="e.g. Race Banner 3x8" className="bg-[#0B0F17] border-slate-600 text-white" /></div>
-              <div><Label className="text-slate-300">Category</Label>
+              <div className="col-span-2"><Label className="text-gray-700">Item Name *</Label><Input value={ticket.item_name} onChange={e => updateTicket(i, 'item_name', e.target.value)} placeholder="e.g. Race Banner 3x8" className="bg-gray-50 border-gray-300 text-gray-900" /></div>
+              <div><Label className="text-gray-700">Category</Label>
                 <Select value={ticket.item_category} onValueChange={v => updateTicket(i, 'item_category', v)}>
-                  <SelectTrigger className="bg-[#0B0F17] border-slate-600 text-white"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900"><SelectValue /></SelectTrigger>
                   <SelectContent>{CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div><Label className="text-slate-300">Qty</Label><Input type="number" min={1} value={ticket.quantity} onChange={e => updateTicket(i, 'quantity', parseInt(e.target.value) || 1)} className="bg-[#0B0F17] border-slate-600 text-white" /></div>
-                <div><Label className="text-slate-300">Priority</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <div><Label className="text-gray-700">Qty</Label><Input type="number" min={1} value={ticket.quantity} onChange={e => updateTicket(i, 'quantity', parseInt(e.target.value) || 1)} className="bg-gray-50 border-gray-300 text-gray-900" /></div>
+                <div><Label className="text-gray-700">Priority</Label>
                   <Select value={ticket.priority} onValueChange={v => updateTicket(i, 'priority', v)}>
-                    <SelectTrigger className="bg-[#0B0F17] border-slate-600 text-white"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="normal">Normal</SelectItem>
                       <SelectItem value="high">High</SelectItem>
@@ -200,23 +200,8 @@ export default function NewOrderForm() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div><Label className="text-gray-700">Price Est.</Label><Input type="number" min={0} step={0.01} value={ticket.estimated_price} onChange={e => updateTicket(i, 'estimated_price', parseFloat(e.target.value) || 0)} className="bg-gray-50 border-gray-300 text-gray-900" /></div>
               </div>
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              <div><Label className="text-slate-300">Qty</Label><Input type="number" min={1} value={ticket.quantity} onChange={e => updateTicket(i, 'quantity', parseInt(e.target.value) || 1)} className="bg-[#0B0F17] border-slate-600 text-white" /></div>
-              <div><Label className="text-slate-300">Priority</Label>
-                <Select value={ticket.priority} onValueChange={v => updateTicket(i, 'priority', v)}>
-                  <SelectTrigger className="bg-[#0B0F17] border-slate-600 text-white"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="normal">Normal</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                    <SelectItem value="rush">Rush</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div><Label className="text-slate-300">Price Est.</Label><Input type="number" min={0} step={0.01} value={ticket.estimated_price} onChange={e => updateTicket(i, 'estimated_price', parseFloat(e.target.value) || 0)} className="bg-[#0B0F17] border-slate-600 text-white" /></div>
-              <div />
             </div>
             {/* Dynamic category-specific fields */}
             <DynamicCategoryFields
@@ -225,11 +210,11 @@ export default function NewOrderForm() {
               onChange={(newSpecs) => updateTicket(i, 'specs', newSpecs)}
               mode="edit"
             />
-            <div><Label className="text-slate-300">Special Instructions</Label><Textarea value={ticket.special_instructions} onChange={e => updateTicket(i, 'special_instructions', e.target.value)} className="bg-[#0B0F17] border-slate-600 text-white" rows={2} /></div>
+            <div><Label className="text-gray-700">Special Instructions</Label><Textarea value={ticket.special_instructions} onChange={e => updateTicket(i, 'special_instructions', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" rows={2} /></div>
             <div className="flex items-center gap-6 pt-1">
-              <div className="flex items-center gap-2"><Switch checked={ticket.production_flow_enabled} onCheckedChange={v => updateTicket(i, 'production_flow_enabled', v)} /><Label className="text-slate-300 text-sm">Enable Production Workflow</Label></div>
-              <div className="flex items-center gap-2"><Switch checked={ticket.design_needed} onCheckedChange={v => updateTicket(i, 'design_needed', v)} /><Label className="text-slate-300 text-sm">Design Needed</Label></div>
-              <div className="flex items-center gap-2"><Switch checked={ticket.proof_required} onCheckedChange={v => updateTicket(i, 'proof_required', v)} /><Label className="text-slate-300 text-sm">Proof Required</Label></div>
+              <div className="flex items-center gap-2"><Switch checked={ticket.production_flow_enabled} onCheckedChange={v => updateTicket(i, 'production_flow_enabled', v)} /><Label className="text-gray-700 text-sm">Enable Production Workflow</Label></div>
+              <div className="flex items-center gap-2"><Switch checked={ticket.design_needed} onCheckedChange={v => updateTicket(i, 'design_needed', v)} /><Label className="text-gray-700 text-sm">Design Needed</Label></div>
+              <div className="flex items-center gap-2"><Switch checked={ticket.proof_required} onCheckedChange={v => updateTicket(i, 'proof_required', v)} /><Label className="text-gray-700 text-sm">Proof Required</Label></div>
             </div>
           </CardContent>
         </Card>
@@ -237,10 +222,10 @@ export default function NewOrderForm() {
 
       {/* Action Buttons */}
       <div className="flex gap-3 pt-2">
-        <Button onClick={() => handleSave(false)} disabled={saving} className="bg-slate-700 hover:bg-slate-600 text-white flex-1" data-testid="save-intake-btn">
+        <Button onClick={() => handleSave(false)} disabled={saving} className="bg-gray-200 hover:bg-slate-600 text-gray-900 flex-1" data-testid="save-intake-btn">
           {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Save as Intake Only
         </Button>
-        <Button onClick={() => handleSave(true)} disabled={saving} className="bg-violet-600 hover:bg-violet-700 text-white flex-1" data-testid="save-generate-quote-btn">
+        <Button onClick={() => handleSave(true)} disabled={saving} className="bg-violet-600 hover:bg-violet-700 text-gray-900 flex-1" data-testid="save-generate-quote-btn">
           {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Save + Generate Quote
         </Button>
       </div>

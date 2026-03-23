@@ -113,7 +113,7 @@ export default function WorkflowTemplateManager() {
           <h1 className="text-3xl font-bold text-white font-heading flex items-center gap-3"><Settings className="w-8 h-8 text-violet-400" /> Workflow Templates</h1>
           <p className="text-slate-400 text-sm mt-1">Configure production stages for each item category</p>
         </div>
-        <Button variant="outline" onClick={reseedDefaults} disabled={saving === 'reseed'} className="gap-2 text-slate-300">
+        <Button variant="outline" onClick={reseedDefaults} disabled={saving === 'reseed'} className="gap-2 text-gray-700">
           {saving === 'reseed' ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />} Reset to Defaults
         </Button>
       </div>
@@ -124,36 +124,36 @@ export default function WorkflowTemplateManager() {
           const isExpanded = expanded === template.id;
 
           return (
-            <Card key={template.id} className="bg-[#111826] border-slate-700" data-testid={`template-${template.category}`}>
+            <Card key={template.id} className="bg-white border-gray-200" data-testid={`template-${template.category}`}>
               <CardContent className="p-0">
-                <button onClick={() => toggleExpand(template.id)} className="w-full flex items-center justify-between p-4 text-left hover:bg-slate-800/30 transition-colors">
+                <button onClick={() => toggleExpand(template.id)} className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-violet-500/10 flex items-center justify-center">
                       <Settings className="w-5 h-5 text-violet-400" />
                     </div>
                     <div>
-                      <p className="text-white font-medium">{CATEGORY_LABELS[template.category] || template.template_name}</p>
-                      <p className="text-xs text-slate-500">{stages.length} stages | {stages.filter(s => s.required).length} required</p>
+                      <p className="text-gray-900 font-medium">{CATEGORY_LABELS[template.category] || template.template_name}</p>
+                      <p className="text-xs text-gray-500">{stages.length} stages | {stages.filter(s => s.required).length} required</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {template.is_default && <Badge variant="outline" className="text-xs text-slate-400">Default</Badge>}
-                    {isExpanded ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
+                    {template.is_default && <Badge variant="outline" className="text-xs text-gray-500">Default</Badge>}
+                    {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-500" /> : <ChevronDown className="w-5 h-5 text-gray-500" />}
                   </div>
                 </button>
 
                 {isExpanded && (
-                  <div className="border-t border-slate-700 p-4 space-y-3">
+                  <div className="border-t border-gray-200 p-4 space-y-3">
                     {stages.map((stage, idx) => (
-                      <div key={idx} className="flex items-center gap-2 bg-slate-800/40 rounded-lg p-3" data-testid={`stage-${idx}`}>
+                      <div key={idx} className="flex items-center gap-2 bg-gray-50 rounded-lg p-3" data-testid={`stage-${idx}`}>
                         <div className="flex flex-col gap-0.5">
-                          <button onClick={() => moveStage(template.id, idx, -1)} disabled={idx === 0} className="text-slate-500 hover:text-white disabled:opacity-20"><ChevronUp className="w-3 h-3" /></button>
-                          <button onClick={() => moveStage(template.id, idx, 1)} disabled={idx === stages.length - 1} className="text-slate-500 hover:text-white disabled:opacity-20"><ChevronDown className="w-3 h-3" /></button>
+                          <button onClick={() => moveStage(template.id, idx, -1)} disabled={idx === 0} className="text-gray-500 hover:text-gray-900 disabled:opacity-20"><ChevronUp className="w-3 h-3" /></button>
+                          <button onClick={() => moveStage(template.id, idx, 1)} disabled={idx === stages.length - 1} className="text-gray-500 hover:text-gray-900 disabled:opacity-20"><ChevronDown className="w-3 h-3" /></button>
                         </div>
-                        <span className="text-xs font-mono text-slate-500 w-6">{idx + 1}</span>
-                        <Input value={stage.name} onChange={e => updateStage(template.id, idx, 'name', e.target.value)} className="bg-[#0B0F17] border-slate-600 text-white h-8 text-sm flex-1" />
+                        <span className="text-xs font-mono text-gray-500 w-6">{idx + 1}</span>
+                        <Input value={stage.name} onChange={e => updateStage(template.id, idx, 'name', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900 h-8 text-sm flex-1" />
                         <Select value={stage.department} onValueChange={v => updateStage(template.id, idx, 'department', v)}>
-                          <SelectTrigger className="bg-[#0B0F17] border-slate-600 text-white h-8 text-xs w-32"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900 h-8 text-xs w-32"><SelectValue /></SelectTrigger>
                           <SelectContent>{DEPARTMENTS.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
                         </Select>
                         <div className="flex items-center gap-1" title="Required"><Switch checked={stage.required} onCheckedChange={v => updateStage(template.id, idx, 'required', v)} /></div>
@@ -162,13 +162,13 @@ export default function WorkflowTemplateManager() {
                       </div>
                     ))}
 
-                    <div className="flex items-center gap-4 text-xs text-slate-500 px-3">
+                    <div className="flex items-center gap-4 text-xs text-gray-500 px-3">
                       <span>Toggles: Required | QC</span>
                     </div>
 
                     <div className="flex gap-2 pt-2">
-                      <Button variant="outline" size="sm" onClick={() => addStage(template.id)} className="gap-1 text-slate-300"><Plus className="w-3 h-3" /> Add Stage</Button>
-                      <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white gap-1" onClick={() => saveTemplate(template.id)} disabled={saving === template.id}>
+                      <Button variant="outline" size="sm" onClick={() => addStage(template.id)} className="gap-1 text-gray-700"><Plus className="w-3 h-3" /> Add Stage</Button>
+                      <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-gray-900 gap-1" onClick={() => saveTemplate(template.id)} disabled={saving === template.id}>
                         {saving === template.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} Save
                       </Button>
                     </div>
