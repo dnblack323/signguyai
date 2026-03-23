@@ -30,7 +30,7 @@ import {
   TableRow,
 } from '../components/ui/table';
 import { formatCurrency, formatDate, getStatusColor } from '../lib/utils';
-import { Plus, Edit2, CheckCircle, AlertTriangle, Eye, CreditCard, Send } from 'lucide-react';
+import { Plus, Edit2, CheckCircle, AlertTriangle, Eye, CreditCard, Send, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
 import axios from 'axios';
@@ -49,6 +49,7 @@ export default function Invoices() {
   } = useApp();
   
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);
@@ -353,7 +354,17 @@ export default function Invoices() {
 
       {/* Filters */}
       <Card className="bg-card border-border/50">
-        <CardContent className="p-4">
+        <CardContent className="p-4 flex items-center gap-3 flex-wrap">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search invoices..."
+              className="pl-9"
+              data-testid="invoices-search-input"
+            />
+          </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]" data-testid="invoice-filter-status">
               <SelectValue placeholder="Filter by status" />
@@ -398,7 +409,19 @@ export default function Invoices() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {invoices.map((invoice, idx) => (
+                {invoices.filter(invoice => {
+                  if (!searchQuery.trim()) return true;
+                  const q = searchQuery.toLowerCase();
+                  const customerName = (customers.find(c => c.id === invoice.customer_id)?.name || '').toLowerCase();
+                  const jobName = (jobs.find(j => j.id === invoice.job_id)?.name || '').toLowerCase();
+                  return (
+                    customerName.includes(q) ||
+                    jobName.includes(q) ||
+                    (invoice.id || '').toLowerCase().includes(q) ||
+                    (invoice.status || '').toLowerCase().includes(q) ||
+                    (invoice.notes || '').toLowerCase().includes(q)
+                  );
+                }).map((invoice, idx) => (
                   <TableRow 
                     key={invoice.id} 
                     className={idx % 2 === 0 ? 'bg-transparent' : 'bg-muted/30'}

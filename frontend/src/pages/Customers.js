@@ -38,7 +38,7 @@ import {
   Plus, Search, Edit2, Trash2, Mail, Phone, Building, 
   User, Briefcase, Receipt, FileText, Calendar, Eye,
   DollarSign, Clock, Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Download,
-  ArrowRight
+  ArrowRight, Package
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
@@ -1167,6 +1167,9 @@ export default function Customers() {
                     <Edit2 className="h-4 w-4 mr-2" /> Edit Customer
                   </Button>
                   <div className="flex gap-2">
+                    <Button className="bg-violet-600 hover:bg-violet-700 text-white" onClick={() => { setIsDetailOpen(false); navigate(`/orders/new?customer_id=${selectedCustomer.id}&customer_name=${encodeURIComponent(selectedCustomer.name || '')}&company=${encodeURIComponent(selectedCustomer.company || '')}&email=${encodeURIComponent(selectedCustomer.email || '')}&phone=${encodeURIComponent(selectedCustomer.phone || '')}`); }} data-testid="customer-popup-new-order-btn">
+                      <Package className="h-4 w-4 mr-2" /> New Order
+                    </Button>
                     <Button variant="outline" onClick={() => { setIsDetailOpen(false); navigate(`/jobs?new=true&customer_id=${selectedCustomer.id}&customer_name=${encodeURIComponent(selectedCustomer.name || selectedCustomer.company || 'Customer')}`); }} data-testid="customer-popup-new-job-btn">
                       <Briefcase className="h-4 w-4 mr-2" /> New Job
                     </Button>

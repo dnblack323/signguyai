@@ -38,7 +38,7 @@ import {
   Eye, Edit2, Trash2, Package, DollarSign, TrendingUp,
   ExternalLink, Check, X, Settings, Copy, Link2, BarChart3,
   Upload, ImageIcon, CreditCard, AlertTriangle, Loader2, Palette,
-  QrCode, Download, Shirt, Sticker, Gift
+  QrCode, Download, Shirt, Sticker, Gift, Search
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
@@ -100,6 +100,7 @@ export default function Webstores() {
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
   const [selectedType, setSelectedType] = useState('all');
+  const [storeSearch, setStoreSearch] = useState('');
   const [activeTab, setActiveTab] = useState('stores');
   
   // Dialog states
@@ -652,9 +653,18 @@ export default function Webstores() {
     }
   };
 
-  const filteredStores = selectedType === 'all' 
+  const filteredStores = (selectedType === 'all' 
     ? webstores 
-    : webstores.filter(s => s.store_type === selectedType);
+    : webstores.filter(s => s.store_type === selectedType)
+  ).filter(s => {
+    if (!storeSearch.trim()) return true;
+    const q = storeSearch.toLowerCase();
+    return (
+      (s.name || '').toLowerCase().includes(q) ||
+      (s.description || '').toLowerCase().includes(q) ||
+      (s.store_type || '').toLowerCase().includes(q)
+    );
+  });
 
   // Calculate stats
   const totalSales = webstores.reduce((sum, s) => sum + (s.total_sales || 0), 0);
@@ -1221,8 +1231,18 @@ export default function Webstores() {
 
         {/* Stores Tab */}
         <TabsContent value="stores" className="space-y-0">
-          {/* Type Filter */}
-          <div className="px-6 py-4 flex gap-2 border-b border-gray-100">
+          {/* Type Filter + Search */}
+          <div className="px-6 py-4 flex gap-2 border-b border-gray-100 flex-wrap items-center">
+            <div className="relative max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                value={storeSearch}
+                onChange={(e) => setStoreSearch(e.target.value)}
+                placeholder="Search stores..."
+                className="pl-9 h-9"
+                data-testid="webstores-search-input"
+              />
+            </div>
             <Button
               variant={selectedType === 'all' ? 'default' : 'outline'}
               size="sm"

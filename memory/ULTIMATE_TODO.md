@@ -97,29 +97,23 @@
 # STAGE 4: SEARCH, BULK ACTIONS & UX IMPROVEMENTS
 *Productivity features for daily use.*
 
-### 4.1 Jobs Page Search
-- **Add:** `searchQuery` state and search input in filters card
-- **Filter by:** customer name, job title/description, job number, status
+### 4.1 Jobs Page Search ✅ DONE
+- **Added:** Search input in filters card, filters by customer name, job title, job number, status
 
-### 4.2 Invoices Page Search
-- **Add:** Search by customer, job reference, invoice number, notes
+### 4.2 Invoices Page Search ✅ DONE
+- **Added:** Search input, filters by customer, job reference, invoice ID, status, notes
 
-### 4.3 Webstores Page Search
-- **Add:** Search by store name, owner, description
+### 4.3 Webstores Page Search ✅ DONE
+- **Added:** Search input, filters by store name, description, type
 
 ### 4.4 Jobs Page Bulk Actions
-- **Add:** Checkbox selection per job row
-- **Add:** Select All / Deselect All
-- **Add:** Floating bulk action bar: Complete, Archive, Delete, Assign Employee
-- **Add:** Keyboard shortcuts (A=Select All, C=Complete, R=Archive, Del=Delete, Esc=Clear)
+- **Status:** Deferred (checkbox selection, bulk action bar)
 
-### 4.5 Quick Add Job Button in Customer Modal
-- **File:** `Customers.js` customer detail dialog
-- **Add:** "Quick Add Job" and "Quick Add Quote" buttons
-- **Navigate to:** `/jobs?new=true&customer_id={id}&type=job`
+### 4.5 Quick Add Job/Order Button in Customer Modal ✅ DONE
+- **Added:** "New Order" button (purple, links to /orders/new with customer pre-filled) + existing "New Job" button
 
 ### 4.6 Settings Page Pricing Link
-- **Add:** Card in `CompanySettings.js` linking to pricing settings and materials
+- **Status:** Deferred
 
 ---
 

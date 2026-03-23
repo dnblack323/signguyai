@@ -36,10 +36,16 @@ const SOURCES = [
 
 export default function NewOrderForm() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [saving, setSaving] = useState(false);
   const [customers, setCustomers] = useState([]);
   const [order, setOrder] = useState({
-    customer_name: '', contact_name: '', phone: '', email: '', company_name: '',
+    customer_name: searchParams.get('customer_name') || '',
+    contact_name: searchParams.get('customer_name') || '',
+    phone: searchParams.get('phone') || '',
+    email: searchParams.get('email') || '',
+    company_name: searchParams.get('company') || '',
+    customer_id: searchParams.get('customer_id') || '',
     order_source: 'phone', requested_due_date: '', event_date: '',
     pickup_delivery_method: 'pickup', pickup_delivery_notes: '',
     internal_notes: '', customer_notes: '',

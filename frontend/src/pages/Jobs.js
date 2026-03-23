@@ -46,7 +46,7 @@ import {
   MoreHorizontal, CheckCircle, Archive, ArchiveRestore, Clock,
   FileText, MessageSquare, Activity, DollarSign, User, ExternalLink,
   ChevronRight, Send, CalendarPlus, Calculator, Play, Square, Timer, Loader2,
-  GitBranch, ArrowRight, ArrowRightCircle, Filter
+  GitBranch, ArrowRight, ArrowRightCircle, Filter, Search
 } from 'lucide-react';
 import { TimelineToggle } from '../components/ProductionTimeline';
 import { JobHistoryPanel } from '../components/JobHistoryPanel';
@@ -142,6 +142,7 @@ export function JobsList() {
     createJob, updateJob, deleteJob, completeJob, archiveJob, approveJob, createCustomer
   } = useApp();
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   // Get filter from URL params, default to 'all'
   const filterType = searchParams.get('filter') || 'all';
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -439,6 +440,16 @@ export function JobsList() {
       {/* Filters Card */}
       <ShellCard padding="default">
         <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search jobs..."
+              className="pl-9"
+              data-testid="jobs-search-input"
+            />
+          </div>
           <Filter className="h-4 w-4 text-gray-400" />
           <Select value={filterType} onValueChange={setFilterType}>
             <SelectTrigger className="w-[200px]" data-testid="job-filter-select">
@@ -686,7 +697,20 @@ export function JobsList() {
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {jobs.map((job) => (
+            {jobs.filter(job => {
+              if (!searchQuery.trim()) return true;
+              const q = searchQuery.toLowerCase();
+              const customerName = (customers.find(c => c.id === job.customer_id)?.name || '').toLowerCase();
+              const companyName = (customers.find(c => c.id === job.customer_id)?.company || '').toLowerCase();
+              return (
+                (job.name || '').toLowerCase().includes(q) ||
+                (job.description || '').toLowerCase().includes(q) ||
+                (job.job_number || '').toLowerCase().includes(q) ||
+                customerName.includes(q) ||
+                companyName.includes(q) ||
+                (job.status || '').toLowerCase().includes(q)
+              );
+            }).map((job) => (
               <div 
                 key={job.id} 
                 className="p-4 hover:bg-gray-50 transition-colors group cursor-pointer"
