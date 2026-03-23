@@ -2,14 +2,17 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, Package, Wrench, FileImage, MessageSquare, Clock, CheckCircle, AlertTriangle,
-  Play, Pause, RotateCcw, Eye, Upload, Loader2, ChevronDown, ChevronRight
+  Play, Pause, RotateCcw, Eye, Upload, Loader2, ChevronDown, ChevronRight, Edit3
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Textarea } from '../components/ui/textarea';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
 import axios from 'axios';
+import LivePricingPanel from '../components/LivePricingPanel';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const hdr = () => ({ Authorization: `Bearer ${localStorage.getItem('auth_token')}`, 'Content-Type': 'application/json' });
@@ -46,6 +49,33 @@ export default function JobTicketDetail() {
   };
 
   useEffect(() => { load(); }, [ticketId]);
+
+  const [editing, setEditing] = useState(false);
+  const [editSpecs, setEditSpecs] = useState({});
+  const [editFields, setEditFields] = useState({});
+  const [saveLoading, setSaveLoading] = useState(false);
+
+  const startEdit = () => {
+    setEditSpecs({ ...(ticket?.specs || {}) });
+    setEditFields({
+      special_instructions: ticket?.special_instructions || '',
+      production_notes: ticket?.production_notes || '',
+      install_notes: ticket?.install_notes || '',
+      packaging_notes: ticket?.packaging_notes || '',
+    });
+    setEditing(true);
+  };
+
+  const saveEdit = async () => {
+    setSaveLoading(true);
+    try {
+      await axios.put(`${API}/job-tickets/${ticketId}`, { specs: editSpecs, ...editFields }, { headers: hdr() });
+      toast.success('Ticket updated');
+      setEditing(false);
+      load();
+    } catch (e) { toast.error(e.response?.data?.detail || 'Failed to save'); }
+    finally { setSaveLoading(false); }
+  };
 
   const updateTask = async (taskId, status) => {
     setTaskLoading(taskId);
@@ -122,58 +152,85 @@ export default function JobTicketDetail() {
         ))}
       </div>
 
-      {/* SPECS TAB */}
+      {/* SPECS TAB - with Live Pricing Panel */}
       {tab === 'specs' && (
-        <Card className="bg-[#111826] border-slate-700">
-          <CardHeader><CardTitle className="text-white text-lg flex items-center gap-2"><Package className="w-5 h-5 text-violet-400" /> Item Specifications</CardTitle></CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {[
-                { label: 'Width', value: specs.width },
-                { label: 'Height', value: specs.height },
-                { label: 'Size', value: specs.size_description },
-                { label: 'Material', value: specs.material },
-                { label: 'Substrate', value: specs.substrate },
-                { label: 'Color Specs', value: specs.color_specs },
-                { label: 'Finish', value: specs.finish },
-                { label: 'Lamination', value: specs.lamination },
-                { label: 'Print Method', value: specs.print_method },
-                { label: 'Cut Method', value: specs.cut_method },
-                { label: 'Mounting', value: specs.mounting_type },
-                { label: 'Sides', value: specs.sides > 1 ? `${specs.sides} sides` : specs.double_sided ? 'Double-sided' : 'Single' },
-              ].filter(f => f.value).map(f => (
-                <div key={f.label} className="bg-slate-800/50 rounded-lg p-3">
-                  <p className="text-xs text-slate-500 uppercase">{f.label}</p>
-                  <p className="text-white mt-1">{String(f.value)}</p>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-5">
+          <Card className="bg-[#111826] border-slate-700">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-white text-lg flex items-center gap-2"><Package className="w-5 h-5 text-violet-400" /> Item Specifications</CardTitle>
+                {!editing ? (
+                  <Button variant="outline" size="sm" onClick={startEdit} className="gap-1 text-slate-300"><Edit3 className="w-3.5 h-3.5" /> Edit</Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
+                    <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white" onClick={saveEdit} disabled={saveLoading}>
+                      {saveLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : null} Save
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {editing ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {[
+                    { key: 'width', label: 'Width' },
+                    { key: 'height', label: 'Height' },
+                    { key: 'size_description', label: 'Size' },
+                    { key: 'material', label: 'Material' },
+                    { key: 'substrate', label: 'Substrate' },
+                    { key: 'color_specs', label: 'Color Specs' },
+                    { key: 'finish', label: 'Finish' },
+                    { key: 'lamination', label: 'Lamination' },
+                    { key: 'print_method', label: 'Print Method' },
+                    { key: 'cut_method', label: 'Cut Method' },
+                    { key: 'mounting_type', label: 'Mounting' },
+                  ].map(f => (
+                    <div key={f.key}>
+                      <Label className="text-slate-400 text-xs">{f.label}</Label>
+                      <Input value={editSpecs[f.key] || ''} onChange={e => setEditSpecs(p => ({ ...p, [f.key]: e.target.value }))} className="bg-[#0B0F17] border-slate-600 text-white h-8 text-sm" />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            {/* Boolean flags */}
-            <div className="flex flex-wrap gap-3 mt-4">
-              {specs.grommets && <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/30">Grommets</Badge>}
-              {specs.hemming && <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/30">Hemming</Badge>}
-              {specs.install_required && <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/30">Install Required</Badge>}
-              {ticket.design_needed && <Badge variant="outline" className="bg-purple-500/10 text-purple-400 border-purple-500/30">Design Needed</Badge>}
-              {ticket.proof_required && <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/30">Proof Required</Badge>}
-              {ticket.customer_artwork && <Badge variant="outline" className="bg-green-500/10 text-green-400 border-green-500/30">Customer Artwork</Badge>}
-            </div>
-            {/* Pricing */}
-            <div className="grid grid-cols-3 gap-3 mt-6 pt-4 border-t border-slate-700">
-              <div className="bg-slate-800/50 rounded-lg p-3">
-                <p className="text-xs text-slate-500 uppercase">Estimated Price</p>
-                <p className="text-xl font-bold text-white mt-1">${(ticket.estimated_price || 0).toFixed(2)}</p>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {[
+                    { label: 'Width', value: specs.width },
+                    { label: 'Height', value: specs.height },
+                    { label: 'Size', value: specs.size_description },
+                    { label: 'Material', value: specs.material },
+                    { label: 'Substrate', value: specs.substrate },
+                    { label: 'Color Specs', value: specs.color_specs },
+                    { label: 'Finish', value: specs.finish },
+                    { label: 'Lamination', value: specs.lamination },
+                    { label: 'Print Method', value: specs.print_method },
+                    { label: 'Cut Method', value: specs.cut_method },
+                    { label: 'Mounting', value: specs.mounting_type },
+                    { label: 'Sides', value: specs.sides > 1 ? `${specs.sides} sides` : specs.double_sided ? 'Double-sided' : 'Single' },
+                  ].filter(f => f.value).map(f => (
+                    <div key={f.label} className="bg-slate-800/50 rounded-lg p-3">
+                      <p className="text-xs text-slate-500 uppercase">{f.label}</p>
+                      <p className="text-white mt-1">{String(f.value)}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* Boolean flags */}
+              <div className="flex flex-wrap gap-3 mt-4">
+                {specs.grommets && <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/30">Grommets</Badge>}
+                {specs.hemming && <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/30">Hemming</Badge>}
+                {specs.install_required && <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/30">Install Required</Badge>}
+                {ticket.design_needed && <Badge variant="outline" className="bg-purple-500/10 text-purple-400 border-purple-500/30">Design Needed</Badge>}
+                {ticket.proof_required && <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/30">Proof Required</Badge>}
+                {ticket.customer_artwork && <Badge variant="outline" className="bg-green-500/10 text-green-400 border-green-500/30">Customer Artwork</Badge>}
               </div>
-              <div className="bg-slate-800/50 rounded-lg p-3">
-                <p className="text-xs text-slate-500 uppercase">Labor Est.</p>
-                <p className="text-xl font-bold text-white mt-1">${(ticket.labor_estimate || 0).toFixed(2)}</p>
-              </div>
-              <div className="bg-slate-800/50 rounded-lg p-3">
-                <p className="text-xs text-slate-500 uppercase">Material Est.</p>
-                <p className="text-xl font-bold text-white mt-1">${(ticket.material_estimate || 0).toFixed(2)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          {/* Live Pricing Panel - right side */}
+          <LivePricingPanel ticketId={ticketId} ticketData={ticket} onPriceSaved={() => load()} />
+        </div>
       )}
 
       {/* PRODUCTION TAB */}

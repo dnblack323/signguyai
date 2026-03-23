@@ -193,3 +193,116 @@ async def delete_job_ticket(ticket_id: str, current_user: UserInDB = Depends(get
     await db.production_tasks.delete_many({"job_ticket_id": ticket_id})
     await update_order_progress(db, existing["order_id"])
     return {"message": "Job ticket and tasks deleted"}
+
+
+
+@router.post("/{ticket_id}/calculate-pricing")
+async def calculate_ticket_pricing(ticket_id: str, pricing_input: dict = {}, current_user: UserInDB = Depends(get_current_active_user)):
+    """Calculate pricing for a job ticket using the existing pricing engine.
+    Reads pricing settings from tenant config. Can be called with partial input for live updates."""
+    from server import calculate_pricing, get_pricing_defaults
+    from models.enums import PricingCategory
+    from models.pricing import JobItemPricingData
+
+    ticket = await db.job_tickets.find_one(
+        {"id": ticket_id, "tenant_id": current_user.tenant_id}, {"_id": 0}
+    )
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Job ticket not found")
+
+    # Map job ticket category to pricing category
+    CATEGORY_MAP = {
+        "banners": "digital_print",
+        "rigid_signs": "rigid_signs",
+        "cut_vinyl": "cut_vinyl",
+        "vehicle_wrap": "vehicle_graphics",
+        "apparel": "apparel",
+        "promo_misc": "promotional",
+        "custom": "custom",
+    }
+    pricing_cat = CATEGORY_MAP.get(ticket.get("item_category"), "custom")
+
+    # Build pricing data from ticket specs + explicit overrides
+    specs = ticket.get("specs", {})
+    merged_input = {
+        "category": pricing_cat,
+        "complexity": pricing_input.get("complexity", 1),
+        "width_inches": _parse_dimension(specs.get("width") or pricing_input.get("width_inches")),
+        "length_inches": _parse_dimension(specs.get("height") or pricing_input.get("length_inches")),
+        "double_sided": specs.get("double_sided", False),
+        "laminate": bool(specs.get("lamination")),
+        "include_setup_fee": pricing_input.get("include_setup_fee", False),
+        **{k: v for k, v in pricing_input.items() if v is not None and k not in ("complexity",)},
+    }
+
+    try:
+        category_enum = PricingCategory(pricing_cat)
+        pricing_data = JobItemPricingData(**merged_input)
+        quantity = ticket.get("quantity", 1)
+
+        result = await calculate_pricing(category_enum, pricing_data, quantity, current_user.tenant_id)
+        return {
+            "calculation": result.model_dump(),
+            "pricing_category": pricing_cat,
+            "quantity": quantity,
+            "active_price": result.selling_price,
+        }
+    except Exception as e:
+        return {"calculation": None, "error": str(e), "pricing_category": pricing_cat}
+
+
+@router.post("/{ticket_id}/save-pricing")
+async def save_ticket_pricing(ticket_id: str, body: dict, current_user: UserInDB = Depends(get_current_active_user)):
+    """Save pricing snapshot to a job ticket. Supports calculator and manual modes."""
+    ticket = await db.job_tickets.find_one(
+        {"id": ticket_id, "tenant_id": current_user.tenant_id}, {"_id": 0}
+    )
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Job ticket not found")
+
+    pricing_mode = body.get("pricing_mode", "calculator")  # "calculator" or "manual"
+    calculated_price = body.get("calculated_price", 0)
+    manual_price = body.get("manual_price", 0)
+    calculation_breakdown = body.get("calculation_breakdown", {})
+
+    active_price = manual_price if pricing_mode == "manual" else calculated_price
+
+    update = {
+        "estimated_price": active_price,
+        "pricing_snapshot": {
+            "pricing_mode": pricing_mode,
+            "calculated_price": calculated_price,
+            "manual_price": manual_price,
+            "active_price": active_price,
+            "calculation_breakdown": calculation_breakdown,
+            "saved_at": datetime.now(timezone.utc).isoformat(),
+        },
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    await db.job_tickets.update_one({"id": ticket_id}, {"$set": update})
+
+    # Update order totals
+    from services.workflow_engine import update_order_progress
+    await update_order_progress(db, ticket["order_id"])
+
+    return {"message": "Pricing saved", "active_price": active_price, "pricing_mode": pricing_mode}
+
+
+def _parse_dimension(val):
+    """Parse dimension string like '8ft' or '36in' to inches."""
+    if val is None:
+        return None
+    if isinstance(val, (int, float)):
+        return float(val)
+    s = str(val).strip().lower()
+    try:
+        if 'ft' in s:
+            return float(s.replace('ft', '').strip()) * 12
+        if 'in' in s:
+            return float(s.replace('in', '').replace('"', '').strip())
+        if "'" in s:
+            return float(s.replace("'", '').strip()) * 12
+        return float(s)
+    except (ValueError, TypeError):
+        return None
