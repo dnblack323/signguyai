@@ -152,6 +152,10 @@ export default function OrdersPage() {
 
                   <div className="flex items-center gap-6 flex-shrink-0">
                     <div className="text-right hidden sm:block">
+                      <p className="text-xs text-slate-500">Total</p>
+                      <p className="text-lg font-bold text-white">${(order.order_total || 0).toFixed(2)}</p>
+                    </div>
+                    <div className="text-right hidden sm:block">
                       <p className="text-xs text-slate-500">Tickets</p>
                       <p className="text-lg font-bold text-white">{order.job_ticket_count || 0}</p>
                     </div>

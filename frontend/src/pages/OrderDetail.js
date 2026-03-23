@@ -2,11 +2,15 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Package, FileText, Play, Clock, CheckCircle, AlertTriangle,
-  Trash2, Loader2, Receipt, Wrench, MessageSquare, DollarSign, Pause, ChevronRight
+  Trash2, Loader2, Receipt, Wrench, MessageSquare, DollarSign, Pause, ChevronRight,
+  Copy, Calculator, Edit3, MoreHorizontal
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -100,11 +104,34 @@ export default function OrderDetail() {
     } catch { toast.error('Failed to delete'); }
   };
 
+  const duplicateTicket = async (ticketId) => {
+    try {
+      const res = await axios.post(`${API}/job-tickets/${ticketId}/duplicate`, {}, { headers: hdr() });
+      toast.success(`Duplicated → ${res.data.ticket_number}`);
+      load();
+    } catch (e) { toast.error(e.response?.data?.detail || 'Failed to duplicate'); }
+  };
+
+  const deleteTicket = async (ticketId, e) => {
+    e.stopPropagation();
+    if (!window.confirm('Delete this job ticket and its tasks?')) return;
+    try {
+      await axios.delete(`${API}/job-tickets/${ticketId}`, { headers: hdr() });
+      toast.success('Ticket deleted');
+      load();
+    } catch { toast.error('Failed to delete'); }
+  };
+
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-violet-500" /></div>;
   if (!order) return <div className="text-center py-20 text-slate-400">Order not found</div>;
 
   const tickets = order.job_tickets || [];
-  const totalEstimate = tickets.reduce((sum, t) => sum + (t.estimated_price || 0), 0);
+  // Order total: use active price from pricing snapshot, fallback to estimated_price
+  const orderTotal = order.order_total || tickets.reduce((sum, t) => {
+    const snapshot = t.pricing_snapshot;
+    if (snapshot?.active_price) return sum + snapshot.active_price;
+    return sum + (t.estimated_price || 0);
+  }, 0);
   const workflowTickets = tickets.filter(t => t.production_flow_enabled);
   const allTasks = prodSummary?.tasks || [];
 
@@ -139,7 +166,7 @@ export default function OrderDetail() {
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         {[
           { label: 'Tickets', value: tickets.length },
-          { label: 'Estimate', value: `$${totalEstimate.toFixed(2)}` },
+          { label: 'Estimate', value: `$${orderTotal.toFixed(2)}` },
           { label: 'Progress', value: `${Math.round(order.overall_progress || 0)}%` },
           { label: 'Due', value: order.requested_due_date ? new Date(order.requested_due_date).toLocaleDateString() : '-' },
           { label: 'Payment', value: fmt(order.payment_status) },
@@ -182,40 +209,81 @@ export default function OrderDetail() {
           </Button>
           {tickets.length === 0 ? (
             <Card className="bg-[#111826] border-slate-700"><CardContent className="py-12 text-center text-slate-500">No job tickets yet.</CardContent></Card>
-          ) : tickets.map(ticket => (
-            <Card key={ticket.id} className="bg-[#111826] border-slate-700 hover:border-violet-500/30 transition-colors cursor-pointer" onClick={() => navigate(`/job-tickets/${ticket.id}`)} data-testid={`ticket-${ticket.ticket_number}`}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${ticket.production_flow_enabled ? 'bg-violet-500/15' : 'bg-slate-700'}`}>
-                      <Package className={`w-5 h-5 ${ticket.production_flow_enabled ? 'text-violet-400' : 'text-slate-400'}`} />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-mono text-sm text-slate-400">{ticket.ticket_number}</span>
-                        <Badge variant="outline" className={STATUS_COLORS[ticket.status]}>{fmt(ticket.status)}</Badge>
-                        {ticket.priority !== 'normal' && <Badge className={PRIORITY_COLORS[ticket.priority]}>{ticket.priority}</Badge>}
-                        {ticket.production_flow_enabled && <Badge variant="outline" className="bg-violet-500/10 text-violet-400 border-violet-500/30 text-xs">Workflow</Badge>}
+          ) : tickets.map(ticket => {
+            const snapshot = ticket.pricing_snapshot;
+            const pricingMode = snapshot?.pricing_mode || (ticket.estimated_price ? 'estimate' : 'none');
+            const activePrice = snapshot?.active_price || ticket.estimated_price || 0;
+            const specs = ticket.specs || {};
+            const specSummary = [specs.width, specs.height, specs.material].filter(Boolean).join(' × ');
+            return (
+              <Card key={ticket.id} className="bg-[#111826] border-slate-700 hover:border-violet-500/30 transition-colors cursor-pointer" onClick={() => navigate(`/job-tickets/${ticket.id}`)} data-testid={`ticket-${ticket.ticket_number}`}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${ticket.production_flow_enabled ? 'bg-violet-500/15' : 'bg-slate-700'}`}>
+                        <Package className={`w-5 h-5 ${ticket.production_flow_enabled ? 'text-violet-400' : 'text-slate-400'}`} />
                       </div>
-                      <p className="text-white font-medium mt-0.5">{ticket.item_name}</p>
-                      <p className="text-slate-500 text-xs">{CATEGORY_LABELS[ticket.item_category] || ticket.item_category} | Qty: {ticket.quantity} | {ticket.estimated_price ? `$${ticket.estimated_price.toFixed(2)}` : 'No price'}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 flex-shrink-0">
-                    {ticket.production_flow_enabled && (
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 h-2 bg-slate-700 rounded-full overflow-hidden">
-                          <div className="h-full bg-violet-500 rounded-full" style={{ width: `${ticket.progress || 0}%` }} />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-sm text-slate-400">{ticket.ticket_number}</span>
+                          <Badge variant="outline" className={STATUS_COLORS[ticket.status]}>{fmt(ticket.status)}</Badge>
+                          {ticket.priority !== 'normal' && <Badge className={PRIORITY_COLORS[ticket.priority]}>{ticket.priority}</Badge>}
+                          {ticket.production_flow_enabled && <Badge variant="outline" className="bg-violet-500/10 text-violet-400 border-violet-500/30 text-xs">Workflow</Badge>}
+                          {/* Pricing mode badge */}
+                          {pricingMode === 'calculator' && <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/30 text-xs"><Calculator className="w-3 h-3 mr-1" />Calc</Badge>}
+                          {pricingMode === 'manual' && <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/30 text-xs"><Edit3 className="w-3 h-3 mr-1" />Manual</Badge>}
+                          {ticket.design_needed && <Badge variant="outline" className="bg-purple-500/10 text-purple-400 border-purple-500/30 text-xs">Design</Badge>}
+                          {ticket.proof_required && <Badge variant="outline" className="bg-cyan-500/10 text-cyan-400 border-cyan-500/30 text-xs">Proof</Badge>}
                         </div>
-                        <span className="text-xs text-slate-400">{Math.round(ticket.progress || 0)}%</span>
+                        <p className="text-white font-medium mt-0.5">{ticket.item_name}</p>
+                        <p className="text-slate-500 text-xs">
+                          {CATEGORY_LABELS[ticket.item_category] || ticket.item_category} | Qty: {ticket.quantity}
+                          {specSummary ? ` | ${specSummary}` : ''}
+                        </p>
                       </div>
-                    )}
-                    <ChevronRight className="w-4 h-4 text-slate-600" />
+                    </div>
+                    <div className="flex items-center gap-4 flex-shrink-0">
+                      {/* Price */}
+                      <div className="text-right hidden sm:block">
+                        <p className="text-lg font-bold text-white">${activePrice.toFixed(2)}</p>
+                        <p className="text-xs text-slate-500">{pricingMode !== 'none' ? pricingMode : 'no price'}</p>
+                      </div>
+                      {/* Progress */}
+                      {ticket.production_flow_enabled && (
+                        <div className="text-right hidden md:block">
+                          <div className="flex items-center gap-2">
+                            <div className="w-16 h-2 bg-slate-700 rounded-full overflow-hidden">
+                              <div className="h-full bg-violet-500 rounded-full" style={{ width: `${ticket.progress || 0}%` }} />
+                            </div>
+                            <span className="text-xs text-slate-400">{Math.round(ticket.progress || 0)}%</span>
+                          </div>
+                        </div>
+                      )}
+                      {/* Actions */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/job-tickets/${ticket.id}`); }}>
+                            <Package className="w-4 h-4 mr-2" /> Open Ticket
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); duplicateTicket(ticket.id); }}>
+                            <Copy className="w-4 h-4 mr-2" /> Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-red-400" onClick={(e) => deleteTicket(ticket.id, e)}>
+                            <Trash2 className="w-4 h-4 mr-2" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 

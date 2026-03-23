@@ -228,16 +228,17 @@ async def update_ticket_progress(db, ticket_id: str):
 
 
 async def update_order_progress(db, order_id: str):
-    """Recompute and save order progress from all its job tickets."""
+    """Recompute and save order progress + total from all its job tickets."""
     tickets = await db.job_tickets.find(
         {"order_id": order_id},
-        {"_id": 0, "status": 1, "progress": 1}
+        {"_id": 0, "status": 1, "progress": 1, "estimated_price": 1, "pricing_snapshot": 1}
     ).to_list(200)
 
     if not tickets:
         await db.orders.update_one({"id": order_id}, {"$set": {
             "overall_progress": 0.0,
             "job_ticket_count": 0,
+            "order_total": 0.0,
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }})
         return
@@ -245,10 +246,20 @@ async def update_order_progress(db, order_id: str):
     total_progress = sum(t.get("progress", 0) for t in tickets)
     avg_progress = round(total_progress / len(tickets), 1) if tickets else 0.0
 
+    # Calculate order total from active ticket prices
+    order_total = 0.0
+    for t in tickets:
+        snapshot = t.get("pricing_snapshot")
+        if snapshot and snapshot.get("active_price"):
+            order_total += float(snapshot["active_price"])
+        else:
+            order_total += float(t.get("estimated_price", 0))
+
     statuses = [t["status"] for t in tickets]
     update_fields = {
         "overall_progress": avg_progress,
         "job_ticket_count": len(tickets),
+        "order_total": round(order_total, 2),
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
 

@@ -195,6 +195,53 @@ async def delete_job_ticket(ticket_id: str, current_user: UserInDB = Depends(get
     return {"message": "Job ticket and tasks deleted"}
 
 
+@router.post("/{ticket_id}/duplicate")
+async def duplicate_job_ticket(ticket_id: str, current_user: UserInDB = Depends(get_current_active_user)):
+    """Duplicate a job ticket within the same order."""
+    import uuid as uuid_mod
+    existing = await db.job_tickets.find_one(
+        {"id": ticket_id, "tenant_id": current_user.tenant_id}, {"_id": 0}
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Job ticket not found")
+
+    new_id = str(uuid_mod.uuid4())
+    new_number = await _next_ticket_number(existing["order_id"], current_user.tenant_id)
+
+    dup = {**existing}
+    dup["id"] = new_id
+    dup["ticket_number"] = new_number
+    dup["status"] = "new"
+    dup["progress"] = 0.0
+    dup["started_date"] = None
+    dup["finished_date"] = None
+    dup["ready_for_qc"] = False
+    dup["ready_for_pickup"] = False
+    dup["rework_needed"] = False
+    dup["rework_notes"] = ""
+    dup["pricing_snapshot"] = None
+    dup["created_at"] = datetime.now(timezone.utc).isoformat()
+    dup["updated_at"] = datetime.now(timezone.utc).isoformat()
+    dup.pop("_id", None)
+    dup.pop("production_tasks", None)
+
+    await db.job_tickets.insert_one(dup)
+
+    # Generate tasks if workflow enabled
+    if dup.get("production_flow_enabled"):
+        await seed_default_templates(db, current_user.tenant_id)
+        from services.workflow_engine import generate_production_tasks
+        await generate_production_tasks(db, dup, current_user.tenant_id)
+
+    await update_order_progress(db, existing["order_id"])
+    await log_activity(db, existing["order_id"], current_user.tenant_id, "job_ticket", new_id,
+                       "duplicated", f"Duplicated from {existing.get('ticket_number', '')} → {new_number}",
+                       user_id=current_user.id, user_name=current_user.full_name or "")
+
+    dup.pop("_id", None)
+    return dup
+
+
 
 @router.post("/{ticket_id}/calculate-pricing")
 async def calculate_ticket_pricing(ticket_id: str, pricing_input: dict = {}, current_user: UserInDB = Depends(get_current_active_user)):
