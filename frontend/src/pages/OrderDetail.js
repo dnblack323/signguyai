@@ -159,7 +159,7 @@ export default function OrderDetail() {
             <Card className="bg-[#111826] border-slate-700"><CardContent className="py-12 text-center text-slate-500">No job tickets yet. Add one to get started.</CardContent></Card>
           ) : (
             tickets.map(ticket => (
-              <Card key={ticket.id} className="bg-[#111826] border-slate-700 hover:border-violet-500/30 transition-colors" data-testid={`ticket-${ticket.ticket_number}`}>
+              <Card key={ticket.id} className="bg-[#111826] border-slate-700 hover:border-violet-500/30 transition-colors cursor-pointer" onClick={() => navigate(`/job-tickets/${ticket.id}`)} data-testid={`ticket-${ticket.ticket_number}`}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3 min-w-0 flex-1">

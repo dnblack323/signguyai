@@ -23,6 +23,7 @@ const mobileNavItems = [
     children: [
       { label: 'All Orders', path: '/orders' },
       { label: 'New Order', path: '/orders/new' },
+      { label: 'Production Board', path: '/production-board' },
     ]
   },
   { 
@@ -95,6 +96,7 @@ const mobileNavItems = [
     id: 'settings', label: 'Settings', icon: Settings, path: '/settings',
     children: [
       { label: 'Company Settings', path: '/settings' },
+      { label: 'Workflow Templates', path: '/workflow-templates' },
       { label: 'Billing & Plan', path: '/billing' },
       { label: 'Promo Codes', path: '/promo-codes' },
       { label: 'Production Workflow', path: '/settings/production' },

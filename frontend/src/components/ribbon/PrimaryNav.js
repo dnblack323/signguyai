@@ -30,6 +30,7 @@ export const tabSubItems = {
   orders: [
     { label: 'All Orders', icon: Package, path: '/orders' },
     { label: 'New Order', icon: ClipboardList, path: '/orders/new' },
+    { label: 'Production Board', icon: Wrench, path: '/production-board' },
   ],
   jobs: [
     { label: 'All Jobs', icon: Briefcase, path: '/jobs' },
@@ -77,6 +78,7 @@ export const tabSubItems = {
   ],
   settings: [
     { label: 'Company', icon: Settings, path: '/settings' },
+    { label: 'Workflow Templates', icon: Wrench, path: '/workflow-templates' },
     { label: 'Pricing Setup', icon: ClipboardList, path: '/settings/pricing-setup' },
     { label: 'Pricing & Costs', icon: DollarSign, path: '/pricing-calculator/settings' },
     { label: 'Email Templates', icon: Mail, path: '/settings/email-templates' },
@@ -90,6 +92,9 @@ export const tabSubItems = {
 const routeToNavItem = {
   '/dashboard': 'dashboard',
   '/orders': 'orders',
+  '/production-board': 'orders',
+  '/job-tickets': 'orders',
+  '/workflow-templates': 'settings',
   '/jobs': 'jobs',
   '/quotes': 'jobs',
   '/approvals': 'jobs',

@@ -38,6 +38,9 @@ import OnboardingHub from "./pages/OnboardingHub";
 import OrdersPage from "./pages/OrdersPage";
 import OrderDetail from "./pages/OrderDetail";
 import NewOrderForm from "./pages/NewOrderForm";
+import JobTicketDetail from "./pages/JobTicketDetail";
+import ProductionBoard from "./pages/ProductionBoard";
+import WorkflowTemplateManager from "./pages/WorkflowTemplateManager";
 import CompanySettings from "./pages/CompanySettings";
 import ProductionSettings from "./pages/settings/ProductionSettings";
 import BackupRestore from "./pages/settings/BackupRestore";
@@ -161,6 +164,9 @@ function ProtectedRoutes() {
           <Route path="/orders/new" element={<NewOrderForm />} />
           <Route path="/orders/:id" element={<OrderDetail />} />
           <Route path="/orders/:id/add-ticket" element={<NewOrderForm />} />
+          <Route path="/job-tickets/:ticketId" element={<JobTicketDetail />} />
+          <Route path="/production-board" element={<ProductionBoard />} />
+          <Route path="/workflow-templates" element={<WorkflowTemplateManager />} />
           {/* Legacy Jobs (kept for backwards compatibility) */}
           {/* Quotes redirect to Jobs with filter - quotes are now jobs with status=quote */}
           <Route path="/quotes" element={<Navigate to="/jobs?filter=quotes" replace />} />
