@@ -21,6 +21,112 @@ from services.workflow_engine import (
 router = APIRouter(prefix="/job-tickets", tags=["Job Tickets"])
 
 
+
+@router.get("/schema/{category}")
+async def get_category_field_schema(category: str, current_user: UserInDB = Depends(get_current_active_user)):
+    """Return dynamic field schema for a job ticket category.
+    Options are derived from existing enums and pricing settings — not hardcoded here."""
+    from server import get_pricing_defaults
+    from models.enums import (
+        VinylType, PrintMaterial, SubstrateType, ApparelType, TransferType,
+        VehicleType, CoverageType, PromoProductType
+    )
+
+    defaults = await get_pricing_defaults(current_user.tenant_id)
+    cat_config = defaults.get("category_defaults", {}).get(category, {})
+
+    def enum_opts(e):
+        return [{"value": m.value, "label": m.value.replace("_", " ").title()} for m in e]
+
+    # Base fields every category gets
+    base = [
+        {"key": "width", "label": "Width", "type": "text", "placeholder": "e.g. 8ft or 96in", "group": "dimensions"},
+        {"key": "height", "label": "Height", "type": "text", "placeholder": "e.g. 3ft or 36in", "group": "dimensions"},
+    ]
+
+    schemas = {
+        "banners": base + [
+            {"key": "material", "label": "Banner Material", "type": "select", "options": enum_opts(PrintMaterial), "group": "material"},
+            {"key": "lamination", "label": "Lamination", "type": "text", "placeholder": "Gloss, Matte, None", "group": "finishing"},
+            {"key": "hemming", "label": "Hemming", "type": "toggle", "default": True, "group": "finishing"},
+            {"key": "grommets", "label": "Grommets", "type": "toggle", "default": True, "group": "finishing"},
+            {"key": "double_sided", "label": "Double Sided", "type": "toggle", "group": "specs"},
+            {"key": "finish", "label": "Finish", "type": "text", "placeholder": "Gloss, Matte, Satin", "group": "finishing"},
+            {"key": "print_method", "label": "Print Method", "type": "text", "placeholder": "Solvent, Latex, UV", "group": "production"},
+        ],
+        "rigid_signs": base + [
+            {"key": "substrate", "label": "Board Material", "type": "select", "options": enum_opts(SubstrateType), "group": "material"},
+            {"key": "material", "label": "Print Material", "type": "text", "placeholder": "Vinyl, Direct Print", "group": "material"},
+            {"key": "double_sided", "label": "Double Sided", "type": "toggle", "group": "specs"},
+            {"key": "lamination", "label": "Lamination", "type": "text", "placeholder": "Gloss, Matte, None", "group": "finishing"},
+            {"key": "mounting_type", "label": "Mounting / Hardware", "type": "text", "placeholder": "Stakes, Standoffs, Channel", "group": "finishing"},
+            {"key": "cut_method", "label": "Cut Shape", "type": "text", "placeholder": "Square, Contour, Custom", "group": "production"},
+            {"key": "install_required", "label": "Install Required", "type": "toggle", "group": "specs"},
+        ],
+        "cut_vinyl": base + [
+            {"key": "material", "label": "Vinyl Type", "type": "select", "options": enum_opts(VinylType), "group": "material"},
+            {"key": "color_specs", "label": "Vinyl Colors", "type": "text", "placeholder": "Red, White, Blue", "group": "specs"},
+            {"key": "lamination", "label": "Lamination", "type": "text", "placeholder": "Gloss, Matte, None", "group": "finishing"},
+            {"key": "cut_method", "label": "Cut Method", "type": "text", "placeholder": "Plotter, Flatbed", "group": "production"},
+            {"key": "install_required", "label": "Install Required", "type": "toggle", "group": "specs"},
+        ],
+        "vehicle_wrap": base + [
+            {"key": "material", "label": "Wrap Material", "type": "select", "options": enum_opts(VinylType), "group": "material"},
+            {"key": "color_specs", "label": "Color / Design Notes", "type": "text", "group": "specs"},
+            {"key": "lamination", "label": "Lamination", "type": "text", "placeholder": "Gloss, Matte, Satin", "group": "finishing"},
+            {"key": "double_sided", "label": "Multi-Panel", "type": "toggle", "group": "specs"},
+            {"key": "install_required", "label": "Install Required", "type": "toggle", "default": True, "group": "specs"},
+            {"key": "print_method", "label": "Print Method", "type": "text", "placeholder": "Solvent, Latex, UV", "group": "production"},
+            {"key": "mounting_type", "label": "Coverage Type", "type": "select", "options": enum_opts(CoverageType), "group": "specs"},
+        ],
+        "apparel": [
+            {"key": "material", "label": "Garment Type", "type": "select", "options": enum_opts(ApparelType), "group": "material"},
+            {"key": "substrate", "label": "Brand / Style", "type": "text", "placeholder": "Gildan 5000, Bella+Canvas 3001", "group": "material"},
+            {"key": "color_specs", "label": "Garment Color", "type": "text", "placeholder": "Black, White, Navy", "group": "specs"},
+            {"key": "size_description", "label": "Size Breakdown", "type": "text", "placeholder": "S(2) M(5) L(8) XL(5) 2XL(4)", "group": "specs"},
+            {"key": "print_method", "label": "Decoration Method", "type": "select", "options": enum_opts(TransferType), "group": "production"},
+            {"key": "finish", "label": "Print Locations", "type": "text", "placeholder": "Front, Back, Left Sleeve", "group": "production"},
+            {"key": "width", "label": "Art Width", "type": "text", "placeholder": "12in", "group": "dimensions"},
+            {"key": "height", "label": "Art Height", "type": "text", "placeholder": "14in", "group": "dimensions"},
+        ],
+        "promo_misc": [
+            {"key": "material", "label": "Product Type", "type": "select", "options": enum_opts(PromoProductType), "group": "material"},
+            {"key": "size_description", "label": "Size / Specs", "type": "text", "group": "specs"},
+            {"key": "color_specs", "label": "Colors", "type": "text", "group": "specs"},
+            {"key": "finish", "label": "Decoration Method", "type": "text", "placeholder": "Printed, Engraved, Embossed", "group": "finishing"},
+            {"key": "width", "label": "Width", "type": "text", "group": "dimensions"},
+            {"key": "height", "label": "Height", "type": "text", "group": "dimensions"},
+        ],
+        "custom": base + [
+            {"key": "material", "label": "Material", "type": "text", "group": "material"},
+            {"key": "substrate", "label": "Substrate", "type": "text", "group": "material"},
+            {"key": "color_specs", "label": "Colors", "type": "text", "group": "specs"},
+            {"key": "finish", "label": "Finish", "type": "text", "group": "finishing"},
+            {"key": "lamination", "label": "Lamination", "type": "text", "group": "finishing"},
+            {"key": "print_method", "label": "Print Method", "type": "text", "group": "production"},
+            {"key": "cut_method", "label": "Cut Method", "type": "text", "group": "production"},
+            {"key": "mounting_type", "label": "Mounting", "type": "text", "group": "finishing"},
+            {"key": "install_required", "label": "Install Required", "type": "toggle", "group": "specs"},
+            {"key": "double_sided", "label": "Double Sided", "type": "toggle", "group": "specs"},
+        ],
+    }
+
+    fields = schemas.get(category, schemas["custom"])
+
+    return {
+        "category": category,
+        "fields": fields,
+        "pricing_config": {
+            "minimum_charge": cat_config.get("minimum_charge", defaults.get("minimum_order", 0)),
+            "default_markup": cat_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5)),
+            "target_margin": cat_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40)),
+            "labor_rate": defaults.get("production_hourly_rate", 28),
+            "design_rate": defaults.get("design_hourly_rate", 85),
+        },
+    }
+
+
+
 async def _next_ticket_number(order_id: str, tenant_id: str) -> str:
     order = await db.orders.find_one({"id": order_id}, {"_id": 0, "order_number": 1})
     prefix = order.get("order_number", "ORD") if order else "ORD"

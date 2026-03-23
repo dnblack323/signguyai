@@ -10,6 +10,7 @@ import { Switch } from '../components/ui/switch';
 import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
 import axios from 'axios';
+import DynamicCategoryFields from '../components/DynamicCategoryFields';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const token = () => localStorage.getItem('auth_token');
@@ -202,11 +203,28 @@ export default function NewOrderForm() {
               </div>
             </div>
             <div className="grid grid-cols-4 gap-2">
-              <div><Label className="text-slate-300">Width</Label><Input value={ticket.specs.width} onChange={e => updateTicketSpec(i, 'width', e.target.value)} placeholder="e.g. 8ft" className="bg-[#0B0F17] border-slate-600 text-white" /></div>
-              <div><Label className="text-slate-300">Height</Label><Input value={ticket.specs.height} onChange={e => updateTicketSpec(i, 'height', e.target.value)} placeholder="e.g. 3ft" className="bg-[#0B0F17] border-slate-600 text-white" /></div>
-              <div><Label className="text-slate-300">Material</Label><Input value={ticket.specs.material} onChange={e => updateTicketSpec(i, 'material', e.target.value)} placeholder="e.g. 13oz Vinyl" className="bg-[#0B0F17] border-slate-600 text-white" /></div>
+              <div><Label className="text-slate-300">Qty</Label><Input type="number" min={1} value={ticket.quantity} onChange={e => updateTicket(i, 'quantity', parseInt(e.target.value) || 1)} className="bg-[#0B0F17] border-slate-600 text-white" /></div>
+              <div><Label className="text-slate-300">Priority</Label>
+                <Select value={ticket.priority} onValueChange={v => updateTicket(i, 'priority', v)}>
+                  <SelectTrigger className="bg-[#0B0F17] border-slate-600 text-white"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="normal">Normal</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                    <SelectItem value="rush">Rush</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div><Label className="text-slate-300">Price Est.</Label><Input type="number" min={0} step={0.01} value={ticket.estimated_price} onChange={e => updateTicket(i, 'estimated_price', parseFloat(e.target.value) || 0)} className="bg-[#0B0F17] border-slate-600 text-white" /></div>
+              <div />
             </div>
+            {/* Dynamic category-specific fields */}
+            <DynamicCategoryFields
+              category={ticket.item_category}
+              specs={ticket.specs}
+              onChange={(newSpecs) => updateTicket(i, 'specs', newSpecs)}
+              mode="edit"
+            />
             <div><Label className="text-slate-300">Special Instructions</Label><Textarea value={ticket.special_instructions} onChange={e => updateTicket(i, 'special_instructions', e.target.value)} className="bg-[#0B0F17] border-slate-600 text-white" rows={2} /></div>
             <div className="flex items-center gap-6 pt-1">
               <div className="flex items-center gap-2"><Switch checked={ticket.production_flow_enabled} onCheckedChange={v => updateTicket(i, 'production_flow_enabled', v)} /><Label className="text-slate-300 text-sm">Enable Production Workflow</Label></div>

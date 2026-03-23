@@ -13,6 +13,7 @@ import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
 import axios from 'axios';
 import LivePricingPanel from '../components/LivePricingPanel';
+import DynamicCategoryFields from '../components/DynamicCategoryFields';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const hdr = () => ({ Authorization: `Bearer ${localStorage.getItem('auth_token')}`, 'Content-Type': 'application/json' });
@@ -173,48 +174,9 @@ export default function JobTicketDetail() {
             </CardHeader>
             <CardContent>
               {editing ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {[
-                    { key: 'width', label: 'Width' },
-                    { key: 'height', label: 'Height' },
-                    { key: 'size_description', label: 'Size' },
-                    { key: 'material', label: 'Material' },
-                    { key: 'substrate', label: 'Substrate' },
-                    { key: 'color_specs', label: 'Color Specs' },
-                    { key: 'finish', label: 'Finish' },
-                    { key: 'lamination', label: 'Lamination' },
-                    { key: 'print_method', label: 'Print Method' },
-                    { key: 'cut_method', label: 'Cut Method' },
-                    { key: 'mounting_type', label: 'Mounting' },
-                  ].map(f => (
-                    <div key={f.key}>
-                      <Label className="text-slate-400 text-xs">{f.label}</Label>
-                      <Input value={editSpecs[f.key] || ''} onChange={e => setEditSpecs(p => ({ ...p, [f.key]: e.target.value }))} className="bg-[#0B0F17] border-slate-600 text-white h-8 text-sm" />
-                    </div>
-                  ))}
-                </div>
+                <DynamicCategoryFields category={ticket.item_category} specs={editSpecs} onChange={setEditSpecs} mode="edit" />
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {[
-                    { label: 'Width', value: specs.width },
-                    { label: 'Height', value: specs.height },
-                    { label: 'Size', value: specs.size_description },
-                    { label: 'Material', value: specs.material },
-                    { label: 'Substrate', value: specs.substrate },
-                    { label: 'Color Specs', value: specs.color_specs },
-                    { label: 'Finish', value: specs.finish },
-                    { label: 'Lamination', value: specs.lamination },
-                    { label: 'Print Method', value: specs.print_method },
-                    { label: 'Cut Method', value: specs.cut_method },
-                    { label: 'Mounting', value: specs.mounting_type },
-                    { label: 'Sides', value: specs.sides > 1 ? `${specs.sides} sides` : specs.double_sided ? 'Double-sided' : 'Single' },
-                  ].filter(f => f.value).map(f => (
-                    <div key={f.label} className="bg-slate-800/50 rounded-lg p-3">
-                      <p className="text-xs text-slate-500 uppercase">{f.label}</p>
-                      <p className="text-white mt-1">{String(f.value)}</p>
-                    </div>
-                  ))}
-                </div>
+                <DynamicCategoryFields category={ticket.item_category} specs={specs} onChange={() => {}} mode="view" />
               )}
               {/* Boolean flags */}
               <div className="flex flex-wrap gap-3 mt-4">
