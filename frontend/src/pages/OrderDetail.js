@@ -136,7 +136,7 @@ export default function OrderDetail() {
   const allTasks = prodSummary?.tasks || [];
 
   return (
-    <div className="space-y-5" data-testid="order-detail-page">
+    <div className="space-y-6" data-testid="order-detail-page">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
@@ -156,7 +156,7 @@ export default function OrderDetail() {
           <Button variant="outline" size="sm" onClick={() => generateDoc('invoice')} disabled={!!actionLoading || tickets.length === 0} data-testid="generate-invoice-btn">
             {actionLoading === 'invoice' ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Receipt className="w-4 h-4 mr-1" />} Invoice
           </Button>
-          <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-gray-900" onClick={startProduction} disabled={!!actionLoading || workflowTickets.length === 0} data-testid="start-production-btn">
+          <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white" onClick={startProduction} disabled={!!actionLoading || workflowTickets.length === 0} data-testid="start-production-btn">
             {actionLoading === 'production' ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Play className="w-4 h-4 mr-1" />} Start Production
           </Button>
         </div>
@@ -172,7 +172,7 @@ export default function OrderDetail() {
           { label: 'Payment', value: fmt(order.payment_status) },
           { label: 'Source', value: fmt(order.order_source) },
         ].map(c => (
-          <Card key={c.label} className="bg-white border-gray-200">
+          <Card key={c.label} className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardContent className="p-3 text-center">
               <p className="text-xs text-gray-500 uppercase">{c.label}</p>
               <p className="text-lg font-bold text-gray-900 mt-1">{c.value}</p>
@@ -186,20 +186,22 @@ export default function OrderDetail() {
         <div className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full transition-all duration-500" style={{ width: `${order.overall_progress || 0}%` }} />
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200 overflow-x-auto">
-        {[
-          { id: 'tickets', label: `Job Tickets (${tickets.length})` },
-          { id: 'production', label: `Production (${allTasks.length})` },
-          { id: 'financial', label: `Financial (${(financials.quotes?.length || 0) + (financials.invoices?.length || 0)})` },
-          { id: 'notes', label: 'Notes' },
-          { id: 'activity', label: `Activity (${activities.length})` },
-        ].map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${tab === t.id ? 'text-violet-400 border-violet-400' : 'text-gray-500 border-transparent hover:text-gray-700'}`}>
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {/* Tabs + Content Card */}
+      <Card className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="flex gap-1 border-b border-gray-200 overflow-x-auto px-4 pt-3">
+          {[
+            { id: 'tickets', label: `Job Tickets (${tickets.length})` },
+            { id: 'production', label: `Production (${allTasks.length})` },
+            { id: 'financial', label: `Financial (${(financials.quotes?.length || 0) + (financials.invoices?.length || 0)})` },
+            { id: 'notes', label: 'Notes' },
+            { id: 'activity', label: `Activity (${activities.length})` },
+          ].map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)} className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${tab === t.id ? 'text-violet-600 border-violet-600' : 'text-gray-500 border-transparent hover:text-gray-700'}`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div className="p-4 lg:p-6">
 
       {/* === TICKETS TAB === */}
       {tab === 'tickets' && (
@@ -208,7 +210,7 @@ export default function OrderDetail() {
             <Plus className="w-4 h-4" /> Add Job Ticket
           </Button>
           {tickets.length === 0 ? (
-            <Card className="bg-white border-gray-200"><CardContent className="py-12 text-center text-gray-500">No job tickets yet.</CardContent></Card>
+            <Card className="bg-white rounded-xl border border-gray-200 shadow-sm"><CardContent className="py-12 text-center text-gray-500">No job tickets yet.</CardContent></Card>
           ) : tickets.map(ticket => {
             const snapshot = ticket.pricing_snapshot;
             const pricingMode = snapshot?.pricing_mode || (ticket.estimated_price ? 'estimate' : 'none');
@@ -216,7 +218,7 @@ export default function OrderDetail() {
             const specs = ticket.specs || {};
             const specSummary = [specs.width, specs.height, specs.material].filter(Boolean).join(' × ');
             return (
-              <Card key={ticket.id} className="bg-white border-gray-200 hover:border-violet-500/30 transition-colors cursor-pointer" onClick={() => navigate(`/job-tickets/${ticket.id}`)} data-testid={`ticket-${ticket.ticket_number}`}>
+              <Card key={ticket.id} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:border-violet-500/30 transition-colors cursor-pointer" onClick={() => navigate(`/job-tickets/${ticket.id}`)} data-testid={`ticket-${ticket.ticket_number}`}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -292,13 +294,13 @@ export default function OrderDetail() {
         <div className="space-y-4">
           {prodSummary?.summary && (
             <div className="grid grid-cols-3 gap-3">
-              <Card className="bg-white border-gray-200"><CardContent className="p-3 text-center"><p className="text-xs text-gray-500">Total Tasks</p><p className="text-xl font-bold text-gray-900">{prodSummary.summary.total_tasks}</p></CardContent></Card>
-              <Card className="bg-white border-gray-200"><CardContent className="p-3 text-center"><p className="text-xs text-gray-500">Completed</p><p className="text-xl font-bold text-green-400">{prodSummary.summary.completed}</p></CardContent></Card>
-              <Card className="bg-white border-gray-200"><CardContent className="p-3 text-center"><p className="text-xs text-gray-500">Flagged</p><p className="text-xl font-bold text-red-400">{prodSummary.summary.on_hold}</p></CardContent></Card>
+              <Card className="bg-white rounded-xl border border-gray-200 shadow-sm"><CardContent className="p-3 text-center"><p className="text-xs text-gray-500">Total Tasks</p><p className="text-xl font-bold text-gray-900">{prodSummary.summary.total_tasks}</p></CardContent></Card>
+              <Card className="bg-white rounded-xl border border-gray-200 shadow-sm"><CardContent className="p-3 text-center"><p className="text-xs text-gray-500">Completed</p><p className="text-xl font-bold text-green-400">{prodSummary.summary.completed}</p></CardContent></Card>
+              <Card className="bg-white rounded-xl border border-gray-200 shadow-sm"><CardContent className="p-3 text-center"><p className="text-xs text-gray-500">Flagged</p><p className="text-xl font-bold text-red-400">{prodSummary.summary.on_hold}</p></CardContent></Card>
             </div>
           )}
           {allTasks.length === 0 ? (
-            <Card className="bg-white border-gray-200"><CardContent className="py-12 text-center text-gray-500">No production tasks. Start production to generate tasks.</CardContent></Card>
+            <Card className="bg-white rounded-xl border border-gray-200 shadow-sm"><CardContent className="py-12 text-center text-gray-500">No production tasks. Start production to generate tasks.</CardContent></Card>
           ) : (
             Object.entries(prodSummary?.by_department || {}).map(([dept, tasks]) => (
               <div key={dept}>
@@ -388,7 +390,7 @@ export default function OrderDetail() {
             </div>
           )}
           {(financials.quotes?.length || 0) === 0 && (financials.invoices?.length || 0) === 0 && (
-            <Card className="bg-white border-gray-200"><CardContent className="py-12 text-center text-gray-500">No financial documents yet. Generate a quote or invoice from the job tickets.</CardContent></Card>
+            <Card className="bg-white rounded-xl border border-gray-200 shadow-sm"><CardContent className="py-12 text-center text-gray-500">No financial documents yet. Generate a quote or invoice from the job tickets.</CardContent></Card>
           )}
         </div>
       )}
@@ -396,19 +398,19 @@ export default function OrderDetail() {
       {/* === NOTES TAB === */}
       {tab === 'notes' && (
         <div className="space-y-4">
-          <Card className="bg-white border-gray-200">
+          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2"><MessageSquare className="w-4 h-4 text-gray-500" /><p className="text-sm font-medium text-gray-700">Internal Notes</p></div>
               <p className="text-gray-900 text-sm">{order.internal_notes || <span className="text-gray-400 italic">No internal notes</span>}</p>
             </CardContent>
           </Card>
-          <Card className="bg-white border-gray-200">
+          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2"><MessageSquare className="w-4 h-4 text-gray-500" /><p className="text-sm font-medium text-gray-700">Customer Notes</p></div>
               <p className="text-gray-900 text-sm">{order.customer_notes || <span className="text-gray-400 italic">No customer notes</span>}</p>
             </CardContent>
           </Card>
-          <Card className="bg-white border-gray-200">
+          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2"><Package className="w-4 h-4 text-gray-500" /><p className="text-sm font-medium text-gray-700">Pickup / Delivery</p></div>
               <p className="text-gray-900 text-sm">{fmt(order.pickup_delivery_method)}{order.pickup_delivery_notes ? ` — ${order.pickup_delivery_notes}` : ''}</p>
@@ -435,10 +437,12 @@ export default function OrderDetail() {
       )}
 
       <div className="pt-4 border-t border-gray-200">
-        <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300 hover:bg-red-500/10" onClick={deleteOrder}>
+        <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={deleteOrder}>
           <Trash2 className="w-4 h-4 mr-2" /> Delete Order
         </Button>
       </div>
+        </div>
+      </Card>
     </div>
   );
 }

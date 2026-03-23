@@ -96,7 +96,7 @@ export default function JobTicketDetail() {
   const completedTasks = tasks.filter(t => t.status === 'complete').length;
 
   return (
-    <div className="space-y-5" data-testid="job-ticket-detail-page">
+    <div className="space-y-6" data-testid="job-ticket-detail-page">
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -123,7 +123,7 @@ export default function JobTicketDetail() {
           { label: 'Due', value: ticket.due_date ? new Date(ticket.due_date).toLocaleDateString() : '-' },
           { label: 'Proof', value: fmt(ticket.proof_approval_status || 'none') },
         ].map(c => (
-          <Card key={c.label} className="bg-white border-gray-200">
+          <Card key={c.label} className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardContent className="p-3 text-center">
               <p className="text-xs text-gray-500 uppercase">{c.label}</p>
               <p className="text-lg font-bold text-gray-900 mt-1">{c.value}</p>
@@ -140,23 +140,25 @@ export default function JobTicketDetail() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200 overflow-x-auto">
-        {[
-          { id: 'specs', label: 'Specs' },
-          { id: 'production', label: `Production (${tasks.length})` },
-          { id: 'artwork', label: 'Artwork / Files' },
-          { id: 'notes', label: 'Notes' },
-        ].map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${tab === t.id ? 'text-violet-400 border-violet-400' : 'text-gray-500 border-transparent hover:text-gray-700'}`}>
-            {t.label}
-          </button>
-        ))}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 pt-3">
+        <div className="flex gap-1 overflow-x-auto">
+          {[
+            { id: 'specs', label: 'Specs' },
+            { id: 'production', label: `Production (${tasks.length})` },
+            { id: 'artwork', label: 'Artwork / Files' },
+            { id: 'notes', label: 'Notes' },
+          ].map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)} className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${tab === t.id ? 'text-violet-600 border-violet-600' : 'text-gray-500 border-transparent hover:text-gray-700'}`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* SPECS TAB - with Live Pricing Panel */}
       {tab === 'specs' && (
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-5">
-          <Card className="bg-white border-gray-200">
+          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-gray-900 text-lg flex items-center gap-2"><Package className="w-5 h-5 text-violet-400" /> Item Specifications</CardTitle>
@@ -165,7 +167,7 @@ export default function JobTicketDetail() {
                 ) : (
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
-                    <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-gray-900" onClick={saveEdit} disabled={saveLoading}>
+                    <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white" onClick={saveEdit} disabled={saveLoading}>
                       {saveLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : null} Save
                     </Button>
                   </div>
@@ -199,7 +201,7 @@ export default function JobTicketDetail() {
       {tab === 'production' && (
         <div className="space-y-2">
           {tasks.length === 0 ? (
-            <Card className="bg-white border-gray-200"><CardContent className="py-12 text-center text-gray-500">No production tasks. Enable workflow on this ticket to generate tasks.</CardContent></Card>
+            <Card className="bg-white rounded-xl border border-gray-200 shadow-sm"><CardContent className="py-12 text-center text-gray-500">No production tasks. Enable workflow on this ticket to generate tasks.</CardContent></Card>
           ) : tasks.map((task, i) => {
             const isComplete = task.status === 'complete';
             const isActive = task.status === 'in_progress';
@@ -254,7 +256,7 @@ export default function JobTicketDetail() {
 
       {/* ARTWORK TAB */}
       {tab === 'artwork' && (
-        <Card className="bg-white border-gray-200">
+        <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <CardHeader><CardTitle className="text-gray-900 text-lg flex items-center gap-2"><FileImage className="w-5 h-5 text-violet-400" /> Artwork & Files</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -299,7 +301,7 @@ export default function JobTicketDetail() {
             { label: 'Packaging Notes', value: ticket.packaging_notes, icon: Package },
             { label: 'Rework Notes', value: ticket.rework_notes, icon: RotateCcw },
           ].map(n => (
-            <Card key={n.label} className="bg-white border-gray-200">
+            <Card key={n.label} className="bg-white rounded-xl border border-gray-200 shadow-sm">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <n.icon className="w-4 h-4 text-gray-500" />

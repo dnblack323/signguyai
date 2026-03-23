@@ -113,14 +113,14 @@ export default function NewOrderForm() {
   };
 
   return (
-    <div className="space-y-5 max-w-4xl" data-testid="new-order-form">
+    <div className="space-y-6 max-w-4xl" data-testid="new-order-form">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate('/orders')}><ArrowLeft className="w-5 h-5 text-gray-500" /></Button>
         <h1 className="text-2xl font-bold text-white font-heading">New Order</h1>
       </div>
 
       {/* Customer Info */}
-      <Card className="bg-white border-gray-200">
+      <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <CardHeader><CardTitle className="text-gray-900 text-lg">Customer Information</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           {customers.length > 0 && (
@@ -171,7 +171,7 @@ export default function NewOrderForm() {
       </div>
 
       {tickets.map((ticket, i) => (
-        <Card key={i} className="bg-white border-gray-200" data-testid={`ticket-form-${i}`}>
+        <Card key={i} className="bg-white rounded-xl border border-gray-200 shadow-sm" data-testid={`ticket-form-${i}`}>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-gray-900 text-base">Ticket {i + 1}</CardTitle>
@@ -225,7 +225,7 @@ export default function NewOrderForm() {
         <Button onClick={() => handleSave(false)} disabled={saving} className="bg-gray-200 hover:bg-slate-600 text-gray-900 flex-1" data-testid="save-intake-btn">
           {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Save as Intake Only
         </Button>
-        <Button onClick={() => handleSave(true)} disabled={saving} className="bg-violet-600 hover:bg-violet-700 text-gray-900 flex-1" data-testid="save-generate-quote-btn">
+        <Button onClick={() => handleSave(true)} disabled={saving} className="bg-violet-600 hover:bg-violet-700 text-white flex-1" data-testid="save-generate-quote-btn">
           {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Save + Generate Quote
         </Button>
       </div>

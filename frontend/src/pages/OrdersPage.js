@@ -66,59 +66,61 @@ export default function OrdersPage() {
   const handleCreateOrder = () => navigate('/orders/new');
 
   return (
-    <div className="space-y-5" data-testid="orders-page">
+    <div className="space-y-6" data-testid="orders-page">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white font-heading">Orders</h1>
-          <p className="text-slate-400 text-sm mt-1">} order{total !== 1 ? 's' : ''}</p>
+          <p className="text-slate-400 text-sm mt-1">{total} order{total !== 1 ? 's' : ''}</p>
         </div>
-        <Button onClick={handleCreateOrder} className="bg-violet-600 hover:bg-violet-700 text-gray-900 gap-2" data-testid="create-order-btn">
+        <Button onClick={handleCreateOrder} className="bg-violet-600 hover:bg-violet-700 text-white gap-2" data-testid="create-order-btn">
           <Plus className="w-4 h-4" /> New Order
         </Button>
       </div>
 
-      <div className="flex gap-3 items-center">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search orders..."
-            className="pl-10 bg-gray-50 border-gray-200 text-gray-900"
-            data-testid="orders-search"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48 bg-gray-50 border-gray-200 text-gray-900" data-testid="orders-status-filter">
-            <Filter className="w-4 h-4 mr-2 text-gray-500" />
-            <SelectValue placeholder="All Statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="new_intake">New Intake</SelectItem>
-            <SelectItem value="awaiting_review">Awaiting Review</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="in_production">In Production</SelectItem>
-            <SelectItem value="partially_complete">Partially Complete</SelectItem>
-            <SelectItem value="ready_for_pickup">Ready for Pickup</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="on_hold">On Hold</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <CardContent className="p-4 flex gap-3 items-center">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search orders..."
+              className="pl-10 bg-gray-50 border-gray-200 text-gray-900"
+              data-testid="orders-search"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-48 bg-gray-50 border-gray-200 text-gray-900" data-testid="orders-status-filter">
+              <Filter className="w-4 h-4 mr-2 text-gray-400" />
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="new_intake">New Intake</SelectItem>
+              <SelectItem value="awaiting_review">Awaiting Review</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="in_production">In Production</SelectItem>
+              <SelectItem value="partially_complete">Partially Complete</SelectItem>
+              <SelectItem value="ready_for_pickup">Ready for Pickup</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="on_hold">On Hold</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-violet-500"></div>
         </div>
       ) : orders.length === 0 ? (
-        <Card className="bg-white border-gray-200">
+        <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <CardContent className="py-16 text-center">
             <Package className="w-12 h-12 mx-auto mb-4 text-gray-400" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No orders yet</h3>
             <p className="text-gray-500 mb-6">Create your first order to start tracking jobs, quotes, and production.</p>
-            <Button onClick={handleCreateOrder} className="bg-violet-600 hover:bg-violet-700 text-gray-900 gap-2">
+            <Button onClick={handleCreateOrder} className="bg-violet-600 hover:bg-violet-700 text-white gap-2">
               <Plus className="w-4 h-4" /> Create First Order
             </Button>
           </CardContent>
@@ -128,7 +130,7 @@ export default function OrdersPage() {
           {orders.map((order) => (
             <Card
               key={order.id}
-              className="bg-white border-gray-200 hover:border-violet-500/40 transition-colors cursor-pointer"
+              className="bg-white rounded-xl border border-gray-200 shadow-sm hover:border-violet-500/40 transition-colors cursor-pointer"
               onClick={() => navigate(`/orders/${order.id}`)}
               data-testid={`order-row-${order.order_number}`}
             >

@@ -107,7 +107,7 @@ export default function WorkflowTemplateManager() {
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-violet-500" /></div>;
 
   return (
-    <div className="space-y-5" data-testid="workflow-template-manager">
+    <div className="space-y-6" data-testid="workflow-template-manager">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white font-heading flex items-center gap-3"><Settings className="w-8 h-8 text-violet-400" /> Workflow Templates</h1>
@@ -124,7 +124,7 @@ export default function WorkflowTemplateManager() {
           const isExpanded = expanded === template.id;
 
           return (
-            <Card key={template.id} className="bg-white border-gray-200" data-testid={`template-${template.category}`}>
+            <Card key={template.id} className="bg-white rounded-xl border border-gray-200 shadow-sm" data-testid={`template-${template.category}`}>
               <CardContent className="p-0">
                 <button onClick={() => toggleExpand(template.id)} className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-3">
@@ -168,7 +168,7 @@ export default function WorkflowTemplateManager() {
 
                     <div className="flex gap-2 pt-2">
                       <Button variant="outline" size="sm" onClick={() => addStage(template.id)} className="gap-1 text-gray-700"><Plus className="w-3 h-3" /> Add Stage</Button>
-                      <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-gray-900 gap-1" onClick={() => saveTemplate(template.id)} disabled={saving === template.id}>
+                      <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white gap-1" onClick={() => saveTemplate(template.id)} disabled={saving === template.id}>
                         {saving === template.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} Save
                       </Button>
                     </div>

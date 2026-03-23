@@ -72,7 +72,7 @@ export default function ProductionBoard() {
   const onHold = allTasks.filter(t => t.status === 'on_hold' || t.status === 'rework').length;
 
   return (
-    <div className="space-y-5" data-testid="production-board-page">
+    <div className="space-y-6" data-testid="production-board-page">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold text-white font-heading flex items-center gap-3"><Wrench className="w-8 h-8 text-violet-400" /> Production Board</h1>
@@ -132,7 +132,7 @@ export default function ProductionBoard() {
               </div>
               <div className="grid gap-2">
                 {filtered.map(task => (
-                  <Card key={task.id} className="bg-white border-gray-200 hover:border-gray-300 transition-colors" data-testid={`board-task-${task.id?.slice(0,8)}`}>
+                  <Card key={task.id} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:border-gray-300 transition-colors" data-testid={`board-task-${task.id?.slice(0,8)}`}>
                     <CardContent className="p-3">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0 flex-1">

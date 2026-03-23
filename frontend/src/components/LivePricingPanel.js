@@ -82,7 +82,7 @@ export default function LivePricingPanel({ ticketId, ticketData, onPriceSaved })
   const activePrice = pricingMode === 'manual' ? manualPrice : (calc?.active_price || 0);
 
   return (
-    <Card className="bg-white border-gray-200" data-testid="live-pricing-panel">
+    <Card className="bg-white rounded-xl border border-gray-200 shadow-sm" data-testid="live-pricing-panel">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-gray-900 text-base flex items-center gap-2">
@@ -183,7 +183,7 @@ export default function LivePricingPanel({ ticketId, ticketData, onPriceSaved })
         )}
 
         {/* Save */}
-        <Button onClick={handleSavePricing} disabled={saving} className="w-full bg-violet-600 hover:bg-violet-700 text-gray-900" data-testid="save-pricing-btn">
+        <Button onClick={handleSavePricing} disabled={saving} className="w-full bg-violet-600 hover:bg-violet-700 text-white" data-testid="save-pricing-btn">
           {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <DollarSign className="w-4 h-4 mr-2" />}
           Save Pricing to Ticket
         </Button>
