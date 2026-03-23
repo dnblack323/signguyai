@@ -1,93 +1,105 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   X, LayoutDashboard, Briefcase, FileText, Receipt, Users, 
-  Store, Sparkles, BarChart3, Settings, ChevronRight, LogOut,
-  Plus, Calendar, Package, TrendingUp, CreditCard
+  Store, Sparkles, BarChart3, Settings, ChevronDown, LogOut,
+  Plus, Calendar, Package, TrendingUp, CreditCard, FolderOpen,
+  UserCog, Clock, MessageCircle, Shield, Wrench, FileCheck,
+  Send, BookOpen, Tag, DollarSign, Wallet, ClipboardList
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 
-// Default SignGuy AI logo
 const DEFAULT_LOGO = "https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/k3asaz65_sgai%20long.png";
 
 const mobileNavItems = [
   { 
-    id: 'dashboard', 
-    label: 'Dashboard', 
-    icon: LayoutDashboard, 
-    path: '/dashboard',
-    actions: []
+    id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard',
+    children: []
   },
   { 
-    id: 'jobs', 
-    label: 'Jobs', 
-    icon: Briefcase, 
-    path: '/jobs',
-    actions: [
-      { icon: Plus, label: 'New Job', route: '/jobs?new=true' },
+    id: 'orders', label: 'Orders', icon: Package, path: '/orders',
+    children: [
+      { label: 'All Orders', path: '/orders' },
+      { label: 'New Order', path: '/orders/new' },
     ]
   },
   { 
-    id: 'quotes', 
-    label: 'Quotes', 
-    icon: FileText, 
-    path: '/jobs?filter=quotes',
-    actions: [
-      { icon: Plus, label: 'New Quote', route: '/jobs?new=true&type=quote' },
+    id: 'jobs', label: 'Jobs', icon: Briefcase, path: '/jobs',
+    children: [
+      { label: 'All Jobs', path: '/jobs' },
+      { label: 'Quotes', path: '/jobs?filter=quotes' },
+      { label: 'Approvals', path: '/approvals' },
+      { label: 'Production', path: '/settings/production' },
     ]
   },
   { 
-    id: 'invoices', 
-    label: 'Invoices', 
-    icon: Receipt, 
-    path: '/invoices',
-    actions: [
-      { icon: Plus, label: 'New Invoice', route: '/invoices?new=true' },
+    id: 'billing', label: 'Billing', icon: Receipt, path: '/invoices',
+    children: [
+      { label: 'Invoices', path: '/invoices' },
+      { label: 'Payments', path: '/admin/payments' },
+      { label: 'Pricing Calculator', path: '/pricing-calculator' },
+      { label: 'Billing & Plan', path: '/billing' },
     ]
   },
   { 
-    id: 'customers', 
-    label: 'Customers', 
-    icon: Users, 
-    path: '/customers',
-    actions: []
-  },
-  { 
-    id: 'webstores', 
-    label: 'Webstores', 
-    icon: Store, 
-    path: '/webstores',
-    actions: [
-      { icon: Package, label: 'Products', route: '/products' },
+    id: 'customers', label: 'Customers', icon: Users, path: '/customers',
+    children: [
+      { label: 'All Customers', path: '/customers' },
+      { label: 'Admin Portal', path: '/admin-portal' },
     ]
   },
   { 
-    id: 'ai-tools', 
-    label: 'AI Tools', 
-    icon: Sparkles, 
-    path: '/ai-tools',
-    actions: [
-      { icon: TrendingUp, label: 'Pricing Calculator', route: '/pricing-calculator' },
+    id: 'webstores', label: 'Webstores', icon: Store, path: '/webstores',
+    children: [
+      { label: 'All Stores', path: '/webstores' },
+      { label: 'Products', path: '/products' },
     ]
   },
   { 
-    id: 'reports', 
-    label: 'Reports', 
-    icon: BarChart3, 
-    path: '/financials',
-    actions: [
-      { icon: Calendar, label: 'Productivity', route: '/productivity' },
+    id: 'documents', label: 'Documents', icon: FolderOpen, path: '/documents',
+    children: [
+      { label: 'Document Library', path: '/documents' },
+      { label: 'Questionnaires', path: '/questionnaires' },
     ]
   },
   { 
-    id: 'settings', 
-    label: 'Settings', 
-    icon: Settings, 
-    path: '/settings',
-    actions: [
-      { icon: CreditCard, label: 'Billing', route: '/billing' },
+    id: 'team', label: 'Team', icon: UserCog, path: '/payroll',
+    children: [
+      { label: 'Payroll', path: '/payroll' },
+      { label: 'Time Clock', path: '/timeclock' },
+      { label: 'Users', path: '/users' },
+    ]
+  },
+  { 
+    id: 'ai-tools', label: 'AI Tools', icon: Sparkles, path: '/ai-tools',
+    children: [
+      { label: 'AI Tool Suite', path: '/ai-tools' },
+      { label: 'AI Assistant', path: '/ai-assistant' },
+    ]
+  },
+  { 
+    id: 'reports', label: 'Reports', icon: BarChart3, path: '/financials',
+    children: [
+      { label: 'Financials', path: '/financials' },
+      { label: 'Productivity', path: '/productivity' },
+      { label: 'Profit & Margin', path: '/reports/profit-margin' },
+    ]
+  },
+  { 
+    id: 'community', label: 'Community', icon: MessageCircle, path: '/community',
+    children: []
+  },
+  { 
+    id: 'settings', label: 'Settings', icon: Settings, path: '/settings',
+    children: [
+      { label: 'Company Settings', path: '/settings' },
+      { label: 'Billing & Plan', path: '/billing' },
+      { label: 'Promo Codes', path: '/promo-codes' },
+      { label: 'Production Workflow', path: '/settings/production' },
+      { label: 'Backup & Restore', path: '/settings/backup' },
+      { label: 'Onboarding', path: '/onboarding' },
     ]
   },
 ];
@@ -99,107 +111,100 @@ export const MobileNav = ({ isOpen, onClose }) => {
   const { tenant } = useApp();
   const [expandedItem, setExpandedItem] = useState(null);
 
-  // Use tenant logo if available
   const logoUrl = tenant?.logo_url || DEFAULT_LOGO;
   const logoAlt = tenant?.name || 'SignGuy AI';
 
   const handleNavClick = (item) => {
-    if (item.actions.length > 0) {
+    if (item.children.length > 0) {
+      // Has children: toggle expand, don't close nav
       setExpandedItem(expandedItem === item.id ? null : item.id);
     } else {
+      // No children: navigate and close
       navigate(item.path);
       onClose();
     }
   };
 
-  const handleActionClick = (route) => {
-    navigate(route);
+  const handleChildClick = (path) => {
+    navigate(path);
     onClose();
   };
 
-  const isActive = (item) => {
-    if (item.id === 'quotes') {
-      return location.pathname === '/jobs' && location.search.includes('filter=quotes');
-    }
-    return location.pathname.startsWith(item.path.split('?')[0]);
+  const toggleExpand = (e, itemId) => {
+    e.stopPropagation();
+    setExpandedItem(expandedItem === itemId ? null : itemId);
+  };
+
+  const isActive = (itemPath) => {
+    const basePath = itemPath.split('?')[0];
+    return location.pathname === basePath || location.pathname.startsWith(basePath + '/');
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 lg:hidden">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/50"
-        onClick={onClose}
-      />
+    <div className="fixed inset-0 z-50 lg:hidden" data-testid="mobile-nav">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Slide-out panel */}
-      <div className="absolute inset-y-0 left-0 w-72 bg-white shadow-xl flex flex-col">
+      <div className="absolute inset-y-0 left-0 w-[280px] bg-[#0B0F17] border-r border-slate-800 flex flex-col shadow-2xl">
         {/* Header */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200">
-          <img 
-            src={logoUrl} 
-            alt={logoAlt} 
-            className="h-7 w-auto max-w-[140px] object-contain"
-          />
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-md"
-          >
+        <div className="h-14 flex items-center justify-between px-4 border-b border-slate-800">
+          <img src={logoUrl} alt={logoAlt} className="h-6 w-auto max-w-[130px] object-contain" />
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-white rounded-md transition-colors" data-testid="mobile-nav-close">
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Navigation */}
-        <div className="flex-1 overflow-y-auto py-4">
+        <div className="flex-1 overflow-y-auto py-2">
           {mobileNavItems.map((item) => {
             const Icon = item.icon;
-            const active = isActive(item);
+            const active = isActive(item.path);
             const expanded = expandedItem === item.id;
+            const hasChildren = item.children.length > 0;
 
             return (
-              <div key={item.id}>
-                <button
-                  onClick={() => handleNavClick(item)}
-                  className={cn(
-                    "w-full flex items-center justify-between px-4 py-3 text-sm transition-colors",
-                    active 
-                      ? "text-blue-600 bg-blue-50 font-medium" 
-                      : "text-gray-700 hover:bg-gray-50"
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon className={cn(
-                      "h-5 w-5",
-                      active ? "text-blue-600" : "text-gray-400"
-                    )} />
+              <div key={item.id} data-testid={`mobile-nav-${item.id}`}>
+                <div className="flex items-center">
+                  <button
+                    onClick={() => handleNavClick(item)}
+                    className={cn(
+                      "flex-1 flex items-center gap-3 px-4 py-3 text-sm transition-colors",
+                      active 
+                        ? "text-violet-400 bg-violet-500/10 font-medium" 
+                        : "text-slate-300 hover:bg-slate-800/50"
+                    )}
+                  >
+                    <Icon className={cn("h-5 w-5 flex-shrink-0", active ? "text-violet-400" : "text-slate-500")} />
                     <span>{item.label}</span>
-                  </div>
-                  {item.actions.length > 0 && (
-                    <ChevronRight className={cn(
-                      "h-4 w-4 text-gray-400 transition-transform",
-                      expanded && "rotate-90"
-                    )} />
+                  </button>
+                  {hasChildren && (
+                    <button
+                      onClick={(e) => toggleExpand(e, item.id)}
+                      className="px-3 py-3 text-slate-500 hover:text-slate-300 transition-colors"
+                      data-testid={`mobile-nav-expand-${item.id}`}
+                    >
+                      <ChevronDown className={cn("h-4 w-4 transition-transform", expanded && "rotate-180")} />
+                    </button>
                   )}
-                </button>
+                </div>
 
-                {/* Expanded actions */}
-                {expanded && item.actions.length > 0 && (
-                  <div className="bg-gray-50 py-1">
-                    {item.actions.map((action, idx) => {
-                      const ActionIcon = action.icon;
-                      return (
-                        <button
-                          key={idx}
-                          onClick={() => handleActionClick(action.route)}
-                          className="w-full flex items-center gap-3 px-4 pl-12 py-2.5 text-sm text-gray-600 hover:bg-gray-100 transition-colors"
-                        >
-                          <ActionIcon className="h-4 w-4 text-gray-400" />
-                          <span>{action.label}</span>
-                        </button>
-                      );
-                    })}
+                {expanded && hasChildren && (
+                  <div className="bg-slate-900/50 border-l-2 border-violet-500/30 ml-4">
+                    {item.children.map((child, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleChildClick(child.path)}
+                        className={cn(
+                          "w-full flex items-center gap-2 px-4 pl-8 py-2.5 text-sm transition-colors",
+                          isActive(child.path) ? "text-violet-400 font-medium" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/30"
+                        )}
+                        data-testid={`mobile-nav-child-${child.label.toLowerCase().replace(/\s+/g, '-')}`}
+                      >
+                        <div className="w-1.5 h-1.5 rounded-full bg-slate-600 flex-shrink-0" />
+                        <span>{child.label}</span>
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
@@ -208,19 +213,20 @@ export const MobileNav = ({ isOpen, onClose }) => {
         </div>
 
         {/* User section */}
-        <div className="border-t border-gray-200 p-4">
+        <div className="border-t border-slate-800 p-4">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium">
+            <div className="w-9 h-9 rounded-full bg-violet-600 flex items-center justify-center text-white font-medium text-sm">
               {user?.full_name?.charAt(0) || 'U'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">{user?.full_name}</p>
-              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+              <p className="text-sm font-medium text-white truncate">{user?.full_name}</p>
+              <p className="text-xs text-slate-500 truncate">{user?.email}</p>
             </div>
           </div>
           <button
             onClick={() => { logout(); onClose(); }}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-md transition-colors"
+            data-testid="mobile-nav-logout"
           >
             <LogOut className="h-4 w-4" />
             Sign Out
