@@ -24,15 +24,7 @@ const mobileNavItems = [
       { label: 'All Orders', path: '/orders' },
       { label: 'New Order', path: '/orders/new' },
       { label: 'Production Board', path: '/production-board' },
-    ]
-  },
-  { 
-    id: 'jobs', label: 'Jobs', icon: Briefcase, path: '/jobs',
-    children: [
-      { label: 'All Jobs', path: '/jobs' },
-      { label: 'Quotes', path: '/jobs?filter=quotes' },
       { label: 'Approvals', path: '/approvals' },
-      { label: 'Production', path: '/settings/production' },
     ]
   },
   { 

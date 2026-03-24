@@ -52,13 +52,11 @@ const ToolbarSeparator = () => (
 // Quick action configs per tab
 const quickActions = {
   dashboard: [
-    { icon: Plus, label: 'New Job', route: '/jobs?new=true' },
-    { icon: FileDown, label: 'New Quote', route: '/jobs?new=true&type=quote' },
+    { icon: Plus, label: 'New Order', route: '/orders/new' },
     { icon: CreditCard, label: 'New Invoice', route: '/invoices?new=true' },
   ],
-  jobs: [
-    { icon: Plus, label: 'New Job', route: '/jobs?new=true' },
-    { icon: Printer, label: 'Work Order' },
+  orders: [
+    { icon: Plus, label: 'New Order', route: '/orders/new' },
   ],
   billing: [
     { icon: Plus, label: 'New Invoice', route: '/invoices?new=true' },

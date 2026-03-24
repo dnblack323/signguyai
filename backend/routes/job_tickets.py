@@ -716,6 +716,7 @@ async def calculate_ticket_pricing(ticket_id: str, pricing_input: dict = {}, cur
         "banners": "digital_print",
         "rigid_signs": "rigid_signs",
         "cut_vinyl": "cut_vinyl",
+        "digital_print": "digital_print",
         "vehicle_wrap": "vehicle_graphics",
         "apparel": "apparel",
         "promo_misc": "promotional",
@@ -723,16 +724,43 @@ async def calculate_ticket_pricing(ticket_id: str, pricing_input: dict = {}, cur
     }
     pricing_cat = CATEGORY_MAP.get(ticket.get("item_category"), "custom")
 
-    # Build pricing data from ticket specs + explicit overrides
+    # Build pricing data from ALL ticket specs → pricing engine fields
     specs = ticket.get("specs", {})
+    unit = specs.get("unit_of_measure", "inches")
+    w_raw = _parse_dimension(specs.get("width") or pricing_input.get("width_inches"))
+    h_raw = _parse_dimension(specs.get("height") or pricing_input.get("length_inches"))
+    # Convert feet to inches for pricing engine
+    w_in = (w_raw * 12) if unit == "feet" and w_raw else w_raw
+    h_in = (h_raw * 12) if unit == "feet" and h_raw else h_raw
+
+    # Map dynamic field values to JobItemPricingData fields
+    double_sided_val = specs.get("double_sided", "single")
+    is_double = double_sided_val == "double" or double_sided_val is True
+
     merged_input = {
         "category": pricing_cat,
         "complexity": pricing_input.get("complexity", 1),
-        "width_inches": _parse_dimension(specs.get("width") or pricing_input.get("width_inches")),
-        "length_inches": _parse_dimension(specs.get("height") or pricing_input.get("length_inches")),
-        "double_sided": specs.get("double_sided", False),
-        "laminate": bool(specs.get("lamination")),
-        "include_setup_fee": pricing_input.get("include_setup_fee", False),
+        "width_inches": w_in,
+        "length_inches": h_in,
+        "double_sided": is_double,
+        "laminate": specs.get("lamination", "none") not in ("none", "", None, False),
+        "laminate_type": specs.get("lamination") if specs.get("lamination") not in ("none", "") else None,
+        "include_setup_fee": specs.get("setup_required", False) or specs.get("design_needed", False) or pricing_input.get("include_setup_fee", False),
+        # Vinyl fields
+        "vinyl_type": specs.get("vinyl_type") or specs.get("material"),
+        "num_colors": int(specs.get("num_colors", 1) or 1),
+        # Substrate fields
+        "substrate_type": specs.get("substrate"),
+        # Apparel fields
+        "apparel_type": specs.get("garment_type"),
+        "transfer_type": specs.get("decoration_method") or specs.get("print_method"),
+        "num_print_locations": len(specs.get("print_locations", [])) or 1,
+        # Vehicle fields
+        "vehicle_type": specs.get("vehicle_type"),
+        "coverage_type": specs.get("coverage_type"),
+        # Service fields
+        "estimated_hours": float(specs.get("estimated_install_hours", 0) or 0),
+        # Overrides from pricing_input
         **{k: v for k, v in pricing_input.items() if v is not None and k not in ("complexity",)},
     }
 

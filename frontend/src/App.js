@@ -167,12 +167,10 @@ function ProtectedRoutes() {
           <Route path="/job-tickets/:ticketId" element={<JobTicketDetail />} />
           <Route path="/production-board" element={<ProductionBoard />} />
           <Route path="/workflow-templates" element={<WorkflowTemplateManager />} />
-          {/* Legacy Jobs (kept for backwards compatibility) */}
-          {/* Quotes redirect to Jobs with filter - quotes are now jobs with status=quote */}
-          <Route path="/quotes" element={<Navigate to="/jobs?filter=quotes" replace />} />
-          <Route path="/quotes" element={<Navigate to="/jobs?filter=quotes" replace />} />
-          <Route path="/jobs" element={<Jobs />} />
-          <Route path="/jobs/:id" element={<JobDetails />} />
+          {/* Legacy redirects — Jobs/Quotes now go to Orders */}
+          <Route path="/quotes" element={<Navigate to="/orders" replace />} />
+          <Route path="/jobs" element={<Navigate to="/orders" replace />} />
+          <Route path="/jobs/:id" element={<Navigate to="/orders" replace />} />
           <Route path="/invoices" element={<Invoices />} />
           <Route path="/approvals" element={<Approvals />} />
           <Route path="/admin-portal" element={<AdminPortal />} />

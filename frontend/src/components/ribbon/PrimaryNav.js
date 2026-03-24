@@ -13,7 +13,6 @@ import { cn } from '../../lib/utils';
 const primaryNavItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { id: 'orders', label: 'Orders', icon: Package, path: '/orders' },
-  { id: 'jobs', label: 'Jobs', icon: Briefcase, path: '/jobs' },
   { id: 'billing', label: 'Billing', icon: Receipt, path: '/invoices' },
   { id: 'customers', label: 'Customers', icon: Users, path: '/customers' },
   { id: 'webstores', label: 'Webstores', icon: Store, path: '/webstores' },
@@ -31,12 +30,7 @@ export const tabSubItems = {
     { label: 'All Orders', icon: Package, path: '/orders' },
     { label: 'New Order', icon: ClipboardList, path: '/orders/new' },
     { label: 'Production Board', icon: Wrench, path: '/production-board' },
-  ],
-  jobs: [
-    { label: 'All Jobs', icon: Briefcase, path: '/jobs' },
-    { label: 'Quotes', icon: FileText, path: '/jobs?filter=quotes' },
     { label: 'Approvals', icon: FileCheck, path: '/approvals' },
-    { label: 'Production', icon: Wrench, path: '/settings/production' },
   ],
   billing: [
     { label: 'Invoices', icon: Receipt, path: '/invoices' },
@@ -95,9 +89,9 @@ const routeToNavItem = {
   '/production-board': 'orders',
   '/job-tickets': 'orders',
   '/workflow-templates': 'settings',
-  '/jobs': 'jobs',
-  '/quotes': 'jobs',
-  '/approvals': 'jobs',
+  '/approvals': 'orders',
+  '/jobs': 'orders',
+  '/quotes': 'orders',
   '/settings/pricing-setup': 'settings',
   '/pricing-calculator/settings': 'settings',
   '/invoices': 'billing',

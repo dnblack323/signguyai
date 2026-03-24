@@ -256,7 +256,7 @@ const ScheduleWidget = ({ schedule }) => {
             Today's Schedule
           </h2>
         </div>
-        <Link to="/jobs">
+        <Link to="/orders">
           <span className="text-xs text-blue-500 hover:underline">View all jobs</span>
         </Link>
       </div>
@@ -268,7 +268,7 @@ const ScheduleWidget = ({ schedule }) => {
         ) : (
           <div className="space-y-2">
             {schedule.slice(0, 4).map(item => (
-              <Link key={item.id} to={`/jobs/${item.id}`}>
+              <Link key={item.id} to="/orders">
                 <div 
                   className="flex items-center justify-between p-3 rounded-lg transition-all duration-150 hover:shadow-sm cursor-pointer"
                   style={{ 
@@ -459,24 +459,24 @@ const QuickActions = () => (
           <span className="truncate">New Customer</span>
         </button>
       </Link>
-      <Link to="/jobs?filter=quotes">
+      <Link to="/orders/new">
         <button 
           className="w-full flex items-center justify-start gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 hover:shadow-sm"
           style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
           data-testid="quick-add-quote"
         >
           <Plus className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" style={{ color: 'var(--accent)' }} /> 
-          <span className="truncate">New Quote</span>
+          <span className="truncate">New Order</span>
         </button>
       </Link>
-      <Link to="/jobs?filter=active">
+      <Link to="/orders/new">
         <button 
           className="w-full flex items-center justify-start gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 hover:shadow-sm"
           style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
           data-testid="quick-add-job"
         >
           <Plus className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" style={{ color: 'var(--accent)' }} /> 
-          <span className="truncate">New Job</span>
+          <span className="truncate">New Order</span>
         </button>
       </Link>
       <Link to="/timeclock">
@@ -593,7 +593,7 @@ export default function Dashboard() {
           title="Active Jobs"
           value={dashboardStats?.active_jobs || 0}
           icon={Briefcase}
-          href="/jobs"
+          href="/orders"
           accentColor="#10B981"
         />
         <StatCard
