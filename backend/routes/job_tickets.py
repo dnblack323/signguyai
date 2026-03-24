@@ -22,6 +22,138 @@ router = APIRouter(prefix="/job-tickets", tags=["Job Tickets"])
 
 
 
+
+def _banner_schema(defaults):
+    """Full Banner category schema per spec."""
+    materials = defaults.get("materials", [])
+    banner_mats = [m for m in materials if m.get("key") in ("banner_material", "ink", "laminate")]
+    mat_options = [
+        {"value": "banner_13oz", "label": "13oz Vinyl"},
+        {"value": "banner_18oz", "label": "18oz Vinyl"},
+        {"value": "mesh", "label": "Mesh Banner Material"},
+        {"value": "blockout", "label": "Blockout Banner Material"},
+        {"value": "retractable_film", "label": "Retractable Film"},
+        {"value": "custom", "label": "Other / Custom"},
+    ]
+    return [
+        # Size & Material
+        {"key": "width", "label": "Width", "type": "text", "placeholder": "e.g. 8 or 96", "group": "size_material", "required": True, "pricing": True},
+        {"key": "height", "label": "Height", "type": "text", "placeholder": "e.g. 3 or 36", "group": "size_material", "required": True, "pricing": True},
+        {"key": "unit_of_measure", "label": "Unit of Measure", "type": "select", "options": [{"value": "feet", "label": "Feet"}, {"value": "inches", "label": "Inches"}], "default": "feet", "group": "size_material", "required": True, "pricing": True},
+        {"key": "sq_footage", "label": "Square Footage", "type": "calculated", "group": "size_material", "pricing": True},
+        {"key": "material", "label": "Material", "type": "select", "options": mat_options, "group": "size_material", "required": True, "pricing": True},
+        {"key": "indoor_outdoor", "label": "Indoor / Outdoor", "type": "select", "options": [{"value": "outdoor", "label": "Outdoor"}, {"value": "indoor", "label": "Indoor"}, {"value": "both", "label": "Both"}], "default": "outdoor", "group": "size_material"},
+        {"key": "double_sided", "label": "Sidedness", "type": "select", "options": [{"value": "single", "label": "Single-Sided"}, {"value": "double", "label": "Double-Sided"}], "default": "single", "group": "size_material", "pricing": True},
+        # Finishing
+        {"key": "hems", "label": "Hems", "type": "select", "options": [{"value": "none", "label": "None"}, {"value": "all_sides", "label": "All Sides"}, {"value": "top_bottom", "label": "Top & Bottom"}, {"value": "custom", "label": "Custom"}], "default": "all_sides", "group": "finishing", "pricing": True},
+        {"key": "grommets", "label": "Grommets", "type": "select", "options": [{"value": "none", "label": "None"}, {"value": "corners", "label": "Corners Only"}, {"value": "every_2ft", "label": "Every 2 ft"}, {"value": "every_3ft", "label": "Every 3 ft"}, {"value": "custom", "label": "Custom"}], "default": "corners", "group": "finishing", "pricing": True},
+        {"key": "pole_pockets", "label": "Pole Pockets", "type": "select", "options": [{"value": "none", "label": "None"}, {"value": "top", "label": "Top"}, {"value": "bottom", "label": "Bottom"}, {"value": "both", "label": "Both"}, {"value": "custom", "label": "Custom"}], "default": "none", "group": "finishing", "pricing": True},
+        {"key": "wind_slits", "label": "Wind Slits", "type": "toggle", "default": False, "group": "finishing", "pricing": True},
+        {"key": "reinforced_corners", "label": "Reinforced Corners", "type": "toggle", "default": False, "group": "finishing", "pricing": True},
+        {"key": "sewn_edges", "label": "Sewn Edges", "type": "toggle", "default": False, "group": "finishing", "pricing": True},
+        {"key": "webbing", "label": "Webbing / Reinforcement", "type": "toggle", "default": False, "group": "finishing", "pricing": True},
+        # Design / Artwork
+        {"key": "artwork_provided", "label": "Artwork Provided", "type": "toggle", "default": False, "group": "design"},
+        {"key": "design_needed", "label": "Design Needed", "type": "toggle", "default": False, "group": "design", "pricing": True},
+        {"key": "proof_required", "label": "Proof Required", "type": "toggle", "default": True, "group": "design"},
+        {"key": "proof_rounds", "label": "Expected Proof Rounds", "type": "number", "placeholder": "1", "group": "design"},
+        {"key": "artwork_notes", "label": "Artwork Notes", "type": "textarea", "group": "design"},
+        # Production / Delivery
+        {"key": "rush_order", "label": "Rush Order", "type": "toggle", "default": False, "group": "production", "pricing": True},
+        {"key": "outsourced", "label": "Outsourced", "type": "toggle", "default": False, "group": "production"},
+        {"key": "hardware_included", "label": "Hardware Included", "type": "toggle", "default": False, "group": "production", "pricing": True},
+        {"key": "packaging_notes", "label": "Packaging / Rolling Notes", "type": "textarea", "group": "production"},
+        {"key": "delivery_notes", "label": "Pickup / Delivery Notes", "type": "textarea", "group": "production"},
+    ]
+
+
+def _apparel_schema(defaults):
+    """Full Apparel category schema per spec."""
+    garment_types = [
+        {"value": "tshirt", "label": "T-Shirt"},
+        {"value": "hoodie", "label": "Hoodie"},
+        {"value": "crewneck", "label": "Crewneck"},
+        {"value": "polo", "label": "Polo"},
+        {"value": "hat", "label": "Hat"},
+        {"value": "jacket", "label": "Jacket"},
+        {"value": "safety_vest", "label": "Safety Vest"},
+        {"value": "tank", "label": "Tank Top"},
+        {"value": "longsleeve", "label": "Long Sleeve"},
+        {"value": "other", "label": "Other Apparel"},
+    ]
+    decoration_methods = [
+        {"value": "htv", "label": "HTV (Heat Transfer Vinyl)"},
+        {"value": "dtf", "label": "DTF / Printed Transfer"},
+        {"value": "screen_print", "label": "Screen Print Transfer"},
+        {"value": "sublimation", "label": "Sublimation"},
+        {"value": "embroidery", "label": "Embroidery"},
+        {"value": "patch", "label": "Patch / Emblem"},
+        {"value": "other", "label": "Other"},
+    ]
+    print_locations = [
+        {"value": "front_center", "label": "Front Center"},
+        {"value": "left_chest", "label": "Left Chest"},
+        {"value": "right_chest", "label": "Right Chest"},
+        {"value": "full_back", "label": "Full Back"},
+        {"value": "upper_back", "label": "Upper Back"},
+        {"value": "left_sleeve", "label": "Left Sleeve"},
+        {"value": "right_sleeve", "label": "Right Sleeve"},
+        {"value": "hood", "label": "Hood"},
+        {"value": "hat_front", "label": "Hat Front"},
+        {"value": "hat_side", "label": "Hat Side"},
+        {"value": "hat_back", "label": "Hat Back"},
+        {"value": "other", "label": "Other Custom Location"},
+    ]
+    brand_options = [
+        {"value": "gildan_5000", "label": "Gildan 5000"},
+        {"value": "gildan_softstyle", "label": "Gildan Softstyle"},
+        {"value": "bella_canvas_3001", "label": "Bella+Canvas 3001"},
+        {"value": "next_level_3600", "label": "Next Level 3600"},
+        {"value": "comfort_colors", "label": "Comfort Colors"},
+        {"value": "jerzees", "label": "Jerzees"},
+        {"value": "hanes", "label": "Hanes"},
+        {"value": "richardson", "label": "Richardson (Hats)"},
+        {"value": "port_authority", "label": "Port Authority"},
+        {"value": "custom", "label": "Custom / Manual Entry"},
+    ]
+    return [
+        # Garment Information
+        {"key": "garment_type", "label": "Garment Type", "type": "select", "options": garment_types, "group": "garment_info", "required": True, "pricing": True},
+        {"key": "brand_style", "label": "Brand / Style", "type": "select_or_text", "options": brand_options, "placeholder": "Select or type custom", "group": "garment_info", "pricing": True},
+        {"key": "garment_color", "label": "Garment Color", "type": "text", "placeholder": "Black, White, Navy", "group": "garment_info"},
+        {"key": "garment_material", "label": "Material / Fabric", "type": "text", "placeholder": "Cotton, Polyester, Blend", "group": "garment_info"},
+        {"key": "customer_supplied", "label": "Customer Supplied Garments", "type": "toggle", "default": False, "group": "garment_info", "pricing": True},
+        # Size Breakdown
+        {"key": "size_xs", "label": "XS", "type": "number", "default": 0, "group": "size_breakdown", "pricing": True},
+        {"key": "size_s", "label": "S", "type": "number", "default": 0, "group": "size_breakdown", "pricing": True},
+        {"key": "size_m", "label": "M", "type": "number", "default": 0, "group": "size_breakdown", "pricing": True},
+        {"key": "size_l", "label": "L", "type": "number", "default": 0, "group": "size_breakdown", "pricing": True},
+        {"key": "size_xl", "label": "XL", "type": "number", "default": 0, "group": "size_breakdown", "pricing": True},
+        {"key": "size_2xl", "label": "2XL", "type": "number", "default": 0, "group": "size_breakdown", "pricing": True},
+        {"key": "size_3xl", "label": "3XL", "type": "number", "default": 0, "group": "size_breakdown", "pricing": True},
+        {"key": "size_4xl", "label": "4XL", "type": "number", "default": 0, "group": "size_breakdown", "pricing": True},
+        {"key": "size_5xl", "label": "5XL", "type": "number", "default": 0, "group": "size_breakdown", "pricing": True},
+        # Decoration
+        {"key": "decoration_method", "label": "Decoration Method", "type": "select", "options": decoration_methods, "group": "decoration", "required": True, "pricing": True},
+        {"key": "num_colors", "label": "Number of Colors", "type": "number", "placeholder": "1", "group": "decoration", "pricing": True},
+        {"key": "specialty_finish", "label": "Specialty Finish", "type": "text", "placeholder": "Metallic, Puff, Glitter", "group": "decoration", "pricing": True},
+        {"key": "setup_required", "label": "Setup Required", "type": "toggle", "default": True, "group": "decoration", "pricing": True},
+        {"key": "artwork_provided", "label": "Artwork Provided", "type": "toggle", "default": False, "group": "decoration"},
+        # Print Locations
+        {"key": "print_locations", "label": "Print Locations", "type": "location_picker", "options": print_locations, "group": "print_locations", "pricing": True},
+        # Per-location details are handled dynamically in frontend based on selected locations
+        # Design / Proof
+        {"key": "design_needed", "label": "Design Needed", "type": "toggle", "default": False, "group": "design", "pricing": True},
+        {"key": "proof_required", "label": "Proof Required", "type": "toggle", "default": True, "group": "design"},
+        {"key": "artwork_notes", "label": "Notes", "type": "textarea", "group": "design"},
+        # Production
+        {"key": "rush_order", "label": "Rush Order", "type": "toggle", "default": False, "group": "production", "pricing": True},
+        {"key": "outsourced", "label": "Outsourced", "type": "toggle", "default": False, "group": "production"},
+        {"key": "folding_bagging", "label": "Folding / Bagging Needed", "type": "toggle", "default": False, "group": "production", "pricing": True},
+        {"key": "tagging_notes", "label": "Tagging / Sorting Notes", "type": "textarea", "group": "production"},
+    ]
+
+
 @router.get("/schema/{category}")
 async def get_category_field_schema(category: str, current_user: UserInDB = Depends(get_current_active_user)):
     """Return dynamic field schema for a job ticket category.
@@ -45,15 +177,8 @@ async def get_category_field_schema(category: str, current_user: UserInDB = Depe
     ]
 
     schemas = {
-        "banners": base + [
-            {"key": "material", "label": "Banner Material", "type": "select", "options": enum_opts(PrintMaterial), "group": "material"},
-            {"key": "lamination", "label": "Lamination", "type": "text", "placeholder": "Gloss, Matte, None", "group": "finishing"},
-            {"key": "hemming", "label": "Hemming", "type": "toggle", "default": True, "group": "finishing"},
-            {"key": "grommets", "label": "Grommets", "type": "toggle", "default": True, "group": "finishing"},
-            {"key": "double_sided", "label": "Double Sided", "type": "toggle", "group": "specs"},
-            {"key": "finish", "label": "Finish", "type": "text", "placeholder": "Gloss, Matte, Satin", "group": "finishing"},
-            {"key": "print_method", "label": "Print Method", "type": "text", "placeholder": "Solvent, Latex, UV", "group": "production"},
-        ],
+        "banners": _banner_schema(defaults),
+        "apparel": _apparel_schema(defaults),
         "rigid_signs": base + [
             {"key": "substrate", "label": "Board Material", "type": "select", "options": enum_opts(SubstrateType), "group": "material"},
             {"key": "material", "label": "Print Material", "type": "text", "placeholder": "Vinyl, Direct Print", "group": "material"},
@@ -79,16 +204,7 @@ async def get_category_field_schema(category: str, current_user: UserInDB = Depe
             {"key": "print_method", "label": "Print Method", "type": "text", "placeholder": "Solvent, Latex, UV", "group": "production"},
             {"key": "mounting_type", "label": "Coverage Type", "type": "select", "options": enum_opts(CoverageType), "group": "specs"},
         ],
-        "apparel": [
-            {"key": "material", "label": "Garment Type", "type": "select", "options": enum_opts(ApparelType), "group": "material"},
-            {"key": "substrate", "label": "Brand / Style", "type": "text", "placeholder": "Gildan 5000, Bella+Canvas 3001", "group": "material"},
-            {"key": "color_specs", "label": "Garment Color", "type": "text", "placeholder": "Black, White, Navy", "group": "specs"},
-            {"key": "size_description", "label": "Size Breakdown", "type": "text", "placeholder": "S(2) M(5) L(8) XL(5) 2XL(4)", "group": "specs"},
-            {"key": "print_method", "label": "Decoration Method", "type": "select", "options": enum_opts(TransferType), "group": "production"},
-            {"key": "finish", "label": "Print Locations", "type": "text", "placeholder": "Front, Back, Left Sleeve", "group": "production"},
-            {"key": "width", "label": "Art Width", "type": "text", "placeholder": "12in", "group": "dimensions"},
-            {"key": "height", "label": "Art Height", "type": "text", "placeholder": "14in", "group": "dimensions"},
-        ],
+        "apparel": _apparel_schema(defaults),
         "promo_misc": [
             {"key": "material", "label": "Product Type", "type": "select", "options": enum_opts(PromoProductType), "group": "material"},
             {"key": "size_description", "label": "Size / Specs", "type": "text", "group": "specs"},
@@ -113,8 +229,63 @@ async def get_category_field_schema(category: str, current_user: UserInDB = Depe
 
     fields = schemas.get(category, schemas["custom"])
 
+    # Subtypes per category (from settings or defaults)
+    subtypes = {
+        "banners": [
+            {"value": "standard", "label": "Standard Banner"},
+            {"value": "mesh", "label": "Mesh Banner"},
+            {"value": "pole", "label": "Pole Banner"},
+            {"value": "retractable", "label": "Retractable Banner"},
+            {"value": "double_sided", "label": "Double-Sided Banner"},
+            {"value": "grommets", "label": "Vinyl Banner with Grommets"},
+            {"value": "custom", "label": "Custom Banner"},
+        ],
+        "apparel": [
+            {"value": "tshirt", "label": "T-Shirt"},
+            {"value": "hoodie", "label": "Hoodie"},
+            {"value": "crewneck", "label": "Crewneck"},
+            {"value": "polo", "label": "Polo"},
+            {"value": "hat", "label": "Hat"},
+            {"value": "jacket", "label": "Jacket"},
+            {"value": "safety_vest", "label": "Safety Vest"},
+            {"value": "other", "label": "Other Apparel"},
+        ],
+        "rigid_signs": [
+            {"value": "yard_sign", "label": "Yard Sign"},
+            {"value": "aluminum", "label": "Aluminum Sign"},
+            {"value": "acm", "label": "ACM (Aluminum Composite)"},
+            {"value": "pvc", "label": "PVC Sign"},
+            {"value": "foam_board", "label": "Foam Board"},
+            {"value": "coroplast", "label": "Corrugated Plastic"},
+            {"value": "custom", "label": "Custom Rigid Sign"},
+        ],
+        "cut_vinyl": [
+            {"value": "decals", "label": "Decals"},
+            {"value": "lettering", "label": "Lettering"},
+            {"value": "window", "label": "Window Graphics"},
+            {"value": "wall", "label": "Wall Graphics"},
+            {"value": "vehicle", "label": "Vehicle Graphics"},
+            {"value": "layered", "label": "Layered Vinyl"},
+            {"value": "single_color", "label": "Single Color Vinyl"},
+            {"value": "custom", "label": "Custom Vinyl"},
+        ],
+        "vehicle_wrap": [
+            {"value": "full_wrap", "label": "Full Wrap"},
+            {"value": "partial_50", "label": "Partial Wrap (50%)"},
+            {"value": "partial_75", "label": "Partial Wrap (75%)"},
+            {"value": "spot_graphics", "label": "Spot Graphics"},
+            {"value": "fleet", "label": "Fleet Graphics"},
+            {"value": "trailer", "label": "Trailer Wrap"},
+            {"value": "box_truck", "label": "Box Truck Wrap"},
+            {"value": "van", "label": "Van Wrap"},
+            {"value": "car", "label": "Car Wrap"},
+            {"value": "custom", "label": "Custom Vehicle Graphics"},
+        ],
+    }
+
     return {
         "category": category,
+        "subtypes": subtypes.get(category, []),
         "fields": fields,
         "pricing_config": {
             "minimum_charge": cat_config.get("minimum_charge", defaults.get("minimum_order", 0)),
