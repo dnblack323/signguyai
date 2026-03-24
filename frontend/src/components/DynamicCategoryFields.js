@@ -15,6 +15,8 @@ const hdr = () => ({ Authorization: `Bearer ${localStorage.getItem('auth_token')
 
 const GROUP_LABELS = {
   size_material: 'Size & Material',
+  size_media: 'Size & Media',
+  size_layout: 'Size & Layout',
   garment_info: 'Garment Information',
   size_breakdown: 'Size Breakdown',
   decoration: 'Decoration Method',
@@ -24,7 +26,16 @@ const GROUP_LABELS = {
   production: 'Production & Delivery',
   dimensions: 'Dimensions',
   material: 'Material',
+  material_print: 'Material & Print',
   specs: 'Specifications',
+  mounting: 'Mounting / Hardware',
+  vinyl_details: 'Vinyl Details',
+  vinyl_production: 'Vinyl Production',
+  installation: 'Installation',
+  vehicle_info: 'Vehicle Information',
+  coverage: 'Coverage Level',
+  paneling: 'Paneling & Production',
+  print_options: 'Print Options',
   other: 'Other',
 };
 

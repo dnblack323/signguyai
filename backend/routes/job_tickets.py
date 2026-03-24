@@ -154,6 +154,191 @@ def _apparel_schema(defaults):
     ]
 
 
+def _rigid_sign_schema(defaults, substrate_opts):
+    """Full Rigid Sign category schema."""
+    thickness_opts = [
+        {"value": "4mm", "label": "4mm"}, {"value": "6mm", "label": "6mm"},
+        {"value": "10mm", "label": "10mm"}, {"value": "0.040", "label": "0.040\""},
+        {"value": "0.063", "label": "0.063\""}, {"value": "0.080", "label": "0.080\""},
+        {"value": "3mm_pvc", "label": "3mm PVC"}, {"value": "6mm_pvc", "label": "6mm PVC"},
+    ]
+    return [
+        # Size & Material
+        {"key": "width", "label": "Width", "type": "text", "placeholder": "e.g. 18 or 24", "group": "size_material", "required": True, "pricing": True},
+        {"key": "height", "label": "Height", "type": "text", "placeholder": "e.g. 24 or 36", "group": "size_material", "required": True, "pricing": True},
+        {"key": "unit_of_measure", "label": "Unit of Measure", "type": "select", "options": [{"value": "inches", "label": "Inches"}, {"value": "feet", "label": "Feet"}], "default": "inches", "group": "size_material", "required": True, "pricing": True},
+        {"key": "sq_footage", "label": "Square Footage", "type": "calculated", "group": "size_material", "pricing": True},
+        {"key": "substrate", "label": "Board Material", "type": "select", "options": substrate_opts, "group": "size_material", "required": True, "pricing": True},
+        {"key": "thickness", "label": "Thickness", "type": "select", "options": thickness_opts, "group": "size_material", "pricing": True},
+        {"key": "double_sided", "label": "Sidedness", "type": "select", "options": [{"value": "single", "label": "Single-Sided"}, {"value": "double", "label": "Double-Sided"}], "default": "single", "group": "size_material", "pricing": True},
+        # Finishing & Fabrication
+        {"key": "lamination", "label": "Lamination", "type": "select", "options": [{"value": "none", "label": "None"}, {"value": "gloss", "label": "Gloss"}, {"value": "matte", "label": "Matte"}], "default": "none", "group": "finishing", "pricing": True},
+        {"key": "rounded_corners", "label": "Rounded Corners", "type": "toggle", "default": False, "group": "finishing", "pricing": True},
+        {"key": "drill_holes", "label": "Drill Holes", "type": "select", "options": [{"value": "none", "label": "None"}, {"value": "corners", "label": "Corner Holes"}, {"value": "custom", "label": "Custom Pattern"}], "default": "none", "group": "finishing", "pricing": True},
+        {"key": "cut_shape", "label": "Cut Shape", "type": "select", "options": [{"value": "square", "label": "Square / Rectangle"}, {"value": "contour", "label": "Contour Cut"}, {"value": "custom", "label": "Custom Shape"}], "default": "square", "group": "finishing", "pricing": True},
+        {"key": "edge_finishing", "label": "Edge Finishing", "type": "text", "placeholder": "Sanded, polished, raw", "group": "finishing"},
+        # Mounting / Hardware
+        {"key": "stakes_included", "label": "Stakes Included", "type": "toggle", "default": False, "group": "mounting", "pricing": True},
+        {"key": "num_stakes", "label": "Number of Stakes", "type": "number", "default": 0, "group": "mounting", "pricing": True},
+        {"key": "mounting_hardware", "label": "Mounting Hardware", "type": "select", "options": [{"value": "none", "label": "None"}, {"value": "screws", "label": "Screws"}, {"value": "brackets", "label": "Brackets"}, {"value": "posts", "label": "Posts"}, {"value": "standoffs", "label": "Standoffs"}], "default": "none", "group": "mounting", "pricing": True},
+        {"key": "install_required", "label": "Installation Required", "type": "toggle", "default": False, "group": "mounting", "pricing": True},
+        # Design
+        {"key": "artwork_provided", "label": "Artwork Provided", "type": "toggle", "default": False, "group": "design"},
+        {"key": "design_needed", "label": "Design Needed", "type": "toggle", "default": False, "group": "design", "pricing": True},
+        {"key": "proof_required", "label": "Proof Required", "type": "toggle", "default": True, "group": "design"},
+        {"key": "artwork_notes", "label": "Notes", "type": "textarea", "group": "design"},
+        # Production
+        {"key": "rush_order", "label": "Rush Order", "type": "toggle", "default": False, "group": "production", "pricing": True},
+        {"key": "outsourced", "label": "Outsourced", "type": "toggle", "default": False, "group": "production"},
+    ]
+
+
+def _cut_vinyl_schema(defaults, vinyl_opts):
+    """Full Cut Vinyl category schema."""
+    return [
+        # Size & Layout
+        {"key": "width", "label": "Width", "type": "text", "placeholder": "e.g. 24 or 36", "group": "size_layout", "required": True, "pricing": True},
+        {"key": "height", "label": "Height", "type": "text", "placeholder": "e.g. 36 or 48", "group": "size_layout", "required": True, "pricing": True},
+        {"key": "unit_of_measure", "label": "Unit of Measure", "type": "select", "options": [{"value": "inches", "label": "Inches"}, {"value": "feet", "label": "Feet"}], "default": "inches", "group": "size_layout", "pricing": True},
+        {"key": "sq_footage", "label": "Coverage Area", "type": "calculated", "group": "size_layout", "pricing": True},
+        {"key": "num_pieces", "label": "Number of Separate Pieces", "type": "number", "placeholder": "1", "group": "size_layout", "pricing": True},
+        # Vinyl Details
+        {"key": "vinyl_type", "label": "Vinyl Type", "type": "select", "options": vinyl_opts, "group": "vinyl_details", "required": True, "pricing": True},
+        {"key": "color_specs", "label": "Color(s)", "type": "text", "placeholder": "Red, White, Blue", "group": "vinyl_details"},
+        {"key": "num_colors", "label": "Number of Colors", "type": "number", "default": 1, "group": "vinyl_details", "pricing": True},
+        {"key": "layered", "label": "Layered or Single Color", "type": "select", "options": [{"value": "single", "label": "Single Color"}, {"value": "layered", "label": "Layered / Multi-Color"}], "default": "single", "group": "vinyl_details", "pricing": True},
+        {"key": "finish", "label": "Finish", "type": "select", "options": [{"value": "gloss", "label": "Gloss"}, {"value": "matte", "label": "Matte"}, {"value": "satin", "label": "Satin"}], "default": "gloss", "group": "vinyl_details"},
+        # Production Options
+        {"key": "weed_required", "label": "Weed Required", "type": "toggle", "default": True, "group": "vinyl_production", "pricing": True},
+        {"key": "mask_required", "label": "Mask / Transfer Tape Required", "type": "toggle", "default": True, "group": "vinyl_production", "pricing": True},
+        {"key": "transfer_tape_type", "label": "Transfer Tape Type", "type": "text", "placeholder": "Standard, high-tack", "group": "vinyl_production"},
+        {"key": "reverse_cut", "label": "Reverse Cut", "type": "toggle", "default": False, "group": "vinyl_production"},
+        {"key": "mount_type", "label": "Inside / Outside Mount", "type": "select", "options": [{"value": "outside", "label": "Outside Mount"}, {"value": "inside", "label": "Inside Mount"}, {"value": "na", "label": "N/A"}], "default": "outside", "group": "vinyl_production"},
+        # Installation
+        {"key": "install_required", "label": "Install Required", "type": "toggle", "default": False, "group": "installation", "pricing": True},
+        {"key": "surface_type", "label": "Surface Type", "type": "text", "placeholder": "Glass, wall, vehicle", "group": "installation"},
+        {"key": "location_notes", "label": "Location / Install Notes", "type": "textarea", "group": "installation"},
+        # Design
+        {"key": "artwork_provided", "label": "Artwork Provided", "type": "toggle", "default": False, "group": "design"},
+        {"key": "design_needed", "label": "Design Needed", "type": "toggle", "default": False, "group": "design", "pricing": True},
+        {"key": "proof_required", "label": "Proof Required", "type": "toggle", "default": True, "group": "design"},
+        # Production
+        {"key": "rush_order", "label": "Rush Order", "type": "toggle", "default": False, "group": "production", "pricing": True},
+        {"key": "outsourced", "label": "Outsourced", "type": "toggle", "default": False, "group": "production"},
+    ]
+
+
+def _digital_print_schema(defaults):
+    """Full Digital Print category schema."""
+    media_opts = [
+        {"value": "gloss_paper", "label": "Gloss Paper"},
+        {"value": "matte_paper", "label": "Matte Paper"},
+        {"value": "vinyl_adhesive", "label": "Vinyl (Printable Adhesive)"},
+        {"value": "window_perf", "label": "Window Perf"},
+        {"value": "backlit_film", "label": "Backlit Film"},
+        {"value": "static_cling", "label": "Static Cling"},
+        {"value": "canvas", "label": "Canvas"},
+        {"value": "fabric", "label": "Fabric / Textile"},
+        {"value": "floor_graphic", "label": "Floor Graphic Media"},
+        {"value": "custom", "label": "Other / Custom"},
+    ]
+    return [
+        # Size & Media
+        {"key": "width", "label": "Width", "type": "text", "placeholder": "e.g. 24 or 48", "group": "size_media", "required": True, "pricing": True},
+        {"key": "height", "label": "Height", "type": "text", "placeholder": "e.g. 36 or 96", "group": "size_media", "required": True, "pricing": True},
+        {"key": "unit_of_measure", "label": "Unit of Measure", "type": "select", "options": [{"value": "inches", "label": "Inches"}, {"value": "feet", "label": "Feet"}], "default": "inches", "group": "size_media", "pricing": True},
+        {"key": "sq_footage", "label": "Square Footage", "type": "calculated", "group": "size_media", "pricing": True},
+        {"key": "media_type", "label": "Media Type", "type": "select", "options": media_opts, "group": "size_media", "required": True, "pricing": True},
+        {"key": "roll_or_sheet", "label": "Roll vs Sheet", "type": "select", "options": [{"value": "roll", "label": "Roll"}, {"value": "sheet", "label": "Sheet"}], "default": "roll", "group": "size_media", "pricing": True},
+        {"key": "num_copies", "label": "Number of Copies / Sets", "type": "number", "placeholder": "1", "group": "size_media"},
+        # Print Options
+        {"key": "print_quality", "label": "Print Quality", "type": "select", "options": [{"value": "draft", "label": "Draft"}, {"value": "standard", "label": "Standard"}, {"value": "high", "label": "High Quality"}], "default": "standard", "group": "print_options", "pricing": True},
+        {"key": "bleed_required", "label": "Bleed Required", "type": "toggle", "default": True, "group": "print_options"},
+        # Finishing
+        {"key": "lamination", "label": "Lamination", "type": "select", "options": [{"value": "none", "label": "None"}, {"value": "gloss", "label": "Gloss"}, {"value": "matte", "label": "Matte"}, {"value": "dry_erase", "label": "Dry Erase"}, {"value": "anti_slip", "label": "Anti-Slip (Floor)"}], "default": "none", "group": "finishing", "pricing": True},
+        {"key": "mounting", "label": "Mounting", "type": "select", "options": [{"value": "none", "label": "None"}, {"value": "foam_board", "label": "Foam Board"}, {"value": "pvc", "label": "PVC"}, {"value": "acm", "label": "ACM"}], "default": "none", "group": "finishing", "pricing": True},
+        {"key": "contour_cut", "label": "Contour Cut", "type": "select", "options": [{"value": "none", "label": "None"}, {"value": "simple", "label": "Simple Cut"}, {"value": "complex", "label": "Complex / Detailed"}], "default": "none", "group": "finishing", "pricing": True},
+        {"key": "trim", "label": "Trim", "type": "select", "options": [{"value": "none", "label": "None"}, {"value": "standard", "label": "Standard Trim"}, {"value": "custom", "label": "Custom Trim"}], "default": "standard", "group": "finishing"},
+        {"key": "corner_rounding", "label": "Corner Rounding", "type": "toggle", "default": False, "group": "finishing", "pricing": True},
+        # Installation
+        {"key": "install_required", "label": "Install Required", "type": "toggle", "default": False, "group": "installation", "pricing": True},
+        {"key": "surface_type", "label": "Surface Type", "type": "select", "options": [{"value": "glass", "label": "Glass"}, {"value": "wall", "label": "Wall"}, {"value": "floor", "label": "Floor"}, {"value": "vehicle", "label": "Vehicle"}, {"value": "other", "label": "Other"}], "group": "installation"},
+        {"key": "interior_exterior", "label": "Interior / Exterior", "type": "select", "options": [{"value": "interior", "label": "Interior"}, {"value": "exterior", "label": "Exterior"}, {"value": "both", "label": "Both"}], "default": "interior", "group": "installation"},
+        {"key": "install_notes", "label": "Install Notes", "type": "textarea", "group": "installation"},
+        # Design
+        {"key": "artwork_provided", "label": "Artwork Provided", "type": "toggle", "default": False, "group": "design"},
+        {"key": "design_needed", "label": "Design Needed", "type": "toggle", "default": False, "group": "design", "pricing": True},
+        {"key": "proof_required", "label": "Proof Required", "type": "toggle", "default": True, "group": "design"},
+        {"key": "artwork_notes", "label": "Notes", "type": "textarea", "group": "design"},
+        # Production
+        {"key": "rush_order", "label": "Rush Order", "type": "toggle", "default": False, "group": "production", "pricing": True},
+        {"key": "outsourced", "label": "Outsourced", "type": "toggle", "default": False, "group": "production"},
+    ]
+
+
+def _vehicle_wrap_schema(defaults, vinyl_opts, coverage_opts, vehicle_type_opts):
+    """Full Vehicle Wrap category schema."""
+    difficulty_opts = [
+        {"value": "easy", "label": "Easy"}, {"value": "moderate", "label": "Moderate"}, {"value": "complex", "label": "Complex"},
+    ]
+    lam_opts = [
+        {"value": "gloss", "label": "Gloss"}, {"value": "matte", "label": "Matte"}, {"value": "satin", "label": "Satin"},
+    ]
+    coverage_full = [
+        {"value": "full", "label": "Full Wrap (100%)"},
+        {"value": "75", "label": "Partial Wrap (75%)"},
+        {"value": "50", "label": "Partial Wrap (50%)"},
+        {"value": "25", "label": "Spot Graphics (25%)"},
+        {"value": "custom", "label": "Custom %"},
+    ]
+    area_opts = [
+        {"value": "hood", "label": "Hood"}, {"value": "roof", "label": "Roof"},
+        {"value": "driver_side", "label": "Driver Side"}, {"value": "passenger_side", "label": "Passenger Side"},
+        {"value": "rear", "label": "Rear"}, {"value": "windows_perf", "label": "Windows (Perf)"},
+        {"value": "tailgate", "label": "Tailgate"}, {"value": "bumper", "label": "Bumper"},
+    ]
+    return [
+        # Vehicle Information
+        {"key": "vehicle_type", "label": "Vehicle Type", "type": "select", "options": vehicle_type_opts, "group": "vehicle_info", "required": True, "pricing": True},
+        {"key": "vehicle_year", "label": "Year", "type": "text", "placeholder": "2024", "group": "vehicle_info"},
+        {"key": "vehicle_make", "label": "Make", "type": "text", "placeholder": "Ford, Chevy, Ram", "group": "vehicle_info"},
+        {"key": "vehicle_model", "label": "Model", "type": "text", "placeholder": "Transit, Silverado", "group": "vehicle_info"},
+        {"key": "vehicle_notes", "label": "Existing Damage / Notes", "type": "textarea", "group": "vehicle_info"},
+        # Coverage
+        {"key": "coverage_type", "label": "Coverage Level", "type": "select", "options": coverage_full, "group": "coverage", "required": True, "pricing": True},
+        {"key": "coverage_percent", "label": "Coverage % (if custom)", "type": "number", "placeholder": "100", "group": "coverage", "pricing": True},
+        {"key": "areas_covered", "label": "Areas Covered", "type": "location_picker", "options": area_opts, "group": "coverage", "pricing": True},
+        # Material & Print
+        {"key": "vinyl_type", "label": "Vinyl Type", "type": "select", "options": vinyl_opts, "group": "material_print", "required": True, "pricing": True},
+        {"key": "lamination", "label": "Lamination", "type": "select", "options": lam_opts, "group": "material_print", "pricing": True},
+        {"key": "print_quality", "label": "Print Quality", "type": "select", "options": [{"value": "standard", "label": "Standard"}, {"value": "high", "label": "High Quality"}], "default": "standard", "group": "material_print"},
+        {"key": "color_notes", "label": "Color / Design Notes", "type": "textarea", "group": "material_print"},
+        # Paneling & Production
+        {"key": "paneling_method", "label": "Paneling Method", "type": "select", "options": [{"value": "auto", "label": "Auto Paneling"}, {"value": "manual", "label": "Manual Paneling"}], "default": "auto", "group": "paneling"},
+        {"key": "num_panels", "label": "Number of Panels", "type": "number", "placeholder": "Auto", "group": "paneling"},
+        {"key": "contour_cuts", "label": "Contour Cuts Required", "type": "toggle", "default": False, "group": "paneling", "pricing": True},
+        # Installation
+        {"key": "install_required", "label": "Install Required", "type": "toggle", "default": True, "group": "installation", "pricing": True},
+        {"key": "install_location", "label": "Install Location", "type": "select", "options": [{"value": "in_house", "label": "In-House"}, {"value": "on_site", "label": "On-Site"}], "default": "in_house", "group": "installation"},
+        {"key": "install_difficulty", "label": "Install Difficulty", "type": "select", "options": difficulty_opts, "default": "moderate", "group": "installation", "pricing": True},
+        {"key": "estimated_install_hours", "label": "Estimated Install Hours", "type": "number", "placeholder": "Auto", "group": "installation", "pricing": True},
+        {"key": "removal_required", "label": "Removal Required", "type": "toggle", "default": False, "group": "installation", "pricing": True},
+        {"key": "surface_prep", "label": "Surface Prep Required", "type": "toggle", "default": False, "group": "installation", "pricing": True},
+        # Design & Complexity
+        {"key": "artwork_provided", "label": "Artwork Provided", "type": "toggle", "default": False, "group": "design"},
+        {"key": "design_needed", "label": "Design Needed", "type": "toggle", "default": True, "group": "design", "pricing": True},
+        {"key": "design_complexity", "label": "Design Complexity", "type": "select", "options": [{"value": "simple", "label": "Simple"}, {"value": "moderate", "label": "Moderate"}, {"value": "complex", "label": "Complex"}], "default": "moderate", "group": "design", "pricing": True},
+        {"key": "num_revisions", "label": "Expected Revisions", "type": "number", "placeholder": "2", "group": "design"},
+        {"key": "mockups_required", "label": "Mockups Required", "type": "toggle", "default": True, "group": "design", "pricing": True},
+        {"key": "proof_required", "label": "Proof Required", "type": "toggle", "default": True, "group": "design"},
+        # Production
+        {"key": "rush_order", "label": "Rush Order", "type": "toggle", "default": False, "group": "production", "pricing": True},
+        {"key": "outsourced_print", "label": "Outsourced Print", "type": "toggle", "default": False, "group": "production"},
+        {"key": "outsourced_install", "label": "Outsourced Install", "type": "toggle", "default": False, "group": "production"},
+    ]
+
+
+
 @router.get("/schema/{category}")
 async def get_category_field_schema(category: str, current_user: UserInDB = Depends(get_current_active_user)):
     """Return dynamic field schema for a job ticket category.
@@ -179,32 +364,10 @@ async def get_category_field_schema(category: str, current_user: UserInDB = Depe
     schemas = {
         "banners": _banner_schema(defaults),
         "apparel": _apparel_schema(defaults),
-        "rigid_signs": base + [
-            {"key": "substrate", "label": "Board Material", "type": "select", "options": enum_opts(SubstrateType), "group": "material"},
-            {"key": "material", "label": "Print Material", "type": "text", "placeholder": "Vinyl, Direct Print", "group": "material"},
-            {"key": "double_sided", "label": "Double Sided", "type": "toggle", "group": "specs"},
-            {"key": "lamination", "label": "Lamination", "type": "text", "placeholder": "Gloss, Matte, None", "group": "finishing"},
-            {"key": "mounting_type", "label": "Mounting / Hardware", "type": "text", "placeholder": "Stakes, Standoffs, Channel", "group": "finishing"},
-            {"key": "cut_method", "label": "Cut Shape", "type": "text", "placeholder": "Square, Contour, Custom", "group": "production"},
-            {"key": "install_required", "label": "Install Required", "type": "toggle", "group": "specs"},
-        ],
-        "cut_vinyl": base + [
-            {"key": "material", "label": "Vinyl Type", "type": "select", "options": enum_opts(VinylType), "group": "material"},
-            {"key": "color_specs", "label": "Vinyl Colors", "type": "text", "placeholder": "Red, White, Blue", "group": "specs"},
-            {"key": "lamination", "label": "Lamination", "type": "text", "placeholder": "Gloss, Matte, None", "group": "finishing"},
-            {"key": "cut_method", "label": "Cut Method", "type": "text", "placeholder": "Plotter, Flatbed", "group": "production"},
-            {"key": "install_required", "label": "Install Required", "type": "toggle", "group": "specs"},
-        ],
-        "vehicle_wrap": base + [
-            {"key": "material", "label": "Wrap Material", "type": "select", "options": enum_opts(VinylType), "group": "material"},
-            {"key": "color_specs", "label": "Color / Design Notes", "type": "text", "group": "specs"},
-            {"key": "lamination", "label": "Lamination", "type": "text", "placeholder": "Gloss, Matte, Satin", "group": "finishing"},
-            {"key": "double_sided", "label": "Multi-Panel", "type": "toggle", "group": "specs"},
-            {"key": "install_required", "label": "Install Required", "type": "toggle", "default": True, "group": "specs"},
-            {"key": "print_method", "label": "Print Method", "type": "text", "placeholder": "Solvent, Latex, UV", "group": "production"},
-            {"key": "mounting_type", "label": "Coverage Type", "type": "select", "options": enum_opts(CoverageType), "group": "specs"},
-        ],
-        "apparel": _apparel_schema(defaults),
+        "rigid_signs": _rigid_sign_schema(defaults, enum_opts(SubstrateType)),
+        "cut_vinyl": _cut_vinyl_schema(defaults, enum_opts(VinylType)),
+        "vehicle_wrap": _vehicle_wrap_schema(defaults, enum_opts(VinylType), enum_opts(CoverageType), enum_opts(VehicleType)),
+        "digital_print": _digital_print_schema(defaults),
         "promo_misc": [
             {"key": "material", "label": "Product Type", "type": "select", "options": enum_opts(PromoProductType), "group": "material"},
             {"key": "size_description", "label": "Size / Specs", "type": "text", "group": "specs"},
@@ -280,6 +443,20 @@ async def get_category_field_schema(category: str, current_user: UserInDB = Depe
             {"value": "van", "label": "Van Wrap"},
             {"value": "car", "label": "Car Wrap"},
             {"value": "custom", "label": "Custom Vehicle Graphics"},
+        ],
+        "digital_print": [
+            {"value": "poster", "label": "Poster / Paper Print"},
+            {"value": "photo", "label": "Photo Print"},
+            {"value": "sticker_sheet", "label": "Sticker / Label Sheet"},
+            {"value": "window_perf", "label": "Window Perf"},
+            {"value": "wall_graphic", "label": "Wall Graphic"},
+            {"value": "floor_graphic", "label": "Floor Graphic"},
+            {"value": "backlit", "label": "Backlit Film"},
+            {"value": "static_cling", "label": "Static Cling"},
+            {"value": "decal_sheet", "label": "Decal Sheet (Printed)"},
+            {"value": "mounted", "label": "Mounted Print"},
+            {"value": "laminated", "label": "Laminated Print"},
+            {"value": "custom", "label": "Custom Digital Print"},
         ],
     }
 

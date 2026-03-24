@@ -17,9 +17,10 @@ const token = () => localStorage.getItem('auth_token');
 const headers = () => ({ Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' });
 
 const CATEGORIES = [
-  { value: 'rigid_signs', label: 'Rigid Signs' },
   { value: 'banners', label: 'Banners' },
+  { value: 'rigid_signs', label: 'Rigid Signs' },
   { value: 'cut_vinyl', label: 'Cut Vinyl / Lettering' },
+  { value: 'digital_print', label: 'Digital Print' },
   { value: 'vehicle_wrap', label: 'Vehicle Wrap' },
   { value: 'apparel', label: 'Apparel' },
   { value: 'promo_misc', label: 'Promotional / Misc' },
