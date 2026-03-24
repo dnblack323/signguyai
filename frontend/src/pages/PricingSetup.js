@@ -385,7 +385,7 @@ export default function PricingSetup() {
                         key={item.id}
                         type="button"
                         onClick={() => setSelectedImportId(item.id)}
-                        className={`w-full rounded-xl border p-3 text-left transition ${selectedImportId === item.id ? 'border-teal-400 bg-teal-500/10' : 'border-slate-700 bg-slate-900/40 hover:border-slate-500'}`}
+                        className={`w-full rounded-xl border p-3 text-left transition ${selectedImportId === item.id ? 'border-teal-400 bg-teal-500/10' : 'border-gray-200 bg-slate-900/40 hover:border-slate-500'}`}
                         data-testid={`historical-import-row-${item.id}`}
                       >
                         <div className="flex items-center justify-between gap-2">
@@ -411,15 +411,15 @@ export default function PricingSetup() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="grid gap-4 md:grid-cols-3">
-                      <div className="rounded-xl border border-slate-700 bg-slate-900/40 p-4" data-testid="historical-import-files-count-card">
+                      <div className="rounded-xl border border-gray-200 bg-slate-900/40 p-4" data-testid="historical-import-files-count-card">
                         <p className="text-xs uppercase text-slate-400">Files</p>
                         <p className="text-2xl font-bold text-white mt-2">{selectedImport.files?.length || 0}</p>
                       </div>
-                      <div className="rounded-xl border border-slate-700 bg-slate-900/40 p-4" data-testid="historical-import-lines-card">
+                      <div className="rounded-xl border border-gray-200 bg-slate-900/40 p-4" data-testid="historical-import-lines-card">
                         <p className="text-xs uppercase text-slate-400">Normalized rows</p>
                         <p className="text-2xl font-bold text-white mt-2">{selectedImport.normalized_rows?.length || 0}</p>
                       </div>
-                      <div className="rounded-xl border border-slate-700 bg-slate-900/40 p-4" data-testid="historical-import-suggestions-card">
+                      <div className="rounded-xl border border-gray-200 bg-slate-900/40 p-4" data-testid="historical-import-suggestions-card">
                         <p className="text-xs uppercase text-slate-400">Suggestions</p>
                         <p className="text-2xl font-bold text-white mt-2">{selectedImport.suggestions?.length || 0}</p>
                       </div>
@@ -450,7 +450,7 @@ export default function PricingSetup() {
                                 value={mapping[field] || ''}
                                 onChange={(event) => setMapping((current) => ({ ...current, [field]: event.target.value }))}
                                 disabled={!canEdit}
-                                className="w-full h-10 rounded-md border border-slate-700 bg-slate-950 px-3 text-sm text-white"
+                                className="w-full h-10 rounded-md border border-gray-200 bg-slate-950 px-3 text-sm text-white"
                                 data-testid={`historical-import-mapping-${field}`}
                               >
                                 <option value="">Not mapped</option>
@@ -467,7 +467,7 @@ export default function PricingSetup() {
                             <Label>Category mapping review</Label>
                             <div className="space-y-2">
                               {uniqueDescriptions.map(([description, defaultCategory]) => (
-                                <div key={description} className="grid gap-3 rounded-lg border border-slate-700 p-3 md:grid-cols-[minmax(0,1fr)_220px]">
+                                <div key={description} className="grid gap-3 rounded-lg border border-gray-200 p-3 md:grid-cols-[minmax(0,1fr)_220px]">
                                   <div>
                                     <p className="text-sm text-white">{description}</p>
                                     <p className="text-xs text-slate-400 mt-1">Current guess: {mapping.category_overrides?.[description] || defaultCategory}</p>
@@ -479,7 +479,7 @@ export default function PricingSetup() {
                                       category_overrides: { ...current.category_overrides, [description]: event.target.value },
                                     }))}
                                     disabled={!canEdit}
-                                    className="w-full h-10 rounded-md border border-slate-700 bg-slate-950 px-3 text-sm text-white"
+                                    className="w-full h-10 rounded-md border border-gray-200 bg-slate-950 px-3 text-sm text-white"
                                     data-testid={`historical-import-category-override-${description.slice(0, 20).replace(/\s+/g, '-')}`}
                                   >
                                     {CATEGORY_OPTIONS.map((option) => (
@@ -527,7 +527,7 @@ export default function PricingSetup() {
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm" data-testid="historical-import-preview-table">
                             <thead>
-                              <tr className="text-left text-slate-400 border-b border-slate-700">
+                              <tr className="text-left text-slate-400 border-b border-gray-200">
                                 <th className="py-2 pr-3">Description</th>
                                 <th className="py-2 pr-3">Qty</th>
                                 <th className="py-2 pr-3">Total</th>
@@ -564,19 +564,19 @@ export default function PricingSetup() {
                         <CardDescription>AI-assisted benchmark summary before any value is applied.</CardDescription>
                       </CardHeader>
                       <CardContent className="grid gap-4 md:grid-cols-4">
-                        <div className="rounded-xl border border-slate-700 bg-slate-900/40 p-4">
+                        <div className="rounded-xl border border-gray-200 bg-slate-900/40 p-4">
                           <p className="text-xs uppercase text-slate-400">Invoices analyzed</p>
                           <p className="text-2xl font-bold text-white mt-2">{selectedImport.analysis_summary.invoice_count}</p>
                         </div>
-                        <div className="rounded-xl border border-slate-700 bg-slate-900/40 p-4">
+                        <div className="rounded-xl border border-gray-200 bg-slate-900/40 p-4">
                           <p className="text-xs uppercase text-slate-400">Line items</p>
                           <p className="text-2xl font-bold text-white mt-2">{selectedImport.analysis_summary.line_item_count}</p>
                         </div>
-                        <div className="rounded-xl border border-slate-700 bg-slate-900/40 p-4">
+                        <div className="rounded-xl border border-gray-200 bg-slate-900/40 p-4">
                           <p className="text-xs uppercase text-slate-400">Categories detected</p>
                           <p className="text-2xl font-bold text-white mt-2">{selectedImport.analysis_summary.categories_detected?.length || 0}</p>
                         </div>
-                        <div className="rounded-xl border border-slate-700 bg-slate-900/40 p-4">
+                        <div className="rounded-xl border border-gray-200 bg-slate-900/40 p-4">
                           <p className="text-xs uppercase text-slate-400">Outliers flagged</p>
                           <p className="text-2xl font-bold text-white mt-2">{selectedImport.analysis_summary.outlier_rows?.length || 0}</p>
                         </div>
@@ -596,7 +596,7 @@ export default function PricingSetup() {
                         {selectedImport.suggestions.map((suggestion) => {
                           const reviewState = reviewDecisions[suggestion.id] || { status: 'pending', final_value: suggestion.final_value ?? suggestion.suggested_value };
                           return (
-                            <div key={suggestion.id} className="rounded-xl border border-slate-700 bg-slate-900/40 p-4" data-testid={`historical-import-suggestion-${suggestion.id}`}>
+                            <div key={suggestion.id} className="rounded-xl border border-gray-200 bg-slate-900/40 p-4" data-testid={`historical-import-suggestion-${suggestion.id}`}>
                               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                                 <div className="space-y-2">
                                   <div className="flex flex-wrap items-center gap-2">

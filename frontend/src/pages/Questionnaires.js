@@ -324,7 +324,7 @@ export default function Questionnaires() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Questionnaires</h1>
-          <p className="text-muted-foreground">Create custom intake forms for different job types</p>
+          <p className="text-gray-500">Create custom intake forms for different job types</p>
         </div>
         <div className="flex gap-2">
           <Button 
@@ -351,7 +351,7 @@ export default function Questionnaires() {
 
       {/* Category Tabs */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="bg-[#111826]">
+        <TabsList className="bg-white">
           <TabsTrigger value="all">All ({questionnaires.length})</TabsTrigger>
           <TabsTrigger value="vehicle_wrap">
             <Car className="h-4 w-4 mr-1" /> Vehicle Wrap
@@ -370,11 +370,11 @@ export default function Questionnaires() {
 
       {/* Questionnaires Grid */}
       {filteredQuestionnaires.length === 0 ? (
-        <Card className="bg-[#111826] text-white border-[#1E293B]">
+        <Card className="bg-white text-white border-[#1E293B]">
           <CardContent className="p-12 text-center">
-            <FileQuestion className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <FileQuestion className="h-12 w-12 text-gray-500 mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">No questionnaires yet</h3>
-            <p className="text-muted-foreground mb-4">
+            <p className="text-gray-500 mb-4">
               Create your first questionnaire to start collecting customer information
             </p>
             <Button onClick={() => setShowTemplateDialog(true)}>
@@ -389,7 +389,7 @@ export default function Questionnaires() {
             return (
               <Card 
                 key={questionnaire.id}
-                className="bg-[#111826] border-[#1E293B] hover:border-[#2F8BFB]/50 transition-colors"
+                className="bg-white border-[#1E293B] hover:border-[#2F8BFB]/50 transition-colors"
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
@@ -399,7 +399,7 @@ export default function Questionnaires() {
                       </div>
                       <div>
                         <CardTitle className="text-base">{questionnaire.name}</CardTitle>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-xs text-gray-500 mt-1">
                           {questionnaire.questions?.length || 0} questions
                         </p>
                       </div>
@@ -411,12 +411,12 @@ export default function Questionnaires() {
                 </CardHeader>
                 <CardContent className="pt-0">
                   {questionnaire.description && (
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                    <p className="text-sm text-gray-500 mb-4 line-clamp-2">
                       {questionnaire.description}
                     </p>
                   )}
                   
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
+                  <div className="flex items-center gap-4 text-xs text-gray-500 mb-4">
                     <span className="flex items-center gap-1">
                       <Users className="h-3 w-3" />
                       {questionnaire.response_count || 0} responses
@@ -498,8 +498,8 @@ export default function Questionnaires() {
                     </div>
                     <div className="flex-1">
                       <h3 className="font-medium">{template.name}</h3>
-                      <p className="text-sm text-muted-foreground">{template.description}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-sm text-gray-500">{template.description}</p>
+                      <p className="text-xs text-gray-500 mt-1">
                         {template.question_count} questions
                       </p>
                     </div>
@@ -580,11 +580,11 @@ export default function Questionnaires() {
               </div>
 
               {formData.questions.map((question, index) => (
-                <Card key={question.id} className="bg-muted/30">
+                <Card key={question.id} className="bg-gray-50">
                   <CardContent className="p-4 space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <GripVertical className="h-4 w-4 text-muted-foreground" />
+                        <GripVertical className="h-4 w-4 text-gray-500" />
                         <span className="text-sm font-medium">Question {index + 1}</span>
                       </div>
                       <Button
@@ -681,7 +681,7 @@ export default function Questionnaires() {
               ))}
 
               {formData.questions.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-8 text-gray-500">
                   No questions added yet. Click "Add Question" to start building your form.
                 </div>
               )}
@@ -727,7 +727,7 @@ export default function Questionnaires() {
           </DialogHeader>
           
           {responses.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-8 text-gray-500">
               No responses yet for this questionnaire.
             </div>
           ) : (
@@ -740,7 +740,7 @@ export default function Questionnaires() {
                         <p className="font-medium">
                           {response.customer_name || response.customer_email || 'Anonymous'}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-gray-500">
                           {new Date(response.submitted_at).toLocaleString()}
                         </p>
                       </div>
@@ -748,7 +748,7 @@ export default function Questionnaires() {
                         View Details
                       </Button>
                     </div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-gray-500">
                       {Object.keys(response.answers || {}).length} answers provided
                     </div>
                   </CardContent>

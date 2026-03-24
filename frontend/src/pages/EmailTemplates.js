@@ -124,11 +124,11 @@ export default function EmailTemplates() {
             <Info className="h-5 w-5 text-primary mt-0.5" />
             <div>
               <p className="text-sm">
-                <strong>Template Variables:</strong> Use <code className="bg-muted px-1 rounded">{'{{variable_name}}'}</code> to insert dynamic content. 
+                <strong>Template Variables:</strong> Use <code className="bg-gray-50 px-1 rounded">{'{{variable_name}}'}</code> to insert dynamic content. 
                 Variables are automatically replaced when emails are sent.
               </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Example: <code className="bg-muted px-1 rounded">{'{{customer_name}}'}</code> will be replaced with the actual customer&apos;s name.
+              <p className="text-sm text-gray-500 mt-1">
+                Example: <code className="bg-gray-50 px-1 rounded">{'{{customer_name}}'}</code> will be replaced with the actual customer&apos;s name.
               </p>
             </div>
           </div>
@@ -145,7 +145,7 @@ export default function EmailTemplates() {
           {templates.map(template => {
             const Icon = TEMPLATE_ICONS[template.id] || Mail;
             return (
-              <Card key={template.id} className="bg-card border-border/50">
+              <Card key={template.id} className="bg-white border-gray-200">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
@@ -161,10 +161,10 @@ export default function EmailTemplates() {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-muted-foreground text-sm mt-1">{template.description}</p>
+                        <p className="text-gray-500 text-sm mt-1">{template.description}</p>
                         <div className="mt-3">
-                          <p className="text-xs text-muted-foreground">Subject Line:</p>
-                          <p className="text-sm font-mono bg-muted/50 px-2 py-1 rounded mt-1">
+                          <p className="text-xs text-gray-500">Subject Line:</p>
+                          <p className="text-sm font-mono bg-gray-50/50 px-2 py-1 rounded mt-1">
                             {template.subject}
                           </p>
                         </div>
@@ -190,7 +190,7 @@ export default function EmailTemplates() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleReset(template.id)}
-                          className="text-muted-foreground"
+                          className="text-gray-500"
                         >
                           <RotateCcw className="h-4 w-4 mr-1" /> Reset
                         </Button>
@@ -199,8 +199,8 @@ export default function EmailTemplates() {
                   </div>
                   
                   {/* Variables */}
-                  <div className="mt-4 pt-4 border-t border-border/50">
-                    <p className="text-xs text-muted-foreground mb-2">Available Variables:</p>
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <p className="text-xs text-gray-500 mb-2">Available Variables:</p>
                     <div className="flex flex-wrap gap-2">
                       {template.variables?.map(v => (
                         <Badge key={v.name} variant="secondary" className="font-mono text-xs">
@@ -234,7 +234,7 @@ export default function EmailTemplates() {
                   onChange={(e) => setEditSubject(e.target.value)}
                   placeholder="Email subject..."
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-gray-500">
                   You can use variables like {'{{customer_name}}'} in the subject
                 </p>
               </div>
@@ -247,12 +247,12 @@ export default function EmailTemplates() {
                   placeholder="HTML content..."
                   className="font-mono text-sm min-h-[400px]"
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-gray-500">
                   Edit the HTML template. Use {'{{variable}}'} for dynamic content and {'{{#if variable}}...{{/if}}'} for conditional blocks.
                 </p>
               </div>
               
-              <div className="p-3 rounded-lg bg-muted/50">
+              <div className="p-3 rounded-lg bg-gray-50/50">
                 <p className="text-sm font-medium mb-2">Available Variables:</p>
                 <div className="flex flex-wrap gap-2">
                   {selectedTemplate.variables?.map(v => (
@@ -260,7 +260,7 @@ export default function EmailTemplates() {
                       <code className="bg-primary/10 px-2 py-1 rounded text-primary">
                         {`{{${v.name}}}`}
                       </code>
-                      <span className="text-muted-foreground ml-1">- {v.description}</span>
+                      <span className="text-gray-500 ml-1">- {v.description}</span>
                     </div>
                   ))}
                 </div>
@@ -290,7 +290,7 @@ export default function EmailTemplates() {
           
           <div className="space-y-4">
             <div>
-              <Label className="text-xs text-muted-foreground">Subject:</Label>
+              <Label className="text-xs text-gray-500">Subject:</Label>
               <p className="font-medium">{previewSubject}</p>
             </div>
             

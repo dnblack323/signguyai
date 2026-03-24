@@ -195,7 +195,7 @@ export default function Financials() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-white">Financials</h1>
-          <p className="text-slate-300 mt-1">Track sales, expenses, and taxes</p>
+          <p className="text-gray-700 mt-1">Track sales, expenses, and taxes</p>
         </div>
         <div className="flex gap-2">
           <Dialog open={isSalesDialogOpen} onOpenChange={setIsSalesDialogOpen}>
@@ -208,7 +208,7 @@ export default function Financials() {
               <DialogHeader>
                 <DialogTitle className="font-heading uppercase">Daily Sales Entry</DialogTitle>
               </DialogHeader>
-              <p className="text-sm text-muted-foreground -mt-2 mb-4">
+              <p className="text-sm text-gray-500 -mt-2 mb-4">
                 Record actual money received today (cash, credit, checks)
               </p>
               <form onSubmit={handleSalesSubmit} className="space-y-4">
@@ -236,7 +236,7 @@ export default function Financials() {
                           className={`flex items-center gap-2 p-3 rounded-lg border transition-all ${
                             salesForm.payment_method === method.value
                               ? 'border-primary bg-primary/10 text-primary'
-                              : 'border-border hover:border-primary/50'
+                              : 'border-gray-200 hover:border-primary/50'
                           }`}
                           data-testid={`payment-method-${method.value}`}
                         >
@@ -383,10 +383,10 @@ export default function Financials() {
       </div>
 
       {/* Date Range Filter */}
-      <Card className="bg-card border-border/50">
+      <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-4">
-            <span className="text-sm text-muted-foreground">Date Range:</span>
+            <span className="text-sm text-gray-500">Date Range:</span>
             <Input
               type="date"
               value={dateRange.start}
@@ -394,7 +394,7 @@ export default function Financials() {
               className="w-[160px]"
               data-testid="financials-start-date"
             />
-            <span className="text-muted-foreground">to</span>
+            <span className="text-gray-500">to</span>
             <Input
               type="date"
               value={dateRange.end}
@@ -409,38 +409,38 @@ export default function Financials() {
       {/* Summary Cards */}
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-card border-border/50">
+          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="h-4 w-4 text-green-400" />
-                <span className="text-sm text-muted-foreground">Total Sales</span>
+                <span className="text-sm text-gray-500">Total Sales</span>
               </div>
               <p className="text-2xl font-bold text-green-400">{formatCurrency(summary.total_sales)}</p>
             </CardContent>
           </Card>
-          <Card className="bg-card border-border/50">
+          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Receipt className="h-4 w-4 text-yellow-400" />
-                <span className="text-sm text-muted-foreground">Sales Tax</span>
+                <span className="text-sm text-gray-500">Sales Tax</span>
               </div>
               <p className="text-2xl font-bold text-yellow-400">{formatCurrency(summary.total_tax)}</p>
             </CardContent>
           </Card>
-          <Card className="bg-card border-border/50">
+          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingDown className="h-4 w-4 text-red-400" />
-                <span className="text-sm text-muted-foreground">Expenses</span>
+                <span className="text-sm text-gray-500">Expenses</span>
               </div>
               <p className="text-2xl font-bold text-red-400">{formatCurrency(summary.total_expenses)}</p>
             </CardContent>
           </Card>
-          <Card className="bg-card border-border/50">
+          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <DollarSign className="h-4 w-4 text-primary" />
-                <span className="text-sm text-muted-foreground">Net Income</span>
+                <span className="text-sm text-gray-500">Net Income</span>
               </div>
               <p className={`text-2xl font-bold ${summary.net_income >= 0 ? 'text-primary' : 'text-red-400'}`}>
                 {formatCurrency(summary.net_income)}
@@ -462,17 +462,17 @@ export default function Financials() {
         <TabsContent value="overview" className="mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Expense Breakdown */}
-            <Card className="bg-card border-border/50">
+            <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
               <CardHeader>
                 <CardTitle className="font-heading uppercase">Expense Breakdown</CardTitle>
               </CardHeader>
               <CardContent>
                 {Object.keys(expensesByCategory).length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">No expenses recorded</p>
+                  <p className="text-gray-500 text-center py-8">No expenses recorded</p>
                 ) : (
                   <div className="space-y-3">
                     {Object.entries(expensesByCategory).map(([category, amount]) => (
-                      <div key={category} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                      <div key={category} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <span className="font-medium">{getCategoryLabel(category)}</span>
                         <span className="text-red-400 font-bold">{formatCurrency(amount)}</span>
                       </div>
@@ -483,7 +483,7 @@ export default function Financials() {
             </Card>
 
             {/* Recent Activity */}
-            <Card className="bg-card border-border/50">
+            <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
               <CardHeader>
                 <CardTitle className="font-heading uppercase">Recent Activity</CardTitle>
               </CardHeader>
@@ -512,7 +512,7 @@ export default function Financials() {
                               <p className="text-sm font-medium">
                                 {item.type === 'sale' ? methodInfo?.label || 'Daily Sales' : getCategoryLabel(item.category)}
                               </p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-gray-500">
                                 {formatDate(item.date)}
                               </p>
                             </div>
@@ -531,10 +531,10 @@ export default function Financials() {
 
         {/* Sales Tab */}
         <TabsContent value="sales" className="mt-4">
-          <Card className="bg-card border-border/50">
+          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardContent className="p-0">
               {sales.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
+                <div className="text-center py-12 text-gray-500">
                   No daily sales recorded for this period
                 </div>
               ) : (
@@ -553,15 +553,15 @@ export default function Financials() {
                       const methodInfo = paymentMethods.find(m => m.value === sale.payment_method) || paymentMethods[3];
                       const Icon = methodInfo.icon;
                       return (
-                        <TableRow key={sale.id} className={idx % 2 === 0 ? '' : 'bg-muted/30'}>
+                        <TableRow key={sale.id} className={idx % 2 === 0 ? '' : 'bg-gray-50'}>
                           <TableCell>{formatDate(sale.date)}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <Icon className="h-4 w-4 text-muted-foreground" />
+                              <Icon className="h-4 w-4 text-gray-500" />
                               <span className="capitalize">{methodInfo.label}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-muted-foreground">{sale.description || '-'}</TableCell>
+                          <TableCell className="text-gray-500">{sale.description || '-'}</TableCell>
                           <TableCell className="text-right font-bold text-green-400">
                             {formatCurrency(sale.amount)}
                           </TableCell>
@@ -580,10 +580,10 @@ export default function Financials() {
 
         {/* Expenses Tab */}
         <TabsContent value="expenses" className="mt-4">
-          <Card className="bg-card border-border/50">
+          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardContent className="p-0">
               {expenses.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
+                <div className="text-center py-12 text-gray-500">
                   No expenses recorded for this period
                 </div>
               ) : (
@@ -598,10 +598,10 @@ export default function Financials() {
                   </TableHeader>
                   <TableBody>
                     {expenses.map((expense, idx) => (
-                      <TableRow key={expense.id} className={idx % 2 === 0 ? '' : 'bg-muted/30'}>
+                      <TableRow key={expense.id} className={idx % 2 === 0 ? '' : 'bg-gray-50'}>
                         <TableCell>{formatDate(expense.date)}</TableCell>
                         <TableCell>{getCategoryLabel(expense.category)}</TableCell>
-                        <TableCell className="text-muted-foreground">{expense.description || '-'}</TableCell>
+                        <TableCell className="text-gray-500">{expense.description || '-'}</TableCell>
                         <TableCell className="text-right font-bold text-red-400">
                           {formatCurrency(expense.amount)}
                         </TableCell>

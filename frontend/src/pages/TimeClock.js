@@ -192,11 +192,11 @@ export default function TimeClock() {
       </div>
 
       {/* Employee Selector */}
-      <Card className="bg-card border-border/50">
+      <Card className="bg-white border-gray-200">
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div className="flex items-center gap-2">
-              <User className="h-5 w-5 text-muted-foreground" />
+              <User className="h-5 w-5 text-gray-500" />
               <Label className="text-base font-medium">Select Employee:</Label>
             </div>
             <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
@@ -219,7 +219,7 @@ export default function TimeClock() {
       {selectedEmployee && (
         <>
           {/* Clock Actions */}
-          <Card className="bg-card border-border/50">
+          <Card className="bg-white border-gray-200">
             <CardHeader>
               <CardTitle className="font-heading uppercase">Clock Actions</CardTitle>
             </CardHeader>
@@ -234,7 +234,7 @@ export default function TimeClock() {
                       disabled={!isAvailable}
                       className={cn(
                         "h-24 flex flex-col items-center justify-center gap-2 text-white transition-all",
-                        isAvailable ? color : "bg-muted text-muted-foreground cursor-not-allowed",
+                        isAvailable ? color : "bg-gray-50 text-gray-500 cursor-not-allowed",
                         isAvailable && "neon-glow"
                       )}
                       data-testid={`clock-${action}`}
@@ -251,7 +251,7 @@ export default function TimeClock() {
           {/* Daily Summary */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Shift Summary */}
-            <Card className="bg-card border-border/50">
+            <Card className="bg-white border-gray-200">
               <CardHeader>
                 <CardTitle className="font-heading uppercase flex items-center gap-2">
                   <Clock className="h-5 w-5 text-primary" />
@@ -261,51 +261,51 @@ export default function TimeClock() {
               <CardContent>
                 {shiftSummary ? (
                   <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center p-4 bg-muted/30 rounded-lg">
-                      <p className="text-sm text-muted-foreground">Work Time</p>
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500">Work Time</p>
                       <p className="text-2xl font-bold text-green-400">
                         {Math.round(shiftSummary.work_minutes)} min
                       </p>
                     </div>
-                    <div className="text-center p-4 bg-muted/30 rounded-lg">
-                      <p className="text-sm text-muted-foreground">Break Time</p>
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500">Break Time</p>
                       <p className="text-2xl font-bold text-yellow-400">
                         {Math.round(shiftSummary.break_minutes)} min
                       </p>
                     </div>
-                    <div className="text-center p-4 bg-muted/30 rounded-lg">
-                      <p className="text-sm text-muted-foreground">Net Hours</p>
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500">Net Hours</p>
                       <p className="text-2xl font-bold text-primary">
                         {shiftSummary.net_hours.toFixed(2)} hrs
                       </p>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-muted-foreground text-center py-4">No data available</p>
+                  <p className="text-gray-500 text-center py-4">No data available</p>
                 )}
               </CardContent>
             </Card>
 
             {/* Today's Log */}
-            <Card className="bg-card border-border/50">
+            <Card className="bg-white border-gray-200">
               <CardHeader>
                 <CardTitle className="font-heading uppercase">Today's Activity</CardTitle>
               </CardHeader>
               <CardContent>
                 {todayLogs.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4">No activity today</p>
+                  <p className="text-gray-500 text-center py-4">No activity today</p>
                 ) : (
                   <div className="space-y-2 max-h-[200px] overflow-y-auto">
                     {todayLogs.map((log) => (
                       <div 
                         key={log.id} 
-                        className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                         data-testid={`log-${log.id}`}
                       >
                         <span className="font-medium capitalize">
                           {log.action.replace('_', ' ')}
                         </span>
-                        <span className="text-muted-foreground">
+                        <span className="text-gray-500">
                           {formatTime(log.timestamp)}
                         </span>
                       </div>
@@ -319,11 +319,11 @@ export default function TimeClock() {
       )}
 
       {!selectedEmployee && employees.length === 0 && !loading && (
-        <Card className="bg-card border-border/50">
+        <Card className="bg-white border-gray-200">
           <CardContent className="p-12 text-center">
-            <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <User className="h-12 w-12 text-gray-500 mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">No Employees</h3>
-            <p className="text-muted-foreground mb-4">Add an employee to start tracking time</p>
+            <p className="text-gray-500 mb-4">Add an employee to start tracking time</p>
             <Button onClick={() => setIsDialogOpen(true)} data-testid="empty-add-employee">
               <Plus className="h-4 w-4 mr-2" /> Add First Employee
             </Button>

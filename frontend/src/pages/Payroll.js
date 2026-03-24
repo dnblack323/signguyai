@@ -35,11 +35,11 @@ const TRANSACTION_TYPES = ['earnings', 'advance', 'payment'];
 
 function StatCard({ label, value, icon: Icon, color = 'text-blue-400', bgColor = 'bg-blue-500/10' }) {
   return (
-    <Card className="bg-card border-border/50">
+    <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wide">{label}</p>
             <p className={`text-2xl font-bold mt-1 ${color}`}>{value}</p>
           </div>
           <div className={`w-10 h-10 rounded-lg ${bgColor} flex items-center justify-center`}>
@@ -163,7 +163,7 @@ export default function Payroll() {
       <div className="flex flex-col items-center justify-center h-64 text-center">
         <AlertTriangle className="h-12 w-12 mb-4 text-amber-500" />
         <h2 className="text-xl font-semibold mb-2 text-white">Access Denied</h2>
-        <p className="text-slate-400">You don't have permission to view payroll.</p>
+        <p className="text-gray-500">You don't have permission to view payroll.</p>
       </div>
     );
   }
@@ -253,7 +253,7 @@ export default function Payroll() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-white">Admin Payroll</h1>
-          <p className="text-slate-400 mt-1">
+          <p className="text-gray-500 mt-1">
             {payPeriod ? `Pay Period: ${payPeriod.period_start} to ${payPeriod.period_end}` : 'Manage employee hours, pay & transactions'}
           </p>
         </div>
@@ -281,7 +281,7 @@ export default function Payroll() {
 
       {/* Tabbed Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-slate-800/50 border border-slate-700">
+        <TabsList className="bg-slate-800/50 border border-gray-200">
           <TabsTrigger value="overview" data-testid="tab-overview">
             <Users className="h-4 w-4 mr-1.5" /> Overview
           </TabsTrigger>
@@ -298,13 +298,13 @@ export default function Payroll() {
 
         {/* OVERVIEW TAB */}
         <TabsContent value="overview">
-          <Card className="bg-card border-border/50">
+          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg">Pay Period Summary</CardTitle>
             </CardHeader>
             <CardContent>
               {!payPeriod?.employees?.length ? (
-                <p className="text-muted-foreground text-center py-8">No employees found. Add employees first.</p>
+                <p className="text-gray-500 text-center py-8">No employees found. Add employees first.</p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -323,7 +323,7 @@ export default function Payroll() {
                     {payPeriod.employees.map((emp) => (
                       <TableRow key={emp.employee_id} data-testid={`overview-row-${emp.employee_id}`}>
                         <TableCell className="font-medium">{emp.employee_name}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">{formatCurrency(emp.hourly_rate)}/hr</TableCell>
+                        <TableCell className="text-right text-gray-500">{formatCurrency(emp.hourly_rate)}/hr</TableCell>
                         <TableCell className="text-right">{emp.total_hours}</TableCell>
                         <TableCell className="text-right">
                           {emp.overtime_hours > 0 ? (
@@ -347,7 +347,7 @@ export default function Payroll() {
 
         {/* TIMESHEET TAB */}
         <TabsContent value="timesheet">
-          <Card className="bg-card border-border/50">
+          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardHeader>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <CardTitle className="text-lg">Consolidated Time Sheet</CardTitle>
@@ -366,7 +366,7 @@ export default function Payroll() {
                   <Input type="date" value={timesheetRange.start}
                     onChange={(e) => setTimesheetRange(prev => ({ ...prev, start: e.target.value }))}
                     className="w-[145px]" data-testid="timesheet-start-date" />
-                  <span className="text-muted-foreground text-sm">to</span>
+                  <span className="text-gray-500 text-sm">to</span>
                   <Input type="date" value={timesheetRange.end}
                     onChange={(e) => setTimesheetRange(prev => ({ ...prev, end: e.target.value }))}
                     className="w-[145px]" data-testid="timesheet-end-date" />
@@ -375,29 +375,29 @@ export default function Payroll() {
             </CardHeader>
             <CardContent>
               {!timesheet?.employees?.length ? (
-                <p className="text-muted-foreground text-center py-8">No time entries found for this period.</p>
+                <p className="text-gray-500 text-center py-8">No time entries found for this period.</p>
               ) : (
                 <div className="space-y-6">
                   {timesheet.employees.map((emp) => (
-                    <div key={emp.employee_id} className="border border-border/50 rounded-lg overflow-hidden" data-testid={`timesheet-${emp.employee_id}`}>
+                    <div key={emp.employee_id} className="border border-gray-200 rounded-lg overflow-hidden" data-testid={`timesheet-${emp.employee_id}`}>
                       <div className="p-4 bg-slate-800/30 flex items-center justify-between">
                         <div>
                           <h3 className="font-semibold text-white">{emp.employee_name}</h3>
-                          <p className="text-sm text-muted-foreground">{formatCurrency(emp.hourly_rate)}/hr</p>
+                          <p className="text-sm text-gray-500">{formatCurrency(emp.hourly_rate)}/hr</p>
                         </div>
                         <div className="flex items-center gap-4 text-sm">
                           <div className="text-center">
-                            <p className="text-muted-foreground">Regular</p>
+                            <p className="text-gray-500">Regular</p>
                             <p className="font-bold text-green-400">{emp.regular_hours} hrs</p>
                           </div>
                           {emp.overtime_hours > 0 && (
                             <div className="text-center">
-                              <p className="text-muted-foreground">Overtime</p>
+                              <p className="text-gray-500">Overtime</p>
                               <p className="font-bold text-amber-400">{emp.overtime_hours} hrs</p>
                             </div>
                           )}
                           <div className="text-center">
-                            <p className="text-muted-foreground">Total Pay</p>
+                            <p className="text-gray-500">Total Pay</p>
                             <p className="font-bold text-emerald-400">{formatCurrency(emp.total_pay)}</p>
                           </div>
                         </div>
@@ -423,7 +423,7 @@ export default function Payroll() {
                                     {entry.source === 'job_timer' ? 'Timer' : 'Manual'}
                                   </Badge>
                                 </TableCell>
-                                <TableCell className="text-sm text-muted-foreground">{entry.job_name || '-'}</TableCell>
+                                <TableCell className="text-sm text-gray-500">{entry.job_name || '-'}</TableCell>
                                 <TableCell className="text-sm capitalize">{entry.task_type}</TableCell>
                                 <TableCell className="text-right font-medium">{entry.hours}</TableCell>
                                 <TableCell className="text-right text-green-400">{formatCurrency(entry.pay)}</TableCell>
@@ -442,7 +442,7 @@ export default function Payroll() {
 
         {/* MANUAL HOURS TAB */}
         <TabsContent value="hours">
-          <Card className="bg-card border-border/50">
+          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Manual Hours</CardTitle>
@@ -453,7 +453,7 @@ export default function Payroll() {
             </CardHeader>
             <CardContent>
               {manualHours.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No manual hours entries. Click "Add Hours" to record hours manually.</p>
+                <p className="text-gray-500 text-center py-8">No manual hours entries. Click "Add Hours" to record hours manually.</p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -476,8 +476,8 @@ export default function Payroll() {
                           <TableCell className="text-sm">{entry.date}</TableCell>
                           <TableCell className="font-medium">{emp?.name || entry.employee_id}</TableCell>
                           <TableCell className="capitalize text-sm">{entry.task_type}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{entry.job_name || '-'}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{entry.description || '-'}</TableCell>
+                          <TableCell className="text-sm text-gray-500">{entry.job_name || '-'}</TableCell>
+                          <TableCell className="text-sm text-gray-500">{entry.description || '-'}</TableCell>
                           <TableCell className="text-right font-medium">{entry.hours}</TableCell>
                           <TableCell className="text-right text-green-400">{formatCurrency(entry.gross_pay)}</TableCell>
                           <TableCell className="text-right">
@@ -502,7 +502,7 @@ export default function Payroll() {
 
         {/* TRANSACTIONS TAB */}
         <TabsContent value="transactions">
-          <Card className="bg-card border-border/50">
+          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardHeader>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <CardTitle className="text-lg">Payroll Transactions</CardTitle>
@@ -526,7 +526,7 @@ export default function Payroll() {
             </CardHeader>
             <CardContent>
               {transactions.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No transactions found.</p>
+                <p className="text-gray-500 text-center py-8">No transactions found.</p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -552,7 +552,7 @@ export default function Payroll() {
                               <span className="capitalize text-sm">{txn.type}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{txn.description || '-'}</TableCell>
+                          <TableCell className="text-sm text-gray-500">{txn.description || '-'}</TableCell>
                           <TableCell className={`text-right font-bold ${typeColor}`}>{formatCurrency(txn.amount)}</TableCell>
                         </TableRow>
                       );
@@ -564,7 +564,7 @@ export default function Payroll() {
           </Card>
 
           {/* Balance Info Card */}
-          <Card className="bg-card border-border/50 mt-4">
+          <Card className="bg-white border-gray-200 mt-4">
             <CardHeader>
               <CardTitle className="text-sm flex items-center gap-2">
                 <DollarSign className="h-4 w-4 text-blue-400" /> Balance Formula
@@ -573,15 +573,15 @@ export default function Payroll() {
             <CardContent className="text-sm space-y-2">
               <div className="flex items-center gap-3">
                 <Badge className="bg-green-500/20 text-green-400">Earnings</Badge>
-                <span className="text-muted-foreground">Hours x Rate = Money owed to employee</span>
+                <span className="text-gray-500">Hours x Rate = Money owed to employee</span>
               </div>
               <div className="flex items-center gap-3">
                 <Badge className="bg-amber-500/20 text-amber-400">Advances</Badge>
-                <span className="text-muted-foreground">Money borrowed by employee (reduces balance)</span>
+                <span className="text-gray-500">Money borrowed by employee (reduces balance)</span>
               </div>
               <div className="flex items-center gap-3">
                 <Badge className="bg-blue-500/20 text-blue-400">Payments</Badge>
-                <span className="text-muted-foreground">Wages paid to employee (reduces balance)</span>
+                <span className="text-gray-500">Wages paid to employee (reduces balance)</span>
               </div>
             </CardContent>
           </Card>

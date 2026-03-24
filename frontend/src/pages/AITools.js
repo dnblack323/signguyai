@@ -810,7 +810,7 @@ export default function AITools() {
       {/* Header */}
       <div>
           <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-white">AI Tools Suite</h1>
-        <p className="text-slate-300 mt-1">15 AI-powered tools for design, branding, business, and marketing</p>
+        <p className="text-gray-700 mt-1">15 AI-powered tools for design, branding, business, and marketing</p>
       </div>
 
       {/* Category Filter */}
@@ -841,7 +841,7 @@ export default function AITools() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Tool Selector */}
-        <Card className="bg-card border-border/50 lg:col-span-1">
+        <Card className="bg-white border-gray-200 lg:col-span-1">
           <CardHeader className="pb-2">
             <CardTitle className="font-heading uppercase text-sm">Select Tool</CardTitle>
           </CardHeader>
@@ -858,17 +858,17 @@ export default function AITools() {
                       className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all ${
                         selectedTool.id === tool.id 
                           ? 'bg-primary/10 border border-primary/30' 
-                          : 'hover:bg-muted/50'
+                          : 'hover:bg-gray-50/50'
                       }`}
                       data-testid={`tool-${tool.id}`}
                     >
-                      <ToolIcon className={`h-5 w-5 flex-shrink-0 ${selectedTool.id === tool.id ? 'text-primary' : toolCat?.color || 'text-muted-foreground'}`} />
+                      <ToolIcon className={`h-5 w-5 flex-shrink-0 ${selectedTool.id === tool.id ? 'text-primary' : toolCat?.color || 'text-gray-500'}`} />
                       <div className="flex-1 min-w-0">
                         <span className={`text-sm font-medium block truncate ${selectedTool.id === tool.id ? 'text-primary' : ''}`}>
                           {tool.name}
                         </span>
                         <div className="flex items-center gap-1">
-                          <span className="text-xs text-muted-foreground capitalize">{tool.category}</span>
+                          <span className="text-xs text-gray-500 capitalize">{tool.category}</span>
                           {tool.generatesImages && (
                             <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-500/30">
                               <ImageIcon className="h-2.5 w-2.5 mr-0.5" />
@@ -889,7 +889,7 @@ export default function AITools() {
         {/* Tool Interface */}
         <div className="lg:col-span-3 space-y-6">
           {/* Tool Header */}
-          <Card className="bg-card border-border/50">
+          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
                 <div className={`p-3 rounded-lg ${categoryInfo?.color?.replace('text-', 'bg-').replace('-400', '-500/20')}`}>
@@ -906,7 +906,7 @@ export default function AITools() {
                       </Badge>
                     )}
                   </div>
-                  <p className="text-muted-foreground mt-1">{selectedTool.description}</p>
+                  <p className="text-gray-500 mt-1">{selectedTool.description}</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={loadHistory} data-testid="view-history-btn">
                   <History className="h-4 w-4 mr-2" /> History
@@ -916,7 +916,7 @@ export default function AITools() {
           </Card>
 
           {/* Input Form */}
-          <Card className="bg-card border-border/50">
+          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardHeader>
               <CardTitle className="font-heading uppercase text-sm">Input</CardTitle>
             </CardHeader>
@@ -986,7 +986,7 @@ export default function AITools() {
                           <>
                             <Upload className="h-8 w-8" />
                             <span>Click to Upload Image</span>
-                            <span className="text-xs text-muted-foreground">JPG, PNG, or WebP</span>
+                            <span className="text-xs text-gray-500">JPG, PNG, or WebP</span>
                           </>
                         )}
                       </Button>
@@ -995,7 +995,7 @@ export default function AITools() {
                           <img 
                             src={uploadedImagePreview} 
                             alt="Uploaded preview" 
-                            className="w-full max-h-48 object-contain rounded-lg border border-border bg-black/20"
+                            className="w-full max-h-48 object-contain rounded-lg border border-gray-200 bg-black/20"
                           />
                         </div>
                       )}
@@ -1027,7 +1027,7 @@ export default function AITools() {
 
           {/* Generated Images Section */}
           {generatedImages.length > 0 && (
-            <Card className="bg-card border-border/50 border-green-500/50">
+            <Card className="bg-white border-gray-200 border-green-500/50">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="font-heading uppercase text-sm text-green-400 flex items-center gap-2">
@@ -1045,7 +1045,7 @@ export default function AITools() {
                       className={`relative rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
                         selectedImageIndex === index 
                           ? 'border-green-500 ring-2 ring-green-500/30' 
-                          : 'border-border hover:border-primary/50'
+                          : 'border-gray-200 hover:border-primary/50'
                       }`}
                       onClick={() => handleSelectImage(index)}
                     >
@@ -1099,7 +1099,7 @@ export default function AITools() {
                 
                 {/* Modification Request */}
                 {selectedImageIndex !== null && (
-                  <div className="mt-4 p-4 bg-muted/30 rounded-lg space-y-3 border border-green-500/30">
+                  <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-3 border border-green-500/30">
                     <Label>Request Changes to Option {selectedImageIndex + 1}</Label>
                     <Textarea
                       value={formData.modification_notes || ''}
@@ -1120,7 +1120,7 @@ export default function AITools() {
 
                 {/* Design Notes shown with images */}
                 {result && selectedTool.generatesImages && (
-                  <div className="mt-4 border-t border-border pt-4">
+                  <div className="mt-4 border-t border-gray-200 pt-4">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-heading uppercase text-sm text-primary flex items-center gap-2">
                         <FileText className="h-4 w-4" />
@@ -1136,7 +1136,7 @@ export default function AITools() {
                     </div>
                     <ScrollArea className="h-[300px]">
                       <div className="prose prose-invert max-w-none">
-                        <pre className="whitespace-pre-wrap text-sm font-sans bg-muted/30 p-4 rounded-lg">
+                        <pre className="whitespace-pre-wrap text-sm font-sans bg-gray-50 p-4 rounded-lg">
                           {result.content || result.output}
                         </pre>
                       </div>
@@ -1149,7 +1149,7 @@ export default function AITools() {
 
           {/* Text Result - Only show for non-image tools */}
           {result && !selectedTool.generatesImages && (
-            <Card className="bg-card border-border/50 border-primary/30" data-testid="result-card">
+            <Card className="bg-white border-gray-200 border-primary/30" data-testid="result-card">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="font-heading uppercase text-sm text-primary">
@@ -1200,12 +1200,12 @@ export default function AITools() {
               <CardContent>
                 <ScrollArea className="h-[400px]">
                   <div className="prose prose-invert max-w-none">
-                    <pre className="whitespace-pre-wrap text-sm font-sans bg-muted/30 p-4 rounded-lg">
+                    <pre className="whitespace-pre-wrap text-sm font-sans bg-gray-50 p-4 rounded-lg">
                       {result.content || result.output}
                     </pre>
                   </div>
                 </ScrollArea>
-                <p className="text-xs text-muted-foreground mt-4">
+                <p className="text-xs text-gray-500 mt-4">
                   Generated at {formatDateTime(result.created_at)}
                 </p>
               </CardContent>
@@ -1214,7 +1214,7 @@ export default function AITools() {
 
           {/* History Panel */}
           {showHistory && (
-            <Card className="bg-card border-border/50">
+            <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="font-heading uppercase text-sm">History for {selectedTool.name}</CardTitle>
@@ -1225,14 +1225,14 @@ export default function AITools() {
               </CardHeader>
               <CardContent>
                 {history.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">No history found for this tool</p>
+                  <p className="text-gray-500 text-center py-8">No history found for this tool</p>
                 ) : (
                   <ScrollArea className="h-[300px]">
                     <div className="space-y-3">
                       {history.map((item) => (
                         <div 
                           key={item.id} 
-                          className="p-3 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                          className="p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-50/50 transition-colors"
                           onClick={() => {
                             setResult(item);
                             setShowHistory(false);
@@ -1241,7 +1241,7 @@ export default function AITools() {
                           <p className="text-sm font-medium truncate">
                             {JSON.stringify(item.input_data).slice(0, 100)}...
                           </p>
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-xs text-gray-500 mt-1">
                             {formatDateTime(item.created_at)}
                           </p>
                         </div>
@@ -1279,14 +1279,14 @@ export default function AITools() {
                   {customers?.filter(c => c.portal_enabled).map((customer) => (
                     <SelectItem key={customer.id} value={customer.id}>
                       <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <Users className="h-4 w-4 text-gray-500" />
                         {customer.name}
-                        {customer.company && <span className="text-muted-foreground">({customer.company})</span>}
+                        {customer.company && <span className="text-gray-500">({customer.company})</span>}
                       </div>
                     </SelectItem>
                   ))}
                   {customers?.filter(c => c.portal_enabled).length === 0 && (
-                    <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                    <div className="px-2 py-4 text-center text-sm text-gray-500">
                       No customers with portal access enabled.
                       <br />
                       <span className="text-xs">Enable portal access in customer settings.</span>

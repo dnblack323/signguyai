@@ -206,7 +206,7 @@ export default function Invoices() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-white">Invoices</h1>
-          <p className="text-slate-300 mt-1">{invoices.length} total invoices</p>
+          <p className="text-gray-700 mt-1">{invoices.length} total invoices</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -326,37 +326,37 @@ export default function Invoices() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-card border-border/50">
+        <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Total</p>
+            <p className="text-sm text-gray-500">Total</p>
             <p className="text-2xl font-bold">{formatCurrency(totals.all)}</p>
           </CardContent>
         </Card>
-        <Card className="bg-card border-border/50">
+        <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Paid</p>
+            <p className="text-sm text-gray-500">Paid</p>
             <p className="text-2xl font-bold text-green-400">{formatCurrency(totals.paid)}</p>
           </CardContent>
         </Card>
-        <Card className="bg-card border-border/50">
+        <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Pending</p>
+            <p className="text-sm text-gray-500">Pending</p>
             <p className="text-2xl font-bold text-yellow-400">{formatCurrency(totals.pending)}</p>
           </CardContent>
         </Card>
-        <Card className="bg-card border-border/50">
+        <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Overdue</p>
+            <p className="text-sm text-gray-500">Overdue</p>
             <p className="text-2xl font-bold text-red-400">{formatCurrency(totals.overdue)}</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
-      <Card className="bg-card border-border/50">
+      <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <CardContent className="p-4 flex items-center gap-3 flex-wrap">
           <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -382,14 +382,14 @@ export default function Invoices() {
       </Card>
 
       {/* Invoice List */}
-      <Card className="bg-card border-border/50">
+      <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center h-32">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
             </div>
           ) : invoices.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
+            <div className="text-center py-12 text-gray-500">
               <p>No invoices found</p>
               <Button variant="link" onClick={() => setIsDialogOpen(true)}>
                 Create your first invoice
@@ -424,7 +424,7 @@ export default function Invoices() {
                 }).map((invoice, idx) => (
                   <TableRow 
                     key={invoice.id} 
-                    className={idx % 2 === 0 ? 'bg-transparent' : 'bg-muted/30'}
+                    className={idx % 2 === 0 ? 'bg-transparent' : 'bg-gray-50'}
                     data-testid={`invoice-row-${invoice.id}`}
                   >
                     <TableCell className="font-mono text-sm">
@@ -433,7 +433,7 @@ export default function Invoices() {
                     <TableCell className="font-medium">
                       {getCustomerName(invoice.customer_id)}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-gray-500">
                       {getJobName(invoice.job_id)}
                     </TableCell>
                     <TableCell className="font-bold">{formatCurrency(invoice.total)}</TableCell>
@@ -443,7 +443,7 @@ export default function Invoices() {
                         {invoice.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
+                    <TableCell className="text-gray-500 text-sm">
                       {formatDate(invoice.due_date)}
                     </TableCell>
                     <TableCell className="text-right">

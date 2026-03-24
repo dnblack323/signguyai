@@ -388,7 +388,7 @@ export default function Quotes() {
                 <div className="flex items-center justify-between">
                   <div className="text-sm">
                     <p className="text-teal-400 font-medium">Need to calculate pricing?</p>
-                    <p className="text-muted-foreground text-xs mt-0.5">Use the pricing calculator for accurate quotes</p>
+                    <p className="text-gray-500 text-xs mt-0.5">Use the pricing calculator for accurate quotes</p>
                   </div>
                   <Button 
                     type="button"
@@ -482,7 +482,7 @@ export default function Quotes() {
       </div>
 
       {/* Filters */}
-      <Card className="bg-card border-border/50">
+      <Card className="bg-white border-gray-200">
         <CardContent className="p-4">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]" data-testid="quote-filter-status">
@@ -501,14 +501,14 @@ export default function Quotes() {
       </Card>
 
       {/* Quotes List */}
-      <Card className="bg-card border-border/50">
+      <Card className="bg-white border-gray-200">
         <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center h-32">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
             </div>
           ) : quotes.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
+            <div className="text-center py-12 text-gray-500">
               <p>No quotes found</p>
               <Button variant="link" onClick={() => setIsDialogOpen(true)}>
                 Create your first quote
@@ -531,7 +531,7 @@ export default function Quotes() {
                 {quotes.map((quote, idx) => (
                   <TableRow 
                     key={quote.id} 
-                    className={`cursor-pointer transition-colors ${idx % 2 === 0 ? 'bg-transparent' : 'bg-muted/30'} hover:bg-muted/50`}
+                    className={`cursor-pointer transition-colors ${idx % 2 === 0 ? 'bg-transparent' : 'bg-gray-50'} hover:bg-gray-50/50`}
                     data-testid={`quote-row-${quote.id}`}
                     onClick={() => handleViewQuote(quote)}
                   >
@@ -548,7 +548,7 @@ export default function Quotes() {
                         {quote.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
+                    <TableCell className="text-gray-500 text-sm">
                       {formatDate(quote.created_at)}
                     </TableCell>
                     <TableCell className="text-right">
@@ -894,7 +894,7 @@ export default function Quotes() {
                 <Input value={newCustomerForm.company} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, company: e.target.value })} data-testid="quote-inline-customer-company-input" />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">Name or Company is required.</p>
+            <p className="text-xs text-gray-500">Name or Company is required.</p>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Email</Label>

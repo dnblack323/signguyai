@@ -332,7 +332,7 @@ export default function OnboardingHub() {
         {TIERS.map((tier) => {
           const completeCount = tier.steps.filter((step) => getStepStatus(step.id) === 'completed').length;
           return (
-            <Card key={tier.id} className={`border ${selectedTierId === tier.id ? 'border-teal-400' : 'border-slate-700'}`} data-testid={`onboarding-tier-${tier.id}`}>
+            <Card key={tier.id} className={`border ${selectedTierId === tier.id ? 'border-teal-400' : 'border-gray-200'}`} data-testid={`onboarding-tier-${tier.id}`}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-slate-900">{tier.title}</CardTitle>
@@ -395,7 +395,7 @@ export default function OnboardingHub() {
                   key={step.id}
                   type="button"
                   onClick={() => setCurrentStepIndex(index)}
-                  className={`w-full rounded-xl border p-3 text-left ${currentStepIndex === index ? 'border-teal-400 bg-teal-500/10' : 'border-slate-700 bg-slate-900/40'}`}
+                  className={`w-full rounded-xl border p-3 text-left ${currentStepIndex === index ? 'border-teal-400 bg-teal-500/10' : 'border-gray-200 bg-slate-900/40'}`}
                   data-testid={`onboarding-step-${step.id}`}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -431,14 +431,14 @@ export default function OnboardingHub() {
             {renderQuickAction(selectedStep)}
 
             {selectedStep.type === 'link' && selectedStep.route && (
-              <div className="rounded-xl border border-slate-700 bg-slate-900/40 p-4">
+              <div className="rounded-xl border border-gray-200 bg-slate-900/40 p-4">
                 <p className="text-sm text-slate-300 mb-3">Open the matching setup page, make the changes, then come back here and continue.</p>
                 <Link to={selectedStep.route}><Button data-testid={`onboarding-open-${selectedStep.id}`}>{selectedStep.cta || 'Open Step'} <ArrowRight className="h-4 w-4 ml-2" /></Button></Link>
               </div>
             )}
 
             {selectedStep.type === 'manual' && (
-              <div className="rounded-xl border border-slate-700 bg-slate-900/40 p-4">
+              <div className="rounded-xl border border-gray-200 bg-slate-900/40 p-4">
                 <p className="text-sm text-slate-300">This step is currently checklist-guided. Complete it in the linked area of the app, or mark it for later if you want to keep moving.</p>
               </div>
             )}

@@ -341,7 +341,7 @@ export default function Approvals() {
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-muted-foreground">{title}</p>
+            <p className="text-sm text-gray-500">{title}</p>
             <p className={`text-3xl font-bold ${color}`}>{value}</p>
           </div>
           <div className={`p-3 rounded-full ${color.replace('text-', 'bg-').replace('-400', '-500/20')}`}>
@@ -420,14 +420,14 @@ export default function Approvals() {
               <div className="space-y-2">
                 <Label>Artwork File *</Label>
                 <div 
-                  className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                  className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {!previewUrl ? (
                     <>
-                      <Upload className="h-10 w-10 mx-auto mb-2 text-muted-foreground" />
-                      <p className="text-muted-foreground">Click to upload artwork</p>
-                      <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 10MB</p>
+                      <Upload className="h-10 w-10 mx-auto mb-2 text-gray-500" />
+                      <p className="text-gray-500">Click to upload artwork</p>
+                      <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 10MB</p>
                     </>
                   ) : (
                     <div className="space-y-2">
@@ -437,7 +437,7 @@ export default function Approvals() {
                         alt="Preview" 
                         className="max-h-48 mx-auto rounded-lg"
                       />
-                      <p className="text-xs text-muted-foreground">{uploadedFile?.name}</p>
+                      <p className="text-xs text-gray-500">{uploadedFile?.name}</p>
                     </div>
                   )}
                   <input
@@ -532,8 +532,8 @@ export default function Approvals() {
       {/* Filter indicator */}
       {filter !== 'all' && (
         <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">
+          <Filter className="h-4 w-4 text-gray-500" />
+          <span className="text-sm text-gray-500">
             Showing: {filter === 'pending' ? 'Awaiting Approval' : filter === 'approved' ? 'Approved' : 'Needs Revisions'}
           </span>
           <Button variant="ghost" size="sm" onClick={() => setFilter('all')}>
@@ -551,9 +551,9 @@ export default function Approvals() {
         <CardContent>
           {approvals.length === 0 ? (
             <div className="text-center py-12">
-              <Image className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">No approval requests found</p>
-              <p className="text-sm text-muted-foreground mt-1">
+              <Image className="h-12 w-12 mx-auto mb-4 text-gray-500" />
+              <p className="text-gray-500">No approval requests found</p>
+              <p className="text-sm text-gray-500 mt-1">
                 Click "New Approval Request" to send artwork to a customer
               </p>
             </div>
@@ -575,7 +575,7 @@ export default function Approvals() {
                   <TableRow key={proof.id} data-testid={`proof-row-${proof.id}`}>
                     <TableCell>
                       <div 
-                        className="w-16 h-16 rounded-lg overflow-hidden bg-muted cursor-pointer hover:opacity-80 transition-opacity"
+                        className="w-16 h-16 rounded-lg overflow-hidden bg-gray-50 cursor-pointer hover:opacity-80 transition-opacity"
                         onClick={() => setPreviewProof(proof)}
                       >
                         {proof.file_url ? (
@@ -586,7 +586,7 @@ export default function Approvals() {
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <Image className="h-6 w-6 text-muted-foreground" />
+                            <Image className="h-6 w-6 text-gray-500" />
                           </div>
                         )}
                       </div>
@@ -604,7 +604,7 @@ export default function Approvals() {
                     </TableCell>
                     <TableCell>{getStatusBadge(proof.status)}</TableCell>
                     <TableCell>
-                      <p className="text-sm text-muted-foreground">{formatDate(proof.created_at)}</p>
+                      <p className="text-sm text-gray-500">{formatDate(proof.created_at)}</p>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -654,7 +654,7 @@ export default function Approvals() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="rounded-lg overflow-hidden bg-muted">
+            <div className="rounded-lg overflow-hidden bg-gray-50">
               {previewProof?.file_url && (
                 <img 
                   src={previewProof.file_url} 
@@ -666,23 +666,23 @@ export default function Approvals() {
             
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-muted-foreground">Customer</p>
+                <p className="text-gray-500">Customer</p>
                 <p className="font-medium">{previewProof?.customer_name}</p>
               </div>
               <div>
-                <p className="text-muted-foreground">Status</p>
+                <p className="text-gray-500">Status</p>
                 {previewProof && getStatusBadge(previewProof.status)}
               </div>
               {previewProof?.description && (
                 <div className="col-span-2">
-                  <p className="text-muted-foreground">Notes</p>
+                  <p className="text-gray-500">Notes</p>
                   <p>{previewProof.description}</p>
                 </div>
               )}
               {previewProof?.customer_comment && (
                 <div className="col-span-2">
-                  <p className="text-muted-foreground">Customer Feedback</p>
-                  <p className="p-3 bg-muted rounded-lg">{previewProof.customer_comment}</p>
+                  <p className="text-gray-500">Customer Feedback</p>
+                  <p className="p-3 bg-gray-50 rounded-lg">{previewProof.customer_comment}</p>
                 </div>
               )}
             </div>

@@ -437,7 +437,7 @@ export default function Products() {
                     data-testid="product-description-input"
                   />
                   {formData.description && formData.description.length > 100 && (
-                    <p className="text-xs text-muted-foreground text-right">
+                    <p className="text-xs text-gray-500 text-right">
                       {formData.description.length} characters
                     </p>
                   )}
@@ -487,10 +487,10 @@ export default function Products() {
               </div>
 
               {/* Images Section - Up to 3 */}
-              <div className="space-y-3 border-t border-border pt-4">
+              <div className="space-y-3 border-t border-gray-200 pt-4">
                 <div className="flex items-center justify-between">
                   <Label className="text-base">Product Images (up to 3)</Label>
-                  <span className="text-xs text-muted-foreground">{formData.images.length}/3</span>
+                  <span className="text-xs text-gray-500">{formData.images.length}/3</span>
                 </div>
                 
                 {/* Current Images */}
@@ -501,7 +501,7 @@ export default function Products() {
                         <img 
                           src={url} 
                           alt={`Product ${idx + 1}`} 
-                          className="w-20 h-20 object-cover rounded-lg border border-border"
+                          className="w-20 h-20 object-cover rounded-lg border border-gray-200"
                         />
                         <Button
                           type="button"
@@ -541,12 +541,12 @@ export default function Products() {
                     
                     {imageInputMode === 'upload' ? (
                       <div 
-                        className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
+                        className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
                         onClick={() => fileInputRef.current?.click()}
                       >
-                        <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">Click to upload image</p>
-                        <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 5MB</p>
+                        <Upload className="h-8 w-8 mx-auto mb-2 text-gray-500" />
+                        <p className="text-sm text-gray-500">Click to upload image</p>
+                        <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 5MB</p>
                         <input
                           ref={fileInputRef}
                           type="file"
@@ -575,8 +575,8 @@ export default function Products() {
 
               {/* Profit Preview */}
               {parseFloat(formData.base_cost) > 0 && parseFloat(formData.retail_price) > 0 && (
-                <div className="p-3 bg-muted/30 rounded-lg flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Profit per unit:</span>
+                <div className="p-3 bg-gray-50 rounded-lg flex justify-between items-center">
+                  <span className="text-sm text-gray-500">Profit per unit:</span>
                   <span className="font-bold text-green-400">
                     {formatCurrency(parseFloat(formData.retail_price) - parseFloat(formData.base_cost))} ({profitMargin(parseFloat(formData.retail_price), parseFloat(formData.base_cost))}%)
                   </span>
@@ -584,7 +584,7 @@ export default function Products() {
               )}
 
               {/* Variants Section */}
-              <div className="space-y-3 border-t border-border pt-4">
+              <div className="space-y-3 border-t border-gray-200 pt-4">
                 <div className="flex items-center justify-between">
                   <Label className="text-base">Product Variants (Size/Color/Tier)</Label>
                   <Button
@@ -638,7 +638,7 @@ export default function Products() {
                     {formData.variants.length > 0 && (
                       <div className="space-y-2 max-h-40 overflow-y-auto">
                         {formData.variants.map((v, idx) => (
-                          <div key={v.id || idx} className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg">
+                          <div key={v.id || idx} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
                             <span className="flex-1 text-sm">{v.name}</span>
                             {v.size && <Badge variant="outline">{v.size}</Badge>}
                             {v.color && <Badge variant="outline">{v.color}</Badge>}
@@ -740,14 +740,14 @@ export default function Products() {
       </Tabs>
 
       {/* Products List */}
-      <Card className="bg-card border-border/50">
+      <Card className="bg-white border-gray-200">
         <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center h-32">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
+            <div className="text-center py-12 text-gray-500">
               <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No products yet</p>
               <p className="text-sm mt-1">Add products to your master catalog</p>
@@ -774,7 +774,7 @@ export default function Products() {
                     <>
                       <TableRow 
                         key={product.id} 
-                        className={idx % 2 === 0 ? '' : 'bg-muted/30'}
+                        className={idx % 2 === 0 ? '' : 'bg-gray-50'}
                         data-testid={`product-row-${product.id}`}
                       >
                         <TableCell>
@@ -802,17 +802,17 @@ export default function Products() {
                                 ))}
                               </div>
                             ) : (
-                              <div className="w-10 h-10 rounded bg-muted/50 flex items-center justify-center">
-                                <Icon className="h-5 w-5 text-muted-foreground" />
+                              <div className="w-10 h-10 rounded bg-gray-50/50 flex items-center justify-center">
+                                <Icon className="h-5 w-5 text-gray-500" />
                               </div>
                             )}
                             <div>
                               <p className="font-medium">{product.name}</p>
                               {product.description && (
-                                <p className="text-xs text-muted-foreground line-clamp-1">{product.description}</p>
+                                <p className="text-xs text-gray-500 line-clamp-1">{product.description}</p>
                               )}
                               {product.images?.length > 1 && (
-                                <p className="text-xs text-muted-foreground">{product.images.length} images</p>
+                                <p className="text-xs text-gray-500">{product.images.length} images</p>
                               )}
                             </div>
                           </div>
@@ -822,7 +822,7 @@ export default function Products() {
                             {product.category}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right text-muted-foreground">
+                        <TableCell className="text-right text-gray-500">
                           {formatCurrency(product.base_cost)}
                         </TableCell>
                         <TableCell className="text-right font-medium">
@@ -835,7 +835,7 @@ export default function Products() {
                           {product.has_variants && product.variants?.length > 0 ? (
                             <Badge variant="outline">{product.variants.length} variants</Badge>
                           ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
+                            <span className="text-gray-500 text-sm">-</span>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
@@ -862,10 +862,10 @@ export default function Products() {
                       </TableRow>
                       {/* Expanded Variants */}
                       {isExpanded && product.variants?.map((v, vIdx) => (
-                        <TableRow key={`${product.id}-${v.id}`} className="bg-muted/10">
+                        <TableRow key={`${product.id}-${v.id}`} className="bg-gray-50/10">
                           <TableCell></TableCell>
                           <TableCell className="pl-16">
-                            <span className="text-sm text-muted-foreground">↳ {v.name}</span>
+                            <span className="text-sm text-gray-500">↳ {v.name}</span>
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-1">
@@ -873,7 +873,7 @@ export default function Products() {
                               {v.color && <Badge variant="outline" className="text-xs">{v.color}</Badge>}
                             </div>
                           </TableCell>
-                          <TableCell className="text-right text-muted-foreground text-sm">
+                          <TableCell className="text-right text-gray-500 text-sm">
                             {v.additional_cost > 0 ? `+${formatCurrency(v.additional_cost)}` : '-'}
                           </TableCell>
                           <TableCell className="text-right text-sm">

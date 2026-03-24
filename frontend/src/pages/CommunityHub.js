@@ -150,7 +150,7 @@ export default function CommunityHub() {
           <ArrowLeft className="w-4 h-4" /> Back to Community
         </button>
 
-        <Card className="bg-[#111826] border-gray-700">
+        <Card className="bg-white border-gray-700">
           <CardContent className="p-6">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -181,7 +181,7 @@ export default function CommunityHub() {
                     <select
                       value={selectedPost.status}
                       onChange={(e) => handleStatusChange(selectedPost.id, e.target.value)}
-                      className="text-xs bg-[#0B0F17] border border-gray-600 rounded px-2 py-1 text-gray-300"
+                      className="text-xs bg-gray-50 border border-gray-600 rounded px-2 py-1 text-gray-300"
                       data-testid="status-select"
                     >
                       <option value="open">Open</option>
@@ -194,7 +194,7 @@ export default function CommunityHub() {
               </div>
             </div>
 
-            <div className="p-4 bg-[#0B0F17] rounded-lg text-gray-300 whitespace-pre-wrap text-sm">
+            <div className="p-4 bg-gray-50 rounded-lg text-gray-300 whitespace-pre-wrap text-sm">
               {selectedPost.body}
             </div>
           </CardContent>
@@ -204,7 +204,7 @@ export default function CommunityHub() {
         <div className="space-y-3">
           <h3 className="text-white font-semibold">{selectedPost.replies?.length || 0} Replies</h3>
           {selectedPost.replies?.map((reply) => (
-            <Card key={reply.id} className={`border ${reply.is_official ? 'border-green-500/30 bg-green-500/5' : 'border-gray-700 bg-[#111826]'}`}>
+            <Card key={reply.id} className={`border ${reply.is_official ? 'border-green-500/30 bg-green-500/5' : 'border-gray-700 bg-white'}`}>
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-sm font-medium text-white">{reply.author_name}</span>
@@ -218,13 +218,13 @@ export default function CommunityHub() {
         </div>
 
         {/* Reply Input */}
-        <Card className="bg-[#111826] border-gray-700">
+        <Card className="bg-white border-gray-700">
           <CardContent className="p-4">
             <Textarea
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
               placeholder="Write a reply..."
-              className="mb-3 bg-[#0B0F17] border-gray-600 text-white"
+              className="mb-3 bg-gray-50 border-gray-600 text-white"
               rows={3}
               data-testid="reply-input"
             />
@@ -250,7 +250,7 @@ export default function CommunityHub() {
         <div className="flex gap-2">
           <a
             href="mailto:thesigntistslab@gmail.com?subject=SignGuy%20AI%20Support"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#111826] border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500 transition-colors text-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500 transition-colors text-sm"
             data-testid="contact-owner-btn"
           >
             <Mail className="w-4 h-4" /> Contact Support
@@ -271,7 +271,7 @@ export default function CommunityHub() {
             { label: 'Bug Reports', value: stats.bug_reports, color: 'text-red-400' },
             { label: 'Feature Requests', value: stats.feature_requests, color: 'text-amber-400' },
           ].map(s => (
-            <div key={s.label} className="p-3 bg-[#111826] rounded-lg border border-gray-700 text-center">
+            <div key={s.label} className="p-3 bg-white rounded-lg border border-gray-700 text-center">
               <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
               <p className="text-xs text-gray-500">{s.label}</p>
             </div>
@@ -286,7 +286,7 @@ export default function CommunityHub() {
           <Input
             placeholder="Search posts, answers, keywords..."
             onChange={(e) => handleSearch(e.target.value)}
-            className="pl-10 bg-[#111826] border-gray-700 text-white"
+            className="pl-10 bg-white border-gray-700 text-white"
             data-testid="community-search"
           />
         </div>
@@ -294,7 +294,7 @@ export default function CommunityHub() {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="bg-[#111826] border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-300"
+            className="bg-white border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-300"
             data-testid="category-filter"
           >
             <option value="">All Categories</option>
@@ -303,7 +303,7 @@ export default function CommunityHub() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-[#111826] border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-300"
+            className="bg-white border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-300"
             data-testid="status-filter"
           >
             <option value="">All Status</option>
@@ -317,7 +317,7 @@ export default function CommunityHub() {
 
       {/* New Post Form */}
       {showNewPost && (
-        <Card className="bg-[#111826] border-blue-500/30">
+        <Card className="bg-white border-blue-500/30">
           <CardHeader>
             <CardTitle className="text-white flex items-center justify-between">
               <span>Create a Post</span>
@@ -348,7 +348,7 @@ export default function CommunityHub() {
                 value={newPost.title}
                 onChange={(e) => setNewPost(p => ({ ...p, title: e.target.value }))}
                 placeholder="Brief summary of your post"
-                className="bg-[#0B0F17] border-gray-600 text-white"
+                className="bg-gray-50 border-gray-600 text-white"
                 data-testid="post-title-input"
               />
             </div>
@@ -358,7 +358,7 @@ export default function CommunityHub() {
                 value={newPost.body}
                 onChange={(e) => setNewPost(p => ({ ...p, body: e.target.value }))}
                 placeholder="Provide details. For bugs, include steps to reproduce."
-                className="bg-[#0B0F17] border-gray-600 text-white"
+                className="bg-gray-50 border-gray-600 text-white"
                 rows={4}
                 data-testid="post-body-input"
               />
@@ -392,7 +392,7 @@ export default function CommunityHub() {
             return (
               <Card
                 key={post.id}
-                className={`bg-[#111826] border-gray-700 hover:border-gray-500 transition-colors cursor-pointer ${post.is_pinned ? 'border-l-2 border-l-amber-400' : ''}`}
+                className={`bg-white border-gray-700 hover:border-gray-500 transition-colors cursor-pointer ${post.is_pinned ? 'border-l-2 border-l-amber-400' : ''}`}
                 onClick={() => setSelectedPost(post)}
                 data-testid={`post-${post.id}`}
               >

@@ -419,7 +419,7 @@ export default function Customers() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-white">Customers</h1>
-          <p className="text-slate-300 mt-1">{customers.length} total customers</p>
+          <p className="text-gray-700 mt-1">{customers.length} total customers</p>
         </div>
         <div className="flex gap-2">
           {/* Import CSV Button */}
@@ -447,9 +447,9 @@ export default function Customers() {
                     className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <Upload className="h-12 w-12 mx-auto mb-4 text-gray-500" />
                     <p className="text-lg font-medium">Click to upload CSV file</p>
-                    <p className="text-sm text-muted-foreground mt-1">or drag and drop</p>
+                    <p className="text-sm text-gray-500 mt-1">or drag and drop</p>
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -470,16 +470,16 @@ export default function Customers() {
               {importStep === 'map' && (
                 <div className="space-y-4 py-4">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-gray-500">
                       Map your CSV columns to customer fields
                     </p>
                     <Badge variant="outline">{csvFile?.name}</Badge>
                   </div>
                   <div className="space-y-3 max-h-[300px] overflow-y-auto">
                     {csvHeaders.map((header, index) => (
-                      <div key={index} className="flex items-center gap-3 p-2 rounded bg-muted/50">
+                      <div key={index} className="flex items-center gap-3 p-2 rounded bg-gray-50/50">
                         <div className="w-1/3 font-medium truncate text-sm">{header}</div>
-                        <span className="text-muted-foreground">→</span>
+                        <span className="text-gray-500">→</span>
                         <Select
                           value={columnMapping[index] || ''}
                           onValueChange={(val) => setColumnMapping({ ...columnMapping, [index]: val })}
@@ -511,7 +511,7 @@ export default function Customers() {
                                 {columnMapping[index] ? (
                                   <Badge variant="default" className="text-xs">{columnMapping[index]}</Badge>
                                 ) : (
-                                  <span className="text-muted-foreground">-</span>
+                                  <span className="text-gray-500">-</span>
                                 )}
                               </TableHead>
                             ))}
@@ -551,15 +551,15 @@ export default function Customers() {
                   <div className="grid grid-cols-3 gap-4">
                     <div className="text-center p-4 rounded-lg bg-green-50">
                       <p className="text-3xl font-bold text-green-600">{importResult.created}</p>
-                      <p className="text-sm text-muted-foreground">Created</p>
+                      <p className="text-sm text-gray-500">Created</p>
                     </div>
                     <div className="text-center p-4 rounded-lg bg-blue-50">
                       <p className="text-3xl font-bold text-blue-600">{importResult.updated || 0}</p>
-                      <p className="text-sm text-muted-foreground">Updated</p>
+                      <p className="text-sm text-gray-500">Updated</p>
                     </div>
                     <div className="text-center p-4 rounded-lg bg-red-50">
                       <p className="text-3xl font-bold text-red-600">{importResult.errors?.length || 0}</p>
-                      <p className="text-sm text-muted-foreground">Errors</p>
+                      <p className="text-sm text-gray-500">Errors</p>
                     </div>
                   </div>
                   {importResult.errors?.length > 0 && (
@@ -611,7 +611,7 @@ export default function Customers() {
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       data-testid="customer-name-input"
                     />
-                    <p className="text-xs text-muted-foreground">Name or Company is required.</p>
+                    <p className="text-xs text-gray-500">Name or Company is required.</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="company">Company</Label>
@@ -706,11 +706,11 @@ export default function Customers() {
       </div>
 
       {/* Filters */}
-      <Card className="bg-card border-border/50">
+      <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
               <Input
                 placeholder="Search customers..."
                 value={search}
@@ -737,14 +737,14 @@ export default function Customers() {
       </Card>
 
       {/* Customer List */}
-      <Card className="bg-card border-border/50">
+      <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center h-32">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
             </div>
           ) : filteredCustomers.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
+            <div className="text-center py-12 text-gray-500">
               <p>No customers found</p>
               <Button variant="link" onClick={() => setIsDialogOpen(true)}>
                 Add your first customer
@@ -768,7 +768,7 @@ export default function Customers() {
                     {filteredCustomers.map((customer, idx) => (
                       <TableRow 
                         key={customer.id} 
-                        className={`cursor-pointer transition-colors ${idx % 2 === 0 ? 'bg-transparent' : 'bg-muted/30'} hover:bg-muted/50`}
+                        className={`cursor-pointer transition-colors ${idx % 2 === 0 ? 'bg-transparent' : 'bg-gray-50'} hover:bg-gray-50/50`}
                         data-testid={`customer-row-${customer.id}`}
                         onClick={() => handleViewCustomer(customer)}
                       >
@@ -782,7 +782,7 @@ export default function Customers() {
                             <div className="min-w-0">
                               <p className="font-medium truncate">{customer.name}</p>
                               {customer.company && (
-                                <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
+                                <p className="text-xs text-gray-500 flex items-center gap-1 truncate">
                                   <Building className="h-3 w-3 flex-shrink-0" /> {customer.company}
                                 </p>
                               )}
@@ -793,12 +793,12 @@ export default function Customers() {
                           <div className="space-y-1">
                             {customer.email && (
                               <p className="text-sm flex items-center gap-1 truncate max-w-[200px]">
-                                <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" /> {customer.email}
+                                <Mail className="h-3 w-3 text-gray-500 flex-shrink-0" /> {customer.email}
                               </p>
                             )}
                             {customer.phone && (
                               <p className="text-sm flex items-center gap-1">
-                                <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" /> {customer.phone}
+                                <Phone className="h-3 w-3 text-gray-500 flex-shrink-0" /> {customer.phone}
                               </p>
                             )}
                           </div>
@@ -808,7 +808,7 @@ export default function Customers() {
                             {customer.status}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
+                        <TableCell className="text-gray-500 text-sm">
                           {formatDate(customer.created_at)}
                         </TableCell>
                         <TableCell className="text-right">
@@ -842,7 +842,7 @@ export default function Customers() {
                 {filteredCustomers.map((customer) => (
                   <div 
                     key={customer.id}
-                    className="p-4 cursor-pointer hover:bg-muted/30 transition-colors"
+                    className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
                     onClick={() => handleViewCustomer(customer)}
                     data-testid={`customer-card-${customer.id}`}
                   >
@@ -856,7 +856,7 @@ export default function Customers() {
                         <div className="min-w-0 flex-1">
                           <p className="font-medium truncate">{customer.name}</p>
                           {customer.company && (
-                            <p className="text-xs text-muted-foreground truncate">{customer.company}</p>
+                            <p className="text-xs text-gray-500 truncate">{customer.company}</p>
                           )}
                         </div>
                       </div>
@@ -864,7 +864,7 @@ export default function Customers() {
                         {customer.status}
                       </Badge>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
                       {customer.email && (
                         <span className="flex items-center gap-1 truncate max-w-full">
                           <Mail className="h-3 w-3 flex-shrink-0" /> 
@@ -878,7 +878,7 @@ export default function Customers() {
                       )}
                     </div>
                     <div className="mt-3 flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-gray-500">
                         {formatDate(customer.created_at)}
                       </span>
                       <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
@@ -924,7 +924,7 @@ export default function Customers() {
                     <div className="flex-1">
                       <DialogTitle className="text-2xl font-heading">{selectedCustomer.name}</DialogTitle>
                       {selectedCustomer.company && (
-                        <p className="text-muted-foreground flex items-center gap-1">
+                        <p className="text-gray-500 flex items-center gap-1">
                           <Building className="h-4 w-4" /> {selectedCustomer.company}
                         </p>
                       )}
@@ -937,25 +937,25 @@ export default function Customers() {
 
                 {/* Quick Stats */}
                 <div className="grid grid-cols-4 gap-3 my-4">
-                  <div className="p-3 bg-muted/30 rounded-lg text-center">
+                  <div className="p-3 bg-gray-50 rounded-lg text-center">
                     <Briefcase className="h-5 w-5 mx-auto mb-1 text-blue-400" />
                     <p className="text-lg font-bold">{stats.activeJobs.length}</p>
-                    <p className="text-xs text-muted-foreground">Active Jobs</p>
+                    <p className="text-xs text-gray-500">Active Jobs</p>
                   </div>
-                  <div className="p-3 bg-muted/30 rounded-lg text-center">
+                  <div className="p-3 bg-gray-50 rounded-lg text-center">
                     <Clock className="h-5 w-5 mx-auto mb-1 text-green-400" />
                     <p className="text-lg font-bold">{stats.completedJobs.length}</p>
-                    <p className="text-xs text-muted-foreground">Completed</p>
+                    <p className="text-xs text-gray-500">Completed</p>
                   </div>
-                  <div className="p-3 bg-muted/30 rounded-lg text-center">
+                  <div className="p-3 bg-gray-50 rounded-lg text-center">
                     <DollarSign className="h-5 w-5 mx-auto mb-1 text-primary" />
                     <p className="text-lg font-bold">{formatCurrency(stats.totalRevenue)}</p>
-                    <p className="text-xs text-muted-foreground">Total Revenue</p>
+                    <p className="text-xs text-gray-500">Total Revenue</p>
                   </div>
-                  <div className="p-3 bg-muted/30 rounded-lg text-center">
+                  <div className="p-3 bg-gray-50 rounded-lg text-center">
                     <Receipt className="h-5 w-5 mx-auto mb-1 text-yellow-400" />
                     <p className="text-lg font-bold">{formatCurrency(stats.outstandingBalance)}</p>
-                    <p className="text-xs text-muted-foreground">Outstanding</p>
+                    <p className="text-xs text-gray-500">Outstanding</p>
                   </div>
                 </div>
 
@@ -974,32 +974,32 @@ export default function Customers() {
                       <h4 className="font-medium mb-3 flex items-center gap-2">
                         <User className="h-4 w-4" /> Contact Information
                       </h4>
-                      <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
+                      <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
                         <div>
-                          <p className="text-xs text-muted-foreground">Email</p>
+                          <p className="text-xs text-gray-500">Email</p>
                           <p className="font-medium flex items-center gap-2">
-                            <Mail className="h-4 w-4 text-muted-foreground" />
+                            <Mail className="h-4 w-4 text-gray-500" />
                             {selectedCustomer.email || 'Not provided'}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-muted-foreground">Phone</p>
+                          <p className="text-xs text-gray-500">Phone</p>
                           <p className="font-medium flex items-center gap-2">
-                            <Phone className="h-4 w-4 text-muted-foreground" />
+                            <Phone className="h-4 w-4 text-gray-500" />
                             {selectedCustomer.phone || 'Not provided'}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-muted-foreground">Company</p>
+                          <p className="text-xs text-gray-500">Company</p>
                           <p className="font-medium flex items-center gap-2">
-                            <Building className="h-4 w-4 text-muted-foreground" />
+                            <Building className="h-4 w-4 text-gray-500" />
                             {selectedCustomer.company || 'Not provided'}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-muted-foreground">Customer Since</p>
+                          <p className="text-xs text-gray-500">Customer Since</p>
                           <p className="font-medium flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <Calendar className="h-4 w-4 text-gray-500" />
                             {formatDate(selectedCustomer.created_at)}
                           </p>
                         </div>
@@ -1010,14 +1010,14 @@ export default function Customers() {
                       <h4 className="font-medium mb-3 flex items-center gap-2">
                         <Eye className="h-4 w-4" /> Customer Portal
                       </h4>
-                      <div className="p-4 bg-muted/30 rounded-lg flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                      <div className="p-4 bg-gray-50 rounded-lg flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
-                          <p className="text-xs text-muted-foreground">Portal Status</p>
+                          <p className="text-xs text-gray-500">Portal Status</p>
                           <div className="flex items-center gap-2 mt-1">
                             <Badge className={selectedCustomer.portal_enabled ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'}>
                               {selectedCustomer.portal_enabled ? 'Invited / Enabled' : 'Not Invited'}
                             </Badge>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-gray-500">
                               Customer must exist in the database before they can log in to the portal.
                             </p>
                           </div>
@@ -1038,11 +1038,11 @@ export default function Customers() {
                       <h4 className="font-medium mb-3 flex items-center gap-2">
                         <FileText className="h-4 w-4" /> Notes
                       </h4>
-                      <div className="p-4 bg-muted/30 rounded-lg min-h-[80px]">
+                      <div className="p-4 bg-gray-50 rounded-lg min-h-[80px]">
                         {selectedCustomer.notes ? (
                           <p className="whitespace-pre-wrap">{selectedCustomer.notes}</p>
                         ) : (
-                          <p className="text-muted-foreground italic">No notes added</p>
+                          <p className="text-gray-500 italic">No notes added</p>
                         )}
                       </div>
                     </div>
@@ -1056,10 +1056,10 @@ export default function Customers() {
                         <div className="space-y-2">
                           {stats.activeJobs.slice(0, 3).map(job => (
                             <Link key={job.id} to={`/jobs/${job.id}`} onClick={() => setIsDetailOpen(false)}>
-                              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
+                              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-50/50 transition-colors">
                                 <div>
                                   <p className="font-medium">{job.name}</p>
-                                  <p className="text-xs text-muted-foreground">Due: {formatDate(job.due_date)}</p>
+                                  <p className="text-xs text-gray-500">Due: {formatDate(job.due_date)}</p>
                                 </div>
                                 <Badge className={getStatusColor(job.status)}>{job.status.replace('_', ' ')}</Badge>
                               </div>
@@ -1073,7 +1073,7 @@ export default function Customers() {
                   {/* Jobs Tab */}
                   <TabsContent value="jobs" className="mt-4">
                     {stats.customerJobs.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
+                      <div className="text-center py-8 text-gray-500">
                         <Briefcase className="h-8 w-8 mx-auto mb-2 opacity-50" />
                         <p>No jobs for this customer</p>
                       </div>
@@ -1081,10 +1081,10 @@ export default function Customers() {
                       <div className="space-y-2 max-h-[300px] overflow-y-auto">
                         {stats.customerJobs.map(job => (
                           <Link key={job.id} to={`/jobs/${job.id}`} onClick={() => setIsDetailOpen(false)}>
-                            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
+                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-50/50 transition-colors">
                               <div className="flex-1">
                                 <p className="font-medium">{job.name}</p>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-xs text-gray-500">
                                   Created: {formatDate(job.created_at)} • Due: {formatDate(job.due_date)}
                                 </p>
                               </div>
@@ -1102,17 +1102,17 @@ export default function Customers() {
                   {/* Invoices Tab */}
                   <TabsContent value="invoices" className="mt-4">
                     {stats.customerInvoices.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
+                      <div className="text-center py-8 text-gray-500">
                         <Receipt className="h-8 w-8 mx-auto mb-2 opacity-50" />
                         <p>No invoices for this customer</p>
                       </div>
                     ) : (
                       <div className="space-y-2 max-h-[300px] overflow-y-auto">
                         {stats.customerInvoices.map(invoice => (
-                          <div key={invoice.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                          <div key={invoice.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                             <div className="flex-1">
                               <p className="font-medium font-mono">#{invoice.id.slice(0, 8).toUpperCase()}</p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-gray-500">
                                 Created: {formatDate(invoice.created_at)}
                                 {invoice.due_date && ` • Due: ${formatDate(invoice.due_date)}`}
                               </p>
@@ -1135,17 +1135,17 @@ export default function Customers() {
                   {/* Quotes Tab */}
                   <TabsContent value="quotes" className="mt-4">
                     {customerQuotes.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
+                      <div className="text-center py-8 text-gray-500">
                         <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
                         <p>No quotes for this customer</p>
                       </div>
                     ) : (
                       <div className="space-y-2 max-h-[300px] overflow-y-auto">
                         {customerQuotes.map(quote => (
-                          <div key={quote.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                          <div key={quote.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                             <div className="flex-1">
                               <p className="font-medium font-mono">#{quote.id.slice(0, 8).toUpperCase()}</p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-gray-500">
                                 Created: {formatDate(quote.created_at)}
                               </p>
                             </div>

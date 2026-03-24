@@ -393,7 +393,7 @@ export default function PricingSettings() {
                 {settings.materials.map((material, index) => (
                   <div
                     key={material.id}
-                    className="grid gap-3 rounded-xl border border-slate-700 bg-slate-900/40 p-4 md:grid-cols-[1.6fr_1fr_0.8fr_0.8fr_auto]"
+                    className="grid gap-3 rounded-xl border border-gray-200 bg-slate-900/40 p-4 md:grid-cols-[1.6fr_1fr_0.8fr_0.8fr_auto]"
                     data-testid={`pricing-material-row-${index}`}
                   >
                     <div className="space-y-2">
@@ -439,7 +439,7 @@ export default function PricingSettings() {
                       />
                     </div>
                     <div className="flex items-end justify-end gap-2">
-                      <div className="flex items-center gap-2 px-3 py-2 border border-slate-700 rounded-md">
+                      <div className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-md">
                         <Label htmlFor={`material-active-${material.id}`} className="text-sm">Active</Label>
                         <Switch
                           id={`material-active-${material.id}`}
@@ -500,7 +500,7 @@ export default function PricingSettings() {
                 </div>
               ))}
 
-              <div className="rounded-xl border border-slate-700 bg-slate-900/40 p-4 space-y-3" data-testid="pricing-overhead-toggle-card">
+              <div className="rounded-xl border border-gray-200 bg-slate-900/40 p-4 space-y-3" data-testid="pricing-overhead-toggle-card">
                 <div>
                   <p className="font-medium text-white">Apply overhead automatically</p>
                   <p className="text-sm text-slate-400">Adds overhead into total cost before sell price is suggested.</p>
@@ -551,7 +551,7 @@ export default function PricingSettings() {
                       <Label>Default Materials Used</Label>
                       <div className="space-y-2">
                         {settings.materials.filter((material) => material.is_active).map((material) => (
-                          <div key={`${category.key}-${material.id}`} className="flex items-center justify-between rounded-lg border border-slate-700 px-3 py-2">
+                          <div key={`${category.key}-${material.id}`} className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2">
                             <span className="text-sm text-slate-200">{material.name}</span>
                             <Switch
                               checked={(values.default_material_keys || []).includes(material.key)}

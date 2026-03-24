@@ -256,7 +256,7 @@ export default function ProfitMarginAnalytics() {
           <CardDescription>Keep it simple when needed: toggle simple mode and reorder visible widgets.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between rounded-xl border border-slate-700 bg-slate-900/40 p-4">
+          <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-slate-900/40 p-4">
             <div>
               <p className="font-medium text-white">Simple View</p>
               <p className="text-sm text-slate-400">Reduce visual density while keeping the same data source.</p>
@@ -271,7 +271,7 @@ export default function ProfitMarginAnalytics() {
 
           <div className="grid gap-3 lg:grid-cols-2">
             {preferences.widget_order.map((widgetKey, index) => (
-              <div key={widgetKey} className="flex items-center justify-between rounded-xl border border-slate-700 bg-slate-900/40 p-3" data-testid={`profit-analytics-widget-row-${widgetKey}`}>
+              <div key={widgetKey} className="flex items-center justify-between rounded-xl border border-gray-200 bg-slate-900/40 p-3" data-testid={`profit-analytics-widget-row-${widgetKey}`}>
                 <div>
                   <p className="font-medium text-white">{WIDGET_LABELS[widgetKey]}</p>
                   <p className="text-xs text-slate-400">Position {index + 1}</p>
@@ -338,7 +338,7 @@ export default function ProfitMarginAnalytics() {
                   <CardContent>
                     <div className="space-y-3">
                       {trendRows.map((row) => (
-                        <div key={row.period} className="flex items-center justify-between rounded-lg border border-slate-700 px-4 py-3">
+                        <div key={row.period} className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
                           <span className="text-white">{row.period}</span>
                           <div className="text-right">
                             <p className="text-white">{formatCurrency(row.revenue)}</p>
@@ -361,7 +361,7 @@ export default function ProfitMarginAnalytics() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {customerRows.slice(0, preferences.simple_mode ? 5 : 8).map((row) => (
-                      <div key={row.customer_id} className="flex items-center justify-between rounded-lg border border-slate-700 px-4 py-3">
+                      <div key={row.customer_id} className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
                         <div>
                           <p className="text-white font-medium">{row.customer_name}</p>
                           <p className="text-xs text-slate-400">{row.total_jobs} jobs · {row.average_margin}% margin</p>
@@ -404,11 +404,11 @@ export default function ProfitMarginAnalytics() {
                     <CardDescription>A simple view of average sale size and profitability.</CardDescription>
                   </CardHeader>
                   <CardContent className="grid gap-4 md:grid-cols-2">
-                    <div className="rounded-xl border border-slate-700 bg-slate-900/40 p-5">
+                    <div className="rounded-xl border border-gray-200 bg-slate-900/40 p-5">
                       <p className="text-xs uppercase text-slate-400">Average Job Value</p>
                       <p className="text-3xl font-bold text-white mt-2">{formatCurrency(metrics.average_job_value)}</p>
                     </div>
-                    <div className="rounded-xl border border-slate-700 bg-slate-900/40 p-5">
+                    <div className="rounded-xl border border-gray-200 bg-slate-900/40 p-5">
                       <p className="text-xs uppercase text-slate-400">Average Profit Margin</p>
                       <p className="text-3xl font-bold text-white mt-2">{metrics.average_profit_margin || 0}%</p>
                     </div>

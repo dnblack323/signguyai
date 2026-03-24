@@ -421,7 +421,7 @@ export function JobsList() {
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   New Quote
-                  <span className="text-xs text-muted-foreground ml-2">(Pipeline)</span>
+                  <span className="text-xs text-gray-500 ml-2">(Pipeline)</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={() => { resetForm('job'); setIsDialogOpen(true); }}
@@ -429,7 +429,7 @@ export function JobsList() {
                 >
                   <Package className="h-4 w-4 mr-2" />
                   New Job
-                  <span className="text-xs text-muted-foreground ml-2">(Ready for production)</span>
+                  <span className="text-xs text-gray-500 ml-2">(Ready for production)</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -662,7 +662,7 @@ export function JobsList() {
                 <Input value={newCustomerForm.company} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, company: e.target.value })} data-testid="inline-customer-company-input" />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">Name or Company is required.</p>
+            <p className="text-xs text-gray-500">Name or Company is required.</p>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Email</Label>
@@ -1301,7 +1301,7 @@ export function JobDetails() {
       </Button>
 
       {/* Header Card */}
-      <Card className="bg-card border-border/50">
+      <Card className="bg-white border-gray-200">
         <CardContent className="p-6">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
             {/* Job Info */}
@@ -1330,7 +1330,7 @@ export function JobDetails() {
                   {/* Customer Link */}
                   <Link 
                     to="/customers" 
-                    className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
+                    className="flex items-center gap-2 text-gray-500 hover:text-primary transition-colors"
                   >
                     <User className="h-4 w-4" />
                     <span className="font-medium">{customer?.name || 'Unknown Customer'}</span>
@@ -1344,7 +1344,7 @@ export function JobDetails() {
               </div>
 
               {/* Meta Info */}
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                 {job.due_date && (
                   <span className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" /> Due: {formatDate(job.due_date)}
@@ -1360,7 +1360,7 @@ export function JobDetails() {
 
               {/* Job Notes */}
               {job.description && (
-                <p className="mt-4 p-3 bg-muted/30 rounded-lg text-sm">
+                <p className="mt-4 p-3 bg-gray-50 rounded-lg text-sm">
                   <strong>Notes:</strong> {job.description}
                 </p>
               )}
@@ -1413,21 +1413,21 @@ export function JobDetails() {
 
       {/* Financial Snapshot */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card className="bg-card border-border/50">
+        <Card className="bg-white border-gray-200">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground mb-1">Quote Total</p>
+            <p className="text-xs text-gray-500 mb-1">Quote Total</p>
             <p className="text-xl font-bold">{formatCurrency(financial_snapshot.quote_total)}</p>
           </CardContent>
         </Card>
-        <Card className="bg-card border-border/50">
+        <Card className="bg-white border-gray-200">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground mb-1">Job Subtotal</p>
+            <p className="text-xs text-gray-500 mb-1">Job Subtotal</p>
             <p className="text-xl font-bold text-primary">{formatCurrency(job.subtotal)}</p>
           </CardContent>
         </Card>
-        <Card className="bg-card border-border/50">
+        <Card className="bg-white border-gray-200">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground mb-1">Invoiced</p>
+            <p className="text-xs text-gray-500 mb-1">Invoiced</p>
             <p className="text-xl font-bold">{formatCurrency(financial_snapshot.invoice_total)}</p>
             {financial_snapshot.invoice_status && (
               <Badge className={cn(getStatusColor(financial_snapshot.invoice_status), "mt-1 text-xs")}>
@@ -1436,15 +1436,15 @@ export function JobDetails() {
             )}
           </CardContent>
         </Card>
-        <Card className="bg-card border-border/50">
+        <Card className="bg-white border-gray-200">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground mb-1">Paid</p>
+            <p className="text-xs text-gray-500 mb-1">Paid</p>
             <p className="text-xl font-bold text-green-400">{formatCurrency(financial_snapshot.amount_paid)}</p>
           </CardContent>
         </Card>
-        <Card className="bg-card border-border/50">
+        <Card className="bg-white border-gray-200">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground mb-1">Balance Due</p>
+            <p className="text-xs text-gray-500 mb-1">Balance Due</p>
             <p className={cn("text-xl font-bold", financial_snapshot.balance_due > 0 ? "text-red-400" : "text-green-400")}>
               {formatCurrency(financial_snapshot.balance_due)}
             </p>
@@ -1452,7 +1452,7 @@ export function JobDetails() {
         </Card>
       </div>
 
-      <Card className="bg-card border-border/50" data-testid="job-assigned-employees-card">
+      <Card className="bg-white border-gray-200" data-testid="job-assigned-employees-card">
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -1469,12 +1469,12 @@ export function JobDetails() {
                 </DialogHeader>
                 <div className="space-y-3 py-4">
                   {employees.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No employees found for this company.</p>
+                    <p className="text-sm text-gray-500">No employees found for this company.</p>
                   ) : employees.map((employee) => (
                     <label key={employee.id} className="flex items-center justify-between rounded-lg border p-3">
                       <div>
                         <p className="font-medium">{employee.name}</p>
-                        <p className="text-xs text-muted-foreground">{employee.role || 'staff'}</p>
+                        <p className="text-xs text-gray-500">{employee.role || 'staff'}</p>
                       </div>
                       <input
                         type="checkbox"
@@ -1496,7 +1496,7 @@ export function JobDetails() {
         <CardContent>
           <div className="flex flex-wrap gap-2">
             {assigned_employee_details.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No employees assigned yet.</p>
+              <p className="text-sm text-gray-500">No employees assigned yet.</p>
             ) : assigned_employee_details.map((employee) => (
               <Badge key={employee.id} variant="outline" data-testid={`assigned-employee-badge-${employee.id}`}>
                 {employee.name}
@@ -1533,7 +1533,7 @@ export function JobDetails() {
         <TabsContent value="time" className="mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Timer Control Panel */}
-            <Card className="bg-card border-border/50 lg:col-span-1">
+            <Card className="bg-white border-gray-200 lg:col-span-1">
               <CardHeader className="pb-3">
                 <CardTitle className="font-heading uppercase text-sm flex items-center gap-2">
                   <Timer className="h-4 w-4" /> Job Timer
@@ -1547,7 +1547,7 @@ export function JobDetails() {
                       <div className="text-4xl font-mono font-bold text-green-400" data-testid="active-timer-display">
                         {formatTimeDisplay(runningTime)}
                       </div>
-                      <p className="text-sm text-muted-foreground mt-2">
+                      <p className="text-sm text-gray-500 mt-2">
                         {activeTimer.task_type && <Badge variant="outline" className="mr-2">{activeTimer.task_type}</Badge>}
                         {activeTimer.description || 'Working...'}
                       </p>
@@ -1608,17 +1608,17 @@ export function JobDetails() {
 
                 {/* Summary Stats */}
                 {timeSummary && timeSummary.entries_count > 0 && (
-                  <div className="pt-4 border-t border-border/50 space-y-2">
+                  <div className="pt-4 border-t border-gray-200 space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Total Time:</span>
+                      <span className="text-gray-500">Total Time:</span>
                       <span className="font-medium">{timeSummary.total_hours.toFixed(2)} hours</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Labor Cost:</span>
+                      <span className="text-gray-500">Labor Cost:</span>
                       <span className="font-medium">{formatCurrency(timeSummary.total_labor_cost)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Entries:</span>
+                      <span className="text-gray-500">Entries:</span>
                       <span className="font-medium">{timeSummary.entries_count}</span>
                     </div>
                   </div>
@@ -1627,13 +1627,13 @@ export function JobDetails() {
             </Card>
 
             {/* Time Entries List */}
-            <Card className="bg-card border-border/50 lg:col-span-2">
+            <Card className="bg-white border-gray-200 lg:col-span-2">
               <CardHeader className="pb-3">
                 <CardTitle className="font-heading uppercase text-sm">Time Log</CardTitle>
               </CardHeader>
               <CardContent>
                 {timeEntries.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
+                  <div className="text-center py-8 text-gray-500">
                     <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>No time entries yet</p>
                     <p className="text-sm">Start the timer to track time on this job</p>
@@ -1645,7 +1645,7 @@ export function JobDetails() {
                         key={entry.id} 
                         className={cn(
                           "flex items-center justify-between p-3 rounded-lg border",
-                          entry.is_active ? "bg-green-500/10 border-green-500/30" : "bg-muted/30 border-border/50"
+                          entry.is_active ? "bg-green-500/10 border-green-500/30" : "bg-gray-50 border-gray-200"
                         )}
                       >
                         <div className="flex-1">
@@ -1656,10 +1656,10 @@ export function JobDetails() {
                               <Badge className="bg-green-500 text-white animate-pulse">Active</Badge>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-xs text-gray-500 mt-1">
                             {entry.description || 'No description'}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-gray-500">
                             {formatDateTime(entry.start_time)}
                             {entry.end_time && ` - ${formatDateTime(entry.end_time)}`}
                           </p>
@@ -1670,7 +1670,7 @@ export function JobDetails() {
                               {entry.is_active ? formatTimeDisplay(runningTime) : `${entry.duration_minutes?.toFixed(0) || 0} min`}
                             </p>
                             {entry.labor_cost > 0 && (
-                              <p className="text-xs text-muted-foreground">{formatCurrency(entry.labor_cost)}</p>
+                              <p className="text-xs text-gray-500">{formatCurrency(entry.labor_cost)}</p>
                             )}
                           </div>
                           {!entry.is_active && (
@@ -1695,7 +1695,7 @@ export function JobDetails() {
 
         {/* Line Items Tab */}
         <TabsContent value="items" className="mt-4">
-          <Card className="bg-card border-border/50">
+          <Card className="bg-white border-gray-200">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="font-heading uppercase">Line Items</CardTitle>
@@ -1727,7 +1727,7 @@ export function JobDetails() {
                             <div className="flex items-center justify-between">
                               <div className="text-sm">
                                 <p className="text-teal-400 font-medium">Need to calculate pricing?</p>
-                                <p className="text-muted-foreground text-xs mt-0.5">Use the calculator for accurate pricing</p>
+                                <p className="text-gray-500 text-xs mt-0.5">Use the calculator for accurate pricing</p>
                               </div>
                               <Button 
                                 type="button"
@@ -1811,8 +1811,8 @@ export function JobDetails() {
                             />
                           </div>
                         </div>
-                        <div className="p-3 bg-muted/30 rounded-lg text-right">
-                          <span className="text-muted-foreground">Line Total: </span>
+                        <div className="p-3 bg-gray-50 rounded-lg text-right">
+                          <span className="text-gray-500">Line Total: </span>
                           <span className="text-lg font-bold text-primary">
                             {formatCurrency(itemFormData.quantity * itemFormData.unit_price)}
                           </span>
@@ -1837,7 +1837,7 @@ export function JobDetails() {
             </CardHeader>
             <CardContent>
               {job_items.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg">
+                <div className="text-center py-12 text-gray-500 border-2 border-dashed rounded-lg">
                   <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>No line items</p>
                 </div>
@@ -1858,14 +1858,14 @@ export function JobDetails() {
                     </TableHeader>
                     <TableBody>
                       {job_items.map((item, idx) => (
-                        <TableRow key={item.id} className={idx % 2 === 1 ? 'bg-muted/30' : ''}>
+                        <TableRow key={item.id} className={idx % 2 === 1 ? 'bg-gray-50' : ''}>
                           <TableCell>
                             <Badge variant="outline">{itemTypeLabels[item.item_type]}</Badge>
                           </TableCell>
                           <TableCell>
                             <div>
                               <p className="font-medium">{item.description}</p>
-                              {item.notes && <p className="text-xs text-muted-foreground">{item.notes}</p>}
+                              {item.notes && <p className="text-xs text-gray-500">{item.notes}</p>}
                             </div>
                           </TableCell>
                           <TableCell className="text-center">{item.quantity}</TableCell>
@@ -1912,9 +1912,9 @@ export function JobDetails() {
                       ))}
                     </TableBody>
                   </Table>
-                  <div className="flex justify-end mt-4 p-4 bg-muted/30 rounded-lg">
+                  <div className="flex justify-end mt-4 p-4 bg-gray-50 rounded-lg">
                     <div className="text-right">
-                      <span className="text-muted-foreground mr-4">Subtotal:</span>
+                      <span className="text-gray-500 mr-4">Subtotal:</span>
                       <span className="text-2xl font-bold text-primary">{formatCurrency(job.subtotal)}</span>
                     </div>
                   </div>
@@ -1926,7 +1926,7 @@ export function JobDetails() {
 
         {/* Notes Tab */}
         <TabsContent value="notes" className="mt-4">
-          <Card className="bg-card border-border/50">
+          <Card className="bg-white border-gray-200">
             <CardHeader>
               <CardTitle className="font-heading uppercase">Internal Notes</CardTitle>
             </CardHeader>
@@ -1949,15 +1949,15 @@ export function JobDetails() {
               <Separator />
 
               {notes.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No notes yet</p>
+                <p className="text-center text-gray-500 py-8">No notes yet</p>
               ) : (
                 <div className="space-y-3">
                   {notes.map((note) => (
-                    <div key={note.id} className="p-4 bg-muted/30 rounded-lg group">
+                    <div key={note.id} className="p-4 bg-gray-50 rounded-lg group">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <p className="whitespace-pre-wrap">{note.content}</p>
-                          <p className="text-xs text-muted-foreground mt-2">
+                          <p className="text-xs text-gray-500 mt-2">
                             {note.author && <span>{note.author} • </span>}
                             {formatDateTime(note.created_at)}
                           </p>
@@ -1981,13 +1981,13 @@ export function JobDetails() {
 
         {/* Activity Tab */}
         <TabsContent value="activity" className="mt-4">
-          <Card className="bg-card border-border/50">
+          <Card className="bg-white border-gray-200">
             <CardHeader>
               <CardTitle className="font-heading uppercase">Activity Log</CardTitle>
             </CardHeader>
             <CardContent>
               {activities.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No activity recorded</p>
+                <p className="text-center text-gray-500 py-8">No activity recorded</p>
               ) : (
                 <ScrollArea className="h-[400px]">
                   <div className="space-y-4">
@@ -1995,12 +1995,12 @@ export function JobDetails() {
                       const Icon = activityIcons[activity.activity_type] || Activity;
                       return (
                         <div key={activity.id} className="flex items-start gap-3">
-                          <div className="p-2 rounded-full bg-muted/50">
-                            <Icon className="h-4 w-4 text-muted-foreground" />
+                          <div className="p-2 rounded-full bg-gray-50/50">
+                            <Icon className="h-4 w-4 text-gray-500" />
                           </div>
                           <div className="flex-1">
                             <p className="text-sm">{activity.description}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p className="text-xs text-gray-500 mt-1">
                               {formatDateTime(activity.created_at)}
                             </p>
                           </div>
@@ -2016,7 +2016,7 @@ export function JobDetails() {
 
         {/* Timeline Tab - Visual Status Flow */}
         <TabsContent value="timeline" className="mt-4">
-          <Card className="bg-card border-border/50">
+          <Card className="bg-white border-gray-200">
             <CardHeader>
               <CardTitle className="font-heading uppercase flex items-center gap-2">
                 <GitBranch className="h-5 w-5" /> Job Status Timeline
@@ -2044,7 +2044,7 @@ export function JobDetails() {
                                 ? "bg-primary border-primary text-primary-foreground scale-110 shadow-lg" 
                                 : isPastStatus 
                                   ? "bg-green-500 border-green-500 text-white"
-                                  : "bg-muted border-muted-foreground/30 text-muted-foreground"
+                                  : "bg-gray-50 border-muted-foreground/30 text-gray-500"
                             )}
                           >
                             {isPastStatus ? (
@@ -2056,13 +2056,13 @@ export function JobDetails() {
                           <span 
                             className={cn(
                               "text-xs mt-2 font-medium text-center",
-                              isCurrentStatus ? "text-primary" : isPastStatus ? "text-green-600" : "text-muted-foreground"
+                              isCurrentStatus ? "text-primary" : isPastStatus ? "text-green-600" : "text-gray-500"
                             )}
                           >
                             {statusLabels[status]}
                           </span>
                           {statusActivity && (
-                            <span className="text-[10px] text-muted-foreground mt-1">
+                            <span className="text-[10px] text-gray-500 mt-1">
                               {new Date(statusActivity.created_at).toLocaleDateString()}
                             </span>
                           )}
@@ -2071,7 +2071,7 @@ export function JobDetails() {
                           <div 
                             className={cn(
                               "flex-1 h-1 mx-2",
-                              isPastStatus ? "bg-green-500" : "bg-muted"
+                              isPastStatus ? "bg-green-500" : "bg-gray-50"
                             )}
                           />
                         )}
@@ -2082,8 +2082,8 @@ export function JobDetails() {
               </div>
 
               {/* Status Change History */}
-              <div className="border-t border-border/50 pt-6">
-                <h4 className="text-sm font-medium uppercase tracking-wider text-muted-foreground mb-4">
+              <div className="border-t border-gray-200 pt-6">
+                <h4 className="text-sm font-medium uppercase tracking-wider text-gray-500 mb-4">
                   Status Change History
                 </h4>
                 {(() => {
@@ -2097,7 +2097,7 @@ export function JobDetails() {
                   
                   if (statusChanges.length === 0) {
                     return (
-                      <p className="text-center text-muted-foreground py-4">No status changes recorded</p>
+                      <p className="text-center text-gray-500 py-4">No status changes recorded</p>
                     );
                   }
                   
@@ -2127,7 +2127,7 @@ export function JobDetails() {
                         return (
                           <div 
                             key={activity.id}
-                            className="flex items-center gap-4 p-3 rounded-lg bg-muted/30 border border-border/50"
+                            className="flex items-center gap-4 p-3 rounded-lg bg-gray-50 border border-gray-200"
                           >
                             <div className="flex-shrink-0">
                               {activity.old_status && activity.new_status ? (
@@ -2135,7 +2135,7 @@ export function JobDetails() {
                                   <Badge variant="outline" className={cn(statusColors[activity.old_status], "text-xs")}>
                                     {statusLabels[activity.old_status] || activity.old_status}
                                   </Badge>
-                                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                                  <ArrowRight className="h-4 w-4 text-gray-500" />
                                   <Badge className={cn(statusColors[activity.new_status])}>
                                     {statusLabels[activity.new_status] || activity.new_status}
                                   </Badge>
@@ -2148,7 +2148,7 @@ export function JobDetails() {
                               <p className="text-sm">{activity.description}</p>
                             </div>
                             <div className="text-right flex-shrink-0">
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-gray-500">
                                 {formatDateTime(activity.created_at)}
                               </p>
                               {timeInStatus && (
@@ -2171,17 +2171,17 @@ export function JobDetails() {
 
         <TabsContent value="customer_portal" className="mt-4">
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <Card className="bg-card border-border/50">
+            <Card className="bg-white border-gray-200">
               <CardHeader>
                 <CardTitle className="font-heading uppercase">Proofs / Approvals</CardTitle>
                 <CardDescription>Customer-facing proof activity for this job</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {portal_proofs.length === 0 ? <p className="text-sm text-muted-foreground">No proofs sent for this job.</p> : portal_proofs.map((proof) => (
+                {portal_proofs.length === 0 ? <p className="text-sm text-gray-500">No proofs sent for this job.</p> : portal_proofs.map((proof) => (
                   <div key={proof.id} className="flex items-center justify-between rounded-lg border p-3" data-testid={`job-portal-proof-${proof.id}`}>
                     <div>
                       <p className="font-medium">Version {proof.version}</p>
-                      <p className="text-xs text-muted-foreground">{formatDate(proof.created_at)}</p>
+                      <p className="text-xs text-gray-500">{formatDate(proof.created_at)}</p>
                     </div>
                     <Badge className={cn(getStatusColor(proof.status), 'capitalize')}>{proof.status?.replace('_', ' ')}</Badge>
                   </div>
@@ -2189,32 +2189,32 @@ export function JobDetails() {
               </CardContent>
             </Card>
 
-            <Card className="bg-card border-border/50">
+            <Card className="bg-white border-gray-200">
               <CardHeader>
                 <CardTitle className="font-heading uppercase">Messages</CardTitle>
                 <CardDescription>Customer conversations tied to this job</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {portal_conversations.length === 0 ? <p className="text-sm text-muted-foreground">No job-specific customer conversations yet.</p> : portal_conversations.map((conversation) => (
+                {portal_conversations.length === 0 ? <p className="text-sm text-gray-500">No job-specific customer conversations yet.</p> : portal_conversations.map((conversation) => (
                   <div key={conversation.id} className="rounded-lg border p-3" data-testid={`job-portal-conversation-${conversation.id}`}>
                     <p className="font-medium">{conversation.subject}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{conversation.last_message_preview}</p>
+                    <p className="text-xs text-gray-500 mt-1">{conversation.last_message_preview}</p>
                   </div>
                 ))}
               </CardContent>
             </Card>
 
-            <Card className="bg-card border-border/50">
+            <Card className="bg-white border-gray-200">
               <CardHeader>
                 <CardTitle className="font-heading uppercase">Forms / Questionnaires</CardTitle>
                 <CardDescription>Portal form requests and submission state</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {portal_forms.length === 0 ? <p className="text-sm text-muted-foreground">No forms sent for this job.</p> : portal_forms.map((form) => (
+                {portal_forms.length === 0 ? <p className="text-sm text-gray-500">No forms sent for this job.</p> : portal_forms.map((form) => (
                   <div key={form.id} className="flex items-center justify-between rounded-lg border p-3" data-testid={`job-portal-form-${form.id}`}>
                     <div>
                       <p className="font-medium">{form.questionnaire_name}</p>
-                      <p className="text-xs text-muted-foreground">Sent {formatDate(form.sent_at)} {form.due_date ? `· Due ${formatDate(form.due_date)}` : ''}</p>
+                      <p className="text-xs text-gray-500">Sent {formatDate(form.sent_at)} {form.due_date ? `· Due ${formatDate(form.due_date)}` : ''}</p>
                     </div>
                     <Badge variant="outline">{form.status?.replace('_', ' ')}</Badge>
                   </div>
@@ -2222,28 +2222,28 @@ export function JobDetails() {
               </CardContent>
             </Card>
 
-            <Card className="bg-card border-border/50">
+            <Card className="bg-white border-gray-200">
               <CardHeader>
                 <CardTitle className="font-heading uppercase">Documents & Invoice</CardTitle>
                 <CardDescription>Customer-visible files and invoice status</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {portal_documents.length === 0 ? <p className="text-sm text-muted-foreground">No customer-visible documents linked yet.</p> : portal_documents.map((doc) => (
+                {portal_documents.length === 0 ? <p className="text-sm text-gray-500">No customer-visible documents linked yet.</p> : portal_documents.map((doc) => (
                   <div key={doc.id} className="flex items-center justify-between rounded-lg border p-3" data-testid={`job-portal-document-${doc.id}`}>
                     <div>
                       <p className="font-medium">{doc.document_name || 'Document'}</p>
-                      <p className="text-xs text-muted-foreground">{formatDate(doc.created_at)}</p>
+                      <p className="text-xs text-gray-500">{formatDate(doc.created_at)}</p>
                     </div>
                     <Badge variant="outline">{doc.viewed_at ? 'Viewed' : 'Unviewed'}</Badge>
                   </div>
                 ))}
                 {invoice && (
-                  <div className="rounded-lg border p-3 bg-muted/20" data-testid="job-portal-invoice-summary">
+                  <div className="rounded-lg border p-3 bg-gray-50/20" data-testid="job-portal-invoice-summary">
                     <div className="flex items-center justify-between">
                       <p className="font-medium">Invoice #{invoice.id.slice(0, 8).toUpperCase()}</p>
                       <Badge className={cn(getStatusColor(invoice.status), 'capitalize')}>{invoice.status}</Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">Portal viewed: {invoice.portal_viewed_at ? formatDateTime(invoice.portal_viewed_at) : 'Not yet'}</p>
+                    <p className="text-sm text-gray-500 mt-1">Portal viewed: {invoice.portal_viewed_at ? formatDateTime(invoice.portal_viewed_at) : 'Not yet'}</p>
                   </div>
                 )}
               </CardContent>
@@ -2282,7 +2282,7 @@ export function JobDetails() {
               Schedule Task
             </DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground -mt-2">
+          <p className="text-sm text-gray-500 -mt-2">
             Add this job to your calendar/to-do list
           </p>
           <form onSubmit={handleScheduleSubmit} className="space-y-4">
@@ -2325,8 +2325,8 @@ export function JobDetails() {
                 data-testid="schedule-description-input"
               />
             </div>
-            <div className="p-3 bg-muted/30 rounded-lg text-sm">
-              <p className="text-muted-foreground">
+            <div className="p-3 bg-gray-50 rounded-lg text-sm">
+              <p className="text-gray-500">
                 This task will be linked to: <span className="font-medium text-foreground">{job?.name}</span>
               </p>
             </div>

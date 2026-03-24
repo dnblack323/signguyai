@@ -313,7 +313,7 @@ export default function CompanySettings() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Company Settings</h1>
-          <p className="text-slate-300">Manage your sign shop's information and preferences</p>
+          <p className="text-gray-700">Manage your sign shop's information and preferences</p>
         </div>
         <div className="flex items-center gap-3">
           {planBadge(tenant.plan)}

@@ -255,7 +255,7 @@ export default function Productivity() {
         <TabsContent value="list" className="mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Incomplete Tasks */}
-            <Card className="bg-card border-border/50">
+            <Card className="bg-white border-gray-200">
               <CardHeader>
                 <CardTitle className="font-heading uppercase flex items-center gap-2">
                   <ListTodo className="h-5 w-5 text-primary" />
@@ -264,13 +264,13 @@ export default function Productivity() {
               </CardHeader>
               <CardContent>
                 {incompleteTasks.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">No pending tasks</p>
+                  <p className="text-gray-500 text-center py-8">No pending tasks</p>
                 ) : (
                   <div className="space-y-3">
                     {incompleteTasks.map((task) => (
                       <div 
                         key={task.id} 
-                        className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg"
+                        className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
                         data-testid={`task-${task.id}`}
                       >
                         <Checkbox
@@ -281,7 +281,7 @@ export default function Productivity() {
                         <div className="flex-1 min-w-0">
                           <p className="font-medium">{task.title}</p>
                           {task.description && (
-                            <p className="text-sm text-muted-foreground">{task.description}</p>
+                            <p className="text-sm text-gray-500">{task.description}</p>
                           )}
                           <div className="flex items-center gap-2 mt-2">
                             {task.due_date && (
@@ -312,7 +312,7 @@ export default function Productivity() {
             </Card>
 
             {/* Completed Tasks */}
-            <Card className="bg-card border-border/50">
+            <Card className="bg-white border-gray-200">
               <CardHeader>
                 <CardTitle className="font-heading uppercase flex items-center gap-2 text-green-400">
                   Completed ({completedTasks.length})
@@ -320,7 +320,7 @@ export default function Productivity() {
               </CardHeader>
               <CardContent>
                 {completedTasks.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">No completed tasks</p>
+                  <p className="text-gray-500 text-center py-8">No completed tasks</p>
                 ) : (
                   <div className="space-y-3 max-h-[400px] overflow-y-auto">
                     {completedTasks.map((task) => (
@@ -333,7 +333,7 @@ export default function Productivity() {
                           onCheckedChange={() => handleToggleComplete(task)}
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium line-through text-muted-foreground">
+                          <p className="font-medium line-through text-gray-500">
                             {task.title}
                           </p>
                         </div>
@@ -356,7 +356,7 @@ export default function Productivity() {
         {/* Calendar View */}
         <TabsContent value="calendar" className="mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="bg-card border-border/50 lg:col-span-2">
+            <Card className="bg-white border-gray-200 lg:col-span-2">
               <CardContent className="p-4">
                 <Calendar
                   mode="single"
@@ -375,7 +375,7 @@ export default function Productivity() {
                 />
               </CardContent>
             </Card>
-            <Card className="bg-card border-border/50">
+            <Card className="bg-white border-gray-200">
               <CardHeader>
                 <CardTitle className="font-heading uppercase text-sm">
                   {selectedDate.toLocaleDateString('en-US', { 
@@ -387,7 +387,7 @@ export default function Productivity() {
               </CardHeader>
               <CardContent>
                 {getTasksForDate(selectedDate).length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4 text-sm">
+                  <p className="text-gray-500 text-center py-4 text-sm">
                     No tasks for this date
                   </p>
                 ) : (
@@ -397,10 +397,10 @@ export default function Productivity() {
                         key={task.id} 
                         className={cn(
                           "p-2 rounded-lg text-sm",
-                          task.is_complete ? "bg-green-500/10" : "bg-muted/50"
+                          task.is_complete ? "bg-green-500/10" : "bg-gray-50/50"
                         )}
                       >
-                        <p className={task.is_complete ? "line-through text-muted-foreground" : ""}>
+                        <p className={task.is_complete ? "line-through text-gray-500" : ""}>
                           {task.title}
                         </p>
                       </div>
@@ -422,7 +422,7 @@ export default function Productivity() {
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, status)}
               >
-                <div className="bg-muted/30 rounded-lg p-3 mb-3">
+                <div className="bg-gray-50 rounded-lg p-3 mb-3">
                   <div className="flex items-center justify-between">
                     <h3 className="font-bold text-sm uppercase tracking-wide" style={{ color: 'var(--text)' }}>
                       {status.replace('_', ' ')}
@@ -463,7 +463,7 @@ export default function Productivity() {
                     <div 
                       className={cn(
                         "text-center py-8 text-sm border-2 border-dashed rounded-lg transition-colors",
-                        draggedJob ? "border-blue-400 bg-blue-50/10" : "border-border/50"
+                        draggedJob ? "border-blue-400 bg-blue-50/10" : "border-gray-200"
                       )}
                       style={{ color: 'var(--text-muted)' }}
                     >
