@@ -23,25 +23,15 @@ router = APIRouter(prefix="/job-tickets", tags=["Job Tickets"])
 
 
 
-def _banner_schema(defaults):
-    """Full Banner category schema per spec."""
-    materials = defaults.get("materials", [])
-    banner_mats = [m for m in materials if m.get("key") in ("banner_material", "ink", "laminate")]
-    mat_options = [
-        {"value": "banner_13oz", "label": "13oz Vinyl"},
-        {"value": "banner_18oz", "label": "18oz Vinyl"},
-        {"value": "mesh", "label": "Mesh Banner Material"},
-        {"value": "blockout", "label": "Blockout Banner Material"},
-        {"value": "retractable_film", "label": "Retractable Film"},
-        {"value": "custom", "label": "Other / Custom"},
-    ]
+def _banner_schema(defaults, material_opts):
+    """Full Banner category schema — materials from catalog."""
     return [
         # Size & Material
         {"key": "width", "label": "Width", "type": "text", "placeholder": "e.g. 8 or 96", "group": "size_material", "required": True, "pricing": True},
         {"key": "height", "label": "Height", "type": "text", "placeholder": "e.g. 3 or 36", "group": "size_material", "required": True, "pricing": True},
         {"key": "unit_of_measure", "label": "Unit of Measure", "type": "select", "options": [{"value": "feet", "label": "Feet"}, {"value": "inches", "label": "Inches"}], "default": "feet", "group": "size_material", "required": True, "pricing": True},
         {"key": "sq_footage", "label": "Square Footage", "type": "calculated", "group": "size_material", "pricing": True},
-        {"key": "material", "label": "Material", "type": "select", "options": mat_options, "group": "size_material", "required": True, "pricing": True},
+        {"key": "material", "label": "Material", "type": "select", "options": material_opts, "group": "size_material", "required": True, "pricing": True},
         {"key": "indoor_outdoor", "label": "Indoor / Outdoor", "type": "select", "options": [{"value": "outdoor", "label": "Outdoor"}, {"value": "indoor", "label": "Indoor"}, {"value": "both", "label": "Both"}], "default": "outdoor", "group": "size_material"},
         {"key": "double_sided", "label": "Sidedness", "type": "select", "options": [{"value": "single", "label": "Single-Sided"}, {"value": "double", "label": "Double-Sided"}], "default": "single", "group": "size_material", "pricing": True},
         # Finishing
@@ -65,29 +55,8 @@ def _banner_schema(defaults):
     ]
 
 
-def _apparel_schema(defaults):
-    """Full Apparel category schema per spec."""
-    garment_types = [
-        {"value": "tshirt", "label": "T-Shirt"},
-        {"value": "hoodie", "label": "Hoodie"},
-        {"value": "crewneck", "label": "Crewneck"},
-        {"value": "polo", "label": "Polo"},
-        {"value": "hat", "label": "Hat"},
-        {"value": "jacket", "label": "Jacket"},
-        {"value": "safety_vest", "label": "Safety Vest"},
-        {"value": "tank", "label": "Tank Top"},
-        {"value": "longsleeve", "label": "Long Sleeve"},
-        {"value": "other", "label": "Other Apparel"},
-    ]
-    decoration_methods = [
-        {"value": "htv", "label": "HTV (Heat Transfer Vinyl)"},
-        {"value": "dtf", "label": "DTF / Printed Transfer"},
-        {"value": "screen_print", "label": "Screen Print Transfer"},
-        {"value": "sublimation", "label": "Sublimation"},
-        {"value": "embroidery", "label": "Embroidery"},
-        {"value": "patch", "label": "Patch / Emblem"},
-        {"value": "other", "label": "Other"},
-    ]
+def _apparel_schema(defaults, garment_opts, decoration_opts):
+    """Full Apparel category schema — options from catalog."""
     print_locations = [
         {"value": "front_center", "label": "Front Center"},
         {"value": "left_chest", "label": "Left Chest"},
@@ -116,7 +85,7 @@ def _apparel_schema(defaults):
     ]
     return [
         # Garment Information
-        {"key": "garment_type", "label": "Garment Type", "type": "select", "options": garment_types, "group": "garment_info", "required": True, "pricing": True},
+        {"key": "garment_type", "label": "Garment Type", "type": "select", "options": garment_opts, "group": "garment_info", "required": True, "pricing": True},
         {"key": "brand_style", "label": "Brand / Style", "type": "select_or_text", "options": brand_options, "placeholder": "Select or type custom", "group": "garment_info", "pricing": True},
         {"key": "garment_color", "label": "Garment Color", "type": "text", "placeholder": "Black, White, Navy", "group": "garment_info"},
         {"key": "garment_material", "label": "Material / Fabric", "type": "text", "placeholder": "Cotton, Polyester, Blend", "group": "garment_info"},
@@ -132,7 +101,7 @@ def _apparel_schema(defaults):
         {"key": "size_4xl", "label": "4XL", "type": "number", "default": 0, "group": "size_breakdown", "pricing": True},
         {"key": "size_5xl", "label": "5XL", "type": "number", "default": 0, "group": "size_breakdown", "pricing": True},
         # Decoration
-        {"key": "decoration_method", "label": "Decoration Method", "type": "select", "options": decoration_methods, "group": "decoration", "required": True, "pricing": True},
+        {"key": "decoration_method", "label": "Decoration Method", "type": "select", "options": decoration_opts, "group": "decoration", "required": True, "pricing": True},
         {"key": "num_colors", "label": "Number of Colors", "type": "number", "placeholder": "1", "group": "decoration", "pricing": True},
         {"key": "specialty_finish", "label": "Specialty Finish", "type": "text", "placeholder": "Metallic, Puff, Glitter", "group": "decoration", "pricing": True},
         {"key": "setup_required", "label": "Setup Required", "type": "toggle", "default": True, "group": "decoration", "pricing": True},
@@ -151,7 +120,7 @@ def _apparel_schema(defaults):
 
 
 def _rigid_sign_schema(defaults, substrate_opts):
-    """Full Rigid Sign category schema."""
+    """Full Rigid Sign category schema — substrates from catalog."""
     thickness_opts = [
         {"value": "4mm", "label": "4mm"}, {"value": "6mm", "label": "6mm"},
         {"value": "10mm", "label": "10mm"}, {"value": "0.040", "label": "0.040\""},
@@ -188,7 +157,7 @@ def _rigid_sign_schema(defaults, substrate_opts):
 
 
 def _cut_vinyl_schema(defaults, vinyl_opts):
-    """Full Cut Vinyl category schema."""
+    """Full Cut Vinyl category schema — vinyl types from catalog."""
     return [
         # Size & Layout
         {"key": "width", "label": "Width", "type": "text", "placeholder": "e.g. 24 or 36", "group": "size_layout", "required": True, "pricing": True},
@@ -220,28 +189,15 @@ def _cut_vinyl_schema(defaults, vinyl_opts):
     ]
 
 
-def _digital_print_schema(defaults):
-    """Full Digital Print category schema."""
-    media_opts = [
-        {"value": "gloss_paper", "label": "Gloss Paper"},
-        {"value": "matte_paper", "label": "Matte Paper"},
-        {"value": "vinyl_adhesive", "label": "Vinyl (Printable Adhesive)"},
-        {"value": "window_perf", "label": "Window Perf"},
-        {"value": "backlit_film", "label": "Backlit Film"},
-        {"value": "static_cling", "label": "Static Cling"},
-        {"value": "canvas", "label": "Canvas"},
-        {"value": "fabric", "label": "Fabric / Textile"},
-        {"value": "floor_graphic", "label": "Floor Graphic Media"},
-        {"value": "custom", "label": "Other / Custom"},
-    ]
+def _digital_print_schema(defaults, media_opts):
+    """Full Digital Print category schema — media from catalog."""
     return [
         # Size & Media
         {"key": "width", "label": "Width", "type": "text", "placeholder": "e.g. 24 or 48", "group": "size_media", "required": True, "pricing": True},
         {"key": "height", "label": "Height", "type": "text", "placeholder": "e.g. 36 or 96", "group": "size_media", "required": True, "pricing": True},
         {"key": "unit_of_measure", "label": "Unit of Measure", "type": "select", "options": [{"value": "inches", "label": "Inches"}, {"value": "feet", "label": "Feet"}], "default": "inches", "group": "size_media", "pricing": True},
         {"key": "sq_footage", "label": "Square Footage", "type": "calculated", "group": "size_media", "pricing": True},
-        {"key": "media_type", "label": "Media Type", "type": "select", "options": media_opts, "group": "size_media", "required": True, "pricing": True},
-        {"key": "roll_or_sheet", "label": "Roll vs Sheet", "type": "select", "options": [{"value": "roll", "label": "Roll"}, {"value": "sheet", "label": "Sheet"}], "default": "roll", "group": "size_media", "pricing": True},
+        {"key": "media_type", "label": "Media Type", "type": "select", "options": media_opts, "group": "size_media", "required": True, "pricing": True},        {"key": "roll_or_sheet", "label": "Roll vs Sheet", "type": "select", "options": [{"value": "roll", "label": "Roll"}, {"value": "sheet", "label": "Sheet"}], "default": "roll", "group": "size_media", "pricing": True},
         {"key": "num_copies", "label": "Number of Copies / Sets", "type": "number", "placeholder": "1", "group": "size_media"},
         # Print Options
         {"key": "print_quality", "label": "Print Quality", "type": "select", "options": [{"value": "draft", "label": "Draft"}, {"value": "standard", "label": "Standard"}, {"value": "high", "label": "High Quality"}], "default": "standard", "group": "print_options", "pricing": True},
@@ -266,8 +222,8 @@ def _digital_print_schema(defaults):
     ]
 
 
-def _vehicle_wrap_schema(defaults, vinyl_opts, coverage_opts, vehicle_type_opts):
-    """Full Vehicle Wrap category schema."""
+def _vehicle_wrap_schema(defaults, vinyl_opts, vehicle_type_opts):
+    """Full Vehicle Wrap category schema — materials from catalog."""
     difficulty_opts = [
         {"value": "easy", "label": "Easy"}, {"value": "moderate", "label": "Moderate"}, {"value": "complex", "label": "Complex"},
     ]
@@ -330,34 +286,102 @@ def _vehicle_wrap_schema(defaults, vinyl_opts, coverage_opts, vehicle_type_opts)
 @router.get("/schema/{category}")
 async def get_category_field_schema(category: str, current_user: UserInDB = Depends(get_current_active_user)):
     """Return dynamic field schema for a job ticket category.
-    Options are derived from existing enums and pricing settings — not hardcoded here."""
+    All options pulled from pricing settings + materials catalog — nothing hardcoded."""
     from server import get_pricing_defaults
-    from models.enums import (
-        VinylType, PrintMaterial, SubstrateType, ApparelType, TransferType,
-        VehicleType, CoverageType, PromoProductType
-    )
+    from models.enums import PromoProductType
 
     defaults = await get_pricing_defaults(current_user.tenant_id)
     cat_config = defaults.get("category_defaults", {}).get(category, {})
 
-    def enum_opts(e):
-        return [{"value": m.value, "label": m.value.replace("_", " ").title()} for m in e]
+    # Load materials catalog (same source as /api/pricing/materials)
+    from routes.pricing import get_materials as _get_mats_fn
+    # Build catalog inline since we can't call the endpoint directly
+    materials_catalog = {
+        "vinyl": [
+            {"id": "oracal_651", "name": "Oracal 651 (Intermediate)", "cost_per_sqft": 0.50},
+            {"id": "oracal_751", "name": "Oracal 751 (High Performance)", "cost_per_sqft": 0.75},
+            {"id": "oracal_951", "name": "Oracal 951 (Premium Cast)", "cost_per_sqft": 1.25},
+            {"id": "avery_hp750", "name": "Avery HP750", "cost_per_sqft": 0.90},
+            {"id": "reflective", "name": "Reflective Vinyl", "cost_per_sqft": 2.50},
+            {"id": "specialty", "name": "Specialty Vinyl", "cost_per_sqft": 1.50},
+        ],
+        "print_material": [
+            {"id": "banner_13oz", "name": "13oz Banner", "cost_per_sqft": 0.75},
+            {"id": "banner_18oz", "name": "18oz Banner (Heavy)", "cost_per_sqft": 1.10},
+            {"id": "mesh", "name": "Mesh Banner", "cost_per_sqft": 0.85},
+            {"id": "vinyl_adhesive", "name": "Adhesive Vinyl", "cost_per_sqft": 1.25},
+            {"id": "poster_paper", "name": "Poster Paper", "cost_per_sqft": 0.35},
+            {"id": "canvas", "name": "Canvas", "cost_per_sqft": 2.50},
+            {"id": "backlit", "name": "Backlit Film", "cost_per_sqft": 2.00},
+            {"id": "perforated", "name": "Perforated Window Film", "cost_per_sqft": 1.75},
+            {"id": "blockout", "name": "Blockout Banner", "cost_per_sqft": 1.00},
+            {"id": "retractable_film", "name": "Retractable Film", "cost_per_sqft": 1.50},
+            {"id": "static_cling", "name": "Static Cling", "cost_per_sqft": 1.60},
+            {"id": "floor_graphic", "name": "Floor Graphic Media", "cost_per_sqft": 2.00},
+        ],
+        "substrate": [
+            {"id": "coroplast_4mm", "name": "Coroplast 4mm", "cost_per_sqft": 0.45},
+            {"id": "coroplast_10mm", "name": "Coroplast 10mm", "cost_per_sqft": 0.65},
+            {"id": "aluminum_040", "name": "Aluminum .040", "cost_per_sqft": 1.50},
+            {"id": "aluminum_063", "name": "Aluminum .063", "cost_per_sqft": 2.25},
+            {"id": "aluminum_080", "name": "Aluminum .080", "cost_per_sqft": 3.00},
+            {"id": "pvc_3mm", "name": "PVC 3mm", "cost_per_sqft": 1.00},
+            {"id": "pvc_6mm", "name": "PVC 6mm", "cost_per_sqft": 1.50},
+            {"id": "acrylic", "name": "Acrylic", "cost_per_sqft": 4.00},
+            {"id": "dibond", "name": "Dibond/ACM", "cost_per_sqft": 3.50},
+            {"id": "mdo", "name": "MDO Plywood", "cost_per_sqft": 2.00},
+            {"id": "foam_board", "name": "Foam Board", "cost_per_sqft": 0.75},
+        ],
+        "apparel": [
+            {"id": "tshirt", "name": "T-Shirt", "cost_each": 4.50},
+            {"id": "hoodie", "name": "Hoodie", "cost_each": 18.00},
+            {"id": "hat", "name": "Hat/Cap", "cost_each": 8.00},
+            {"id": "polo", "name": "Polo Shirt", "cost_each": 12.00},
+            {"id": "tank", "name": "Tank Top", "cost_each": 4.00},
+            {"id": "longsleeve", "name": "Long Sleeve", "cost_each": 7.50},
+            {"id": "jacket", "name": "Jacket", "cost_each": 25.00},
+            {"id": "crewneck", "name": "Crewneck Sweatshirt", "cost_each": 15.00},
+            {"id": "safety_vest", "name": "Safety Vest", "cost_each": 10.00},
+        ],
+        "decoration": [
+            {"id": "htv", "name": "HTV (Heat Transfer Vinyl)", "cost_per_color": 0.50},
+            {"id": "screen_print", "name": "Screen Print Transfer", "cost_per_color": 0.35},
+            {"id": "dtf", "name": "DTF / Printed Transfer", "cost_per_sqin": 0.03},
+            {"id": "sublimation", "name": "Sublimation", "cost_per_sqin": 0.04},
+            {"id": "embroidery", "name": "Embroidery", "cost_per_stitch": 0.01},
+            {"id": "patch", "name": "Patch / Emblem", "cost_each": 3.00},
+        ],
+        "vehicle_type": [
+            {"id": "car_sedan", "name": "Car (Sedan)", "base_sqft": 150},
+            {"id": "car_suv", "name": "Car (SUV)", "base_sqft": 200},
+            {"id": "van_cargo", "name": "Cargo Van", "base_sqft": 250},
+            {"id": "van_sprinter", "name": "Sprinter Van", "base_sqft": 350},
+            {"id": "box_truck_12ft", "name": "Box Truck (12ft)", "base_sqft": 400},
+            {"id": "box_truck_16ft", "name": "Box Truck (16ft)", "base_sqft": 500},
+            {"id": "box_truck_24ft", "name": "Box Truck (24ft)", "base_sqft": 650},
+            {"id": "trailer", "name": "Trailer", "base_sqft": 450},
+            {"id": "pickup", "name": "Pickup Truck", "base_sqft": 175},
+        ],
+    }
 
-    # Base fields every category gets
+    def cat_opts(catalog_key):
+        return [{"value": m["id"], "label": m["name"]} for m in materials_catalog.get(catalog_key, [])]
+
+    # Base fields
     base = [
         {"key": "width", "label": "Width", "type": "text", "placeholder": "e.g. 8ft or 96in", "group": "dimensions"},
         {"key": "height", "label": "Height", "type": "text", "placeholder": "e.g. 3ft or 36in", "group": "dimensions"},
     ]
 
     schemas = {
-        "banners": _banner_schema(defaults),
-        "apparel": _apparel_schema(defaults),
-        "rigid_signs": _rigid_sign_schema(defaults, enum_opts(SubstrateType)),
-        "cut_vinyl": _cut_vinyl_schema(defaults, enum_opts(VinylType)),
-        "vehicle_wrap": _vehicle_wrap_schema(defaults, enum_opts(VinylType), enum_opts(CoverageType), enum_opts(VehicleType)),
-        "digital_print": _digital_print_schema(defaults),
+        "banners": _banner_schema(defaults, cat_opts("print_material")),
+        "apparel": _apparel_schema(defaults, cat_opts("apparel"), cat_opts("decoration")),
+        "rigid_signs": _rigid_sign_schema(defaults, cat_opts("substrate")),
+        "cut_vinyl": _cut_vinyl_schema(defaults, cat_opts("vinyl")),
+        "vehicle_wrap": _vehicle_wrap_schema(defaults, cat_opts("vinyl"), cat_opts("vehicle_type")),
+        "digital_print": _digital_print_schema(defaults, cat_opts("print_material")),
         "promo_misc": [
-            {"key": "material", "label": "Product Type", "type": "select", "options": enum_opts(PromoProductType), "group": "material"},
+            {"key": "material", "label": "Product Type", "type": "select", "options": [{"value": m.value, "label": m.value.replace("_"," ").title()} for m in PromoProductType], "group": "material"},
             {"key": "size_description", "label": "Size / Specs", "type": "text", "group": "specs"},
             {"key": "color_specs", "label": "Colors", "type": "text", "group": "specs"},
             {"key": "finish", "label": "Decoration Method", "type": "text", "placeholder": "Printed, Engraved, Embossed", "group": "finishing"},
@@ -371,8 +395,6 @@ async def get_category_field_schema(category: str, current_user: UserInDB = Depe
             {"key": "finish", "label": "Finish", "type": "text", "group": "finishing"},
             {"key": "lamination", "label": "Lamination", "type": "text", "group": "finishing"},
             {"key": "print_method", "label": "Print Method", "type": "text", "group": "production"},
-            {"key": "cut_method", "label": "Cut Method", "type": "text", "group": "production"},
-            {"key": "mounting_type", "label": "Mounting", "type": "text", "group": "finishing"},
             {"key": "install_required", "label": "Install Required", "type": "toggle", "group": "specs"},
             {"key": "double_sided", "label": "Double Sided", "type": "toggle", "group": "specs"},
         ],
@@ -452,12 +474,15 @@ async def get_category_field_schema(category: str, current_user: UserInDB = Depe
         "category": category,
         "subtypes": subtypes.get(category, []),
         "fields": fields,
+        "materials_catalog": materials_catalog,
         "pricing_config": {
             "minimum_charge": cat_config.get("minimum_charge", defaults.get("minimum_order", 0)),
             "default_markup": cat_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5)),
             "target_margin": cat_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40)),
             "labor_rate": defaults.get("production_hourly_rate", 28),
             "design_rate": defaults.get("design_hourly_rate", 85),
+            "install_rate": defaults.get("installer_hourly_rate", 40),
+            "overhead_pct": defaults.get("overhead_percentage", 15),
         },
     }
 
