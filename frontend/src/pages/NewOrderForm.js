@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Loader2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Loader2, Trash2, Search, UserPlus, Upload, FileUp } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -14,9 +14,10 @@ import DynamicCategoryFields from '../components/DynamicCategoryFields';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const token = () => localStorage.getItem('auth_token');
-const headers = () => ({ Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' });
+const hdrs = () => ({ Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' });
 
 const CATEGORIES = [
+  { value: '', label: 'Select Category...' },
   { value: 'banners', label: 'Banners' },
   { value: 'rigid_signs', label: 'Rigid Signs' },
   { value: 'cut_vinyl', label: 'Cut Vinyl / Lettering' },
@@ -28,12 +29,9 @@ const CATEGORIES = [
 ];
 
 const SOURCES = [
-  { value: 'phone', label: 'Phone' },
-  { value: 'walk_in', label: 'Walk-in' },
-  { value: 'email', label: 'Email' },
-  { value: 'website', label: 'Website' },
-  { value: 'repeat_order', label: 'Repeat Order' },
-  { value: 'sales_rep', label: 'Sales Rep' },
+  { value: 'phone', label: 'Phone' }, { value: 'walk_in', label: 'Walk-in' },
+  { value: 'email', label: 'Email' }, { value: 'website', label: 'Website' },
+  { value: 'repeat_order', label: 'Repeat Order' }, { value: 'sales_rep', label: 'Sales Rep' },
 ];
 
 export default function NewOrderForm() {
@@ -41,6 +39,9 @@ export default function NewOrderForm() {
   const [searchParams] = useSearchParams();
   const [saving, setSaving] = useState(false);
   const [customers, setCustomers] = useState([]);
+  const [customerSearch, setCustomerSearch] = useState(searchParams.get('customer_name') || '');
+  const [showCustomerResults, setShowCustomerResults] = useState(false);
+
   const [order, setOrder] = useState({
     customer_name: searchParams.get('customer_name') || '',
     contact_name: searchParams.get('customer_name') || '',
@@ -52,67 +53,61 @@ export default function NewOrderForm() {
     pickup_delivery_method: 'pickup', pickup_delivery_notes: '',
     internal_notes: '', customer_notes: '',
   });
-  const [tickets, setTickets] = useState([{
-    item_name: '', item_category: 'custom', quantity: 1, priority: 'normal',
-    production_flow_enabled: false, design_needed: false, proof_required: false,
-    estimated_price: 0, special_instructions: '', entry_mode: 'quick',
-    specs: {},
-  }]);
+
+  // Start with NO tickets — user adds them
+  const [tickets, setTickets] = useState([]);
 
   useEffect(() => {
-    axios.get(`${API}/customers?limit=100`, { headers: headers() })
+    axios.get(`${API}/customers?limit=200`, { headers: hdrs() })
       .then(r => setCustomers(r.data?.customers || r.data || []))
       .catch(() => {});
   }, []);
 
+  const filteredCustomers = useMemo(() => {
+    if (!customerSearch.trim()) return [];
+    const q = customerSearch.toLowerCase();
+    return customers.filter(c =>
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.company || '').toLowerCase().includes(q) ||
+      (c.email || '').toLowerCase().includes(q) ||
+      (c.phone || '').includes(q)
+    ).slice(0, 8);
+  }, [customerSearch, customers]);
+
   const updateOrder = (field, value) => setOrder(prev => ({ ...prev, [field]: value }));
   const updateTicket = (i, field, value) => setTickets(prev => prev.map((t, idx) => idx === i ? { ...t, [field]: value } : t));
-  const updateTicketSpec = (i, field, value) => setTickets(prev => prev.map((t, idx) => idx === i ? { ...t, specs: { ...t.specs, [field]: value } } : t));
+
   const addTicket = (mode = 'quick') => setTickets(prev => [...prev, {
-    item_name: '', item_category: 'custom', quantity: 1, priority: 'normal',
+    item_name: '', item_category: '', quantity: 1, priority: 'normal',
     production_flow_enabled: false, design_needed: false, proof_required: false,
-    estimated_price: 0, special_instructions: '', entry_mode: mode,
-    specs: {},
+    estimated_price: 0, special_instructions: '', entry_mode: mode, specs: {},
   }]);
   const removeTicket = (i) => setTickets(prev => prev.filter((_, idx) => idx !== i));
   const toggleEntryMode = (i) => setTickets(prev => prev.map((t, idx) => idx === i ? { ...t, entry_mode: t.entry_mode === 'quick' ? 'detailed' : 'quick' } : t));
 
-  const selectCustomer = (customerId) => {
-    const c = customers.find(x => x.id === customerId);
-    if (c) {
-      setOrder(prev => ({
-        ...prev,
-        customer_id: c.id,
-        customer_name: c.name || '',
-        contact_name: c.name || '',
-        phone: c.phone || '',
-        email: c.email || '',
-        company_name: c.company || '',
-      }));
-    }
+  const selectCustomer = (c) => {
+    setOrder(prev => ({
+      ...prev, customer_id: c.id, customer_name: c.name || '',
+      contact_name: c.name || '', phone: c.phone || '',
+      email: c.email || '', company_name: c.company || '',
+    }));
+    setCustomerSearch(c.name || c.company || '');
+    setShowCustomerResults(false);
   };
 
-  const handleSave = async (generateQuote = false) => {
+  const handleSave = async () => {
     if (!order.customer_name.trim()) { toast.error('Customer name is required'); return; }
-    if (!tickets.some(t => t.item_name.trim())) { toast.error('At least one ticket needs a name'); return; }
-
     setSaving(true);
     try {
-      const orderRes = await axios.post(`${API}/orders`, order, { headers: headers() });
+      const orderRes = await axios.post(`${API}/orders`, order, { headers: hdrs() });
       const orderId = orderRes.data.id;
 
       for (const t of tickets) {
         if (!t.item_name.trim()) continue;
-        await axios.post(`${API}/job-tickets`, { ...t, order_id: orderId }, { headers: headers() });
+        await axios.post(`${API}/job-tickets`, { ...t, order_id: orderId }, { headers: hdrs() });
       }
 
-      if (generateQuote) {
-        await axios.post(`${API}/orders/${orderId}/generate-quote`, {}, { headers: headers() });
-        toast.success('Order created with quote!');
-      } else {
-        toast.success('Order saved as intake!');
-      }
-
+      toast.success('Order saved!');
       navigate(`/orders/${orderId}`);
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Failed to create order');
@@ -120,34 +115,58 @@ export default function NewOrderForm() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl" data-testid="new-order-form">
+    <div className="space-y-6" data-testid="new-order-form">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/orders')}><ArrowLeft className="w-5 h-5 text-gray-500" /></Button>
+        <Button variant="ghost" size="icon" onClick={() => navigate('/orders')}><ArrowLeft className="w-5 h-5 text-gray-400" /></Button>
         <h1 className="text-2xl font-bold text-white font-heading">New Order</h1>
       </div>
 
       {/* Customer Info */}
       <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <CardHeader><CardTitle className="text-gray-900 text-lg">Customer Information</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-gray-900 text-lg">Customer</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          {customers.length > 0 && (
-            <div>
-              <Label className="text-gray-700">Select Existing Customer</Label>
-              <Select onValueChange={selectCustomer}>
-                <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900"><SelectValue placeholder="Or type new customer below" /></SelectTrigger>
-                <SelectContent>
-                  {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}{c.company ? ` (${c.company})` : ''}</SelectItem>)}
-                </SelectContent>
-              </Select>
+          {/* Type-ahead customer search */}
+          <div className="relative">
+            <Label className="text-gray-700">Search Customer</Label>
+            <div className="relative mt-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                value={customerSearch}
+                onChange={e => { setCustomerSearch(e.target.value); setShowCustomerResults(true); updateOrder('customer_name', e.target.value); }}
+                onFocus={() => setShowCustomerResults(true)}
+                placeholder="Start typing customer name, company, email, or phone..."
+                className="pl-10 bg-gray-50 border-gray-300 text-gray-900"
+                data-testid="customer-search"
+              />
             </div>
-          )}
-          <div className="grid grid-cols-2 gap-3">
+            {showCustomerResults && customerSearch.trim() && (
+              <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                {filteredCustomers.length > 0 ? filteredCustomers.map(c => (
+                  <button key={c.id} onClick={() => selectCustomer(c)} className="w-full text-left px-4 py-2.5 hover:bg-violet-50 flex items-center justify-between border-b border-gray-100 last:border-0" data-testid={`customer-result-${c.id}`}>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{c.name}</p>
+                      <p className="text-xs text-gray-500">{c.company}{c.email ? ` | ${c.email}` : ''}</p>
+                    </div>
+                  </button>
+                )) : (
+                  <div className="px-4 py-3 text-center">
+                    <p className="text-sm text-gray-500">No customers found</p>
+                    <button onClick={() => { updateOrder('customer_name', customerSearch); setShowCustomerResults(false); }} className="text-xs text-violet-600 hover:underline mt-1 flex items-center gap-1 mx-auto">
+                      <UserPlus className="w-3 h-3" /> Use as new customer
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div><Label className="text-gray-700">Customer Name *</Label><Input value={order.customer_name} onChange={e => updateOrder('customer_name', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" data-testid="order-customer-name" /></div>
             <div><Label className="text-gray-700">Company</Label><Input value={order.company_name} onChange={e => updateOrder('company_name', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" /></div>
             <div><Label className="text-gray-700">Phone</Label><Input value={order.phone} onChange={e => updateOrder('phone', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" /></div>
             <div><Label className="text-gray-700">Email</Label><Input value={order.email} onChange={e => updateOrder('email', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" /></div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div><Label className="text-gray-700">Source</Label>
               <Select value={order.order_source} onValueChange={v => updateOrder('order_source', v)}>
                 <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900"><SelectValue /></SelectTrigger>
@@ -166,41 +185,66 @@ export default function NewOrderForm() {
                 </SelectContent>
               </Select>
             </div>
+            <div />
           </div>
-          <div><Label className="text-gray-700">Internal Notes</Label><Textarea value={order.internal_notes} onChange={e => updateOrder('internal_notes', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" rows={2} /></div>
+          <div><Label className="text-gray-700">Internal Notes</Label><Textarea value={order.internal_notes} onChange={e => updateOrder('internal_notes', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" rows={2} placeholder="Internal notes about this order..." /></div>
+
+          {/* File Upload Area */}
+          <div>
+            <Label className="text-gray-700">Attachments / Artwork / Notes</Label>
+            <div className="mt-1 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-violet-400 transition-colors cursor-pointer bg-gray-50">
+              <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+              <p className="text-sm text-gray-500">Drag files here or click to upload</p>
+              <p className="text-xs text-gray-400 mt-1">Artwork, drawings, photos, notes — any files related to this order</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Job Tickets */}
+      {/* Job Tickets Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-white">Job Tickets ({tickets.length})</h2>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => addTicket('quick')} className="gap-2" data-testid="add-quick-ticket"><Plus className="w-4 h-4" /> Quick Entry</Button>
+          <Button variant="outline" size="sm" onClick={() => addTicket('quick')} className="gap-2 bg-white" data-testid="add-quick-ticket"><Plus className="w-4 h-4" /> Quick Entry</Button>
           <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white gap-2" onClick={() => addTicket('detailed')} data-testid="add-detailed-ticket"><Plus className="w-4 h-4" /> Detailed Entry</Button>
         </div>
       </div>
 
+      {/* Empty state */}
+      {tickets.length === 0 && (
+        <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <CardContent className="py-12 text-center">
+            <p className="text-gray-500 mb-4">No job tickets yet. Add your first ticket to get started.</p>
+            <div className="flex gap-3 justify-center">
+              <Button variant="outline" onClick={() => addTicket('quick')} className="gap-2"><Plus className="w-4 h-4" /> Quick Entry</Button>
+              <Button className="bg-violet-600 hover:bg-violet-700 text-white gap-2" onClick={() => addTicket('detailed')}><Plus className="w-4 h-4" /> Detailed Entry</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Ticket Forms */}
       {tickets.map((ticket, i) => (
         <Card key={i} className="bg-white rounded-xl border border-gray-200 shadow-sm" data-testid={`ticket-form-${i}`}>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <CardTitle className="text-gray-900 text-base">Ticket {i + 1}</CardTitle>
-                <button onClick={() => toggleEntryMode(i)} className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${ticket.entry_mode === 'detailed' ? 'bg-violet-50 text-violet-600 border-violet-300' : 'bg-gray-100 text-gray-500 border-gray-300'}`} data-testid={`toggle-mode-${i}`}>
+                <button onClick={() => toggleEntryMode(i)} className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${ticket.entry_mode === 'detailed' ? 'bg-violet-50 text-violet-600 border-violet-300' : 'bg-gray-100 text-gray-500 border-gray-300'}`}>
                   {ticket.entry_mode === 'detailed' ? 'Detailed' : 'Quick'}
                 </button>
               </div>
-              {tickets.length > 1 && <Button variant="ghost" size="icon" onClick={() => removeTicket(i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>}
+              <Button variant="ghost" size="icon" onClick={() => removeTicket(i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {/* Common fields — always visible */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Common fields */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="col-span-2"><Label className="text-gray-700">Item Name *</Label><Input value={ticket.item_name} onChange={e => updateTicket(i, 'item_name', e.target.value)} placeholder="e.g. Race Banner 3x8" className="bg-gray-50 border-gray-300 text-gray-900" /></div>
               <div><Label className="text-gray-700">Category</Label>
                 <Select value={ticket.item_category} onValueChange={v => updateTicket(i, 'item_category', v)}>
-                  <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900"><SelectValue /></SelectTrigger>
-                  <SelectContent>{CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+                  <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900"><SelectValue placeholder="Select Category..." /></SelectTrigger>
+                  <SelectContent>{CATEGORIES.filter(c => c.value).map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="grid grid-cols-3 gap-2">
@@ -216,19 +260,15 @@ export default function NewOrderForm() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div><Label className="text-gray-700">Price</Label><Input type="number" min={0} step={0.01} value={ticket.estimated_price} onChange={e => updateTicket(i, 'estimated_price', parseFloat(e.target.value) || 0)} className="bg-gray-50 border-gray-300 text-gray-900" /></div>
+                <div><Label className="text-gray-700">Price</Label><Input type="number" min={0} step={0.01} value={ticket.estimated_price || ''} onChange={e => updateTicket(i, 'estimated_price', parseFloat(e.target.value) || 0)} placeholder="0" className="bg-gray-50 border-gray-300 text-gray-900" /></div>
               </div>
             </div>
 
-            {/* QUICK MODE — simple fields only */}
+            {/* QUICK MODE */}
             {ticket.entry_mode !== 'detailed' && (
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label className="text-gray-700">Size</Label><Input value={ticket.specs?.size_description || ''} onChange={e => updateTicket(i, 'specs', { ...ticket.specs, size_description: e.target.value })} placeholder="e.g. 3x8, 24x36, Large" className="bg-gray-50 border-gray-300 text-gray-900" /></div>
-                  <div><Label className="text-gray-700">Internal Cost</Label><Input type="number" min={0} step={0.01} value={ticket.actual_cost || ''} onChange={e => updateTicket(i, 'actual_cost', parseFloat(e.target.value) || 0)} placeholder="Optional" className="bg-gray-50 border-gray-300 text-gray-900" /></div>
-                </div>
                 <div><Label className="text-gray-700">Description / Notes</Label><Textarea value={ticket.special_instructions} onChange={e => updateTicket(i, 'special_instructions', e.target.value)} placeholder="Describe the item, materials, specs..." className="bg-gray-50 border-gray-300 text-gray-900" rows={3} /></div>
-                <div className="flex items-center gap-6 pt-1">
+                <div className="flex items-center gap-6">
                   <div className="flex items-center gap-2"><Switch checked={ticket.design_needed} onCheckedChange={v => updateTicket(i, 'design_needed', v)} /><Label className="text-gray-700 text-sm">Design Needed</Label></div>
                   <div className="flex items-center gap-2"><Switch checked={ticket.proof_required} onCheckedChange={v => updateTicket(i, 'proof_required', v)} /><Label className="text-gray-700 text-sm">Proof Required</Label></div>
                   <div className="flex items-center gap-2"><Switch checked={ticket.production_flow_enabled} onCheckedChange={v => updateTicket(i, 'production_flow_enabled', v)} /><Label className="text-gray-700 text-sm">Workflow</Label></div>
@@ -237,20 +277,26 @@ export default function NewOrderForm() {
               </div>
             )}
 
-            {/* DETAILED MODE — full dynamic category fields + calculator */}
+            {/* DETAILED MODE — only show dynamic fields if category is selected */}
             {ticket.entry_mode === 'detailed' && (
               <div className="space-y-3">
-                <DynamicCategoryFields
-                  category={ticket.item_category}
-                  specs={ticket.specs}
-                  onChange={(newSpecs) => updateTicket(i, 'specs', newSpecs)}
-                  mode="edit"
-                />
-                <div><Label className="text-gray-700">Special Instructions</Label><Textarea value={ticket.special_instructions} onChange={e => updateTicket(i, 'special_instructions', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" rows={2} /></div>
-                <div className="flex items-center gap-6 pt-1">
+                {ticket.item_category ? (
+                  <DynamicCategoryFields
+                    category={ticket.item_category}
+                    specs={ticket.specs}
+                    onChange={(newSpecs) => updateTicket(i, 'specs', newSpecs)}
+                    mode="edit"
+                  />
+                ) : (
+                  <div className="py-6 text-center text-gray-400 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                    Select a category above to see category-specific fields
+                  </div>
+                )}
+                {ticket.item_category && (
+                  <div><Label className="text-gray-700">Special Instructions</Label><Textarea value={ticket.special_instructions} onChange={e => updateTicket(i, 'special_instructions', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" rows={2} /></div>
+                )}
+                <div className="flex items-center gap-6">
                   <div className="flex items-center gap-2"><Switch checked={ticket.production_flow_enabled} onCheckedChange={v => updateTicket(i, 'production_flow_enabled', v)} /><Label className="text-gray-700 text-sm">Production Workflow</Label></div>
-                  <div className="flex items-center gap-2"><Switch checked={ticket.design_needed} onCheckedChange={v => updateTicket(i, 'design_needed', v)} /><Label className="text-gray-700 text-sm">Design Needed</Label></div>
-                  <div className="flex items-center gap-2"><Switch checked={ticket.proof_required} onCheckedChange={v => updateTicket(i, 'proof_required', v)} /><Label className="text-gray-700 text-sm">Proof Required</Label></div>
                 </div>
                 <button onClick={() => toggleEntryMode(i)} className="text-xs text-gray-500 hover:text-gray-700 underline">Switch to Quick Entry</button>
               </div>
@@ -259,13 +305,10 @@ export default function NewOrderForm() {
         </Card>
       ))}
 
-      {/* Action Buttons */}
+      {/* Save Button */}
       <div className="flex gap-3 pt-2">
-        <Button onClick={() => handleSave(false)} disabled={saving} className="bg-gray-200 hover:bg-slate-600 text-gray-900 flex-1" data-testid="save-intake-btn">
-          {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Save as Intake Only
-        </Button>
-        <Button onClick={() => handleSave(true)} disabled={saving} className="bg-violet-600 hover:bg-violet-700 text-white flex-1" data-testid="save-generate-quote-btn">
-          {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Save + Generate Quote
+        <Button onClick={handleSave} disabled={saving} className="bg-violet-600 hover:bg-violet-700 text-white flex-1 py-6 text-lg" data-testid="save-order-btn">
+          {saving ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null} Save Order
         </Button>
       </div>
     </div>

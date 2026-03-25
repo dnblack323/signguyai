@@ -139,7 +139,7 @@ export const MainLayout = ({ children }) => {
           style={{ backgroundColor: 'transparent' }}
         >
           <div 
-            className="max-w-[1400px] mx-auto"
+            className="max-w-[1600px] mx-auto"
             style={{ backgroundColor: 'transparent' }}
           >
             {/* Weekly backup reminder */}

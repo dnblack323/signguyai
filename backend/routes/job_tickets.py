@@ -54,8 +54,6 @@ def _banner_schema(defaults):
         {"key": "webbing", "label": "Webbing / Reinforcement", "type": "toggle", "default": False, "group": "finishing", "pricing": True},
         # Design / Artwork
         {"key": "artwork_provided", "label": "Artwork Provided", "type": "toggle", "default": False, "group": "design"},
-        {"key": "design_needed", "label": "Design Needed", "type": "toggle", "default": False, "group": "design", "pricing": True},
-        {"key": "proof_required", "label": "Proof Required", "type": "toggle", "default": True, "group": "design"},
         {"key": "proof_rounds", "label": "Expected Proof Rounds", "type": "number", "placeholder": "1", "group": "design"},
         {"key": "artwork_notes", "label": "Artwork Notes", "type": "textarea", "group": "design"},
         # Production / Delivery
@@ -143,8 +141,6 @@ def _apparel_schema(defaults):
         {"key": "print_locations", "label": "Print Locations", "type": "location_picker", "options": print_locations, "group": "print_locations", "pricing": True},
         # Per-location details are handled dynamically in frontend based on selected locations
         # Design / Proof
-        {"key": "design_needed", "label": "Design Needed", "type": "toggle", "default": False, "group": "design", "pricing": True},
-        {"key": "proof_required", "label": "Proof Required", "type": "toggle", "default": True, "group": "design"},
         {"key": "artwork_notes", "label": "Notes", "type": "textarea", "group": "design"},
         # Production
         {"key": "rush_order", "label": "Rush Order", "type": "toggle", "default": False, "group": "production", "pricing": True},
@@ -184,8 +180,6 @@ def _rigid_sign_schema(defaults, substrate_opts):
         {"key": "install_required", "label": "Installation Required", "type": "toggle", "default": False, "group": "mounting", "pricing": True},
         # Design
         {"key": "artwork_provided", "label": "Artwork Provided", "type": "toggle", "default": False, "group": "design"},
-        {"key": "design_needed", "label": "Design Needed", "type": "toggle", "default": False, "group": "design", "pricing": True},
-        {"key": "proof_required", "label": "Proof Required", "type": "toggle", "default": True, "group": "design"},
         {"key": "artwork_notes", "label": "Notes", "type": "textarea", "group": "design"},
         # Production
         {"key": "rush_order", "label": "Rush Order", "type": "toggle", "default": False, "group": "production", "pricing": True},
@@ -220,8 +214,6 @@ def _cut_vinyl_schema(defaults, vinyl_opts):
         {"key": "location_notes", "label": "Location / Install Notes", "type": "textarea", "group": "installation"},
         # Design
         {"key": "artwork_provided", "label": "Artwork Provided", "type": "toggle", "default": False, "group": "design"},
-        {"key": "design_needed", "label": "Design Needed", "type": "toggle", "default": False, "group": "design", "pricing": True},
-        {"key": "proof_required", "label": "Proof Required", "type": "toggle", "default": True, "group": "design"},
         # Production
         {"key": "rush_order", "label": "Rush Order", "type": "toggle", "default": False, "group": "production", "pricing": True},
         {"key": "outsourced", "label": "Outsourced", "type": "toggle", "default": False, "group": "production"},
@@ -267,8 +259,6 @@ def _digital_print_schema(defaults):
         {"key": "install_notes", "label": "Install Notes", "type": "textarea", "group": "installation"},
         # Design
         {"key": "artwork_provided", "label": "Artwork Provided", "type": "toggle", "default": False, "group": "design"},
-        {"key": "design_needed", "label": "Design Needed", "type": "toggle", "default": False, "group": "design", "pricing": True},
-        {"key": "proof_required", "label": "Proof Required", "type": "toggle", "default": True, "group": "design"},
         {"key": "artwork_notes", "label": "Notes", "type": "textarea", "group": "design"},
         # Production
         {"key": "rush_order", "label": "Rush Order", "type": "toggle", "default": False, "group": "production", "pricing": True},
@@ -326,11 +316,9 @@ def _vehicle_wrap_schema(defaults, vinyl_opts, coverage_opts, vehicle_type_opts)
         {"key": "surface_prep", "label": "Surface Prep Required", "type": "toggle", "default": False, "group": "installation", "pricing": True},
         # Design & Complexity
         {"key": "artwork_provided", "label": "Artwork Provided", "type": "toggle", "default": False, "group": "design"},
-        {"key": "design_needed", "label": "Design Needed", "type": "toggle", "default": True, "group": "design", "pricing": True},
         {"key": "design_complexity", "label": "Design Complexity", "type": "select", "options": [{"value": "simple", "label": "Simple"}, {"value": "moderate", "label": "Moderate"}, {"value": "complex", "label": "Complex"}], "default": "moderate", "group": "design", "pricing": True},
         {"key": "num_revisions", "label": "Expected Revisions", "type": "number", "placeholder": "2", "group": "design"},
         {"key": "mockups_required", "label": "Mockups Required", "type": "toggle", "default": True, "group": "design", "pricing": True},
-        {"key": "proof_required", "label": "Proof Required", "type": "toggle", "default": True, "group": "design"},
         # Production
         {"key": "rush_order", "label": "Rush Order", "type": "toggle", "default": False, "group": "production", "pricing": True},
         {"key": "outsourced_print", "label": "Outsourced Print", "type": "toggle", "default": False, "group": "production"},
