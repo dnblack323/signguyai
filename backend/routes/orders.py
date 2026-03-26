@@ -4,10 +4,11 @@ Orders API Routes
 CRUD for the master Order record (Layer 1).
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 from typing import Optional, List
 from datetime import datetime, timezone
 import uuid
+import base64
 
 from server import db, get_current_active_user
 from models import UserInDB
@@ -383,3 +384,59 @@ async def get_order_production_summary(order_id: str, current_user: UserInDB = D
         }
     }
 
+
+
+@router.post("/{order_id}/upload")
+async def upload_order_file(
+    order_id: str,
+    file: UploadFile = File(...),
+    label: str = Form(""),
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Upload a file attachment to an order (artwork, drawings, notes, photos)."""
+    order = await db.orders.find_one({"id": order_id, "tenant_id": current_user.tenant_id}, {"_id": 0, "id": 1})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    contents = await file.read()
+    if len(contents) > 15 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large (max 15MB)")
+
+    file_id = str(uuid.uuid4())
+    file_doc = {
+        "id": file_id,
+        "order_id": order_id,
+        "tenant_id": current_user.tenant_id,
+        "filename": file.filename or "unknown",
+        "label": label or file.filename or "Attachment",
+        "content_type": file.content_type,
+        "file_size": len(contents),
+        "file_data": base64.b64encode(contents).decode("utf-8"),
+        "uploaded_by": current_user.id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.order_files.insert_one(file_doc)
+
+    await log_activity(db, order_id, current_user.tenant_id, "file", file_id,
+                       "uploaded", f"File uploaded: {file.filename}",
+                       user_id=current_user.id, user_name=current_user.full_name or "")
+
+    return {"id": file_id, "filename": file.filename, "label": file_doc["label"], "file_size": len(contents), "content_type": file.content_type}
+
+
+@router.get("/{order_id}/files")
+async def list_order_files(order_id: str, current_user: UserInDB = Depends(get_current_active_user)):
+    """List all file attachments for an order."""
+    files = await db.order_files.find(
+        {"order_id": order_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0, "file_data": 0}
+    ).sort("created_at", -1).to_list(50)
+    return files
+
+
+@router.delete("/{order_id}/files/{file_id}")
+async def delete_order_file(order_id: str, file_id: str, current_user: UserInDB = Depends(get_current_active_user)):
+    result = await db.order_files.delete_one({"id": file_id, "order_id": order_id, "tenant_id": current_user.tenant_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="File not found")
+    return {"message": "File deleted"}

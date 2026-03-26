@@ -7,7 +7,7 @@ This module contains all routes related to:
 - Payroll transactions and balance tracking
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field
@@ -764,3 +764,69 @@ async def get_pay_period_summary(
             "net_owed": round(sum(e["net_owed"] for e in summary), 2)
         }
     }
+
+
+
+# ==================== SCHEDULE ENDPOINTS ====================
+
+@payroll_router.get("/schedule")
+async def get_schedule(
+    week_start: str = None,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Get employee schedule for a week."""
+    if not week_start:
+        from datetime import date
+        today = date.today()
+        week_start = (today - timedelta(days=today.weekday())).isoformat()
+
+    schedules = await db.employee_schedules.find(
+        {"tenant_id": current_user.tenant_id, "week_start": week_start},
+        {"_id": 0}
+    ).to_list(100)
+
+    return {"week_start": week_start, "schedules": schedules}
+
+
+@payroll_router.post("/schedule")
+async def save_schedule(
+    request: Request,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Save or update a schedule entry for an employee on a specific day."""
+    body = await request.json()
+    employee_id = body.get("employee_id")
+    week_start = body.get("week_start")
+    day = body.get("day")  # mon, tue, wed, thu, fri, sat, sun
+    start_time = body.get("start_time", "")
+    end_time = body.get("end_time", "")
+    notes = body.get("notes", "")
+
+    if not employee_id or not week_start or not day:
+        raise HTTPException(status_code=400, detail="employee_id, week_start, and day are required")
+
+    existing = await db.employee_schedules.find_one(
+        {"tenant_id": current_user.tenant_id, "employee_id": employee_id, "week_start": week_start},
+        {"_id": 0}
+    )
+
+    if existing:
+        shifts = existing.get("shifts", {})
+        shifts[day] = {"start": start_time, "end": end_time, "notes": notes}
+        await db.employee_schedules.update_one(
+            {"id": existing["id"]},
+            {"$set": {"shifts": shifts, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    else:
+        schedule_doc = {
+            "id": str(uuid.uuid4()),
+            "tenant_id": current_user.tenant_id,
+            "employee_id": employee_id,
+            "week_start": week_start,
+            "shifts": {day: {"start": start_time, "end": end_time, "notes": notes}},
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.employee_schedules.insert_one(schedule_doc)
+
+    return {"message": "Schedule saved", "employee_id": employee_id, "day": day}

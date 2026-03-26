@@ -11,6 +11,7 @@ import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
 import axios from 'axios';
 import DynamicCategoryFields from '../components/DynamicCategoryFields';
+import LivePricingPreview from '../components/LivePricingPreview';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const token = () => localStorage.getItem('auth_token');
@@ -56,6 +57,7 @@ export default function NewOrderForm() {
 
   // Start with NO tickets — user adds them
   const [tickets, setTickets] = useState([]);
+  const [orderFiles, setOrderFiles] = useState([]);
 
   useEffect(() => {
     axios.get(`${API}/customers?limit=200`, { headers: hdrs() })
@@ -105,6 +107,16 @@ export default function NewOrderForm() {
       for (const t of tickets) {
         if (!t.item_name.trim()) continue;
         await axios.post(`${API}/job-tickets`, { ...t, order_id: orderId }, { headers: hdrs() });
+      }
+
+      // Upload files
+      for (const f of orderFiles) {
+        const formData = new FormData();
+        formData.append('file', f);
+        formData.append('label', f.name);
+        await axios.post(`${API}/orders/${orderId}/upload`, formData, {
+          headers: { Authorization: `Bearer ${token()}` },
+        });
       }
 
       toast.success('Order saved!');
@@ -192,10 +204,37 @@ export default function NewOrderForm() {
           {/* File Upload Area */}
           <div>
             <Label className="text-gray-700">Attachments / Artwork / Notes</Label>
-            <div className="mt-1 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-violet-400 transition-colors cursor-pointer bg-gray-50">
-              <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-              <p className="text-sm text-gray-500">Drag files here or click to upload</p>
-              <p className="text-xs text-gray-400 mt-1">Artwork, drawings, photos, notes — any files related to this order</p>
+            <div className="mt-1">
+              <input
+                type="file"
+                multiple
+                onChange={(e) => {
+                  const newFiles = Array.from(e.target.files || []);
+                  setOrderFiles(prev => [...prev, ...newFiles]);
+                  e.target.value = '';
+                }}
+                className="hidden"
+                id="order-file-input"
+                data-testid="order-file-input"
+              />
+              <label htmlFor="order-file-input" className="block border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-violet-400 transition-colors cursor-pointer bg-gray-50">
+                <Upload className="w-6 h-6 mx-auto text-gray-400 mb-1" />
+                <p className="text-sm text-gray-500">Click to upload artwork, drawings, photos, or notes</p>
+              </label>
+              {orderFiles.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {orderFiles.map((f, i) => (
+                    <div key={i} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded px-3 py-1.5 text-sm">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileUp className="w-4 h-4 text-violet-500 flex-shrink-0" />
+                        <span className="text-gray-700 truncate">{f.name}</span>
+                        <span className="text-gray-400 text-xs flex-shrink-0">({(f.size / 1024).toFixed(0)} KB)</span>
+                      </div>
+                      <button onClick={() => setOrderFiles(prev => prev.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-600 ml-2"><Trash2 className="w-3.5 h-3.5" /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
@@ -281,19 +320,22 @@ export default function NewOrderForm() {
             {ticket.entry_mode === 'detailed' && (
               <div className="space-y-3">
                 {ticket.item_category ? (
-                  <DynamicCategoryFields
-                    category={ticket.item_category}
-                    specs={ticket.specs}
-                    onChange={(newSpecs) => updateTicket(i, 'specs', newSpecs)}
-                    mode="edit"
-                  />
+                  <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
+                    <div className="space-y-3">
+                      <DynamicCategoryFields
+                        category={ticket.item_category}
+                        specs={ticket.specs}
+                        onChange={(newSpecs) => updateTicket(i, 'specs', newSpecs)}
+                        mode="edit"
+                      />
+                      <div><Label className="text-gray-700">Special Instructions</Label><Textarea value={ticket.special_instructions} onChange={e => updateTicket(i, 'special_instructions', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" rows={2} /></div>
+                    </div>
+                    <LivePricingPreview category={ticket.item_category} specs={ticket.specs} quantity={ticket.quantity} />
+                  </div>
                 ) : (
                   <div className="py-6 text-center text-gray-400 bg-gray-50 rounded-lg border border-dashed border-gray-300">
                     Select a category above to see category-specific fields
                   </div>
-                )}
-                {ticket.item_category && (
-                  <div><Label className="text-gray-700">Special Instructions</Label><Textarea value={ticket.special_instructions} onChange={e => updateTicket(i, 'special_instructions', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" rows={2} /></div>
                 )}
                 <div className="flex items-center gap-6">
                   <div className="flex items-center gap-2"><Switch checked={ticket.production_flow_enabled} onCheckedChange={v => updateTicket(i, 'production_flow_enabled', v)} /><Label className="text-gray-700 text-sm">Production Workflow</Label></div>

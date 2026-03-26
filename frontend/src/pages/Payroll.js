@@ -11,7 +11,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '../components/ui/select';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '../components/ui/dialog';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -600,40 +600,7 @@ export default function Payroll() {
 
         {/* SCHEDULE TAB */}
         <TabsContent value="schedule">
-          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Employee Schedule</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {employees.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No employees found. Add employees in User Management first.</p>
-              ) : (
-                <div className="space-y-4">
-                  {/* Week view header */}
-                  <div className="grid grid-cols-8 gap-1 text-center text-xs font-medium text-gray-500 uppercase">
-                    <div>Employee</div>
-                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                      <div key={day}>{day}</div>
-                    ))}
-                  </div>
-                  {/* Employee rows */}
-                  {employees.map(emp => (
-                    <div key={emp.id} className="grid grid-cols-8 gap-1 items-center" data-testid={`schedule-row-${emp.id}`}>
-                      <div className="text-sm font-medium text-gray-900 truncate pr-2">{emp.name}</div>
-                      {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map(day => (
-                        <div key={day} className="bg-gray-50 border border-gray-200 rounded p-1.5 text-center min-h-[40px] hover:bg-violet-50 hover:border-violet-300 cursor-pointer transition-colors">
-                          <span className="text-xs text-gray-400">-</span>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                  <p className="text-xs text-gray-400 text-center pt-2">Click a cell to assign shift times. Schedule data will be saved to the employee record.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ScheduleTab employees={employees} api={api} canEdit={canEditPayroll} />
         </TabsContent>
       </Tabs>
 
@@ -765,5 +732,151 @@ export default function Payroll() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+
+function ScheduleTab({ employees, api, canEdit }) {
+  const [schedules, setSchedules] = useState({});
+  const [editCell, setEditCell] = useState(null);
+  const [shiftForm, setShiftForm] = useState({ start: '08:00', end: '17:00', notes: '' });
+  const [saving, setSaving] = useState(false);
+
+  const today = new Date();
+  const mondayOffset = today.getDay() === 0 ? -6 : 1 - today.getDay();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + mondayOffset);
+  const weekStart = monday.toISOString().split('T')[0];
+
+  const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+  const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  useEffect(() => {
+    api.get(`/payroll/schedule?week_start=${weekStart}`)
+      .then(res => {
+        const map = {};
+        (res.data?.schedules || []).forEach(s => { map[s.employee_id] = s.shifts || {}; });
+        setSchedules(map);
+      })
+      .catch(() => {});
+  }, [weekStart]);
+
+  const getShift = (empId, day) => (schedules[empId] || {})[day];
+
+  const openEdit = (empId, day) => {
+    if (!canEdit) return;
+    const existing = getShift(empId, day);
+    setShiftForm({ start: existing?.start || '08:00', end: existing?.end || '17:00', notes: existing?.notes || '' });
+    setEditCell({ empId, day });
+  };
+
+  const saveShift = async () => {
+    if (!editCell) return;
+    setSaving(true);
+    try {
+      await api.post('/payroll/schedule', {
+        employee_id: editCell.empId,
+        week_start: weekStart,
+        day: editCell.day,
+        start_time: shiftForm.start,
+        end_time: shiftForm.end,
+        notes: shiftForm.notes,
+      });
+      setSchedules(prev => ({
+        ...prev,
+        [editCell.empId]: {
+          ...(prev[editCell.empId] || {}),
+          [editCell.day]: { start: shiftForm.start, end: shiftForm.end, notes: shiftForm.notes },
+        }
+      }));
+      setEditCell(null);
+    } catch { toast.error('Failed to save'); }
+    finally { setSaving(false); }
+  };
+
+  const clearShift = async () => {
+    if (!editCell) return;
+    setSaving(true);
+    try {
+      await api.post('/payroll/schedule', {
+        employee_id: editCell.empId,
+        week_start: weekStart,
+        day: editCell.day,
+        start_time: '',
+        end_time: '',
+        notes: '',
+      });
+      setSchedules(prev => {
+        const empShifts = { ...(prev[editCell.empId] || {}) };
+        delete empShifts[editCell.day];
+        return { ...prev, [editCell.empId]: empShifts };
+      });
+      setEditCell(null);
+    } catch { toast.error('Failed to clear'); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
+      <CardHeader>
+        <CardTitle className="text-lg">Employee Schedule — Week of {weekStart}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {employees.length === 0 ? (
+          <p className="text-gray-500 text-center py-8">No employees. Add employees in User Management.</p>
+        ) : (
+          <div className="space-y-2 overflow-x-auto">
+            <div className="grid grid-cols-8 gap-1 text-center text-xs font-semibold text-gray-500 uppercase min-w-[700px]">
+              <div className="text-left">Employee</div>
+              {DAY_LABELS.map(d => <div key={d}>{d}</div>)}
+            </div>
+            {employees.map(emp => (
+              <div key={emp.id} className="grid grid-cols-8 gap-1 items-stretch min-w-[700px]">
+                <div className="text-sm font-medium text-gray-900 truncate pr-2 flex items-center">{emp.name}</div>
+                {DAYS.map(day => {
+                  const shift = getShift(emp.id, day);
+                  const hasShift = shift?.start && shift?.end;
+                  return (
+                    <button key={day} onClick={() => openEdit(emp.id, day)} className={`rounded border p-1.5 text-center min-h-[44px] transition-colors ${hasShift ? 'bg-violet-50 border-violet-300 hover:bg-violet-100' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'} ${canEdit ? 'cursor-pointer' : 'cursor-default'}`} data-testid={`schedule-${emp.id}-${day}`}>
+                      {hasShift ? (
+                        <div>
+                          <p className="text-xs font-medium text-violet-700">{shift.start}-{shift.end}</p>
+                          {shift.notes && <p className="text-[10px] text-gray-500 truncate">{shift.notes}</p>}
+                        </div>
+                      ) : <span className="text-xs text-gray-300">—</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Edit shift dialog */}
+        {editCell && (
+          <Dialog open={!!editCell} onOpenChange={() => setEditCell(null)}>
+            <DialogContent className="sm:max-w-[350px]">
+              <DialogHeader>
+                <DialogTitle>Set Shift — {editCell.day.charAt(0).toUpperCase() + editCell.day.slice(1)}</DialogTitle>
+                <DialogDescription>{employees.find(e => e.id === editCell.empId)?.name}</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Start Time</Label><Input type="time" value={shiftForm.start} onChange={e => setShiftForm(p => ({ ...p, start: e.target.value }))} /></div>
+                  <div><Label>End Time</Label><Input type="time" value={shiftForm.end} onChange={e => setShiftForm(p => ({ ...p, end: e.target.value }))} /></div>
+                </div>
+                <div><Label>Notes</Label><Input value={shiftForm.notes} onChange={e => setShiftForm(p => ({ ...p, notes: e.target.value }))} placeholder="Optional" /></div>
+                <div className="flex gap-2">
+                  <Button onClick={saveShift} disabled={saving} className="flex-1 bg-violet-600 hover:bg-violet-700 text-white">
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null} Save
+                  </Button>
+                  <Button variant="outline" onClick={clearShift} disabled={saving} className="text-red-500">Clear</Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </CardContent>
+    </Card>
   );
 }
