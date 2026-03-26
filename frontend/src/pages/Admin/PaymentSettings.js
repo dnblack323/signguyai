@@ -63,7 +63,12 @@ export default function PaymentSettings() {
       window.location.href = response.data.url;
     } catch (err) {
       console.error('Failed to create Stripe account:', err);
-      toast.error(err.response?.data?.detail || 'Failed to start Stripe setup');
+      const detail = err.response?.data?.detail || '';
+      if (detail.includes('signed up for Connect')) {
+        toast.error('Stripe Connect is not enabled yet. The platform admin needs to enable Stripe Connect at dashboard.stripe.com/connect first.', { duration: 8000 });
+      } else {
+        toast.error(detail || 'Failed to start Stripe setup');
+      }
       setConnecting(false);
     }
   };
@@ -250,6 +255,15 @@ export default function PaymentSettings() {
                 <CreditCard className="mr-2 h-4 w-4" />
                 Connect with Stripe
               </Button>
+
+              <p className="text-xs text-gray-500 mt-3">
+                Stripe Connect must be enabled on the platform's Stripe account first.
+                If you see an error, visit{' '}
+                <a href="https://dashboard.stripe.com/connect" target="_blank" rel="noopener noreferrer" className="text-violet-600 underline">
+                  dashboard.stripe.com/connect
+                </a>{' '}
+                to enable it, then try again.
+              </p>
             </>
           )}
         </CardContent>
