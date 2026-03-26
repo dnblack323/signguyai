@@ -322,6 +322,67 @@ async def generate_invoice_from_order(order_id: str, current_user: UserInDB = De
     return invoice_doc
 
 
+
+@router.post("/{order_id}/generate-work_order")
+async def generate_work_order(order_id: str, current_user: UserInDB = Depends(get_current_active_user)):
+    """Generate a production work order from job tickets — includes full specs and production details."""
+    order = await db.orders.find_one({"id": order_id, "tenant_id": current_user.tenant_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    tickets = await db.job_tickets.find(
+        {"order_id": order_id, "tenant_id": current_user.tenant_id}, {"_id": 0}
+    ).to_list(100)
+
+    if not tickets:
+        raise HTTPException(status_code=400, detail="No job tickets to generate work order from")
+
+    work_order_id = str(uuid.uuid4())
+    ticket_details = []
+    for t in tickets:
+        specs = t.get("specs", {})
+        detail = {
+            "ticket_number": t.get("ticket_number", ""),
+            "item_name": t.get("item_name", ""),
+            "category": t.get("item_category", ""),
+            "quantity": t.get("quantity", 1),
+            "priority": t.get("priority", "normal"),
+            "specs": specs,
+            "special_instructions": t.get("special_instructions", ""),
+            "production_notes": t.get("production_notes", ""),
+            "install_notes": t.get("install_notes", ""),
+            "design_needed": t.get("design_needed", False),
+            "proof_required": t.get("proof_required", False),
+            "production_flow_enabled": t.get("production_flow_enabled", False),
+        }
+        ticket_details.append(detail)
+
+    work_order_doc = {
+        "id": work_order_id,
+        "tenant_id": current_user.tenant_id,
+        "order_id": order_id,
+        "order_number": order.get("order_number", ""),
+        "customer_name": order.get("customer_name", ""),
+        "company_name": order.get("company_name", ""),
+        "type": "work_order",
+        "status": "draft",
+        "requested_due_date": order.get("requested_due_date"),
+        "pickup_delivery_method": order.get("pickup_delivery_method", "pickup"),
+        "internal_notes": order.get("internal_notes", ""),
+        "tickets": ticket_details,
+        "total_tickets": len(ticket_details),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.order_quotes.insert_one(work_order_doc)
+
+    await log_activity(db, order_id, current_user.tenant_id, "work_order", work_order_id,
+                       "created", f"Work order generated with {len(ticket_details)} ticket(s)",
+                       user_id=current_user.id, user_name=current_user.full_name or "")
+
+    work_order_doc.pop("_id", None)
+    return work_order_doc
+
+
 @router.get("/{order_id}/financials")
 async def get_order_financials(order_id: str, current_user: UserInDB = Depends(get_current_active_user)):
     """Get all quotes and invoices linked to this order."""

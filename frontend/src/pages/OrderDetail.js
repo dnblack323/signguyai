@@ -226,6 +226,9 @@ export default function OrderDetail() {
               <DropdownMenuItem onClick={() => generateDoc('invoice')} disabled={!!actionLoading || tickets.length === 0}>
                 <Receipt className="w-4 h-4 mr-2" /> Generate Invoice
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => generateDoc('work_order')} disabled={!!actionLoading || tickets.length === 0}>
+                <Wrench className="w-4 h-4 mr-2" /> Generate Work Order
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 

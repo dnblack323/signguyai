@@ -431,13 +431,15 @@ async def calculate_promotional(data: JobItemPricingData, quantity: float, defau
         if data.markup_percent is not None
         else category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5))
     )
-    pre_overhead_total = material_cost + labor_cost + setup_fee
+    pre_overhead_total = material_cost + labor_cost  # setup_fee added flat after markup
     overhead_cost = calculate_overhead_cost(pre_overhead_total, labor_hours, defaults, category_config)
     suggested_price = resolve_selling_price(
         pre_overhead_total + overhead_cost,
         markup_multiplier,
         category_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40.0)),
     )
+    # Setup fee added FLAT — not marked up
+    suggested_price += setup_fee
     
     # Quantity discount
     discount = get_quantity_discount(quantity, defaults.get("quantity_breaks", {}))
@@ -496,13 +498,15 @@ async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, default
     elif not include_setup:
         setup_fee = 0
 
-    pre_overhead_total = material_cost + labor_cost + setup_fee
+    pre_overhead_total = material_cost + labor_cost  # setup_fee added flat after markup
     overhead_cost = calculate_overhead_cost(pre_overhead_total, labor_hours, defaults, category_config)
     suggested_price = resolve_selling_price(
         pre_overhead_total + overhead_cost,
         category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5)),
         category_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40.0)),
     )
+    # Setup fee added FLAT — not marked up
+    suggested_price += setup_fee
     suggested_price = max(
         suggested_price,
         float(category_config.get("minimum_charge", defaults.get("minimum_vinyl_charge", 5.0)) or 5.0),
@@ -626,13 +630,15 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
     elif not include_setup:
         setup_fee = 0
 
-    pre_overhead_total = material_cost + labor_cost + finishing_cost + setup_fee
+    pre_overhead_total = material_cost + labor_cost + finishing_cost  # setup_fee added flat after markup
     overhead_cost = calculate_overhead_cost(pre_overhead_total, labor_hours, defaults, category_config)
     suggested_price = resolve_selling_price(
         pre_overhead_total + overhead_cost,
         category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5)),
         category_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40.0)),
     )
+    # Setup fee added FLAT — not marked up
+    suggested_price += setup_fee
     suggested_price = max(suggested_price, float(category_config.get("minimum_charge", 15.0) or 15.0))
 
     return create_pricing_result(
@@ -714,13 +720,15 @@ async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defau
     if include_setup:
         setup_fee = data.setup_fee or defaults.get("minimum_sign_charge", 20.0)
 
-    pre_overhead_total = material_cost + labor_cost + finishing_cost + setup_fee
+    pre_overhead_total = material_cost + labor_cost + finishing_cost  # setup_fee added flat after markup
     overhead_cost = calculate_overhead_cost(pre_overhead_total, labor_hours, defaults, category_config)
     suggested_price = resolve_selling_price(
         pre_overhead_total + overhead_cost,
         category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5)),
         category_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40.0)),
     )
+    # Setup fee added FLAT — not marked up
+    suggested_price += setup_fee
     suggested_price = max(
         suggested_price,
         float(category_config.get("minimum_charge", defaults.get("minimum_sign_charge", 15.0)) or 15.0),
@@ -782,13 +790,24 @@ async def calculate_apparel(data: JobItemPricingData, quantity: float, defaults:
             else defaults.get("setup_fee_apparel_dtf", 20.0)
         )
 
-    pre_overhead_total = material_cost + labor_cost + setup_fee
+    pre_overhead_total = material_cost + labor_cost  # setup_fee added flat after markup
     overhead_cost = calculate_overhead_cost(pre_overhead_total, time_per_item * quantity, defaults, category_config)
     suggested_price = resolve_selling_price(
         pre_overhead_total + overhead_cost,
         category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5)),
         category_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40.0)),
     )
+    # Setup fee added FLAT — not marked up
+    suggested_price += setup_fee
+    
+    # Apparel quantity discounts
+    apparel_qty_breaks = category_config.get("quantity_breaks", defaults.get("apparel_quantity_breaks", {
+        "12": 5, "24": 10, "48": 15, "72": 20, "144": 25
+    }))
+    discount = get_quantity_discount(quantity, apparel_qty_breaks)
+    if discount > 0:
+        suggested_price *= (1 - discount)
+    
     suggested_price = max(
         suggested_price,
         float(category_config.get("minimum_charge", defaults.get("minimum_order", 0)) or 0),
@@ -812,6 +831,7 @@ async def calculate_apparel(data: JobItemPricingData, quantity: float, defaults:
             "setup_fee": setup_fee,
             "setup_included": include_setup,
             "overhead_cost": round(overhead_cost, 2),
+            "quantity_discount": f"{int(discount*100)}%" if discount > 0 else "0%",
             "price_per_item": round(suggested_price / quantity, 2) if quantity > 0 else 0
         }
     )
@@ -871,13 +891,15 @@ async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, 
     if include_setup:
         setup_fee = data.setup_fee or defaults.get("minimum_wrap_charge", 50.0)
 
-    pre_overhead_total = material_cost + labor_cost + design_cost + setup_fee
+    pre_overhead_total = material_cost + labor_cost + design_cost  # setup_fee added flat after markup
     overhead_cost = calculate_overhead_cost(pre_overhead_total, install_hours + design_hours, defaults, category_config)
     suggested_price = resolve_selling_price(
         pre_overhead_total + overhead_cost,
         category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5)),
         category_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40.0)),
     )
+    # Setup fee added FLAT — not marked up
+    suggested_price += setup_fee
     suggested_price = max(
         suggested_price,
         float(category_config.get("minimum_charge", defaults.get("minimum_wrap_charge", 500.0)) or 500.0),
