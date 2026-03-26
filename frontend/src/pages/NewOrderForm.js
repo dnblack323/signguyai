@@ -106,7 +106,24 @@ export default function NewOrderForm() {
 
       for (const t of tickets) {
         if (!t.item_name.trim()) continue;
-        await axios.post(`${API}/job-tickets`, { ...t, order_id: orderId }, { headers: hdrs() });
+        try {
+          await axios.post(`${API}/job-tickets`, {
+            order_id: orderId,
+            item_name: t.item_name,
+            item_category: t.item_category || 'custom',
+            quantity: t.quantity || 1,
+            priority: t.priority || 'normal',
+            production_flow_enabled: t.production_flow_enabled || false,
+            design_needed: t.design_needed || false,
+            proof_required: t.proof_required || false,
+            estimated_price: t.estimated_price || 0,
+            special_instructions: t.special_instructions || '',
+            specs: t.specs || {},
+          }, { headers: hdrs() });
+        } catch (ticketErr) {
+          console.error('Ticket creation error:', ticketErr);
+          toast.error(`Failed to create ticket: ${t.item_name}`);
+        }
       }
 
       // Upload files
@@ -299,7 +316,7 @@ export default function NewOrderForm() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div><Label className="text-gray-700">Price</Label><Input type="number" min={0} step={0.01} value={ticket.estimated_price || ''} onChange={e => updateTicket(i, 'estimated_price', parseFloat(e.target.value) || 0)} placeholder="0" className="bg-gray-50 border-gray-300 text-gray-900" /></div>
+                <div><Label className="text-gray-700">Price</Label><Input type="number" min={0} step={0.01} value={ticket.estimated_price > 0 ? ticket.estimated_price : ''} onChange={e => updateTicket(i, 'estimated_price', parseFloat(e.target.value) || 0)} placeholder="0.00" className="bg-gray-50 border-gray-300 text-gray-900" /></div>
               </div>
             </div>
 
@@ -347,7 +364,14 @@ export default function NewOrderForm() {
         </Card>
       ))}
 
-      {/* Save Button */}
+      {/* Add more tickets + Save */}
+      {tickets.length > 0 && (
+        <div className="flex gap-2 justify-center">
+          <Button variant="outline" size="sm" onClick={() => addTicket('quick')} className="gap-2 bg-white"><Plus className="w-4 h-4" /> Quick Entry</Button>
+          <Button variant="outline" size="sm" className="bg-violet-50 text-violet-700 border-violet-300 gap-2" onClick={() => addTicket('detailed')}><Plus className="w-4 h-4" /> Detailed Entry</Button>
+        </div>
+      )}
+
       <div className="flex gap-3 pt-2">
         <Button onClick={handleSave} disabled={saving} className="bg-violet-600 hover:bg-violet-700 text-white flex-1 py-6 text-lg" data-testid="save-order-btn">
           {saving ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null} Save Order

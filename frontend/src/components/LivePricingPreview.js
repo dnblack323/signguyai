@@ -38,20 +38,33 @@ export default function LivePricingPreview({ category, specs, quantity }) {
       length_inches: hIn || null,
       double_sided: doubleSided,
       laminate: hasLam,
+      laminate_type: specs?.lamination,
       vinyl_type: specs?.vinyl_type || specs?.material,
       substrate_type: specs?.substrate,
+      print_material: specs?.material,
       apparel_type: specs?.garment_type,
       transfer_type: specs?.decoration_method,
       num_print_locations: (specs?.print_locations || []).length || 1,
       vehicle_type: specs?.vehicle_type,
       coverage_type: specs?.coverage_type,
+      // Finishing options that affect price
+      grommets: specs?.grommets === true || (specs?.grommets && specs.grommets !== 'none'),
+      hemming: specs?.hemming === true || (specs?.hems && specs.hems !== 'none'),
+      include_setup_fee: specs?.design_needed || specs?.setup_required || false,
+      // Rigid sign options
+      stakes_included: specs?.stakes_included || false,
+      install_required: specs?.install_required || false,
+      // Cut vinyl
+      num_colors: parseInt(specs?.num_colors) || 1,
       complexity: 1,
     };
   }, [category, specs]);
 
   useEffect(() => {
     if (!category || !pricingInput.category) return;
-    if (!pricingInput.width_inches && !pricingInput.apparel_type && !pricingInput.vehicle_type) return;
+    // Need at least some input to calculate
+    const hasInput = pricingInput.width_inches || pricingInput.apparel_type || pricingInput.vehicle_type || pricingInput.substrate_type || pricingInput.vinyl_type;
+    if (!hasInput) return;
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {

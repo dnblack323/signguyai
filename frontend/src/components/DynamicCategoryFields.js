@@ -53,14 +53,14 @@ export default function DynamicCategoryFields({ category, subtype, specs, onChan
       .finally(() => setLoading(false));
   }, [category]);
 
-  // Auto-calculate square footage for banners
+  // Auto-calculate square footage
   const sqFootage = useMemo(() => {
     const w = parseFloat(specs.width) || 0;
     const h = parseFloat(specs.height) || 0;
-    const unit = specs.unit_of_measure || 'feet';
+    const unit = specs.unit_of_measure || 'inches';
     if (w <= 0 || h <= 0) return 0;
-    if (unit === 'inches') return ((w * h) / 144).toFixed(2);
-    return (w * h).toFixed(2);
+    if (unit === 'feet') return (w * h).toFixed(2);
+    return ((w * h) / 144).toFixed(2);
   }, [specs.width, specs.height, specs.unit_of_measure]);
 
   // Auto-calculate size total for apparel

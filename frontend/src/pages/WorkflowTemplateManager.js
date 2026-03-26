@@ -156,14 +156,13 @@ export default function WorkflowTemplateManager() {
                           <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900 h-8 text-xs w-32"><SelectValue /></SelectTrigger>
                           <SelectContent>{DEPARTMENTS.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
                         </Select>
-                        <div className="flex items-center gap-1" title="Required"><Switch checked={stage.required} onCheckedChange={v => updateStage(template.id, idx, 'required', v)} /></div>
-                        <div className="flex items-center gap-1" title="QC"><Switch checked={stage.qc_required} onCheckedChange={v => updateStage(template.id, idx, 'qc_required', v)} /></div>
+                        <div className="flex items-center gap-1" title="Required"><Switch checked={stage.required} onCheckedChange={v => updateStage(template.id, idx, 'required', v)} /><span className="text-xs text-gray-500 hidden lg:inline">Req</span></div>
                         <button onClick={() => removeStage(template.id, idx)} className="text-red-400 hover:text-red-300 p-1"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     ))}
 
                     <div className="flex items-center gap-4 text-xs text-gray-500 px-3">
-                      <span>Toggles: Required | QC</span>
+                      <span>Toggle: Required for workflow</span>
                     </div>
 
                     <div className="flex gap-2 pt-2">

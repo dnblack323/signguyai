@@ -139,12 +139,12 @@ export default function ProductionBoard() {
                           <div className={`w-2 h-8 rounded-full flex-shrink-0 ${PRIORITY_DOT[task.ticket_priority] || PRIORITY_DOT.normal}`} />
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-gray-900 font-medium text-sm">{task.task_name}</span>
+                              <span className="text-gray-900 font-medium text-sm">{task.ticket_name || task.task_name}</span>
                               <Badge variant="outline" className={`text-xs ${TASK_COLORS[task.status]}`}>{fmt(task.status)}</Badge>
                               {task.rework_flag && <Badge className="bg-red-500 text-gray-900 text-xs">Rework</Badge>}
                             </div>
                             <p className="text-xs text-gray-500 mt-0.5">
-                              <span className="font-mono">{task.ticket_number}</span> — {task.ticket_name}
+                              {task.task_name} — <span className="font-mono">{task.ticket_number}</span>
                               {task.ticket_due_date ? ` | Due: ${new Date(task.ticket_due_date).toLocaleDateString()}` : ''}
                             </p>
                           </div>
