@@ -41,6 +41,7 @@ import NewOrderForm from "./pages/NewOrderForm";
 import JobTicketDetail from "./pages/JobTicketDetail";
 import ProductionBoard from "./pages/ProductionBoard";
 import WorkflowTemplateManager from "./pages/WorkflowTemplateManager";
+import MaterialsAdmin from "./pages/MaterialsAdmin";
 import CompanySettings from "./pages/CompanySettings";
 import ProductionSettings from "./pages/settings/ProductionSettings";
 import BackupRestore from "./pages/settings/BackupRestore";
@@ -167,6 +168,7 @@ function ProtectedRoutes() {
           <Route path="/job-tickets/:ticketId" element={<JobTicketDetail />} />
           <Route path="/production-board" element={<ProductionBoard />} />
           <Route path="/workflow-templates" element={<WorkflowTemplateManager />} />
+          <Route path="/materials" element={<MaterialsAdmin />} />
           {/* Legacy redirects — Jobs/Quotes now go to Orders */}
           <Route path="/quotes" element={<Navigate to="/orders" replace />} />
           <Route path="/jobs" element={<Navigate to="/orders" replace />} />

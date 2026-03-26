@@ -88,6 +88,7 @@ const mobileNavItems = [
     id: 'settings', label: 'Settings', icon: Settings, path: '/settings',
     children: [
       { label: 'Company Settings', path: '/settings' },
+      { label: 'Materials & Pricing', path: '/materials' },
       { label: 'Workflow Templates', path: '/workflow-templates' },
       { label: 'Billing & Plan', path: '/billing' },
       { label: 'Promo Codes', path: '/promo-codes' },

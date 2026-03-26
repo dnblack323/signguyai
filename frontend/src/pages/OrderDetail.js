@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Package, FileText, Play, Clock, CheckCircle, AlertTriangle,
   Trash2, Loader2, Receipt, Wrench, MessageSquare, DollarSign, Pause, ChevronRight,
-  Copy, Calculator, Edit3, MoreHorizontal
+  Copy, Calculator, Edit3, MoreHorizontal, Upload, FileUp, Paperclip, Send, Mail, ExternalLink
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -46,19 +46,23 @@ export default function OrderDetail() {
   const [actionLoading, setActionLoading] = useState('');
   const [tab, setTab] = useState('tickets');
   const [taskLoading, setTaskLoading] = useState('');
+  const [orderFiles, setOrderFiles] = useState([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
 
   const load = async () => {
     try {
-      const [orderRes, actRes, finRes, prodRes] = await Promise.all([
+      const [orderRes, actRes, finRes, prodRes, filesRes] = await Promise.all([
         axios.get(`${API}/orders/${id}`, { headers: hdr() }),
         axios.get(`${API}/orders/${id}/activity`, { headers: hdr() }),
         axios.get(`${API}/orders/${id}/financials`, { headers: hdr() }).catch(() => ({ data: { quotes: [], invoices: [] } })),
         axios.get(`${API}/orders/${id}/production-summary`, { headers: hdr() }).catch(() => ({ data: null })),
+        axios.get(`${API}/orders/${id}/files`, { headers: hdr() }).catch(() => ({ data: [] })),
       ]);
       setOrder(orderRes.data);
       setActivities(actRes.data);
       setFinancials(finRes.data);
       setProdSummary(prodRes.data);
+      setOrderFiles(filesRes.data || []);
     } catch { toast.error('Failed to load order'); }
     finally { setLoading(false); }
   };
@@ -104,6 +108,38 @@ export default function OrderDetail() {
     } catch { toast.error('Failed to delete'); }
   };
 
+  const sendEmail = async (docType) => {
+    setActionLoading('email');
+    try {
+      // Find the latest quote or invoice for this order
+      const docs = docType === 'quote' ? financials.quotes : financials.invoices;
+      if (!docs?.length) {
+        toast.error(`No ${docType} found. Generate one first.`);
+        setActionLoading('');
+        return;
+      }
+      const doc = docs[0];
+      await axios.post(`${API}/documents/send-email`, {
+        document_type: docType,
+        document_id: doc.id,
+        customer_email: order.email,
+        customer_name: order.customer_name,
+        subject: `${docType === 'quote' ? 'Quote' : 'Invoice'} from ${order.company_name || 'SignGuy AI'} - ${order.order_number}`,
+      }, { headers: hdr() });
+      toast.success(`${docType === 'quote' ? 'Quote' : 'Invoice'} sent to ${order.email}`);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Failed to send email');
+    } finally { setActionLoading(''); }
+  };
+
+  const updateOrderStatus = async (newStatus) => {
+    try {
+      await axios.put(`${API}/orders/${id}`, { status: newStatus }, { headers: hdr() });
+      toast.success(`Status updated to ${fmt(newStatus)}`);
+      load();
+    } catch (e) { toast.error(e.response?.data?.detail || 'Failed'); }
+  };
+
   const duplicateTicket = async (ticketId) => {
     try {
       const res = await axios.post(`${API}/job-tickets/${ticketId}/duplicate`, {}, { headers: hdr() });
@@ -120,6 +156,33 @@ export default function OrderDetail() {
       toast.success('Ticket deleted');
       load();
     } catch { toast.error('Failed to delete'); }
+  };
+
+  const handleFileUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setUploadingFile(true);
+    try {
+      for (const f of files) {
+        const formData = new FormData();
+        formData.append('file', f);
+        formData.append('label', f.name);
+        await axios.post(`${API}/orders/${id}/upload`, formData, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
+        });
+      }
+      toast.success(`${files.length} file(s) uploaded`);
+      load();
+    } catch { toast.error('Upload failed'); }
+    finally { setUploadingFile(false); e.target.value = ''; }
+  };
+
+  const deleteFile = async (fileId) => {
+    try {
+      await axios.delete(`${API}/orders/${id}/files/${fileId}`, { headers: hdr() });
+      toast.success('File deleted');
+      setOrderFiles(prev => prev.filter(f => f.id !== fileId));
+    } catch { toast.error('Failed to delete file'); }
   };
 
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-violet-500" /></div>;
@@ -150,12 +213,58 @@ export default function OrderDetail() {
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={() => generateDoc('quote')} disabled={!!actionLoading || tickets.length === 0} data-testid="generate-quote-btn">
-            {actionLoading === 'quote' ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <FileText className="w-4 h-4 mr-1" />} Quote
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => generateDoc('invoice')} disabled={!!actionLoading || tickets.length === 0} data-testid="generate-invoice-btn">
-            {actionLoading === 'invoice' ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Receipt className="w-4 h-4 mr-1" />} Invoice
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1">
+                <FileText className="w-4 h-4" /> Generate
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => generateDoc('quote')} disabled={!!actionLoading || tickets.length === 0}>
+                <FileText className="w-4 h-4 mr-2" /> Generate Quote
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => generateDoc('invoice')} disabled={!!actionLoading || tickets.length === 0}>
+                <Receipt className="w-4 h-4 mr-2" /> Generate Invoice
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1">
+                <Send className="w-4 h-4" /> Send
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => sendEmail('quote')} disabled={!!actionLoading || !order.email}>
+                <Mail className="w-4 h-4 mr-2" /> Email Quote
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => sendEmail('invoice')} disabled={!!actionLoading || !order.email}>
+                <Mail className="w-4 h-4 mr-2" /> Email Invoice
+              </DropdownMenuItem>
+              {order.customer_id && (
+                <DropdownMenuItem onClick={() => navigate(`/admin-portal?customer_id=${order.customer_id}`)}>
+                  <ExternalLink className="w-4 h-4 mr-2" /> View in Portal
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1">
+                <Edit3 className="w-4 h-4" /> Status
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {['approved', 'in_production', 'on_hold', 'ready_for_pickup', 'completed', 'cancelled'].map(s => (
+                <DropdownMenuItem key={s} onClick={() => updateOrderStatus(s)} disabled={order.status === s}>
+                  {fmt(s)}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white" onClick={startProduction} disabled={!!actionLoading || workflowTickets.length === 0} data-testid="start-production-btn">
             {actionLoading === 'production' ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Play className="w-4 h-4 mr-1" />} Start Production
           </Button>
@@ -193,6 +302,7 @@ export default function OrderDetail() {
             { id: 'tickets', label: `Job Tickets (${tickets.length})` },
             { id: 'production', label: `Production (${allTasks.length})` },
             { id: 'financial', label: `Financial (${(financials.quotes?.length || 0) + (financials.invoices?.length || 0)})` },
+            { id: 'files', label: `Files (${orderFiles.length})` },
             { id: 'notes', label: 'Notes' },
             { id: 'activity', label: `Activity (${activities.length})` },
           ].map(t => (
@@ -391,6 +501,54 @@ export default function OrderDetail() {
           )}
           {(financials.quotes?.length || 0) === 0 && (financials.invoices?.length || 0) === 0 && (
             <Card className="bg-white rounded-xl border border-gray-200 shadow-sm"><CardContent className="py-12 text-center text-gray-500">No financial documents yet. Generate a quote or invoice from the job tickets.</CardContent></Card>
+          )}
+        </div>
+      )}
+
+
+      {/* === FILES TAB === */}
+      {tab === 'files' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500">{orderFiles.length} file{orderFiles.length !== 1 ? 's' : ''} attached</p>
+            <div>
+              <input type="file" multiple onChange={handleFileUpload} className="hidden" id="order-detail-file-input" />
+              <label htmlFor="order-detail-file-input">
+                <Button asChild variant="outline" size="sm" className="gap-2 cursor-pointer" disabled={uploadingFile}>
+                  <span>{uploadingFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />} Upload Files</span>
+                </Button>
+              </label>
+            </div>
+          </div>
+          {orderFiles.length === 0 ? (
+            <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
+              <CardContent className="py-12 text-center">
+                <Paperclip className="w-8 h-8 mx-auto text-gray-300 mb-3" />
+                <p className="text-gray-500">No files attached to this order</p>
+                <p className="text-gray-400 text-sm mt-1">Upload artwork, drawings, photos, or any reference files</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {orderFiles.map(f => (
+                <Card key={f.id} className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                  <CardContent className="p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0">
+                        <FileUp className="w-5 h-5 text-violet-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{f.label || f.filename}</p>
+                        <p className="text-xs text-gray-500">{f.filename} | {(f.file_size / 1024).toFixed(0)} KB | {new Date(f.created_at).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-600" onClick={() => deleteFile(f.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
         </div>
       )}
