@@ -608,10 +608,10 @@ export default function CompanySettings() {
           {/* Access Methods */}
           <div className="space-y-4">
             <h4 className="font-medium text-sm uppercase tracking-wider" style={{ color: '#5A5A5A' }}>
-              Employee Access (Coming Soon)
+              Employee Access
             </h4>
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 rounded-lg border opacity-60" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
+              <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
                 <div>
                   <Label className="font-medium" style={{ color: '#1A1A1A' }}>Employee Portal Time Tracking</Label>
                   <p className="text-sm" style={{ color: '#5A5A5A' }}>Let employees track time from their portal</p>
@@ -619,10 +619,10 @@ export default function CompanySettings() {
                 <Switch
                   checked={timeTrackingSettings.enable_employee_portal}
                   onCheckedChange={(checked) => setTimeTrackingSettings({...timeTrackingSettings, enable_employee_portal: checked})}
-                  disabled={true}
+                  disabled={!canEditSettings}
                 />
               </div>
-              <div className="flex items-center justify-between p-3 rounded-lg border opacity-60" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
+              <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
                 <div>
                   <Label className="font-medium" style={{ color: '#1A1A1A' }}>Kiosk Mode</Label>
                   <p className="text-sm" style={{ color: '#5A5A5A' }}>Shop floor tablet with PIN login and job scanning</p>
@@ -630,7 +630,7 @@ export default function CompanySettings() {
                 <Switch
                   checked={timeTrackingSettings.enable_kiosk_mode}
                   onCheckedChange={(checked) => setTimeTrackingSettings({...timeTrackingSettings, enable_kiosk_mode: checked})}
-                  disabled={true}
+                  disabled={!canEditSettings}
                 />
               </div>
             </div>

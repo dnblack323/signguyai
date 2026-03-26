@@ -28,7 +28,6 @@ const primaryNavItems = [
 export const tabSubItems = {
   orders: [
     { label: 'All Orders', icon: Package, path: '/orders' },
-    { label: 'New Order', icon: ClipboardList, path: '/orders/new' },
     { label: 'Production Board', icon: Wrench, path: '/production-board' },
     { label: 'Approvals', icon: FileCheck, path: '/approvals' },
   ],

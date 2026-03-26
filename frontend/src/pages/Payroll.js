@@ -289,10 +289,13 @@ export default function Payroll() {
             <CalendarDays className="h-4 w-4 mr-1.5" /> Time Sheets
           </TabsTrigger>
           <TabsTrigger value="hours" data-testid="tab-hours">
-            <Clock className="h-4 w-4 mr-1.5" /> Manual Hours
+            <Clock className="h-4 w-4 mr-1.5" /> Time Entries
           </TabsTrigger>
           <TabsTrigger value="transactions" data-testid="tab-transactions">
             <DollarSign className="h-4 w-4 mr-1.5" /> Transactions
+          </TabsTrigger>
+          <TabsTrigger value="schedule" data-testid="tab-schedule">
+            <CalendarDays className="h-4 w-4 mr-1.5" /> Schedule
           </TabsTrigger>
         </TabsList>
 
@@ -380,25 +383,25 @@ export default function Payroll() {
                 <div className="space-y-6">
                   {timesheet.employees.map((emp) => (
                     <div key={emp.employee_id} className="border border-gray-200 rounded-lg overflow-hidden" data-testid={`timesheet-${emp.employee_id}`}>
-                      <div className="p-4 bg-slate-800/30 flex items-center justify-between">
+                      <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
                         <div>
-                          <h3 className="font-semibold text-white">{emp.employee_name}</h3>
+                          <h3 className="font-semibold text-gray-900">{emp.employee_name}</h3>
                           <p className="text-sm text-gray-500">{formatCurrency(emp.hourly_rate)}/hr</p>
                         </div>
                         <div className="flex items-center gap-4 text-sm">
                           <div className="text-center">
                             <p className="text-gray-500">Regular</p>
-                            <p className="font-bold text-green-400">{emp.regular_hours} hrs</p>
+                            <p className="font-bold text-green-600">{emp.regular_hours} hrs</p>
                           </div>
                           {emp.overtime_hours > 0 && (
                             <div className="text-center">
                               <p className="text-gray-500">Overtime</p>
-                              <p className="font-bold text-amber-400">{emp.overtime_hours} hrs</p>
+                              <p className="font-bold text-amber-600">{emp.overtime_hours} hrs</p>
                             </div>
                           )}
                           <div className="text-center">
                             <p className="text-gray-500">Total Pay</p>
-                            <p className="font-bold text-emerald-400">{formatCurrency(emp.total_pay)}</p>
+                            <p className="font-bold text-emerald-600">{formatCurrency(emp.total_pay)}</p>
                           </div>
                         </div>
                       </div>
@@ -412,6 +415,7 @@ export default function Payroll() {
                               <TableHead>Task</TableHead>
                               <TableHead className="text-right">Hours</TableHead>
                               <TableHead className="text-right">Pay</TableHead>
+                              <TableHead className="text-right w-16">Edit</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -419,14 +423,21 @@ export default function Payroll() {
                               <TableRow key={entry.id || idx}>
                                 <TableCell className="text-sm">{entry.date}</TableCell>
                                 <TableCell>
-                                  <Badge variant="outline" className={entry.source === 'job_timer' ? 'text-blue-400 border-blue-400/30' : 'text-purple-400 border-purple-400/30'}>
+                                  <Badge variant="outline" className={entry.source === 'job_timer' ? 'text-blue-600 border-blue-400/30' : 'text-purple-600 border-purple-400/30'}>
                                     {entry.source === 'job_timer' ? 'Timer' : 'Manual'}
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-sm text-gray-500">{entry.job_name || '-'}</TableCell>
                                 <TableCell className="text-sm capitalize">{entry.task_type}</TableCell>
                                 <TableCell className="text-right font-medium">{entry.hours}</TableCell>
-                                <TableCell className="text-right text-green-400">{formatCurrency(entry.pay)}</TableCell>
+                                <TableCell className="text-right text-green-600">{formatCurrency(entry.pay)}</TableCell>
+                                <TableCell className="text-right">
+                                  {canEditPayroll && (
+                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleEditHours(entry)} data-testid={`edit-timesheet-${entry.id}`}>
+                                      <Edit2 className="h-3.5 w-3.5 text-gray-400 hover:text-violet-600" />
+                                    </Button>
+                                  )}
+                                </TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
@@ -583,6 +594,44 @@ export default function Payroll() {
                 <Badge className="bg-blue-500/20 text-blue-400">Payments</Badge>
                 <span className="text-gray-500">Wages paid to employee (reduces balance)</span>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* SCHEDULE TAB */}
+        <TabsContent value="schedule">
+          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Employee Schedule</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {employees.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">No employees found. Add employees in User Management first.</p>
+              ) : (
+                <div className="space-y-4">
+                  {/* Week view header */}
+                  <div className="grid grid-cols-8 gap-1 text-center text-xs font-medium text-gray-500 uppercase">
+                    <div>Employee</div>
+                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                      <div key={day}>{day}</div>
+                    ))}
+                  </div>
+                  {/* Employee rows */}
+                  {employees.map(emp => (
+                    <div key={emp.id} className="grid grid-cols-8 gap-1 items-center" data-testid={`schedule-row-${emp.id}`}>
+                      <div className="text-sm font-medium text-gray-900 truncate pr-2">{emp.name}</div>
+                      {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map(day => (
+                        <div key={day} className="bg-gray-50 border border-gray-200 rounded p-1.5 text-center min-h-[40px] hover:bg-violet-50 hover:border-violet-300 cursor-pointer transition-colors">
+                          <span className="text-xs text-gray-400">-</span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                  <p className="text-xs text-gray-400 text-center pt-2">Click a cell to assign shift times. Schedule data will be saved to the employee record.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

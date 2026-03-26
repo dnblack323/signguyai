@@ -129,9 +129,9 @@ export default function PaymentSettings() {
       <Alert className="border-primary/20 bg-primary/5">
         <DollarSign className="h-4 w-4 text-primary" />
         <AlertDescription>
-          <strong>Platform fee: {connectStatus?.platform_fee_percent || 3}%</strong> per transaction.
-          <span className="text-muted-foreground ml-2">
-            Upgrade your plan to reduce fees (Pro: 2%, Business: 1%)
+          <strong>Platform fee: 2.2% + $0.20</strong> per transaction.
+          <span className="text-gray-500 ml-2">
+            Founders Edition — locked-in rate
           </span>
         </AlertDescription>
       </Alert>

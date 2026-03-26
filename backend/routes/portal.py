@@ -666,7 +666,7 @@ async def create_portal_invoice_payment(
 
     tenant = await db.tenants.find_one({"id": customer.get("tenant_id")}, {"_id": 0})
     if not tenant or not tenant.get("stripe_connect_account_id"):
-        raise HTTPException(status_code=400, detail="Online payments are not enabled for this shop")
+        raise HTTPException(status_code=400, detail="Online payments are not set up yet. Go to Settings > Payment Settings to connect your Stripe account.")
 
     from routes.stripe_connect import stripe, get_tenant_tier, get_platform_fee_percent
 
