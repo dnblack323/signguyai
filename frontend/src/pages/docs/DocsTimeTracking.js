@@ -9,6 +9,19 @@ export default function DocsTimeTracking() {
         <h1 className="text-3xl font-bold text-white mb-4">Time Tracking</h1>
         <p className="text-lg text-gray-400">SignGuy AI tracks two different kinds of time: employee clock time for payroll and job time for labor/costing history.</p>
       </div>
+
+      {/* Screenshot */}
+      <div className="rounded-xl overflow-hidden border border-gray-700">
+        <img 
+          src="/screenshots/feature_time_clock.jpeg" 
+          alt="Time Clock Interface" 
+          className="w-full"
+        />
+        <div className="bg-gray-800/80 px-4 py-2 text-xs text-gray-400">
+          Employee time clock and tracking interface
+        </div>
+      </div>
+
       <div className="p-6 rounded-xl bg-gray-900/50 border border-gray-800">
         <h2 className="text-lg font-semibold text-white mb-4">Important Distinction</h2>
         <ul className="space-y-2 text-gray-300">

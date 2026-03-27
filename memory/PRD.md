@@ -53,6 +53,14 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
   - Enhanced DocsAITools.js with tool descriptions and credit system explanation
   - Added Document Library to DocsLayout sidebar navigation
   - Added Document Library to DocsOverview primary links
+- **Documentation Screenshots (DONE):**
+  - Added screenshot to DocsCustomers.js with feature_customers.jpeg
+  - Added screenshot to DocsAITools.js with feature_ai_tools.jpeg
+  - Added screenshot to DocsWebstores.js with feature_webstores.jpeg
+  - Added screenshot to DocsInvoicing.js with feature_invoices.jpeg
+  - Added screenshot to DocsPricingCalculator.js with pricing.png
+  - Added screenshot to DocsTimeTracking.js with feature_time_clock.jpeg
+  - Screenshots use existing /screenshots/ assets with proper captions
 
 ### Session: March 22-27, 2026 (Previous Sessions)
 - **NEW 4-Layer Workflow System (DONE - Backend):**

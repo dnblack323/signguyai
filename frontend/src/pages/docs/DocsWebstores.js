@@ -14,6 +14,18 @@ export default function DocsWebstores() {
         </p>
       </div>
 
+      {/* Screenshot */}
+      <div className="rounded-xl overflow-hidden border border-gray-700">
+        <img 
+          src="/screenshots/feature_webstores.jpeg" 
+          alt="Webstore Manager" 
+          className="w-full"
+        />
+        <div className="bg-gray-800/80 px-4 py-2 text-xs text-gray-400">
+          Webstore Manager showing stores, sales, and store types
+        </div>
+      </div>
+
       {/* What's Included */}
       <div className="p-6 rounded-xl bg-gray-900/50 border border-gray-800">
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">

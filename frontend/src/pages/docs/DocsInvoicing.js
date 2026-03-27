@@ -14,6 +14,18 @@ export default function DocsInvoicing() {
         </p>
       </div>
 
+      {/* Screenshot */}
+      <div className="rounded-xl overflow-hidden border border-gray-700">
+        <img 
+          src="/screenshots/feature_invoices.jpeg" 
+          alt="Invoices Overview" 
+          className="w-full"
+        />
+        <div className="bg-gray-800/80 px-4 py-2 text-xs text-gray-400">
+          Invoice list with status tracking and payment details
+        </div>
+      </div>
+
       <div className="grid md:grid-cols-4 gap-4">
         {[
           { status: 'Draft', desc: 'Built but not yet delivered' },

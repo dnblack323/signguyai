@@ -64,6 +64,18 @@ export default function DocsAITools() {
         </p>
       </div>
 
+      {/* Screenshot */}
+      <div className="rounded-xl overflow-hidden border border-gray-700">
+        <img 
+          src="/screenshots/feature_ai_tools.jpeg" 
+          alt="AI Tools Interface" 
+          className="w-full"
+        />
+        <div className="bg-gray-800/80 px-4 py-2 text-xs text-gray-400">
+          AI Tools page with categories and tool selection
+        </div>
+      </div>
+
       {/* How to Access */}
       <div className="p-6 rounded-xl bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/30">
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">

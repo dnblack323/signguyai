@@ -16,6 +16,18 @@ export default function DocsCustomers() {
         </p>
       </div>
 
+      {/* Screenshot */}
+      <div className="rounded-xl overflow-hidden border border-gray-700">
+        <img 
+          src="/screenshots/feature_customers.jpeg" 
+          alt="Customers Page Overview" 
+          className="w-full"
+        />
+        <div className="bg-gray-800/80 px-4 py-2 text-xs text-gray-400">
+          Customers list with search, status filters, and quick actions
+        </div>
+      </div>
+
       {/* Overview */}
       <div className="p-6 rounded-xl bg-gray-900/50 border border-gray-800">
         <h2 className="text-lg font-semibold text-white mb-4">Overview</h2>

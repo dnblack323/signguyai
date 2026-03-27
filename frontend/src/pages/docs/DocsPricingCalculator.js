@@ -10,6 +10,18 @@ export default function DocsPricingCalculator() {
         <p className="text-lg text-gray-400">The pricing system now uses company-specific cost settings, category defaults, selling benchmarks, and stored cost snapshots rather than one-size-fits-all pricing.</p>
       </div>
 
+      {/* Screenshot */}
+      <div className="rounded-xl overflow-hidden border border-gray-700">
+        <img 
+          src="/screenshots/pricing.png" 
+          alt="Pricing Calculator" 
+          className="w-full"
+        />
+        <div className="bg-gray-800/80 px-4 py-2 text-xs text-gray-400">
+          Pricing calculator with material costs and markup settings
+        </div>
+      </div>
+
       <div className="p-6 rounded-xl bg-gray-900/50 border border-gray-800">
         <h2 className="text-lg font-semibold text-white mb-4">What Powers the Calculators</h2>
         <ul className="space-y-2 text-gray-300">
