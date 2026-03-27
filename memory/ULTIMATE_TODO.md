@@ -1,282 +1,191 @@
 # SignGuy AI - Ultimate To-Do List
 ## Master Task Tracker (Staged by Priority)
 
-> **Created:** March 18, 2026  
-> **Status:** Active  
+> **Created:** March 18, 2026
+> **Last Updated:** March 27, 2026
+> **Status:** Active
 > **Current Plan:** Founders Edition Only ($99/mo)
 
 ---
 
 # STAGE 1: CRITICAL FIXES & REINSTATEMENTS ✅ COMPLETED (March 20, 2026)
-*All items resolved and tested (14/14 backend tests, 100% frontend verification).*
 
 ### 1.1 AI Tools Rate Limiter Parameter Fix ✅ DONE
-- **Fixed:** All AI endpoints in `ai.py` now use `request: Request, data: PydanticModel` pattern
-- **Scope:** generate_ai_content, generate_ai_images, generate_product_description, ai_business_assistant, generate_voice_output, generate_email, execute_assistant_action, confirm_assistant_action, parse_action_intent
-- **Tested:** Endpoints accept new parameter pattern, no Pydantic validation errors
-
 ### 1.2 AI Credit Cost Audit & Assignment ✅ VERIFIED
-- **All 28+ tools** have assigned credit costs (1-3 credits) in `founders_config.py`
-- **AICreditConfirmationDialog.js** is wired with preflight check, "don't show again", low balance warning
-
 ### 1.3 AI Credit Confirmation Popup Audit ✅ VERIFIED
-- **Popup** shows correct cost, has "don't show again" checkbox, warning badges for low balance/high cost
-- **Preflight** endpoint `/api/credits/preflight` checks balance and preferences
-
 ### 1.4 Promo Code System - Backend ✅ DONE
-- **Added:** `POST /api/billing/apply-promo` endpoint (validates, applies discounts, extends trials)
-- **Added:** `free_days` discount type to `promo_codes.py`
-
 ### 1.5 Promo Code System - Frontend ✅ DONE
-- **Added:** Promo code input to `TrialLockout.js` lockout screen
-- **Added:** `free_days` (Free Extra Days) option to `PromoCodes.js` discount type selector
-
 ### 1.6 Invoice Line Items Fix Verification ✅ VERIFIED
-- **Confirmed:** `create_invoice_from_job()` uses `sync_job_items_from_embedded_line_items` which reads both `job.line_items` and `job_items` collection
-- **Fallback:** Falls back to `job.subtotal`, then `quote.total`
 
 ---
 
 # STAGE 2: LEGAL, DOCUMENTATION & COLOR SCHEME ✅ COMPLETED (March 22, 2026)
-*All items resolved and tested (11/11 frontend tests, 100% verification).*
 
 ### 2.1 Terms of Service Page ✅ DONE
-- **Created:** `frontend/src/pages/TermsOfService.js` with 13 sections
-- **Route:** `/terms` added to `App.js`
-- **Content:** Agreement, service description, registration, subscription ($99/mo), billing fees (2.2%+$0.20, 2% webstore), AI credits, acceptable use, IP, liability, termination
-
 ### 2.2 Privacy Policy Page ✅ DONE
-- **Created:** `frontend/src/pages/PrivacyPolicy.js` with 12 sections
-- **Route:** `/privacy` added to `App.js`
-- **Content:** GDPR-compliant with data collection, AI processing, third-party sharing (Stripe, SendGrid, OpenAI), security, retention, user rights, cookies
-
 ### 2.3 Footer Links ✅ DONE
-- **Updated:** `PublicNav.js` footer now uses React Router `<Link>` to `/terms` and `/privacy`
-
-### 2.4 Color Scheme Update - Founders Branding ✅ DONE
-- **Changed:** amber/gold → violet/purple across all Founders-branded pages
-- **Files updated:** BillingManagement.js, PricingPlansV2.js, LandingPage.js, FoundersEditionPricing.js, WhyFounderPage.js, TrialLockout.js, PublicNav.js
-
-### 2.5 Update Documentation Pages
-- **Status:** Deferred to next session (docs pages need Founders-only content audit)
-
-### 2.6 Update Feature Catalog
-- **Status:** Deferred to next session
-
-### 2.7 Update Landing Page - Founders Focused ✅ DONE
-- **Updated:** Color scheme to purple/violet, all Founders branding refreshed
+### 2.4 Color Scheme (amber → violet/purple) ✅ DONE
+### 2.5 Update Documentation Pages ✅ DONE (March 27)
+- All docs updated to reflect Orders/Job Tickets system
+- DocsQuotesJobs → DocsOrdersTickets
+- DocsEmployees updated with schedule feature
+- GettingStarted updated with order workflow
+### 2.6 Update Feature Catalog ✅ DONE (March 27)
+- FEATURE_ROADMAP.md completely rewritten for v6.0
+- BUILD_ROADMAP.md rewritten with all completed features
+- All "Jobs" references replaced with "Orders" across 30+ files
+### 2.7 Landing Page - Founders Focused ✅ DONE
 
 ---
 
-# STAGE 3: NAVIGATION & UI OVERHAUL
-*Major visual improvements and navigation fixes.*
+# STAGE 3: NAVIGATION & UI OVERHAUL ✅ COMPLETED (March 23-27, 2026)
 
-### 3.1 Main Navigation Bar Redo
-- **Files:** `PrimaryNav.js`, `ActionToolbar.js`, `MobileRibbonOverlay.js`
-- **Verify:** All 11 primary tabs work correctly
-- **Verify:** Sub-navigation per tab is contextual and accurate
-- **Add:** Missing links (Documents in AI Tools, Admin Portal in Settings)
-- **Fix:** Any broken or misaligned nav items
-- **Verify:** Mobile hamburger menu works properly
+### 3.1 Main Navigation Bar ✅ DONE
+- Legacy "Jobs" tab removed entirely
+- "Orders" tab with sub-nav: All Orders, Production Board, Approvals
+- "Financials" added as top-level nav (was hidden under Reports)
+- "Reports" is now a shortcuts page
+- Contact Support → emails donnell@signguy-ai.com
+- Mobile nav rebuilt with all pages and expandable sub-menus
 
-### 3.2 Dark Shell / Light Workspace UI Overhaul
-- **Concept:** Dark page background + light/dark content cards (not one mega-card per page)
-- **Start with:** Orders page
-- **Apply to:** Dashboard, Customers, Invoices, Quotes, and all main pages
-- **Pattern:** Multiple smaller cards per section instead of single page-wide card
+### 3.2 Dark Shell / Light Content UI ✅ DONE (March 27)
+- Applied to ALL 30+ pages globally
+- Dark shell background, white content cards
+- Multiple cards per page with visible dark gaps
+- Container max-width 1600px
+- Fixed all light-on-light text issues
+- Inline styles converted to Tailwind classes
+- Button text colors corrected (white text on colored buttons)
 
-### 3.3 All AI Tools Verification
-- **Check:** Every tool in all 5 categories (Design, Business, Marketing, Racing, Branding) loads and executes
-- **Verify:** Tool inputs render correctly
-- **Verify:** AI response is displayed properly
-- **Verify:** Save to Job, Download PDF, Send to Customer actions work
-- **Verify:** Credit deduction on each tool
+### 3.3 All AI Tools Verification ✅ DONE (March 22)
+- 11/11 image tools tested and passing
+- 10+ text tools tested and passing
+- AI Business Assistant verified
+- Email Generator verified
+- Credit deduction verified
 
 ---
 
-# STAGE 4: SEARCH, BULK ACTIONS & UX IMPROVEMENTS
-*Productivity features for daily use.*
+# STAGE 4: SEARCH, UX & ORDER SYSTEM ✅ COMPLETED (March 22-27, 2026)
 
 ### 4.1 Orders Page Search ✅ DONE
-- **Added:** Search input in filters card, filters by customer name, job title, job number, status
-
 ### 4.2 Invoices Page Search ✅ DONE
-- **Added:** Search input, filters by customer, job reference, invoice ID, status, notes
-
 ### 4.3 Webstores Page Search ✅ DONE
-- **Added:** Search input, filters by store name, description, type
+### 4.4 Quick Add Order from Customer ✅ DONE
+### 4.5 4-Layer Order System ✅ DONE
+- Order → Job Tickets → Quotes/Invoices → Production Tasks
+- Full CRUD backend + frontend for all 4 layers
+- 6 category dynamic field schemas (Banner 24, Rigid Signs 22, Cut Vinyl 23, Digital Print 24, Vehicle Wrap 30, Apparel 27 fields)
+- Quick Entry / Detailed Entry modes
+- Live pricing panel connected to settings-driven calculator
+- Production Board (by department, status)
+- Workflow Template Manager (admin)
+- File upload on orders
+- Order actions: Generate Quote/Invoice/Work Order, Email, Status change, Portal
+- Customer type-ahead search on new order form
+- Duplicate ticket action
+- Apparel quantity discounts (5-25%)
+- Setup fee fix (flat, not marked up)
 
-### 4.4 Orders Page Bulk Actions
-- **Status:** Deferred (checkbox selection, bulk action bar)
+### 4.6 Materials & Pricing Admin ✅ DONE
+- Global rates: labor, design, install, markup, overhead, margin, minimum
+- Materials catalog with inline editing
+- Add/remove materials by category
+- All calculator values from settings
 
-### 4.5 Quick Add Job/Order Button in Customer Modal ✅ DONE
-- **Added:** "New Order" button (purple, links to /orders/new with customer pre-filled) + existing "New Job" button
+### 4.7 Employee Schedule ✅ DONE
+- Weekly grid (Mon-Sun) for all employees
+- Click cell to set shift time/notes
+- Save/clear per cell
+- Schedule tab on Payroll page
 
-### 4.6 Settings Page Pricing Link
-- **Status:** Deferred
+### 4.8 Financials Endpoints ✅ DONE
+- POST/GET /api/financials/sales
+- POST/GET /api/financials/expenses
+- GET /api/financials/summary
+
+### 4.9 Database Indexes ✅ DONE
+- 30 indexes created across all major collections
 
 ---
 
-# STAGE 5: MATERIALS & INVENTORY SYSTEM
-*New feature - Materials management for pricing calculator.*
+# STAGE 5: REMAINING FIXES & POLISH
 
-### 5.1 Materials Settings Page
-- **Create:** `frontend/src/pages/MaterialsSettings.js`
-- **Features:** CRUD for custom materials
-- **Categories:** vinyl, print_media, laminate, substrate, hardware, supplies
-- **Fields:** cost per unit, markup %, auto-calculated sell price
-- **Special:** "Load Sign Shop Defaults" button (32 default materials)
+### 5.1 Stripe Connect Enrollment
+- **Status:** BLOCKED — platform Stripe account needs Connect enabled at dashboard.stripe.com/connect
+- **Impact:** Dad's account and all tenants can't accept portal payments until this is done
+- **Action:** User must visit https://dashboard.stripe.com/connect and complete enrollment
 
-### 5.2 Materials Backend Endpoints
-- **File:** `backend/routes/pricing.py`
-- **Endpoints:**
-  - `GET /api/pricing/materials/catalog` - List tenant materials
-  - `POST /api/pricing/materials` - Create material
-  - `PUT /api/pricing/materials/{id}` - Update material
-  - `DELETE /api/pricing/materials/{id}` - Delete material
-  - `POST /api/pricing/materials/seed-defaults` - Seed 32 default materials
+### 5.2 Orders Page Bulk Actions
+- **Status:** Not started
+- Checkbox selection, bulk complete/archive/delete
 
-### 5.3 Pricing Calculator Integration
-- **File:** `PricingCalculator.js`
-- **Replace:** Hardcoded VINYL_TYPES, PRINT_MATERIALS, SUBSTRATE_TYPES with custom materials
-- **Fallback:** Use defaults if no custom materials configured
+### 5.3 Task List Display Bug
+- **Status:** Investigating — API works correctly, may be frontend re-render timing
+- Tasks create successfully but may not appear in Productivity list view immediately
 
-### 5.4 App.js Route
-- **Add:** `/pricing-calculator/materials` route to `MaterialsSettings`
+### 5.4 Subtype Conditional Field Logic
+- **Status:** Schemas serve subtypes but form doesn't yet hide/show fields based on subtype selection
+- Example: Mesh Banner should default mesh material, Retractable should hide grommets
+
+### 5.5 Live Pricing Accuracy
+- **Status:** Partially done — pricing panel shows estimates but some finishing options may not fully affect the calculation for all categories
 
 ---
 
 # STAGE 6: INFRASTRUCTURE & CODE QUALITY
-*Backend hardening and developer experience.*
 
-### 6.1 Database Indexes
-- **Create:** `backend/migrations/create_core_indexes.py`
-- **Collections:** users, tenants, jobs, customers, invoices, quotes, employees, ai_history, payment_transactions, time_entries, conversations
-- **Run:** `python migrations/create_core_indexes.py`
+### 6.1 Rate Limiting
+- Install slowapi, apply to AI + auth + public endpoints
 
-### 6.2 Rate Limiting
-- **Install:** `slowapi`
-- **Apply to:** AI endpoints, auth endpoints (login, register), public endpoints
-- **Config:** Configurable per-route limits
+### 6.2 CORS Configuration
+- Use environment-based origins instead of allow_origins=["*"]
 
-### 6.3 Tier Config Deprecation
-- **Reference:** `/app/memory/TIER_CONFIG_DEPRECATION_PLAN.md`
-- **Action:** Remove `tier_config.py` usage, replace with `founders_plan.py` config
-- **Update:** `feature_gate.py`, `routes/tiers.py` to use new config
-- **Archive:** Old tier system files
+### 6.3 Error Boundaries
+- React Error Boundary component, wrap main routes
 
 ### 6.4 Code Cleanup
-- **Remove:** `console.log` statements from frontend (Pricing.js, Webstores.js, etc.)
-- **Replace:** `print()` with `logger.error/info()` in backend (ai.py, billing.py)
-- **Add:** `import logging` and `logger = logging.getLogger(__name__)` where needed
+- Remove console.log, replace print() with logger in backend
 
-### 6.5 CORS Configuration
-- **Update:** `server.py` CORS to use environment-based origins instead of `allow_origins=["*"]`
-- **Add:** `CORS_ORIGINS` to `.env`
-
-### 6.6 Error Boundaries
-- **Create:** React Error Boundary component
-- **Wrap:** Main app routes to prevent white-screen crashes
-- **Add:** Fallback UI with retry option
+### 6.5 Tier Config Deprecation
+- Remove old tier_config.py usage, fully migrate to founders_plan.py
 
 ---
 
 # STAGE 7: FUTURE FEATURES (BACKLOG)
-*Long-term roadmap items - not urgent.*
 
-### 7.1 Vehicle Wrap AI Tool (Full Spec)
-- **Reference:** `/app/memory/VEHICLE_WRAP_TOOL_SPECS.md`
-- **Type:** Vector-based layout engine with AI-assisted placement
-- **Features:** Canvas, layer system, sponsor logos, background generation
-
-### 7.2 Master Product List
-- **Centralized:** Filterable, searchable product catalog across webstores
-- **Sync:** Products shared or cloned between stores
-
-### 7.3 Learning Calculator
-- **Concept:** Calculator that compares estimated vs actual production time/material usage
-- **Learns:** Improves pricing accuracy over time
-
+### 7.1 Vehicle Wrap AI Tool
+### 7.2 QuickBooks Integration
+### 7.3 SMS Notifications (Twilio)
 ### 7.4 Cookie Consent Banner
-- **Create:** Consent popup for GDPR compliance
-- **Store:** User preference in localStorage
-
-### 7.5 GDPR Data Tools
-- **Add:** Data export (download all tenant data as JSON)
-- **Add:** Data deletion request workflow
-- **Add:** Right to be forgotten implementation
-
-### 7.6 Mobile Responsiveness Pass
-- **Audit:** All pages on mobile viewport
-- **Fix:** Layout breaks, touch targets, font sizes
-- **Priority:** Dashboard, Jobs, Customers, Invoices
-
-### 7.7 QuickBooks Integration
-- **Sync:** Customers, invoices, payments, expenses
-- **Type:** OAuth-based connection
-
-### 7.8 SMS Notifications (Twilio)
-- **For:** Job status updates, appointment reminders, invoice due alerts
-- **Config:** Per-tenant enable/disable
-
-### 7.9 Scheduled Reports
-- **Auto-generate:** Weekly/monthly revenue, job completion, outstanding invoices
-- **Delivery:** Email to owner/admin
-
-### 7.10 Custom Domain Support
-- **For:** Webstores (yourshop.com instead of signshop.signguyai.com)
-
-### 7.11 Advanced Pricing Calculators
-- **Reference:** `/app/memory/FEATURE_ROADMAP.md` Update 1.1
-- **Categories:** Apparel, Banner, Vehicle Wrap, Yard Sign, Decals, Window Graphics, Dimensional Letters, Monument Signs, Design Services, Installation
-- **Each with:** Material selection, size, finish, extras, live profit display
-
-### 7.12 Advanced Analytics
-- **Revenue by:** Payment method, category, time period comparisons
-- **Sales:** Conversion rate, average job value, top customers
-- **Production:** Jobs/day, average time, on-time delivery rate
-
-### 7.13 AI Powerhouse Features
-- **AI Job Estimator** - Suggest pricing from history
-- **Smart Scheduling** - AI job scheduling & workload balancing
-- **Predictive Analytics** - Revenue forecasting, seasonal trends
-- **Intelligent Recommendations** - Upsells, material alternatives
-
-### 7.14 Inventory & Purchasing
-- **Track:** Material stock levels, low stock alerts, reorder points
-- **Usage:** Assign materials to jobs, track waste
-- **POs:** Vendor database, purchase orders, receiving
-
-### 7.15 Advanced Integrations
-- **Calendar:** Google, Outlook, Apple sync
-- **Communication:** Twilio SMS, Slack notifications
-- **CRM:** HubSpot, Salesforce
-- **Automation:** Zapier, webhooks, public API access
-
-### 7.16 Webstore Advanced Features
-- **Discount codes,** bulk pricing, minimum orders, product bundles
-- **Custom domains,** multiple pages, banner images
-- **Marketing:** Abandoned cart recovery, email marketing, SEO
-- **Fulfillment:** Shipping calculations, tracking, packing slips
+### 7.5 GDPR Data Tools (export, deletion)
+### 7.6 Custom Domain Support for Webstores
+### 7.7 Learning Pricing Calculator
+### 7.8 Advanced Analytics & Reporting
+### 7.9 AI Job Estimator / Smart Scheduling
+### 7.10 Inventory & Purchasing System
+### 7.11 Calendar Integrations (Google, Outlook)
+### 7.12 Webstore Advanced Features (discounts, bundles, shipping)
+### 7.13 Drag/Drop Production Board
+### 7.14 Calendar View for Install Jobs
+### 7.15 Scheduled Reports (auto weekly/monthly email)
 
 ---
 
-# STAGE SUMMARY
+# COMPLETION SUMMARY
 
-| Stage | Items | Focus | Priority |
-|-------|-------|-------|----------|
-| **Stage 1** | 6 items | Critical Fixes & Reinstatements | DO FIRST |
-| **Stage 2** | 7 items | Legal, Docs, Color Scheme | LAUNCH READY |
-| **Stage 3** | 3 items | Navigation & UI Overhaul | USER EXPERIENCE |
-| **Stage 4** | 6 items | Search, Bulk Actions, UX | PRODUCTIVITY |
-| **Stage 5** | 4 items | Materials & Inventory | NEW FEATURE |
-| **Stage 6** | 6 items | Infrastructure & Code Quality | HARDENING |
-| **Stage 7** | 16+ items | Future Features (Backlog) | LONG-TERM |
+| Stage | Items | Status | Completion |
+|-------|-------|--------|------------|
+| **Stage 1** | 6 | Critical Fixes | ✅ 100% |
+| **Stage 2** | 7 | Legal, Docs, Color | ✅ 100% |
+| **Stage 3** | 3 | Navigation & UI | ✅ 100% |
+| **Stage 4** | 9 | Orders, Search, UX | ✅ 100% |
+| **Stage 5** | 5 | Remaining Fixes | 🟡 20% |
+| **Stage 6** | 5 | Infrastructure | ⬜ 0% |
+| **Stage 7** | 15 | Future Backlog | ⬜ 0% |
 
-**Total: ~48+ tasks across 7 stages**
+**Overall: 25 of 50 tasks complete (50%) — all critical and high-priority work done**
 
 ---
 
-*This is the master to-do list. All items from BUILD_ROADMAP.md, FEATURE_ROADMAP.md, ROADMAP.md, PRD.md, TIER_CONFIG_DEPRECATION_PLAN.md, VEHICLE_WRAP_TOOL_SPECS.md, and user reinstatement notes have been consolidated here.*
-
-*Last updated: March 18, 2026*
+*Last updated: March 27, 2026*
