@@ -809,7 +809,7 @@ export default function AITools() {
       {creditDialog}
       {/* Header */}
       <div>
-          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-white">AI Tools Suite</h1>
+          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-gray-900">AI Tools Suite</h1>
         <p className="text-gray-700 mt-1">15 AI-powered tools for design, branding, business, and marketing</p>
       </div>
 

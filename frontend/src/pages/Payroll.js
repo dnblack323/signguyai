@@ -33,7 +33,7 @@ const TASK_TYPES = [
 
 const TRANSACTION_TYPES = ['earnings', 'advance', 'payment'];
 
-function StatCard({ label, value, icon: Icon, color = 'text-blue-400', bgColor = 'bg-blue-500/10' }) {
+function StatCard({ label, value, icon: Icon, color = 'text-blue-600', bgColor = 'bg-blue-500/10' }) {
   return (
     <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
       <CardContent className="p-4">
@@ -240,9 +240,9 @@ export default function Payroll() {
   };
 
   const getTypeIcon = (type) => {
-    if (type === 'earnings') return <TrendingUp className="h-3.5 w-3.5 text-green-400" />;
-    if (type === 'advance') return <Minus className="h-3.5 w-3.5 text-amber-400" />;
-    return <TrendingDown className="h-3.5 w-3.5 text-blue-400" />;
+    if (type === 'earnings') return <TrendingUp className="h-3.5 w-3.5 text-green-600" />;
+    if (type === 'advance') return <Minus className="h-3.5 w-3.5 text-amber-600" />;
+    return <TrendingDown className="h-3.5 w-3.5 text-blue-600" />;
   };
 
   const totals = payPeriod?.totals || {};
@@ -272,11 +272,11 @@ export default function Payroll() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard label="Total Hours" value={totals.total_hours || 0} icon={Clock} color="text-blue-400" bgColor="bg-blue-500/10" />
-        <StatCard label="Regular Hours" value={totals.regular_hours || 0} icon={Timer} color="text-green-400" bgColor="bg-green-500/10" />
-        <StatCard label="Overtime Hours" value={totals.overtime_hours || 0} icon={AlertTriangle} color="text-amber-400" bgColor="bg-amber-500/10" />
-        <StatCard label="Gross Pay" value={formatCurrency(totals.gross_pay || 0)} icon={DollarSign} color="text-emerald-400" bgColor="bg-emerald-500/10" />
-        <StatCard label="Net Owed" value={formatCurrency(totals.net_owed || 0)} icon={TrendingUp} color="text-purple-400" bgColor="bg-purple-500/10" />
+        <StatCard label="Total Hours" value={totals.total_hours || 0} icon={Clock} color="text-blue-600" bgColor="bg-blue-500/10" />
+        <StatCard label="Regular Hours" value={totals.regular_hours || 0} icon={Timer} color="text-green-600" bgColor="bg-green-500/10" />
+        <StatCard label="Overtime Hours" value={totals.overtime_hours || 0} icon={AlertTriangle} color="text-amber-600" bgColor="bg-amber-500/10" />
+        <StatCard label="Gross Pay" value={formatCurrency(totals.gross_pay || 0)} icon={DollarSign} color="text-emerald-600" bgColor="bg-emerald-500/10" />
+        <StatCard label="Net Owed" value={formatCurrency(totals.net_owed || 0)} icon={TrendingUp} color="text-purple-600" bgColor="bg-purple-500/10" />
       </div>
 
       {/* Tabbed Content */}
@@ -330,13 +330,13 @@ export default function Payroll() {
                         <TableCell className="text-right">{emp.total_hours}</TableCell>
                         <TableCell className="text-right">
                           {emp.overtime_hours > 0 ? (
-                            <Badge variant="outline" className="text-amber-400 border-amber-400/30">{emp.overtime_hours} hrs</Badge>
+                            <Badge variant="outline" className="text-amber-600 border-amber-400/30">{emp.overtime_hours} hrs</Badge>
                           ) : '-'}
                         </TableCell>
-                        <TableCell className="text-right text-green-400 font-medium">{formatCurrency(emp.gross_pay)}</TableCell>
-                        <TableCell className="text-right text-amber-400">{formatCurrency(emp.advances)}</TableCell>
-                        <TableCell className="text-right text-blue-400">{formatCurrency(emp.payments_made)}</TableCell>
-                        <TableCell className={`text-right font-bold ${emp.net_owed >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <TableCell className="text-right text-green-600 font-medium">{formatCurrency(emp.gross_pay)}</TableCell>
+                        <TableCell className="text-right text-amber-600">{formatCurrency(emp.advances)}</TableCell>
+                        <TableCell className="text-right text-blue-600">{formatCurrency(emp.payments_made)}</TableCell>
+                        <TableCell className={`text-right font-bold ${emp.net_owed >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                           {formatCurrency(emp.net_owed)}
                         </TableCell>
                       </TableRow>
@@ -490,14 +490,14 @@ export default function Payroll() {
                           <TableCell className="text-sm text-gray-500">{entry.job_name || '-'}</TableCell>
                           <TableCell className="text-sm text-gray-500">{entry.description || '-'}</TableCell>
                           <TableCell className="text-right font-medium">{entry.hours}</TableCell>
-                          <TableCell className="text-right text-green-400">{formatCurrency(entry.gross_pay)}</TableCell>
+                          <TableCell className="text-right text-green-600">{formatCurrency(entry.gross_pay)}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
                               <Button variant="ghost" size="sm" onClick={() => handleEditHours(entry)} data-testid={`edit-hours-${entry.id}`}>
                                 <Edit2 className="h-3.5 w-3.5" />
                               </Button>
                               <Button variant="ghost" size="sm" onClick={() => handleDeleteHours(entry.id)} data-testid={`delete-hours-${entry.id}`}>
-                                <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                                <Trash2 className="h-3.5 w-3.5 text-red-600" />
                               </Button>
                             </div>
                           </TableCell>
@@ -552,7 +552,7 @@ export default function Payroll() {
                   <TableBody>
                     {transactions.map((txn) => {
                       const emp = employees.find(e => e.id === txn.employee_id);
-                      const typeColor = txn.type === 'earnings' ? 'text-green-400' : txn.type === 'advance' ? 'text-amber-400' : 'text-blue-400';
+                      const typeColor = txn.type === 'earnings' ? 'text-green-600' : txn.type === 'advance' ? 'text-amber-600' : 'text-blue-600';
                       return (
                         <TableRow key={txn.id} data-testid={`txn-row-${txn.id}`}>
                           <TableCell className="text-sm">{formatDate(txn.date)}</TableCell>
@@ -578,20 +578,20 @@ export default function Payroll() {
           <Card className="bg-white border-gray-200 mt-4">
             <CardHeader>
               <CardTitle className="text-sm flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-blue-400" /> Balance Formula
+                <DollarSign className="h-4 w-4 text-blue-600" /> Balance Formula
               </CardTitle>
             </CardHeader>
             <CardContent className="text-sm space-y-2">
               <div className="flex items-center gap-3">
-                <Badge className="bg-green-500/20 text-green-400">Earnings</Badge>
+                <Badge className="bg-green-500/20 text-green-600">Earnings</Badge>
                 <span className="text-gray-500">Hours x Rate = Money owed to employee</span>
               </div>
               <div className="flex items-center gap-3">
-                <Badge className="bg-amber-500/20 text-amber-400">Advances</Badge>
+                <Badge className="bg-amber-500/20 text-amber-600">Advances</Badge>
                 <span className="text-gray-500">Money borrowed by employee (reduces balance)</span>
               </div>
               <div className="flex items-center gap-3">
-                <Badge className="bg-blue-500/20 text-blue-400">Payments</Badge>
+                <Badge className="bg-blue-500/20 text-blue-600">Payments</Badge>
                 <span className="text-gray-500">Wages paid to employee (reduces balance)</span>
               </div>
             </CardContent>

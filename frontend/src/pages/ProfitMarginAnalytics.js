@@ -193,7 +193,7 @@ export default function ProfitMarginAnalytics() {
     <div className="space-y-6" data-testid="profit-analytics-page">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Profit & Margin Analytics</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Profit & Margin Analytics</h1>
           <p className="text-slate-300 mt-1">Use cost snapshots and benchmark data to spot profit drivers and underpriced work.</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -244,21 +244,21 @@ export default function ProfitMarginAnalytics() {
       </Card>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card data-testid="profit-analytics-metric-revenue"><CardContent className="p-5"><p className="text-xs uppercase text-slate-400">Revenue This Month</p><p className="text-2xl font-bold text-white mt-2">{formatCurrency(metrics.revenue_this_month)}</p></CardContent></Card>
+        <Card data-testid="profit-analytics-metric-revenue"><CardContent className="p-5"><p className="text-xs uppercase text-slate-400">Revenue This Month</p><p className="text-2xl font-bold text-gray-900 mt-2">{formatCurrency(metrics.revenue_this_month)}</p></CardContent></Card>
         <Card data-testid="profit-analytics-metric-profit"><CardContent className="p-5"><p className="text-xs uppercase text-slate-400">Profit This Month</p><p className="text-2xl font-bold text-emerald-400 mt-2">{formatCurrency(metrics.profit_this_month)}</p></CardContent></Card>
-        <Card data-testid="profit-analytics-metric-average-job-value"><CardContent className="p-5"><p className="text-xs uppercase text-slate-400">Average Job Value</p><p className="text-2xl font-bold text-white mt-2">{formatCurrency(metrics.average_job_value)}</p></CardContent></Card>
-        <Card data-testid="profit-analytics-metric-average-margin"><CardContent className="p-5"><p className="text-xs uppercase text-slate-400">Average Profit Margin</p><p className="text-2xl font-bold text-white mt-2">{metrics.average_profit_margin || 0}%</p></CardContent></Card>
+        <Card data-testid="profit-analytics-metric-average-job-value"><CardContent className="p-5"><p className="text-xs uppercase text-slate-400">Average Job Value</p><p className="text-2xl font-bold text-gray-900 mt-2">{formatCurrency(metrics.average_job_value)}</p></CardContent></Card>
+        <Card data-testid="profit-analytics-metric-average-margin"><CardContent className="p-5"><p className="text-xs uppercase text-slate-400">Average Profit Margin</p><p className="text-2xl font-bold text-gray-900 mt-2">{metrics.average_profit_margin || 0}%</p></CardContent></Card>
       </div>
 
       <Card data-testid="profit-analytics-widget-settings-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white"><Settings2 className="h-5 w-5 text-teal-400" /> Dashboard Settings</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-gray-900"><Settings2 className="h-5 w-5 text-teal-400" /> Dashboard Settings</CardTitle>
           <CardDescription>Keep it simple when needed: toggle simple mode and reorder visible widgets.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-slate-900/40 p-4">
             <div>
-              <p className="font-medium text-white">Simple View</p>
+              <p className="font-medium text-gray-900">Simple View</p>
               <p className="text-sm text-slate-400">Reduce visual density while keeping the same data source.</p>
             </div>
             <input
@@ -273,7 +273,7 @@ export default function ProfitMarginAnalytics() {
             {preferences.widget_order.map((widgetKey, index) => (
               <div key={widgetKey} className="flex items-center justify-between rounded-xl border border-gray-200 bg-slate-900/40 p-3" data-testid={`profit-analytics-widget-row-${widgetKey}`}>
                 <div>
-                  <p className="font-medium text-white">{WIDGET_LABELS[widgetKey]}</p>
+                  <p className="font-medium text-gray-900">{WIDGET_LABELS[widgetKey]}</p>
                   <p className="text-xs text-slate-400">Position {index + 1}</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -308,14 +308,14 @@ export default function ProfitMarginAnalytics() {
               return (
                 <Card key={widgetKey} data-testid="profit-analytics-category-chart-card">
                   <CardHeader>
-                    <CardTitle className="text-white">Profit by Category</CardTitle>
+                    <CardTitle className="text-gray-900">Profit by Category</CardTitle>
                     <CardDescription>Revenue, cost, profit, and margin by product category.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {categoryRows.map((row) => (
                       <div key={row.category} className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-white">{row.category_label}</span>
+                          <span className="text-gray-900">{row.category_label}</span>
                           <span className="text-slate-300">{formatCurrency(row.profit)} · {row.average_margin}% margin</span>
                         </div>
                         <div className="h-3 rounded-full bg-slate-800 overflow-hidden">
@@ -332,16 +332,16 @@ export default function ProfitMarginAnalytics() {
               return (
                 <Card key={widgetKey} data-testid="profit-analytics-revenue-trend-card">
                   <CardHeader>
-                    <CardTitle className="text-white">Revenue Trend</CardTitle>
+                    <CardTitle className="text-gray-900">Revenue Trend</CardTitle>
                     <CardDescription>Revenue and profit trend for the selected range.</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
                       {trendRows.map((row) => (
                         <div key={row.period} className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
-                          <span className="text-white">{row.period}</span>
+                          <span className="text-gray-900">{row.period}</span>
                           <div className="text-right">
-                            <p className="text-white">{formatCurrency(row.revenue)}</p>
+                            <p className="text-gray-900">{formatCurrency(row.revenue)}</p>
                             <p className="text-xs text-slate-400">Profit {formatCurrency(row.profit)}</p>
                           </div>
                         </div>
@@ -356,14 +356,14 @@ export default function ProfitMarginAnalytics() {
               return (
                 <Card key={widgetKey} data-testid="profit-analytics-top-customers-card">
                   <CardHeader>
-                    <CardTitle className="text-white">Top Customers by Profit</CardTitle>
+                    <CardTitle className="text-gray-900">Top Customers by Profit</CardTitle>
                     <CardDescription>Which customers generate the most profit.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {customerRows.slice(0, preferences.simple_mode ? 5 : 8).map((row) => (
                       <div key={row.customer_id} className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
                         <div>
-                          <p className="text-white font-medium">{row.customer_name}</p>
+                          <p className="text-gray-900 font-medium">{row.customer_name}</p>
                           <p className="text-xs text-slate-400">{row.total_jobs} jobs · {row.average_margin}% margin</p>
                         </div>
                         <p className="text-emerald-400 font-semibold">{formatCurrency(row.total_profit)}</p>
@@ -378,14 +378,14 @@ export default function ProfitMarginAnalytics() {
               return (
                 <Card key={widgetKey} data-testid="profit-analytics-low-margin-card">
                   <CardHeader>
-                    <CardTitle className="text-white">Low Margin / Underpriced Jobs</CardTitle>
+                    <CardTitle className="text-gray-900">Low Margin / Underpriced Jobs</CardTitle>
                     <CardDescription>Jobs flagged below benchmark or at unusually low margins.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {(lowMarginJobs.length ? lowMarginJobs : sortedJobs.slice(-5)).slice(0, 8).map((row) => (
                       <div key={row.job_id} className="flex items-center justify-between rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3">
                         <div>
-                          <p className="text-white font-medium">{row.job_name}</p>
+                          <p className="text-gray-900 font-medium">{row.job_name}</p>
                           <p className="text-xs text-slate-300">{row.customer_name} · {row.category}</p>
                         </div>
                         <Badge className="bg-red-100 text-red-700">{row.profit_margin}% margin</Badge>
@@ -400,17 +400,17 @@ export default function ProfitMarginAnalytics() {
               return (
                 <Card key={widgetKey} data-testid="profit-analytics-average-job-value-card">
                   <CardHeader>
-                    <CardTitle className="text-white">Average Job Value</CardTitle>
+                    <CardTitle className="text-gray-900">Average Job Value</CardTitle>
                     <CardDescription>A simple view of average sale size and profitability.</CardDescription>
                   </CardHeader>
                   <CardContent className="grid gap-4 md:grid-cols-2">
                     <div className="rounded-xl border border-gray-200 bg-slate-900/40 p-5">
                       <p className="text-xs uppercase text-slate-400">Average Job Value</p>
-                      <p className="text-3xl font-bold text-white mt-2">{formatCurrency(metrics.average_job_value)}</p>
+                      <p className="text-3xl font-bold text-gray-900 mt-2">{formatCurrency(metrics.average_job_value)}</p>
                     </div>
                     <div className="rounded-xl border border-gray-200 bg-slate-900/40 p-5">
                       <p className="text-xs uppercase text-slate-400">Average Profit Margin</p>
-                      <p className="text-3xl font-bold text-white mt-2">{metrics.average_profit_margin || 0}%</p>
+                      <p className="text-3xl font-bold text-gray-900 mt-2">{metrics.average_profit_margin || 0}%</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -422,7 +422,7 @@ export default function ProfitMarginAnalytics() {
 
           <Card data-testid="profit-analytics-job-table-card">
             <CardHeader>
-              <CardTitle className="text-white">Job Profitability Table</CardTitle>
+              <CardTitle className="text-gray-900">Job Profitability Table</CardTitle>
               <CardDescription>Sort by profit, margin, or revenue and spot underpriced work.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -453,7 +453,7 @@ export default function ProfitMarginAnalytics() {
                 <TableBody>
                   {sortedJobs.map((row) => (
                     <TableRow key={row.job_id} data-testid={`profit-analytics-job-row-${row.job_id}`}>
-                      <TableCell className="text-white">{row.job_name}</TableCell>
+                      <TableCell className="text-gray-900">{row.job_name}</TableCell>
                       <TableCell>{row.customer_name}</TableCell>
                       <TableCell>{row.category}</TableCell>
                       <TableCell className="text-right">{formatCurrency(row.revenue)}</TableCell>
@@ -461,7 +461,7 @@ export default function ProfitMarginAnalytics() {
                       <TableCell className="text-right text-emerald-400">{formatCurrency(row.profit)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <span className={row.underpriced || row.profit_margin < 25 ? 'text-red-400 font-semibold' : 'text-white'}>{row.profit_margin}%</span>
+                          <span className={row.underpriced || row.profit_margin < 25 ? 'text-red-400 font-semibold' : 'text-gray-900'}>{row.profit_margin}%</span>
                           {row.underpriced && <Badge className="bg-red-100 text-red-700">Potentially underpriced job</Badge>}
                         </div>
                       </TableCell>
@@ -474,7 +474,7 @@ export default function ProfitMarginAnalytics() {
 
           <Card data-testid="profit-analytics-customer-table-card">
             <CardHeader>
-              <CardTitle className="text-white">Customer Profitability Report</CardTitle>
+              <CardTitle className="text-gray-900">Customer Profitability Report</CardTitle>
               <CardDescription>See which customers generate the most revenue and profit.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -491,7 +491,7 @@ export default function ProfitMarginAnalytics() {
                 <TableBody>
                   {customerRows.map((row) => (
                     <TableRow key={row.customer_id} data-testid={`profit-analytics-customer-row-${row.customer_id}`}>
-                      <TableCell className="text-white">{row.customer_name}</TableCell>
+                      <TableCell className="text-gray-900">{row.customer_name}</TableCell>
                       <TableCell className="text-right">{formatCurrency(row.total_revenue)}</TableCell>
                       <TableCell className="text-right text-emerald-400">{formatCurrency(row.total_profit)}</TableCell>
                       <TableCell className="text-right">{row.average_margin}%</TableCell>

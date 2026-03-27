@@ -428,7 +428,7 @@ export default function AdminPortal() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Communications Hub</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Communications Hub</h1>
           <p className="text-slate-300">Manage customer communications, documents, and artwork approvals</p>
         </div>
       </div>
@@ -599,7 +599,7 @@ export default function AdminPortal() {
                         <div
                           className={`max-w-[70%] rounded-lg px-4 py-2 ${
                             msg.sender_type === 'shop'
-                              ? 'bg-teal-500 text-white'
+                              ? 'bg-teal-500 text-gray-900'
                               : 'bg-slate-100 text-slate-900'
                           }`}
                         >

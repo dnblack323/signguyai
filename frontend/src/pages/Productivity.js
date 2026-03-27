@@ -164,12 +164,12 @@ export default function Productivity() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-white">Productivity</h1>
+          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-gray-900">Productivity</h1>
           <p className="text-slate-300 mt-1">Tasks, calendar, and job tracking</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="neon-glow" data-testid="add-task-btn">
+            <Button className="bg-violet-600 hover:bg-violet-700 text-white" data-testid="add-task-btn">
               <Plus className="h-4 w-4 mr-2" /> New Task
             </Button>
           </DialogTrigger>

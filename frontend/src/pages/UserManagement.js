@@ -254,9 +254,9 @@ export default function UserManagement() {
   if (!canViewUsers) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
-        <AlertTriangle className="h-12 w-12 mb-4" style={{ color: '#d97706' }} />
-        <h2 className="text-xl font-semibold mb-2" style={{ color: '#1A1A1A' }}>Access Denied</h2>
-        <p style={{ color: '#5A5A5A' }}>You don't have permission to view user management.</p>
+        <AlertTriangle className="h-12 w-12 mb-4" className="text-amber-600" />
+        <h2 className="text-xl font-semibold mb-2" className="text-gray-900">Access Denied</h2>
+        <p className="text-gray-500">You don't have permission to view user management.</p>
       </div>
     );
   }
@@ -277,7 +277,7 @@ export default function UserManagement() {
           <Button
             onClick={() => setCreateDialog(true)}
             className="text-white"
-            style={{ backgroundColor: '#2F8BFB' }}
+            className="bg-violet-600 hover:bg-violet-700"
             data-testid="create-user-btn"
           >
             <Plus className="h-4 w-4 mr-2" /> Add User
@@ -286,10 +286,10 @@ export default function UserManagement() {
       </div>
 
       {/* Search */}
-      <Card style={{ backgroundColor: '#FFFFFF', border: '1px solid #D7DCE2' }}>
+      <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <CardContent className="pt-6">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#5A5A5A' }} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" className="text-gray-500" />
             <Input
               placeholder="Search users by name, email, or company..."
               value={searchTerm}
@@ -303,20 +303,20 @@ export default function UserManagement() {
       </Card>
 
       {/* Users List */}
-      <Card style={{ backgroundColor: '#FFFFFF', border: '1px solid #D7DCE2' }}>
+      <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2" style={{ color: '#1A1A1A' }}>
-            <Users className="h-5 w-5" style={{ color: '#2F8BFB' }} />
+          <CardTitle className="flex items-center gap-2" className="text-gray-900">
+            <Users className="h-5 w-5" className="text-violet-600" />
             Users ({filteredUsers.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#2F8BFB' }} />
+              <Loader2 className="h-8 w-8 animate-spin" className="text-violet-600" />
             </div>
           ) : filteredUsers.length === 0 ? (
-            <p className="text-center py-8" style={{ color: '#5A5A5A' }}>No users found</p>
+            <p className="text-center py-8" className="text-gray-500">No users found</p>
           ) : (
             <div className="space-y-3">
               {filteredUsers.map((user) => (
@@ -331,13 +331,13 @@ export default function UserManagement() {
                       className="w-10 h-10 rounded-full flex items-center justify-center"
                       style={{ backgroundColor: 'rgba(47, 139, 251, 0.1)', border: '1px solid rgba(47, 139, 251, 0.3)' }}
                     >
-                      <span style={{ color: '#2F8BFB' }} className="font-medium">
+                      <span className="text-violet-600" className="font-medium">
                         {user.full_name.charAt(0).toUpperCase()}
                       </span>
                     </div>
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium" style={{ color: '#1A1A1A' }}>{user.full_name}</span>
+                        <span className="font-medium" className="text-gray-900">{user.full_name}</span>
                         <RoleBadge role={user.role} />
                         {user.id === currentUser?.id && (
                           <Badge style={{ backgroundColor: 'rgba(47, 139, 251, 0.15)', color: '#2F8BFB' }}>You</Badge>
@@ -346,9 +346,9 @@ export default function UserManagement() {
                           <Badge style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#dc2626' }}>Disabled</Badge>
                         )}
                       </div>
-                      <p className="text-sm" style={{ color: '#5A5A5A' }}>{user.email}</p>
+                      <p className="text-sm" className="text-gray-500">{user.email}</p>
                       {user.company_name && (
-                        <p className="text-xs" style={{ color: '#5A5A5A' }}>{user.company_name}</p>
+                        <p className="text-xs" className="text-gray-500">{user.company_name}</p>
                       )}
                     </div>
                   </div>
@@ -428,20 +428,20 @@ export default function UserManagement() {
 
       {/* Reset Password Dialog */}
       <Dialog open={resetDialog} onOpenChange={setResetDialog}>
-        <DialogContent style={{ backgroundColor: '#FFFFFF', border: '1px solid #D7DCE2' }}>
+        <DialogContent className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2" style={{ color: '#1A1A1A' }}>
-              <Key className="h-5 w-5" style={{ color: '#2F8BFB' }} />
+            <DialogTitle className="flex items-center gap-2" className="text-gray-900">
+              <Key className="h-5 w-5" className="text-violet-600" />
               Reset Password
             </DialogTitle>
-            <DialogDescription style={{ color: '#5A5A5A' }}>
+            <DialogDescription className="text-gray-500">
               Set a new password for {selectedUser?.full_name} ({selectedUser?.email})
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label style={{ color: '#1A1A1A' }}>New Password</Label>
+              <Label className="text-gray-900">New Password</Label>
               <Input
                 type="password"
                 value={newPassword}
@@ -452,7 +452,7 @@ export default function UserManagement() {
               />
             </div>
             <div className="space-y-2">
-              <Label style={{ color: '#1A1A1A' }}>Confirm Password</Label>
+              <Label className="text-gray-900">Confirm Password</Label>
               <Input
                 type="password"
                 value={confirmPassword}
@@ -480,7 +480,7 @@ export default function UserManagement() {
               onClick={handleResetPassword}
               disabled={resetting || !newPassword || !confirmPassword}
               className="text-white"
-              style={{ backgroundColor: '#2F8BFB' }}
+              className="bg-violet-600 hover:bg-violet-700"
               data-testid="confirm-reset-btn"
             >
               {resetting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -492,19 +492,19 @@ export default function UserManagement() {
 
       {/* Change Role Dialog */}
       <Dialog open={roleDialog} onOpenChange={setRoleDialog}>
-        <DialogContent style={{ backgroundColor: '#FFFFFF', border: '1px solid #D7DCE2' }}>
+        <DialogContent className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2" style={{ color: '#1A1A1A' }}>
-              <Shield className="h-5 w-5" style={{ color: '#2F8BFB' }} />
+            <DialogTitle className="flex items-center gap-2" className="text-gray-900">
+              <Shield className="h-5 w-5" className="text-violet-600" />
               Change User Role
             </DialogTitle>
-            <DialogDescription style={{ color: '#5A5A5A' }}>
+            <DialogDescription className="text-gray-500">
               Update the role for {selectedUser?.full_name}
             </DialogDescription>
           </DialogHeader>
           
           <div className="py-4">
-            <Label style={{ color: '#1A1A1A' }} className="mb-2 block">Select Role</Label>
+            <Label className="text-gray-900" className="mb-2 block">Select Role</Label>
             <Select value={selectedRole} onValueChange={setSelectedRole}>
               <SelectTrigger 
                 style={{ backgroundColor: '#FFFFFF', borderColor: '#D7DCE2', color: '#1A1A1A' }}
@@ -535,9 +535,9 @@ export default function UserManagement() {
             </Select>
             
             <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: '#F5F7FA', border: '1px solid #D7DCE2' }}>
-              <p className="text-sm font-medium mb-2" style={{ color: '#1A1A1A' }}>Role Permissions:</p>
+              <p className="text-sm font-medium mb-2" className="text-gray-900">Role Permissions:</p>
               {selectedRole === 'owner' && (
-                <ul className="text-xs space-y-1" style={{ color: '#5A5A5A' }}>
+                <ul className="text-xs space-y-1" className="text-gray-500">
                   <li>• Full access to all modules</li>
                   <li>• Manage users and roles</li>
                   <li>• View and edit all financial data</li>
@@ -545,7 +545,7 @@ export default function UserManagement() {
                 </ul>
               )}
               {selectedRole === 'admin' && (
-                <ul className="text-xs space-y-1" style={{ color: '#5A5A5A' }}>
+                <ul className="text-xs space-y-1" className="text-gray-500">
                   <li>• Full access to customers, quotes, jobs, invoices</li>
                   <li>• Manage all time clock entries</li>
                   <li>• View payroll and financials (no edit)</li>
@@ -553,7 +553,7 @@ export default function UserManagement() {
                 </ul>
               )}
               {selectedRole === 'staff' && (
-                <ul className="text-xs space-y-1" style={{ color: '#5A5A5A' }}>
+                <ul className="text-xs space-y-1" className="text-gray-500">
                   <li>• View customers, quotes, jobs</li>
                   <li>• Clock in/out (own entries only)</li>
                   <li>• Use AI tools</li>
@@ -578,7 +578,7 @@ export default function UserManagement() {
               onClick={handleChangeRole}
               disabled={changingRole || !selectedRole}
               className="text-white"
-              style={{ backgroundColor: '#2F8BFB' }}
+              className="bg-violet-600 hover:bg-violet-700"
               data-testid="confirm-role-btn"
             >
               {changingRole ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -590,20 +590,20 @@ export default function UserManagement() {
 
       {/* Create User Dialog */}
       <Dialog open={createDialog} onOpenChange={setCreateDialog}>
-        <DialogContent style={{ backgroundColor: '#FFFFFF', border: '1px solid #D7DCE2' }}>
+        <DialogContent className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2" style={{ color: '#1A1A1A' }}>
-              <Plus className="h-5 w-5" style={{ color: '#2F8BFB' }} />
+            <DialogTitle className="flex items-center gap-2" className="text-gray-900">
+              <Plus className="h-5 w-5" className="text-violet-600" />
               Create New User
             </DialogTitle>
-            <DialogDescription style={{ color: '#5A5A5A' }}>
+            <DialogDescription className="text-gray-500">
               Add a new user to the system
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label style={{ color: '#1A1A1A' }}>Full Name *</Label>
+              <Label className="text-gray-900">Full Name *</Label>
               <Input
                 value={newUserData.full_name}
                 onChange={(e) => setNewUserData({...newUserData, full_name: e.target.value})}
@@ -613,7 +613,7 @@ export default function UserManagement() {
               />
             </div>
             <div className="space-y-2">
-              <Label style={{ color: '#1A1A1A' }}>Email *</Label>
+              <Label className="text-gray-900">Email *</Label>
               <Input
                 type="email"
                 value={newUserData.email}
@@ -624,7 +624,7 @@ export default function UserManagement() {
               />
             </div>
             <div className="space-y-2">
-              <Label style={{ color: '#1A1A1A' }}>Password *</Label>
+              <Label className="text-gray-900">Password *</Label>
               <Input
                 type="password"
                 value={newUserData.password}
@@ -635,7 +635,7 @@ export default function UserManagement() {
               />
             </div>
             <div className="space-y-2">
-              <Label style={{ color: '#1A1A1A' }}>Company Name</Label>
+              <Label className="text-gray-900">Company Name</Label>
               <Input
                 value={newUserData.company_name}
                 onChange={(e) => setNewUserData({...newUserData, company_name: e.target.value})}
@@ -645,7 +645,7 @@ export default function UserManagement() {
               />
             </div>
             <div className="space-y-2">
-              <Label style={{ color: '#1A1A1A' }}>Role</Label>
+              <Label className="text-gray-900">Role</Label>
               <Select 
                 value={newUserData.role} 
                 onValueChange={(value) => setNewUserData({...newUserData, role: value})}
@@ -677,7 +677,7 @@ export default function UserManagement() {
               onClick={handleCreateUser}
               disabled={creating}
               className="text-white"
-              style={{ backgroundColor: '#2F8BFB' }}
+              className="bg-violet-600 hover:bg-violet-700"
               data-testid="confirm-create-btn"
             >
               {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}

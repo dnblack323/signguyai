@@ -26,7 +26,7 @@ const STATUS_LABELS = {
   open: { label: 'Open', color: 'bg-blue-500/20 text-blue-400' },
   in_progress: { label: 'In Progress', color: 'bg-amber-500/20 text-amber-400' },
   resolved: { label: 'Resolved', color: 'bg-green-500/20 text-green-400' },
-  closed: { label: 'Closed', color: 'bg-gray-500/20 text-gray-400' },
+  closed: { label: 'Closed', color: 'bg-gray-500/20 text-gray-500' },
 };
 
 const OWNER_EMAIL = 'thesigntistslab@gmail.com';
@@ -146,11 +146,11 @@ export default function CommunityHub() {
 
     return (
       <div className="p-6 max-w-4xl mx-auto space-y-4">
-        <button onClick={() => setSelectedPost(null)} className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors" data-testid="back-to-list">
+        <button onClick={() => setSelectedPost(null)} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors" data-testid="back-to-list">
           <ArrowLeft className="w-4 h-4" /> Back to Community
         </button>
 
-        <Card className="bg-white border-gray-700">
+        <Card className="bg-white border-gray-200">
           <CardContent className="p-6">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -158,8 +158,8 @@ export default function CommunityHub() {
                   <CatIcon className={`w-5 h-5 ${cat.color}`} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">{selectedPost.title}</h2>
-                  <div className="flex items-center gap-2 mt-1 text-sm text-gray-400">
+                  <h2 className="text-xl font-bold text-gray-900">{selectedPost.title}</h2>
+                  <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
                     <span>{selectedPost.author_name}</span>
                     <span>-</span>
                     <span>{new Date(selectedPost.created_at).toLocaleDateString()}</span>
@@ -181,7 +181,7 @@ export default function CommunityHub() {
                     <select
                       value={selectedPost.status}
                       onChange={(e) => handleStatusChange(selectedPost.id, e.target.value)}
-                      className="text-xs bg-gray-50 border border-gray-600 rounded px-2 py-1 text-gray-300"
+                      className="text-xs bg-gray-50 border border-gray-600 rounded px-2 py-1 text-gray-700"
                       data-testid="status-select"
                     >
                       <option value="open">Open</option>
@@ -194,7 +194,7 @@ export default function CommunityHub() {
               </div>
             </div>
 
-            <div className="p-4 bg-gray-50 rounded-lg text-gray-300 whitespace-pre-wrap text-sm">
+            <div className="p-4 bg-gray-50 rounded-lg text-gray-700 whitespace-pre-wrap text-sm">
               {selectedPost.body}
             </div>
           </CardContent>
@@ -202,29 +202,29 @@ export default function CommunityHub() {
 
         {/* Replies */}
         <div className="space-y-3">
-          <h3 className="text-white font-semibold">{selectedPost.replies?.length || 0} Replies</h3>
+          <h3 className="text-gray-900 font-semibold">{selectedPost.replies?.length || 0} Replies</h3>
           {selectedPost.replies?.map((reply) => (
-            <Card key={reply.id} className={`border ${reply.is_official ? 'border-green-500/30 bg-green-500/5' : 'border-gray-700 bg-white'}`}>
+            <Card key={reply.id} className={`border ${reply.is_official ? 'border-green-500/30 bg-green-500/5' : 'border-gray-200 bg-white'}`}>
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-sm font-medium text-white">{reply.author_name}</span>
+                  <span className="text-sm font-medium text-gray-900">{reply.author_name}</span>
                   {reply.is_official && <Badge className="bg-green-500/20 text-green-400 text-xs"><Star className="w-3 h-3 mr-1" />Official</Badge>}
                   <span className="text-xs text-gray-500">{new Date(reply.created_at).toLocaleDateString()}</span>
                 </div>
-                <p className="text-gray-300 text-sm whitespace-pre-wrap">{reply.body}</p>
+                <p className="text-gray-700 text-sm whitespace-pre-wrap">{reply.body}</p>
               </CardContent>
             </Card>
           ))}
         </div>
 
         {/* Reply Input */}
-        <Card className="bg-white border-gray-700">
+        <Card className="bg-white border-gray-200">
           <CardContent className="p-4">
             <Textarea
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
               placeholder="Write a reply..."
-              className="mb-3 bg-gray-50 border-gray-600 text-white"
+              className="mb-3 bg-gray-50 border-gray-600 text-gray-900"
               rows={3}
               data-testid="reply-input"
             />
@@ -244,13 +244,13 @@ export default function CommunityHub() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Community Hub</h1>
-          <p className="text-gray-400 text-sm mt-1">Report bugs, request features, ask questions, and see answers</p>
+          <h1 className="text-2xl font-bold text-gray-900">Community Hub</h1>
+          <p className="text-gray-500 text-sm mt-1">Report bugs, request features, ask questions, and see answers</p>
         </div>
         <div className="flex gap-2">
           <a
             href="mailto:thesigntistslab@gmail.com?subject=SignGuy%20AI%20Support"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500 transition-colors text-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:text-gray-900 hover:border-gray-500 transition-colors text-sm"
             data-testid="contact-owner-btn"
           >
             <Mail className="w-4 h-4" /> Contact Support
@@ -265,13 +265,13 @@ export default function CommunityHub() {
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {[
-            { label: 'Total Posts', value: stats.total_posts, color: 'text-white' },
+            { label: 'Total Posts', value: stats.total_posts, color: 'text-gray-900' },
             { label: 'Answered', value: stats.answered, color: 'text-green-400' },
             { label: 'Open', value: stats.open, color: 'text-blue-400' },
             { label: 'Bug Reports', value: stats.bug_reports, color: 'text-red-400' },
             { label: 'Feature Requests', value: stats.feature_requests, color: 'text-amber-400' },
           ].map(s => (
-            <div key={s.label} className="p-3 bg-white rounded-lg border border-gray-700 text-center">
+            <div key={s.label} className="p-3 bg-white rounded-lg border border-gray-200 text-center">
               <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
               <p className="text-xs text-gray-500">{s.label}</p>
             </div>
@@ -286,7 +286,7 @@ export default function CommunityHub() {
           <Input
             placeholder="Search posts, answers, keywords..."
             onChange={(e) => handleSearch(e.target.value)}
-            className="pl-10 bg-white border-gray-700 text-white"
+            className="pl-10 bg-white border-gray-200 text-gray-900"
             data-testid="community-search"
           />
         </div>
@@ -294,7 +294,7 @@ export default function CommunityHub() {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="bg-white border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-300"
+            className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700"
             data-testid="category-filter"
           >
             <option value="">All Categories</option>
@@ -303,7 +303,7 @@ export default function CommunityHub() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-white border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-300"
+            className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700"
             data-testid="status-filter"
           >
             <option value="">All Status</option>
@@ -319,9 +319,9 @@ export default function CommunityHub() {
       {showNewPost && (
         <Card className="bg-white border-blue-500/30">
           <CardHeader>
-            <CardTitle className="text-white flex items-center justify-between">
+            <CardTitle className="text-gray-900 flex items-center justify-between">
               <span>Create a Post</span>
-              <button onClick={() => setShowNewPost(false)}><X className="w-5 h-5 text-gray-400" /></button>
+              <button onClick={() => setShowNewPost(false)}><X className="w-5 h-5 text-gray-500" /></button>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -333,7 +333,7 @@ export default function CommunityHub() {
                     key={c.id}
                     onClick={() => setNewPost(p => ({ ...p, category: c.id }))}
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm border transition-colors ${
-                      newPost.category === c.id ? `${c.bg} border-current ${c.color}` : 'border-gray-700 text-gray-400 hover:border-gray-500'
+                      newPost.category === c.id ? `${c.bg} border-current ${c.color}` : 'border-gray-200 text-gray-500 hover:border-gray-500'
                     }`}
                     data-testid={`category-${c.id}`}
                   >
@@ -343,22 +343,22 @@ export default function CommunityHub() {
               })}
             </div>
             <div>
-              <Label className="text-gray-300 text-xs mb-1">Title</Label>
+              <Label className="text-gray-700 text-xs mb-1">Title</Label>
               <Input
                 value={newPost.title}
                 onChange={(e) => setNewPost(p => ({ ...p, title: e.target.value }))}
                 placeholder="Brief summary of your post"
-                className="bg-gray-50 border-gray-600 text-white"
+                className="bg-gray-50 border-gray-600 text-gray-900"
                 data-testid="post-title-input"
               />
             </div>
             <div>
-              <Label className="text-gray-300 text-xs mb-1">Description</Label>
+              <Label className="text-gray-700 text-xs mb-1">Description</Label>
               <Textarea
                 value={newPost.body}
                 onChange={(e) => setNewPost(p => ({ ...p, body: e.target.value }))}
                 placeholder="Provide details. For bugs, include steps to reproduce."
-                className="bg-gray-50 border-gray-600 text-white"
+                className="bg-gray-50 border-gray-600 text-gray-900"
                 rows={4}
                 data-testid="post-body-input"
               />
@@ -379,7 +379,7 @@ export default function CommunityHub() {
       ) : posts.length === 0 ? (
         <div className="text-center py-12">
           <MessageCircle className="w-10 h-10 mx-auto mb-3 text-gray-600" />
-          <p className="text-gray-400">No posts yet. Be the first to share!</p>
+          <p className="text-gray-500">No posts yet. Be the first to share!</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -392,7 +392,7 @@ export default function CommunityHub() {
             return (
               <Card
                 key={post.id}
-                className={`bg-white border-gray-700 hover:border-gray-500 transition-colors cursor-pointer ${post.is_pinned ? 'border-l-2 border-l-amber-400' : ''}`}
+                className={`bg-white border-gray-200 hover:border-gray-500 transition-colors cursor-pointer ${post.is_pinned ? 'border-l-2 border-l-amber-400' : ''}`}
                 onClick={() => setSelectedPost(post)}
                 data-testid={`post-${post.id}`}
               >
@@ -407,7 +407,7 @@ export default function CommunityHub() {
                       >
                         <ChevronUp className="w-5 h-5" />
                       </button>
-                      <span className="text-sm font-medium text-gray-400">{post.upvotes || 0}</span>
+                      <span className="text-sm font-medium text-gray-500">{post.upvotes || 0}</span>
                     </div>
 
                     {/* Category icon */}
@@ -418,7 +418,7 @@ export default function CommunityHub() {
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-white font-medium truncate">{post.title}</h3>
+                        <h3 className="text-gray-900 font-medium truncate">{post.title}</h3>
                         {post.is_pinned && <Pin className="w-3 h-3 text-amber-400" />}
                         {post.is_answered && <CheckCircle2 className="w-3 h-3 text-green-400" />}
                       </div>

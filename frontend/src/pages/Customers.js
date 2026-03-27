@@ -418,7 +418,7 @@ export default function Customers() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-white">Customers</h1>
+          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-gray-900">Customers</h1>
           <p className="text-gray-700 mt-1">{customers.length} total customers</p>
         </div>
         <div className="flex gap-2">

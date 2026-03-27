@@ -109,7 +109,7 @@ export default function EmailTemplates() {
     <div className="space-y-6 animate-fade-in" data-testid="email-templates-page">
       {/* Header */}
       <div>
-          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-white">
+          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-gray-900">
             Email Templates
           </h1>
         <p className="text-slate-300 mt-1">

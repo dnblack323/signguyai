@@ -147,7 +147,7 @@ export default function TimeClock() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-white">Time Clock</h1>
+          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-gray-900">Time Clock</h1>
           <p className="text-slate-300 mt-1">Track employee work hours</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -233,7 +233,7 @@ export default function TimeClock() {
                       onClick={() => handleClockAction(action)}
                       disabled={!isAvailable}
                       className={cn(
-                        "h-24 flex flex-col items-center justify-center gap-2 text-white transition-all",
+                        "h-24 flex flex-col items-center justify-center gap-2 text-gray-900 transition-all",
                         isAvailable ? color : "bg-gray-50 text-gray-500 cursor-not-allowed",
                         isAvailable && "neon-glow"
                       )}

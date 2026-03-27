@@ -85,8 +85,8 @@ export default function Invoices() {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
         <AlertTriangle className="h-12 w-12 mb-4" style={{ color: '#d97706' }} />
-        <h2 className="text-xl font-semibold mb-2" style={{ color: '#1A1A1A' }}>Access Denied</h2>
-        <p style={{ color: '#5A5A5A' }}>You don't have permission to view invoices.</p>
+        <h2 className="text-xl font-semibold mb-2" className="text-gray-900">Access Denied</h2>
+        <p className="text-gray-500">You don't have permission to view invoices.</p>
       </div>
     );
   }
@@ -205,7 +205,7 @@ export default function Invoices() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-white">Invoices</h1>
+          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-gray-900">Invoices</h1>
           <p className="text-gray-700 mt-1">{invoices.length} total invoices</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
