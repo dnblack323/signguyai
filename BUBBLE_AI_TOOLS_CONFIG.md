@@ -45,13 +45,13 @@ class AIResponse(BaseModel):
     tool: str                        # Tool identifier (e.g., "layout_generator")
     input_data: Dict[str, Any]       # Full input object sent to AI
     output: str                      # Raw AI response text
-    job_id: Optional[str] = None     # Link to Job (if provided in input)
+    order_id: Optional[str] = None     # Link to Job (if provided in input)
     customer_id: Optional[str] = None # Link to Customer (if provided in input)
     created_at: str                  # ISO 8601 timestamp
 ```
 
 ### Record Linking
-- **job_id**: Extracted from `request.input_data.get("job_id")` if present
+- **order_id**: Extracted from `request.input_data.get("order_id")` if present
 - **customer_id**: Extracted from `request.input_data.get("customer_id")` if present
 - Both are optional - user can manually pass them in the input_data object
 - Currently NOT automatically linked from context (user must explicitly provide IDs)
@@ -61,7 +61,7 @@ class AIResponse(BaseModel):
 GET /api/ai/history
 Parameters:
   - tool: Filter by tool type
-  - job_id: Filter by linked job
+  - order_id: Filter by linked job
   - customer_id: Filter by linked customer
 Limit: 100 most recent records
 Sort: created_at DESC
@@ -103,7 +103,7 @@ Sort: created_at DESC
   "text_content": "GRAND OPENING\nJohnson's Auto Repair\nCall 555-1234",
   "colors": "Blue, White, Gold",
   "style": "Modern",
-  "job_id": "optional-job-uuid",
+  "order_id": "optional-job-uuid",
   "customer_id": "optional-customer-uuid"
 }
 ```
@@ -199,7 +199,7 @@ Plain text response containing:
   "design_description": "4x8 vinyl banner, full color print. Red and yellow text on white background. Logo in top left. Multiple photos along bottom.",
   "print_method": "Large Format Digital",
   "material": "13oz Vinyl",
-  "job_id": "optional-job-uuid"
+  "order_id": "optional-job-uuid"
 }
 ```
 
@@ -420,7 +420,7 @@ Plain text brand kit document:
   "client_name": "Downtown Coffee Co.",
   "project_details": "Channel letter sign for storefront, 24\" tall letters, internally illuminated. Window vinyl for hours and logo. A-frame sidewalk sign.",
   "special_requirements": "Must match existing brand colors. Installation requires after-hours work. Landlord approval needed.",
-  "job_id": "optional-job-uuid",
+  "order_id": "optional-job-uuid",
   "customer_id": "optional-customer-uuid"
 }
 ```
@@ -818,7 +818,7 @@ Structured job ticket:
 ---
 
 *Generated from customer conversation on [date]*
-*Ready for job creation*
+*Ready for order creation*
 ```
 
 ---
@@ -846,7 +846,7 @@ class AIRequest(BaseModel):
     "text_content": "GRAND OPENING",
     "colors": "Blue, White",
     "style": "Modern",
-    "job_id": "abc-123",
+    "order_id": "abc-123",
     "customer_id": "xyz-789"
   }
 }
@@ -859,7 +859,7 @@ class AIResponse(BaseModel):
     tool: str                        # Tool that was used
     input_data: Dict[str, Any]       # Echo of input
     output: str                      # AI-generated content
-    job_id: Optional[str]            # Linked job (if provided)
+    order_id: Optional[str]            # Linked job (if provided)
     customer_id: Optional[str]       # Linked customer (if provided)
     created_at: str                  # ISO timestamp
 ```
@@ -871,7 +871,7 @@ class AIResponse(BaseModel):
   "tool": "layout_generator",
   "input_data": { ... },
   "output": "## Layout Concept 1: Bold & Centered\n...",
-  "job_id": "abc-123",
+  "order_id": "abc-123",
   "customer_id": "xyz-789",
   "created_at": "2024-12-15T10:30:00Z"
 }
@@ -892,7 +892,7 @@ class AIResponse(BaseModel):
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | tool | string | Filter by tool ID |
-| job_id | string | Filter by linked job |
+| order_id | string | Filter by linked job |
 | customer_id | string | Filter by linked customer |
 
 **Response:** Array of AIResponse objects (max 100, sorted by created_at DESC)
@@ -939,7 +939,7 @@ ai_response = AIResponse(
     tool=request.tool,
     input_data=request.input_data,
     output=response,
-    job_id=request.input_data.get("job_id"),      # Optional link
+    order_id=request.input_data.get("order_id"),      # Optional link
     customer_id=request.input_data.get("customer_id")  # Optional link
 )
 doc = ai_response.model_dump()

@@ -31,8 +31,8 @@
 |---------|---------|-----|----------|
 | Customers | ✅ | ✅ | ✅ |
 | Quotes | ✅ | ✅ | ✅ |
-| Jobs | ✅ | ✅ | ✅ |
-| Active Jobs | ✅ Unlimited | ✅ Unlimited | ✅ Unlimited |
+| Orders | ✅ | ✅ | ✅ |
+| Active Orders | ✅ Unlimited | ✅ Unlimited | ✅ Unlimited |
 | Line Items | ✅ | ✅ | ✅ |
 | **Kanban Board** | ❌ | ✅ | ✅ |
 | **Job Activity Log** | ❌ | ✅ | ✅ |
@@ -342,7 +342,7 @@
 Best for: Solo operators testing the platform
 
 **Includes:**
-- Core CRM (Customers, Jobs, Invoices)
+- Core CRM (Customers, Orders, Invoices)
 - 1 Webstore (Fundraiser/Event only)
 - Customer Portal (basic view)
 - AI Tools (25 generations/month, text only)

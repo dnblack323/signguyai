@@ -75,7 +75,7 @@ This document defines the intended roles and permissions structure for Sign Guy 
 | notes | ✅ | ✅ | 📖 |
 | status | ✅ | ✅ | ⚠️ (approve/decline) |
 | total | 📖 | 📖 | 📖 |
-| job_id | 📖 | 📖 | 🔒 |
+| order_id | 📖 | 📖 | 🔒 |
 
 **Customer Portal Quote Actions:**
 - View quotes sent to them
@@ -90,7 +90,7 @@ This document defines the intended roles and permissions structure for Sign Guy 
 | Action | Owner | Staff | Customer Portal |
 |--------|-------|-------|-----------------|
 | **View All** | ✅ | ✅ | 🔒 |
-| **View Own** | ✅ | ✅ | 👤 (jobs for their account) |
+| **View Own** | ✅ | ✅ | 👤 (orders for their account) |
 | **Create** | ✅ | ✅ | 🔒 |
 | **Edit** | ✅ | ✅ | 🔒 |
 | **Delete** | ✅ | 🔒 | 🔒 |
@@ -124,7 +124,7 @@ This document defines the intended roles and permissions structure for Sign Guy 
 
 | Action | Owner | Staff | Customer Portal |
 |--------|-------|-------|-----------------|
-| **View** | ✅ | ✅ | 👤 (items on their jobs) |
+| **View** | ✅ | ✅ | 👤 (items on their orders) |
 | **Create** | ✅ | ✅ | 🔒 |
 | **Edit** | ✅ | ✅ | 🔒 |
 | **Delete** | ✅ | ✅ | 🔒 |
@@ -188,7 +188,7 @@ This document defines the intended roles and permissions structure for Sign Guy 
 | Field | Owner | Staff | Customer Portal |
 |-------|-------|-------|-----------------|
 | customer_id | ✅ | ✅ | 🔒 |
-| job_id | ✅ | ✅ | 🔒 |
+| order_id | ✅ | ✅ | 🔒 |
 | line_items | ✅ | ⚠️ | 📖 |
 | total | 📖 | 📖 | 📖 |
 | status | ✅ | ✅ | 📖 |
@@ -345,8 +345,8 @@ This document defines the intended roles and permissions structure for Sign Guy 
 | `/` (Dashboard) | ✅ | Full dashboard |
 | `/customers` | ✅ | Full CRUD |
 | `/quotes` | ✅ | Full CRUD |
-| `/jobs` | ✅ | Full CRUD |
-| `/jobs/:id` | ✅ | Full access |
+| `/orders` | ✅ | Full CRUD |
+| `/orders/:id` | ✅ | Full access |
 | `/invoices` | ✅ | Full CRUD |
 | `/timeclock` | ✅ | All employees |
 | `/payroll` | ✅ | Full access |
@@ -366,8 +366,8 @@ This document defines the intended roles and permissions structure for Sign Guy 
 | `/` (Dashboard) | ✅ | Limited metrics (no financial totals) |
 | `/customers` | ✅ | No delete |
 | `/quotes` | ✅ | No delete |
-| `/jobs` | ✅ | No delete |
-| `/jobs/:id` | ✅ | Full access except delete |
+| `/orders` | ✅ | No delete |
+| `/orders/:id` | ✅ | Full access except delete |
 | `/invoices` | ⚠️ | Cannot edit sent/paid invoices |
 | `/timeclock` | ⚠️ | Own time only |
 | `/payroll` | ⚠️ | Own balance only |
@@ -381,7 +381,7 @@ This document defines the intended roles and permissions structure for Sign Guy 
 **Staff Dashboard Modifications:**
 - Hide "Today's Revenue" card
 - Hide "Overdue Total" amounts
-- Show job counts and task counts only
+- Show order counts and task counts only
 
 ---
 
@@ -392,14 +392,14 @@ This document defines the intended roles and permissions structure for Sign Guy 
 | `/portal` (Dashboard) | ✅ | Customer-specific dashboard |
 | `/portal/profile` | ✅ | Edit own profile |
 | `/portal/quotes` | 📖 | View and approve/decline |
-| `/portal/jobs` | 📖 | View status only |
+| `/portal/orders` | 📖 | View status only |
 | `/portal/invoices` | 📖 | View and pay |
 | `/portal/orders` | 👤 | B2B/Fundraiser orders |
 | `/store/:id` | ✅ | B2B store access (if authorized) |
 
 **Customer Portal Dashboard Shows:**
 - Active quotes pending approval
-- Current job statuses
+- Current order statuses
 - Outstanding invoices
 - Order history
 
@@ -424,7 +424,7 @@ This document defines the intended roles and permissions structure for Sign Guy 
 |-----------|-------|-------|-----------------|
 | Customer | CRUD | CRU | R (own) |
 | Quote | CRUD | CRU | R (own) + Approve |
-| Job | CRUD | CRU | R (own) |
+| Order | CRUD | CRU | R (own) |
 | JobItem | CRUD | CRUD | R (own) |
 | JobNote | CRUD | CRUD | 🔒 |
 | JobActivity | R | R | R (sanitized) |
@@ -463,7 +463,7 @@ This document defines the intended roles and permissions structure for Sign Guy 
 | **Proof Approval** | Customer can approve/reject proofs |
 | **File Uploads** | Staff can upload, Customer can view |
 | **Messaging** | Bidirectional communication |
-| **Scheduling** | Staff can view/edit assigned jobs |
+| **Scheduling** | Staff can view/edit assigned orders |
 | **Reporting** | Role-based report access |
 | **API Access** | Token-based for integrations |
 
@@ -506,7 +506,7 @@ Customer.id = LoggedInUser.customer_id
 
 This applies to:
 - Quotes: `quote.customer_id = user.customer_id`
-- Jobs: `job.customer_id = user.customer_id`
+- Orders: `order.customer_id = user.customer_id`
 - Invoices: `invoice.customer_id = user.customer_id`
 - WebstoreOrders: `order.store_id` in user's authorized stores
 

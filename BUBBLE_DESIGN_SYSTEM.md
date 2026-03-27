@@ -93,7 +93,7 @@ A professional, dark-mode-first design system for sign shop operations. Desktop-
 
 ## PART 2: STATUS COLOR MAPPING
 
-### JobStatus Colors
+### OrderStatus Colors
 
 | Status | Background | Text | Border | Badge Style |
 |--------|------------|------|--------|-------------|
@@ -612,7 +612,7 @@ Card background: #1E293B (neutral)
 Status badge: #10B98120 background, #10B981 text (green for "complete")
 
 ❌ WRONG:
-Card background: #10B981 (full green for complete jobs)
+Card background: #10B981 (full green for complete orders)
 Status badge: #1E293B (neutral for all statuses)
 
 ✅ CORRECT:
@@ -798,7 +798,7 @@ Action Button:
 ### Status Badge Classes
 
 ```
-/* JobStatus */
+/* OrderStatus */
 .status-quoted { background: #F59E0B20; color: #F59E0B; }
 .status-approved { background: #3B82F620; color: #3B82F6; }
 .status-in-production { background: #8B5CF620; color: #8B5CF6; }

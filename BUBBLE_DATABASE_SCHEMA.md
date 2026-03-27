@@ -23,7 +23,7 @@
 
 ---
 
-### JobStatus
+### OrderStatus
 | Display | Value | Order |
 |---------|-------|-------|
 | Quoted | quoted | 1 |
@@ -182,13 +182,13 @@
 | notes | text | NO | NO | empty | Quote notes/terms |
 | status | QuoteStatus (option set) | YES | NO | draft | Quote lifecycle status |
 | total | number | YES | NO | 0 | **CALCULATED** - see below |
-| job_id | Job (thing) | NO | NO | empty | Link to converted Job (null until converted) |
+| order_id | Job (thing) | NO | NO | empty | Link to converted Job (null until converted) |
 | created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
 | updated_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
 
 **Relationships:**
 - Quote → Customer (many:1) - via customer_id
-- Quote → Job (1:1) - via job_id (set when quote converts to job)
+- Quote → Job (1:1) - via order_id (set when quote converts to job)
 - Quote → QuoteLineItem (1:many) - embedded list
 
 **Calculated Fields:**
@@ -218,7 +218,7 @@
 | customer_id | Customer (thing) | YES | NO | - | Link to Customer |
 | name | text | YES | NO | - | Job/project name |
 | description | text | NO | NO | empty | Job description |
-| status | JobStatus (option set) | YES | NO | quoted | Job lifecycle status |
+| status | OrderStatus (option set) | YES | NO | quoted | Order lifecycle status |
 | due_date | date | NO | NO | empty | Expected completion date |
 | quote_id | Quote (thing) | NO | NO | empty | Link to originating Quote |
 | invoice_id | Invoice (thing) | NO | NO | empty | Link to generated Invoice |
@@ -231,13 +231,13 @@
 - Job → Customer (many:1) - via customer_id
 - Job → Quote (1:1) - via quote_id
 - Job → Invoice (1:1) - via invoice_id
-- Job → JobItem (1:many) - via JobItem.job_id
-- Job → JobNote (1:many) - via JobNote.job_id
-- Job → JobActivity (1:many) - via JobActivity.job_id
-- Job → Task (1:many) - via Task.job_id
+- Job → JobItem (1:many) - via JobItem.order_id
+- Job → JobNote (1:many) - via JobNote.order_id
+- Job → JobActivity (1:many) - via JobActivity.order_id
+- Job → Task (1:many) - via Task.order_id
 
 **Calculated Fields:**
-- `subtotal` = SUM of all JobItems where job_id = this Job's id → line_total
+- `subtotal` = SUM of all JobItems where order_id = this Job's id → line_total
 
 ---
 
@@ -246,7 +246,7 @@
 | Field Name | Bubble Field Type | Required | List | Default Value | Notes |
 |------------|-------------------|----------|------|---------------|-------|
 | id | text | YES | NO | Auto-generated UUID | Primary key |
-| job_id | Job (thing) | YES | NO | - | Link to parent Job |
+| order_id | Job (thing) | YES | NO | - | Link to parent Job |
 | item_type | JobItemType (option set) | YES | NO | other | Type of sign/product |
 | description | text | YES | NO | - | Item description |
 | quantity | number | YES | NO | 1 | Quantity |
@@ -257,7 +257,7 @@
 | created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
 
 **Relationships:**
-- JobItem → Job (many:1) - via job_id
+- JobItem → Job (many:1) - via order_id
 - JobItem → InvoiceLineItem (1:1) - via InvoiceLineItem.job_item_id
 
 **Calculated Fields:**
@@ -270,13 +270,13 @@
 | Field Name | Bubble Field Type | Required | List | Default Value | Notes |
 |------------|-------------------|----------|------|---------------|-------|
 | id | text | YES | NO | Auto-generated UUID | Primary key |
-| job_id | Job (thing) | YES | NO | - | Link to parent Job |
+| order_id | Job (thing) | YES | NO | - | Link to parent Job |
 | content | text | YES | NO | - | Note content |
 | author | text | NO | NO | empty | Person who added note |
 | created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
 
 **Relationships:**
-- JobNote → Job (many:1) - via job_id
+- JobNote → Job (many:1) - via order_id
 
 ---
 
@@ -285,7 +285,7 @@
 | Field Name | Bubble Field Type | Required | List | Default Value | Notes |
 |------------|-------------------|----------|------|---------------|-------|
 | id | text | YES | NO | Auto-generated UUID | Primary key |
-| job_id | Job (thing) | YES | NO | - | Link to parent Job |
+| order_id | Job (thing) | YES | NO | - | Link to parent Job |
 | activity_type | JobActivityType (option set) | YES | NO | - | Type of activity logged |
 | description | text | YES | NO | - | Human-readable description |
 | old_value | text | NO | NO | empty | Previous value (for changes) |
@@ -293,7 +293,7 @@
 | created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
 
 **Relationships:**
-- JobActivity → Job (many:1) - via job_id
+- JobActivity → Job (many:1) - via order_id
 
 ---
 
@@ -303,7 +303,7 @@
 |------------|-------------------|----------|------|---------------|-------|
 | id | text | YES | NO | Auto-generated UUID | Primary key |
 | customer_id | Customer (thing) | YES | NO | - | Link to Customer |
-| job_id | Job (thing) | NO | NO | empty | Link to source Job |
+| order_id | Job (thing) | NO | NO | empty | Link to source Job |
 | line_items | InvoiceLineItem (thing) | NO | YES | empty list | Embedded line items |
 | total | number | YES | NO | 0 | **CALCULATED** - see below |
 | status | InvoiceStatus (option set) | YES | NO | draft | Invoice lifecycle status |
@@ -316,7 +316,7 @@
 
 **Relationships:**
 - Invoice → Customer (many:1) - via customer_id
-- Invoice → Job (1:1) - via job_id
+- Invoice → Job (1:1) - via order_id
 - Invoice → InvoiceLineItem (1:many) - embedded list
 
 **Calculated Fields:**
@@ -444,13 +444,13 @@
 | id | text | YES | NO | Auto-generated UUID | Primary key |
 | title | text | YES | NO | - | Task title |
 | description | text | NO | NO | empty | Task details |
-| job_id | Job (thing) | NO | NO | empty | Link to related Job |
+| order_id | Job (thing) | NO | NO | empty | Link to related Job |
 | due_date | date | NO | NO | empty | Task due date |
 | is_complete | yes/no | YES | NO | no | Completion status |
 | created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
 
 **Relationships:**
-- Task → Job (many:1) - via job_id (optional)
+- Task → Job (many:1) - via order_id (optional)
 
 ---
 
@@ -462,7 +462,7 @@
 | tool | text | YES | NO | - | AI tool name used |
 | input_data | text | YES | NO | - | JSON string of input parameters |
 | output | text | YES | NO | - | AI-generated response |
-| job_id | Job (thing) | NO | NO | empty | Link to related Job |
+| order_id | Job (thing) | NO | NO | empty | Link to related Job |
 | customer_id | Customer (thing) | NO | NO | empty | Link to related Customer |
 | created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
 
@@ -475,7 +475,7 @@
 - design_intake
 
 **Relationships:**
-- AIResponse → Job (many:1) - via job_id (optional)
+- AIResponse → Job (many:1) - via order_id (optional)
 - AIResponse → Customer (many:1) - via customer_id (optional)
 
 ---
@@ -533,11 +533,11 @@
 | items | text | YES | YES | empty list | JSON array of order items |
 | total | number | YES | NO | 0 | Order total amount |
 | status | WebstoreOrderStatus (option set) | YES | NO | pending | Order status |
-| job_id | Job (thing) | NO | NO | empty | Auto-created Job for this order |
+| order_id | Job (thing) | NO | NO | empty | Auto-created Job for this order |
 | created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
 
 **Relationships:**
-- WebstoreOrder → Job (1:1) - via job_id (auto-created)
+- WebstoreOrder → Job (1:1) - via order_id (auto-created)
 - WebstoreOrder → FundraiserCampaign (many:1) - via store_id WHERE store_type = "fundraiser"
 - WebstoreOrder → B2BStore (many:1) - via store_id WHERE store_type = "b2b"
 
@@ -566,7 +566,7 @@ QuoteLineItem.total = QuoteLineItem.quantity × QuoteLineItem.unit_price
 
 ### Job Subtotal
 ```
-Job.subtotal = SUM(JobItem.line_total for all JobItems where JobItem.job_id = Job.id)
+Order.subtotal = SUM(JobItem.line_total for all JobItems where JobItem.order_id = Job.id)
 JobItem.line_total = JobItem.quantity × JobItem.unit_price
 ```
 **Trigger:** Recalculate when JobItem is added, updated, or deleted.
@@ -669,12 +669,12 @@ FundraiserCampaign.total_raised = SUM(WebstoreOrder.total WHERE store_type = "fu
    - Status: draft → sent → approved/declined
 3. **Job** is created from Quote (via convert action)
    - JobItems are auto-created from QuoteLineItems
-   - Job.subtotal is calculated
+   - Order.subtotal is calculated
    - Status flows: quoted → approved → in_production → installed → complete → archived
 4. **Invoice** is created from Job
    - InvoiceLineItems are auto-created from JobItems
    - Invoice.total is calculated
-   - Links back to Job (job_id) and Customer (customer_id)
+   - Links back to Job (order_id) and Customer (customer_id)
    - Status: draft → sent → paid/overdue
 
 ---
@@ -685,7 +685,7 @@ FundraiserCampaign.total_raised = SUM(WebstoreOrder.total WHERE store_type = "fu
 |------------------|-------------------|
 | Customer | customers |
 | Quote | quotes |
-| Job | jobs |
+| Order | orders |
 | JobItem | job_items |
 | JobNote | job_notes |
 | JobActivity | job_activities |

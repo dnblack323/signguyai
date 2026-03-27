@@ -41,12 +41,12 @@
 
 **Sub-features:**
 - Greeting with user name and Founding Shop badge
-- 4 stat cards: Total Customers, Active Jobs, Pending Invoices, Today's Revenue
-- Today's Schedule with job status badges
+- 4 stat cards: Total Customers, Active Orders, Pending Invoices, Today's Revenue
+- Today's Schedule with order status badges
 - Pending Approvals widget (linked to artwork proofs)
 - Messages inbox (customer conversations)
 - Clocked In employees widget
-- Quick Actions: New Customer, New Quote, New Job, Time Clock
+- Quick Actions: New Customer, New Quote, New Order, Time Clock
 - Recent AI Documents widget (last 5, with create link)
 - Dynamic onboarding launcher with progress summary
 - Resume Setup link into tiered onboarding hub
@@ -76,7 +76,7 @@
 - Customer-specific pricing toggle
 - CSV Import with column mapping and template download
 - Bulk create/update customers
-- View related jobs/quotes/invoices per customer
+- View related orders/quotes/invoices per customer
 - Card view on mobile (responsive)
 
 **Data:** `customers` collection
@@ -85,13 +85,13 @@
 
 ---
 
-## 4. JOBS (UNIFIED QUOTES & JOBS)
+## 4. ORDERS & JOB TICKETS
 
-**Where it lives:** `/jobs`, `/jobs/:id`
+**Where it lives:** `/orders`, `/orders/:id`
 
-**Who can access it:** Permission-based (`jobs:view`, `jobs:create`, `jobs:edit`, `jobs:delete`)
+**Who can access it:** Permission-based (`orders:view`, `orders:create`, `orders:edit`, `orders:delete`)
 
-**Architecture:** A quote is a job in the "quote" stage. Single `jobs` collection, status-based filtering.
+**Architecture:** A quote is generated from job tickets. 
 
 **Status Pipeline:**
 ```
@@ -100,21 +100,21 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 
 **Sub-features:**
 - Quick filter badges for each status
-- Create New dropdown: "New Quote (Pipeline)" / "New Job (Ready for production)"
+- Create New dropdown: "New Quote (Pipeline)" / "New Order (Ready for production)"
 - Line items: Banner, Yard Sign, Decal, Wrap, Install, Design, Vehicle Graphics, Window Graphics, Dimensional Letters, Monument Sign, Other
 - Item status: Pending, In Production, Done
 - Job notes with timestamps
 - Job activity log (all status changes, item additions)
 - Convert quote to job (approve button on quote rows)
 - Job time tracking (start/stop timer per job with task types)
-- Job Status Timeline (visual flow diagram with checkmarks, status history, time-in-status)
-- Unified Job History feed (`/api/jobs/{job_id}/history`)
-- Customer Portal tab on job detail page (proofs, forms, messages, documents, invoices)
+- Order Status Timeline (visual flow diagram with checkmarks, status history, time-in-status)
+- Unified Job History feed (`/api/orders/{order_id}/history`)
+- Customer Portal tab on order detail page (proofs, forms, messages, documents, invoices)
 - Whole-job employee assignment
 - Stage-level assignment support via production timeline editor
-- Fully clickable job list rows
+- Fully clickable order list rows
 
-**Data:** `jobs`, `job_items`, `job_notes`, `job_activities`, `job_time_entries`
+**Data:** `orders`, `job_items`, `job_notes`, `job_activities`, `job_time_entries`
 
 **Status:** PARTIALLY WORKING
 
@@ -163,11 +163,11 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 - Daily/weekly/monthly summaries
 - Prevents duplicate active timers per employee per job
 - Kiosk mode (simplified clock-in interface)
-- Auto-suggest time entry on job status change (configurable)
+- Auto-suggest time entry on order status change (configurable)
 
 **Data:** `timelogs`, `job_time_entries`
 
-**API Endpoints:** `/api/jobs/{id}/time/start`, `/api/jobs/{id}/time/stop`, `/api/jobs/{id}/time/summary`, `/api/jobs/{id}/time/active`, `/api/jobs/time/my-active`
+**API Endpoints:** `/api/orders/{id}/time/start`, `/api/orders/{id}/time/stop`, `/api/orders/{id}/time/summary`, `/api/orders/{id}/time/active`, `/api/orders/time/my-active`
 
 **Status:** WORKING
 
@@ -227,7 +227,7 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 - Role assignment and active/inactive status
 - Profile image upload
 - Employee Portal permissions configuration (Tasks, Schedule, Pay Stubs, Time Clock, Edit Profile)
-- Sensitive info toggles (Job Details, Customer Info, Pricing - all OFF by default)
+- Sensitive info toggles (Order Details, Customer Info, Pricing - all OFF by default)
 
 **Data:** `employees`
 
@@ -241,7 +241,7 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 
 **Sub-features:**
 - Daily productivity summary
-- Jobs completed tracking
+- Orders completed tracking
 - Time logged summary
 - Employee productivity comparison
 
@@ -384,7 +384,7 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 - Full conversational AI assistant (same GPT-5.2 backend as main assistant)
 - Quick action buttons: Create a new job, Schedule appointment, Create invoice, Look up customer info
 - Smart context — aware of current page/section the user is on
-- Action execution — can create jobs, look up customers, and more directly from chat
+- Action execution — can create orders, look up customers, and more directly from chat
 - Confirmation dialogs for destructive/create actions
 - **Voice Input (Speech-to-Text)** — Microphone button to dictate queries using OpenAI Whisper
 - **Voice Output (Text-to-Speech)** — "Read aloud" link to hear the last AI response spoken via OpenAI TTS
@@ -422,7 +422,7 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 - Upload artwork file (PNG, JPG) with client-side watermarking
   - Diagonal company name pattern
   - Bottom disclaimer: "PROOF ONLY - Artwork remains property of [Company]..."
-- Link proofs to customers and jobs
+- Link proofs to customers and orders
 - Track proof status (Pending, Approved, Revision Requested, Rejected)
 - Version tracking and customer feedback
 - Resend notifications
@@ -542,7 +542,7 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 - Order list with filters and statuses (Pending, Processing, Ready, Shipped, Delivered, Cancelled)
 - Auto-create job from order (status: approved)
 - Auto-create customer if doesn't exist
-- Order linked to job via job_id
+- Order linked to job via order_id
 
 **Fundraiser Features:** Goal amount, start/end dates, progress tracking, profit percentage
 **Creator Features:** Commission type (% or flat), payout tracking
@@ -637,7 +637,7 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 | Page | Route | Features |
 |------|-------|----------|
 | Login | `/customer-portal/login` | Email/password or temporary invite PIN guidance |
-| Dashboard | `/customer-portal` | Active jobs, approvals, unread messages, recent documents, pending forms, invoice summary |
+| Dashboard | `/customer-portal` | Active orders, approvals, unread messages, recent documents, pending forms, invoice summary |
 | Orders | `/customer-portal/orders` | Order list, detail view, customer-facing status timeline |
 | Quotes | `/customer-portal/quotes` | Quote list |
 | Invoices | `/customer-portal/invoices` | Invoice list, PDF download, payment status, Pay Now flow when Stripe is connected |
@@ -665,13 +665,13 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 | Page | Route | Features |
 |------|-------|----------|
 | Login | `/employee-portal/login` | Email + PIN authentication |
-| Dashboard | `/employee-portal` | Clock status, today/weekly work summary, assigned jobs |
-| Job Detail | `/employee-portal/jobs/:jobId` | Assigned job detail with stage start/pause/complete actions |
+| Dashboard | `/employee-portal` | Clock status, today/weekly work summary, assigned orders |
+| Order Detail | `/employee-portal/orders/:jobId` | Assigned order detail with stage start/pause/complete actions |
 | Pay | `/employee-portal/pay` | Earnings, YTD, payment history, balance |
 | Tasks | `/employee-portal/tasks` | Assigned tasks, mark complete |
 | Profile | `/employee-portal/profile` | Profile image upload, clock history, PIN |
 
-**Configurable permissions per tenant:** Tasks, Schedule, Pay Stubs, Time Clock, Edit Profile, Job Details, Customer Info, Pricing
+**Configurable permissions per tenant:** Tasks, Schedule, Pay Stubs, Time Clock, Edit Profile, Order Details, Customer Info, Pricing
 
 **Status:** WORKING
 
@@ -787,7 +787,7 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 - Download all tenant data as JSON (images excluded for size)
 - Restore with preview summary and confirmation dialog
 - Weekly backup reminder banner (dismissable per session)
-- Collections backed up: users, employees, customers, jobs, job_items, invoices, products, webstores_v2, tasks, documents, questionnaires, and more
+- Collections backed up: users, employees, customers, orders, job_items, invoices, products, webstores_v2, tasks, documents, questionnaires, and more
 
 **API:** `/api/backup/export`, `/api/backup/status`, `/api/backup/preview-restore`, `/api/backup/restore`
 
@@ -813,10 +813,10 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 
 ## 31. TASKS
 
-**Where it lives:** Integrated in Jobs and Employee Portal
+**Where it lives:** Integrated in Orders and Employee Portal
 
 **Sub-features:**
-- Task creation linked to jobs
+- Task creation linked to orders
 - Assign to employee
 - Due date tracking
 - Completion tracking
@@ -832,7 +832,7 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 
 ## 32. PRODUCTION TIMELINE
 
-**Where it lives:** Job Detail page (Timeline tab)
+**Where it lives:** Order Detail page (Timeline tab)
 
 **Sub-features:**
 - Visual status flow: Quote -> Approved -> In Progress -> Completed -> Invoiced
@@ -842,7 +842,7 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 - Time spent in each previous status
 - Workflow mode selection: Simple / Detailed / Custom
 - Category-to-template assignment for custom workflows
-- Unified timeline/history access via Job Details "View Timeline"
+- Unified timeline/history access via Order Details "View Timeline"
 
 **Status:** WORKING
 
@@ -854,7 +854,7 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 
 **Sub-features:**
 - Horizontal quick-access toolbar at top
-- 18 available shortcuts (Dashboard, Customers, Quotes, Jobs, Invoices, Time Clock, Payroll, Productivity, Financials, AI Tools, AI Assistant, Webstores, Products, Documents, Approvals, Calculator, Users, Settings)
+- 18 available shortcuts (Dashboard, Customers, Quotes, Orders, Invoices, Time Clock, Payroll, Productivity, Financials, AI Tools, AI Assistant, Webstores, Products, Documents, Approvals, Calculator, Users, Settings)
 - Customizable: click gear icon to select up to 10 shortcuts
 - Size options: Small, Medium, Large icons
 - Persistent preferences in localStorage
@@ -869,10 +869,10 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 
 **Sub-features:**
 - **Top App Bar (Row 1):** Logo (home link), Search, AI Credits balance, Notifications, Help (docs), Profile dropdown (Account, Settings, Sign Out)
-- **Primary Nav (Row 2):** 11 tabs - Dashboard, Jobs, Billing, Customers, Webstores, Documents, Team, AI Tools, Reports, Community, Settings
+- **Primary Nav (Row 2):** 11 tabs - Dashboard, Orders, Billing, Customers, Webstores, Documents, Team, AI Tools, Reports, Community, Settings
 - **Action Toolbar (Row 3):** Context-sensitive sub-navigation per active tab + quick action buttons
 - **Tab Sub-Items:**
-  - Jobs: All Jobs, Quotes, Approvals, Production
+  - Orders: All Orders, Quotes, Approvals, Production
   - Billing: Invoices, Payments, Pricing, Billing
   - Customers: All Customers, Admin Portal
   - Webstores: Stores, Products, Promo Codes
@@ -932,7 +932,7 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 
 **Pages:**
 - Overview, Getting Started (now aligned with Quick Start / Standard Setup / Full Optimization)
-- Feature docs: Customers, Quotes & Jobs, Invoicing, Pricing System
+- Feature docs: Customers, Orders & Job Tickets, Invoicing, Pricing System
 - Advanced docs: AI Tools & Credits, Time Tracking, Employee Management
 - Webstores, Customer Portal, Financial Tracking, Productivity
 - FAQ section with collapsible questions
@@ -955,7 +955,7 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 - Step-level onboarding analytics: completed count, finish-later count, last activity, resume step
 - Inline quick-start actions for workflow mode, first employee, basic pricing, and customer portal enablement
 
-**Data:** `onboarding_progress`, plus derived status from `tenants`, `employees`, `customers`, `jobs`, `pricing_configuration`, `workflow_templates`, `production_workflow_settings`, `portal_form_requests`, `community_posts`
+**Data:** `onboarding_progress`, plus derived status from `tenants`, `employees`, `customers`, `orders`, `pricing_configuration`, `workflow_templates`, `production_workflow_settings`, `portal_form_requests`, `community_posts`
 
 **Status:** WORKING
 
@@ -965,7 +965,7 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 
 **Completed audit results:**
 - 28 security tests across 11 API domains, 100% pass rate
-- All APIs verified: Customers, Employees, Jobs, Tasks, Job Items, Quotes, Invoices, Webstores, Products, Dashboard, Payroll
+- All APIs verified: Customers, Employees, Orders, Tasks, Job Items, Quotes, Invoices, Webstores, Products, Dashboard, Payroll
 - Cross-tenant access blocked for LIST, GET, UPDATE, DELETE operations
 - Authentication required on all endpoints
 
@@ -980,7 +980,7 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 | Tab | Sub-Items | Routes |
 |-----|-----------|--------|
 | Dashboard | - | `/dashboard` |
-| Jobs | All Jobs, Quotes, Approvals, Production | `/jobs`, `/jobs?filter=quotes`, `/approvals`, `/settings/production` |
+| Orders | All Orders, Quotes, Approvals, Production | `/orders`, `/orders?filter=quotes`, `/approvals`, `/settings/production` |
 | Billing | Invoices, Payments, Pricing, Billing | `/invoices`, `/admin/payments`, `/pricing-calculator`, `/billing` |
 | Customers | All Customers, Admin Portal | `/customers`, `/admin-portal` |
 | Webstores | Stores, Products, Promo Codes | `/webstores`, `/products`, `/promo-codes` |
@@ -996,7 +996,7 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 | Portal | Pages |
 |--------|-------|
 | Customer Portal | Login, Dashboard, Orders, Quotes, Invoices, Documents, Messages, Proofs, Forms, Appointments, Profile |
-| Employee Portal | Login, Dashboard, Job Detail, Pay, Tasks, Profile |
+| Employee Portal | Login, Dashboard, Order Detail, Pay, Tasks, Profile |
 
 ## Public Pages
 
@@ -1013,29 +1013,29 @@ Landing, Features, Pricing, About, Contact, Docs, Storefronts, Questionnaires, P
 | `tenants` | Multi-tenant orgs | id, name, slug, owner_email, plan, is_active, time_tracking_settings |
 | `users` | Authenticated users | id, tenant_id, email, full_name, role, is_founder, hashed_password |
 | `customers` | Customer records | id, tenant_id, name, email, phone, status, portal_enabled |
-| `jobs` | Work orders (quotes + jobs) | id, tenant_id, customer_id, name, status, subtotal |
-| `job_items` | Line items on jobs | id, job_id, item_type, quantity, unit_price, status |
-| `job_notes` | Notes on jobs | id, job_id, content, created_by |
-| `job_activities` | Activity log | id, job_id, activity_type, description |
-| `job_time_entries` | Time tracked on jobs | id, job_id, employee_id, start_time, end_time, duration_minutes, labor_cost |
-| `invoices` | Customer invoices | id, tenant_id, customer_id, job_id, invoice_number, status, total |
+| `orders` | Work orders (quotes + orders) | id, tenant_id, customer_id, name, status, subtotal |
+| `job_items` | Line items on orders | id, order_id, item_type, quantity, unit_price, status |
+| `job_notes` | Notes on orders | id, order_id, content, created_by |
+| `job_activities` | Activity log | id, order_id, activity_type, description |
+| `job_time_entries` | Time tracked on orders | id, order_id, employee_id, start_time, end_time, duration_minutes, labor_cost |
+| `invoices` | Customer invoices | id, tenant_id, customer_id, order_id, invoice_number, status, total |
 | `employees` | Employee records | id, tenant_id, name, email, hourly_rate, pin, profile_image |
 | `timelogs` | Clock in/out records | id, employee_id, action, timestamp |
 | `payroll_transactions` | Pay records | id, employee_id, type (earnings/advance/payment), amount, date |
-| `payroll_hours` | Manual hours entries | id, tenant_id, employee_id, date, hours, job_id, task_type, gross_pay |
+| `payroll_hours` | Manual hours entries | id, tenant_id, employee_id, date, hours, order_id, task_type, gross_pay |
 | `products` | Product catalog | id, tenant_id, name, category, base_cost, retail_price, images, variants |
 | `webstores_v2` | Online stores | id, tenant_id, name, store_type, status, branding |
 | `webstore_products` | Product assignments | id, webstore_id, product_id, is_enabled, price_override |
-| `webstore_orders_v2` | Store orders | id, webstore_id, customer_name, items, subtotal, job_id |
+| `webstore_orders_v2` | Store orders | id, webstore_id, customer_name, items, subtotal, order_id |
 | `webstore_payouts` | Payout records | id, webstore_id, amount, date |
 | `conversations` | Message threads | id, tenant_id, customer_id |
 | `conversation_messages` | Individual messages | id, conversation_id, sender_type, content, type |
-| `artwork_proofs` | Proof files | id, tenant_id, job_id, customer_id, image_url, status |
+| `artwork_proofs` | Proof files | id, tenant_id, order_id, customer_id, image_url, status |
 | `customer_notifications` | Portal notifications | id, customer_id, type, message, read |
 | `documents` | File storage | id, tenant_id, name, file_url, file_type, category |
 | `portal_documents` | Shared docs | id, tenant_id, customer_id, document_id |
 | `document_activities` | Doc activity log | id, document_id, action, user_id |
-| `tasks` | Employee tasks | id, tenant_id, job_id, assigned_to, title, is_complete |
+| `tasks` | Employee tasks | id, tenant_id, order_id, assigned_to, title, is_complete |
 | `questionnaires` | Form templates | id, tenant_id, title, questions, is_default |
 | `questionnaire_responses` | Form submissions | id, questionnaire_id, customer_id, responses |
 | `subscriptions` | SaaS subscriptions | id, tenant_id, plan, status, stripe_subscription_id |
@@ -1057,7 +1057,7 @@ Landing, Features, Pricing, About, Contact, Docs, Storefronts, Questionnaires, P
 
 ## Status Enums
 
-- **JobStatus:** quote, approved, in_progress, completed, invoiced, archived
+- **OrderStatus:** quote, approved, in_progress, completed, invoiced, archived
 - **JobItemStatus:** pending, in_production, done
 - **InvoiceStatus:** draft, sent, paid, overdue
 - **CustomerStatus:** lead, active, inactive
@@ -1112,7 +1112,7 @@ Landing, Features, Pricing, About, Contact, Docs, Storefronts, Questionnaires, P
 5. Vehicle Wrap AI Tool (full spec beyond current calculator)
 6. Master Product List (centralized across tenants)
 7. Kanban Job Board (visual pipeline)
-8. Calendar View for jobs/appointments
+8. Calendar View for orders/appointments
 9. Scheduled Reports (auto-generated email reports)
 10. Advanced Analytics (trend analysis, forecasting)
 11. Zapier Integration
@@ -1147,11 +1147,11 @@ SignGuy AI
 |
 +-- Sales
 |   +-- Customers (CRM with CSV import, portal toggle)
-|   +-- Jobs (Unified quotes/jobs pipeline)
+|   +-- Orders (Unified quotes/orders pipeline)
 |   +-- Invoices (PDF, email, Stripe payments)
 |
 +-- Operations
-|   +-- Time Clock (clock in/out, breaks, per-job tracking)
+|   +-- Time Clock (clock in/out, breaks, per-order tracking)
 |   +-- Admin Payroll (4 tabs: Overview, Time Sheets, Manual Hours, Transactions)
 |   +-- Productivity Tracking
 |   +-- Financials (Revenue, Expenses, Profit)
@@ -1159,7 +1159,7 @@ SignGuy AI
 +-- Webstores
 |   +-- Store Management (B2B, Fundraiser, Creator)
 |   +-- Product Catalog (images, variants, AI descriptions)
-|   +-- Orders (auto-create jobs)
+|   +-- Orders (auto-create orders)
 |   +-- Public Storefront (checkout, Stripe Connect)
 |   +-- QR Codes & Promo Codes
 |
@@ -1221,7 +1221,7 @@ SignGuy AI
 | Authentication | Yes | Team member limits (1/5/unlimited) |
 | Dashboard | Yes | Analytics depth |
 | Customers | Yes | Customer count limits |
-| Jobs | Yes | Active job limits, kanban, activity log |
+| Orders | Yes | Active job limits, kanban, activity log |
 | Invoices | Yes | Invoice count, payment integrations |
 | Time Clock | Yes | Feature on/off (Starter locked) |
 | Payroll | Yes | Feature on/off (Starter locked) |

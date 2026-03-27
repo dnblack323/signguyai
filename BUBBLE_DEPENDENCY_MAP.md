@@ -57,13 +57,13 @@ LEVEL 3 (Cross-Entity Dependencies)
 
 LEVEL 4 (Bidirectional/Circular References)
 ┌─────────────┐ ◄──────────────► ┌─────────────┐
-│    Quote    │    job_id /      │    Job      │
+│    Quote    │    order_id /      │    Job      │
 │             │    quote_id      │             │
 └─────────────┘                  └─────────────┘
        
 ┌─────────────┐ ◄──────────────► ┌─────────────┐
 │    Job      │   invoice_id /   │  Invoice    │
-│             │     job_id       │             │
+│             │     order_id       │             │
 └─────────────┘                  └─────────────┘
 ```
 
@@ -75,10 +75,10 @@ LEVEL 4 (Bidirectional/Circular References)
 | Employee | - | TimeLog, PayrollTransaction | No |
 | Quote | Customer | Job (via conversion) | ⚠️ Yes (Quote↔Job) |
 | QuoteLineItem | Quote (embedded) | JobItem (via conversion) | No |
-| Job | Customer, Quote (optional) | JobItem, JobNote, JobActivity, Invoice, Task, WebstoreOrder | ⚠️ Yes (Job↔Quote, Job↔Invoice) |
-| JobItem | Job | InvoiceLineItem | No |
-| JobNote | Job | - | No |
-| JobActivity | Job | - | No |
+| Order | Customer, Quote (optional) | JobItem, JobNote, JobActivity, Invoice, Task, WebstoreOrder | ⚠️ Yes (Job↔Quote, Job↔Invoice) |
+| JobItem | Order | InvoiceLineItem | No |
+| JobNote | Order | - | No |
+| JobActivity | Order | - | No |
 | Invoice | Customer, Job (optional) | - | ⚠️ Yes (Invoice↔Job) |
 | InvoiceLineItem | Invoice (embedded), JobItem (optional) | - | No |
 | TimeLog | Employee | - | No |
@@ -125,7 +125,7 @@ LEVEL 1 WORKFLOWS (Require Level 0 Data)
          ▼                   ▼                   ▼
 ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
 │ WF-QUOTE-01     │ │ WF-JOB-01       │ │ WF-INV-01       │
-│ Create Quote    │ │ Create Job      │ │ Create Invoice  │
+│ Create Quote    │ │ Create Order      │ │ Create Invoice  │
 └─────────────────┘ └─────────────────┘ └─────────────────┘
 
                     ┌─────────────────┐
@@ -217,7 +217,7 @@ WF-QUOTE-07: Convert Quote to Job
 ├── Creates: Job
 ├── Creates: JobItem[] (from QuoteLineItems)
 ├── Creates: JobActivity
-├── Updates: Quote.job_id (circular write-back)
+├── Updates: Quote.order_id (circular write-back)
 └── Updates: Quote.status = approved
 
 WF-INV-02: Create Invoice from Job
@@ -235,7 +235,7 @@ WF-WEB-01: Create Webstore Order
 ├── Creates: Job (auto-generated)
 ├── Creates: WebstoreOrder
 ├── Updates: FundraiserCampaign.total_raised (if fundraiser)
-└── Links: WebstoreOrder.job_id
+└── Links: WebstoreOrder.order_id
 
 ════════════════════════════════════════════════════════════════
 ```
@@ -329,7 +329,7 @@ STAGE 4: Status & Activity Logging
 ═══════════════════════════════════════════════════════════════
 Order │ Workflow              │ Dependencies
 ──────┼───────────────────────┼─────────────────────────────────
- 19   │ Job Status Change     │ Job + JobActivity workflows
+ 19   │ Order Status Change     │ Job + JobActivity workflows
  20   │ Job Complete/Archive  │ Status change workflow
  21   │ Quote Status Change   │ Quote workflow
 
@@ -395,7 +395,7 @@ Order │ Workflow              │ Dependencies
 **Bubble Handling:**
 ```
 WF-QUOTE-07: Convert Quote to Job
-Step 1: Create Job (quote field = This Quote)
+Step 1: Create Order (quote field = This Quote)
 Step 2: Make changes to Quote (job field = Result of Step 1)
         ⚠️ Must use "Result of Step 1" not a search
 ```
@@ -438,7 +438,7 @@ Step 2: Make changes to Job (invoice field = Result of Step 1)
 
 ---
 
-#### 3. JobItem → Job.subtotal (Calculated Dependency)
+#### 3. JobItem → Order.subtotal (Calculated Dependency)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -484,7 +484,7 @@ Option C: Real-time Calculation
 |------------|----------|-----------|------------|
 | Quote↔Job | Medium | Low (once per quote) | Two-step workflow, log failures |
 | Job↔Invoice | Medium | Low (once per job) | Two-step workflow, log failures |
-| JobItem→Job.subtotal | High | High (every item edit) | Real-time calc or reliable trigger |
+| JobItem→Order.subtotal | High | High (every item edit) | Real-time calc or reliable trigger |
 | QuoteLineItem→Quote.total | High | High (every item edit) | Same as above |
 | InvoiceLineItem→Invoice.total | High | High (every item edit) | Same as above |
 
@@ -556,7 +556,7 @@ Option C: Real-time Calculation
 │    • User clicks again → duplicate Job                      │
 │                                                             │
 │    Data state after partial failure:                        │
-│    Quote: job_id = null (looks unconverted)                 │
+│    Quote: order_id = null (looks unconverted)                 │
 │    Job: exists, orphaned                                    │
 │    JobItems: partial set                                    │
 │                                                             │
@@ -567,23 +567,23 @@ Option C: Real-time Calculation
 
 ```
 1. PRE-CHECK (Before Conversion)
-   - Verify Quote.job_id is empty
+   - Verify Quote.order_id is empty
    - If not empty, show "Already converted" message
 
 2. IMMEDIATE UPDATE (During Conversion)
    - Step 1: Set Quote.status = "converting" (lock)
-   - Step 2: Create Job
-   - Step 3: Create JobItems
-   - Step 4: Set Quote.job_id
+   - Step 2: Create Order
+   - Step 3: Create OrderItems
+   - Step 4: Set Quote.order_id
    - Step 5: Set Quote.status = "approved"
 
 3. CLEANUP JOB (Scheduled)
    - Backend workflow runs hourly
-   - Find Jobs where quote.job_id ≠ this Job
+   - Find Orders where quote.order_id ≠ this Job
    - Flag for admin review or auto-delete
 
 4. UI PROTECTION
-   - Hide convert button when Quote.job_id exists
+   - Hide convert button when Quote.order_id exists
    - Disable button during conversion
    - Show loading state
 ```
@@ -599,7 +599,7 @@ Option C: Real-time Calculation
 │                                                             │
 │    Affected fields:                                         │
 │    • Quote.total (from QuoteLineItems)                      │
-│    • Job.subtotal (from JobItems)                           │
+│    • Order.subtotal (from JobItems)                           │
 │    • Invoice.total (from InvoiceLineItems)                  │
 │    • JobItem.line_total (qty × price)                       │
 │                                                             │
@@ -620,7 +620,7 @@ Option C: Real-time Calculation
 ```
 1. COMPUTE ON DISPLAY (No Storage)
    - Don't store totals, always calculate
-   - Job subtotal = Search JobItems where job = This:sum line_total
+   - Order.subtotal = Search JobItems where job = This:sum line_total
    - Pro: Always accurate
    - Con: Performance on lists
 
@@ -719,7 +719,7 @@ IMPLEMENTATION:
 2. FIND-OR-CREATE PATTERN
    - Step 1: Search for Customer with webstore marker
    - Step 2: If empty, create; else use existing
-   - Step 3: Create Job
+   - Step 3: Create Order
    - Step 4: Create Order with Job reference
 
 3. STATUS TRACKING
@@ -740,7 +740,7 @@ IMPLEMENTATION:
 For circular references (Quote↔Job):
 
 Phase 1: Create child, reference parent
-- Create Job with quote = This Quote
+- Create Order with quote = This Quote
 - Job now exists and references Quote
 
 Phase 2: Update parent with child reference  
@@ -754,7 +754,7 @@ Phase 2: Update parent with child reference
 For one-time operations (Quote conversion):
 
 Before operation:
-- Check Quote.job_id is empty
+- Check Quote.order_id is empty
 - Check Quote.status ≠ "converting"
 
 During operation:
@@ -764,7 +764,7 @@ During operation:
 
 If user retries:
 - Status = "converting" blocks retry
-- Or: job_id exists blocks retry
+- Or: order_id exists blocks retry
 ```
 
 #### 3. Computed Field Pattern
@@ -813,8 +813,8 @@ Example for Clock Action:
 ```
 DATA INTEGRITY CHECKS
 ═══════════════════════════════════════════════════════════════
-□ All Quotes with job_id have corresponding Job with quote_id
-□ All Jobs with invoice_id have corresponding Invoice with job_id
+□ All Quotes with order_id have corresponding Job with quote_id
+□ All Orders with invoice_id have corresponding Invoice with order_id
 □ All JobItems have valid job reference
 □ All InvoiceLineItems with job_item_id have valid JobItem
 □ No orphaned JobNotes or JobActivities (job exists)
@@ -822,21 +822,21 @@ DATA INTEGRITY CHECKS
 CALCULATED FIELD CHECKS
 ═══════════════════════════════════════════════════════════════
 □ Quote.total = SUM(QuoteLineItems.total) for all Quotes
-□ Job.subtotal = SUM(JobItems.line_total) for all Jobs
+□ Order.subtotal = SUM(JobItems.line_total) for all Orders
 □ Invoice.total = SUM(InvoiceLineItems.total) for all Invoices
 □ JobItem.line_total = quantity × unit_price for all items
 
 SEQUENCE CHECKS
 ═══════════════════════════════════════════════════════════════
-□ No Quote with status="approved" and empty job_id
-□ No Job with quote_id pointing to Quote with different job_id
+□ No Quote with status="approved" and empty order_id
+□ No Job with quote_id pointing to Quote with different order_id
 □ TimeLogs follow valid sequence per employee per day
 
 REFERENTIAL INTEGRITY
 ═══════════════════════════════════════════════════════════════
 □ All customer_id references point to existing Customer
 □ All employee_id references point to existing Employee
-□ All job_id references point to existing Job
+□ All order_id references point to existing Job
 ```
 
 ### Monitoring Queries (Run Daily)
@@ -844,8 +844,8 @@ REFERENTIAL INTEGRITY
 ```
 ORPHAN DETECTION
 ════════════════
-Jobs without valid Customer:
-  Search Jobs where customer is empty
+Orders without valid Customer:
+  Search Orders where customer is empty
 
 Quotes without valid Customer:
   Search Quotes where customer is empty
@@ -859,11 +859,11 @@ Quote-Job mismatch:
   Search Quotes where job's quote ≠ This Quote
 
 Job-Invoice mismatch:
-  Search Jobs where invoice's job ≠ This Job
+  Search Orders where invoice's job ≠ This Job
 
 CALCULATION MISMATCH
 ════════════════════
-Jobs with wrong subtotal:
+Orders with wrong subtotal:
   (Requires custom logic to compare stored vs calculated)
 ```
 
@@ -877,7 +877,7 @@ Jobs with wrong subtotal:
 |------------|------------|----------------|
 | Quote → Job conversion | 🔴 High | Two-phase commit + lock |
 | Job → Invoice creation | 🔴 High | Two-phase commit + lock |
-| JobItem → Job.subtotal | 🔴 High | Same-workflow recalc |
+| JobItem → Order.subtotal | 🔴 High | Same-workflow recalc |
 | Time clock sequence | 🟡 Medium | UI disable + backend validate |
 | Webstore auto-creation | 🟡 Medium | API workflow + retry logic |
 

@@ -82,7 +82,7 @@ A professional, light-mode design system for sign shop operations. Desktop-optim
 
 ## PART 2: STATUS COLOR MAPPING
 
-### JobStatus Colors
+### OrderStatus Colors
 
 | Status | Background | Text | Border | Badge Style |
 |--------|------------|------|--------|-------------|
@@ -830,7 +830,7 @@ Info Alert:
 ### Status Badge Classes
 
 ```
-/* JobStatus */
+/* OrderStatus */
 .status-quoted { background: #FEF3C7; color: #B45309; border-color: #FDE68A; }
 .status-approved { background: #DBEAFE; color: #1D4ED8; border-color: #BFDBFE; }
 .status-in-production { background: #EDE9FE; color: #7C3AED; border-color: #DDD6FE; }

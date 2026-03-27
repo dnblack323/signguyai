@@ -116,7 +116,7 @@ DELETE FROM customers WHERE id = customer_id
 2. Set `created_at` = current timestamp
 3. Set `updated_at` = current timestamp
 4. Set `status` = "draft" (if not provided)
-5. Set `job_id` = null (not yet converted)
+5. Set `order_id` = null (not yet converted)
 6. **FOR EACH line_item in input.line_items:**
    - Calculate `item.total` = `item.quantity` × `item.unit_price`
 7. Calculate `total` = SUM of all `line_items[].total`
@@ -139,7 +139,7 @@ INSERT INTO quotes:
   notes: input.notes || null,
   status: input.status || "draft",
   total: SUM(line_items[].total),  // CALCULATED
-  job_id: null,
+  order_id: null,
   created_at: NOW(),
   updated_at: NOW()
 }
@@ -155,12 +155,12 @@ INSERT INTO quotes:
 
 **Conditions:**
 - Quote with `quote_id` must exist
-- Quote must NOT have `job_id` set (not yet converted)
+- Quote must NOT have `order_id` set (not yet converted)
 
 **Actions:**
 1. Find quote by `id`
 2. If not found → ERROR 404 "Quote not found"
-3. If `job_id` exists → ERROR 400 "Cannot update quote that has been converted to job"
+3. If `order_id` exists → ERROR 400 "Cannot update quote that has been converted to job"
 4. Update only fields that are provided
 5. **IF `line_items` changed:**
    - FOR EACH line_item:
@@ -303,12 +303,12 @@ SET updated_at = NOW()
 
 **Conditions:**
 - Quote with `quote_id` must exist
-- Quote must NOT have `job_id` set (not already converted)
+- Quote must NOT have `order_id` set (not already converted)
 
 **Actions:**
 1. Find quote by `id`
 2. If not found → ERROR 404 "Quote not found"
-3. If `job_id` exists → ERROR 400 "Quote already converted to job"
+3. If `order_id` exists → ERROR 400 "Quote already converted to job"
 4. **CREATE NEW JOB:**
    - Generate new UUID for job `id`
    - Set `customer_id` = quote's `customer_id`
@@ -323,7 +323,7 @@ SET updated_at = NOW()
    - Set `updated_at` = current timestamp
 5. **FOR EACH line_item in quote.line_items → CREATE JOB ITEM:**
    - Generate new UUID for job item `id`
-   - Set `job_id` = new job's `id`
+   - Set `order_id` = new job's `id`
    - Set `item_type` = "other"
    - Set `description` = line_item's `description`
    - Set `quantity` = line_item's `quantity`
@@ -333,14 +333,14 @@ SET updated_at = NOW()
    - Set `notes` = null
    - Set `created_at` = current timestamp
 6. **UPDATE QUOTE:**
-   - Set `job_id` = new job's `id`
+   - Set `order_id` = new job's `id`
    - Set `status` = "approved"
 7. **LOG ACTIVITY:**
-   - Create JobActivity record for "quote_converted"
+   - Create OrderActivity record for "quote_converted"
 
 **Data Changes:**
 ```
-INSERT INTO jobs:
+INSERT INTO orders:
 {
   id: generated UUID,
   customer_id: quote.customer_id,
@@ -360,7 +360,7 @@ FOR EACH quote.line_items:
 INSERT INTO job_items:
 {
   id: generated UUID,
-  job_id: new_job.id,
+  order_id: new_job.id,
   item_type: "other",
   description: line_item.description,
   quantity: line_item.quantity,
@@ -373,14 +373,14 @@ INSERT INTO job_items:
 
 UPDATE quotes WHERE id = quote_id:
 SET {
-  job_id: new_job.id,
+  order_id: new_job.id,
   status: "approved"
 }
 
 INSERT INTO job_activities:
 {
   id: generated UUID,
-  job_id: new_job.id,
+  order_id: new_job.id,
   activity_type: "quote_converted",
   description: "Job created from Quote #" + quote_id.substring(0,8),
   old_value: null,
@@ -397,7 +397,7 @@ INSERT INTO job_activities:
 
 ---
 
-### WF-JOB-01: Create Job (Direct)
+### WF-JOB-01: Create Order (Direct)
 
 **Trigger:** User submits new job form (not from quote conversion)
 
@@ -416,7 +416,7 @@ INSERT INTO job_activities:
 
 **Data Changes:**
 ```
-INSERT INTO jobs:
+INSERT INTO orders:
 {
   id: generated UUID,
   customer_id: input.customer_id,
@@ -435,7 +435,7 @@ INSERT INTO jobs:
 INSERT INTO job_activities:
 {
   id: generated UUID,
-  job_id: new_job.id,
+  order_id: new_job.id,
   activity_type: "created",
   description: "Job '" + input.name + "' created",
   old_value: null,
@@ -452,7 +452,7 @@ INSERT INTO job_activities:
 
 **Trigger:** User submits job edit form
 
-**Conditions:** Job with `job_id` must exist
+**Conditions:** Job with `order_id` must exist
 
 **Actions:**
 1. Find job by `id`
@@ -464,7 +464,7 @@ INSERT INTO job_activities:
 
 **Data Changes:**
 ```
-UPDATE jobs WHERE id = job_id:
+UPDATE orders WHERE id = order_id:
 SET {
   name: input.name,           // if provided
   description: input.description,  // if provided
@@ -477,7 +477,7 @@ IF status changed:
 INSERT INTO job_activities:
 {
   id: generated UUID,
-  job_id: job_id,
+  order_id: order_id,
   activity_type: "status_changed" | "completed" | "archived",
   description: "Status changed from {old} to {new}",
   old_value: old_status,
@@ -490,9 +490,9 @@ INSERT INTO job_activities:
 
 ---
 
-### WF-JOB-03: Job Status Change
+### WF-JOB-03: Order Status Change
 
-**Trigger:** User changes job status
+**Trigger:** User changes order status
 
 **Conditions:** Job must exist
 
@@ -508,7 +508,7 @@ INSERT INTO job_activities:
 
 **Data Changes:**
 ```
-UPDATE jobs WHERE id = job_id:
+UPDATE orders WHERE id = order_id:
 SET {
   status: new_status,
   updated_at: NOW()
@@ -517,7 +517,7 @@ SET {
 INSERT INTO job_activities:
 {
   id: generated UUID,
-  job_id: job_id,
+  order_id: order_id,
   activity_type: determined_type,
   description: based_on_type,
   old_value: old_status,
@@ -552,7 +552,7 @@ quoted → approved → in_production → installed → complete → archived
 
 **Data Changes:**
 ```
-UPDATE jobs WHERE id = job_id:
+UPDATE orders WHERE id = order_id:
 SET {
   status: "complete",
   updated_at: NOW()
@@ -561,7 +561,7 @@ SET {
 INSERT INTO job_activities:
 {
   id: generated UUID,
-  job_id: job_id,
+  order_id: order_id,
   activity_type: "completed",
   description: "Job marked as complete",
   old_value: previous_status,
@@ -590,7 +590,7 @@ INSERT INTO job_activities:
 
 **Data Changes:**
 ```
-UPDATE jobs WHERE id = job_id:
+UPDATE orders WHERE id = order_id:
 SET {
   status: "archived",
   is_archived: true,
@@ -600,7 +600,7 @@ SET {
 INSERT INTO job_activities:
 {
   id: generated UUID,
-  job_id: job_id,
+  order_id: order_id,
   activity_type: "archived",
   description: "Job archived",
   old_value: previous_status,
@@ -629,7 +629,7 @@ INSERT INTO job_activities:
 
 **Data Changes:**
 ```
-UPDATE jobs WHERE id = job_id:
+UPDATE orders WHERE id = order_id:
 SET {
   status: "complete",
   is_archived: false,
@@ -639,7 +639,7 @@ SET {
 INSERT INTO job_activities:
 {
   id: generated UUID,
-  job_id: job_id,
+  order_id: order_id,
   activity_type: "unarchived",
   description: "Job unarchived",
   old_value: "archived",
@@ -659,25 +659,25 @@ INSERT INTO job_activities:
 **Conditions:** Job must exist
 
 **Actions:**
-1. Delete all related job_items WHERE job_id = job_id
-2. Delete all related job_notes WHERE job_id = job_id
-3. Delete all related job_activities WHERE job_id = job_id
+1. Delete all related job_items WHERE order_id = order_id
+2. Delete all related job_notes WHERE order_id = order_id
+3. Delete all related job_activities WHERE order_id = order_id
 4. Delete job record
 5. If no record deleted → ERROR 404 "Job not found"
 
 **Data Changes:**
 ```
-DELETE FROM job_items WHERE job_id = job_id
-DELETE FROM job_notes WHERE job_id = job_id
-DELETE FROM job_activities WHERE job_id = job_id
-DELETE FROM jobs WHERE id = job_id
+DELETE FROM job_items WHERE order_id = order_id
+DELETE FROM job_notes WHERE order_id = order_id
+DELETE FROM job_activities WHERE order_id = order_id
+DELETE FROM orders WHERE id = order_id
 ```
 
 **Returns:** `{ message: "Job deleted" }`
 
 ---
 
-### WF-JOB-08: Filter Jobs
+### WF-JOB-08: Filter Orders
 
 **Trigger:** User applies job filter
 
@@ -706,7 +706,7 @@ DELETE FROM jobs WHERE id = job_id
 
 **Trigger:** User submits "Add Item" form on job
 
-**Conditions:** Job with `job_id` must exist
+**Conditions:** Job with `order_id` must exist
 
 **Actions:**
 1. Find job by `id`
@@ -723,7 +723,7 @@ DELETE FROM jobs WHERE id = job_id
 INSERT INTO job_items:
 {
   id: generated UUID,
-  job_id: job_id,
+  order_id: order_id,
   item_type: input.item_type || "other",
   description: input.description,
   quantity: input.quantity || 1,
@@ -739,7 +739,7 @@ INSERT INTO job_items:
 INSERT INTO job_activities:
 {
   id: generated UUID,
-  job_id: job_id,
+  order_id: order_id,
   activity_type: "item_added",
   description: "Added item: " + input.description,
   old_value: null,
@@ -790,7 +790,7 @@ SET {
 INSERT INTO job_activities:
 {
   id: generated UUID,
-  job_id: job_item.job_id,
+  order_id: job_item.order_id,
   activity_type: "item_updated",
   description: "Updated item: " + job_item.description,
   old_value: null,
@@ -812,15 +812,15 @@ INSERT INTO job_activities:
 **Actions:**
 1. Find job item by `id`
 2. If not found → ERROR 404 "Job item not found"
-3. Store `job_id` for subtotal recalculation
+3. Store `order_id` for subtotal recalculation
 4. Delete job item record
 5. **RECALCULATE JOB SUBTOTAL:** (see WF-JOBITEM-RECALC)
 6. **LOG ACTIVITY:** Create "item_deleted" activity
 
 **Data Changes:**
 ```
-// Store job_id before deletion
-job_id = job_item.job_id
+// Store order_id before deletion
+order_id = job_item.order_id
 item_description = job_item.description
 
 DELETE FROM job_items WHERE id = item_id
@@ -830,7 +830,7 @@ DELETE FROM job_items WHERE id = item_id
 INSERT INTO job_activities:
 {
   id: generated UUID,
-  job_id: job_id,
+  order_id: order_id,
   activity_type: "item_deleted",
   description: "Deleted item: " + item_description,
   old_value: null,
@@ -850,7 +850,7 @@ INSERT INTO job_activities:
 **Conditions:** Job must exist
 
 **Actions:**
-1. Query all job_items WHERE job_id = job_id
+1. Query all job_items WHERE order_id = order_id
 2. Calculate `subtotal` = SUM of all `job_items[].line_total`
 3. Update job with new subtotal
 4. Set job `updated_at` = current timestamp
@@ -858,10 +858,10 @@ INSERT INTO job_activities:
 **Data Changes:**
 ```
 // Calculate
-all_items = SELECT * FROM job_items WHERE job_id = job_id
+all_items = SELECT * FROM job_items WHERE order_id = order_id
 subtotal = SUM(item.line_total for item in all_items)
 
-UPDATE jobs WHERE id = job_id:
+UPDATE orders WHERE id = order_id:
 SET {
   subtotal: calculated_subtotal,
   updated_at: NOW()
@@ -878,9 +878,9 @@ SET {
 
 ### WF-JOBNOTE-01: Add Note to Job
 
-**Trigger:** User submits note form on job details
+**Trigger:** User submits note form on order details
 
-**Conditions:** Job with `job_id` must exist
+**Conditions:** Job with `order_id` must exist
 
 **Actions:**
 1. Find job by `id`
@@ -895,7 +895,7 @@ SET {
 INSERT INTO job_notes:
 {
   id: generated UUID,
-  job_id: job_id,
+  order_id: order_id,
   content: input.content,
   author: input.author || null,
   created_at: NOW()
@@ -904,7 +904,7 @@ INSERT INTO job_notes:
 INSERT INTO job_activities:
 {
   id: generated UUID,
-  job_id: job_id,
+  order_id: order_id,
   activity_type: "note_added",
   description: "Note added" + (input.author ? " by " + input.author : ""),
   old_value: null,
@@ -954,7 +954,7 @@ DELETE FROM job_notes WHERE id = note_id
 5. Set `amount_paid` = 0
 6. Set `paid_date` = null
 7. Calculate totals (same as quote line items)
-8. If `job_id` provided → update job with `invoice_id`
+8. If `order_id` provided → update job with `invoice_id`
 
 **Data Changes:**
 ```
@@ -976,7 +976,7 @@ INSERT INTO invoices:
 {
   id: generated UUID,
   customer_id: input.customer_id,
-  job_id: input.job_id || null,
+  order_id: input.order_id || null,
   line_items: line_items,
   total: total,  // CALCULATED
   status: input.status || "draft",
@@ -988,8 +988,8 @@ INSERT INTO invoices:
   updated_at: NOW()
 }
 
-IF input.job_id:
-UPDATE jobs WHERE id = input.job_id:
+IF input.order_id:
+UPDATE orders WHERE id = input.order_id:
 SET invoice_id = new_invoice.id
 ```
 
@@ -999,14 +999,14 @@ SET invoice_id = new_invoice.id
 
 ### WF-INV-02: Create Invoice from Job
 
-**Trigger:** User clicks "Create Invoice" on job details
+**Trigger:** User clicks "Create Invoice" on order details
 
-**Conditions:** Job with `job_id` must exist
+**Conditions:** Job with `order_id` must exist
 
 **Actions:**
 1. Find job by `id`
 2. If not found → ERROR 404 "Job not found"
-3. Query all job_items WHERE job_id = job_id
+3. Query all job_items WHERE order_id = order_id
 4. **IF job has items:**
    - Create invoice line items from job items
    - Calculate total from job items
@@ -1021,7 +1021,7 @@ SET invoice_id = new_invoice.id
 **Data Changes:**
 ```
 // Get job items
-job_items = SELECT * FROM job_items WHERE job_id = job_id
+job_items = SELECT * FROM job_items WHERE order_id = order_id
 
 IF job_items.length > 0:
   invoice_line_items = []
@@ -1046,7 +1046,7 @@ INSERT INTO invoices:
 {
   id: generated UUID,
   customer_id: job.customer_id,
-  job_id: job_id,
+  order_id: order_id,
   line_items: invoice_line_items,
   total: total,
   status: "draft",
@@ -1058,13 +1058,13 @@ INSERT INTO invoices:
   updated_at: NOW()
 }
 
-UPDATE jobs WHERE id = job_id:
+UPDATE orders WHERE id = order_id:
 SET invoice_id = new_invoice.id
 
 INSERT INTO job_activities:
 {
   id: generated UUID,
-  job_id: job_id,
+  order_id: order_id,
   activity_type: "invoice_created",
   description: "Invoice created for " + total,
   old_value: null,
@@ -1725,7 +1725,7 @@ INSERT INTO tasks:
   id: generated UUID,
   title: input.title,
   description: input.description || null,
-  job_id: input.job_id || null,
+  order_id: input.order_id || null,
   due_date: input.due_date || null,
   is_complete: false,
   created_at: NOW()
@@ -1753,7 +1753,7 @@ UPDATE tasks WHERE id = task_id:
 SET {
   title: input.title,           // if provided
   description: input.description,  // if provided
-  job_id: input.job_id,         // if provided
+  order_id: input.order_id,         // if provided
   due_date: input.due_date,     // if provided
   is_complete: input.is_complete  // if provided
 }
@@ -1852,7 +1852,7 @@ ELSE:
   customer_id = customer.id
 
 // Create job
-INSERT INTO jobs:
+INSERT INTO orders:
 {
   id: generated UUID,
   customer_id: customer_id,
@@ -1874,7 +1874,7 @@ INSERT INTO webstore_orders:
   items: input.items,  // JSON array
   total: input.total,
   status: "pending",
-  job_id: new_job.id,
+  order_id: new_job.id,
   created_at: NOW()
 }
 
@@ -1900,7 +1900,7 @@ IF store_type == "fundraiser":
 
 **Actions:**
 1. Count total customers
-2. Count active jobs (status not in ["complete"])
+2. Count active orders (status not in ["complete"])
 3. Count pending invoices (status in ["sent", "overdue"])
 4. Sum today's sales
 5. Sum overdue invoice totals
@@ -1910,7 +1910,7 @@ IF store_type == "fundraiser":
 today = TODAY() in ISO format
 
 total_customers = COUNT(customers)
-active_jobs = COUNT(jobs WHERE status NOT IN ["complete"])
+active_orders = COUNT(orders WHERE status NOT IN ["complete"])
 pending_invoices = COUNT(invoices WHERE status IN ["sent", "overdue"])
 
 today_sales = SELECT * FROM sales_entries WHERE date = today
@@ -1927,7 +1927,7 @@ overdue_count = COUNT(overdue_invoices)
 ```
 {
   total_customers: total_customers,
-  active_jobs: active_jobs,
+  active_orders: active_orders,
   pending_invoices: pending_invoices,
   today_revenue: today_revenue,
   overdue_total: overdue_total,
@@ -1943,7 +1943,7 @@ overdue_count = COUNT(overdue_invoices)
 |--------|--------|------|--------|--------|---------|
 | Customer | WF-CUST-01 | WF-CUST-04 | WF-CUST-02 | WF-CUST-03 | - |
 | Quote | WF-QUOTE-01 | - | WF-QUOTE-02,03 | - | WF-QUOTE-04,05,06 (line items), WF-QUOTE-07 (convert) |
-| Job | WF-JOB-01 | WF-JOB-08 | WF-JOB-02,03 | WF-JOB-07 | WF-JOB-04 (complete), WF-JOB-05,06 (archive) |
+| Order | WF-JOB-01 | WF-JOB-08 | WF-JOB-02,03 | WF-JOB-07 | WF-JOB-04 (complete), WF-JOB-05,06 (archive) |
 | JobItem | WF-JOBITEM-01 | - | WF-JOBITEM-02 | WF-JOBITEM-03 | WF-JOBITEM-RECALC (subtotal) |
 | JobNote | WF-JOBNOTE-01 | - | - | WF-JOBNOTE-02 | - |
 | Invoice | WF-INV-01 | - | WF-INV-03 | - | WF-INV-02 (from job), WF-INV-04,05 (status/payment) |

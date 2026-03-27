@@ -16,7 +16,7 @@
    - Dashboard (`/`)
    - Customers (`/customers`)
    - Quotes (`/quotes`)
-   - Jobs (`/jobs`)
+   - Orders (`/orders`)
    - Invoices (`/invoices`)
 
 2. **Operations** (separator)
@@ -43,15 +43,15 @@
 **Main UI Components:**
 | Component | Type | Description |
 |-----------|------|-------------|
-| StatCard (x4) | Card Grid | Total Customers, Active Jobs, Pending Invoices, Today's Revenue |
+| StatCard (x4) | Card Grid | Total Customers, Active Orders, Pending Invoices, Today's Revenue |
 | Overdue Alert | Alert Banner | Conditional - shows when overdue invoices exist |
-| RecentActivity | Card with List | Recent jobs and overdue invoices |
-| QuickActions | Card with Buttons | New Customer, New Quote, New Job, Time Clock |
+| RecentActivity | Card with List | Recent orders and overdue invoices |
+| QuickActions | Card with Buttons | New Customer, New Quote, New Order, Time Clock |
 
 **Primary Data Sources:**
 - `fetchDashboardStats()` → `/api/dashboard/stats`
 - `fetchCustomers()` → `/api/customers`
-- `fetchJobs()` → `/api/jobs`
+- `fetchOrders()` → `/api/orders`
 - `fetchInvoices()` → `/api/invoices`
 
 **Key Actions/Workflows:**
@@ -123,7 +123,7 @@
 ### PAGE: Quotes
 **Route:** `/quotes`
 **File:** `/app/frontend/src/pages/Quotes.js`
-**Purpose:** Create and manage quotes with line items, convert approved quotes to jobs
+**Purpose:** Create and manage quotes with line items, convert approved quotes to orders
 
 **Main UI Components:**
 | Component | Type | Description |
@@ -176,35 +176,35 @@
 
 ---
 
-### PAGE: Jobs (List View)
-**Route:** `/jobs`
-**File:** `/app/frontend/src/pages/Jobs.js` (JobsList component)
-**Purpose:** View and manage all jobs with filter tabs
+### PAGE: Orders (List View)
+**Route:** `/orders`
+**File:** `/app/frontend/src/pages/OrdersPage.js`
+**Purpose:** View and manage all orders with filter tabs
 
 **Main UI Components:**
 | Component | Type | Description |
 |-----------|------|-------------|
-| Header | Section | Title, count, New Job button |
+| Header | Section | Title, count, New Order button |
 | Filter Tabs | Tab Buttons | Active, Completed, Archived (with counts) |
-| Jobs List | Card List | Each job shows: name, status badge (dropdown), customer, due date, subtotal |
+| Orders List | Card List | Each job shows: name, status badge (dropdown), customer, due date, subtotal |
 | Job Row Actions | Dropdown + Button | View, Mark Complete, Archive, Delete |
-| New Job Dialog | Modal Form | Create new job |
+| New Order Dialog | Modal Form | Create new job |
 
 **Primary Data Sources:**
-- `fetchJobs({ filter_type })` → `/api/jobs?filter_type=active|completed|archived`
+- `fetchOrders({ filter_type })` → `/api/orders?filter_type=active|completed|archived`
 - `fetchCustomers()` → `/api/customers`
 
 **Key Actions/Workflows:**
 | Action | Trigger | Workflow |
 |--------|---------|----------|
-| Create Job | Submit dialog form | WF-JOB-01 |
+| Create Order | Submit dialog form | WF-JOB-01 |
 | Change Status | Click status badge dropdown | WF-JOB-03 |
-| View Details | Click "View" or job name | Navigate to `/jobs/{id}` |
+| View Details | Click "View" or job name | Navigate to `/orders/{id}` |
 | Mark Complete | Dropdown → Mark Complete | WF-JOB-04 |
 | Archive | Dropdown → Archive | WF-JOB-05 |
 | Delete | Dropdown → Delete + confirm | WF-JOB-07 |
 
-**Form Fields (New Job):**
+**Form Fields (New Order):**
 - customer_id* (select)
 - name* (text)
 - description (textarea)
@@ -212,7 +212,7 @@
 - due_date (date)
 
 **Data-testids:**
-- `jobs-page`
+- `orders-page`
 - `add-job-btn`
 - `job-customer-select`
 - `job-name-input`
@@ -225,15 +225,15 @@
 
 ---
 
-### PAGE: Job Details
-**Route:** `/jobs/:id`
-**File:** `/app/frontend/src/pages/Jobs.js` (JobDetails component)
-**Purpose:** Comprehensive job management with line items, notes, activity, and financial snapshot
+### PAGE: Order Details
+**Route:** `/orders/:id`
+**File:** `/app/frontend/src/pages/OrderDetail.js`
+**Purpose:** Comprehensive order management with line items, notes, activity, and financial snapshot
 
 **Main UI Components:**
 | Component | Type | Description |
 |-----------|------|-------------|
-| Back Button | Button | Returns to Jobs list |
+| Back Button | Button | Returns to Orders list |
 | Header Card | Card | Job name, status dropdown, customer link, due date, edit button, quick actions |
 | Quick Actions | Button Group | Create Invoice, Mark Complete, Archive/Unarchive |
 | Financial Snapshot | Card Grid (5) | Quote Total, Job Subtotal, Invoiced, Paid, Balance Due |
@@ -245,7 +245,7 @@
 | Add/Edit Item Dialog | Modal Form | Item form with type, description, qty, price, status, notes |
 
 **Primary Data Sources:**
-- `getJobDetails(id)` → `/api/jobs/{id}/details`
+- `getJobDetails(id)` → `/api/orders/{id}/details`
 - Returns: job, customer, quote, invoice, job_items, notes, activities, financial_snapshot
 
 **Key Actions/Workflows:**
@@ -265,7 +265,7 @@
 
 **Data-testids:**
 - `job-details-page`
-- `back-to-jobs`
+- `back-to-orders`
 - `job-status-dropdown`
 - `create-invoice-btn`
 - `add-line-item-btn`
@@ -291,7 +291,7 @@
 **Primary Data Sources:**
 - `fetchInvoices(params)` → `/api/invoices`
 - `fetchCustomers()` → `/api/customers`
-- `fetchJobs()` → `/api/jobs`
+- `fetchOrders()` → `/api/orders`
 
 **Key Actions/Workflows:**
 | Action | Trigger | Workflow |
@@ -302,7 +302,7 @@
 
 **Form Fields:**
 - customer_id* (select)
-- job_id (select, filtered by customer)
+- order_id (select, filtered by customer)
 - total* (number)
 - status (select: draft, sent, paid, overdue)
 - due_date (date)
@@ -440,12 +440,12 @@
 | Tasks List View | Two-column layout | To Do (incomplete), Completed |
 | Task Item | Checkbox + Card | Title, description, due date badge, job badge |
 | Calendar View | Calendar + Day panel | Calendar with task indicators, selected day's tasks |
-| Kanban View | 5-column board | Jobs grouped by status (quoted → complete) |
+| Kanban View | 5-column board | Orders grouped by status (quoted → complete) |
 | Add Task Dialog | Modal Form | Create new task |
 
 **Primary Data Sources:**
 - `fetchTasks()` → `/api/tasks`
-- `fetchJobs()` → `/api/jobs`
+- `fetchOrders()` → `/api/orders`
 
 **Key Actions/Workflows:**
 | Action | Trigger | Workflow |
@@ -458,7 +458,7 @@
 **Form Fields:**
 - title* (text)
 - description (text)
-- job_id (select)
+- order_id (select)
 - due_date (date)
 
 **Kanban Columns:**
@@ -671,17 +671,17 @@
 | Card, CardContent, CardHeader, CardTitle | All pages |
 | Input | All forms |
 | Label | All forms |
-| Textarea | Customers, Quotes, Jobs, Invoices, Financials, Webstores |
+| Textarea | Customers, Quotes, Orders, Invoices, Financials, Webstores |
 | Select, SelectTrigger, SelectContent, SelectItem, SelectValue | All pages with dropdowns |
 | Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger | All create/edit forms |
-| Table, TableHeader, TableBody, TableRow, TableHead, TableCell | Customers, Quotes, Jobs, Invoices, Payroll, Financials, Webstores |
+| Table, TableHeader, TableBody, TableRow, TableHead, TableCell | Customers, Quotes, Orders, Invoices, Payroll, Financials, Webstores |
 | Badge | All pages (status indicators) |
-| Tabs, TabsList, TabsTrigger, TabsContent | Jobs Details, Productivity, Financials, Webstores |
+| Tabs, TabsList, TabsTrigger, TabsContent | Orders Details, Productivity, Financials, Webstores |
 | Checkbox | Productivity (tasks) |
 | Calendar | Productivity |
-| ScrollArea | AI Tools, Jobs (activity) |
-| Separator | Jobs |
-| DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator | Jobs |
+| ScrollArea | AI Tools, Orders (activity) |
+| Separator | Orders |
+| DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator | Orders |
 
 ### From `/app/frontend/src/lib/utils.js`
 
@@ -704,8 +704,8 @@
 | `/` | Dashboard | Dashboard.js | Stats, alerts, quick actions |
 | `/customers` | Customers | Customers.js | CRUD table, search, filter |
 | `/quotes` | Quotes | Quotes.js | Line items, convert to job |
-| `/jobs` | Jobs List | Jobs.js | Filter tabs, status dropdown |
-| `/jobs/:id` | Job Details | Jobs.js | Items, notes, activity, financials |
+| `/orders` | Orders List | Orders.js | Filter tabs, status dropdown |
+| `/orders/:id` | Order Details | Orders.js | Items, notes, activity, financials |
 | `/invoices` | Invoices | Invoices.js | Summaries, mark paid |
 | `/timeclock` | Time Clock | TimeClock.js | Clock actions, daily summary |
 | `/payroll` | Payroll | Payroll.js | Ledger, balance, reports |
@@ -723,12 +723,12 @@
 All pages consume the `AppContext` via `useApp()` hook which provides:
 
 **State:**
-- customers, jobs, quotes, invoices, employees, tasks
+- customers, orders, quotes, invoices, employees, tasks
 - dashboardStats
 
 **API Methods (examples):**
 - `fetchCustomers()`, `createCustomer()`, `updateCustomer()`, `deleteCustomer()`
-- `fetchJobs()`, `createJob()`, `updateJob()`, `deleteJob()`, `completeJob()`, `archiveJob()`
+- `fetchOrders()`, `createJob()`, `updateJob()`, `deleteJob()`, `completeJob()`, `archiveJob()`
 - `fetchQuotes()`, `createQuote()`, `updateQuote()`, `convertQuoteToJob()`
 - `fetchInvoices()`, `createInvoice()`, `updateInvoice()`, `createInvoiceFromJob()`
 - `getJobDetails()`, `createJobItem()`, `updateJobItem()`, `deleteJobItem()`

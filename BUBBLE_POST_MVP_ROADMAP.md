@@ -22,7 +22,7 @@ This roadmap defines the **locked sequence** for adding features after MVP launc
 
 **Option Sets (7):**
 - ✅ CustomerStatus (lead, active, inactive)
-- ✅ JobStatus (quoted, approved, in_production, complete)
+- ✅ OrderStatus (quoted, approved, in_production, complete)
 - ✅ JobItemStatus (pending, in_production, done)
 - ✅ JobItemType (banner, yard_sign, decal, wrap, install, design, vehicle_graphics, window_graphics, dimensional_letters, monument_sign, other)
 - ✅ InvoiceStatus (draft, sent, paid)
@@ -32,8 +32,8 @@ This roadmap defines the **locked sequence** for adding features after MVP launc
 **Pages (8):**
 - ✅ Dashboard
 - ✅ Customers
-- ✅ Jobs (list)
-- ✅ Job Details
+- ✅ Orders (list)
+- ✅ Order Details
 - ✅ Invoices
 - ✅ Time Clock
 - ✅ Payroll
@@ -51,7 +51,7 @@ This roadmap defines the **locked sequence** for adding features after MVP launc
 
 ## PHASE 1: Job Notes & Activity Logging
 
-**Purpose:** Add internal notes and audit trail to jobs
+**Purpose:** Add internal notes and audit trail to orders
 **Estimated Time:** 3-4 hours
 **Risk Level:** 🟢 Low
 
@@ -60,7 +60,7 @@ This roadmap defines the **locked sequence** for adding features after MVP launc
 ```
 □ MVP is deployed and stable
 □ All MVP workflows tested and working
-□ Job Details page loads without errors
+□ Order Details page loads without errors
 □ JobItem CRUD confirmed working
 □ No pending bug fixes in Job module
 ```
@@ -70,7 +70,7 @@ This roadmap defines the **locked sequence** for adding features after MVP launc
 | Requirement | Location | Status |
 |-------------|----------|--------|
 | Job data type | Database | ✅ MVP |
-| Job Details page | Pages | ✅ MVP |
+| Order Details page | Pages | ✅ MVP |
 | JobItem workflows | Workflows | ✅ MVP |
 
 ### Add: Option Sets (1)
@@ -83,16 +83,16 @@ This roadmap defines the **locked sequence** for adding features after MVP launc
 
 | Type | Fields | Depends On |
 |------|--------|------------|
-| JobNote | id, job (→Job), content, author, created_at | Job |
-| JobActivity | id, job (→Job), activity_type (→JobActivityType), description, old_value, new_value, created_at | Job |
+| JobNote | id, job (→Job), content, author, created_at | Order |
+| JobActivity | id, job (→Job), activity_type (→JobActivityType), description, old_value, new_value, created_at | Order |
 
 ### Add: Workflows (6)
 
 | Workflow | Trigger | Depends On |
 |----------|---------|------------|
-| Create JobNote | Add note button | Job exists |
+| Create OrderNote | Add note button | Job exists |
 | Delete JobNote | Delete note button | JobNote exists |
-| Create JobActivity | Called by other workflows | Job exists |
+| Create OrderActivity | Called by other workflows | Job exists |
 | Log Item Added | After JobItem created | JobItem create workflow |
 | Log Item Updated | After JobItem updated | JobItem update workflow |
 | Log Status Changed | After Job status change | Job status workflow |
@@ -101,18 +101,18 @@ This roadmap defines the **locked sequence** for adding features after MVP launc
 
 | Workflow | Modification |
 |----------|--------------|
-| Create Job | Add step: Create JobActivity (type=created) |
-| Update Job Status | Add step: Create JobActivity (type=status_changed) |
-| Create JobItem | Add step: Create JobActivity (type=item_added) |
-| Update JobItem | Add step: Create JobActivity (type=item_updated) |
-| Delete JobItem | Add step: Create JobActivity (type=item_deleted) |
+| Create Order | Add step: Create OrderActivity (type=created) |
+| Update Order Status | Add step: Create OrderActivity (type=status_changed) |
+| Create OrderItem | Add step: Create OrderActivity (type=item_added) |
+| Update JobItem | Add step: Create OrderActivity (type=item_updated) |
+| Delete JobItem | Add step: Create OrderActivity (type=item_deleted) |
 
 ### Modify: Pages (1)
 
 | Page | Modification |
 |------|--------------|
-| Job Details | Add Notes tab with note list and add form |
-| Job Details | Add Activity tab with activity log |
+| Order Details | Add Notes tab with note list and add form |
+| Order Details | Add Activity tab with activity log |
 
 ### Verification Checklist
 
@@ -121,7 +121,7 @@ This roadmap defines the **locked sequence** for adding features after MVP launc
 □ Note appears in notes list
 □ Activity logged when note added
 □ Can delete note
-□ Activity logged on job creation
+□ Activity logged on order creation
 □ Activity logged on status change
 □ Activity logged on item add/edit/delete
 □ Activity tab shows correct history
@@ -255,7 +255,7 @@ End Work: enabled when (last = start_work) OR (last = break_end)
 
 | Type | Modification |
 |------|--------------|
-| Job | Add field: quote (→Quote) |
+| Order | Add field: quote (→Quote) |
 
 ### Add: Circular Reference
 
@@ -287,7 +287,7 @@ Step 4: Test both directions work
 Trigger: Convert button clicked
 Condition: This Quote's job is empty
 
-Step 1: Create Job
+Step 1: Create Order
   - customer = Quote's customer
   - name = "Job from Quote #" + Quote's unique id:truncated to 8
   - description = Quote's notes
@@ -296,7 +296,7 @@ Step 1: Create Job
   - subtotal = Quote's total
 
 Step 2: For each Quote's line_items → Schedule API workflow
-  - Create JobItem
+  - Create OrderItem
   - job = Result of Step 1
   - item_type = other
   - description = line_item's description
@@ -309,7 +309,7 @@ Step 3: Make changes to Quote
   - job = Result of Step 1
   - status = approved
 
-Step 4: Create JobActivity
+Step 4: Create OrderActivity
   - job = Result of Step 1
   - activity_type = (add new value: quote_converted)
   - description = "Created from Quote"
@@ -335,7 +335,7 @@ Step 4: Create JobActivity
 | Page | Modification |
 |------|--------------|
 | Dashboard | Add quote count to stats (optional) |
-| Job Details | Show linked quote info if exists |
+| Order Details | Show linked quote info if exists |
 
 ### Verification Checklist
 
@@ -657,7 +657,7 @@ Step 3: Create PayrollTransaction
 ```
 □ Phase 6 complete and verified
 □ Job module fully working
-□ Job Details page stable
+□ Order Details page stable
 ```
 
 ### Prerequisites (Must Exist)
@@ -695,7 +695,7 @@ Step 3: Create PayrollTransaction
 
 | Page | Modification |
 |------|--------------|
-| Job Details | Add "Related Tasks" section (optional) |
+| Order Details | Add "Related Tasks" section (optional) |
 | Dashboard | Add task count or overdue tasks (optional) |
 
 ### Verification Checklist
@@ -772,7 +772,7 @@ Data:
 ### Kanban View Specification
 
 ```
-Columns (from JobStatus):
+Columns (from OrderStatus):
 - Quoted
 - Approved
 - In Production
@@ -780,12 +780,12 @@ Columns (from JobStatus):
 - Complete
 
 Each column:
-- Shows jobs with that status
+- Shows orders with that status
 - Count and total value header
 - Job cards with name, customer, due date
 
 Interaction:
-- Click job → navigate to Job Details
+- Click job → navigate to Order Details
 - (Future: drag-drop to change status)
 ```
 
@@ -796,8 +796,8 @@ Interaction:
 □ Calendar displays current month
 □ Tasks with due dates show indicator
 □ Click date shows tasks for that date
-□ Kanban shows correct jobs per column
-□ Job counts match filters
+□ Kanban shows correct orders per column
+□ Order counts match filters
 □ Click job navigates to details
 □ All three views work without errors
 ```
@@ -937,7 +937,7 @@ Body: {
 |------|--------|------------|
 | FundraiserCampaign | id, name, goal, start_date, end_date, organizer, payout_rules, total_raised, status, created_at | None |
 | B2BStore | id, company_name, contact_email, login_password, discount_percent, is_active, created_at | None |
-| WebstoreOrder | id, store_type, store_id, items (JSON), total, status, job (→Job), created_at | Job |
+| WebstoreOrder | id, store_type, store_id, items (JSON), total, status, job (→Job), created_at | Order |
 
 ### Add: Workflows (6)
 
@@ -947,7 +947,7 @@ Body: {
 | Create B2B Store | Submit form | None |
 | Create Webstore Order | Order placed | Store exists |
 | Auto-Create Customer | Part of order | Customer type |
-| Auto-Create Job | Part of order | Job type |
+| Auto-Create Order | Part of order | Job type |
 | Update Fundraiser Total | After order | Campaign exists |
 
 ### Webstore Order Workflow (Complex)
@@ -959,7 +959,7 @@ Step 1: Find or Create Customer
   - Search Customers where company = "Webstore [TYPE] Customer"
   - If empty → Create Customer with default values
 
-Step 2: Create Job
+Step 2: Create Order
   - customer = Customer from Step 1
   - name = "Webstore Order #" + unique id
   - status = approved
@@ -993,7 +993,7 @@ Step 4: (If fundraiser) Update Campaign
 □ Can create fundraiser campaign
 □ Can create B2B store
 □ Order creation triggers customer find/create
-□ Order creation triggers job creation
+□ Order creation triggers order creation
 □ Order linked to job correctly
 □ Fundraiser total_raised updates
 □ Orders list shows all orders
@@ -1005,7 +1005,7 @@ Step 4: (If fundraiser) Update Campaign
 
 ## PHASE 11: Customer Portal
 
-**Purpose:** Add customer-facing portal for quotes, jobs, invoices
+**Purpose:** Add customer-facing portal for quotes, orders, invoices
 **Estimated Time:** 10-12 hours
 **Risk Level:** 🔴 High (authentication, privacy rules)
 
@@ -1061,7 +1061,7 @@ Key rules:
 | /portal | Customer dashboard | Customer only |
 | /portal/profile | Edit profile | Customer only |
 | /portal/quotes | Quote list, approve/decline | Customer only |
-| /portal/jobs | Job list (read-only status) | Customer only |
+| /portal/orders | Job list (read-only status) | Customer only |
 | /portal/invoices | Invoice list, payment (future) | Customer only |
 
 ### Add: Signup/Login Flow
@@ -1083,8 +1083,8 @@ Customer Portal Access:
 □ Customer sees only their quotes
 □ Customer can approve sent quote
 □ Customer can decline sent quote
-□ Customer sees only their jobs
-□ Customer cannot edit jobs
+□ Customer sees only their orders
+□ Customer cannot edit orders
 □ Customer sees only their invoices
 □ Staff/Owner cannot access /portal pages
 □ Customer cannot access admin pages
@@ -1124,7 +1124,7 @@ Phase 1-2:
 
 Phase 3 (Quotes):
   - If conversion breaks: revert Job.quote field
-  - Jobs can still be created directly
+  - Orders can still be created directly
 
 Phase 4-6:
   - Additive features

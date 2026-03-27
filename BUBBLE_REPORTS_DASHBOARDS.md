@@ -17,7 +17,7 @@ This document defines recommended reports and dashboards for Sign Guy AI. These 
 
 ### 1.1 Pipeline Kanban Dashboard
 
-**Purpose:** Visual overview of all jobs by status stage
+**Purpose:** Visual overview of all orders by status stage
 
 **Data Sources:**
 - `Job` (primary)
@@ -35,11 +35,11 @@ This document defines recommended reports and dashboards for Sign Guy AI. These 
 
 | Metric | Calculation |
 |--------|-------------|
-| Jobs per Stage | COUNT(Jobs) GROUP BY status |
-| Total Pipeline Value | SUM(Job.subtotal) WHERE status NOT IN [complete, archived] |
-| Value per Stage | SUM(Job.subtotal) GROUP BY status |
+| Orders per Stage | COUNT(Orders) GROUP BY status |
+| Total Pipeline Value | SUM(Order.subtotal) WHERE status NOT IN [complete, archived] |
+| Value per Stage | SUM(Order.subtotal) GROUP BY status |
 | Average Days in Stage | AVG(days since status changed) GROUP BY status |
-| Conversion Rate | Jobs moved to next stage / Total jobs per stage |
+| Conversion Rate | Orders moved to next stage / Total orders per stage |
 
 **Visual Layout:**
 ```
@@ -50,7 +50,7 @@ This document defines recommended reports and dashboards for Sign Guy AI. These 
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐     │
 │  │ QUOTED   │  │ APPROVED │  │IN PROD   │  │INSTALLED │  │ COMPLETE │     │
 │  │          │  │          │  │          │  │          │  │          │     │
-│  │  12 jobs │  │  8 jobs  │  │  15 jobs │  │  3 jobs  │  │  45 jobs │     │
+│  │  12 orders │  │  8 orders  │  │  15 orders │  │  3 orders  │  │  45 orders │     │
 │  │  $24,500 │  │  $18,200 │  │  $42,100 │  │  $8,400  │  │  $95,000 │     │
 │  │          │  │          │  │          │  │          │  │          │     │
 │  │ ┌──────┐ │  │ ┌──────┐ │  │ ┌──────┐ │  │ ┌──────┐ │  │ ┌──────┐ │     │
@@ -66,7 +66,7 @@ This document defines recommended reports and dashboards for Sign Guy AI. These 
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ PIPELINE SUMMARY                                                            │
 │ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐            │
-│ │ Active Jobs │ │Pipeline Val │ │ Avg Job Val │ │ Avg Days to │            │
+│ │ Active Orders │ │Pipeline Val │ │ Avg Job Val │ │ Avg Days to │            │
 │ │     38      │ │  $93,200    │ │   $2,453    │ │  Complete   │            │
 │ │             │ │             │ │             │ │    12 days  │            │
 │ └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘            │
@@ -93,8 +93,8 @@ This document defines recommended reports and dashboards for Sign Guy AI. These 
 
 | Metric | Calculation |
 |--------|-------------|
-| Stage Entry Count | COUNT(Jobs) that entered each stage in period |
-| Stage Exit Count | COUNT(Jobs) that left each stage in period |
+| Stage Entry Count | COUNT(Orders) that entered each stage in period |
+| Stage Exit Count | COUNT(Orders) that left each stage in period |
 | Conversion Rate | Exit Count / Entry Count per stage |
 | Drop-off Rate | 1 - Conversion Rate |
 | Average Time in Stage | AVG(time between stage entry and exit) |
@@ -140,9 +140,9 @@ This document defines recommended reports and dashboards for Sign Guy AI. These 
 
 ---
 
-### 1.3 Jobs by Due Date Report
+### 1.3 Orders by Due Date Report
 
-**Purpose:** Identify upcoming deadlines and overdue jobs
+**Purpose:** Identify upcoming deadlines and overdue orders
 
 **Data Sources:**
 - `Job`
@@ -159,16 +159,16 @@ This document defines recommended reports and dashboards for Sign Guy AI. These 
 
 | Metric | Calculation |
 |--------|-------------|
-| Overdue Jobs | COUNT(Jobs) WHERE due_date < TODAY AND status NOT IN [complete, archived] |
-| Due This Week | COUNT(Jobs) WHERE due_date BETWEEN TODAY AND TODAY+7 |
-| Due Next Week | COUNT(Jobs) WHERE due_date BETWEEN TODAY+7 AND TODAY+14 |
-| No Due Date | COUNT(Jobs) WHERE due_date IS NULL AND status NOT IN [complete, archived] |
-| Overdue Value | SUM(subtotal) of overdue jobs |
+| Overdue Orders | COUNT(Orders) WHERE due_date < TODAY AND status NOT IN [complete, archived] |
+| Due This Week | COUNT(Orders) WHERE due_date BETWEEN TODAY AND TODAY+7 |
+| Due Next Week | COUNT(Orders) WHERE due_date BETWEEN TODAY+7 AND TODAY+14 |
+| No Due Date | COUNT(Orders) WHERE due_date IS NULL AND status NOT IN [complete, archived] |
+| Overdue Value | SUM(subtotal) of overdue orders |
 
 **Visual Layout:**
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ JOBS BY DUE DATE                                                │
+│ ORDERS BY DUE DATE                                                │
 ├─────────────────────────────────────────────────────────────────┤
 │ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐│
 │ │  🔴 OVERDUE │ │ ⚠️ THIS WEEK│ │ 📅 NEXT WEEK│ │ ⚪ NO DATE  ││
@@ -176,7 +176,7 @@ This document defines recommended reports and dashboards for Sign Guy AI. These 
 │ │   $12,400   │ │   $19,500   │ │   $28,000   │ │   $7,200    ││
 │ └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘│
 ├─────────────────────────────────────────────────────────────────┤
-│ OVERDUE JOBS (Immediate Attention Required)                     │
+│ OVERDUE ORDERS (Immediate Attention Required)                     │
 │ ┌───────────────────────────────────────────────────────────┐  │
 │ │ Job Name          │ Customer    │ Due Date │ Days Over│ $ │  │
 │ ├───────────────────────────────────────────────────────────┤  │
@@ -186,7 +186,7 @@ This document defines recommended reports and dashboards for Sign Guy AI. These 
 │ └───────────────────────────────────────────────────────────┘  │
 ├─────────────────────────────────────────────────────────────────┤
 │ THIS WEEK                                                       │
-│ [Timeline view with jobs plotted by due date]                   │
+│ [Timeline view with orders plotted by due date]                   │
 │                                                                 │
 │ Mon   Tue   Wed   Thu   Fri   Sat   Sun                        │
 │  │     │     │     │     │     │     │                         │
@@ -222,7 +222,7 @@ This document defines recommended reports and dashboards for Sign Guy AI. These 
 |--------|-------------|
 | Total Revenue | SUM(Invoice.total) WHERE status = paid AND paid_date IN range |
 | Invoiced (Unpaid) | SUM(Invoice.total) WHERE status IN [sent, overdue] |
-| Pipeline Value | SUM(Job.subtotal) WHERE status NOT IN [complete, archived] |
+| Pipeline Value | SUM(Order.subtotal) WHERE status NOT IN [complete, archived] |
 | Quote Value | SUM(Quote.total) WHERE status IN [draft, sent] |
 | Average Invoice | AVG(Invoice.total) for period |
 | Revenue Growth | (This Period - Last Period) / Last Period × 100 |
@@ -349,7 +349,7 @@ This document defines recommended reports and dashboards for Sign Guy AI. These 
 | Metric | Calculation |
 |--------|-------------|
 | Revenue per Customer | SUM(Invoice.total) WHERE paid, GROUP BY customer |
-| Job Count per Customer | COUNT(Jobs) GROUP BY customer |
+| Job Count per Customer | COUNT(Orders) GROUP BY customer |
 | Average Job Value | Revenue / Job Count |
 | Customer Lifetime Value | Total revenue from customer (all time) |
 | Revenue Concentration | Top 20% customers / Total revenue |
@@ -363,7 +363,7 @@ This document defines recommended reports and dashboards for Sign Guy AI. These 
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │ ┌───────────────────────────────────────────────────────────┐  │
-│ │ Customer         │ Revenue  │ Jobs │ Avg Job │ % Total   │  │
+│ │ Customer         │ Revenue  │ Orders │ Avg Job │ % Total   │  │
 │ ├───────────────────────────────────────────────────────────┤  │
 │ │ ABC Corporation  │ $48,200  │  15  │ $3,213  │ 22% ████  │  │
 │ │ Smith LLC        │ $32,100  │  12  │ $2,675  │ 15% ███   │  │
@@ -757,7 +757,7 @@ This document defines recommended reports and dashboards for Sign Guy AI. These 
 
 | Metric | Calculation |
 |--------|-------------|
-| Jobs Completed | COUNT(Jobs) WHERE completed_at IN range |
+| Orders Completed | COUNT(Orders) WHERE completed_at IN range |
 | Revenue per Hour | Revenue / Total Hours |
 | Average Job Duration | AVG(days from created to complete) |
 | Items Produced | COUNT(JobItems) completed |
@@ -770,7 +770,7 @@ This document defines recommended reports and dashboards for Sign Guy AI. These 
 │ PRODUCTIVITY DASHBOARD                           [December 2024 ▼]         │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐            │
-│ │ JOBS DONE   │ │ REV/HOUR    │ │ AVG CYCLE   │ │ UTILIZATION │            │
+│ │ ORDERS DONE   │ │ REV/HOUR    │ │ AVG CYCLE   │ │ UTILIZATION │            │
 │ │     32      │ │   $142      │ │  8.5 days   │ │    78%      │            │
 │ │   ▲ 8%      │ │   ▲ 5%      │ │   ▼ 2 days  │ │   ▲ 3%      │            │
 │ └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘            │
@@ -778,7 +778,7 @@ This document defines recommended reports and dashboards for Sign Guy AI. These 
 │ PRODUCTIVITY BY EMPLOYEE                                                    │
 │                                                                             │
 │ ┌───────────────────────────────────────────────────────────────────────┐  │
-│ │ Employee      │ Jobs │ Revenue │ Hours │ Rev/Hr │ Util% │ Avg Cycle │  │
+│ │ Employee      │ Orders │ Revenue │ Hours │ Rev/Hr │ Util% │ Avg Cycle │  │
 │ ├───────────────────────────────────────────────────────────────────────┤  │
 │ │ John Smith    │  10  │ $14,200 │  82   │  $173  │  85%  │  7.2 days │  │
 │ │ Maria Garcia  │   8  │ $12,800 │  78   │  $164  │  82%  │  9.1 days │  │
@@ -789,7 +789,7 @@ This document defines recommended reports and dashboards for Sign Guy AI. These 
 │ WEEKLY TREND                                                                │
 │ ┌───────────────────────────────────────────────────────────────────────┐  │
 │ │                                                                       │  │
-│ │ Jobs│    8   7   9   8                                                │  │
+│ │ Orders│    8   7   9   8                                                │  │
 │ │     │   ╭─╮ ╭─╮ ╭─╮ ╭─╮                                               │  │
 │ │     │   │ │ │ │ │ │ │ │                                               │  │
 │ │     └───┴─┴─┴─┴─┴─┴─┴─┴──                                             │  │
@@ -814,14 +814,14 @@ This document defines recommended reports and dashboards for Sign Guy AI. These 
 | Filter | Type | Default |
 |--------|------|---------|
 | Date Range | date picker | Last 90 days |
-| Minimum Jobs | number | 3 |
+| Minimum Orders | number | 3 |
 
 **Key Metrics:**
 
 | Metric | Calculation |
 |--------|-------------|
 | Revenue by Type | SUM(JobItem.line_total) GROUP BY item_type |
-| Job Count by Type | COUNT(DISTINCT job_id) GROUP BY item_type |
+| Job Count by Type | COUNT(DISTINCT order_id) GROUP BY item_type |
 | Average Job Value | Revenue / Job Count per type |
 | Average Item Value | AVG(JobItem.line_total) per type |
 | Growth Trend | Compare to previous period |
@@ -845,7 +845,7 @@ This document defines recommended reports and dashboards for Sign Guy AI. These 
 │                                                                 │
 │ TYPE BREAKDOWN                                                  │
 │ ┌───────────────────────────────────────────────────────────┐  │
-│ │ Type            │ Jobs │ Revenue │ Avg Job │ Avg Item│Trend│  │
+│ │ Type            │ Orders │ Revenue │ Avg Job │ Avg Item│Trend│  │
 │ ├───────────────────────────────────────────────────────────┤  │
 │ │ Vehicle Wraps   │  12  │ $42,500 │ $3,542  │ $1,180  │ ▲8% │  │
 │ │ Channel Letters │  15  │ $33,600 │ $2,240  │ $840    │ ▲12%│  │
@@ -857,7 +857,7 @@ This document defines recommended reports and dashboards for Sign Guy AI. These 
 │ INSIGHTS:                                                       │
 │ • Highest margin: Vehicle Wraps ($3,542 avg)                   │
 │ • Growth leader: Channel Letters (+12%)                        │
-│ • Volume leader: Yard Signs (35 jobs)                          │
+│ • Volume leader: Yard Signs (35 orders)                          │
 │ • Declining: Banners (-3% - consider promotion)                │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -877,7 +877,7 @@ This document defines recommended reports and dashboards for Sign Guy AI. These 
 |--------|------|---------|
 | Date Range | date picker | Current week |
 | Status | multi-select | All |
-| Job | dropdown | All |
+| Order | dropdown | All |
 
 **Key Metrics:**
 
@@ -936,7 +936,7 @@ This document defines recommended reports and dashboards for Sign Guy AI. These 
 ### Phase 2: Important (Build Second)
 4. **Revenue Dashboard** - Business health monitoring
 5. **Time & Attendance Report** - Labor management
-6. **Jobs by Due Date** - Deadline management
+6. **Orders by Due Date** - Deadline management
 
 ### Phase 3: Valuable (Build Third)
 7. **Daily Sales Report** - Cash tracking
@@ -965,7 +965,7 @@ This document defines recommended reports and dashboards for Sign Guy AI. These 
    DailyMetrics:
      - date
      - total_revenue
-     - total_jobs_completed
+     - total_orders_completed
      - total_hours_worked
      - total_outstanding
    

@@ -36,7 +36,7 @@ Everything else is optimization.
 | Option Set | Reason |
 |------------|--------|
 | ✅ CustomerStatus | lead, active, inactive |
-| ✅ JobStatus | quoted, approved, in_production, complete |
+| ✅ OrderStatus | quoted, approved, in_production, complete |
 | ✅ JobItemStatus | pending, in_production, done |
 | ✅ JobItemType | Core product types only |
 | ✅ InvoiceStatus | draft, sent, paid |
@@ -49,8 +49,8 @@ Everything else is optimization.
 |------|--------|
 | ✅ Dashboard | Daily overview |
 | ✅ Customers | Customer list and details |
-| ✅ Jobs | Job list with status |
-| ✅ Job Details | Manage single job + items |
+| ✅ Orders | Job list with status |
+| ✅ Order Details | Manage single job + items |
 | ✅ Invoices | Create and track invoices |
 | ✅ Time Clock | Employees clock in/out |
 | ✅ Payroll | Pay employees |
@@ -64,9 +64,9 @@ Everything else is optimization.
 - ✅ Delete Customer
 
 **Job:**
-- ✅ Create Job
+- ✅ Create Order
 - ✅ Update Job
-- ✅ Change Job Status
+- ✅ Change Order Status
 - ✅ Mark Job Complete
 
 **JobItem:**
@@ -97,7 +97,7 @@ Everything else is optimization.
 | Feature | Scope |
 |---------|-------|
 | ✅ Customer CRUD | Name, company, phone, email, status |
-| ✅ Job Management | Create, status changes, complete |
+| ✅ Order Management | Create, status changes, complete |
 | ✅ Job Items | Add items with qty, price, total |
 | ✅ Job Subtotal | Auto-calculated from items |
 | ✅ Basic Invoice | Create from job, mark paid |
@@ -113,7 +113,7 @@ Everything else is optimization.
 
 | Type | Reason to Defer |
 |------|-----------------|
-| ❌ Quote | Can create Jobs directly |
+| ❌ Quote | Can create Orders directly |
 | ❌ QuoteLineItem | No quotes = no line items |
 | ❌ JobNote | Can use Job description field |
 | ❌ JobActivity | Nice audit trail, not essential |
@@ -139,7 +139,7 @@ Everything else is optimization.
 
 | Page | Reason to Defer |
 |------|-----------------|
-| ❌ Quotes | Create Jobs directly |
+| ❌ Quotes | Create Orders directly |
 | ❌ Productivity | Use physical Kanban board |
 | ❌ AI Tools | Enhancement, not essential |
 | ❌ Webstores | Separate product, Phase 2 |
@@ -165,7 +165,7 @@ Everything else is optimization.
 
 | Feature | Why Defer |
 |---------|-----------|
-| ❌ Quotes/Estimates | Jobs can start without formal quote |
+| ❌ Quotes/Estimates | Orders can start without formal quote |
 | ❌ Quote → Job conversion | No quotes |
 | ❌ Job Notes | Use description or paper |
 | ❌ Activity Logging | Nice to have, not essential |
@@ -232,9 +232,9 @@ EXPENSES → SIMPLE LIST
 
 **Show only:**
 - Total Customers (count)
-- Active Jobs (count)
+- Active Orders (count)
 - Unpaid Invoices (count + total)
-- Quick actions: New Customer, New Job
+- Quick actions: New Customer, New Order
 
 **Remove:**
 - Revenue metrics
@@ -245,7 +245,7 @@ EXPENSES → SIMPLE LIST
 
 Full CRUD, no changes needed.
 
-### Jobs (Simplified)
+### Orders (Simplified)
 
 **Keep:**
 - Job list with status filter
@@ -256,7 +256,7 @@ Full CRUD, no changes needed.
 - Archive/unarchive
 - Filter tabs (just one list)
 
-### Job Details (Simplified)
+### Order Details (Simplified)
 
 **Keep:**
 - Job header with status
@@ -449,21 +449,21 @@ REMOVED:
 
 3. Delete Customer
    Trigger: Confirm delete
-   Condition: No Jobs reference this Customer
+   Condition: No Orders reference this Customer
    Action: Delete Customer
 ```
 
 ### Job Workflows (4)
 ```
-1. Create Job
+1. Create Order
    Trigger: Submit form
-   Action: Create Job with customer, name, status=quoted
+   Action: Create Order with customer, name, status=quoted
 
 2. Update Job
    Trigger: Submit edit form
    Action: Make changes to Job
 
-3. Change Job Status
+3. Change Order Status
    Trigger: Status dropdown change
    Action: Make changes to Job (status)
 
@@ -477,22 +477,22 @@ REMOVED:
 1. Add Job Item
    Trigger: Submit item form
    Actions:
-   - Create JobItem
+   - Create OrderItem
    - Calculate line_total = qty × price
-   - Recalculate parent Job subtotal
+   - Recalculate parent Order.subtotal
 
 2. Update Job Item
    Trigger: Submit item edit
    Actions:
    - Make changes to JobItem
    - Recalculate line_total
-   - Recalculate parent Job subtotal
+   - Recalculate parent Order.subtotal
 
 3. Delete Job Item
    Trigger: Confirm delete
    Actions:
    - Delete JobItem
-   - Recalculate parent Job subtotal
+   - Recalculate parent Order.subtotal
 
 4. Recalculate Job Subtotal
    (Called by above workflows)
@@ -507,7 +507,7 @@ REMOVED:
    Action: Create Invoice with line items, calculate total
 
 2. Create Invoice from Job
-   Trigger: Button on Job Details
+   Trigger: Button on Order Details
    Actions:
    - Create Invoice (customer=Job's customer, job=This Job)
    - Copy JobItems to InvoiceLineItems
@@ -619,9 +619,9 @@ REMOVED:
 
 ```
 □ Can create a customer
-□ Can create a job for that customer
+□ Can create an order for that customer
 □ Can add items to the job
-□ Job subtotal calculates correctly
+□ Order.subtotal calculates correctly
 □ Can create invoice from job
 □ Can mark invoice as paid
 □ Can add an employee
@@ -683,7 +683,7 @@ REMOVED:
 
 > **What you can do now:**
 > - Add customers and track their info
-> - Create jobs and add what you're making
+> - Create orders and add what you're making
 > - See job totals automatically calculated
 > - Create invoices and mark them paid
 > - Clock employees in and out
@@ -691,7 +691,7 @@ REMOVED:
 > - Log expenses
 > 
 > **Coming soon:**
-> - Quotes that convert to jobs
+> - Quotes that convert to orders
 > - Break tracking
 > - AI design helpers
 > - Customer login portal

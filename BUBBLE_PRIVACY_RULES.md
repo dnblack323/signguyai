@@ -178,11 +178,11 @@ Rule 3: Customer Own Profile
 │ ☑ View all fields                                               │
 │ ☑ Find in searches                                              │
 │ ☑ Modify all fields                                             │
-│ ☐ Delete                          ← Only owners delete jobs     │
+│ ☐ Delete                          ← Only owners delete orders     │
 │                                                                 │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│ RULE 3: "Customer Portal - Own Jobs"                            │
+│ RULE 3: "Customer Portal - Own Orders"                            │
 │ ─────────────────────────────────────────────────────────────── │
 │ When: Current User's role is "customer"                         │
 │   AND This Job's customer is Current User's linked_customer     │
@@ -190,7 +190,7 @@ Rule 3: Customer Own Profile
 │ ☑ View: name, status, due_date, subtotal                        │
 │ ☐ View: description, is_archived, quote, invoice                │
 │ ☑ Find in searches                                              │
-│ ☐ Modify                          ← Customers can't edit jobs   │
+│ ☐ Modify                          ← Customers can't edit orders   │
 │ ☐ Delete                                                        │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -530,34 +530,34 @@ These types should **BLOCK** all customer portal access:
 ```
 IMPORTANT: Privacy rules filter search results automatically
 
-Search for Jobs → Only returns Jobs the current user can "Find in searches"
+Search for Orders → Only returns Orders the current user can "Find in searches"
 
 If user is "customer":
-  - Only Jobs where customer = their linked_customer
-  - Other jobs are invisible (not just hidden, truly not returned)
+  - Only Orders where customer = their linked_customer
+  - Other orders are invisible (not just hidden, truly not returned)
 ```
 
 ### Search Examples
 
 **Owner Search:**
 ```
-Do a search for: Jobs
+Do a search for: Orders
 Constraint: status is not "archived"
-Result: ALL jobs that aren't archived (privacy rule allows all)
+Result: ALL orders that aren't archived (privacy rule allows all)
 ```
 
 **Staff Search:**
 ```
-Do a search for: Jobs
+Do a search for: Orders
 Constraint: status is not "archived"
-Result: ALL jobs that aren't archived (same as owner for Jobs)
+Result: ALL orders that aren't archived (same as owner for Orders)
 ```
 
 **Customer Portal Search:**
 ```
-Do a search for: Jobs
+Do a search for: Orders
 Constraint: status is not "archived"
-Result: ONLY their jobs that aren't archived
+Result: ONLY their orders that aren't archived
         (privacy rule auto-filters to their customer)
 ```
 
@@ -568,13 +568,13 @@ Result: ONLY their jobs that aren't archived
 │ SEARCH CONSTRAINT vs PRIVACY RULE                               │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│ Search: Do a search for Jobs                                    │
+│ Search: Do a search for Orders                                    │
 │         where status = "in_production"                          │
 │                                                                 │
-│ Privacy Rule: Customer can only see Jobs where                  │
+│ Privacy Rule: Customer can only see Orders where                  │
 │               customer = their linked_customer                  │
 │                                                                 │
-│ RESULT: Jobs where                                              │
+│ RESULT: Orders where                                              │
 │         status = "in_production"                                │
 │         AND customer = Current User's linked_customer           │
 │                                                                 │
@@ -587,12 +587,12 @@ Result: ONLY their jobs that aren't archived
 ### Counting with Privacy
 
 ```
-Visible count = Search for Jobs:count
+Visible count = Search for Orders:count
 This count ALREADY respects privacy rules
 
-Owner sees: 50 jobs
-Staff sees: 50 jobs (same access for Jobs)
-Customer sees: 3 jobs (only their jobs)
+Owner sees: 50 orders
+Staff sees: 50 orders (same access for Orders)
+Customer sees: 3 orders (only their orders)
 ```
 
 ---
@@ -619,15 +619,15 @@ Rule 2: Staff General Access (fallback for other cases)
 
 ```
 ❌ WRONG:
-Rule: Customer can view Jobs
+Rule: Customer can view Orders
       ☑ View all fields
       ☐ Find in searches    ← UNCHECKED
 
 Result: Customer can see Job if they somehow get to it,
-        but "Search for Jobs" returns EMPTY
+        but "Search for Orders" returns EMPTY
 
 ✓ CORRECT:
-Rule: Customer can view Jobs
+Rule: Customer can view Orders
       ☑ View all fields
       ☑ Find in searches    ← MUST BE CHECKED
 ```
@@ -693,14 +693,14 @@ Or accept that record is visible but field is null
 
 ```
 ❌ WRONG:
-Job privacy: Customer sees only their jobs ✓
+Job privacy: Customer sees only their orders ✓
 JobItem privacy: No customer rule defined ✗
 
-Result: Customer can't see JobItems even for their own jobs
+Result: Customer can't see JobItems even for their own orders
         because JobItem has no rule granting access
 
 ✓ CORRECT:
-Job privacy: Customer sees their jobs
+Job privacy: Customer sees their orders
 JobItem privacy: Customer sees items where 
                  This JobItem's job's customer = their linked_customer
 ```
@@ -854,7 +854,7 @@ As Staff:
 As Customer:
 □ Can only see own data
 □ Cannot see internal types (Tasks, Notes, etc.)
-□ Can see but not modify jobs
+□ Can see but not modify orders
 □ Can see and approve quotes (when sent)
 □ Can see invoices
 □ Cannot see employee data
@@ -908,7 +908,7 @@ Current User's role is "customer" AND This Quote's status is "sent"
 | Type | Owner | Staff | Customer |
 |------|-------|-------|----------|
 | Customer | CRUD | CRU | R (own) |
-| Job | CRUD | CRU | R (own) |
+| Order | CRUD | CRU | R (own) |
 | JobItem | CRUD | CRUD | R (own) |
 | Invoice | CRUD | CRU* | R (own) |
 | Employee | CRUD | R (own) | - |

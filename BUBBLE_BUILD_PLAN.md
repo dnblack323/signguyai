@@ -28,7 +28,7 @@ Create in this order (no dependencies between them):
 |------------|-------------------|
 | CustomerStatus | lead, active, inactive |
 | QuoteStatus | draft, sent, approved, declined |
-| JobStatus | quoted, approved, in_production, installed, complete, archived |
+| OrderStatus | quoted, approved, in_production, installed, complete, archived |
 | JobActivityType | created, status_changed, quote_converted, invoice_created, item_added, item_updated, item_deleted, note_added, completed, archived, unarchived |
 | JobItemStatus | pending, in_production, done |
 | JobItemType | banner, yard_sign, decal, wrap, install, design, vehicle_graphics, window_graphics, dimensional_letters, monument_sign, other |
@@ -151,7 +151,7 @@ LAYER 4 (Depends on Layer 3):
 | notes | text | - |
 | status | QuoteStatus | draft |
 | total | number | 0 |
-| job | Job | - |
+| job | Order | - |
 
 #### Job
 | Field | Type | Default |
@@ -159,7 +159,7 @@ LAYER 4 (Depends on Layer 3):
 | customer | Customer | - |
 | name | text | - |
 | description | text | - |
-| status | JobStatus | quoted |
+| status | OrderStatus | quoted |
 | due_date | date | - |
 | quote | Quote | - |
 | invoice | Invoice | - |
@@ -203,7 +203,7 @@ LAYER 4 (Depends on Layer 3):
 |-------|------|---------|
 | title | text | - |
 | description | text | - |
-| job | Job | - |
+| job | Order | - |
 | due_date | date | - |
 | is_complete | yes/no | no |
 
@@ -233,7 +233,7 @@ LAYER 4 (Depends on Layer 3):
 #### JobItem
 | Field | Type | Default |
 |-------|------|---------|
-| job | Job | - |
+| job | Order | - |
 | item_type | JobItemType | other |
 | description | text | - |
 | quantity | number | 1 |
@@ -245,14 +245,14 @@ LAYER 4 (Depends on Layer 3):
 #### JobNote
 | Field | Type | Default |
 |-------|------|---------|
-| job | Job | - |
+| job | Order | - |
 | content | text | - |
 | author | text | - |
 
 #### JobActivity
 | Field | Type | Default |
 |-------|------|---------|
-| job | Job | - |
+| job | Order | - |
 | activity_type | JobActivityType | - |
 | description | text | - |
 | old_value | text | - |
@@ -262,7 +262,7 @@ LAYER 4 (Depends on Layer 3):
 | Field | Type | Default |
 |-------|------|---------|
 | customer | Customer | - |
-| job | Job | - |
+| job | Order | - |
 | line_items | list of InvoiceLineItems | - |
 | total | number | 0 |
 | status | InvoiceStatus | draft |
@@ -279,7 +279,7 @@ LAYER 4 (Depends on Layer 3):
 | items | text (JSON) | - |
 | total | number | 0 |
 | status | WebstoreOrderStatus | pending |
-| job | Job | - |
+| job | Order | - |
 
 #### AIResponse
 | Field | Type | Default |
@@ -287,7 +287,7 @@ LAYER 4 (Depends on Layer 3):
 | tool | text | - |
 | input_data | text (JSON) | - |
 | output | text | - |
-| job | Job | - |
+| job | Order | - |
 | customer | Customer | - |
 
 ### 1.4 Embedded Types (Sub-types)
@@ -351,7 +351,7 @@ CRUD PAGES (simpler):
 
 COMPLEX PAGES (build on patterns):
 ├── quotes
-├── jobs (list)
+├── orders (list)
 ├── job-details (separate page)
 ├── invoices
 
@@ -408,8 +408,8 @@ Create these first - used on all pages:
 **Elements:**
 1. Stat Card: Total Customers
    - Data: `Search for Customers:count`
-2. Stat Card: Active Jobs
-   - Data: `Search for Jobs where status is not complete:count`
+2. Stat Card: Active Orders
+   - Data: `Search for Orders where status is not complete:count`
 3. Stat Card: Pending Invoices
    - Data: `Search for Invoices where status = sent or overdue:count`
 4. Stat Card: Today's Revenue
@@ -462,10 +462,10 @@ Create these first - used on all pages:
 - Quote total = sum of line item totals
 - Convert creates Job + JobItems from line items
 
-### 2.5 Jobs Page (List)
+### 2.5 Orders Page (List)
 
 **Layout:**
-- Header with "New Job" button
+- Header with "New Order" button
 - Filter tabs: Active, Completed, Archived
 - Repeating group list (card style)
 
@@ -478,15 +478,15 @@ Create these first - used on all pages:
 - Actions menu
 
 **Workflows:**
-- Create Job
+- Create Order
 - Quick status change
-- Navigate to job details
+- Navigate to order details
 
-### 2.6 Job Details Page
+### 2.6 Order Details Page
 
 **This is the most complex page - build carefully**
 
-**URL Parameter:** job_id
+**URL Parameter:** order_id
 
 **Layout:**
 - Back button
@@ -610,8 +610,8 @@ End Work: enabled when last_action is start_work OR break_end
 - Selected date's tasks
 
 **Tab: Kanban**
-- 5 columns by JobStatus
-- Jobs displayed as cards
+- 5 columns by OrderStatus
+- Orders displayed as cards
 - (Future: drag-and-drop)
 
 ### 2.11 Financials Page
@@ -739,11 +739,11 @@ Action: Make changes to Parent Invoice
 
 ### 3.3 Status Change Workflows
 
-#### Job Status Change with Activity Log
+#### Order Status Change with Activity Log
 ```
 When: Job's status is changed
 Actions:
-1. Create JobActivity
+1. Create OrderActivity
    - job = This Job
    - activity_type = status_changed (or completed/archived)
    - description = "Status changed from [old] to [new]"
@@ -776,7 +776,7 @@ Actions:
    - subtotal = Quote's total
 
 2. For each Quote's line_items:
-   Create JobItem
+   Create OrderItem
    - job = Job created in step 1
    - item_type = other
    - description = line_item's description
@@ -789,7 +789,7 @@ Actions:
    - job = Job created in step 1
    - status = approved
 
-4. Create JobActivity
+4. Create OrderActivity
    - job = Job created in step 1
    - activity_type = quote_converted
    - description = "Job created from Quote"
@@ -797,7 +797,7 @@ Actions:
 
 #### Create Invoice from Job
 ```
-When: Button "Create Invoice" clicked on Job Details
+When: Button "Create Invoice" clicked on Order Details
 Conditions: Job's invoice is empty
 Actions:
 1. Create Invoice
@@ -819,7 +819,7 @@ Actions:
 4. Make changes to Job
    - invoice = Invoice created in step 1
 
-5. Create JobActivity
+5. Create OrderActivity
    - activity_type = invoice_created
 ```
 
@@ -1011,7 +1011,7 @@ Create separate page group for portal:
 | /portal | Customer dashboard |
 | /portal/profile | Edit profile |
 | /portal/quotes | View/approve quotes |
-| /portal/jobs | View job status |
+| /portal/orders | View order status |
 | /portal/invoices | View/pay invoices |
 | /portal/orders | Order history |
 
@@ -1102,7 +1102,7 @@ Actions: Show alert "Cannot edit sent/paid invoices"
 ### Phase 0: Option Sets ⬜
 - [ ] CustomerStatus
 - [ ] QuoteStatus
-- [ ] JobStatus
+- [ ] OrderStatus
 - [ ] JobActivityType
 - [ ] JobItemStatus
 - [ ] JobItemType
@@ -1140,8 +1140,8 @@ Actions: Show alert "Cannot edit sent/paid invoices"
 - [ ] Dashboard (index)
 - [ ] Customers
 - [ ] Quotes
-- [ ] Jobs (list)
-- [ ] Job Details
+- [ ] Orders (list)
+- [ ] Order Details
 - [ ] Invoices
 - [ ] Time Clock
 - [ ] Payroll
