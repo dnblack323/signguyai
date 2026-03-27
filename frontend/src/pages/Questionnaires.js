@@ -5,7 +5,7 @@ import {
   Plus, FileText, Settings, Trash2, Copy, Eye, EyeOff,
   ChevronDown, ChevronUp, GripVertical, X, Check,
   Car, SignpostBig, Shirt, FileQuestion, Layers,
-  ExternalLink, Users, Clock, BarChart3, Sparkles
+  ExternalLink, Users, Clock, BarChart3, Sparkles, Send, Loader2 as Loader2Icon
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
@@ -246,6 +246,30 @@ export default function Questionnaires() {
     toast.success('Link copied to clipboard!');
   };
 
+  const [sendDialog, setSendDialog] = useState(null);
+  const [sendEmail, setSendEmail] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const handleSendEmail = async () => {
+    if (!sendEmail.trim() || !sendDialog) return;
+    setSending(true);
+    try {
+      const url = `${window.location.origin}/questionnaire/${sendDialog.id}`;
+      await api.post('/documents/send-email', {
+        document_type: 'questionnaire',
+        customer_email: sendEmail,
+        customer_name: '',
+        subject: `Please complete: ${sendDialog.name}`,
+        body: `You've been sent a questionnaire. Please click the link below to complete it:\n\n${url}`,
+      });
+      toast.success(`Questionnaire sent to ${sendEmail}`);
+      setSendDialog(null);
+      setSendEmail('');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to send');
+    } finally { setSending(false); }
+  };
+
   const resetForm = () => {
     setFormData({
       name: '',
@@ -461,8 +485,18 @@ export default function Questionnaires() {
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => { setSendDialog(questionnaire); setSendEmail(''); }}
+                      disabled={questionnaire.status !== 'active'}
+                      title="Send via Email"
+                    >
+                      <Send className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => copyShareLink(questionnaire)}
                       disabled={questionnaire.status !== 'active'}
+                      title="Copy Link"
                     >
                       <ExternalLink className="h-3 w-3" />
                     </Button>
@@ -756,6 +790,32 @@ export default function Questionnaires() {
               ))}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Send via Email Dialog */}
+      <Dialog open={!!sendDialog} onOpenChange={() => setSendDialog(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Send Questionnaire</DialogTitle>
+            <DialogDescription>{sendDialog?.name}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Recipient Email</Label>
+              <Input
+                type="email"
+                value={sendEmail}
+                onChange={(e) => setSendEmail(e.target.value)}
+                placeholder="customer@example.com"
+                className="mt-1"
+              />
+            </div>
+            <Button onClick={handleSendEmail} disabled={sending || !sendEmail.trim()} className="w-full">
+              {sending ? <Loader2Icon className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+              Send via Email
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
