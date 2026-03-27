@@ -32,7 +32,7 @@ const faqs = [
     questions: [
       { q: 'What is the difference between a quote and a job?', a: 'A quote is a job in the quote stage. The same record can move through approval, production, invoicing, and archive.' },
       { q: 'Where do I see the full job history?', a: 'Open the job and use View Timeline. That panel shows the history feed for proofs, stages, documents, and more.' },
-      { q: 'Can employees work from their own portal?', a: 'Yes. Employees can view assigned jobs, track stages, and use clock/time features based on permissions.' },
+      { q: 'Can employees work from their own portal?', a: 'Yes. Employees can view assigned orders, track stages, and use clock/time features based on permissions.' },
     ]
   }
 ];

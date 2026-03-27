@@ -57,7 +57,7 @@ export default function FoundersEditionPricing() {
 
   const includedFeatures = [
     'Customer Management',
-    'Quotes & Jobs',
+    'Orders & Job Tickets',
     'Invoicing with Online Payments',
     'Customer Portal',
     'Artwork Approvals',

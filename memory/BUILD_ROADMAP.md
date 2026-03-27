@@ -60,7 +60,7 @@
 
 ## Core System Architecture
 
-### 4-Layer Order System (NEW — replaces old Jobs module)
+### 4-Layer Order System (NEW — replaces old Orders module)
 ```
 Layer 1: ORDER (master container)
   → Layer 2: JOB TICKETS (production detail per item)

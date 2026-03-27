@@ -6,7 +6,7 @@ import { CheckCircle2, ArrowRight, Zap } from 'lucide-react';
 export default function StarterPlanPage() {
   const features = [
     'Customer Management',
-    'Orders Quotes & Jobs Job Tickets',
+    'Orders Orders & Job Tickets Job Tickets',
     'Basic Invoicing',
     'Basic Time Clock',
     '2 Team Members',

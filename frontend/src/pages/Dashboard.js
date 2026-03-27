@@ -590,7 +590,7 @@ export default function Dashboard() {
           accentColor="#2F8BFB"
         />
         <StatCard
-          title="Active Jobs"
+          title="Active Orders"
           value={dashboardStats?.active_jobs || 0}
           icon={Briefcase}
           href="/orders"

@@ -58,7 +58,7 @@ const HomeToolbar = ({ navigate }) => (
         icon={Plus}
         onClick={() => navigate('/jobs?new=true')}
         dropdownItems={[
-          { icon: Briefcase, label: 'New Job', onClick: () => navigate('/jobs?new=true') },
+          { icon: Briefcase, label: 'New Order', onClick: () => navigate('/jobs?new=true') },
           { icon: FileText, label: 'New Quote', onClick: () => navigate('/jobs?new=true&type=quote') },
           { icon: Receipt, label: 'New Invoice', onClick: () => navigate('/invoices?new=true') },
         ]}
@@ -98,7 +98,7 @@ const HomeToolbar = ({ navigate }) => (
 const JobsToolbar = ({ navigate }) => (
   <div className="flex items-stretch h-full">
     <RibbonGroup title="New">
-      <RibbonButton icon={Plus} label="New Job" onClick={() => navigate('/jobs?new=true')} />
+      <RibbonButton icon={Plus} label="New Order" onClick={() => navigate('/jobs?new=true')} />
     </RibbonGroup>
 
     <GroupSeparator />

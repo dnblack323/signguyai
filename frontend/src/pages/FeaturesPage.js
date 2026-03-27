@@ -59,7 +59,7 @@ export default function FeaturesPage() {
       id: 'jobs',
       category: 'core',
       icon: Briefcase,
-      title: 'Job Tracking',
+      title: 'Order & Production Tracking',
       tagline: 'From quote to completion, never lose track',
       description: 'Visual job management that shows you exactly where every project stands. Track status, time, materials, and profitability.',
       capabilities: [

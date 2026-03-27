@@ -10,7 +10,7 @@ import { RibbonToolbar } from './RibbonToolbar';
 // Ribbon tab configuration
 const ribbonTabs = [
   { id: 'home', label: 'Home', icon: Home },
-  { id: 'jobs', label: 'Jobs', icon: Briefcase },
+  { id: 'orders', label: 'Orders', icon: Briefcase },
   { id: 'quotes', label: 'Quotes', icon: FileText },
   { id: 'invoices', label: 'Invoices', icon: Receipt },
   { id: 'customers', label: 'Customers', icon: Users },

@@ -81,7 +81,7 @@
 
 ### 3.2 Dark Shell / Light Workspace UI Overhaul
 - **Concept:** Dark page background + light/dark content cards (not one mega-card per page)
-- **Start with:** Jobs page
+- **Start with:** Orders page
 - **Apply to:** Dashboard, Customers, Invoices, Quotes, and all main pages
 - **Pattern:** Multiple smaller cards per section instead of single page-wide card
 
@@ -97,7 +97,7 @@
 # STAGE 4: SEARCH, BULK ACTIONS & UX IMPROVEMENTS
 *Productivity features for daily use.*
 
-### 4.1 Jobs Page Search ✅ DONE
+### 4.1 Orders Page Search ✅ DONE
 - **Added:** Search input in filters card, filters by customer name, job title, job number, status
 
 ### 4.2 Invoices Page Search ✅ DONE
@@ -106,7 +106,7 @@
 ### 4.3 Webstores Page Search ✅ DONE
 - **Added:** Search input, filters by store name, description, type
 
-### 4.4 Jobs Page Bulk Actions
+### 4.4 Orders Page Bulk Actions
 - **Status:** Deferred (checkbox selection, bulk action bar)
 
 ### 4.5 Quick Add Job/Order Button in Customer Modal ✅ DONE

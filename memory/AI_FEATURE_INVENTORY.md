@@ -124,7 +124,7 @@
 ## 4. AI BUSINESS ASSISTANT
 
 ### Features
-- **Business Data Aware**: Reads actual shop data (jobs, customers, financials)
+- **Business Data Aware**: Reads actual shop data (orders, customers, financials)
 - **Contextual Responses**: Answers based on real business metrics
 - **Session Management**: Maintains conversation context
 - **Role-Based Access**: Respects user permissions
@@ -132,7 +132,7 @@
 ### Data Context Available
 | Category | Data Points |
 |----------|-------------|
-| Jobs | Total count, status breakdown, recent jobs |
+| Orders | Total count, status breakdown, recent orders |
 | Customers | Total count, recent customers |
 | Invoices | Total, paid/unpaid, revenue totals |
 | Employees | Count, recent entries |
@@ -145,13 +145,13 @@
 
 | Action | Description | Requires Confirmation |
 |--------|-------------|----------------------|
-| `create_job` | Create new job | No |
-| `update_job_status` | Change job status | **Yes** |
+| `create_job` | Create new order | No |
+| `update_job_status` | Change order status | **Yes** |
 | `create_calendar_event` | Schedule event | No |
 | `add_material` | Add inventory item | No |
 | `update_material_cost` | Change material cost | **Yes** |
 | `create_invoice` | Create invoice | **Yes** |
-| `assign_employee` | Assign to job | **Yes** |
+| `assign_employee` | Assign to order | **Yes** |
 | `log_time_entry` | Log work hours | No |
 | `categorize_expense` | Categorize expense | No |
 

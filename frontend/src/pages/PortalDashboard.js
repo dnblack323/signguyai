@@ -223,7 +223,7 @@ export default function PortalDashboard() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-slate-900">{stats?.active_jobs || 0}</p>
-                  <p className="text-xs text-slate-500">Active Jobs</p>
+                  <p className="text-xs text-slate-500">Active Orders</p>
                 </div>
               </div>
             </CardContent>
@@ -364,7 +364,7 @@ export default function PortalDashboard() {
         )}
 
         <div className="grid lg:grid-cols-2 gap-6">
-          {/* Recent Jobs */}
+          {/* Recent Orders */}
           <Card className="border-slate-200">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">

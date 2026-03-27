@@ -17,7 +17,7 @@ const mobileRibbonConfig = [
     label: 'Home', 
     icon: Home,
     actions: [
-      { icon: Plus, label: 'New Job', route: '/jobs?new=true' },
+      { icon: Plus, label: 'New Order', route: '/jobs?new=true' },
       { icon: FileText, label: 'New Quote', route: '/jobs?new=true&type=quote' },
       { icon: Receipt, label: 'New Invoice', route: '/invoices?new=true' },
       { separator: true },
@@ -26,11 +26,11 @@ const mobileRibbonConfig = [
     ]
   },
   { 
-    id: 'jobs', 
-    label: 'Jobs', 
+    id: 'orders', 
+    label: 'Orders', 
     icon: Briefcase,
     actions: [
-      { icon: Plus, label: 'New Job', route: '/jobs?new=true' },
+      { icon: Plus, label: 'New Order', route: '/jobs?new=true' },
       { icon: List, label: 'All Jobs', route: '/jobs' },
       { icon: CheckCircle, label: 'Change Status', action: 'status' },
       { icon: UserCheck, label: 'Assign Tech', action: 'assign' },

@@ -71,7 +71,7 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 - **Feature Catalog Updated:** Added voice features, floating assistant, password recovery
 
 ### Previous Sessions (Jan-Mar 2026)
-- CRM, Jobs/Quotes, Invoicing, Time Clock, Payroll
+- CRM, Orders/Job Tickets, Invoicing, Time Clock, Payroll
 - 28+ AI Tools, AI Business Assistant
 - Webstores (3 types), Stripe Connect
 - Customer Portal, Employee Portal
@@ -116,8 +116,8 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ### P2 - Medium Priority (from user notes)
 - Reinstate: Materials & Inventory system
-- Reinstate: Bulk actions on Jobs page
-- Reinstate: Search on Jobs/Invoices/Webstores pages
+- Reinstate: Bulk actions on Orders page
+- Reinstate: Search on Orders/Invoices/Webstores pages
 - Reinstate: Database indexes migration
 - Reinstate: Code cleanup (console.log removal, print→logger)
 - Reinstate: Navigation updates (ActionToolbar, Settings links)

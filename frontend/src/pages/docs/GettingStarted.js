@@ -181,7 +181,7 @@ export default function GettingStarted() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             { title: 'Customers', href: '/docs/customers', icon: Users, description: 'Learn customer records, portal invites, and account history.' },
-            { title: 'Orders Orders Quotes & Jobs Job Tickets Job Tickets', href: '/docs/quotes-jobs', icon: Briefcase, description: 'Understand the operational pipeline from order intake to production.' },
+            { title: 'Orders Orders Orders & Job Tickets Job Tickets Job Tickets', href: '/docs/quotes-jobs', icon: Briefcase, description: 'Understand the operational pipeline from order intake to production.' },
             { title: 'Invoicing', href: '/docs/invoicing', icon: FileText, description: 'Review invoices, portal access, and payment flow.' },
           ].map((item) => (
             <Link key={item.href} to={item.href} className="p-5 rounded-xl bg-gray-900/50 border border-gray-800 hover:border-cyan-500/30 transition-all group">

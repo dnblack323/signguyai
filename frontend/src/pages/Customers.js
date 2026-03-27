@@ -940,7 +940,7 @@ export default function Customers() {
                   <div className="p-3 bg-gray-50 rounded-lg text-center">
                     <Briefcase className="h-5 w-5 mx-auto mb-1 text-blue-400" />
                     <p className="text-lg font-bold">{stats.activeJobs.length}</p>
-                    <p className="text-xs text-gray-500">Active Jobs</p>
+                    <p className="text-xs text-gray-500">Active Orders</p>
                   </div>
                   <div className="p-3 bg-gray-50 rounded-lg text-center">
                     <Clock className="h-5 w-5 mx-auto mb-1 text-green-400" />
@@ -1051,7 +1051,7 @@ export default function Customers() {
                     {stats.activeJobs.length > 0 && (
                       <div>
                         <h4 className="font-medium mb-3 flex items-center gap-2">
-                          <Briefcase className="h-4 w-4" /> Active Jobs
+                          <Briefcase className="h-4 w-4" /> Active Orders
                         </h4>
                         <div className="space-y-2">
                           {stats.activeJobs.slice(0, 3).map(job => (

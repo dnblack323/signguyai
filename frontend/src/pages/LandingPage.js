@@ -15,7 +15,7 @@ export default function LandingPage() {
 
   const featureHighlights = [
     { icon: Users, title: 'Customer Management', desc: 'Full CRM built for sign shops' },
-    { icon: Briefcase, title: 'Jobs & Quotes', desc: 'Track every project to completion' },
+    { icon: Briefcase, title: 'Orders & Job Tickets', desc: 'Track every project to completion' },
     { icon: Receipt, title: 'Invoicing', desc: 'Get paid faster with online payments' },
     { icon: Clock, title: 'Time & Payroll', desc: 'Track time and pay your team' },
     { icon: Sparkles, title: 'AI Tools', desc: '15+ tools for text, images, and analysis' },
