@@ -32,7 +32,7 @@ const quickStart = [
   {
     title: 'Add Your First Employee',
     bullets: [
-      'Create at least one employee so clock-in, assigned jobs, and stage tracking can be tested.',
+      'Create at least one employee so clock-in, assigned tickets, and stage tracking can be tested.',
       'Employees use the Employee Portal to see assigned work and act on stages.',
       'You can control sensitive-visibility settings from Company Settings.'
     ]
@@ -54,10 +54,10 @@ const quickStart = [
     ]
   },
   {
-    title: 'Create a Test Job',
+    title: 'Create a Test Order',
     bullets: [
-      'Create a customer, then create a quote or job.',
-      'Upload artwork, send a proof, assign employees, add job to schedule, and test timeline/history.',
+      'Create a customer, then create an Order with Job Tickets.',
+      'Upload artwork, add job tickets (Quick or Detailed entry), enable production workflow, and test the full order lifecycle.',
       'This is the fastest way to validate the operational loop.'
     ]
   },
@@ -75,13 +75,13 @@ const standardSetup = [
   'Import historical invoices so AI can suggest selling benchmarks.',
   'Configure deeper material, labor, overhead, and target profit settings.',
   'Review categories, category workflows, document organization, and questionnaire templates.',
-  'Review AI tool access, notifications, job templates, and customer portal behavior.',
-  'Run a realistic workflow test using jobs, proofs, forms, messages, and invoices.'
+  'Review AI tool access, notifications, workflow templates, and customer portal behavior.',
+  'Run a realistic workflow test using orders, job tickets, proofs, forms, messages, and invoices.'
 ];
 
 const fullOptimization = [
   'Confirm production analytics and labor-cost capture are usable for reporting.',
-  'Use Profit & Margin Analytics to review jobs, categories, and customer profitability.',
+  'Use Profit & Margin Analytics to review orders, categories, and customer profitability.',
   'Review customer experience enhancements, automation plans, security, backup tools, and dashboard customization.',
   'Treat Full Optimization as the stage where the platform becomes a strategic shop operating system, not just a tracker.'
 ];
@@ -181,7 +181,7 @@ export default function GettingStarted() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             { title: 'Customers', href: '/docs/customers', icon: Users, description: 'Learn customer records, portal invites, and account history.' },
-            { title: 'Quotes & Jobs', href: '/docs/quotes-jobs', icon: Briefcase, description: 'Understand the operational pipeline from quote to production.' },
+            { title: 'Orders Orders Quotes & Jobs Job Tickets Job Tickets', href: '/docs/quotes-jobs', icon: Briefcase, description: 'Understand the operational pipeline from order intake to production.' },
             { title: 'Invoicing', href: '/docs/invoicing', icon: FileText, description: 'Review invoices, portal access, and payment flow.' },
           ].map((item) => (
             <Link key={item.href} to={item.href} className="p-5 rounded-xl bg-gray-900/50 border border-gray-800 hover:border-cyan-500/30 transition-all group">

@@ -26,7 +26,7 @@ export default function PlatformPage() {
       path: '/starter',
       features: [
         'Customer Management',
-        'Quotes & Jobs',
+        'Orders Quotes & Jobs Job Tickets',
         'Basic Invoicing',
         'Basic Time Clock',
         '2 Team Members',

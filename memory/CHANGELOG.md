@@ -1,265 +1,65 @@
 # SignGuy AI - Changelog
 
+## March 27, 2026
+- Updated all documentation (Feature Catalog, Build Roadmap, Docs pages) to reflect Order/Job Ticket system
+- Removed all references to old "Jobs" module from docs and navigation
+- Updated DocsQuotesJobs → DocsOrdersTickets (Orders & Job Tickets documentation)
+- Updated DocsEmployees with schedule feature documentation
+- Updated GettingStarted guide with order workflow
+- Updated DocsOverview with 4-layer architecture description
 
-## March 15, 2026 - Company-Based Pricing Foundation
+## March 26, 2026
+- Fixed: Sales and expense recording (created /api/financials/sales and /api/financials/expenses endpoints)
+- Fixed: Schedule dialog not opening (removed conditional wrapper)
+- Fixed: Owner permissions (hasPermission now grants all permissions to owner role)
+- Fixed: Contact Support now emails donnell@signguy-ai.com
+- Navigation: Financials moved to top-level, Reports = shortcuts page
+- Theme: Applied light theme to PricingSetup, CompanySettings, PaymentSettings
+- Workflow Templates: Removed duplicate QC toggle, kept only Required
+- New Order Form: Added ticket buttons near Save, fixed zero placeholder, better error handling
+- Square footage: Default changed to inches (18x24 = 3 sqft, not 432)
+- LivePricingPreview: Added all finishing options, fixed apparel trigger
+- Production Board: Shows ticket name first, task name secondary
 
-### New Feature: Pricing & Cost Settings (`/pricing-calculator/settings`)
-- Rebuilt pricing settings into a tenant-specific pricing control center
-- Added editable material costs, labor rates, overhead settings, category defaults, and selling price benchmarks
-- Explicitly separated **Selling Price Benchmarks** from **Actual Cost Settings** to avoid fake-profit math
-- Added Settings ribbon access: **Settings → Pricing & Costs**
+## March 25, 2026
+- Fixed: Setup fee markup bug — $25 fee was causing $67 increase, now adds exactly $25 (flat, not marked up)
+- Fixed across ALL 6 calculator functions
+- Added: Generate Work Order on order detail
+- Added: Apparel quantity discounts (5-25% based on qty tiers)
+- Improved: Stripe Connect error messaging
 
-### Pricing Engine Upgrade
-- `GET/PUT /api/pricing/defaults` now reads/writes tenant pricing configuration consistently
-- All 8 calculator categories now use company settings for cost math
-- Calculator responses now include: `material_cost`, `labor_cost`, `overhead_cost`, `total_cost`, `selling_price`, `profit_amount`, `profit_margin_percent`
+## March 24, 2026
+- Built: File upload system for orders (upload, list, delete)
+- Built: Live pricing preview on new order form (calls pricing API in real-time)
+- Built: Employee schedule system (weekly grid, shift dialog, save to DB)
+- Built: Materials & Pricing admin page (global rates, material CRUD)
+- Added: Files tab on Order Detail page
+- Added: Order action buttons (Generate Quote/Invoice/Work Order, Email, Status, Portal)
+- Created: 30 database indexes for production performance
 
-### Estimate Storage Upgrade
-- Job/quote estimate items can now preserve `pricing_category`, `pricing_data`, and `cost_snapshot`
-- Invoice line items created from jobs retain pricing metadata for later analytics/reporting
+## March 23, 2026
+- Built: Full Banner category schema (24 fields, 7 subtypes)
+- Built: Full Apparel category schema (27 fields, 8 subtypes, size grid, print locations with per-location details)
+- Built: Rigid Signs, Cut Vinyl, Digital Print, Vehicle Wrap schemas (22-30 fields each)
+- All material options now from centralized catalog (not hardcoded)
+- Calculator wiring: all dynamic fields map to pricing engine
+- Quick Entry / Detailed Entry modes for job tickets
+- Legacy Jobs removed from navigation, redirects to Orders
+- Dashboard quick actions updated (New Job → New Order)
+- Dark shell / light content theme applied globally (20+ pages)
+- Container widened to 1600px
 
-### Testing
-- Manual smoke test passed on preview for login + `/pricing-calculator/settings`
-- Backend/API verification passed for defaults + calculator math + job snapshot persistence
-- Test report: `/app/test_reports/iteration_54.json`
+## March 22, 2026
+- Built: Complete 4-layer Order system backend (Orders, Job Tickets, Production Tasks, Workflow Templates)
+- Built: Frontend pages (OrdersPage, OrderDetail, NewOrderForm, JobTicketDetail, ProductionBoard, WorkflowTemplateManager)
+- 6 default workflow templates, activity logging, status roll-up
+- Terms of Service and Privacy Policy pages
+- Color scheme: amber/gold → violet/purple across all Founders-branded pages
+- Founder grace period (14 days read-only after subscription lapse)
+- Multiple production bug fixes (login, promo codes, onboarding, mobile nav)
 
-## March 15, 2026 - Pricing Expansion to Remaining Calculators
-
-### Expanded Calculator Coverage
-- Added company-based settings support to **Cut Vinyl**, **Apparel**, **Services**, and **Custom / Miscellaneous** calculators
-- Also removed remaining hardcoded pricing paths from **Promotional** calculations so all active calculator categories use tenant settings
-- Added new material presets: `apparel_blank`, `apparel_decoration`, `misc_material`
-- Expanded category defaults + selling benchmarks to support all calculator categories
-
-### Consistent Cost Snapshot Storage
-- Calculator-generated snapshots now include `material_cost`, `labor_cost`, `overhead_cost`, `total_cost`, `selling_price`, `profit`, `profit_margin`, plus compatibility fields
-- Job items persist these snapshots consistently across categories for future analytics
-
-### Testing
-- Expanded audit completed via `/app/test_reports/iteration_55.json`
-- Result: **100% backend + 100% frontend pass** for all 8 calculator categories
-
-## March 15, 2026 - Historical Invoice Import + AI Pricing Analysis
-
-### New Feature: Pricing Setup (`/settings/pricing-setup`)
-- Added a tenant-specific workflow for historical invoice uploads inside Company Settings / Pricing Setup
-- Supports **PDF, CSV, XLSX, XLS** invoice files
-- Added import history, field mapping review, category override review, AI analysis, and benchmark review states
-
-### AI Benchmark Pipeline
-- GPT-5.2 now analyzes normalized invoice data to generate selling benchmark suggestions
-- Suggestions include confidence levels: **High / Medium / Low**
-- Review workflow supports **Accept / Edit / Ignore** before any value is saved
-- Accepted suggestions update **selling_price_benchmarks only** and do not change company cost settings
-
-### Testing
-- Full feature validation completed via `/app/test_reports/iteration_56.json`
-- Result: **100% backend + 100% frontend pass** for historical pricing setup workflow
-
-## March 15, 2026 - Profit & Margin Analytics Dashboard
-
-### New Feature: Profit & Margin Analytics (`/reports/profit-margin`)
-- Added tenant-specific reporting dashboard powered by stored `cost_snapshot` data + selling benchmarks
-- Includes top metrics, profit by category, job profitability table, customer profitability report, and underpriced job detection
-- Added time range filters, category filters, CSV/XLSX/PDF export options, and widget customization
-- Added **Simple View** toggle so reporting stays usable without over-complication
-
-### Testing
-- Full feature validation completed via `/app/test_reports/iteration_57.json`
-- Result: **100% backend + 100% frontend pass** for profit analytics
-- Pre-existing note from testing: legacy `/financials` frontend exists but its backend routes are still missing and were not introduced by this phase
-
-## March 15, 2026 - Production Workflow + Job History Integration
-
-### Workflow Settings Upgrade
-- Added tenant-specific workflow settings endpoint: `GET/PUT /api/production-timeline/settings`
-- Added **Workflow Mode** selector in Settings → Production (`Simple`, `Detailed`, `Custom`)
-- Custom templates can now be assigned to a category as the active workflow
-
-### Job History Upgrade
-- Added unified job history endpoint: `/api/jobs/{job_id}/history`
-- Job Details now includes a **View Timeline** button that opens a scrollable, filterable history panel
-- History combines job activities, artwork/proof events, production stage events, linked documents, and invoice/payment events
-
-### Testing
-- Full feature validation completed via `/app/test_reports/iteration_58.json`
-- Result: **100% backend + 100% frontend pass** for the production workflow + timeline scope
-
-## March 15, 2026 - Employee Portal + Production Tracking Integration
-
-### Employee Portal Upgrade
-- Added assigned jobs list and work summary metrics to the employee dashboard
-- Added employee job detail page with production stage controls (`Start`, `Pause`, `Complete`)
-- Employee stage actions update production timeline status and duration data
-
-### Admin Assignment Upgrade
-- Added Job Details assignment UI for assigning employees to whole jobs
-- Added stage-level employee assignment inside the production timeline editor
-- Backend now returns `assigned_employee_details` in job detail payloads
-
-### Testing
-- Full feature validation completed via `/app/test_reports/iteration_59.json`
-- Result: **100% backend + 100% frontend pass** for the employee portal + production tracking scope
-
-## March 15, 2026 - AI Credit Usage System Audit + Enforcement
-
-### Credit Engine Upgrade
-- Added `/api/credits/preflight`, `/api/credits/preferences`, and `/api/credits/admin-summary`
-- AI actions now preview available balance first and deduct **only after success**
-- Monthly credits are consumed before purchased credits; failed AI actions do not deduct
-- Added unified AI usage ledger with tool/action, user, tenant, source balance, and success/failure status
-
-### Popup + Balance UX
-- Added shared AI credit confirmation popup with action name, credit cost, monthly balance, purchased balance, total balance, and hide preference
-- Popup reappears for warning cases: cost changes, low balance, purchased-credit usage, and high-cost actions
-- Added admin AI usage summary inside the credit balance modal
-
-### Coverage
-- User-facing popup coverage verified on: AI Tools Suite, AI Business Assistant, Floating Assistant, AI Email Composer, Product Description Generator, Pricing Advisor, and Historical Invoice Analysis
-- Backend credit enforcement verified for generic AI generation endpoints and assistant/email/product-description flows
-
-### Testing
-- Full feature validation completed via `/app/test_reports/iteration_62.json`
-- Result: **100% backend + 100% frontend pass** for AI credit system scope
-
-## March 15, 2026 - Tiered Onboarding + Portal Invite Flow
-
-### Onboarding Hub
-- Added new onboarding page at `/onboarding`
-- Added three onboarding tiers: **Quick Start**, **Standard Setup**, **Full Optimization**
-- Added checklist + guided walkthrough format with skip-friendly **Finish Later** behavior
-- Added inline quick-start actions for workflow mode, first employee, basic pricing, and customer portal enablement
-
-### Customer Portal Invite Flow
-- Added `POST /api/customers/{customer_id}/invite-portal`
-- Customer detail modal now shows portal status and **Invite to Portal** button
-- Portal invite generates a temporary 6-digit PIN and enables portal access
-- Portal login page now explains that customers can use the temporary PIN from the invitation email
-
-### Testing
-- Full feature validation completed via `/app/test_reports/iteration_63.json`
-- Result: **100% backend + 100% frontend pass** for onboarding + portal invite scope
-
-### Follow-up Improvement: Resume + Analytics
-- Added onboarding session persistence via `/api/onboarding/session`
-- Onboarding hub now remembers current tier/step per tenant and resumes there automatically
-- Added analytics cards showing overall completed steps, finish later count, last activity, and current resume step
-- Dashboard onboarding card now acts as a clearer **Resume Setup** launcher
-- Follow-up validation completed via `/app/test_reports/iteration_64.json` with **100% backend + 100% frontend pass** for resume + analytics improvements
-
-## March 16, 2026 - Documentation Refresh + Feature Catalog Update
-
-### Documentation Refresh
-- Refreshed all 14 in-app docs pages with more complete, training-style content
-- Updated docs to reflect the current onboarding model, portal invite flow, AI credit system, production workflow history, employee portal, pricing setup, and profit analytics
-
-### Feature Catalog Update
-- Updated `/app/FEATURE_CATALOG.md` to include onboarding hub, portal invite flow, historical invoice analysis, AI credit system improvements, and newer portal/production systems
-
-### Testing
-- Full docs verification completed via `/app/test_reports/iteration_65.json`
-- Result: **100% frontend pass** for all docs pages + feature catalog verification
-
-## March 16, 2026 - Bug Fix: Job Line Items Disappearing on Job Ticket
-
-### Fix
-- Jobs created with embedded `line_items` now sync automatically into the `job_items` collection
-- Job Details and direct job-items endpoints now recover legacy embedded line items if `job_items` were never created
-- Invoice creation from job now uses the synced items so invoice line items match the job ticket
-
-### Coverage
-- Fixed and verified for:
-  - Jobs page creation flow
-  - Save & Add Job flow from Customers
-  - Quote approval / conversion path
-  - Pricing calculator-added items
-
-### Testing
-- Full regression verification completed via `/app/test_reports/iteration_66.json`
-- Result: **100% backend + 100% frontend pass** for line item sync behavior
-
-## March 16, 2026 - Quality of Life Batch: Jobs, Customers, Kanban, Voice Assistant
-
-### Customer + Job Creation UX
-- Added **New Job** button inside the customer detail popup
-- Added inline **New Customer** creation inside both New Job and New Quote dialogs
-- Customer creation now allows **Name OR Company** (both blank is blocked)
-- Customer phone inputs now auto-format to `(###) ###-####`
-
-### Kanban Fix
-- Fixed Productivity Kanban board to use current job status values (`quote`, `approved`, `in_progress`, `completed`, `invoiced`)
-- Restored drag-and-drop stage movement behavior
-
-### AI Business Assistant Voice
-- Added voice input control (microphone capture → Whisper transcription)
-- Added voice output control (OpenAI TTS playback for assistant replies)
-- Added backend voice endpoints for transcription and speech generation
-
-### Testing
-- Full verification completed via `/app/test_reports/iteration_67.json`
-- Result: **100% backend + 100% frontend pass** for this quality-of-life feature batch
-
-
-## March 14, 2026 - Admin Payroll Enhancement + Document Library Update
-
-### Major Enhancement: Admin Payroll Page (`/payroll`)
-- Complete rewrite of payroll page with 4-tab layout
-- **Overview Tab**: Pay period summary table with per-employee gross pay, overtime, advances, payments, net owed
-- **Time Sheets Tab**: Consolidated view combining job timer entries + manual hours with employee/date filters
-- **Manual Hours Tab**: Add, edit, delete manual hours entries for employees
-  - Supports per-job allocation (optional job assignment)
-  - Task type categorization (general, design, production, installation, admin)
-  - Automatic gross pay calculation (hours × hourly rate)
-- **Transactions Tab**: Existing earnings/advances/payments ledger
-- **Overtime Calculation**: Automatic 1.5x overtime for hours over 40/week (or 80/biweekly)
-- **Pay Period Selector**: Weekly or Bi-Weekly period types
-- **Summary Cards**: Total Hours, Regular Hours, Overtime Hours, Gross Pay, Net Owed
-- New backend endpoints: POST/PUT/DELETE `/api/payroll/hours`, GET `/api/payroll/timesheet`, GET `/api/payroll/pay-period`
-- New MongoDB collection: `payroll_hours` for manual hour entries
-
-### Enhancement: Document Library Send Methods
-- Updated send dialog with 3 methods: **Email PDF** (no response needed), **Portal** (view only), **As Form** (interactive questionnaire)
-- Each method has clear description explaining what the customer receives
-- "As Form" method redirects to questionnaire creator for interactive customer forms
-- Clear labeling: "No response needed" for PDF/Portal, "Customer fills it out" for Form
-
-### Testing
-- All backend APIs: 100% pass rate
-- All frontend UI elements: 100% pass rate
-- Test file: `/app/backend/tests/test_payroll_enhancement.py`
-
-## March 14, 2026 - Community Hub + Backup System + Pricing Transparency
-
-### New Feature: Community Hub (`/community`)
-- Searchable message board for bug reports, feature requests, questions, and feedback
-- Category system: Bug Report, Feature Request, Question, Feedback
-- Upvote system for prioritizing posts
-- Owner can reply with "Official" badge, pin posts, change status (Open/In Progress/Resolved/Closed)
-- Owner replies auto-mark posts as "Answered"
-- Direct "Contact Support" email link to app owner
-- Search across titles, descriptions, and replies
-- Filter by category and status
-- Added to main navigation bar
-- Backend: `/api/community/posts`, `/api/community/stats` + CRUD endpoints
-- Frontend: `CommunityHub.js` with list and detail views
-
-### New Feature: Tenant Data Backup & Restore (`/settings/backup`)
-- Owner-only backup/restore system
-- Download all tenant data as JSON (images excluded, ~31KB vs 20MB)
-- Restore with preview summary and confirmation ("This will replace all existing data")
-- Weekly backup reminder banner (dismissable per session)
-- Link from Company Settings > Data Management
-- Backend: `/api/backup/export`, `/api/backup/status`, `/api/backup/preview-restore`, `/api/backup/restore`
-
-### Enhancement: Webstore Product Image Upload
-- Added image upload UI (up to 3 images per product) to Create Product form
-- Product list shows image thumbnails
-
-### Enhancement: Landing Page Pricing Transparency (8 Sections)
-- Founder Launch Offer banner, How AI Credits Work block, Billing & Payments section
-- AI Usage Transparency notice with example UI, Fair Usage Protection notice
-- 4 new FAQ questions on both FoundersEditionPricing.js and LandingPage.js
-
-### Bug Fix: Login Network Error (P0)
-- Tenant response optimization: 2.95MB → 497 bytes (base64 logo separated to `/api/tenant/logo`)
-- Production routing issue identified: `quote-to-invoice-3.emergent.host` → "Deployment not found" (Emergent support contacted)
+## March 20, 2026
+- Stage 1 Critical Fixes: AI rate limiter, promo code system, invoice line items
+- Deployment fix: requirements.txt cleaned from 137 → 24 packages
+- SendGrid email configured
+- Production setup endpoint and page (/setup)

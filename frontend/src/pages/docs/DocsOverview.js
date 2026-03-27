@@ -20,7 +20,7 @@ const primaryLinks = [
     color: 'bg-blue-500/10 text-blue-400 border-blue-500/20'
   },
   {
-    title: 'Jobs, Quotes & Production',
+    title: 'Orders, Job Tickets & Production',
     description: 'Unified quote/job pipeline, job detail tabs, timeline/history, assignments, and production workflow.',
     href: '/docs/quotes-jobs',
     icon: Briefcase,
@@ -50,8 +50,8 @@ const primaryLinks = [
 ];
 
 const systemMap = [
-  'Customers feed Quotes, Jobs, Invoices, Messages, Forms, and Customer Portal access.',
-  'Jobs act as the operational hub: line items, timeline, assignments, portal activity, and invoicing all connect there.',
+  'Customers feed Orders, Job Tickets, Invoices, Messages, Forms, and Customer Portal access.',
+  'Orders are the master container. Job Tickets inside each order hold production specs, dynamic category fields, and pricing. Production tasks auto-generate from workflow templates.',
   'Pricing settings and historical invoice analysis power calculators, benchmark reporting, and quote quality.',
   'Production workflow and employee stage tracking feed time data, payroll, and future analytics.',
   'AI tools are credit-gated and logged, with monthly credits used before purchased credits.',

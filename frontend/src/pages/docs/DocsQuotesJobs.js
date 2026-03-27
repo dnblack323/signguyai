@@ -1,100 +1,109 @@
+import { ArrowLeft, Package, FileText, Wrench, Calculator, Layers } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Activity, ArrowRight, Briefcase, Clock, GitBranch, MessageSquare, Receipt, Users } from 'lucide-react';
 
-const pipeline = ['Quote', 'Approved', 'In Progress', 'Completed', 'Invoiced', 'Archived'];
-
-export default function DocsQuotesJobs() {
+export default function DocsOrdersTickets() {
   return (
-    <div className="space-y-8">
-      <div>
-        <div className="flex items-center gap-2 text-purple-400 text-sm font-medium mb-2">
-          <Briefcase className="h-4 w-4" /> Core Features
-        </div>
-        <h1 className="text-3xl font-bold text-white mb-4">Quotes, Jobs & Production Workflow</h1>
-        <p className="text-lg text-gray-400">
-          SignGuy AI uses a unified jobs model. Quotes and jobs live in the same operational system, which means approval, production, portal activity, assignments, and invoicing all stay tied to one record.
-        </p>
-      </div>
+    <div className="max-w-4xl mx-auto">
+      <Link to="/docs" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 mb-6">
+        <ArrowLeft className="w-4 h-4" /> Back to Docs
+      </Link>
 
-      <div className="p-6 rounded-xl bg-gray-900/50 border border-gray-800">
-        <h2 className="text-lg font-semibold text-white mb-4">Unified Job Pipeline</h2>
-        <div className="flex flex-wrap items-center gap-3">
-          {pipeline.map((stage, index) => (
-            <div key={stage} className="flex items-center gap-3">
-              <div className="px-3 py-2 rounded-lg bg-gray-800/70 text-gray-300 text-sm">{stage}</div>
-              {index < pipeline.length - 1 && <ArrowRight className="h-4 w-4 text-gray-600" />}
-            </div>
-          ))}
-        </div>
-      </div>
+      <h1 className="text-3xl font-bold text-gray-900 mb-2">Orders & Job Tickets</h1>
+      <p className="text-gray-500 mb-8">The 4-layer production workflow system</p>
 
-      <div>
-        <h2 className="text-xl font-semibold text-white mb-4">How Work Moves Through the System</h2>
-        <div className="space-y-4">
-          {[
-            'Create a customer first so the work has a real account record attached to it.',
-            'Create a quote if pricing still needs approval, or create a job directly if the work is already sold.',
-            'Add line items manually or use the pricing calculator to produce company-based costing and selling price logic.',
-            'Approve the quote/job to move it into production-ready status.',
-            'Assign employees, attach proofs, send forms, and track history from the same job record.',
-            'Create an invoice from the job when billing is ready.'
-          ].map((item, index) => (
-            <div key={index} className="flex items-start gap-3 text-gray-300">
-              <div className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 text-sm flex items-center justify-center flex-shrink-0">{index + 1}</div>
-              <p>{item}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="p-5 rounded-xl bg-gray-900/50 border border-gray-800">
-          <div className="flex items-center gap-2 mb-3"><GitBranch className="h-5 w-5 text-purple-400" /><h3 className="font-semibold text-white">Timeline & History</h3></div>
-          <p className="text-gray-300 text-sm mb-3">Each job includes a visible history/timeline panel so the team can quickly understand what happened, who did it, and when.</p>
-          <ul className="space-y-2 text-sm text-gray-400">
-            <li>• job creation and updates</li>
-            <li>• proof upload and customer approval/revision history</li>
-            <li>• production stage start/complete entries</li>
-            <li>• document uploads</li>
-            <li>• invoice/payment events when available</li>
-          </ul>
-        </div>
-        <div className="p-5 rounded-xl bg-gray-900/50 border border-gray-800">
-          <div className="flex items-center gap-2 mb-3"><Users className="h-5 w-5 text-purple-400" /><h3 className="font-semibold text-white">Assignments & Production</h3></div>
-          <p className="text-gray-300 text-sm mb-3">Jobs support both whole-job assignment and stage-level assignment.</p>
-          <ul className="space-y-2 text-sm text-gray-400">
-            <li>• assign employees from Job Details</li>
-            <li>• assign specific production stages in the timeline editor</li>
-            <li>• employees can start, pause, and complete stages in their portal</li>
-            <li>• workflows can be Simple, Detailed, or Custom</li>
-          </ul>
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-3 gap-4">
-        {[
-          { icon: Clock, title: 'Job Time Tracking', desc: 'Track labor time for costing, payroll support, and future analytics.' },
-          { icon: MessageSquare, title: 'Customer Portal Context', desc: 'Job Details now exposes customer-facing proofs, forms, messages, documents, and invoice visibility.' },
-          { icon: Receipt, title: 'Invoice Linkage', desc: 'Jobs can create invoices and show financial status directly in the record.' },
-        ].map((item) => (
-          <div key={item.title} className="p-4 rounded-lg bg-gray-800/30">
-            <item.icon className="h-5 w-5 text-purple-400 mb-2" />
-            <h3 className="font-medium text-white">{item.title}</h3>
-            <p className="text-sm text-gray-400 mt-1">{item.desc}</p>
+      <div className="space-y-8">
+        <section>
+          <h2 className="text-xl font-semibold text-gray-900 mb-3 flex items-center gap-2"><Package className="w-5 h-5 text-violet-600" /> How It Works</h2>
+          <p className="text-gray-700 mb-3">SignGuy AI uses a 4-layer system that mirrors how a real sign shop operates:</p>
+          <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+            <p className="font-medium text-gray-900">Layer 1: Order — The master container for a customer's request</p>
+            <p className="ml-4 text-gray-600">Layer 2: Job Tickets — Individual production items within an order</p>
+            <p className="ml-8 text-gray-600">Layer 3: Quotes / Invoices — Financial documents generated from tickets</p>
+            <p className="ml-8 text-gray-600">Layer 4: Production Tasks — Department-level workflow stages</p>
           </div>
-        ))}
-      </div>
+        </section>
 
-      <div className="p-6 rounded-xl bg-gray-900/50 border border-gray-800">
-        <div className="flex items-center gap-2 mb-4"><Activity className="h-5 w-5 text-purple-400" /><h2 className="text-lg font-semibold text-white">Best Practice</h2></div>
-        <p className="text-gray-300">
-          Treat Job Details as the operational center of the system. If something affects a specific project — employee assignment, proof approval, documents, forms, status changes, timeline, or invoice state — it should be reviewable there.
-        </p>
-      </div>
+        <section>
+          <h2 className="text-xl font-semibold text-gray-900 mb-3 flex items-center gap-2"><Layers className="w-5 h-5 text-violet-600" /> Creating an Order</h2>
+          <ol className="list-decimal pl-6 space-y-2 text-gray-700">
+            <li>Go to <strong>Orders → + New Order</strong></li>
+            <li>Search or enter customer information</li>
+            <li>Upload any artwork, drawings, or reference files</li>
+            <li>Add job tickets using <strong>Quick Entry</strong> (fast, simple) or <strong>Detailed Entry</strong> (full specs + calculator)</li>
+            <li>Click <strong>Save Order</strong></li>
+          </ol>
+        </section>
 
-      <div className="flex items-center justify-between pt-8 border-t border-gray-800">
-        <Link to="/docs/customers" className="text-gray-400 hover:text-white">← Customers</Link>
-        <Link to="/docs/invoicing" className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300">Invoicing <ArrowRight className="h-4 w-4" /></Link>
+        <section>
+          <h2 className="text-xl font-semibold text-gray-900 mb-3">Job Ticket Entry Modes</h2>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="font-semibold text-gray-900 mb-2">Quick Entry</h3>
+              <p className="text-sm text-gray-600">For fast intake. Item name, category, quantity, price, and description. No calculator needed. Can be expanded to Detailed Entry later.</p>
+            </div>
+            <div className="bg-violet-50 rounded-lg p-4 border border-violet-200">
+              <h3 className="font-semibold text-violet-900 mb-2">Detailed Entry</h3>
+              <p className="text-sm text-violet-700">Full category-specific form with dynamic fields, settings-driven material options, and live pricing calculator. Shows real-time price estimate.</p>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold text-gray-900 mb-3 flex items-center gap-2"><Calculator className="w-5 h-5 text-violet-600" /> Categories</h2>
+          <p className="text-gray-700 mb-3">Each category loads its own form fields:</p>
+          <div className="grid md:grid-cols-2 gap-3">
+            {[
+              { name: 'Banners', desc: 'Width, height, material, hems, grommets, pole pockets, wind slits' },
+              { name: 'Rigid Signs', desc: 'Substrate, thickness, stakes, mounting hardware, lamination, drill holes' },
+              { name: 'Cut Vinyl', desc: 'Vinyl type, colors, layered/single, weed, mask, inside/outside mount' },
+              { name: 'Digital Print', desc: 'Media type, roll/sheet, print quality, lamination, mounting, contour cut' },
+              { name: 'Vehicle Wrap', desc: 'Vehicle type, coverage level, areas covered, install difficulty, paneling' },
+              { name: 'Apparel', desc: 'Garment type, brand, size breakdown (XS-5XL), decoration method, print locations with per-location details' },
+            ].map(c => (
+              <div key={c.name} className="bg-gray-50 rounded-lg p-3">
+                <p className="font-medium text-gray-900">{c.name}</p>
+                <p className="text-xs text-gray-500 mt-1">{c.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold text-gray-900 mb-3 flex items-center gap-2"><FileText className="w-5 h-5 text-violet-600" /> Order Actions</h2>
+          <ul className="list-disc pl-6 space-y-1 text-gray-700">
+            <li><strong>Generate Quote</strong> — creates a financial quote from job tickets</li>
+            <li><strong>Generate Invoice</strong> — creates an invoice from job tickets</li>
+            <li><strong>Generate Work Order</strong> — creates a production document with full specs</li>
+            <li><strong>Email Quote/Invoice</strong> — sends to customer via email</li>
+            <li><strong>Start Production</strong> — activates workflow for all enabled tickets</li>
+            <li><strong>Status Change</strong> — quick status update (Approved, In Production, Ready, etc.)</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold text-gray-900 mb-3 flex items-center gap-2"><Wrench className="w-5 h-5 text-violet-600" /> Production Workflow</h2>
+          <p className="text-gray-700 mb-3">When a job ticket has workflow enabled, the system auto-generates production tasks based on the category template:</p>
+          <ul className="list-disc pl-6 space-y-1 text-gray-700">
+            <li>6 default templates (Rigid Signs 11 stages, Banners 12, Cut Vinyl 8, Vehicle Wrap 14, Apparel 11, Promo 5)</li>
+            <li>Each task has: department, status, assigned employee, timestamps</li>
+            <li>Task controls: Start, Complete, Pause, On Hold, Rework</li>
+            <li>Progress automatically rolls up: tasks → ticket → order</li>
+            <li>Production Board shows all tasks grouped by department</li>
+            <li>Admin can customize templates in Settings → Workflow Templates</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold text-gray-900 mb-3">Pricing</h2>
+          <p className="text-gray-700 mb-3">All pricing comes from your settings (Settings → Materials & Pricing):</p>
+          <ul className="list-disc pl-6 space-y-1 text-gray-700">
+            <li>Material costs, labor rates, markup, overhead — all configurable</li>
+            <li>Live estimate updates as you fill in the form</li>
+            <li>Calculator mode (from settings) or Manual mode (override)</li>
+            <li>Pricing snapshots preserved on each ticket</li>
+            <li>Apparel quantity discounts: 12+ (5%), 24+ (10%), 48+ (15%), 72+ (20%), 144+ (25%)</li>
+          </ul>
+        </section>
       </div>
     </div>
   );
