@@ -1,7 +1,7 @@
 # SignGuy AI - Product Requirements Document
 
-> **Last Updated:** March 22, 2026
-> **Version:** 5.0
+> **Last Updated:** March 27, 2026
+> **Version:** 6.0
 
 ---
 
@@ -19,7 +19,27 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
-### Session: March 22, 2026 (Phase 1: Order System)
+### Session: March 27, 2026 (Bug Fixes & UI Improvements)
+- **Task List Display Bug (FIXED):**
+  - Updated AppContext.js to use local state updates instead of refetching
+  - `createTask`, `updateTask`, `deleteTask` now immediately update local state
+  - Tasks appear instantly in the UI after creation
+- **Job Ticket Customer Data Bug (FIXED):**
+  - Created new `AddTicketToOrder.js` page for adding tickets to existing orders
+  - Updated App.js routing to use dedicated component instead of reusing NewOrderForm
+  - Order summary card shows customer info while adding tickets
+- **Orders List Icons (DONE):**
+  - Added View icon (blue eye) for quick view
+  - Added dropdown menu with View Details, Add Ticket, Delete Order options
+- **Users List Icons (DONE):**
+  - Added View icon (blue eye) for quick user info
+  - Consolidated Role/Reset/Enable actions into dropdown menu
+- **Documentation Theme Fixes (DONE):**
+  - DocsEmployees.js - Fixed text colors for dark theme (text-white, text-gray-300, text-gray-400)
+  - DocsQuotesJobs.js - Fixed text colors for dark theme with cyan accents
+  - Updated bg-gray-50 to bg-gray-800/50 for proper dark theme cards
+
+### Session: March 22-27, 2026 (Previous Sessions)
 - **NEW 4-Layer Workflow System (DONE - Backend):**
   - Layer 1: Orders (master record with auto-numbering ORD-XXXX)
   - Layer 2: Job Tickets (production detail per item, category-based)

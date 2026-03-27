@@ -281,19 +281,22 @@ export const AppProvider = ({ children }) => {
 
   const createTask = async (data) => {
     const res = await api.post(`/tasks`, data);
-    await fetchTasks();
+    // Immediately update local state with the new task to ensure UI reflects the change
+    setTasks(prev => [res.data, ...prev]);
     return res.data;
   };
 
   const updateTask = async (id, data) => {
     const res = await api.put(`/tasks/${id}`, data);
-    await fetchTasks();
+    // Immediately update local state to ensure UI reflects the change
+    setTasks(prev => prev.map(t => t.id === id ? res.data : t));
     return res.data;
   };
 
   const deleteTask = async (id) => {
     await api.delete(`/tasks/${id}`);
-    await fetchTasks();
+    // Immediately update local state to ensure UI reflects the change
+    setTasks(prev => prev.filter(t => t.id !== id));
   };
 
   // Dashboard

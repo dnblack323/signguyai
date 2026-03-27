@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Package, Clock, ChevronRight, Filter, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Package, Clock, ChevronRight, Filter, AlertTriangle, Eye, Edit3, Trash2, MoreHorizontal } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { Card, CardContent } from '../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -64,6 +70,18 @@ export default function OrdersPage() {
   useEffect(() => { fetchOrders(); }, [search, statusFilter]);
 
   const handleCreateOrder = () => navigate('/orders/new');
+
+  const handleDeleteOrder = async (e, orderId, orderNumber) => {
+    e.stopPropagation();
+    if (!window.confirm(`Delete order ${orderNumber}? This will also delete all related tickets and tasks.`)) return;
+    try {
+      await axios.delete(`${API}/orders/${orderId}`, { headers: { Authorization: `Bearer ${token()}` } });
+      toast.success('Order deleted');
+      fetchOrders();
+    } catch {
+      toast.error('Failed to delete order');
+    }
+  };
 
   return (
     <div className="space-y-6" data-testid="orders-page">
@@ -174,7 +192,41 @@ export default function OrdersPage() {
                       <p className="text-xs text-gray-500">Due</p>
                       <p className="text-sm text-gray-900">{order.requested_due_date ? new Date(order.requested_due_date).toLocaleDateString() : '-'}</p>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                    
+                    {/* Action Icons */}
+                    <div className="flex items-center gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                        onClick={(e) => { e.stopPropagation(); navigate(`/orders/${order.id}`); }}
+                        title="View Order"
+                        data-testid={`view-order-${order.order_number}`}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/orders/${order.id}`); }}>
+                            <Eye className="w-4 h-4 mr-2" /> View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/orders/${order.id}/add-ticket`); }}>
+                            <Plus className="w-4 h-4 mr-2" /> Add Ticket
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="text-red-600"
+                            onClick={(e) => handleDeleteOrder(e, order.id, order.order_number)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" /> Delete Order
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                 </div>
               </CardContent>

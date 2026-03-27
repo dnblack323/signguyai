@@ -38,6 +38,7 @@ import OnboardingHub from "./pages/OnboardingHub";
 import OrdersPage from "./pages/OrdersPage";
 import OrderDetail from "./pages/OrderDetail";
 import NewOrderForm from "./pages/NewOrderForm";
+import AddTicketToOrder from "./pages/AddTicketToOrder";
 import JobTicketDetail from "./pages/JobTicketDetail";
 import ProductionBoard from "./pages/ProductionBoard";
 import WorkflowTemplateManager from "./pages/WorkflowTemplateManager";
@@ -164,7 +165,7 @@ function ProtectedRoutes() {
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/orders/new" element={<NewOrderForm />} />
           <Route path="/orders/:id" element={<OrderDetail />} />
-          <Route path="/orders/:id/add-ticket" element={<NewOrderForm />} />
+          <Route path="/orders/:id/add-ticket" element={<AddTicketToOrder />} />
           <Route path="/job-tickets/:ticketId" element={<JobTicketDetail />} />
           <Route path="/production-board" element={<ProductionBoard />} />
           <Route path="/workflow-templates" element={<WorkflowTemplateManager />} />

@@ -15,8 +15,15 @@ import {
 import { toast } from 'sonner';
 import { 
   Users, Key, UserCheck, UserX, Search, Shield, Loader2, 
-  Crown, UserCog, User as UserIcon, Plus, AlertTriangle 
+  Crown, UserCog, User as UserIcon, Plus, AlertTriangle, Eye, Edit3, Trash2, MoreHorizontal
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '../components/ui/dropdown-menu';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -354,68 +361,82 @@ export default function UserManagement() {
                   </div>
                   
                   <div className="flex items-center gap-2 flex-wrap">
+                    {/* View Icon - Always visible */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                      onClick={() => {
+                        setSelectedUser(user);
+                        // Show user details - could open a view dialog
+                        toast.info(`${user.full_name} - ${user.email} - Role: ${user.role}`);
+                      }}
+                      title="View User"
+                      data-testid={`view-user-btn-${user.id}`}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    
                     {user.id !== currentUser?.id && (
                       <>
-                        {/* Role Change - Owner only */}
-                        {canManageRoles && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setSelectedRole(user.role);
-                              setRoleDialog(true);
-                            }}
-                            style={{ borderColor: '#D7DCE2', color: '#1A1A1A' }}
-                            data-testid={`change-role-btn-${user.id}`}
-                          >
-                            <Shield className="h-4 w-4 mr-1" />
-                            Role
-                          </Button>
-                        )}
-                        
-                        {/* Password Reset */}
-                        {canEditUsers && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setResetDialog(true);
-                            }}
-                            style={{ borderColor: '#D7DCE2', color: '#1A1A1A' }}
-                            data-testid={`reset-password-btn-${user.id}`}
-                          >
-                            <Key className="h-4 w-4 mr-1" />
-                            Reset
-                          </Button>
-                        )}
-                        
-                        {/* Enable/Disable */}
-                        {canEditUsers && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleToggleStatus(user, !user.is_active)}
-                            style={user.is_active 
-                              ? { backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#dc2626', borderColor: 'rgba(239, 68, 68, 0.3)' }
-                              : { backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#16a34a', borderColor: 'rgba(34, 197, 94, 0.3)' }
-                            }
-                            data-testid={`toggle-status-btn-${user.id}`}
-                          >
-                            {user.is_active ? (
-                              <>
-                                <UserX className="h-4 w-4 mr-1" />
-                                Disable
-                              </>
-                            ) : (
-                              <>
-                                <UserCheck className="h-4 w-4 mr-1" />
-                                Enable
-                              </>
+                        {/* Actions Dropdown */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {/* Role Change - Owner only */}
+                            {canManageRoles && (
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setSelectedRole(user.role);
+                                  setRoleDialog(true);
+                                }}
+                              >
+                                <Shield className="h-4 w-4 mr-2" />
+                                Change Role
+                              </DropdownMenuItem>
                             )}
-                          </Button>
-                        )}
+                            
+                            {/* Password Reset */}
+                            {canEditUsers && (
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setResetDialog(true);
+                                }}
+                              >
+                                <Key className="h-4 w-4 mr-2" />
+                                Reset Password
+                              </DropdownMenuItem>
+                            )}
+                            
+                            <DropdownMenuSeparator />
+                            
+                            {/* Enable/Disable */}
+                            {canEditUsers && (
+                              <DropdownMenuItem
+                                onClick={() => handleToggleStatus(user, !user.is_active)}
+                                className={user.is_active ? 'text-red-600' : 'text-green-600'}
+                              >
+                                {user.is_active ? (
+                                  <>
+                                    <UserX className="h-4 w-4 mr-2" />
+                                    Disable User
+                                  </>
+                                ) : (
+                                  <>
+                                    <UserCheck className="h-4 w-4 mr-2" />
+                                    Enable User
+                                  </>
+                                )}
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </>
                     )}
                   </div>

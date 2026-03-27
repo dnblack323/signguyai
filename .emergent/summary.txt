@@ -1,144 +1,144 @@
-<analysis>**original_problem_statement:**
-The user initiated the session to debug a login issue with their admin account (), which was intermittently failing with a network error on production. This investigation uncovered and fixed a critical backend password hashing bug related to / version incompatibility. The user then provided extensive notes from a previous session rollback and requested that those features be reinstated. Following this, the user issued a major directive to pivot the entire application's pricing model, simplifying it from a complex 9-plan, multi-tier system to a single Founders Edition plan. The session concluded with the user asking the agent to collate all pending tasks from various memory files and user requests into a single Ultimate To-Do List, organize it into stages, and begin implementation.
+<analysis>**original_problem_statement**: 
+The user initiated the session to fix build errors preventing production deployment. Following successful deployment, the user requested the execution of a massive Ultimate To-Do List, starting with Stage 2 (Legal, Documentation, Color Scheme). Midway, the user provided a massive architectural pivot: replacing the generic Jobs system with a real-world 4-layer production system (Order → Job Ticket → Quote/Invoice → Production Workflow) featuring 6 deep dynamic ticket categories (Banner, Apparel, Rigid Sign, Cut Vinyl, Digital Print, Vehicle Wrap) and live, settings-driven pricing calculators. 
 
-**PRODUCT REQUIREMENTS:**
--   **Founders Edition Only:** The application must exclusively offer the Founders Edition plan. All other pricing tiers (Starter, Pro, Business) and product lines (OS, Webstores, AI Studio) must be archived and made inaccessible.
--   **Founders Plan Specs:**
-    -   Price: 9/month or 94/year.
-    -   Promo Code: FOUNDERS for 50% off.
-    -   AI Credits: 150 monthly (no rollover), purchased credits never expire.
-    -   Processing Fees: 2.2% + /bin/bash.20 for platform, additional 2% for webstores.
--   **Reinstate Rolled-Back Features:** Implement a list of critical fixes and features from user-provided notes, including fixes for AI rate-limiting, invoice line items, a new materials/inventory system, and legal pages.
--   **UI & Documentation Overhaul:**
-    -   Update all documentation to reflect the new Founders-only model.
-    -   Change the UI color scheme from gold to a blue or purple theme.
-    -   Redesign the main navigation bar.
-    -   Audit all AI features to ensure they have credit costs and a working confirmation popup.
+**PRODUCT REQUIREMENTS**:
+- **4-Layer Order Architecture**: Orders act as parents. Job tickets hold operational specs. Quotes/Invoices handle financials. Production Tasks handle tracking.
+- **Dynamic Job Tickets**: Fields must adapt based on the selected Category and Subtype. Options (materials, labor, hardware) must pull from a centralized catalog.
+- **Live Pricing**: Pricing must update in real-time as ticket specs change. Setup fees must be added flat (no markup).
+- **UI Theme**: Strict Dark Shell / Light Content theme (Dark navy/charcoal viewport background with white content cards and dark text). No dark inputs.
+- **Legacy Cleanup**: The word Jobs as a primary module must be eradicated from the app, documentation, and memory files, replaced with Orders or Job Tickets.
 
-**User's preferred language**: English
+**User's preferred language**: English (INSTRUCT next agent to respond in English)
 
-**what currently exists?**
-The application is a multi-tenant SaaS platform for sign shops that has just undergone a major refactor to a single Founders Edition pricing model. The backend features new, simplified billing endpoints () and a configuration file () that acts as the single source of truth for pricing. The frontend billing and pricing pages have been rewritten to reflect this new model, and old marketing pages for deprecated tiers now redirect appropriately. A critical login bug caused by a password-hashing library conflict (/) has been fixed, and a new password recovery flow has been added to the login page. Voice input/output (STT/TTS) capabilities have been successfully integrated into the floating AI assistant widget.
+**what currently exists?** 
+A highly advanced, multi-tenant SaaS for sign shops running on a Founders Edition (9/mo) model. It features a robust Order & Job Ticket engine with settings-driven live pricing calculators and dynamic category schemas. The app has a dark shell/light card UI, full payroll/scheduling, daily financial tracking, Stripe Connect for tenant customer payments, SendGrid for document emailing, and comprehensive AI tools powered by the Emergent LLM key.
 
 **Last working item**:
--   Last item agent was working: The agent was at the very beginning of executing the Ultimate To-Do List requested by the user. It had just finished compiling the list from various memory files and user notes into  and was performing initial  commands to assess the status of the first set of critical fixes to be reinstated.
--   Status: IN PROGRESS
--   Agent Testing Done: N
--   Which testing method agent to use? testing_agent_v3_fork
--   User Testing Done: N
+- **Last item agent was working**: Guiding the user through Stripe Connect enrollment on their live Stripe dashboard.
+- **Status**: COMPLETED
+- **Agent Testing Done**: Y (Verified the Stripe API successfully returned a connected  ID).
+- **Which testing method agent to use?**: NA
+- **User Testing Done**: Y
 
 **All Pending/In progress Issue list**:
--   Issue 1: Production login may still fail until the latest code is deployed. (P1)
--   Issue 2: AI Tools Rate Limiter may be broken. (P0)
+Issue 1: Productivity Task List Display Bug (P1)
 
-**Issues Detail:**
--   **Issue 1: Production login may still fail**
-    -   **Attempted fixes:** The agent identified a / version conflict that was causing silent password verification failures. The fix involved removing the  dependency for password hashing and using  directly. This was tested and confirmed working in the preview environment.
-    -   **Next debug checklist:** The user needs to deploy the latest changes to production. If the issue persists, the Forgot Password feature can be used to reset the admin password.
-    -   **Why fix this issue and what will be achieved with the fix?** This is a critical issue preventing the admin from accessing the production application.
-    -   **Status:** USER VERIFICATION PENDING
-    -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** N/A
-
--   **Issue 2: AI Tools Rate Limiter may be broken**
-    -   **Attempted fixes:** This was identified from the user's rollback notes. The agent's initial  check was inconclusive. The fix requires changing the function signature in  for  and  from  to  and updating all parameter references within the function body.
-    -   **Next debug checklist:**
-        1.    to confirm the current function signatures for  and .
-        2.  If incorrect, use  to apply the signature and parameter reference changes as specified in the user's notes (message #377).
-    -   **Why fix this issue and what will be achieved with the fix?** This is a critical bug that breaks all generative AI tools. Fixing it is required for core application functionality.
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?** backend
-    -   **Blocked on other issue:** No.
+Issues Detail:
+- **Issue 1**: Productivity Task List Display Bug
+   - **Attempted fixes**: The agent traced the code and confirmed that  calls  properly. Noticed the issue might be due to calendar view filtering by  or the  array failing to render, but pivoted to higher priority Stripe/Nav tasks before finishing the debug.
+   - **Next debug checklist**: Check . Verify if newly created tasks (which might not have a ) are properly displayed in the List tab versus the Calendar tab. Check if Context state is properly re-rendering the component.
+   - **Why fix this issue and what will be achieved with the fix?**: User reported whenever I add a new task to the list It says its created but it didnt show up IN TASK LIST. Fixing this ensures team productivity tracking works.
+   - **Status**: IN PROGRESS
+   - **Is recurring issue?**: N
+   - **Should Test frontend/backend/both after fix?**: Frontend
+   - **Blocked on other issue**: None
 
 **In progress Task List**:
--   Task 1: Implement The Ultimate To-Do List (P0)
+None. Moving into Stage 6 and 7 of the ULTIMATE_TODO list.
 
-**Task Detail:**
--   **Task 1: Implement The Ultimate To-Do List**
-    -   **Where to resume:** The agent has created the master plan in . The immediate next step is to begin implementing **Stage 1: Critical System Fixes**, starting with the AI Tools Rate Limiter issue detailed above.
-    -   **What will be achieved with this?** This will systematically implement all remaining user requests, reinstate critical functionality lost in a rollback, and bring the application to a polished, feature-complete state.
-    -   **Status:** IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on something:** No.
+**Upcoming and Future Tasks**:
+*(Refer to )*
+- **P1 - Stage 6: Infrastructure & Code Quality**
+  - CORS Configuration (Harden security)
+  - Error Boundaries (React error boundaries to prevent blank screens)
+  - Code Cleanup (Deduplicate components)
+- **P2 - Stage 7: Future Features (Backlog)**
+  - Vehicle Wrap AI Tool (Full Spec)
+  - Master Product List / Inventory System
+  - QuickBooks Integration
+  - SMS Integration (Twilio)
+  - Analytics Dashboards expansion
 
-**Upcoming and Future Tasks**
-Refer to the complete, staged plan in . A summary is below:
--   **Upcoming Tasks (Next Stages):**
-    -   **(P0) Stage 1: Critical System Fixes:** AI Rate Limiter, Invoice Line Item Fallback, Soft Delete Service.
-    -   **(P1) Stage 2: Legal, Docs & Color:** Reinstate Legal Pages (Terms/Privacy), Update all documentation, Change UI color scheme to Purple/Blue.
-    -   **(P1) Stage 3: Core Feature Reinstatement:** Materials/Inventory System, Bulk Actions on Jobs table, Search functionality, Quick Add Job button.
--   **Future Tasks:**
-    -   **(P2) Stage 4: Navigation, UI & AI Polish:** Navigation Bar redesign, Dark Shell UI overhaul, AI Credit system audit.
-    -   **(P2) Stage 5 & Backlog:** Full Employee/Customer Portals, Database Indexing, Vehicle Wrap AI Tool, QuickBooks Integration.
+**Completed work in this session**:
+- **Deployment Fixes (DONE)**: Cleaned  of incompatible packages (playwright, jq, etc.), removed .
+- **Order / Job Ticket Architecture (DONE)**: Fully built the 4-layer system. Added  and  modes.
+- **Dynamic Category Schemas (DONE)**: Built deep, conditional specs for Banner, Apparel, Rigid Sign, Cut Vinyl, Digital Print, and Vehicle Wrap.
+- **Live Pricing Engine (DONE)**: Wired all dynamic ticket fields to centralized settings calculators. Fixed critical bug where setup fees were being marked up incorrectly.
+- **Dark Shell UI Theme (DONE)**: Restyled 20+ pages to use a dark app background with white rounded content cards. Fixed all light-on-light text contrast issues.
+- **Email & Connect (DONE)**: Integrated user's SendGrid API key. Added Send via Email buttons to Orders, Invoices, and Questionnaires. Successfully guided user through Stripe Connect enrollment.
+- **Payroll Schedule (DONE)**: Added an Employee Schedule tab to Payroll with an interactive grid for assigning shifts.
+- **Financials Module (DONE)**: Built  and  endpoints.
+- **Legacy Jobs Cleanup (DONE)**: Scrubbed all mentions of the standalone Jobs module from nav, UI, and 14+ memory/bubble markdown files.
 
-**Completed work in this session**
--   **Founders Edition Billing System (DONE):** Executed a major refactor, simplifying the entire application from a 9-plan system to a single Founders Edition plan. This included creating new backend endpoints, rewriting frontend billing pages, and passing a full suite of tests via the testing agent.
--   **Admin Login & Password Recovery (DONE):** Diagnosed and fixed a critical / version conflict that was breaking login. Implemented a secure Forgot Password feature on the login page.
--   **AI Assistant Voice Feature (DONE):** Added and fixed voice input (STT) and output (TTS) for the floating AI assistant widget, including debugging a 500 error on the transcription endpoint.
--   **Roadmap & Documentation (DONE):** Updated  and completely rewrote  based on a full codebase audit. Compiled the definitive  to guide all future work.
+**Earlier issues found/mentioned but not fixed**:
+- None. Agent aggressively cleared a 12-item punch list from the user. (Except for the Task List display issue listed above).
 
-**Earlier issues found/mentioned but not fixed**
-All known issues have been consolidated into the  file. The highest priority items are listed in the Upcoming Tasks section above.
+**Known issue recurrence from previous fork**:
+- **Issue recurrence in previous fork**: Admin locked out of production due to mismatched  DB hashes.
+- **Recurrence count**: 1
+- **Status**: RESOLVED (Agent built a  page and  endpoint using  to bypass login and re-hash the owner password with pure ).
 
-**Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork:**  /  version incompatibility causing login failures.
--   **Recurrence count:** 2+
--   **Status:** RESOLVED. The fix was made more robust by removing the  dependency entirely from the password hashing flow, which should prevent this specific issue from recurring.
-
-**Code Architecture**
+**Code Architecture**:
 
 
-**Key Technical Concepts**
--   **System Simplification:** Executed a major business-logic pivot, refactoring the application from a complex multi-tier model to a single-plan Founders Edition. This involved archiving large parts of the codebase and creating a new, streamlined billing and feature-gating logic.
--   **Dependency Debugging:** Identified and resolved a critical login failure caused by a subtle version incompatibility between the  and  libraries, demonstrating a deep understanding of the Python ecosystem.
--   **Voice I/O Integration:** Implemented and debugged OpenAI Whisper (STT) and TTS endpoints in a FastAPI backend, including correctly handling file uploads from a React frontend.
+**Key Technical Concepts**:
+- **Settings-Driven Calculators**: The Job Ticket UI does not hold hardcoded prices. It makes API calls to  passing the specs. Setup fees are added *flat* after markup.
+- **Schema-Driven Forms**:  returns JSON arrays defining fields, types, and dropdown options (pulled directly from the materials catalog), allowing the UI to render dynamic forms.
+- **Dark Shell Theme**: Enforced via  using  backgrounds with transparent wrappers, and  (bg-white) for content segments.
 
-**key DB schema**
-No new collections were added. The  collection remains central, with fields like , , and  driving the new, simplified business logic.
+**key DB schema**:
+- : {id, tenant_id, customer_id, linked_quote_ids, overall_progress, status, order_total}
+- : {id, order_id, item_category, entry_mode, specs: {}, estimated_price, progress}
+- : {id, job_ticket_id, department, status, sequence}
 
-**changes in tech stack**
--   ** (Deprecated):** This library is no longer used for password hashing due to version conflicts. The application now uses the  library directly.
+**changes in tech stack**:
+- Removed dev/build dependencies from  (, , etc.) to ensure smooth K8s deployments.
 
-**All files of reference**
--   : **(New)** This is the master plan for all future work.
--   : **(New)** The single source of truth for Founders Edition pricing, fees, and credit packs.
--   : **(Updated)** for password recovery.
--   : **(Updated)** with new  endpoints.
--   : **(Updated)** with the critical login fix (removed ).
--   : **(Rewritten)** for the Founders-only UI.
--   User notes from message #377, which form the basis for many tasks in .
+**All files of reference**:
+-  (Updated roadmap)
+-  (Contains the massive schema generator functions: , , etc.)
+-  (Contains all calculation logic: , , etc.)
+-  (Complex form handling Quick/Detailed ticket entry)
+-  (Contains the newly configured )
 
 **Areas that need refactoring**:
--   The old multi-tier plan files (, ) and frontend marketing pages (, etc.) are now obsolete and could be deleted to clean up the codebase.
+- None immediately. The codebase underwent massive cleanup to purge legacy Jobs UI and unify under Orders.
 
-**key api endpoints**
--   : **(New)** Securely resets the password for a tenant's owner account.
--   : **(New)** Creates a Stripe checkout session for the Founders Edition subscription.
--   : **(New)** Creates a Stripe checkout session to purchase AI credit packs.
--   : **(New)** Retrieves all current billing, subscription, and credit balance information for the tenant.
--   : **(Fixed)** Now correctly processes uploaded audio files for speech-to-text.
+**key api endpoints**:
+- : Returns dynamic form config.
+- : Converts approved job tickets into a financial invoice.
+- : Emergency backdoor using  (JWT Secret) to repair broken admin passwords on prod.
+- : Handles multipart file attachments for orders.
 
-**Critical Info for New Agent**
--   **Follow the Ultimate To-Do List:** All priorities and tasks are now defined in . You must follow the stages outlined in this document, starting with Stage 1.
--   **Founders Edition is Everything:** The entire application logic now revolves around a single Founders Edition plan. Do not re-introduce or reference the old multi-tier system. The source of truth for all pricing is .
--   **Reinstate Critical Fixes:** Your first task is to implement the Critical System Fixes from Stage 1 of the to-do list, especially the AI Rate Limiter bug, which is likely breaking all AI tools.
--   **Production Login:** The user's production login issue is likely fixed by the  refactor, but this needs to be confirmed by the user after deployment. The password recovery feature is the immediate fallback if they are still locked out.
+**Critical Info for New Agent**:
+- **Stripe Connect**: The platform owner (the user) has officially completed Stripe Connect enrollment. Ensure any future payment/Stripe logic utilizes  from the tenant record correctly.
+- **UI Theme Strictness**: If you build new pages or modify existing ones, you MUST follow the Dark Shell / Light Content rule. Page backgrounds are transparent/dark. Content sits inside  components (which have a white background, rounded corners, and border). Use  for text inside cards. DO NOT use  or  for standard form inputs or card bodies.
+- **Pricing Rule**: ALL pricing calculations must run through the backend  or  utilities. Do NOT add math or multipliers in the React frontend. 
 
-**documents and test reports created in this job**
--   
--   
--   
--   
--   
+**documents and test reports created in this job**:
+- 
+- 
+- 
+-  (Order workflow testing)
 
-**Last 10 User Messages and any pending HUMAN messages**
-1.  **LATEST:** User asks the agent to create an ultimate to-do list by compiling all notes and saved roadmaps, update documentation, change the color scheme, audit the AI credit system, and organize all work into stages of importance. (Status: **COMPLETED**,  created).
-2.  User provides extensive notes from a previous rollback and asks if the fixes are present in the current code. (Status: **ADDRESSED**).
-3.  User knows they are entering the correct password but are still locked out of production. (Status: **ADDRESSED**,  bug identified).
-4.  User reports being unable to log into production with the admin account, seeing Invalid email or password. (Status: **ADDRESSED**, password recovery flow explained).
-5.  User asks to test all Founders pricing, credit packs, and Stripe fee logic. (Status: **COMPLETED**,  run).
-6.  User asks to update  with the percentage of SaaS readiness. (Status: **COMPLETED**).
-7.  User asks if a  file exists. (Status: **ADDRESSED**).
-8.  User asks to update</analysis>
+**Last 10 User Messages and any pending HUMAN messages**:
+1. User: I ALREADY SIGNED UP FOR STRIPE IS STRIPE CONNECT DIFFERENT? LETS SIGN UP
+2. Agent: Explained Stripe Connect logic. Guided user to dashboard.stripe.com/connect.
+3. User: DO I PICK PLATFORM OR MARKETPLACE? ITS BOTH ISNT IT? CAUSE OF WEBSTORES
+4. Agent: Instructed user to select Platform.
+5. User: IT ASKS HOW I WANT TO BILL CUSTOMERS
+6. Agent: Instructed user to select Direct charges.
+7. User: IT SAYS FLAt RATE OR SEAT BASED AND ASKS IF INCLUDE USAGE BASED
+8. Agent: Instructed Flat Rate, No usage.
+9. User: N O0W IT SAYS HOW DO I WANT TO ACCEPT RECURRING PAYMENTS LINKS, CHECKOUT, OR COMPONENTS
+10. Agent: Instructed Checkout. User completed setup, Agent verified Stripe Connect API returned success ().
+
+**Project Health Check:**
+- All Backend/Frontend services: Healthy
+- Deployment Status: Ready
+- Integrations: Connected (Stripe, SendGrid, Emergent LLMs)
+
+**3rd Party Integrations**:
+- OpenAI GPT-5.2 (Text) — uses Emergent LLM Key
+- OpenAI GPT-Image-1 (Image) — uses Emergent LLM Key
+- Stripe (Payments & Connect) — requires User API Key (Configured)
+- SendGrid (Email) — requires User API Key (Configured)
+
+**Testing status**:
+- Testing agent used after significant changes: YES (iteration 72)
+- Troubleshoot agent used after agent stuck in loop: NO
+- Test files created: None
+- Known regressions: Task list visibility issue (Investigating).
+
+**What agent forgot to execute**:
+The agent didn't resolve the user's report about the Productivity Task List not showing newly created tasks. It was identified but deferred to prioritize Stripe Connect onboarding. Needs to be addressed.</analysis>
