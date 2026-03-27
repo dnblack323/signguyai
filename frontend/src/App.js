@@ -117,6 +117,7 @@ import DocsLayout from "./components/DocsLayout";
 import DocsOverview from "./pages/docs/DocsOverview";
 import GettingStarted from "./pages/docs/GettingStarted";
 import DocsCustomers from "./pages/docs/DocsCustomers";
+import DocsDocumentLibrary from "./pages/docs/DocsDocumentLibrary";
 import DocsQuotesJobs from "./pages/docs/DocsQuotesJobs";
 import DocsInvoicing from "./pages/docs/DocsInvoicing";
 import DocsPricingCalculator from "./pages/docs/DocsPricingCalculator";
@@ -258,6 +259,7 @@ function App() {
                   <Route index element={<DocsOverview />} />
                   <Route path="getting-started" element={<GettingStarted />} />
                   <Route path="customers" element={<DocsCustomers />} />
+                  <Route path="document-library" element={<DocsDocumentLibrary />} />
                   <Route path="quotes-jobs" element={<DocsQuotesJobs />} />
                   <Route path="invoicing" element={<DocsInvoicing />} />
                   <Route path="pricing-calculator" element={<DocsPricingCalculator />} />

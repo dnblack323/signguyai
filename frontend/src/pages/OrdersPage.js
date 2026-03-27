@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Package, Clock, ChevronRight, Filter, AlertTriangle, Eye, Edit3, Trash2, MoreHorizontal } from 'lucide-react';
+import { Plus, Search, Package, Clock, ChevronRight, Filter, AlertTriangle, Eye, Edit3, Trash2, MoreHorizontal, CheckSquare, Square, Archive, XCircle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { Card, CardContent } from '../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Checkbox } from '../components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,6 +51,8 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedOrders, setSelectedOrders] = useState(new Set());
+  const [bulkActioning, setBulkActioning] = useState(false);
 
   const fetchOrders = async () => {
     try {
@@ -80,6 +83,64 @@ export default function OrdersPage() {
       fetchOrders();
     } catch {
       toast.error('Failed to delete order');
+    }
+  };
+
+  // Bulk selection handlers
+  const toggleSelectOrder = (orderId) => {
+    setSelectedOrders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedOrders.size === orders.length) {
+      setSelectedOrders(new Set());
+    } else {
+      setSelectedOrders(new Set(orders.map(o => o.id)));
+    }
+  };
+
+  const handleBulkStatusChange = async (newStatus) => {
+    if (selectedOrders.size === 0) return;
+    setBulkActioning(true);
+    try {
+      const promises = Array.from(selectedOrders).map(id =>
+        axios.put(`${API}/orders/${id}`, { status: newStatus }, { headers: { Authorization: `Bearer ${token()}` } })
+      );
+      await Promise.all(promises);
+      toast.success(`${selectedOrders.size} order(s) updated to ${formatStatus(newStatus)}`);
+      setSelectedOrders(new Set());
+      fetchOrders();
+    } catch {
+      toast.error('Failed to update some orders');
+    } finally {
+      setBulkActioning(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedOrders.size === 0) return;
+    if (!window.confirm(`Delete ${selectedOrders.size} order(s)? This cannot be undone.`)) return;
+    setBulkActioning(true);
+    try {
+      const promises = Array.from(selectedOrders).map(id =>
+        axios.delete(`${API}/orders/${id}`, { headers: { Authorization: `Bearer ${token()}` } })
+      );
+      await Promise.all(promises);
+      toast.success(`${selectedOrders.size} order(s) deleted`);
+      setSelectedOrders(new Set());
+      fetchOrders();
+    } catch {
+      toast.error('Failed to delete some orders');
+    } finally {
+      setBulkActioning(false);
     }
   };
 
@@ -128,6 +189,53 @@ export default function OrdersPage() {
         </CardContent>
       </Card>
 
+      {/* Bulk Actions Toolbar - appears when orders selected */}
+      {selectedOrders.size > 0 && (
+        <Card className="bg-violet-600 rounded-xl border border-violet-500 shadow-lg sticky top-20 z-10" data-testid="bulk-actions-toolbar">
+          <CardContent className="p-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setSelectedOrders(new Set())}
+                className="text-white hover:bg-violet-500"
+              >
+                <XCircle className="w-4 h-4 mr-1" /> Clear
+              </Button>
+              <span className="text-white font-medium">
+                {selectedOrders.size} order{selectedOrders.size !== 1 ? 's' : ''} selected
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary" size="sm" disabled={bulkActioning} className="bg-white text-violet-700 hover:bg-violet-50">
+                    <CheckSquare className="w-4 h-4 mr-2" /> Change Status
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleBulkStatusChange('approved')}>Mark Approved</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleBulkStatusChange('in_production')}>Start Production</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleBulkStatusChange('ready_for_pickup')}>Mark Ready</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleBulkStatusChange('completed')}>Mark Completed</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleBulkStatusChange('on_hold')}>Put On Hold</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleBulkStatusChange('cancelled')}>Cancel</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                onClick={handleBulkDelete}
+                disabled={bulkActioning}
+                className="bg-red-500 hover:bg-red-600"
+              >
+                <Trash2 className="w-4 h-4 mr-2" /> Delete
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-violet-500"></div>
@@ -145,15 +253,41 @@ export default function OrdersPage() {
         </Card>
       ) : (
         <div className="space-y-3">
+          {/* Select All row */}
+          {orders.length > 0 && (
+            <div className="flex items-center gap-3 px-2">
+              <Checkbox
+                checked={selectedOrders.size === orders.length && orders.length > 0}
+                onCheckedChange={toggleSelectAll}
+                className="border-gray-400 data-[state=checked]:bg-violet-600"
+                data-testid="select-all-orders"
+              />
+              <span className="text-sm text-gray-400">
+                {selectedOrders.size === orders.length ? 'Deselect all' : 'Select all'}
+              </span>
+            </div>
+          )}
           {orders.map((order) => (
             <Card
               key={order.id}
-              className="bg-white rounded-xl border border-gray-200 shadow-sm hover:border-violet-500/40 transition-colors cursor-pointer"
+              className={`bg-white rounded-xl border shadow-sm hover:border-violet-500/40 transition-colors cursor-pointer ${
+                selectedOrders.has(order.id) ? 'border-violet-500 ring-2 ring-violet-500/20' : 'border-gray-200'
+              }`}
               onClick={() => navigate(`/orders/${order.id}`)}
               data-testid={`order-row-${order.order_number}`}
             >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between gap-4">
+                  {/* Checkbox */}
+                  <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedOrders.has(order.id)}
+                      onCheckedChange={() => toggleSelectOrder(order.id)}
+                      className="border-gray-300 data-[state=checked]:bg-violet-600"
+                      data-testid={`select-order-${order.order_number}`}
+                    />
+                  </div>
+                  
                   <div className="flex items-center gap-4 min-w-0 flex-1">
                     <div className="w-12 h-12 rounded-lg bg-violet-500/10 flex items-center justify-center flex-shrink-0">
                       <Package className="w-6 h-6 text-violet-400" />

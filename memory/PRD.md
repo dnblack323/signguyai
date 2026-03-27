@@ -31,13 +31,28 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 - **Orders List Icons (DONE):**
   - Added View icon (blue eye) for quick view
   - Added dropdown menu with View Details, Add Ticket, Delete Order options
+  - Added bulk actions toolbar with checkboxes for multi-select
+  - Bulk status change and bulk delete functionality
 - **Users List Icons (DONE):**
   - Added View icon (blue eye) for quick user info
   - Consolidated Role/Reset/Enable actions into dropdown menu
+- **Financials Page Color Fix (DONE):**
+  - Fixed page header to use white text on dark background
+  - Updated summary cards to use -600 color variants for better visibility on white
+  - Fixed expense breakdown and recent activity text colors
+  - Changed table cell text to text-gray-900 for readability
 - **Documentation Theme Fixes (DONE):**
-  - DocsEmployees.js - Fixed text colors for dark theme (text-white, text-gray-300, text-gray-400)
+  - DocsEmployees.js - Fixed text colors for dark theme
   - DocsQuotesJobs.js - Fixed text colors for dark theme with cyan accents
   - Updated bg-gray-50 to bg-gray-800/50 for proper dark theme cards
+- **Documentation Content Updates (DONE):**
+  - Created new DocsDocumentLibrary.js page with full guide
+  - Enhanced DocsProductivity.js with Task List, Calendar, and Kanban details
+  - Enhanced DocsCustomerPortal.js with Portal Invite Flow, Proofs, Forms sections
+  - Enhanced DocsWebstores.js with creating stores, products, checkout details
+  - Enhanced DocsAITools.js with tool descriptions and credit system explanation
+  - Added Document Library to DocsLayout sidebar navigation
+  - Added Document Library to DocsOverview primary links
 
 ### Session: March 22-27, 2026 (Previous Sessions)
 - **NEW 4-Layer Workflow System (DONE - Backend):**

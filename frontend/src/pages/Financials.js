@@ -194,8 +194,8 @@ export default function Financials() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-gray-900">Financials</h1>
-          <p className="text-gray-700 mt-1">Track sales, expenses, and taxes</p>
+          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-white">Financials</h1>
+          <p className="text-gray-400 mt-1">Track sales, expenses, and taxes</p>
         </div>
         <div className="flex gap-2">
           <Dialog open={isSalesDialogOpen} onOpenChange={setIsSalesDialogOpen}>
@@ -412,37 +412,37 @@ export default function Financials() {
           <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="h-4 w-4 text-green-400" />
+                <TrendingUp className="h-4 w-4 text-green-600" />
                 <span className="text-sm text-gray-500">Total Sales</span>
               </div>
-              <p className="text-2xl font-bold text-green-400">{formatCurrency(summary.total_sales)}</p>
+              <p className="text-2xl font-bold text-green-600">{formatCurrency(summary.total_sales)}</p>
             </CardContent>
           </Card>
           <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <Receipt className="h-4 w-4 text-yellow-400" />
+                <Receipt className="h-4 w-4 text-amber-600" />
                 <span className="text-sm text-gray-500">Sales Tax</span>
               </div>
-              <p className="text-2xl font-bold text-yellow-400">{formatCurrency(summary.total_tax)}</p>
+              <p className="text-2xl font-bold text-amber-600">{formatCurrency(summary.total_tax)}</p>
             </CardContent>
           </Card>
           <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <TrendingDown className="h-4 w-4 text-red-400" />
+                <TrendingDown className="h-4 w-4 text-red-600" />
                 <span className="text-sm text-gray-500">Expenses</span>
               </div>
-              <p className="text-2xl font-bold text-red-400">{formatCurrency(summary.total_expenses)}</p>
+              <p className="text-2xl font-bold text-red-600">{formatCurrency(summary.total_expenses)}</p>
             </CardContent>
           </Card>
           <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <DollarSign className="h-4 w-4 text-primary" />
+                <DollarSign className="h-4 w-4 text-violet-600" />
                 <span className="text-sm text-gray-500">Net Income</span>
               </div>
-              <p className={`text-2xl font-bold ${summary.net_income >= 0 ? 'text-primary' : 'text-red-400'}`}>
+              <p className={`text-2xl font-bold ${summary.net_income >= 0 ? 'text-violet-600' : 'text-red-600'}`}>
                 {formatCurrency(summary.net_income)}
               </p>
             </CardContent>
@@ -472,9 +472,9 @@ export default function Financials() {
                 ) : (
                   <div className="space-y-3">
                     {Object.entries(expensesByCategory).map(([category, amount]) => (
-                      <div key={category} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <span className="font-medium">{getCategoryLabel(category)}</span>
-                        <span className="text-red-400 font-bold">{formatCurrency(amount)}</span>
+                      <div key={category} className="flex items-center justify-between p-3 bg-gray-100 rounded-lg">
+                        <span className="font-medium text-gray-900">{getCategoryLabel(category)}</span>
+                        <span className="text-red-600 font-bold">{formatCurrency(amount)}</span>
                       </div>
                     ))}
                   </div>
@@ -501,15 +501,15 @@ export default function Financials() {
                         <div 
                           key={`${item.type}-${item.id}`} 
                           className={`flex items-center justify-between p-3 rounded-lg ${
-                            item.type === 'sale' ? 'bg-green-500/10' : 'bg-red-500/10'
+                            item.type === 'sale' ? 'bg-green-50' : 'bg-red-50'
                           }`}
                         >
                           <div className="flex items-center gap-3">
                             {item.type === 'sale' && Icon && (
-                              <Icon className="h-4 w-4 text-green-400" />
+                              <Icon className="h-4 w-4 text-green-600" />
                             )}
                             <div>
-                              <p className="text-sm font-medium">
+                              <p className="text-sm font-medium text-gray-900">
                                 {item.type === 'sale' ? methodInfo?.label || 'Daily Sales' : getCategoryLabel(item.category)}
                               </p>
                               <p className="text-xs text-gray-500">
@@ -517,7 +517,7 @@ export default function Financials() {
                               </p>
                             </div>
                           </div>
-                          <span className={`font-bold ${item.type === 'sale' ? 'text-green-400' : 'text-red-400'}`}>
+                          <span className={`font-bold ${item.type === 'sale' ? 'text-green-600' : 'text-red-600'}`}>
                             {item.type === 'sale' ? '+' : '-'}{formatCurrency(item.amount)}
                           </span>
                         </div>
@@ -554,18 +554,18 @@ export default function Financials() {
                       const Icon = methodInfo.icon;
                       return (
                         <TableRow key={sale.id} className={idx % 2 === 0 ? '' : 'bg-gray-50'}>
-                          <TableCell>{formatDate(sale.date)}</TableCell>
+                          <TableCell className="text-gray-900">{formatDate(sale.date)}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Icon className="h-4 w-4 text-gray-500" />
-                              <span className="capitalize">{methodInfo.label}</span>
+                              <span className="capitalize text-gray-900">{methodInfo.label}</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-gray-500">{sale.description || '-'}</TableCell>
-                          <TableCell className="text-right font-bold text-green-400">
+                          <TableCell className="text-right font-bold text-green-600">
                             {formatCurrency(sale.amount)}
                           </TableCell>
-                          <TableCell className="text-right text-yellow-400">
+                          <TableCell className="text-right text-amber-600">
                             {formatCurrency(sale.tax_amount)}
                           </TableCell>
                         </TableRow>
@@ -599,10 +599,10 @@ export default function Financials() {
                   <TableBody>
                     {expenses.map((expense, idx) => (
                       <TableRow key={expense.id} className={idx % 2 === 0 ? '' : 'bg-gray-50'}>
-                        <TableCell>{formatDate(expense.date)}</TableCell>
-                        <TableCell>{getCategoryLabel(expense.category)}</TableCell>
+                        <TableCell className="text-gray-900">{formatDate(expense.date)}</TableCell>
+                        <TableCell className="text-gray-900">{getCategoryLabel(expense.category)}</TableCell>
                         <TableCell className="text-gray-500">{expense.description || '-'}</TableCell>
-                        <TableCell className="text-right font-bold text-red-400">
+                        <TableCell className="text-right font-bold text-red-600">
                           {formatCurrency(expense.amount)}
                         </TableCell>
                       </TableRow>

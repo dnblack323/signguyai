@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, Briefcase, Calculator, Clock, FileText, PlayCircle,
-  Receipt, Sparkles, Store, Users, Zap
+  Receipt, Sparkles, Store, Users, Zap, FolderOpen
 } from 'lucide-react';
 
 const primaryLinks = [
@@ -18,6 +18,13 @@ const primaryLinks = [
     href: '/docs/customers',
     icon: Users,
     color: 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+  },
+  {
+    title: 'Document Library',
+    description: 'Store and organize artwork, templates, questionnaires, contracts, and shared files.',
+    href: '/docs/document-library',
+    icon: FolderOpen,
+    color: 'bg-teal-500/10 text-teal-400 border-teal-500/20'
   },
   {
     title: 'Orders, Job Tickets & Production',

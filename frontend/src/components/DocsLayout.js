@@ -4,7 +4,7 @@ import {
   Book, Home, Users, FileText, Receipt, Sparkles, Calculator,
   Clock, UserCog, HelpCircle, ChevronRight, ChevronDown,
   Search, ArrowLeft, Briefcase, PlayCircle, Store, Shield, DollarSign, Columns,
-  Menu, X
+  Menu, X, FolderOpen
 } from 'lucide-react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
@@ -22,6 +22,7 @@ const docsNavigation = [
     title: 'Core Features',
     items: [
       { title: 'Customers', href: '/docs/customers', icon: Users },
+      { title: 'Document Library', href: '/docs/document-library', icon: FolderOpen },
       { title: 'Orders & Job Tickets', href: '/docs/quotes-jobs', icon: Briefcase },
       { title: 'Invoicing', href: '/docs/invoicing', icon: Receipt },
       { title: 'Pricing Calculator', href: '/docs/pricing-calculator', icon: Calculator },
