@@ -283,8 +283,8 @@ export default function CompanySettings() {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
         <AlertTriangle className="h-12 w-12 mb-4" style={{ color: '#d97706' }} />
-        <h2 className="text-xl font-semibold mb-2" style={{ color: '#1A1A1A' }}>Access Denied</h2>
-        <p style={{ color: '#5A5A5A' }}>You don't have permission to view company settings.</p>
+        <h2 className="text-xl font-semibold mb-2" className="text-gray-900">Access Denied</h2>
+        <p className="text-gray-500">You don't have permission to view company settings.</p>
       </div>
     );
   }
@@ -301,8 +301,8 @@ export default function CompanySettings() {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
         <AlertTriangle className="h-12 w-12 mb-4" style={{ color: '#d97706' }} />
-        <h2 className="text-xl font-semibold mb-2" style={{ color: '#1A1A1A' }}>No Company Found</h2>
-        <p style={{ color: '#5A5A5A' }}>Your account is not associated with a company.</p>
+        <h2 className="text-xl font-semibold mb-2" className="text-gray-900">No Company Found</h2>
+        <p className="text-gray-500">Your account is not associated with a company.</p>
       </div>
     );
   }
@@ -329,11 +329,11 @@ export default function CompanySettings() {
       {/* Company Info Card */}
       <Card className="border" style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2" style={{ color: '#1A1A1A' }}>
+          <CardTitle className="flex items-center gap-2" className="text-gray-900">
             <Building2 className="h-5 w-5" style={{ color: '#2F8BFB' }} />
             Company Information
           </CardTitle>
-          <CardDescription style={{ color: '#5A5A5A' }}>
+          <CardDescription className="text-gray-500">
             Basic information about your sign shop
           </CardDescription>
         </CardHeader>
@@ -342,7 +342,7 @@ export default function CompanySettings() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Company Name */}
               <div className="space-y-2">
-                <Label htmlFor="name" style={{ color: '#1A1A1A' }}>Company Name *</Label>
+                <Label htmlFor="name" className="text-gray-900">Company Name *</Label>
                 <Input
                   id="name"
                   data-testid="company-name-input"
@@ -356,9 +356,9 @@ export default function CompanySettings() {
 
               {/* Phone */}
               <div className="space-y-2">
-                <Label htmlFor="phone" style={{ color: '#1A1A1A' }}>Phone</Label>
+                <Label htmlFor="phone" className="text-gray-900">Phone</Label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#5A5A5A' }} />
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" className="text-gray-500" />
                   <Input
                     id="phone"
                     data-testid="company-phone-input"
@@ -374,9 +374,9 @@ export default function CompanySettings() {
 
               {/* Address */}
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="address" style={{ color: '#1A1A1A' }}>Street Address</Label>
+                <Label htmlFor="address" className="text-gray-900">Street Address</Label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#5A5A5A' }} />
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" className="text-gray-500" />
                   <Input
                     id="address"
                     data-testid="company-address-input"
@@ -392,7 +392,7 @@ export default function CompanySettings() {
 
               {/* City */}
               <div className="space-y-2">
-                <Label htmlFor="city" style={{ color: '#1A1A1A' }}>City</Label>
+                <Label htmlFor="city" className="text-gray-900">City</Label>
                 <Input
                   id="city"
                   data-testid="company-city-input"
@@ -406,7 +406,7 @@ export default function CompanySettings() {
 
               {/* State */}
               <div className="space-y-2">
-                <Label htmlFor="state" style={{ color: '#1A1A1A' }}>State</Label>
+                <Label htmlFor="state" className="text-gray-900">State</Label>
                 <Input
                   id="state"
                   data-testid="company-state-input"
@@ -420,7 +420,7 @@ export default function CompanySettings() {
 
               {/* ZIP */}
               <div className="space-y-2">
-                <Label htmlFor="zip_code" style={{ color: '#1A1A1A' }}>ZIP Code</Label>
+                <Label htmlFor="zip_code" className="text-gray-900">ZIP Code</Label>
                 <Input
                   id="zip_code"
                   data-testid="company-zip-input"
@@ -434,7 +434,7 @@ export default function CompanySettings() {
 
               {/* Country */}
               <div className="space-y-2">
-                <Label htmlFor="country" style={{ color: '#1A1A1A' }}>Country</Label>
+                <Label htmlFor="country" className="text-gray-900">Country</Label>
                 <Input
                   id="country"
                   data-testid="company-country-input"
@@ -448,9 +448,9 @@ export default function CompanySettings() {
 
               {/* Website */}
               <div className="space-y-2">
-                <Label htmlFor="website" style={{ color: '#1A1A1A' }}>Website</Label>
+                <Label htmlFor="website" className="text-gray-900">Website</Label>
                 <div className="relative">
-                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#5A5A5A' }} />
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" className="text-gray-500" />
                   <Input
                     id="website"
                     data-testid="company-website-input"
@@ -467,8 +467,8 @@ export default function CompanySettings() {
 
             {/* Company Logo Upload Section */}
             <div className="pt-6 border-t" style={{ borderColor: '#D7DCE2' }}>
-              <Label style={{ color: '#1A1A1A' }} className="text-base font-medium">Company Logo</Label>
-              <p className="text-sm mb-4" style={{ color: '#5A5A5A' }}>
+              <Label className="text-gray-900" className="text-base font-medium">Company Logo</Label>
+              <p className="text-sm mb-4" className="text-gray-500">
                 Upload your company logo. It will appear on invoices, quotes, and customer portals.
               </p>
               
@@ -489,8 +489,8 @@ export default function CompanySettings() {
                     />
                   ) : (
                     <div className="text-center p-4">
-                      <ImageIcon className="h-8 w-8 mx-auto mb-2" style={{ color: '#5A5A5A' }} />
-                      <p className="text-xs" style={{ color: '#5A5A5A' }}>No logo</p>
+                      <ImageIcon className="h-8 w-8 mx-auto mb-2" className="text-gray-500" />
+                      <p className="text-xs" className="text-gray-500">No logo</p>
                     </div>
                   )}
                 </div>
@@ -534,7 +534,7 @@ export default function CompanySettings() {
                     )}
                   </div>
                   
-                  <p className="text-xs" style={{ color: '#5A5A5A' }}>
+                  <p className="text-xs" className="text-gray-500">
                     Supported formats: PNG, JPEG, WebP, GIF, SVG. Max size: 3MB
                   </p>
                 </div>
@@ -563,25 +563,25 @@ export default function CompanySettings() {
       {/* Time Tracking Settings Card */}
       <Card className="border" style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2" style={{ color: '#1A1A1A' }}>
+          <CardTitle className="flex items-center gap-2" className="text-gray-900">
             <Timer className="h-5 w-5" style={{ color: '#2F8BFB' }} />
             Time Tracking Settings
           </CardTitle>
-          <CardDescription style={{ color: '#5A5A5A' }}>
+          <CardDescription className="text-gray-500">
             Configure how employees track time on jobs
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Tracking Level */}
           <div className="space-y-4">
-            <h4 className="font-medium text-sm uppercase tracking-wider" style={{ color: '#5A5A5A' }}>
+            <h4 className="font-medium text-sm uppercase tracking-wider" className="text-gray-500">
               Tracking Level
             </h4>
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
                 <div>
-                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Track Time Per Job</Label>
-                  <p className="text-sm" style={{ color: '#5A5A5A' }}>Log time at the job level (e.g., "Worked on Banner Job")</p>
+                  <Label className="font-medium" className="text-gray-900">Track Time Per Job</Label>
+                  <p className="text-sm" className="text-gray-500">Log time at the job level (e.g., "Worked on Banner Job")</p>
                 </div>
                 <Switch
                   checked={timeTrackingSettings.track_per_job}
@@ -592,8 +592,8 @@ export default function CompanySettings() {
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
                 <div>
-                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Track Time Per Line Item</Label>
-                  <p className="text-sm" style={{ color: '#5A5A5A' }}>Log time on specific items (e.g., "Worked on 24x36 Banner")</p>
+                  <Label className="font-medium" className="text-gray-900">Track Time Per Line Item</Label>
+                  <p className="text-sm" className="text-gray-500">Log time on specific items (e.g., "Worked on 24x36 Banner")</p>
                 </div>
                 <Switch
                   checked={timeTrackingSettings.track_per_line_item}
@@ -607,14 +607,14 @@ export default function CompanySettings() {
 
           {/* Access Methods */}
           <div className="space-y-4">
-            <h4 className="font-medium text-sm uppercase tracking-wider" style={{ color: '#5A5A5A' }}>
+            <h4 className="font-medium text-sm uppercase tracking-wider" className="text-gray-500">
               Employee Access
             </h4>
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
                 <div>
-                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Employee Portal Time Tracking</Label>
-                  <p className="text-sm" style={{ color: '#5A5A5A' }}>Let employees track time from their portal</p>
+                  <Label className="font-medium" className="text-gray-900">Employee Portal Time Tracking</Label>
+                  <p className="text-sm" className="text-gray-500">Let employees track time from their portal</p>
                 </div>
                 <Switch
                   checked={timeTrackingSettings.enable_employee_portal}
@@ -624,8 +624,8 @@ export default function CompanySettings() {
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
                 <div>
-                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Kiosk Mode</Label>
-                  <p className="text-sm" style={{ color: '#5A5A5A' }}>Shop floor tablet with PIN login and job scanning</p>
+                  <Label className="font-medium" className="text-gray-900">Kiosk Mode</Label>
+                  <p className="text-sm" className="text-gray-500">Shop floor tablet with PIN login and job scanning</p>
                 </div>
                 <Switch
                   checked={timeTrackingSettings.enable_kiosk_mode}
@@ -638,13 +638,13 @@ export default function CompanySettings() {
 
           {/* Automation */}
           <div className="space-y-4">
-            <h4 className="font-medium text-sm uppercase tracking-wider" style={{ color: '#5A5A5A' }}>
+            <h4 className="font-medium text-sm uppercase tracking-wider" className="text-gray-500">
               Automation
             </h4>
             <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
               <div>
-                <Label className="font-medium" style={{ color: '#1A1A1A' }}>Auto-Suggest on Status Change</Label>
-                <p className="text-sm" style={{ color: '#5A5A5A' }}>Prompt to start/stop timer when job status changes</p>
+                <Label className="font-medium" className="text-gray-900">Auto-Suggest on Status Change</Label>
+                <p className="text-sm" className="text-gray-500">Prompt to start/stop timer when job status changes</p>
               </div>
               <Switch
                 checked={timeTrackingSettings.auto_suggest_on_status_change}
@@ -676,26 +676,26 @@ export default function CompanySettings() {
       {/* Employee Portal Permissions Card */}
       <Card className="border" style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2" style={{ color: '#1A1A1A' }}>
+          <CardTitle className="flex items-center gap-2" className="text-gray-900">
             <Users className="h-5 w-5" style={{ color: '#2F8BFB' }} />
             Employee Portal Permissions
           </CardTitle>
-          <CardDescription style={{ color: '#5A5A5A' }}>
+          <CardDescription className="text-gray-500">
             Control what employees can see and do in their portal
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Basic Visibility */}
           <div className="space-y-4">
-            <h4 className="font-medium text-sm uppercase tracking-wider flex items-center gap-2" style={{ color: '#5A5A5A' }}>
+            <h4 className="font-medium text-sm uppercase tracking-wider flex items-center gap-2" className="text-gray-500">
               <Eye className="h-4 w-4" />
               Portal Sections
             </h4>
             <div className="grid gap-3">
               <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
                 <div>
-                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Tasks</Label>
-                  <p className="text-sm" style={{ color: '#5A5A5A' }}>View assigned tasks and to-dos</p>
+                  <Label className="font-medium" className="text-gray-900">Tasks</Label>
+                  <p className="text-sm" className="text-gray-500">View assigned tasks and to-dos</p>
                 </div>
                 <Switch
                   checked={employeePortalSettings.can_view_tasks}
@@ -706,8 +706,8 @@ export default function CompanySettings() {
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
                 <div>
-                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Schedule</Label>
-                  <p className="text-sm" style={{ color: '#5A5A5A' }}>View work schedule and shifts</p>
+                  <Label className="font-medium" className="text-gray-900">Schedule</Label>
+                  <p className="text-sm" className="text-gray-500">View work schedule and shifts</p>
                 </div>
                 <Switch
                   checked={employeePortalSettings.can_view_schedule}
@@ -718,8 +718,8 @@ export default function CompanySettings() {
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
                 <div>
-                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Pay Stubs</Label>
-                  <p className="text-sm" style={{ color: '#5A5A5A' }}>View payroll history and pay stubs</p>
+                  <Label className="font-medium" className="text-gray-900">Pay Stubs</Label>
+                  <p className="text-sm" className="text-gray-500">View payroll history and pay stubs</p>
                 </div>
                 <Switch
                   checked={employeePortalSettings.can_view_pay_stubs}
@@ -730,8 +730,8 @@ export default function CompanySettings() {
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
                 <div>
-                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Time Clock</Label>
-                  <p className="text-sm" style={{ color: '#5A5A5A' }}>Clock in/out and track breaks</p>
+                  <Label className="font-medium" className="text-gray-900">Time Clock</Label>
+                  <p className="text-sm" className="text-gray-500">Clock in/out and track breaks</p>
                 </div>
                 <Switch
                   checked={employeePortalSettings.can_view_time_clock}
@@ -742,8 +742,8 @@ export default function CompanySettings() {
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
                 <div>
-                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Edit Profile</Label>
-                  <p className="text-sm" style={{ color: '#5A5A5A' }}>Update their own contact information</p>
+                  <Label className="font-medium" className="text-gray-900">Edit Profile</Label>
+                  <p className="text-sm" className="text-gray-500">Update their own contact information</p>
                 </div>
                 <Switch
                   checked={employeePortalSettings.can_edit_profile}
@@ -757,15 +757,15 @@ export default function CompanySettings() {
 
           {/* Sensitive Information */}
           <div className="space-y-4">
-            <h4 className="font-medium text-sm uppercase tracking-wider flex items-center gap-2" style={{ color: '#5A5A5A' }}>
+            <h4 className="font-medium text-sm uppercase tracking-wider flex items-center gap-2" className="text-gray-500">
               <Shield className="h-4 w-4" />
               Sensitive Information Access
             </h4>
             <div className="grid gap-3">
               <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#FFF9E6' }}>
                 <div>
-                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Job Details</Label>
-                  <p className="text-sm" style={{ color: '#5A5A5A' }}>See full job specifications and notes</p>
+                  <Label className="font-medium" className="text-gray-900">Job Details</Label>
+                  <p className="text-sm" className="text-gray-500">See full job specifications and notes</p>
                 </div>
                 <Switch
                   checked={employeePortalSettings.can_see_job_details}
@@ -776,8 +776,8 @@ export default function CompanySettings() {
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#FFF9E6' }}>
                 <div>
-                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Customer Information</Label>
-                  <p className="text-sm" style={{ color: '#5A5A5A' }}>See customer names and contact details</p>
+                  <Label className="font-medium" className="text-gray-900">Customer Information</Label>
+                  <p className="text-sm" className="text-gray-500">See customer names and contact details</p>
                 </div>
                 <Switch
                   checked={employeePortalSettings.can_see_customer_info}
@@ -788,8 +788,8 @@ export default function CompanySettings() {
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#FFF9E6' }}>
                 <div>
-                  <Label className="font-medium" style={{ color: '#1A1A1A' }}>Pricing Information</Label>
-                  <p className="text-sm" style={{ color: '#5A5A5A' }}>See job prices and financial details</p>
+                  <Label className="font-medium" className="text-gray-900">Pricing Information</Label>
+                  <p className="text-sm" className="text-gray-500">See job prices and financial details</p>
                 </div>
                 <Switch
                   checked={employeePortalSettings.can_see_pricing}
@@ -822,26 +822,26 @@ export default function CompanySettings() {
       {/* Account Info Card */}
       <Card className="border" style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }}>
         <CardHeader>
-          <CardTitle style={{ color: '#1A1A1A' }}>Account Details</CardTitle>
-          <CardDescription style={{ color: '#5A5A5A' }}>
+          <CardTitle className="text-gray-900">Account Details</CardTitle>
+          <CardDescription className="text-gray-500">
             Information about your SignGuy AI subscription
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 rounded-lg" style={{ background: '#F5F7FA' }}>
-              <p className="text-sm" style={{ color: '#5A5A5A' }}>Subscription Plan</p>
-              <p className="text-lg font-semibold capitalize" style={{ color: '#1A1A1A' }}>{tenant.plan}</p>
+              <p className="text-sm" className="text-gray-500">Subscription Plan</p>
+              <p className="text-lg font-semibold capitalize" className="text-gray-900">{tenant.plan}</p>
             </div>
             <div className="p-4 rounded-lg" style={{ background: '#F5F7FA' }}>
-              <p className="text-sm" style={{ color: '#5A5A5A' }}>Account Status</p>
+              <p className="text-sm" className="text-gray-500">Account Status</p>
               <p className="text-lg font-semibold" style={{ color: tenant.is_active ? '#10b981' : '#ef4444' }}>
                 {tenant.is_active ? 'Active' : 'Inactive'}
               </p>
             </div>
             <div className="p-4 rounded-lg" style={{ background: '#F5F7FA' }}>
-              <p className="text-sm" style={{ color: '#5A5A5A' }}>Created</p>
-              <p className="text-lg font-semibold" style={{ color: '#1A1A1A' }}>
+              <p className="text-sm" className="text-gray-500">Created</p>
+              <p className="text-lg font-semibold" className="text-gray-900">
                 {new Date(tenant.created_at).toLocaleDateString()}
               </p>
             </div>
@@ -852,8 +852,8 @@ export default function CompanySettings() {
       {/* Pricing Setup Card */}
       <Card className="border" style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }}>
         <CardHeader>
-          <CardTitle style={{ color: '#1A1A1A' }}>Pricing Setup</CardTitle>
-          <CardDescription style={{ color: '#5A5A5A' }}>
+          <CardTitle className="text-gray-900">Pricing Setup</CardTitle>
+          <CardDescription className="text-gray-500">
             Configure cost settings and import historical invoices for AI benchmark review
           </CardDescription>
         </CardHeader>
@@ -865,10 +865,10 @@ export default function CompanySettings() {
             data-testid="settings-pricing-setup-link"
           >
             <div>
-              <p className="font-medium" style={{ color: '#1A1A1A' }}>Historical Invoice Import & Pricing Setup</p>
-              <p className="text-sm mt-1" style={{ color: '#5A5A5A' }}>Review AI-generated selling benchmarks before saving them to pricing settings</p>
+              <p className="font-medium" className="text-gray-900">Historical Invoice Import & Pricing Setup</p>
+              <p className="text-sm mt-1" className="text-gray-500">Review AI-generated selling benchmarks before saving them to pricing settings</p>
             </div>
-            <span style={{ color: '#5A5A5A' }}>&rarr;</span>
+            <span className="text-gray-500">&rarr;</span>
           </button>
         </CardContent>
       </Card>
@@ -876,8 +876,8 @@ export default function CompanySettings() {
       {/* Data Management Card */}
       <Card className="border" style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }}>
         <CardHeader>
-          <CardTitle style={{ color: '#1A1A1A' }}>Data Management</CardTitle>
-          <CardDescription style={{ color: '#5A5A5A' }}>
+          <CardTitle className="text-gray-900">Data Management</CardTitle>
+          <CardDescription className="text-gray-500">
             Backup and restore your business data
           </CardDescription>
         </CardHeader>
@@ -889,10 +889,10 @@ export default function CompanySettings() {
             data-testid="settings-backup-link"
           >
             <div>
-              <p className="font-medium" style={{ color: '#1A1A1A' }}>Backup & Restore</p>
-              <p className="text-sm mt-1" style={{ color: '#5A5A5A' }}>Download your data or restore from a previous backup</p>
+              <p className="font-medium" className="text-gray-900">Backup & Restore</p>
+              <p className="text-sm mt-1" className="text-gray-500">Download your data or restore from a previous backup</p>
             </div>
-            <span style={{ color: '#5A5A5A' }}>&rarr;</span>
+            <span className="text-gray-500">&rarr;</span>
           </button>
         </CardContent>
       </Card>

@@ -1,10 +1,11 @@
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
+import uuid
 from io import BytesIO
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from reportlab.lib import colors
@@ -435,3 +436,96 @@ async def export_profit_analytics(
         return StreamingResponse(output, media_type="application/pdf", headers={"Content-Disposition": "attachment; filename=profit_margin_dashboard.pdf"})
 
     raise HTTPException(status_code=400, detail="Unsupported export format")
+
+
+# ==================== FINANCIAL ENTRIES (Sales + Expenses) ====================
+
+financials_router = APIRouter(prefix="/financials", tags=["Financials"])
+
+
+@financials_router.post("/sales")
+async def create_sales_entry(request: Request, current_user: UserInDB = Depends(get_current_active_user)):
+    body = await request.json()
+    db = _get_db()
+    entry = {
+        "id": str(uuid.uuid4()),
+        "tenant_id": current_user.tenant_id,
+        "date": body.get("date", datetime.now(timezone.utc).strftime("%Y-%m-%d")),
+        "amount": float(body.get("amount", 0)),
+        "tax_amount": float(body.get("tax_amount", 0)),
+        "payment_method": body.get("payment_method", "cash"),
+        "description": body.get("description", ""),
+        "category": body.get("category", "general"),
+        "created_by": current_user.id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.sales_entries.insert_one(entry)
+    entry.pop("_id", None)
+    return entry
+
+
+@financials_router.get("/sales")
+async def get_sales_entries(start_date: str = None, end_date: str = None, current_user: UserInDB = Depends(get_current_active_user)):
+    db = _get_db()
+    query = {"tenant_id": current_user.tenant_id}
+    if start_date:
+        query["date"] = {"$gte": start_date}
+    if end_date:
+        query.setdefault("date", {})["$lte"] = end_date
+    entries = await db.sales_entries.find(query, {"_id": 0}).sort("date", -1).to_list(200)
+    return entries
+
+
+@financials_router.post("/expenses")
+async def create_expense_entry(request: Request, current_user: UserInDB = Depends(get_current_active_user)):
+    body = await request.json()
+    db = _get_db()
+    entry = {
+        "id": str(uuid.uuid4()),
+        "tenant_id": current_user.tenant_id,
+        "date": body.get("date", datetime.now(timezone.utc).strftime("%Y-%m-%d")),
+        "amount": float(body.get("amount", 0)),
+        "category": body.get("category", "materials"),
+        "description": body.get("description", ""),
+        "vendor": body.get("vendor", ""),
+        "created_by": current_user.id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.expense_entries.insert_one(entry)
+    entry.pop("_id", None)
+    return entry
+
+
+@financials_router.get("/expenses")
+async def get_expense_entries(start_date: str = None, end_date: str = None, current_user: UserInDB = Depends(get_current_active_user)):
+    db = _get_db()
+    query = {"tenant_id": current_user.tenant_id}
+    if start_date:
+        query["date"] = {"$gte": start_date}
+    if end_date:
+        query.setdefault("date", {})["$lte"] = end_date
+    entries = await db.expense_entries.find(query, {"_id": 0}).sort("date", -1).to_list(200)
+    return entries
+
+
+@financials_router.get("/summary")
+async def get_financial_summary(start_date: str = None, end_date: str = None, current_user: UserInDB = Depends(get_current_active_user)):
+    db = _get_db()
+    query = {"tenant_id": current_user.tenant_id}
+    if start_date:
+        query["date"] = {"$gte": start_date}
+    if end_date:
+        query.setdefault("date", {})["$lte"] = end_date
+
+    sales = await db.sales_entries.find(query, {"_id": 0, "amount": 1}).to_list(1000)
+    expenses = await db.expense_entries.find(query, {"_id": 0, "amount": 1}).to_list(1000)
+    total_sales = sum(s.get("amount", 0) for s in sales)
+    total_expenses = sum(e.get("amount", 0) for e in expenses)
+
+    return {
+        "total_sales": round(total_sales, 2),
+        "total_expenses": round(total_expenses, 2),
+        "net_profit": round(total_sales - total_expenses, 2),
+        "sales_count": len(sales),
+        "expense_count": len(expenses),
+    }

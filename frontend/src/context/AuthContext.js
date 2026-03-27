@@ -232,6 +232,8 @@ export function AuthProvider({ children }) {
 
   // Check if user has a specific permission
   const hasPermission = (permission) => {
+    // Owner has all permissions
+    if (user?.role === UserRole.OWNER || user?.role === 'owner') return true;
     return permissions.includes(permission);
   };
 

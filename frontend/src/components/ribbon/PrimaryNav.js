@@ -19,7 +19,8 @@ const primaryNavItems = [
   { id: 'documents', label: 'Documents', icon: FolderOpen, path: '/documents' },
   { id: 'team', label: 'Team', icon: UserCog, path: '/payroll' },
   { id: 'ai-tools', label: 'AI Tools', icon: Sparkles, path: '/ai-tools' },
-  { id: 'reports', label: 'Reports', icon: BarChart3, path: '/financials' },
+  { id: 'financials', label: 'Financials', icon: DollarSign, path: '/financials' },
+  { id: 'reports', label: 'Reports', icon: BarChart3, path: '/reports' },
   { id: 'community', label: 'Community', icon: MessageCircle, path: '/community' },
   { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
 ];
@@ -59,15 +60,19 @@ export const tabSubItems = {
     { label: 'AI Tools', icon: Sparkles, path: '/ai-tools' },
     { label: 'AI Assistant', icon: MessageCircle, path: '/ai-assistant' },
   ],
+  financials: [
+    { label: 'Daily Sales & Expenses', icon: DollarSign, path: '/financials' },
+  ],
   reports: [
-    { label: 'Financials', icon: DollarSign, path: '/financials' },
     { label: 'Profit & Margin Analytics', icon: BarChart3, path: '/reports/profit-margin' },
     { label: 'Productivity', icon: BarChart3, path: '/productivity' },
+    { label: 'Sales Analytics', icon: DollarSign, path: '/financials' },
+    { label: 'Webstore Analytics', icon: Store, path: '/webstores' },
   ],
   community: [
     { label: 'Community Hub', icon: MessageCircle, path: '/community' },
     { label: 'Documentation', icon: BookOpen, path: '/docs' },
-    { label: 'Contact Support', icon: Mail, href: 'mailto:thesigntistslab@gmail.com?subject=SignGuy%20AI%20Support' },
+    { label: 'Contact Support', icon: Mail, path: '/contact-support', href: 'mailto:donnell@signguy-ai.com?subject=SignGuy%20AI%20Support%20Request' },
   ],
   settings: [
     { label: 'Company', icon: Settings, path: '/settings' },
@@ -110,7 +115,8 @@ const routeToNavItem = {
   '/users': 'team',
   '/ai-tools': 'ai-tools',
   '/ai-assistant': 'ai-tools',
-  '/financials': 'reports',
+  '/financials': 'financials',
+  '/reports': 'reports',
   '/reports/profit-margin': 'reports',
   '/productivity': 'reports',
   '/community': 'community',

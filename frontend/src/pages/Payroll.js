@@ -853,29 +853,27 @@ function ScheduleTab({ employees, api, canEdit }) {
         )}
 
         {/* Edit shift dialog */}
-        {editCell && (
-          <Dialog open={!!editCell} onOpenChange={() => setEditCell(null)}>
-            <DialogContent className="sm:max-w-[350px]">
-              <DialogHeader>
-                <DialogTitle>Set Shift — {editCell.day.charAt(0).toUpperCase() + editCell.day.slice(1)}</DialogTitle>
-                <DialogDescription>{employees.find(e => e.id === editCell.empId)?.name}</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label>Start Time</Label><Input type="time" value={shiftForm.start} onChange={e => setShiftForm(p => ({ ...p, start: e.target.value }))} /></div>
-                  <div><Label>End Time</Label><Input type="time" value={shiftForm.end} onChange={e => setShiftForm(p => ({ ...p, end: e.target.value }))} /></div>
-                </div>
-                <div><Label>Notes</Label><Input value={shiftForm.notes} onChange={e => setShiftForm(p => ({ ...p, notes: e.target.value }))} placeholder="Optional" /></div>
-                <div className="flex gap-2">
-                  <Button onClick={saveShift} disabled={saving} className="flex-1 bg-violet-600 hover:bg-violet-700 text-white">
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null} Save
-                  </Button>
-                  <Button variant="outline" onClick={clearShift} disabled={saving} className="text-red-500">Clear</Button>
-                </div>
+        <Dialog open={!!editCell} onOpenChange={() => setEditCell(null)}>
+          <DialogContent className="sm:max-w-[350px]">
+            <DialogHeader>
+              <DialogTitle>Set Shift{editCell ? ` — ${editCell.day.charAt(0).toUpperCase() + editCell.day.slice(1)}` : ''}</DialogTitle>
+              <DialogDescription>{editCell ? (employees.find(e => e.id === editCell.empId)?.name || '') : ''}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Start Time</Label><Input type="time" value={shiftForm.start} onChange={e => setShiftForm(p => ({ ...p, start: e.target.value }))} /></div>
+                <div><Label>End Time</Label><Input type="time" value={shiftForm.end} onChange={e => setShiftForm(p => ({ ...p, end: e.target.value }))} /></div>
               </div>
-            </DialogContent>
-          </Dialog>
-        )}
+              <div><Label>Notes</Label><Input value={shiftForm.notes} onChange={e => setShiftForm(p => ({ ...p, notes: e.target.value }))} placeholder="Optional" /></div>
+              <div className="flex gap-2">
+                <Button onClick={saveShift} disabled={saving} className="flex-1 bg-violet-600 hover:bg-violet-700 text-white">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null} Save
+                </Button>
+                <Button variant="outline" onClick={clearShift} disabled={saving} className="text-red-500">Clear</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

@@ -125,7 +125,7 @@ export default function PaymentSettings() {
     <div className="space-y-6" data-testid="payment-settings">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Payment Settings</h1>
-        <p className="text-muted-foreground">
+        <p className="text-gray-500">
           Connect your Stripe account to accept payments for invoices and webstore orders
         </p>
       </div>
@@ -146,8 +146,8 @@ export default function PaymentSettings() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${connectStatus?.connected ? 'bg-green-500/10' : 'bg-muted'}`}>
-                <CreditCard className={`h-5 w-5 ${connectStatus?.connected ? 'text-green-500' : 'text-muted-foreground'}`} />
+              <div className={`p-2 rounded-lg ${connectStatus?.connected ? 'bg-green-500/10' : 'bg-gray-50'}`}>
+                <CreditCard className={`h-5 w-5 ${connectStatus?.connected ? 'text-green-500' : 'text-gray-500'}`} />
               </div>
               <div>
                 <CardTitle className="text-lg">Stripe Account</CardTitle>
@@ -171,7 +171,7 @@ export default function PaymentSettings() {
             <>
               {/* Status indicators */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-50">
                   {connectStatus.charges_enabled ? (
                     <Check className="h-4 w-4 text-green-500" />
                   ) : (
@@ -181,7 +181,7 @@ export default function PaymentSettings() {
                     Payments {connectStatus.charges_enabled ? 'Enabled' : 'Disabled'}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-50">
                   {connectStatus.payouts_enabled ? (
                     <Check className="h-4 w-4 text-green-500" />
                   ) : (
@@ -227,20 +227,20 @@ export default function PaymentSettings() {
             <>
               {/* Benefits of connecting */}
               <div className="grid sm:grid-cols-3 gap-4 py-4">
-                <div className="flex flex-col items-center text-center p-4 rounded-lg bg-muted/30">
+                <div className="flex flex-col items-center text-center p-4 rounded-lg bg-gray-50">
                   <CreditCard className="h-8 w-8 text-primary mb-2" />
                   <h4 className="font-medium">Accept Cards</h4>
-                  <p className="text-xs text-muted-foreground">Credit & debit cards</p>
+                  <p className="text-xs text-gray-500">Credit & debit cards</p>
                 </div>
-                <div className="flex flex-col items-center text-center p-4 rounded-lg bg-muted/30">
+                <div className="flex flex-col items-center text-center p-4 rounded-lg bg-gray-50">
                   <Shield className="h-8 w-8 text-primary mb-2" />
                   <h4 className="font-medium">Secure Payments</h4>
-                  <p className="text-xs text-muted-foreground">PCI compliant</p>
+                  <p className="text-xs text-gray-500">PCI compliant</p>
                 </div>
-                <div className="flex flex-col items-center text-center p-4 rounded-lg bg-muted/30">
+                <div className="flex flex-col items-center text-center p-4 rounded-lg bg-gray-50">
                   <TrendingUp className="h-8 w-8 text-primary mb-2" />
                   <h4 className="font-medium">Fast Payouts</h4>
-                  <p className="text-xs text-muted-foreground">Direct to your bank</p>
+                  <p className="text-xs text-gray-500">Direct to your bank</p>
                 </div>
               </div>
 
@@ -282,7 +282,7 @@ export default function PaymentSettings() {
               </div>
               <div>
                 <h4 className="font-medium">Connect Your Stripe Account</h4>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-500">
                   Link your existing Stripe account or create a new one. This takes about 5 minutes.
                 </p>
               </div>
@@ -293,7 +293,7 @@ export default function PaymentSettings() {
               </div>
               <div>
                 <h4 className="font-medium">Customers Pay Online</h4>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-500">
                   Invoices include a "Pay Now" button. Webstore customers checkout with card.
                 </p>
               </div>
@@ -304,7 +304,7 @@ export default function PaymentSettings() {
               </div>
               <div>
                 <h4 className="font-medium">Money Goes to You</h4>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-500">
                   Funds are deposited directly to your bank account (minus Stripe fees + {connectStatus?.platform_fee_percent || 3}% platform fee).
                 </p>
               </div>
