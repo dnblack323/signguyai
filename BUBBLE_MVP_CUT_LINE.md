@@ -23,8 +23,8 @@ Everything else is optimization.
 | Type | Reason |
 |------|--------|
 | ✅ Customer | Can't do business without customers |
-| ✅ Job | Core work tracking unit |
-| ✅ JobItem | What's being produced |
+| ✅ Order | Core work tracking unit |
+| ✅ JobTicket | What's being produced |
 | ✅ Invoice | Getting paid |
 | ✅ Employee | Who works here |
 | ✅ TimeLog | Clock in/out for payroll |
@@ -37,8 +37,8 @@ Everything else is optimization.
 |------------|--------|
 | ✅ CustomerStatus | lead, active, inactive |
 | ✅ OrderStatus | quoted, approved, in_production, complete |
-| ✅ JobItemStatus | pending, in_production, done |
-| ✅ JobItemType | Core product types only |
+| ✅ JobTicketStatus | pending, in_production, done |
+| ✅ JobTicketType | Core product types only |
 | ✅ InvoiceStatus | draft, sent, paid |
 | ✅ PayrollTransactionType | earnings, payment |
 | ✅ TimeLogAction | start_work, end_work |
@@ -49,7 +49,7 @@ Everything else is optimization.
 |------|--------|
 | ✅ Dashboard | Daily overview |
 | ✅ Customers | Customer list and details |
-| ✅ Orders | Job list with status |
+| ✅ Orders | Order list with status |
 | ✅ Order Details | Manage single job + items |
 | ✅ Invoices | Create and track invoices |
 | ✅ Time Clock | Employees clock in/out |
@@ -63,21 +63,21 @@ Everything else is optimization.
 - ✅ Update Customer
 - ✅ Delete Customer
 
-**Job:**
+**Order:**
 - ✅ Create Order
-- ✅ Update Job
+- ✅ Update Order
 - ✅ Change Order Status
-- ✅ Mark Job Complete
+- ✅ Mark Order Complete
 
-**JobItem:**
-- ✅ Add Job Item
-- ✅ Update Job Item
-- ✅ Delete Job Item
-- ✅ Recalculate Job Subtotal
+**JobTicket:**
+- ✅ Add Order Item
+- ✅ Update Order Item
+- ✅ Delete Order Item
+- ✅ Recalculate Order Subtotal
 
 **Invoice:**
 - ✅ Create Invoice
-- ✅ Create Invoice from Job
+- ✅ Create Invoice from Order
 - ✅ Update Invoice
 - ✅ Mark Invoice Paid
 - ✅ Recalculate Invoice Total
@@ -98,8 +98,8 @@ Everything else is optimization.
 |---------|-------|
 | ✅ Customer CRUD | Name, company, phone, email, status |
 | ✅ Order Management | Create, status changes, complete |
-| ✅ Job Items | Add items with qty, price, total |
-| ✅ Job Subtotal | Auto-calculated from items |
+| ✅ Order Items | Add items with qty, price, total |
+| ✅ Order Subtotal | Auto-calculated from items |
 | ✅ Basic Invoice | Create from job, mark paid |
 | ✅ Simple Time Clock | Start work, end work only |
 | ✅ Basic Payroll | Earnings and payments |
@@ -115,8 +115,8 @@ Everything else is optimization.
 |------|-----------------|
 | ❌ Quote | Can create Orders directly |
 | ❌ QuoteLineItem | No quotes = no line items |
-| ❌ JobNote | Can use Job description field |
-| ❌ JobActivity | Nice audit trail, not essential |
+| ❌ OrderNote | Can use Order description field |
+| ❌ OrderActivity | Nice audit trail, not essential |
 | ❌ SalesEntry | Use Invoice.paid for revenue |
 | ❌ Task | Use paper/whiteboard for now |
 | ❌ AIResponse | AI is enhancement, not core |
@@ -129,7 +129,7 @@ Everything else is optimization.
 | Option Set | Reason to Defer |
 |------------|-----------------|
 | ❌ QuoteStatus | No quotes in MVP |
-| ❌ JobActivityType | No activity logging |
+| ❌ OrderActivityType | No activity logging |
 | ❌ ExpenseCategory | Simple expenses, no categories |
 | ❌ WebstoreType | No webstores |
 | ❌ FundraiserStatus | No webstores |
@@ -149,10 +149,10 @@ Everything else is optimization.
 | Workflow | Reason to Defer |
 |----------|-----------------|
 | ❌ All Quote workflows | No quotes |
-| ❌ Quote → Job conversion | No quotes |
-| ❌ Job Archive/Unarchive | Just mark complete |
-| ❌ JobNote CRUD | Use description |
-| ❌ JobActivity logging | Not essential |
+| ❌ Quote → Order conversion | No quotes |
+| ❌ Order Archive/Unarchive | Just mark complete |
+| ❌ OrderNote CRUD | Use description |
+| ❌ OrderActivity logging | Not essential |
 | ❌ Break tracking | Start/end only for MVP |
 | ❌ Shift summary calc | Simple hours only |
 | ❌ Payroll report | Basic balance only |
@@ -166,8 +166,8 @@ Everything else is optimization.
 | Feature | Why Defer |
 |---------|-----------|
 | ❌ Quotes/Estimates | Orders can start without formal quote |
-| ❌ Quote → Job conversion | No quotes |
-| ❌ Job Notes | Use description or paper |
+| ❌ Quote → Order conversion | No quotes |
+| ❌ Order Notes | Use description or paper |
 | ❌ Activity Logging | Nice to have, not essential |
 | ❌ Break Tracking | Calculate breaks manually |
 | ❌ Overtime Calculation | Handle in spreadsheet initially |
@@ -248,7 +248,7 @@ Full CRUD, no changes needed.
 ### Orders (Simplified)
 
 **Keep:**
-- Job list with status filter
+- Order list with status filter
 - Create job form
 - Status change dropdown
 
@@ -259,8 +259,8 @@ Full CRUD, no changes needed.
 ### Order Details (Simplified)
 
 **Keep:**
-- Job header with status
-- Job items table
+- Order header with status
+- Order tickets table
 - Subtotal display
 - Create Invoice button
 
@@ -337,7 +337,7 @@ Full CRUD, no changes needed.
 - created_at
 ```
 
-### Job (Simplified)
+### Order (Simplified)
 ```
 - id
 - customer (reference)
@@ -354,7 +354,7 @@ REMOVED:
 - is_archived → just use status
 ```
 
-### JobItem (Simplified)
+### JobTicket (Simplified)
 ```
 - id
 - job (reference)
@@ -453,51 +453,51 @@ REMOVED:
    Action: Delete Customer
 ```
 
-### Job Workflows (4)
+### Order Workflows (4)
 ```
 1. Create Order
    Trigger: Submit form
    Action: Create Order with customer, name, status=quoted
 
-2. Update Job
+2. Update Order
    Trigger: Submit edit form
-   Action: Make changes to Job
+   Action: Make changes to Order
 
 3. Change Order Status
    Trigger: Status dropdown change
-   Action: Make changes to Job (status)
+   Action: Make changes to Order (status)
 
-4. Mark Job Complete
+4. Mark Order Complete
    Trigger: Complete button
-   Action: Make changes to Job (status=complete)
+   Action: Make changes to Order (status=complete)
 ```
 
-### JobItem Workflows (4)
+### JobTicket Workflows (4)
 ```
-1. Add Job Item
+1. Add Order Item
    Trigger: Submit item form
    Actions:
    - Create OrderItem
    - Calculate line_total = qty × price
    - Recalculate parent Order.subtotal
 
-2. Update Job Item
+2. Update Order Item
    Trigger: Submit item edit
    Actions:
-   - Make changes to JobItem
+   - Make changes to JobTicket
    - Recalculate line_total
    - Recalculate parent Order.subtotal
 
-3. Delete Job Item
+3. Delete Order Item
    Trigger: Confirm delete
    Actions:
-   - Delete JobItem
+   - Delete JobTicket
    - Recalculate parent Order.subtotal
 
-4. Recalculate Job Subtotal
+4. Recalculate Order Subtotal
    (Called by above workflows)
-   Action: Make changes to Job
-   - subtotal = Search JobItems (job=This):sum line_total
+   Action: Make changes to Order
+   - subtotal = Search JobTickets (job=This):sum line_total
 ```
 
 ### Invoice Workflows (4)
@@ -506,11 +506,11 @@ REMOVED:
    Trigger: Submit form
    Action: Create Invoice with line items, calculate total
 
-2. Create Invoice from Job
+2. Create Invoice from Order
    Trigger: Button on Order Details
    Actions:
-   - Create Invoice (customer=Job's customer, job=This Job)
-   - Copy JobItems to InvoiceLineItems
+   - Create Invoice (customer=Order's customer, job=This Order)
+   - Copy JobTickets to InvoiceLineItems
    - Calculate total
 
 3. Update Invoice
@@ -576,8 +576,8 @@ REMOVED:
 
 ### Phase 2: Quotes & Polish (Week 2-3)
 - Quote data type and workflows
-- Quote → Job conversion
-- Job notes
+- Quote → Order conversion
+- Order notes
 - Activity logging
 - Break tracking in time clock
 - Expense categories
@@ -598,13 +598,13 @@ REMOVED:
 ### Phase 5: Customer Portal (Week 7-8)
 - Customer login
 - Quote approval
-- Job status viewing
+- Order status viewing
 - Invoice viewing/payment
 
 ### Phase 6: Webstores (Week 9-10)
 - Fundraiser campaigns
 - B2B stores
-- Order → Job automation
+- Order → Order automation
 
 ### Phase 7: Integrations (Week 11-12)
 - Stripe payments
@@ -638,7 +638,7 @@ REMOVED:
 
 ```
 □ Quotes
-□ Job notes
+□ Order notes
 □ Activity log
 □ Break tracking
 □ Overtime
@@ -664,7 +664,7 @@ REMOVED:
 > 
 > The MVP includes everything needed to run daily operations:
 > - Customer management
-> - Job tracking with line items
+> - Order tracking with line items
 > - Basic invoicing
 > - Time clock (in/out)
 > - Payroll (earnings/payments)

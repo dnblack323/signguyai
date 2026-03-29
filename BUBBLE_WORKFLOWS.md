@@ -297,9 +297,9 @@ SET updated_at = NOW()
 
 ---
 
-### WF-QUOTE-07: Convert Quote to Job
+### WF-QUOTE-07: Convert Quote to Order
 
-**Trigger:** User clicks "Convert to Job" button
+**Trigger:** User clicks "Convert to Order" button
 
 **Conditions:**
 - Quote with `quote_id` must exist
@@ -312,7 +312,7 @@ SET updated_at = NOW()
 4. **CREATE NEW JOB:**
    - Generate new UUID for job `id`
    - Set `customer_id` = quote's `customer_id`
-   - Set `name` = "Job from Quote #{quote_id first 8 chars}"
+   - Set `name` = "Order from Quote #{quote_id first 8 chars}"
    - Set `description` = quote's `notes`
    - Set `status` = "approved"
    - Set `quote_id` = quote's `id`
@@ -344,7 +344,7 @@ INSERT INTO orders:
 {
   id: generated UUID,
   customer_id: quote.customer_id,
-  name: "Job from Quote #" + quote_id.substring(0,8),
+  name: "Order from Quote #" + quote_id.substring(0,8),
   description: quote.notes,
   status: "approved",
   due_date: null,
@@ -382,18 +382,18 @@ INSERT INTO job_activities:
   id: generated UUID,
   order_id: new_job.id,
   activity_type: "quote_converted",
-  description: "Job created from Quote #" + quote_id.substring(0,8),
+  description: "Order created from Quote #" + quote_id.substring(0,8),
   old_value: null,
   new_value: quote_id,
   created_at: NOW()
 }
 ```
 
-**Returns:** Created Job object
+**Returns:** Created Order object
 
 ---
 
-## JOB WORKFLOWS
+## ORDER WORKFLOWS
 
 ---
 
@@ -437,26 +437,26 @@ INSERT INTO job_activities:
   id: generated UUID,
   order_id: new_job.id,
   activity_type: "created",
-  description: "Job '" + input.name + "' created",
+  description: "Order '" + input.name + "' created",
   old_value: null,
   new_value: null,
   created_at: NOW()
 }
 ```
 
-**Returns:** Created Job object
+**Returns:** Created Order object
 
 ---
 
-### WF-JOB-02: Update Job
+### WF-JOB-02: Update Order
 
 **Trigger:** User submits job edit form
 
-**Conditions:** Job with `order_id` must exist
+**Conditions:** Order with `order_id` must exist
 
 **Actions:**
 1. Find job by `id`
-2. If not found → ERROR 404 "Job not found"
+2. If not found → ERROR 404 "Order not found"
 3. Update only fields that are provided
 4. **IF status changed:**
    - Log appropriate activity (status_changed, completed, or archived)
@@ -486,7 +486,7 @@ INSERT INTO job_activities:
 }
 ```
 
-**Returns:** Updated Job object
+**Returns:** Updated Order object
 
 ---
 
@@ -494,7 +494,7 @@ INSERT INTO job_activities:
 
 **Trigger:** User changes order status
 
-**Conditions:** Job must exist
+**Conditions:** Order must exist
 
 **Actions:**
 1. Find job by `id`
@@ -533,19 +533,19 @@ quoted → approved → in_production → installed → complete → archived
                             (can skip to complete from any active status)
 ```
 
-**Returns:** Updated Job object
+**Returns:** Updated Order object
 
 ---
 
-### WF-JOB-04: Mark Job Complete
+### WF-JOB-04: Mark Order Complete
 
 **Trigger:** User clicks "Mark Complete" button
 
-**Conditions:** Job must exist
+**Conditions:** Order must exist
 
 **Actions:**
 1. Find job by `id`
-2. If not found → ERROR 404 "Job not found"
+2. If not found → ERROR 404 "Order not found"
 3. Set `status` = "complete"
 4. Log "completed" activity
 5. Set `updated_at` = current timestamp
@@ -563,26 +563,26 @@ INSERT INTO job_activities:
   id: generated UUID,
   order_id: order_id,
   activity_type: "completed",
-  description: "Job marked as complete",
+  description: "Order marked as complete",
   old_value: previous_status,
   new_value: "complete",
   created_at: NOW()
 }
 ```
 
-**Returns:** `{ message: "Job marked as complete" }`
+**Returns:** `{ message: "Order marked as complete" }`
 
 ---
 
-### WF-JOB-05: Archive Job
+### WF-JOB-05: Archive Order
 
 **Trigger:** User clicks "Archive" button
 
-**Conditions:** Job must exist
+**Conditions:** Order must exist
 
 **Actions:**
 1. Find job by `id`
-2. If not found → ERROR 404 "Job not found"
+2. If not found → ERROR 404 "Order not found"
 3. Set `status` = "archived"
 4. Set `is_archived` = true
 5. Log "archived" activity
@@ -602,26 +602,26 @@ INSERT INTO job_activities:
   id: generated UUID,
   order_id: order_id,
   activity_type: "archived",
-  description: "Job archived",
+  description: "Order archived",
   old_value: previous_status,
   new_value: "archived",
   created_at: NOW()
 }
 ```
 
-**Returns:** `{ message: "Job archived" }`
+**Returns:** `{ message: "Order archived" }`
 
 ---
 
-### WF-JOB-06: Unarchive Job
+### WF-JOB-06: Unarchive Order
 
 **Trigger:** User clicks "Unarchive" button
 
-**Conditions:** Job must exist
+**Conditions:** Order must exist
 
 **Actions:**
 1. Find job by `id`
-2. If not found → ERROR 404 "Job not found"
+2. If not found → ERROR 404 "Order not found"
 3. Set `status` = "complete"
 4. Set `is_archived` = false
 5. Log "unarchived" activity
@@ -641,29 +641,29 @@ INSERT INTO job_activities:
   id: generated UUID,
   order_id: order_id,
   activity_type: "unarchived",
-  description: "Job unarchived",
+  description: "Order unarchived",
   old_value: "archived",
   new_value: "complete",
   created_at: NOW()
 }
 ```
 
-**Returns:** `{ message: "Job unarchived" }`
+**Returns:** `{ message: "Order unarchived" }`
 
 ---
 
-### WF-JOB-07: Delete Job
+### WF-JOB-07: Delete Order
 
 **Trigger:** User confirms job deletion
 
-**Conditions:** Job must exist
+**Conditions:** Order must exist
 
 **Actions:**
 1. Delete all related job_items WHERE order_id = order_id
 2. Delete all related job_notes WHERE order_id = order_id
 3. Delete all related job_activities WHERE order_id = order_id
-4. Delete job record
-5. If no record deleted → ERROR 404 "Job not found"
+4. Delete order record
+5. If no record deleted → ERROR 404 "Order not found"
 
 **Data Changes:**
 ```
@@ -673,7 +673,7 @@ DELETE FROM job_activities WHERE order_id = order_id
 DELETE FROM orders WHERE id = order_id
 ```
 
-**Returns:** `{ message: "Job deleted" }`
+**Returns:** `{ message: "Order deleted" }`
 
 ---
 
@@ -694,7 +694,7 @@ DELETE FROM orders WHERE id = order_id
 
 **Data Changes:** None (read-only)
 
-**Returns:** List of matching Job objects
+**Returns:** List of matching Order objects
 
 ---
 
@@ -702,15 +702,15 @@ DELETE FROM orders WHERE id = order_id
 
 ---
 
-### WF-JOBITEM-01: Add Job Item
+### WF-JOBITEM-01: Add Order Item
 
 **Trigger:** User submits "Add Item" form on job
 
-**Conditions:** Job with `order_id` must exist
+**Conditions:** Order with `order_id` must exist
 
 **Actions:**
 1. Find job by `id`
-2. If not found → ERROR 404 "Job not found"
+2. If not found → ERROR 404 "Order not found"
 3. Generate new UUID for job item `id`
 4. **CALCULATE:** `line_total` = `quantity` × `unit_price`
 5. Insert job item record
@@ -748,19 +748,19 @@ INSERT INTO job_activities:
 }
 ```
 
-**Returns:** Created JobItem object
+**Returns:** Created JobTicket object
 
 ---
 
-### WF-JOBITEM-02: Update Job Item
+### WF-JOBITEM-02: Update Order Item
 
 **Trigger:** User submits job item edit form
 
-**Conditions:** JobItem with `item_id` must exist
+**Conditions:** JobTicket with `item_id` must exist
 
 **Actions:**
 1. Find job item by `id`
-2. If not found → ERROR 404 "Job item not found"
+2. If not found → ERROR 404 "Order item not found"
 3. Update only fields that are provided
 4. **RECALCULATE:** `line_total` = `quantity` × `unit_price`
    - Use new values if provided, else existing values
@@ -799,19 +799,19 @@ INSERT INTO job_activities:
 }
 ```
 
-**Returns:** Updated JobItem object
+**Returns:** Updated JobTicket object
 
 ---
 
-### WF-JOBITEM-03: Delete Job Item
+### WF-JOBITEM-03: Delete Order Item
 
 **Trigger:** User clicks delete on job item
 
-**Conditions:** JobItem with `item_id` must exist
+**Conditions:** JobTicket with `item_id` must exist
 
 **Actions:**
 1. Find job item by `id`
-2. If not found → ERROR 404 "Job item not found"
+2. If not found → ERROR 404 "Order item not found"
 3. Store `order_id` for subtotal recalculation
 4. Delete job item record
 5. **RECALCULATE JOB SUBTOTAL:** (see WF-JOBITEM-RECALC)
@@ -839,15 +839,15 @@ INSERT INTO job_activities:
 }
 ```
 
-**Returns:** `{ message: "Job item deleted" }`
+**Returns:** `{ message: "Order item deleted" }`
 
 ---
 
-### WF-JOBITEM-RECALC: Recalculate Job Subtotal
+### WF-JOBITEM-RECALC: Recalculate Order Subtotal
 
 **Trigger:** Called after any job item add/update/delete
 
-**Conditions:** Job must exist
+**Conditions:** Order must exist
 
 **Actions:**
 1. Query all job_items WHERE order_id = order_id
@@ -876,15 +876,15 @@ SET {
 
 ---
 
-### WF-JOBNOTE-01: Add Note to Job
+### WF-JOBNOTE-01: Add Note to Order
 
 **Trigger:** User submits note form on order details
 
-**Conditions:** Job with `order_id` must exist
+**Conditions:** Order with `order_id` must exist
 
 **Actions:**
 1. Find job by `id`
-2. If not found → ERROR 404 "Job not found"
+2. If not found → ERROR 404 "Order not found"
 3. Generate new UUID for note `id`
 4. Insert note record
 5. **LOG ACTIVITY:** Create "note_added" activity
@@ -913,7 +913,7 @@ INSERT INTO job_activities:
 }
 ```
 
-**Returns:** Created JobNote object
+**Returns:** Created OrderNote object
 
 ---
 
@@ -954,7 +954,7 @@ DELETE FROM job_notes WHERE id = note_id
 5. Set `amount_paid` = 0
 6. Set `paid_date` = null
 7. Calculate totals (same as quote line items)
-8. If `order_id` provided → update job with `invoice_id`
+8. If `order_id` provided → update order with `invoice_id`
 
 **Data Changes:**
 ```
@@ -997,19 +997,19 @@ SET invoice_id = new_invoice.id
 
 ---
 
-### WF-INV-02: Create Invoice from Job
+### WF-INV-02: Create Invoice from Order
 
 **Trigger:** User clicks "Create Invoice" on order details
 
-**Conditions:** Job with `order_id` must exist
+**Conditions:** Order with `order_id` must exist
 
 **Actions:**
 1. Find job by `id`
-2. If not found → ERROR 404 "Job not found"
+2. If not found → ERROR 404 "Order not found"
 3. Query all job_items WHERE order_id = order_id
 4. **IF job has items:**
-   - Create invoice line items from job items
-   - Calculate total from job items
+   - Create invoice line items from job tickets
+   - Calculate total from job tickets
 5. **ELSE (no items):**
    - Use job.subtotal as total
    - If subtotal = 0 and job has quote_id → use quote.total
@@ -1020,7 +1020,7 @@ SET invoice_id = new_invoice.id
 
 **Data Changes:**
 ```
-// Get job items
+// Get job tickets
 job_items = SELECT * FROM job_items WHERE order_id = order_id
 
 IF job_items.length > 0:
@@ -1944,8 +1944,8 @@ overdue_count = COUNT(overdue_invoices)
 | Customer | WF-CUST-01 | WF-CUST-04 | WF-CUST-02 | WF-CUST-03 | - |
 | Quote | WF-QUOTE-01 | - | WF-QUOTE-02,03 | - | WF-QUOTE-04,05,06 (line items), WF-QUOTE-07 (convert) |
 | Order | WF-JOB-01 | WF-JOB-08 | WF-JOB-02,03 | WF-JOB-07 | WF-JOB-04 (complete), WF-JOB-05,06 (archive) |
-| JobItem | WF-JOBITEM-01 | - | WF-JOBITEM-02 | WF-JOBITEM-03 | WF-JOBITEM-RECALC (subtotal) |
-| JobNote | WF-JOBNOTE-01 | - | - | WF-JOBNOTE-02 | - |
+| JobTicket | WF-JOBITEM-01 | - | WF-JOBITEM-02 | WF-JOBITEM-03 | WF-JOBITEM-RECALC (subtotal) |
+| OrderNote | WF-JOBNOTE-01 | - | - | WF-JOBNOTE-02 | - |
 | Invoice | WF-INV-01 | - | WF-INV-03 | - | WF-INV-02 (from job), WF-INV-04,05 (status/payment) |
 | TimeClock | WF-TIME-01 | WF-TIME-02,03 | - | - | WF-TIME-04 (summary) |
 | Payroll | WF-PAY-01 | WF-PAY-02 | - | - | WF-PAY-03 (balance), WF-PAY-04 (report), WF-PAY-05 (from hours) |

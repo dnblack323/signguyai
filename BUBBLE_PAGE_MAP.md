@@ -145,7 +145,7 @@
 | Edit Quote | Click edit icon | Opens dialog → WF-QUOTE-02 |
 | Add Line Item | Click "Add Item" | WF-QUOTE-04 |
 | Remove Line Item | Click trash on item | WF-QUOTE-06 |
-| Convert to Job | Click "To Job" button | WF-QUOTE-07 |
+| Convert to Order | Click "To Order" button | WF-QUOTE-07 |
 
 **Form Fields:**
 - customer_id* (select)
@@ -187,7 +187,7 @@
 | Header | Section | Title, count, New Order button |
 | Filter Tabs | Tab Buttons | Active, Completed, Archived (with counts) |
 | Orders List | Card List | Each job shows: name, status badge (dropdown), customer, due date, subtotal |
-| Job Row Actions | Dropdown + Button | View, Mark Complete, Archive, Delete |
+| Order Row Actions | Dropdown + Button | View, Mark Complete, Archive, Delete |
 | New Order Dialog | Modal Form | Create new job |
 
 **Primary Data Sources:**
@@ -234,14 +234,14 @@
 | Component | Type | Description |
 |-----------|------|-------------|
 | Back Button | Button | Returns to Orders list |
-| Header Card | Card | Job name, status dropdown, customer link, due date, edit button, quick actions |
+| Header Card | Card | Order name, status dropdown, customer link, due date, edit button, quick actions |
 | Quick Actions | Button Group | Create Invoice, Mark Complete, Archive/Unarchive |
-| Financial Snapshot | Card Grid (5) | Quote Total, Job Subtotal, Invoiced, Paid, Balance Due |
+| Financial Snapshot | Card Grid (5) | Quote Total, Order Subtotal, Invoiced, Paid, Balance Due |
 | Tabs | Tab Container | Line Items, Notes, Activity |
 | Line Items Table | Table in Tab | Type, Description, Qty, Unit Price, Total, Status dropdown, Actions |
 | Notes List | List in Tab | Add note input + note cards with delete |
 | Activity Log | Scrollable List | Activity icons, descriptions, timestamps |
-| Edit Job Dialog | Modal Form | Edit name, status, due date, description |
+| Edit Order Dialog | Modal Form | Edit name, status, due date, description |
 | Add/Edit Item Dialog | Modal Form | Item form with type, description, qty, price, status, notes |
 
 **Primary Data Sources:**
@@ -251,7 +251,7 @@
 **Key Actions/Workflows:**
 | Action | Trigger | Workflow |
 |--------|---------|----------|
-| Edit Job | Edit button → submit | WF-JOB-02 |
+| Edit Order | Edit button → submit | WF-JOB-02 |
 | Change Status | Status dropdown | WF-JOB-03 |
 | Mark Complete | Quick action button | WF-JOB-04 |
 | Archive/Unarchive | Quick action button | WF-JOB-05 / WF-JOB-06 |
@@ -264,7 +264,7 @@
 | Delete Note | Delete icon on note | WF-JOBNOTE-02 |
 
 **Data-testids:**
-- `job-details-page`
+- `order-details-page`
 - `back-to-orders`
 - `job-status-dropdown`
 - `create-invoice-btn`
@@ -285,7 +285,7 @@
 | Header | Section | Title, count, New Invoice button |
 | Summary Cards (4) | Card Grid | Total, Paid, Pending, Overdue |
 | Status Filter | Select | Filter: All, Draft, Sent, Paid, Overdue |
-| Invoices Table | Table | Columns: Invoice #, Customer, Job, Total, Status, Due Date, Actions |
+| Invoices Table | Table | Columns: Invoice #, Customer, Order, Total, Status, Due Date, Actions |
 | Invoice Dialog | Modal Form | Create/Edit invoice |
 
 **Primary Data Sources:**
@@ -436,7 +436,7 @@
 | Component | Type | Description |
 |-----------|------|-------------|
 | Header | Section | Title, New Task button |
-| View Tabs | Tab List | Tasks (list), Calendar, Job Kanban |
+| View Tabs | Tab List | Tasks (list), Calendar, Order Kanban |
 | Tasks List View | Two-column layout | To Do (incomplete), Completed |
 | Task Item | Checkbox + Card | Title, description, due date badge, job badge |
 | Calendar View | Calendar + Day panel | Calendar with task indicators, selected day's tasks |

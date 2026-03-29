@@ -35,7 +35,7 @@
 
 ---
 
-### JobActivityType
+### OrderActivityType
 | Display | Value | Order |
 |---------|-------|-------|
 | Created | created | 1 |
@@ -52,7 +52,7 @@
 
 ---
 
-### JobItemStatus
+### JobTicketStatus
 | Display | Value | Order |
 |---------|-------|-------|
 | Pending | pending | 1 |
@@ -61,7 +61,7 @@
 
 ---
 
-### JobItemType
+### JobTicketCategory
 | Display | Value | Order |
 |---------|-------|-------|
 | Banner | banner | 1 |
@@ -167,7 +167,7 @@
 
 **Relationships:**
 - Customer → Quote (1:many) - via Quote.customer_id
-- Customer → Job (1:many) - via Job.customer_id
+- Customer → Order (1:many) - vian Order.customer_id
 - Customer → Invoice (1:many) - via Invoice.customer_id
 
 ---
@@ -182,13 +182,13 @@
 | notes | text | NO | NO | empty | Quote notes/terms |
 | status | QuoteStatus (option set) | YES | NO | draft | Quote lifecycle status |
 | total | number | YES | NO | 0 | **CALCULATED** - see below |
-| order_id | Job (thing) | NO | NO | empty | Link to converted Job (null until converted) |
+| order_id | Order (thing) | NO | NO | empty | Link to converted Order (null until converted) |
 | created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
 | updated_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
 
 **Relationships:**
 - Quote → Customer (many:1) - via customer_id
-- Quote → Job (1:1) - via order_id (set when quote converts to job)
+- Quote → Order (1:1) - via order_id (set when quote converts to job)
 - Quote → QuoteLineItem (1:many) - embedded list
 
 **Calculated Fields:**
@@ -210,14 +210,14 @@
 
 ---
 
-### Job
+### Order
 
 | Field Name | Bubble Field Type | Required | List | Default Value | Notes |
 |------------|-------------------|----------|------|---------------|-------|
 | id | text | YES | NO | Auto-generated UUID | Primary key |
 | customer_id | Customer (thing) | YES | NO | - | Link to Customer |
-| name | text | YES | NO | - | Job/project name |
-| description | text | NO | NO | empty | Job description |
+| name | text | YES | NO | - | Order/project name |
+| description | text | NO | NO | empty | Order description |
 | status | OrderStatus (option set) | YES | NO | quoted | Order lifecycle status |
 | due_date | date | NO | NO | empty | Expected completion date |
 | quote_id | Quote (thing) | NO | NO | empty | Link to originating Quote |
@@ -228,72 +228,72 @@
 | updated_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
 
 **Relationships:**
-- Job → Customer (many:1) - via customer_id
-- Job → Quote (1:1) - via quote_id
-- Job → Invoice (1:1) - via invoice_id
-- Job → JobItem (1:many) - via JobItem.order_id
-- Job → JobNote (1:many) - via JobNote.order_id
-- Job → JobActivity (1:many) - via JobActivity.order_id
-- Job → Task (1:many) - via Task.order_id
+- Order → Customer (many:1) - via customer_id
+- Order → Quote (1:1) - via quote_id
+- Order → Invoice (1:1) - via invoice_id
+- Order → JobTicket (1:many) - vian OrderTicket.order_id
+- Order → OrderNote (1:many) - via OrderNote.order_id
+- Order → OrderActivity (1:many) - via OrderActivity.order_id
+- Order → Task (1:many) - via Task.order_id
 
 **Calculated Fields:**
-- `subtotal` = SUM of all JobItems where order_id = this Job's id → line_total
+- `subtotal` = SUM of all JobTickets where order_id = this Order's id → line_total
 
 ---
 
-### JobItem
+### JobTicket
 
 | Field Name | Bubble Field Type | Required | List | Default Value | Notes |
 |------------|-------------------|----------|------|---------------|-------|
 | id | text | YES | NO | Auto-generated UUID | Primary key |
-| order_id | Job (thing) | YES | NO | - | Link to parent Job |
-| item_type | JobItemType (option set) | YES | NO | other | Type of sign/product |
+| order_id | Order (thing) | YES | NO | - | Link to parent Order |
+| item_type | JobTicketCategory (option set) | YES | NO | other | Type of sign/product |
 | description | text | YES | NO | - | Item description |
 | quantity | number | YES | NO | 1 | Quantity |
 | unit_price | number | YES | NO | 0 | Price per unit |
 | line_total | number | YES | NO | 0 | **CALCULATED** - see below |
-| status | JobItemStatus (option set) | YES | NO | pending | Item production status |
+| status | JobTicketStatus (option set) | YES | NO | pending | Item production status |
 | notes | text | NO | NO | empty | Item-specific notes |
 | created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
 
 **Relationships:**
-- JobItem → Job (many:1) - via order_id
-- JobItem → InvoiceLineItem (1:1) - via InvoiceLineItem.job_item_id
+- JobTicket → Order (many:1) - via order_id
+- JobTicket → InvoiceLineItem (1:1) - via InvoiceLineItem.job_item_id
 
 **Calculated Fields:**
 - `line_total` = quantity × unit_price
 
 ---
 
-### JobNote
+### OrderNote
 
 | Field Name | Bubble Field Type | Required | List | Default Value | Notes |
 |------------|-------------------|----------|------|---------------|-------|
 | id | text | YES | NO | Auto-generated UUID | Primary key |
-| order_id | Job (thing) | YES | NO | - | Link to parent Job |
+| order_id | Order (thing) | YES | NO | - | Link to parent Order |
 | content | text | YES | NO | - | Note content |
 | author | text | NO | NO | empty | Person who added note |
 | created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
 
 **Relationships:**
-- JobNote → Job (many:1) - via order_id
+- OrderNote → Order (many:1) - via order_id
 
 ---
 
-### JobActivity
+### OrderActivity
 
 | Field Name | Bubble Field Type | Required | List | Default Value | Notes |
 |------------|-------------------|----------|------|---------------|-------|
 | id | text | YES | NO | Auto-generated UUID | Primary key |
-| order_id | Job (thing) | YES | NO | - | Link to parent Job |
-| activity_type | JobActivityType (option set) | YES | NO | - | Type of activity logged |
+| order_id | Order (thing) | YES | NO | - | Link to parent Order |
+| activity_type | OrderActivityType (option set) | YES | NO | - | Type of activity logged |
 | description | text | YES | NO | - | Human-readable description |
 | old_value | text | NO | NO | empty | Previous value (for changes) |
 | new_value | text | NO | NO | empty | New value (for changes) |
 | created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
 
 **Relationships:**
-- JobActivity → Job (many:1) - via order_id
+- OrderActivity → Order (many:1) - via order_id
 
 ---
 
@@ -303,7 +303,7 @@
 |------------|-------------------|----------|------|---------------|-------|
 | id | text | YES | NO | Auto-generated UUID | Primary key |
 | customer_id | Customer (thing) | YES | NO | - | Link to Customer |
-| order_id | Job (thing) | NO | NO | empty | Link to source Job |
+| order_id | Order (thing) | NO | NO | empty | Link to source Order |
 | line_items | InvoiceLineItem (thing) | NO | YES | empty list | Embedded line items |
 | total | number | YES | NO | 0 | **CALCULATED** - see below |
 | status | InvoiceStatus (option set) | YES | NO | draft | Invoice lifecycle status |
@@ -316,7 +316,7 @@
 
 **Relationships:**
 - Invoice → Customer (many:1) - via customer_id
-- Invoice → Job (1:1) - via order_id
+- Invoice → Order (1:1) - via order_id
 - Invoice → InvoiceLineItem (1:many) - embedded list
 
 **Calculated Fields:**
@@ -333,10 +333,10 @@
 | quantity | number | YES | NO | 1 | Quantity |
 | unit_price | number | YES | NO | 0 | Price per unit |
 | total | number | YES | NO | 0 | **CALCULATED** - see below |
-| job_item_id | JobItem (thing) | NO | NO | empty | Link to source JobItem |
+| job_item_id | JobTicket (thing) | NO | NO | empty | Link to source JobTicket |
 
 **Relationships:**
-- InvoiceLineItem → JobItem (many:1) - via job_item_id (tracks origin)
+- InvoiceLineItem → JobTicket (many:1) - via job_item_id (tracks origin)
 
 **Calculated Fields:**
 - `total` = quantity × unit_price
@@ -444,13 +444,13 @@
 | id | text | YES | NO | Auto-generated UUID | Primary key |
 | title | text | YES | NO | - | Task title |
 | description | text | NO | NO | empty | Task details |
-| order_id | Job (thing) | NO | NO | empty | Link to related Job |
+| order_id | Order (thing) | NO | NO | empty | Link to related Order |
 | due_date | date | NO | NO | empty | Task due date |
 | is_complete | yes/no | YES | NO | no | Completion status |
 | created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
 
 **Relationships:**
-- Task → Job (many:1) - via order_id (optional)
+- Task → Order (many:1) - via order_id (optional)
 
 ---
 
@@ -462,7 +462,7 @@
 | tool | text | YES | NO | - | AI tool name used |
 | input_data | text | YES | NO | - | JSON string of input parameters |
 | output | text | YES | NO | - | AI-generated response |
-| order_id | Job (thing) | NO | NO | empty | Link to related Job |
+| order_id | Order (thing) | NO | NO | empty | Link to related Order |
 | customer_id | Customer (thing) | NO | NO | empty | Link to related Customer |
 | created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
 
@@ -475,7 +475,7 @@
 - design_intake
 
 **Relationships:**
-- AIResponse → Job (many:1) - via order_id (optional)
+- AIResponse → Order (many:1) - via order_id (optional)
 - AIResponse → Customer (many:1) - via customer_id (optional)
 
 ---
@@ -533,11 +533,11 @@
 | items | text | YES | YES | empty list | JSON array of order items |
 | total | number | YES | NO | 0 | Order total amount |
 | status | WebstoreOrderStatus (option set) | YES | NO | pending | Order status |
-| order_id | Job (thing) | NO | NO | empty | Auto-created Job for this order |
+| order_id | Order (thing) | NO | NO | empty | Auto-created Order for this order |
 | created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
 
 **Relationships:**
-- WebstoreOrder → Job (1:1) - via order_id (auto-created)
+- WebstoreOrder → Order (1:1) - via order_id (auto-created)
 - WebstoreOrder → FundraiserCampaign (many:1) - via store_id WHERE store_type = "fundraiser"
 - WebstoreOrder → B2BStore (many:1) - via store_id WHERE store_type = "b2b"
 
@@ -564,12 +564,12 @@ Quote.total = SUM(QuoteLineItem.total for all line_items)
 QuoteLineItem.total = QuoteLineItem.quantity × QuoteLineItem.unit_price
 ```
 
-### Job Subtotal
+### Order Subtotal
 ```
-Order.subtotal = SUM(JobItem.line_total for all JobItems where JobItem.order_id = Job.id)
-JobItem.line_total = JobItem.quantity × JobItem.unit_price
+Order.subtotal = SUM(JobTicket.line_total for all JobTickets where JobTicket.order_id = Order.id)
+JobTicket.line_total = JobTicket.quantity × JobTicket.unit_price
 ```
-**Trigger:** Recalculate when JobItem is added, updated, or deleted.
+**Trigger:** Recalculate when JobTicket is added, updated, or deleted.
 
 ### Invoice Total
 ```
@@ -622,7 +622,7 @@ FundraiserCampaign.total_raised = SUM(WebstoreOrder.total WHERE store_type = "fu
       ├───────────────┐─────────────────┐
       ▼               ▼                 ▼
 ┌─────────────┐ ┌─────────────┐   ┌─────────────┐
-│   Quote     │ │    Job      │   │  Invoice    │
+│   Quote     │ │    Order      │   │  Invoice    │
 └─────┬───────┘ └──────┬──────┘   └─────────────┘
       │                │                 ▲
       │ 1:1            │ 1:many          │ 1:1
@@ -632,7 +632,7 @@ FundraiserCampaign.total_raised = SUM(WebstoreOrder.total WHERE store_type = "fu
       ┌────────────────┼────────────────┬────────────────┐
       ▼                ▼                ▼                ▼
 ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
-│  JobItem    │ │  JobNote    │ │ JobActivity │ │    Task     │
+│  JobTicket    │ │  OrderNote    │ │ OrderActivity │ │    Task     │
 └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘
 
 
@@ -654,27 +654,27 @@ FundraiserCampaign.total_raised = SUM(WebstoreOrder.total WHERE store_type = "fu
           └───────────┬──────────┘
                       ▼
               ┌───────────────┐
-              │WebstoreOrder  │───1:1───▶ Job (auto-created)
+              │WebstoreOrder  │───1:1───▶ Order (auto-created)
               └───────────────┘
 ```
 
 ---
 
-## CORE WORKFLOW: Customer → Quote → Job → Invoice
+## CORE WORKFLOW: Customer → Quote → Order → Invoice
 
 1. **Customer** is created with status `lead`
 2. **Quote** is created linked to Customer
    - Add QuoteLineItems with quantity × unit_price
    - Quote.total is calculated
    - Status: draft → sent → approved/declined
-3. **Job** is created from Quote (via convert action)
-   - JobItems are auto-created from QuoteLineItems
+3. **Order** is created from Quote (via convert action)
+   - JobTickets are auto-created from QuoteLineItems
    - Order.subtotal is calculated
    - Status flows: quoted → approved → in_production → installed → complete → archived
-4. **Invoice** is created from Job
-   - InvoiceLineItems are auto-created from JobItems
+4. **Invoice** is created from Order
+   - InvoiceLineItems are auto-created from JobTickets
    - Invoice.total is calculated
-   - Links back to Job (order_id) and Customer (customer_id)
+   - Links back to Order (order_id) and Customer (customer_id)
    - Status: draft → sent → paid/overdue
 
 ---
@@ -686,9 +686,9 @@ FundraiserCampaign.total_raised = SUM(WebstoreOrder.total WHERE store_type = "fu
 | Customer | customers |
 | Quote | quotes |
 | Order | orders |
-| JobItem | job_items |
-| JobNote | job_notes |
-| JobActivity | job_activities |
+| JobTicket | job_items |
+| OrderNote | job_notes |
+| OrderActivity | job_activities |
 | Invoice | invoices |
 | Employee | employees |
 | TimeLog | timelogs |

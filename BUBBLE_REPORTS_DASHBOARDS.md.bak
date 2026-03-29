@@ -4,15 +4,8 @@
 
 This document defines recommended reports and dashboards for Sign Guy AI. These extend beyond the current MVP implementation to provide comprehensive business intelligence.
 
-**Architecture Note (Updated March 2026):**
-The app now uses a 4-layer production system:
-- **Layer 1: Order** — Master container for customer requests
-- **Layer 2: Job Tickets** — Individual production items within an order
-- **Layer 3: Quotes/Invoices** — Financial documents generated from tickets
-- **Layer 4: Production Tasks** — Department-level workflow stages
-
 **Report Categories:**
-1. Order Pipeline Overview
+1. Job Pipeline Overview
 2. Revenue Summaries
 3. Outstanding Invoices
 4. Payroll Summaries
@@ -20,16 +13,16 @@ The app now uses a 4-layer production system:
 
 ---
 
-## 1. ORDER PIPELINE OVERVIEW
+## 1. JOB PIPELINE OVERVIEW
 
 ### 1.1 Pipeline Kanban Dashboard
 
 **Purpose:** Visual overview of all orders by status stage
 
 **Data Sources:**
-- `Order` (primary)
+- `Job` (primary)
 - `Customer` (for customer name)
-- `JobTicket` (for item count)
+- `JobItem` (for item count)
 
 **Filters:**
 | Filter | Type | Options | Default |
@@ -51,7 +44,7 @@ The app now uses a 4-layer production system:
 **Visual Layout:**
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ ORDER PIPELINE OVERVIEW                          [Date Range] [Customer ▼]   │
+│ JOB PIPELINE OVERVIEW                          [Date Range] [Customer ▼]   │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐     │
@@ -61,11 +54,11 @@ The app now uses a 4-layer production system:
 │  │  $24,500 │  │  $18,200 │  │  $42,100 │  │  $8,400  │  │  $95,000 │     │
 │  │          │  │          │  │          │  │          │  │          │     │
 │  │ ┌──────┐ │  │ ┌──────┐ │  │ ┌──────┐ │  │ ┌──────┐ │  │ ┌──────┐ │     │
-│  │ │ Ord1 │ │  │ │ Ord4 │ │  │ │ Ord7 │ │  │ │Ord12│ │  │ │Ord15│ │     │
+│  │ │ Job1 │ │  │ │ Job4 │ │  │ │ Job7 │ │  │ │Job12│ │  │ │Job15│ │     │
 │  │ │$2,500│ │  │ │$3,100│ │  │ │$4,200│ │  │ │$2,800│ │  │ │$3,500│ │     │
 │  │ └──────┘ │  │ └──────┘ │  │ └──────┘ │  │ └──────┘ │  │ └──────┘ │     │
 │  │ ┌──────┐ │  │ ┌──────┐ │  │ ┌──────┐ │  │          │  │ ┌──────┐ │     │
-│  │ │ Ord2 │ │  │ │ Ord5 │ │  │ │ Ord8 │ │  │          │  │ │Ord16│ │     │
+│  │ │ Job2 │ │  │ │ Job5 │ │  │ │ Job8 │ │  │          │  │ │Job16│ │     │
 │  │ └──────┘ │  │ └──────┘ │  │ └──────┘ │  │          │  │ └──────┘ │     │
 │  │   ...    │  │   ...    │  │   ...    │  │          │  │   ...    │     │
 │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────┘     │
@@ -73,7 +66,7 @@ The app now uses a 4-layer production system:
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ PIPELINE SUMMARY                                                            │
 │ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐            │
-│ │ Active Orders │ │Pipeline Val │ │ Avg Order Val │ │ Avg Days to │            │
+│ │ Active Orders │ │Pipeline Val │ │ Avg Job Val │ │ Avg Days to │            │
 │ │     38      │ │  $93,200    │ │   $2,453    │ │  Complete   │            │
 │ │             │ │             │ │             │ │    12 days  │            │
 │ └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘            │
@@ -87,8 +80,8 @@ The app now uses a 4-layer production system:
 **Purpose:** Track conversion rates through pipeline stages
 
 **Data Sources:**
-- `Order`
-- `OrderActivity` (for stage transition timestamps)
+- `Job`
+- `JobActivity` (for stage transition timestamps)
 
 **Filters:**
 | Filter | Type | Default |
@@ -152,9 +145,9 @@ The app now uses a 4-layer production system:
 **Purpose:** Identify upcoming deadlines and overdue orders
 
 **Data Sources:**
-- `Order`
+- `Job`
 - `Customer`
-- `JobTicket`
+- `JobItem`
 
 **Filters:**
 | Filter | Type | Default |
@@ -185,7 +178,7 @@ The app now uses a 4-layer production system:
 ├─────────────────────────────────────────────────────────────────┤
 │ OVERDUE ORDERS (Immediate Attention Required)                     │
 │ ┌───────────────────────────────────────────────────────────┐  │
-│ │ Order Name          │ Customer    │ Due Date │ Days Over│ $ │  │
+│ │ Job Name          │ Customer    │ Due Date │ Days Over│ $ │  │
 │ ├───────────────────────────────────────────────────────────┤  │
 │ │ Smith Storefront  │ Smith LLC   │ Dec 10   │ 5 days   │2.4k│  │
 │ │ Banner Order #42  │ ABC Corp    │ Dec 12   │ 3 days   │1.1k│  │
@@ -213,7 +206,7 @@ The app now uses a 4-layer production system:
 **Data Sources:**
 - `Invoice` (primary revenue source)
 - `SalesEntry` (daily sales)
-- `Order` (pipeline value)
+- `Job` (pipeline value)
 - `Quote` (potential revenue)
 
 **Filters:**
@@ -342,7 +335,7 @@ The app now uses a 4-layer production system:
 **Data Sources:**
 - `Invoice` (paid)
 - `Customer`
-- `Order`
+- `Job`
 
 **Filters:**
 | Filter | Type | Default |
@@ -356,8 +349,8 @@ The app now uses a 4-layer production system:
 | Metric | Calculation |
 |--------|-------------|
 | Revenue per Customer | SUM(Invoice.total) WHERE paid, GROUP BY customer |
-| Order Count per Customer | COUNT(Orders) GROUP BY customer |
-| Average Order Value | Revenue / Order Count |
+| Job Count per Customer | COUNT(Orders) GROUP BY customer |
+| Average Job Value | Revenue / Job Count |
 | Customer Lifetime Value | Total revenue from customer (all time) |
 | Revenue Concentration | Top 20% customers / Total revenue |
 
@@ -370,7 +363,7 @@ The app now uses a 4-layer production system:
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │ ┌───────────────────────────────────────────────────────────┐  │
-│ │ Customer         │ Revenue  │ Orders │ Avg Order │ % Total   │  │
+│ │ Customer         │ Revenue  │ Orders │ Avg Job │ % Total   │  │
 │ ├───────────────────────────────────────────────────────────┤  │
 │ │ ABC Corporation  │ $48,200  │  15  │ $3,213  │ 22% ████  │  │
 │ │ Smith LLC        │ $32,100  │  12  │ $2,675  │ 15% ███   │  │
@@ -402,7 +395,7 @@ The app now uses a 4-layer production system:
 **Data Sources:**
 - `Invoice` (status ≠ paid)
 - `Customer`
-- `Order`
+- `Job`
 
 **Filters:**
 | Filter | Type | Default |
@@ -748,8 +741,8 @@ The app now uses a 4-layer production system:
 **Purpose:** Track team efficiency and workload
 
 **Data Sources:**
-- `Order`
-- `JobTicket`
+- `Job`
+- `JobItem`
 - `Task`
 - `Employee`
 - `TimeLog`
@@ -766,8 +759,8 @@ The app now uses a 4-layer production system:
 |--------|-------------|
 | Orders Completed | COUNT(Orders) WHERE completed_at IN range |
 | Revenue per Hour | Revenue / Total Hours |
-| Average Order Duration | AVG(days from created to complete) |
-| Items Produced | COUNT(JobTickets) completed |
+| Average Job Duration | AVG(days from created to complete) |
+| Items Produced | COUNT(JobItems) completed |
 | Tasks Completed | COUNT(Tasks) WHERE is_complete = true |
 | Utilization Rate | Billable hours / Total hours |
 
@@ -808,14 +801,14 @@ The app now uses a 4-layer production system:
 
 ---
 
-### 5.2 Order Type Analysis
+### 5.2 Job Type Analysis
 
 **Purpose:** Understand profitability by job/item type
 
 **Data Sources:**
-- `JobTicket`
-- `Order`
-- `TimeLog` (if tracked per order)
+- `JobItem`
+- `Job`
+- `TimeLog` (if tracked per job)
 
 **Filters:**
 | Filter | Type | Default |
@@ -827,16 +820,16 @@ The app now uses a 4-layer production system:
 
 | Metric | Calculation |
 |--------|-------------|
-| Revenue by Type | SUM(JobTicket.line_total) GROUP BY item_type |
-| Order Count by Type | COUNT(DISTINCT order_id) GROUP BY item_type |
-| Average Order Value | Revenue / Order Count per type |
-| Average Item Value | AVG(JobTicket.line_total) per type |
+| Revenue by Type | SUM(JobItem.line_total) GROUP BY item_type |
+| Job Count by Type | COUNT(DISTINCT order_id) GROUP BY item_type |
+| Average Job Value | Revenue / Job Count per type |
+| Average Item Value | AVG(JobItem.line_total) per type |
 | Growth Trend | Compare to previous period |
 
 **Visual Layout:**
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ ORDER TYPE ANALYSIS                            [Last 90 Days ▼]   │
+│ JOB TYPE ANALYSIS                            [Last 90 Days ▼]   │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │ REVENUE BY JOB TYPE                                             │
@@ -852,7 +845,7 @@ The app now uses a 4-layer production system:
 │                                                                 │
 │ TYPE BREAKDOWN                                                  │
 │ ┌───────────────────────────────────────────────────────────┐  │
-│ │ Type            │ Orders │ Revenue │ Avg Order │ Avg Item│Trend│  │
+│ │ Type            │ Orders │ Revenue │ Avg Job │ Avg Item│Trend│  │
 │ ├───────────────────────────────────────────────────────────┤  │
 │ │ Vehicle Wraps   │  12  │ $42,500 │ $3,542  │ $1,180  │ ▲8% │  │
 │ │ Channel Letters │  15  │ $33,600 │ $2,240  │ $840    │ ▲12%│  │
@@ -877,7 +870,7 @@ The app now uses a 4-layer production system:
 
 **Data Sources:**
 - `Task`
-- `Order`
+- `Job`
 
 **Filters:**
 | Filter | Type | Default |
@@ -895,7 +888,7 @@ The app now uses a 4-layer production system:
 | Completion Rate | Completed / Created × 100 |
 | Overdue Tasks | COUNT(Tasks) WHERE due_date < TODAY AND is_complete = false |
 | Average Time to Complete | AVG(completed_at - created_at) |
-| Tasks per Order | AVG(COUNT Tasks) per Order |
+| Tasks per Job | AVG(COUNT Tasks) per Job |
 
 **Visual Layout:**
 ```
@@ -922,7 +915,7 @@ The app now uses a 4-layer production system:
 │                                                                 │
 │ OVERDUE TASKS                                                   │
 │ ┌───────────────────────────────────────────────────────────┐  │
-│ │ Task                    │ Order           │ Due    │ Days  │  │
+│ │ Task                    │ Job           │ Due    │ Days  │  │
 │ ├───────────────────────────────────────────────────────────┤  │
 │ │ Order vinyl material    │ Smith Wrap    │ Dec 12 │   3   │  │
 │ │ Schedule install        │ ABC Signage   │ Dec 13 │   2   │  │
@@ -936,7 +929,7 @@ The app now uses a 4-layer production system:
 ## IMPLEMENTATION PRIORITY
 
 ### Phase 1: Essential (Build First)
-1. **Order Pipeline Kanban** - Core operational visibility
+1. **Job Pipeline Kanban** - Core operational visibility
 2. **Outstanding Invoices Dashboard** - Cash flow critical
 3. **Payroll Period Report** - Required for operations
 
@@ -952,7 +945,7 @@ The app now uses a 4-layer production system:
 
 ### Phase 4: Nice to Have
 10. **Pipeline Funnel Report** - Conversion analysis
-11. **Order Type Analysis** - Product mix insights
+11. **Job Type Analysis** - Product mix insights
 12. **Collection Forecast** - Predictive AR
 13. **Revenue by Customer** - Customer analysis
 14. **Task Completion Report** - Workflow metrics

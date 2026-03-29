@@ -19,7 +19,7 @@ LEVEL 0 (No Dependencies - Create First)
        ▼                   ▼
 LEVEL 1 (Single Parent Dependency)
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│    Quote    │     │    Job      │     │  TimeLog    │
+│    Quote    │     │    Order      │     │  TimeLog    │
 │ →Customer   │     │ →Customer   │     │ →Employee   │
 └─────────────┘     └─────────────┘     └─────────────┘
        │                   │                   
@@ -31,38 +31,38 @@ LEVEL 1 (Single Parent Dependency)
        ▼                   ▼
 LEVEL 2 (Multiple/Nested Dependencies)
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│ QuoteLine   │     │  JobItem    │     │  JobNote    │
-│   Item      │     │ →Job        │     │ →Job        │
+│ QuoteLine   │     │  JobTicket    │     │  OrderNote    │
+│   Item      │     │ →Order        │     │ →Order        │
 │ (embedded)  │     └─────────────┘     └─────────────┘
 └─────────────┘            │
                            │           ┌─────────────┐
-                           │           │ JobActivity │
-                           │           │ →Job        │
+                           │           │ OrderActivity │
+                           │           │ →Order        │
                            │           └─────────────┘
                            ▼
 LEVEL 3 (Cross-Entity Dependencies)
 ┌─────────────────────────────────────────────────────┐
 │                      Invoice                         │
 │  →Customer (required)                               │
-│  →Job (optional)                                    │
-│  →InvoiceLineItem.job_item →JobItem (optional)     │
+│  →Order (optional)                                    │
+│  →InvoiceLineItem.job_item →JobTicket (optional)     │
 └─────────────────────────────────────────────────────┘
                            │
                            ▼
 ┌─────────────────────────────────────────────────────┐
 │                  InvoiceLineItem                     │
 │  (embedded in Invoice)                              │
-│  →JobItem (optional back-reference)                 │
+│  →JobTicket (optional back-reference)                 │
 └─────────────────────────────────────────────────────┘
 
 LEVEL 4 (Bidirectional/Circular References)
 ┌─────────────┐ ◄──────────────► ┌─────────────┐
-│    Quote    │    order_id /      │    Job      │
+│    Quote    │    order_id /      │    Order      │
 │             │    quote_id      │             │
 └─────────────┘                  └─────────────┘
        
 ┌─────────────┐ ◄──────────────► ┌─────────────┐
-│    Job      │   invoice_id /   │  Invoice    │
+│    Order      │   invoice_id /   │  Invoice    │
 │             │     order_id       │             │
 └─────────────┘                  └─────────────┘
 ```
@@ -71,25 +71,25 @@ LEVEL 4 (Bidirectional/Circular References)
 
 | Data Type | Depends On | Depended By | Circular? |
 |-----------|------------|-------------|-----------|
-| Customer | - | Quote, Job, Invoice, AIResponse | No |
+| Customer | - | Quote, Order, Invoice, AIResponse | No |
 | Employee | - | TimeLog, PayrollTransaction | No |
-| Quote | Customer | Job (via conversion) | ⚠️ Yes (Quote↔Job) |
-| QuoteLineItem | Quote (embedded) | JobItem (via conversion) | No |
-| Order | Customer, Quote (optional) | JobItem, JobNote, JobActivity, Invoice, Task, WebstoreOrder | ⚠️ Yes (Job↔Quote, Job↔Invoice) |
-| JobItem | Order | InvoiceLineItem | No |
-| JobNote | Order | - | No |
-| JobActivity | Order | - | No |
-| Invoice | Customer, Job (optional) | - | ⚠️ Yes (Invoice↔Job) |
-| InvoiceLineItem | Invoice (embedded), JobItem (optional) | - | No |
+| Quote | Customer | Order (via conversion) | ⚠️ Yes (Quote↔Order) |
+| QuoteLineItem | Quote (embedded) | JobTicket (via conversion) | No |
+| Order | Customer, Quote (optional) | JobTicket, OrderNote, OrderActivity, Invoice, Task, WebstoreOrder | ⚠️ Yes (Order↔Quote, Order↔Invoice) |
+| JobTicket | Order | InvoiceLineItem | No |
+| OrderNote | Order | - | No |
+| OrderActivity | Order | - | No |
+| Invoice | Customer, Order (optional) | - | ⚠️ Yes (Invoice↔Order) |
+| InvoiceLineItem | Invoice (embedded), JobTicket (optional) | - | No |
 | TimeLog | Employee | - | No |
 | PayrollTransaction | Employee | - | No |
 | SalesEntry | - | - | No |
 | ExpenseEntry | - | - | No |
-| Task | Job (optional) | - | No |
-| AIResponse | Job (optional), Customer (optional) | - | No |
+| Task | Order (optional) | - | No |
+| AIResponse | Order (optional), Customer (optional) | - | No |
 | FundraiserCampaign | - | WebstoreOrder | No |
 | B2BStore | - | WebstoreOrder | No |
-| WebstoreOrder | Job (auto-created) | - | No |
+| WebstoreOrder | Order (auto-created) | - | No |
 
 ---
 
@@ -151,18 +151,18 @@ LEVEL 2 WORKFLOWS (Require Level 1 Data)
          ▼                   ▼                   ▼
 ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
 │ WF-QUOTE-02     │ │ WF-QUOTE-04     │ │ WF-QUOTE-07     │
-│ Update Quote    │ │ Add Line Item   │ │ Convert to Job  │
+│ Update Quote    │ │ Add Line Item   │ │ Convert to Order  │
 └─────────────────┘ └─────────────────┘ └────────┬────────┘
                                                  │
                                                  ▼
                                         ┌─────────────────┐
-                                        │ Creates Job +   │
-                                        │ JobItems        │
-                                        │ + JobActivity   │
+                                        │ Creates Order +   │
+                                        │ JobTickets        │
+                                        │ + OrderActivity   │
                                         └─────────────────┘
 
                     ┌─────────────────┐
-                    │   Job Exists    │
+                    │   Order Exists    │
                     └────────┬────────┘
                              │
     ┌────────────┬───────────┼───────────┬────────────┐
@@ -170,7 +170,7 @@ LEVEL 2 WORKFLOWS (Require Level 1 Data)
 ┌────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
 │WF-JOB  │ │WF-JOBITEM│ │WF-JOBNOTE│ │WF-INV-02 │ │WF-TASK-01│
 │-02,-03 │ │-01,-02   │ │-01       │ │Create Inv│ │Create    │
-│Update  │ │Add/Edit  │ │Add Note  │ │from Job  │ │Task      │
+│Update  │ │Add/Edit  │ │Add Note  │ │from Order  │ │Task      │
 │Status  │ │Item      │ │          │ │          │ │(opt job) │
 └────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘
     │            │           │           │
@@ -184,14 +184,14 @@ LEVEL 2 WORKFLOWS (Require Level 1 Data)
 LEVEL 3 WORKFLOWS (Require Level 2 Data + Calculations)
 ════════════════════════════════════════════════════════════════
 ┌─────────────────┐         ┌─────────────────┐
-│ JobItem Changed │         │ QuoteLineItem   │
+│ JobTicket Changed │         │ QuoteLineItem   │
 │                 │         │ Changed         │
 └────────┬────────┘         └────────┬────────┘
          │                           │
          ▼                           ▼
 ┌─────────────────┐         ┌─────────────────┐
 │ WF-JOBITEM-RECALC│        │ WF-QUOTE-RECALC │
-│ Recalc Job      │         │ Recalc Quote    │
+│ Recalc Order      │         │ Recalc Quote    │
 │ Subtotal        │         │ Total           │
 └─────────────────┘         └─────────────────┘
 
@@ -211,28 +211,28 @@ LEVEL 3 WORKFLOWS (Require Level 2 Data + Calculations)
 COMPLEX WORKFLOWS (Multiple Dependencies)
 ════════════════════════════════════════════════════════════════
 
-WF-QUOTE-07: Convert Quote to Job
+WF-QUOTE-07: Convert Quote to Order
 ├── Requires: Quote (with status ≠ converted)
 ├── Requires: Customer (from Quote)
-├── Creates: Job
-├── Creates: JobItem[] (from QuoteLineItems)
-├── Creates: JobActivity
+├── Creates: Order
+├── Creates: JobTicket[] (from QuoteLineItems)
+├── Creates: OrderActivity
 ├── Updates: Quote.order_id (circular write-back)
 └── Updates: Quote.status = approved
 
-WF-INV-02: Create Invoice from Job
-├── Requires: Job
-├── Requires: Customer (from Job)
-├── Requires: JobItem[] (optional, for line items)
+WF-INV-02: Create Invoice from Order
+├── Requires: Order
+├── Requires: Customer (from Order)
+├── Requires: JobTicket[] (optional, for line items)
 ├── Creates: Invoice
-├── Creates: InvoiceLineItem[] (from JobItems)
-├── Updates: Job.invoice_id (circular write-back)
-└── Creates: JobActivity
+├── Creates: InvoiceLineItem[] (from JobTickets)
+├── Updates: Order.invoice_id (circular write-back)
+└── Creates: OrderActivity
 
 WF-WEB-01: Create Webstore Order
 ├── Requires: FundraiserCampaign OR B2BStore
 ├── Creates: Customer (if not exists)
-├── Creates: Job (auto-generated)
+├── Creates: Order (auto-generated)
 ├── Creates: WebstoreOrder
 ├── Updates: FundraiserCampaign.total_raised (if fundraiser)
 └── Links: WebstoreOrder.order_id
@@ -263,7 +263,7 @@ PHASE 2: First-Level Dependents
 ══════════════════════════════════════
 8. Quote (needs Customer)
 9. QuoteLineItem (embedded in Quote)
-10. Job (needs Customer) 
+10. Order (needs Customer) 
     ⚠️ Initially WITHOUT quote field - add later
 11. TimeLog (needs Employee)
 12. PayrollTransaction (needs Employee)
@@ -271,22 +271,22 @@ PHASE 2: First-Level Dependents
 
 PHASE 3: Second-Level Dependents
 ══════════════════════════════════════
-14. JobItem (needs Job)
-15. JobNote (needs Job)
-16. JobActivity (needs Job)
+14. JobTicket (needs Order)
+15. OrderNote (needs Order)
+16. OrderActivity (needs Order)
 17. AIResponse (job/customer optional)
 
 PHASE 4: Cross-References (Circular)
 ══════════════════════════════════════
-18. Invoice (needs Customer, optional Job)
-19. InvoiceLineItem (embedded, optional JobItem ref)
-20. WebstoreOrder (needs Job for auto-creation)
+18. Invoice (needs Customer, optional Order)
+19. InvoiceLineItem (embedded, optional JobTicket ref)
+20. WebstoreOrder (needs Order for auto-creation)
 
 PHASE 5: Add Circular References
 ══════════════════════════════════════
-21. Add Quote.job field (reference to Job)
-22. Add Job.quote field (reference to Quote)
-23. Add Job.invoice field (reference to Invoice)
+21. Add Quote.job field (reference to Order)
+22. Add Order.quote field (reference to Quote)
+23. Add Order.invoice field (reference to Invoice)
 ```
 
 ### Workflow Implementation Order
@@ -310,37 +310,37 @@ Order │ Workflow              │ Dependencies
   7   │ Quote Create          │ Customer must exist
   8   │ Quote Line Items      │ Quote must exist
   9   │ Quote Total Calc      │ Line items must exist
- 10   │ Job Create (basic)    │ Customer must exist
- 11   │ Task CRUD             │ Job optional
+ 10   │ Order Create (basic)    │ Customer must exist
+ 11   │ Task CRUD             │ Order optional
  12   │ TimeLog Create        │ Employee must exist
  13   │ PayrollTransaction    │ Employee must exist
 
-STAGE 3: Job Sub-entities
+STAGE 3: Order Sub-entities
 ═══════════════════════════════════════════════════════════════
 Order │ Workflow              │ Dependencies
 ──────┼───────────────────────┼─────────────────────────────────
- 14   │ JobItem CRUD          │ Job must exist
- 15   │ JobItem Total Calc    │ JobItem must exist
- 16   │ Job Subtotal Recalc   │ JobItems must be calculable
- 17   │ JobNote CRUD          │ Job must exist
- 18   │ JobActivity Create    │ Job must exist
+ 14   │ JobTicket CRUD          │ Order must exist
+ 15   │ JobTicket Total Calc    │ JobTicket must exist
+ 16   │ Order Subtotal Recalc   │ JobTickets must be calculable
+ 17   │ OrderNote CRUD          │ Order must exist
+ 18   │ OrderActivity Create    │ Order must exist
 
 STAGE 4: Status & Activity Logging
 ═══════════════════════════════════════════════════════════════
 Order │ Workflow              │ Dependencies
 ──────┼───────────────────────┼─────────────────────────────────
- 19   │ Order Status Change     │ Job + JobActivity workflows
- 20   │ Job Complete/Archive  │ Status change workflow
+ 19   │ Order Status Change     │ Order + OrderActivity workflows
+ 20   │ Order Complete/Archive  │ Status change workflow
  21   │ Quote Status Change   │ Quote workflow
 
 STAGE 5: Cross-Entity Operations (⚠️ Careful Order)
 ═══════════════════════════════════════════════════════════════
 Order │ Workflow              │ Dependencies
 ──────┼───────────────────────┼─────────────────────────────────
- 22   │ Quote→Job Conversion  │ Quote, Job, JobItem, JobActivity
+ 22   │ Quote→Order Conversion  │ Quote, Order, JobTicket, OrderActivity
       │                       │ all must work first
  23   │ Invoice Create        │ Customer must exist
- 24   │ Invoice from Job      │ Job, JobItem, Invoice all ready
+ 24   │ Invoice from Order      │ Order, JobTicket, Invoice all ready
  25   │ Invoice Totals        │ InvoiceLineItems must work
  26   │ Invoice Status/Paid   │ Invoice workflows complete
 
@@ -357,7 +357,7 @@ STAGE 7: Complex/Integration
 ═══════════════════════════════════════════════════════════════
 Order │ Workflow              │ Dependencies
 ──────┼───────────────────────┼─────────────────────────────────
- 31   │ Webstore Order        │ Customer, Job auto-creation
+ 31   │ Webstore Order        │ Customer, Order auto-creation
  32   │ AI Generation         │ API connector configured
  33   │ Financial Summaries   │ Sales/Expense entries work
  34   │ Dashboard Stats       │ All queries must work
@@ -369,14 +369,14 @@ Order │ Workflow              │ Dependencies
 
 ### Identified Circular Dependencies
 
-#### 1. Quote ↔ Job (Bidirectional Reference)
+#### 1. Quote ↔ Order (Bidirectional Reference)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    CIRCULAR DEPENDENCY #1                   │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│    Quote                              Job                   │
+│    Quote                              Order                   │
 │    ┌─────────┐                    ┌─────────┐              │
 │    │         │                    │         │              │
 │    │ job ────┼───────────────────►│   id    │              │
@@ -385,7 +385,7 @@ Order │ Workflow              │ Dependencies
 │    │         │                    │         │              │
 │    └─────────┘                    └─────────┘              │
 │                                                             │
-│    Created when: Quote converted to Job                     │
+│    Created when: Quote converted to Order                     │
 │    Risk: Data inconsistency if one side updated without    │
 │          the other                                          │
 │                                                             │
@@ -394,27 +394,27 @@ Order │ Workflow              │ Dependencies
 
 **Bubble Handling:**
 ```
-WF-QUOTE-07: Convert Quote to Job
+WF-QUOTE-07: Convert Quote to Order
 Step 1: Create Order (quote field = This Quote)
 Step 2: Make changes to Quote (job field = Result of Step 1)
         ⚠️ Must use "Result of Step 1" not a search
 ```
 
 **Fragility:**
-- If Step 2 fails, Job exists without Quote back-reference
+- If Step 2 fails, Order exists without Quote back-reference
 - No automatic rollback in Bubble
 - Solution: Use API workflow with error handling, or accept eventual consistency
 
 ---
 
-#### 2. Job ↔ Invoice (Bidirectional Reference)
+#### 2. Order ↔ Invoice (Bidirectional Reference)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    CIRCULAR DEPENDENCY #2                   │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│    Job                                Invoice               │
+│    Order                                Invoice               │
 │    ┌─────────┐                    ┌─────────┐              │
 │    │         │                    │         │              │
 │    │invoice ─┼───────────────────►│   id    │              │
@@ -423,29 +423,29 @@ Step 2: Make changes to Quote (job field = Result of Step 1)
 │    │         │                    │         │              │
 │    └─────────┘                    └─────────┘              │
 │                                                             │
-│    Created when: Invoice created from Job                   │
-│    Risk: Same as Quote↔Job                                  │
+│    Created when: Invoice created from Order                   │
+│    Risk: Same as Quote↔Order                                  │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 **Bubble Handling:**
 ```
-WF-INV-02: Create Invoice from Job
-Step 1: Create Invoice (job field = This Job)
-Step 2: Make changes to Job (invoice field = Result of Step 1)
+WF-INV-02: Create Invoice from Order
+Step 1: Create Invoice (job field = This Order)
+Step 2: Make changes to Order (invoice field = Result of Step 1)
 ```
 
 ---
 
-#### 3. JobItem → Order.subtotal (Calculated Dependency)
+#### 3. JobTicket → Order.subtotal (Calculated Dependency)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    CALCULATED DEPENDENCY                    │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│    JobItem                            Job                   │
+│    JobTicket                            Order                   │
 │    ┌─────────┐                    ┌─────────┐              │
 │    │         │                    │         │              │
 │    │ job ────┼───────────────────►│   id    │              │
@@ -454,7 +454,7 @@ Step 2: Make changes to Job (invoice field = Result of Step 1)
 │    │         │                    │         │  all items   │
 │    └─────────┘                    └─────────┘              │
 │                                                             │
-│    Trigger: Any JobItem create/update/delete               │
+│    Trigger: Any JobTicket create/update/delete               │
 │    Risk: Subtotal out of sync if trigger fails             │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
@@ -482,9 +482,9 @@ Option C: Real-time Calculation
 
 | Dependency | Severity | Frequency | Mitigation |
 |------------|----------|-----------|------------|
-| Quote↔Job | Medium | Low (once per quote) | Two-step workflow, log failures |
-| Job↔Invoice | Medium | Low (once per job) | Two-step workflow, log failures |
-| JobItem→Order.subtotal | High | High (every item edit) | Real-time calc or reliable trigger |
+| Quote↔Order | Medium | Low (once per quote) | Two-step workflow, log failures |
+| Order↔Invoice | Medium | Low (once per job) | Two-step workflow, log failures |
+| JobTicket→Order.subtotal | High | High (every item edit) | Real-time calc or reliable trigger |
 | QuoteLineItem→Quote.total | High | High (every item edit) | Same as above |
 | InvoiceLineItem→Invoice.total | High | High (every item edit) | Same as above |
 
@@ -551,14 +551,14 @@ Option C: Real-time Calculation
 │    Problem: No transaction support in Bubble                │
 │                                                             │
 │    Failure modes:                                           │
-│    • Job created but Quote not updated                      │
-│    • JobItems partially created (some fail)                 │
-│    • User clicks again → duplicate Job                      │
+│    • Order created but Quote not updated                      │
+│    • JobTickets partially created (some fail)                 │
+│    • User clicks again → duplicate Order                      │
 │                                                             │
 │    Data state after partial failure:                        │
 │    Quote: order_id = null (looks unconverted)                 │
-│    Job: exists, orphaned                                    │
-│    JobItems: partial set                                    │
+│    Order: exists, orphaned                                    │
+│    JobTickets: partial set                                    │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -579,7 +579,7 @@ Option C: Real-time Calculation
 
 3. CLEANUP JOB (Scheduled)
    - Backend workflow runs hourly
-   - Find Orders where quote.order_id ≠ this Job
+   - Find Orders where quote.order_id ≠ this Order
    - Flag for admin review or auto-delete
 
 4. UI PROTECTION
@@ -599,9 +599,9 @@ Option C: Real-time Calculation
 │                                                             │
 │    Affected fields:                                         │
 │    • Quote.total (from QuoteLineItems)                      │
-│    • Order.subtotal (from JobItems)                           │
+│    • Order.subtotal (from JobTickets)                           │
 │    • Invoice.total (from InvoiceLineItems)                  │
-│    • JobItem.line_total (qty × price)                       │
+│    • JobTicket.line_total (qty × price)                       │
 │                                                             │
 │    Problem: Triggers can fail silently                      │
 │                                                             │
@@ -620,7 +620,7 @@ Option C: Real-time Calculation
 ```
 1. COMPUTE ON DISPLAY (No Storage)
    - Don't store totals, always calculate
-   - Order.subtotal = Search JobItems where job = This:sum line_total
+   - Order.subtotal = Search JobTickets where job = This:sum line_total
    - Pro: Always accurate
    - Con: Performance on lists
 
@@ -643,20 +643,20 @@ Option C: Real-time Calculation
 
 ---
 
-### Fragile Dependency #4: Invoice from Job (Data Copy)
+### Fragile Dependency #4: Invoice from Order (Data Copy)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │           FRAGILE: INVOICE FROM JOB                         │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│    Operation: Copy JobItems → InvoiceLineItems              │
+│    Operation: Copy JobTickets → InvoiceLineItems              │
 │                                                             │
 │    Problem: Data is COPIED, not referenced                  │
 │                                                             │
 │    Failure modes:                                           │
-│    • JobItem changed after invoice created                  │
-│    • JobItem deleted after invoice created                  │
+│    • JobTicket changed after invoice created                  │
+│    • JobTicket deleted after invoice created                  │
 │    • Invoice line items now incorrect                       │
 │                                                             │
 │    Business question: Should invoice auto-update?           │
@@ -671,18 +671,18 @@ Option C: Real-time Calculation
 OPTION A: Snapshot (Recommended for Invoicing)
 - Copy data at creation time
 - Invoice is immutable record
-- JobItem.job_item_id kept for reference only
-- Changes to Job don't affect sent invoices
+- JobTicket.job_item_id kept for reference only
+- Changes to Order don't affect sent invoices
 
 OPTION B: Live Reference
-- InvoiceLineItem just references JobItem
-- Invoice always shows current Job state
+- InvoiceLineItem just references JobTicket
+- Invoice always shows current Order state
 - Problematic for accounting/auditing
 
 IMPLEMENTATION:
-- Once invoice status = "sent", block JobItem edits
+- Once invoice status = "sent", block JobTicket edits
 - Or: Allow edits but show warning "Invoice already created"
-- Or: Create new invoice version on Job changes
+- Or: Create new invoice version on Order changes
 ```
 
 ---
@@ -694,14 +694,14 @@ IMPLEMENTATION:
 │           FRAGILE: WEBSTORE ORDER → AUTO JOB                │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│    Operation: WebstoreOrder creates Customer + Job          │
+│    Operation: WebstoreOrder creates Customer + Order          │
 │                                                             │
 │    Problem: Three things created in one workflow            │
 │                                                             │
 │    Failure modes:                                           │
-│    • Customer created, Job fails                            │
-│    • Job created, Order fails                               │
-│    • Order created, no link to Job                          │
+│    • Customer created, Order fails                            │
+│    • Order created, Order fails                               │
+│    • Order created, no link to Order                          │
 │                                                             │
 │    Result: Orphaned records, missing orders                 │
 │                                                             │
@@ -720,7 +720,7 @@ IMPLEMENTATION:
    - Step 1: Search for Customer with webstore marker
    - Step 2: If empty, create; else use existing
    - Step 3: Create Order
-   - Step 4: Create Order with Job reference
+   - Step 4: Create Order with Order reference
 
 3. STATUS TRACKING
    - Order has status: pending_customer, pending_job, complete
@@ -737,11 +737,11 @@ IMPLEMENTATION:
 #### 1. Two-Phase Commit Pattern
 
 ```
-For circular references (Quote↔Job):
+For circular references (Quote↔Order):
 
 Phase 1: Create child, reference parent
 - Create Order with quote = This Quote
-- Job now exists and references Quote
+- Order now exists and references Quote
 
 Phase 2: Update parent with child reference  
 - Make changes to Quote: job = Result of Step 1
@@ -813,30 +813,30 @@ Example for Clock Action:
 ```
 DATA INTEGRITY CHECKS
 ═══════════════════════════════════════════════════════════════
-□ All Quotes with order_id have corresponding Job with quote_id
+□ All Quotes with order_id have corresponding Order with quote_id
 □ All Orders with invoice_id have corresponding Invoice with order_id
-□ All JobItems have valid job reference
-□ All InvoiceLineItems with job_item_id have valid JobItem
-□ No orphaned JobNotes or JobActivities (job exists)
+□ All JobTickets have valid job reference
+□ All InvoiceLineItems with job_item_id have valid JobTicket
+□ No orphaned OrderNotes or OrderActivities (job exists)
 
 CALCULATED FIELD CHECKS
 ═══════════════════════════════════════════════════════════════
 □ Quote.total = SUM(QuoteLineItems.total) for all Quotes
-□ Order.subtotal = SUM(JobItems.line_total) for all Orders
+□ Order.subtotal = SUM(JobTickets.line_total) for all Orders
 □ Invoice.total = SUM(InvoiceLineItems.total) for all Invoices
-□ JobItem.line_total = quantity × unit_price for all items
+□ JobTicket.line_total = quantity × unit_price for all items
 
 SEQUENCE CHECKS
 ═══════════════════════════════════════════════════════════════
 □ No Quote with status="approved" and empty order_id
-□ No Job with quote_id pointing to Quote with different order_id
+□ No Order with quote_id pointing to Quote with different order_id
 □ TimeLogs follow valid sequence per employee per day
 
 REFERENTIAL INTEGRITY
 ═══════════════════════════════════════════════════════════════
 □ All customer_id references point to existing Customer
 □ All employee_id references point to existing Employee
-□ All order_id references point to existing Job
+□ All order_id references point to existing Order
 ```
 
 ### Monitoring Queries (Run Daily)
@@ -850,16 +850,16 @@ Orders without valid Customer:
 Quotes without valid Customer:
   Search Quotes where customer is empty
 
-JobItems without valid Job:
-  Search JobItems where job is empty
+JobTickets without valid Order:
+  Search JobTickets where job is empty
 
 MISMATCH DETECTION
 ══════════════════
-Quote-Job mismatch:
+Quote-Order mismatch:
   Search Quotes where job's quote ≠ This Quote
 
-Job-Invoice mismatch:
-  Search Orders where invoice's job ≠ This Job
+Order-Invoice mismatch:
+  Search Orders where invoice's job ≠ This Order
 
 CALCULATION MISMATCH
 ════════════════════
@@ -875,9 +875,9 @@ Orders with wrong subtotal:
 
 | Dependency | Risk Level | Recommendation |
 |------------|------------|----------------|
-| Quote → Job conversion | 🔴 High | Two-phase commit + lock |
-| Job → Invoice creation | 🔴 High | Two-phase commit + lock |
-| JobItem → Order.subtotal | 🔴 High | Same-workflow recalc |
+| Quote → Order conversion | 🔴 High | Two-phase commit + lock |
+| Order → Invoice creation | 🔴 High | Two-phase commit + lock |
+| JobTicket → Order.subtotal | 🔴 High | Same-workflow recalc |
 | Time clock sequence | 🟡 Medium | UI disable + backend validate |
 | Webstore auto-creation | 🟡 Medium | API workflow + retry logic |
 
@@ -885,7 +885,7 @@ Orders with wrong subtotal:
 
 | Dependency | Risk Level | Notes |
 |------------|------------|-------|
-| Customer → Quote/Job/Invoice | 🟢 Low | Standard parent-child |
+| Customer → Quote/Order/Invoice | 🟢 Low | Standard parent-child |
 | Employee → TimeLog/Payroll | 🟢 Low | Standard parent-child |
-| Job → JobNote/JobActivity | 🟢 Low | One-way reference |
-| Task → Job (optional) | 🟢 Low | Optional reference |
+| Order → OrderNote/OrderActivity | 🟢 Low | One-way reference |
+| Task → Order (optional) | 🟢 Low | Optional reference |

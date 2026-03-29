@@ -45,7 +45,7 @@ class AIResponse(BaseModel):
     tool: str                        # Tool identifier (e.g., "layout_generator")
     input_data: Dict[str, Any]       # Full input object sent to AI
     output: str                      # Raw AI response text
-    order_id: Optional[str] = None     # Link to Job (if provided in input)
+    order_id: Optional[str] = None     # Link to Order (if provided in input)
     customer_id: Optional[str] = None # Link to Customer (if provided in input)
     created_at: str                  # ISO 8601 timestamp
 ```
@@ -952,12 +952,12 @@ await db.ai_responses.insert_one(doc)
 
 | Tool ID | Name | Category | Input Fields | Links To |
 |---------|------|----------|--------------|----------|
-| layout_generator | Layout Generator | Design | 5 fields | Job, Customer |
-| print_checklist | Print-Ready Checklist | Design | 3 fields | Job, Customer |
-| brand_kit | Brand Kit Generator | Branding | 5 fields | Job, Customer |
-| document_creator | Document Creator | Business | 5 fields | Job, Customer |
-| overdue_assistant | Overdue Payment Assistant | Business | 5 fields | Job, Customer |
-| design_intake | Design Intake Chat | Customer | 2 fields | Job, Customer |
+| layout_generator | Layout Generator | Design | 5 fields | Order, Customer |
+| print_checklist | Print-Ready Checklist | Design | 3 fields | Order, Customer |
+| brand_kit | Brand Kit Generator | Branding | 5 fields | Order, Customer |
+| document_creator | Document Creator | Business | 5 fields | Order, Customer |
+| overdue_assistant | Overdue Payment Assistant | Business | 5 fields | Order, Customer |
+| design_intake | Design Intake Chat | Customer | 2 fields | Order, Customer |
 
 ---
 
@@ -970,7 +970,7 @@ await db.ai_responses.insert_one(doc)
 4. **No streaming** - Full response wait
 5. **Single model** - No fallback
 6. **No context** - Each request is isolated
-7. **Manual linking** - Job/Customer IDs must be explicitly provided
+7. **Manual linking** - Order/Customer IDs must be explicitly provided
 
 ### Recommended Improvements
 1. Add rate limiting (requests per minute per user)

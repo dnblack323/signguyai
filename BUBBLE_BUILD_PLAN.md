@@ -29,9 +29,9 @@ Create in this order (no dependencies between them):
 | CustomerStatus | lead, active, inactive |
 | QuoteStatus | draft, sent, approved, declined |
 | OrderStatus | quoted, approved, in_production, installed, complete, archived |
-| JobActivityType | created, status_changed, quote_converted, invoice_created, item_added, item_updated, item_deleted, note_added, completed, archived, unarchived |
-| JobItemStatus | pending, in_production, done |
-| JobItemType | banner, yard_sign, decal, wrap, install, design, vehicle_graphics, window_graphics, dimensional_letters, monument_sign, other |
+| OrderActivityType | created, status_changed, quote_converted, invoice_created, item_added, item_updated, item_deleted, note_added, completed, archived, unarchived |
+| JobTicketStatus | pending, in_production, done |
+| JobTicketType | banner, yard_sign, decal, wrap, install, design, vehicle_graphics, window_graphics, dimensional_letters, monument_sign, other |
 | InvoiceStatus | draft, sent, paid, overdue |
 | PayrollTransactionType | earnings, advance, payment |
 | ExpenseCategory | materials, labor, equipment, utilities, rent, other |
@@ -100,26 +100,26 @@ LAYER 1 (No dependencies):
 
 LAYER 2 (Depends on Layer 1):
 ├── Quote (→ Customer)
-├── Job (→ Customer)
+├── Order (→ Customer)
 ├── TimeLog (→ Employee)
 ├── PayrollTransaction (→ Employee)
 ├── SalesEntry
 ├── ExpenseEntry
-├── Task (→ Job, optional)
+├── Task (→ Order, optional)
 ├── FundraiserCampaign
 ├── B2BStore
 
 LAYER 3 (Depends on Layer 2):
 ├── QuoteLineItem (embedded in Quote)
-├── JobItem (→ Job)
-├── JobNote (→ Job)
-├── JobActivity (→ Job)
-├── Invoice (→ Customer, → Job)
-├── WebstoreOrder (→ Job)
-├── AIResponse (→ Job, → Customer)
+├── JobTicket (→ Order)
+├── OrderNote (→ Order)
+├── OrderActivity (→ Order)
+├── Invoice (→ Customer, → Order)
+├── WebstoreOrder (→ Order)
+├── AIResponse (→ Order, → Customer)
 
 LAYER 4 (Depends on Layer 3):
-├── InvoiceLineItem (embedded in Invoice, → JobItem)
+├── InvoiceLineItem (embedded in Invoice, → JobTicket)
 ```
 
 ### 1.1 Layer 1: Independent Types
@@ -153,7 +153,7 @@ LAYER 4 (Depends on Layer 3):
 | total | number | 0 |
 | job | Order | - |
 
-#### Job
+#### Order
 | Field | Type | Default |
 |-------|------|---------|
 | customer | Customer | - |
@@ -230,30 +230,30 @@ LAYER 4 (Depends on Layer 3):
 
 ### 1.3 Layer 3: Multiple Dependencies
 
-#### JobItem
+#### JobTicket
 | Field | Type | Default |
 |-------|------|---------|
 | job | Order | - |
-| item_type | JobItemType | other |
+| item_type | JobTicketType | other |
 | description | text | - |
 | quantity | number | 1 |
 | unit_price | number | 0 |
 | line_total | number | 0 |
-| status | JobItemStatus | pending |
+| status | JobTicketStatus | pending |
 | notes | text | - |
 
-#### JobNote
+#### OrderNote
 | Field | Type | Default |
 |-------|------|---------|
 | job | Order | - |
 | content | text | - |
 | author | text | - |
 
-#### JobActivity
+#### OrderActivity
 | Field | Type | Default |
 |-------|------|---------|
 | job | Order | - |
-| activity_type | JobActivityType | - |
+| activity_type | OrderActivityType | - |
 | description | text | - |
 | old_value | text | - |
 | new_value | text | - |
@@ -309,15 +309,15 @@ Create these as separate types but they'll be used as lists within parent types:
 | quantity | number | 1 |
 | unit_price | number | 0 |
 | total | number | 0 |
-| job_item | JobItem | - |
+| job_item | JobTicket | - |
 
 ### 1.5 Update Cross-References
 
 After all types created, go back and add:
 
-1. **Quote** → Add field `job` (type: Job)
-2. **Job** → Add field `quote` (type: Quote)
-3. **Job** → Add field `invoice` (type: Invoice)
+1. **Quote** → Add field `job` (type: Order)
+2. **Order** → Add field `quote` (type: Quote)
+3. **Order** → Add field `invoice` (type: Invoice)
 
 ### 1.6 Privacy Rules
 
@@ -454,13 +454,13 @@ Create these first - used on all pages:
 **Workflows:**
 - Create Quote with line items
 - Update Quote
-- Convert to Job button
+- Convert to Order button
 - Delete Quote
 
 **Key Logic:**
 - Line item total = quantity × unit_price
 - Quote total = sum of line item totals
-- Convert creates Job + JobItems from line items
+- Convert creates Order + JobTickets from line items
 
 ### 2.5 Orders Page (List)
 
@@ -469,7 +469,7 @@ Create these first - used on all pages:
 - Filter tabs: Active, Completed, Archived
 - Repeating group list (card style)
 
-**Each Job Row Shows:**
+**Each Order Row Shows:**
 - Name (link to details)
 - Status badge (clickable dropdown)
 - Customer name
@@ -495,7 +495,7 @@ Create these first - used on all pages:
 - Tabs: Line Items, Notes, Activity
 
 **Header Card Contains:**
-- Job name
+- Order name
 - Status dropdown (editable)
 - Customer link
 - Due date
@@ -503,26 +503,26 @@ Create these first - used on all pages:
 - Quick actions: Create Invoice, Mark Complete, Archive
 
 **Financial Snapshot:**
-- Quote Total: `This Job's quote's total`
-- Job Subtotal: `This Job's subtotal`
-- Invoiced: `This Job's invoice's total`
-- Paid: `This Job's invoice's amount_paid`
+- Quote Total: `This Order's quote's total`
+- Order Subtotal: `This Order's subtotal`
+- Invoiced: `This Order's invoice's total`
+- Paid: `This Order's invoice's amount_paid`
 - Balance: `Invoiced - Paid`
 
 **Tab: Line Items**
 - Add Item button
-- Table of JobItems
+- Table of JobTickets
 - Inline status dropdown
 - Edit/Delete actions
 - Subtotal row
 
 **Tab: Notes**
 - Add note input + button
-- List of JobNotes
+- List of OrderNotes
 - Delete option
 
 **Tab: Activity**
-- List of JobActivities
+- List of OrderActivities
 - Icon per type
 - Timestamp
 
@@ -544,7 +544,7 @@ Create these first - used on all pages:
 
 **Popup: Invoice Form**
 - Customer dropdown
-- Job dropdown (filtered by customer)
+- Order dropdown (filtered by customer)
 - Line items editor
 - Total, status, due date, notes
 
@@ -716,18 +716,18 @@ Action: Make changes to Parent Quote
   - total = This Quote's line_items:each item's total:sum
 ```
 
-#### Job Subtotal Calculation
+#### Order Subtotal Calculation
 ```
-When: JobItem created/changed/deleted
-Action: Make changes to Parent Job
-  - subtotal = Search for JobItems where job = This Job:each item's line_total:sum
+When: JobTicket created/changed/deleted
+Action: Make changes to Parent Order
+  - subtotal = Search for JobTickets where job = This Order:each item's line_total:sum
 ```
 
-#### JobItem Line Total
+#### JobTicket Line Total
 ```
-When: JobItem created/changed
-Action: Make changes to This JobItem
-  - line_total = This JobItem's quantity × This JobItem's unit_price
+When: JobTicket created/changed
+Action: Make changes to This JobTicket
+  - line_total = This JobTicket's quantity × This JobTicket's unit_price
 ```
 
 #### Invoice Total Calculation
@@ -741,14 +741,14 @@ Action: Make changes to Parent Invoice
 
 #### Order Status Change with Activity Log
 ```
-When: Job's status is changed
+When: Order's status is changed
 Actions:
 1. Create OrderActivity
-   - job = This Job
+   - job = This Order
    - activity_type = status_changed (or completed/archived)
    - description = "Status changed from [old] to [new]"
-   - old_value = This Job's status before change
-   - new_value = This Job's status
+   - old_value = This Order's status before change
+   - new_value = This Order's status
 ```
 
 #### Invoice Paid Status
@@ -762,14 +762,14 @@ Actions:
 
 ### 3.4 Cross-Type Operations
 
-#### Convert Quote to Job
+#### Convert Quote to Order
 ```
-When: Button "Convert to Job" clicked
+When: Button "Convert to Order" clicked
 Conditions: Quote's job is empty
 Actions:
-1. Create new Job
+1. Create new Order
    - customer = Quote's customer
-   - name = "Job from Quote #" + Quote's unique id (first 8 chars)
+   - name = "Order from Quote #" + Quote's unique id (first 8 chars)
    - description = Quote's notes
    - status = approved
    - quote = This Quote
@@ -777,7 +777,7 @@ Actions:
 
 2. For each Quote's line_items:
    Create OrderItem
-   - job = Job created in step 1
+   - job = Order created in step 1
    - item_type = other
    - description = line_item's description
    - quantity = line_item's quantity
@@ -786,37 +786,37 @@ Actions:
    - status = pending
 
 3. Make changes to Quote
-   - job = Job created in step 1
+   - job = Order created in step 1
    - status = approved
 
 4. Create OrderActivity
-   - job = Job created in step 1
+   - job = Order created in step 1
    - activity_type = quote_converted
-   - description = "Job created from Quote"
+   - description = "Order created from Quote"
 ```
 
-#### Create Invoice from Job
+#### Create Invoice from Order
 ```
 When: Button "Create Invoice" clicked on Order Details
-Conditions: Job's invoice is empty
+Conditions: Order's invoice is empty
 Actions:
 1. Create Invoice
-   - customer = Job's customer
-   - job = This Job
+   - customer = Order's customer
+   - job = This Order
    - status = draft
 
-2. For each JobItem where job = This Job:
+2. For each JobTicket where job = This Order:
    Create InvoiceLineItem (add to Invoice's line_items)
-   - description = JobItem's description
-   - quantity = JobItem's quantity
-   - unit_price = JobItem's unit_price
-   - total = JobItem's line_total
-   - job_item = This JobItem
+   - description = JobTicket's description
+   - quantity = JobTicket's quantity
+   - unit_price = JobTicket's unit_price
+   - total = JobTicket's line_total
+   - job_item = This JobTicket
 
 3. Make changes to Invoice
    - total = sum of line_items totals
 
-4. Make changes to Job
+4. Make changes to Order
    - invoice = Invoice created in step 1
 
 5. Create OrderActivity
@@ -1033,9 +1033,9 @@ Can view: yes
 Can modify: no (except via approve/decline workflow)
 ```
 
-**Job**
+**Order**
 ```
-When: Current User's linked_customer is This Job's customer
+When: Current User's linked_customer is This Order's customer
 Can view: yes (limited fields)
 Can modify: no
 ```
@@ -1103,9 +1103,9 @@ Actions: Show alert "Cannot edit sent/paid invoices"
 - [ ] CustomerStatus
 - [ ] QuoteStatus
 - [ ] OrderStatus
-- [ ] JobActivityType
-- [ ] JobItemStatus
-- [ ] JobItemType
+- [ ] OrderActivityType
+- [ ] JobTicketStatus
+- [ ] JobTicketType
 - [ ] InvoiceStatus
 - [ ] PayrollTransactionType
 - [ ] ExpenseCategory
@@ -1119,10 +1119,10 @@ Actions: Show alert "Cannot edit sent/paid invoices"
 - [ ] Customer
 - [ ] Employee
 - [ ] Quote + QuoteLineItem
-- [ ] Job
-- [ ] JobItem
-- [ ] JobNote
-- [ ] JobActivity
+- [ ] Order
+- [ ] JobTicket
+- [ ] OrderNote
+- [ ] OrderActivity
 - [ ] Invoice + InvoiceLineItem
 - [ ] TimeLog
 - [ ] PayrollTransaction
@@ -1152,10 +1152,10 @@ Actions: Show alert "Cannot edit sent/paid invoices"
 
 ### Phase 3: Workflows ⬜
 - [ ] All CRUD operations
-- [ ] Calculated totals (Quote, Job, Invoice)
+- [ ] Calculated totals (Quote, Order, Invoice)
 - [ ] Status change logging
-- [ ] Convert Quote to Job
-- [ ] Create Invoice from Job
+- [ ] Convert Quote to Order
+- [ ] Create Invoice from Order
 - [ ] Time Clock sequence validation
 - [ ] Payroll calculations
 - [ ] Financial summaries
@@ -1183,7 +1183,7 @@ Actions: Show alert "Cannot edit sent/paid invoices"
 - [ ] Add job items, verify subtotal calculation
 - [ ] Add notes, verify activity log
 - [ ] Status changes log correctly
-- [ ] Delete cascade works (Job → Items, Notes, Activities)
+- [ ] Delete cascade works (Order → Items, Notes, Activities)
 
 ### Time Clock
 - [ ] Clock sequence enforced
@@ -1206,7 +1206,7 @@ Actions: Show alert "Cannot edit sent/paid invoices"
 
 1. **Add indexes** on frequently searched fields:
    - Customer: status, name
-   - Job: status, customer, is_archived
+   - Order: status, customer, is_archived
    - Invoice: status, customer
    - TimeLog: employee, timestamp
 

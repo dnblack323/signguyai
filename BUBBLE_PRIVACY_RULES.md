@@ -153,11 +153,11 @@ Rule 3: Customer Own Profile
 
 ---
 
-### Job
+### Order
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ DATA TYPE: Job                                                  │
+│ DATA TYPE: Order                                                  │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │ RULE 1: "Owner Full Access"                                     │
@@ -185,7 +185,7 @@ Rule 3: Customer Own Profile
 │ RULE 3: "Customer Portal - Own Orders"                            │
 │ ─────────────────────────────────────────────────────────────── │
 │ When: Current User's role is "customer"                         │
-│   AND This Job's customer is Current User's linked_customer     │
+│   AND This Order's customer is Current User's linked_customer     │
 │                                                                 │
 │ ☑ View: name, status, due_date, subtotal                        │
 │ ☐ View: description, is_archived, quote, invoice                │
@@ -199,18 +199,18 @@ Rule 3: Customer Own Profile
 **Constraint Expression:**
 
 ```
-This Job's customer is Current User's linked_customer
+This Order's customer is Current User's linked_customer
 ```
 
-This is a **relational constraint** - it follows the reference from Job → Customer and compares to User's linked_customer.
+This is a **relational constraint** - it follows the reference from Order → Customer and compares to User's linked_customer.
 
 ---
 
-### JobItem
+### JobTicket
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ DATA TYPE: JobItem                                              │
+│ DATA TYPE: JobTicket                                              │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │ RULE 1: "Owner Full Access"                                     │
@@ -226,9 +226,9 @@ This is a **relational constraint** - it follows the reference from Job → Cust
 │                                                                 │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│ RULE 3: "Customer Portal - Own Job Items"                       │
+│ RULE 3: "Customer Portal - Own Order Items"                       │
 │ When: Current User's role is "customer"                         │
-│   AND This JobItem's job's customer                             │
+│   AND This OrderItem's job's customer                             │
 │       is Current User's linked_customer                         │
 │                                                                 │
 │ ☑ View: item_type, description, quantity, unit_price,           │
@@ -244,10 +244,10 @@ This is a **relational constraint** - it follows the reference from Job → Cust
 **Constraint Expression (Nested):**
 
 ```
-This JobItem's job's customer is Current User's linked_customer
+This OrderItem's job's customer is Current User's linked_customer
 ```
 
-⚠️ **Note:** This is a two-level traversal: JobItem → Job → Customer
+⚠️ **Note:** This is a two-level traversal: JobTicket → Order → Customer
 
 ---
 
@@ -494,8 +494,8 @@ These types should **BLOCK** all customer portal access:
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │ INTERNAL-ONLY TYPES (Same Pattern)                              │
-│ • JobNote                                                       │
-│ • JobActivity                                                   │
+│ • OrderNote                                                       │
+│ • OrderActivity                                                   │
 │ • Task                                                          │
 │ • SalesEntry                                                    │
 │ • ExpenseEntry                                                  │
@@ -623,7 +623,7 @@ Rule: Customer can view Orders
       ☑ View all fields
       ☐ Find in searches    ← UNCHECKED
 
-Result: Customer can see Job if they somehow get to it,
+Result: Customer can see Order if they somehow get to it,
         but "Search for Orders" returns EMPTY
 
 ✓ CORRECT:
@@ -693,16 +693,16 @@ Or accept that record is visible but field is null
 
 ```
 ❌ WRONG:
-Job privacy: Customer sees only their orders ✓
-JobItem privacy: No customer rule defined ✗
+Order privacy: Customer sees only their orders ✓
+JobTicket privacy: No customer rule defined ✗
 
-Result: Customer can't see JobItems even for their own orders
-        because JobItem has no rule granting access
+Result: Customer can't see JobTickets even for their own orders
+        because JobTicket has no rule granting access
 
 ✓ CORRECT:
-Job privacy: Customer sees their orders
-JobItem privacy: Customer sees items where 
-                 This JobItem's job's customer = their linked_customer
+Order privacy: Customer sees their orders
+JobTicket privacy: Customer sees items where 
+                 This OrderItem's job's customer = their linked_customer
 ```
 
 **Why it matters:** Each type needs its own privacy rules; they don't inherit from parent.
@@ -881,13 +881,13 @@ This Customer is Current User's linked_customer
 
 **Parent Reference:**
 ```
-This Job's customer is Current User's linked_customer
+This Order's customer is Current User's linked_customer
 This Invoice's customer is Current User's linked_customer
 ```
 
 **Nested Reference:**
 ```
-This JobItem's job's customer is Current User's linked_customer
+This OrderItem's job's customer is Current User's linked_customer
 This TimeLog's employee is Current User's linked_employee
 ```
 
@@ -909,7 +909,7 @@ Current User's role is "customer" AND This Quote's status is "sent"
 |------|-------|-------|----------|
 | Customer | CRUD | CRU | R (own) |
 | Order | CRUD | CRU | R (own) |
-| JobItem | CRUD | CRUD | R (own) |
+| JobTicket | CRUD | CRUD | R (own) |
 | Invoice | CRUD | CRU* | R (own) |
 | Employee | CRUD | R (own) | - |
 | TimeLog | CRUD | CR (own) | - |

@@ -12,8 +12,8 @@ This roadmap defines the **locked sequence** for adding features after MVP launc
 
 **Data Types (8):**
 - ✅ Customer
-- ✅ Job
-- ✅ JobItem
+- ✅ Order
+- ✅ JobTicket
 - ✅ Invoice (+ InvoiceLineItem embedded)
 - ✅ Employee
 - ✅ TimeLog
@@ -23,8 +23,8 @@ This roadmap defines the **locked sequence** for adding features after MVP launc
 **Option Sets (7):**
 - ✅ CustomerStatus (lead, active, inactive)
 - ✅ OrderStatus (quoted, approved, in_production, complete)
-- ✅ JobItemStatus (pending, in_production, done)
-- ✅ JobItemType (banner, yard_sign, decal, wrap, install, design, vehicle_graphics, window_graphics, dimensional_letters, monument_sign, other)
+- ✅ JobTicketStatus (pending, in_production, done)
+- ✅ JobTicketType (banner, yard_sign, decal, wrap, install, design, vehicle_graphics, window_graphics, dimensional_letters, monument_sign, other)
 - ✅ InvoiceStatus (draft, sent, paid)
 - ✅ PayrollTransactionType (earnings, payment)
 - ✅ TimeLogAction (start_work, end_work)
@@ -41,15 +41,15 @@ This roadmap defines the **locked sequence** for adding features after MVP launc
 
 **Workflows (22):**
 - ✅ Customer CRUD (3)
-- ✅ Job CRUD + status (4)
-- ✅ JobItem CRUD + recalc (4)
+- ✅ Order CRUD + status (4)
+- ✅ JobTicket CRUD + recalc (4)
 - ✅ Invoice CRUD + from job + paid (5)
 - ✅ Time clock in/out + hours (3)
 - ✅ Payroll transactions + balance (3)
 
 ---
 
-## PHASE 1: Job Notes & Activity Logging
+## PHASE 1: Order Notes & Activity Logging
 
 **Purpose:** Add internal notes and audit trail to orders
 **Estimated Time:** 3-4 hours
@@ -61,41 +61,41 @@ This roadmap defines the **locked sequence** for adding features after MVP launc
 □ MVP is deployed and stable
 □ All MVP workflows tested and working
 □ Order Details page loads without errors
-□ JobItem CRUD confirmed working
-□ No pending bug fixes in Job module
+□ JobTicket CRUD confirmed working
+□ No pending bug fixes in Order module
 ```
 
 ### Prerequisites (Must Exist)
 
 | Requirement | Location | Status |
 |-------------|----------|--------|
-| Job data type | Database | ✅ MVP |
+| Order data type | Database | ✅ MVP |
 | Order Details page | Pages | ✅ MVP |
-| JobItem workflows | Workflows | ✅ MVP |
+| JobTicket workflows | Workflows | ✅ MVP |
 
 ### Add: Option Sets (1)
 
 | Option Set | Values | Notes |
 |------------|--------|-------|
-| JobActivityType | created, status_changed, item_added, item_updated, item_deleted, note_added, completed | For activity log entries |
+| OrderActivityType | created, status_changed, item_added, item_updated, item_deleted, note_added, completed | For activity log entries |
 
 ### Add: Data Types (2)
 
 | Type | Fields | Depends On |
 |------|--------|------------|
-| JobNote | id, job (→Job), content, author, created_at | Order |
-| JobActivity | id, job (→Job), activity_type (→JobActivityType), description, old_value, new_value, created_at | Order |
+| OrderNote | id, job (→Order), content, author, created_at | Order |
+| OrderActivity | id, job (→Order), activity_type (→OrderActivityType), description, old_value, new_value, created_at | Order |
 
 ### Add: Workflows (6)
 
 | Workflow | Trigger | Depends On |
 |----------|---------|------------|
-| Create OrderNote | Add note button | Job exists |
-| Delete JobNote | Delete note button | JobNote exists |
-| Create OrderActivity | Called by other workflows | Job exists |
-| Log Item Added | After JobItem created | JobItem create workflow |
-| Log Item Updated | After JobItem updated | JobItem update workflow |
-| Log Status Changed | After Job status change | Job status workflow |
+| Create OrderNote | Add note button | Order exists |
+| Delete OrderNote | Delete note button | OrderNote exists |
+| Create OrderActivity | Called by other workflows | Order exists |
+| Log Item Added | After JobTicket created | JobTicket create workflow |
+| Log Item Updated | After JobTicket updated | JobTicket update workflow |
+| Log Status Changed | After Order status change | Order status workflow |
 
 ### Modify: Existing Workflows (4)
 
@@ -104,8 +104,8 @@ This roadmap defines the **locked sequence** for adding features after MVP launc
 | Create Order | Add step: Create OrderActivity (type=created) |
 | Update Order Status | Add step: Create OrderActivity (type=status_changed) |
 | Create OrderItem | Add step: Create OrderActivity (type=item_added) |
-| Update JobItem | Add step: Create OrderActivity (type=item_updated) |
-| Delete JobItem | Add step: Create OrderActivity (type=item_deleted) |
+| Update JobTicket | Add step: Create OrderActivity (type=item_updated) |
+| Delete JobTicket | Add step: Create OrderActivity (type=item_deleted) |
 
 ### Modify: Pages (1)
 
@@ -125,7 +125,7 @@ This roadmap defines the **locked sequence** for adding features after MVP launc
 □ Activity logged on status change
 □ Activity logged on item add/edit/delete
 □ Activity tab shows correct history
-□ No errors in existing JobItem workflows
+□ No errors in existing JobTicket workflows
 ```
 
 ---
@@ -222,11 +222,11 @@ End Work: enabled when (last = start_work) OR (last = break_end)
 
 ```
 □ Phase 2 complete and verified
-□ Job creation workflow working
-□ JobItem creation workflow working
-□ Job Activity logging working (Phase 1)
+□ Order creation workflow working
+□ JobTicket creation workflow working
+□ Order Activity logging working (Phase 1)
 □ Customer CRUD working
-□ No pending Job module bugs
+□ No pending Order module bugs
 ```
 
 ### Prerequisites (Must Exist)
@@ -234,9 +234,9 @@ End Work: enabled when (last = start_work) OR (last = break_end)
 | Requirement | Location | Status |
 |-------------|----------|--------|
 | Customer data type | Database | ✅ MVP |
-| Job data type | Database | ✅ MVP |
-| JobItem data type | Database | ✅ MVP |
-| JobActivity workflows | Workflows | ✅ Phase 1 |
+| Order data type | Database | ✅ MVP |
+| JobTicket data type | Database | ✅ MVP |
+| OrderActivity workflows | Workflows | ✅ Phase 1 |
 
 ### Add: Option Sets (1)
 
@@ -248,7 +248,7 @@ End Work: enabled when (last = start_work) OR (last = break_end)
 
 | Type | Fields | Depends On |
 |------|--------|------------|
-| Quote | id, customer (→Customer), line_items (list of QuoteLineItem), notes, status (→QuoteStatus), total, job (→Job, **add after Job.quote exists**), created_at, updated_at | Customer |
+| Quote | id, customer (→Customer), line_items (list of QuoteLineItem), notes, status (→QuoteStatus), total, job (→Order, **add after Order.quote exists**), created_at, updated_at | Customer |
 | QuoteLineItem | description, quantity, unit_price, total | Embedded in Quote |
 
 ### Modify: Existing Data Types (1)
@@ -263,7 +263,7 @@ End Work: enabled when (last = start_work) OR (last = break_end)
 ⚠️ CIRCULAR DEPENDENCY HANDLING:
 
 Step 1: Create Quote type WITHOUT job field
-Step 2: Add quote field to Job type
+Step 2: Add quote field to Order type
 Step 3: Add job field to Quote type
 Step 4: Test both directions work
 ```
@@ -279,9 +279,9 @@ Step 4: Test both directions work
 | Update Quote Line Item | Edit item | QuoteLineItem exists |
 | Delete Quote Line Item | Delete item | QuoteLineItem exists |
 | Recalculate Quote Total | After line item change | Quote exists |
-| Convert Quote to Job | Convert button | Quote exists, not converted |
+| Convert Quote to Order | Convert button | Quote exists, not converted |
 
-### Convert Quote to Job Workflow (Detailed)
+### Convert Quote to Order Workflow (Detailed)
 
 ```
 Trigger: Convert button clicked
@@ -289,7 +289,7 @@ Condition: This Quote's job is empty
 
 Step 1: Create Order
   - customer = Quote's customer
-  - name = "Job from Quote #" + Quote's unique id:truncated to 8
+  - name = "Order from Quote #" + Quote's unique id:truncated to 8
   - description = Quote's notes
   - status = approved
   - quote = This Quote
@@ -319,7 +319,7 @@ Step 4: Create OrderActivity
 
 | Option Set | Modification |
 |------------|--------------|
-| JobActivityType | Add: quote_converted |
+| OrderActivityType | Add: quote_converted |
 
 ### Add: Pages (1)
 
@@ -327,7 +327,7 @@ Step 4: Create OrderActivity
 |------|------------|
 | Quotes | Quote list with status filter |
 | | Create/Edit quote popup with line items |
-| | Convert to Job button |
+| | Convert to Order button |
 | | Status change dropdown |
 
 ### Modify: Pages (1)
@@ -346,10 +346,10 @@ Step 4: Create OrderActivity
 □ Can edit quote (when not converted)
 □ Can change quote status
 □ Can convert quote to job
-□ Job created with correct data
-□ JobItems created from line items
+□ Order created with correct data
+□ JobTickets created from line items
 □ Quote shows linked job after conversion
-□ Job shows linked quote
+□ Order shows linked quote
 □ Cannot convert same quote twice
 □ Cannot edit converted quote
 □ Activity log shows "quote_converted"
@@ -368,9 +368,9 @@ Step 4: Create OrderActivity
 ```
 □ Phase 3 complete and verified
 □ Invoice CRUD working
-□ Create Invoice from Job working
+□ Create Invoice from Order working
 □ Mark as Paid working
-□ Job→Invoice link working
+□ Order→Invoice link working
 ```
 
 ### Prerequisites (Must Exist)
@@ -656,7 +656,7 @@ Step 3: Create PayrollTransaction
 
 ```
 □ Phase 6 complete and verified
-□ Job module fully working
+□ Order module fully working
 □ Order Details page stable
 ```
 
@@ -664,14 +664,14 @@ Step 3: Create PayrollTransaction
 
 | Requirement | Location | Status |
 |-------------|----------|--------|
-| Job data type | Database | ✅ MVP |
-| Job list page | Pages | ✅ MVP |
+| Order data type | Database | ✅ MVP |
+| Order list page | Pages | ✅ MVP |
 
 ### Add: Data Types (1)
 
 | Type | Fields | Depends On |
 |------|--------|------------|
-| Task | id, title, description, job (→Job, optional), due_date, is_complete, created_at | Job (optional) |
+| Task | id, title, description, job (→Order, optional), due_date, is_complete, created_at | Order (optional) |
 
 ### Add: Workflows (4)
 
@@ -709,7 +709,7 @@ Step 3: Create PayrollTransaction
 □ Can delete task
 □ Tasks appear in correct column
 □ Due date displays correctly
-□ Job link works when set
+□ Order link works when set
 ```
 
 ---
@@ -725,7 +725,7 @@ Step 3: Create PayrollTransaction
 ```
 □ Phase 7 complete and verified
 □ Task CRUD working
-□ Job status changes working
+□ Order status changes working
 □ Productivity page exists with task list
 ```
 
@@ -734,7 +734,7 @@ Step 3: Create PayrollTransaction
 | Requirement | Location | Status |
 |-------------|----------|--------|
 | Task data type | Database | ✅ Phase 7 |
-| Job data type | Database | ✅ MVP |
+| Order data type | Database | ✅ MVP |
 | Productivity page | Pages | ✅ Phase 7 |
 
 ### Add: Data Types (0)
@@ -745,7 +745,7 @@ No new types
 
 | Workflow | Trigger | Depends On |
 |----------|---------|------------|
-| Move Job (Kanban) | Drag-drop or button | Job exists |
+| Move Order (Kanban) | Drag-drop or button | Order exists |
 | Get Tasks for Date | Calendar date click | Tasks exist |
 
 ### Modify: Pages (1)
@@ -782,7 +782,7 @@ Columns (from OrderStatus):
 Each column:
 - Shows orders with that status
 - Count and total value header
-- Job cards with name, customer, due date
+- Order cards with name, customer, due date
 
 Interaction:
 - Click job → navigate to Order Details
@@ -816,14 +816,14 @@ Interaction:
 □ Phase 8 complete and verified
 □ API Connector plugin installed
 □ OpenAI API key configured
-□ Job and Customer modules stable
+□ Order and Customer modules stable
 ```
 
 ### Prerequisites (Must Exist)
 
 | Requirement | Location | Status |
 |-------------|----------|--------|
-| Job data type | Database | ✅ MVP |
+| Order data type | Database | ✅ MVP |
 | Customer data type | Database | ✅ MVP |
 | API Connector | Plugins | Required |
 | OpenAI API Key | Settings | Required |
@@ -832,7 +832,7 @@ Interaction:
 
 | Type | Fields | Depends On |
 |------|--------|------------|
-| AIResponse | id, tool, input_data (text/JSON), output (text), job (→Job, optional), customer (→Customer, optional), created_at | Job, Customer (optional) |
+| AIResponse | id, tool, input_data (text/JSON), output (text), job (→Order, optional), customer (→Customer, optional), created_at | Order, Customer (optional) |
 
 ### Add: API Connector Calls (1)
 
@@ -911,7 +911,7 @@ Body: {
 □ Phase 9 complete and verified
 □ All core modules stable
 □ Customer creation working
-□ Job creation working
+□ Order creation working
 □ No pending critical bugs
 ```
 
@@ -920,7 +920,7 @@ Body: {
 | Requirement | Location | Status |
 |-------------|----------|--------|
 | Customer data type | Database | ✅ MVP |
-| Job data type | Database | ✅ MVP |
+| Order data type | Database | ✅ MVP |
 | Invoice data type | Database | ✅ MVP |
 
 ### Add: Option Sets (3)
@@ -937,7 +937,7 @@ Body: {
 |------|--------|------------|
 | FundraiserCampaign | id, name, goal, start_date, end_date, organizer, payout_rules, total_raised, status, created_at | None |
 | B2BStore | id, company_name, contact_email, login_password, discount_percent, is_active, created_at | None |
-| WebstoreOrder | id, store_type, store_id, items (JSON), total, status, job (→Job), created_at | Order |
+| WebstoreOrder | id, store_type, store_id, items (JSON), total, status, job (→Order), created_at | Order |
 
 ### Add: Workflows (6)
 
@@ -947,7 +947,7 @@ Body: {
 | Create B2B Store | Submit form | None |
 | Create Webstore Order | Order placed | Store exists |
 | Auto-Create Customer | Part of order | Customer type |
-| Auto-Create Order | Part of order | Job type |
+| Auto-Create Order | Part of order | Order type |
 | Update Fundraiser Total | After order | Campaign exists |
 
 ### Webstore Order Workflow (Complex)
@@ -971,7 +971,7 @@ Step 3: Create WebstoreOrder
   - items = input items JSON
   - total = input total
   - status = pending
-  - job = Job from Step 2
+  - job = Order from Step 2
 
 Step 4: (If fundraiser) Update Campaign
   - Make changes to FundraiserCampaign
@@ -998,7 +998,7 @@ Step 4: (If fundraiser) Update Campaign
 □ Fundraiser total_raised updates
 □ Orders list shows all orders
 □ Can filter by store type
-□ Job shows webstore origin
+□ Order shows webstore origin
 ```
 
 ---
@@ -1025,7 +1025,7 @@ Step 4: (If fundraiser) Update Campaign
 |-------------|----------|--------|
 | Customer data type | Database | ✅ MVP |
 | Quote data type | Database | ✅ Phase 3 |
-| Job data type | Database | ✅ MVP |
+| Order data type | Database | ✅ MVP |
 | Invoice data type | Database | ✅ MVP |
 | User authentication | Built-in | Required |
 
@@ -1061,7 +1061,7 @@ Key rules:
 | /portal | Customer dashboard | Customer only |
 | /portal/profile | Edit profile | Customer only |
 | /portal/quotes | Quote list, approve/decline | Customer only |
-| /portal/orders | Job list (read-only status) | Customer only |
+| /portal/orders | Order list (read-only status) | Customer only |
 | /portal/invoices | Invoice list, payment (future) | Customer only |
 
 ### Add: Signup/Login Flow
@@ -1123,7 +1123,7 @@ Phase 1-2:
   - Can disable without affecting MVP
 
 Phase 3 (Quotes):
-  - If conversion breaks: revert Job.quote field
+  - If conversion breaks: revert Order.quote field
   - Orders can still be created directly
 
 Phase 4-6:

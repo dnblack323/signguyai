@@ -106,7 +106,7 @@ A professional, dark-mode-first design system for sign shop operations. Desktop-
 
 **Bubble Implementation:**
 ```
-Conditional: When This Job's status is "quoted"
+Conditional: When This Order's status is "quoted"
   Background color: #F59E0B20
   Font color: #F59E0B
 ```

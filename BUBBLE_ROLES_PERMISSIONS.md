@@ -63,7 +63,7 @@ This document defines the intended roles and permissions structure for Sign Guy 
 | **Edit** | ✅ | ✅ | 🔒 |
 | **Delete** | ✅ | 🔒 | 🔒 |
 | **Change Status** | ✅ | ✅ | ⚠️ (approve/decline only) |
-| **Convert to Job** | ✅ | ✅ | 🔒 |
+| **Convert to Order** | ✅ | ✅ | 🔒 |
 | **Add Line Items** | ✅ | ✅ | 🔒 |
 
 **Field-Level Restrictions:**
@@ -85,7 +85,7 @@ This document defines the intended roles and permissions structure for Sign Guy 
 
 ---
 
-### Job
+### Order
 
 | Action | Owner | Staff | Customer Portal |
 |--------|-------|-------|-----------------|
@@ -112,7 +112,7 @@ This document defines the intended roles and permissions structure for Sign Guy 
 | quote_id | 📖 | 📖 | 🔒 |
 | invoice_id | 📖 | 📖 | 🔒 |
 
-**Customer Portal Job View:**
+**Customer Portal Order View:**
 - See job name, status, due date
 - See line items and totals
 - See status updates (activity log - sanitized)
@@ -120,7 +120,7 @@ This document defines the intended roles and permissions structure for Sign Guy 
 
 ---
 
-### JobItem
+### JobTicket
 
 | Action | Owner | Staff | Customer Portal |
 |--------|-------|-------|-----------------|
@@ -144,7 +144,7 @@ This document defines the intended roles and permissions structure for Sign Guy 
 
 ---
 
-### JobNote
+### OrderNote
 
 | Action | Owner | Staff | Customer Portal |
 |--------|-------|-------|-----------------|
@@ -152,11 +152,11 @@ This document defines the intended roles and permissions structure for Sign Guy 
 | **Create** | ✅ | ✅ | 🔒 |
 | **Delete** | ✅ | ✅ | 🔒 |
 
-**Notes:** Job notes are internal-only. Customer communication should be handled separately (future: messaging feature).
+**Notes:** Order notes are internal-only. Customer communication should be handled separately (future: messaging feature).
 
 ---
 
-### JobActivity
+### OrderActivity
 
 | Action | Owner | Staff | Customer Portal |
 |--------|-------|-------|-----------------|
@@ -425,9 +425,9 @@ This document defines the intended roles and permissions structure for Sign Guy 
 | Customer | CRUD | CRU | R (own) |
 | Quote | CRUD | CRU | R (own) + Approve |
 | Order | CRUD | CRU | R (own) |
-| JobItem | CRUD | CRUD | R (own) |
-| JobNote | CRUD | CRUD | 🔒 |
-| JobActivity | R | R | R (sanitized) |
+| JobTicket | CRUD | CRUD | R (own) |
+| OrderNote | CRUD | CRUD | 🔒 |
+| OrderActivity | R | R | R (sanitized) |
 | Invoice | CRUD | CRU* | R (own) |
 | Employee | CRUD | R (own) | 🔒 |
 | TimeLog | CRUD | C (own) R (own) | 🔒 |
