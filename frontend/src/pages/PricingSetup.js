@@ -316,7 +316,7 @@ export default function PricingSetup() {
         <TabsContent value="cost-settings">
           <Card data-testid="pricing-setup-cost-settings-card">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
+              <CardTitle className="flex items-center gap-2">
                 <Settings2 className="h-5 w-5 text-teal-400" /> Source of truth
               </CardTitle>
               <CardDescription>
@@ -337,7 +337,7 @@ export default function PricingSetup() {
         <TabsContent value="historical-import" className="space-y-6">
           <Card data-testid="historical-import-upload-card">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
+              <CardTitle className="flex items-center gap-2">
                 <UploadCloud className="h-5 w-5 text-teal-400" /> Upload historical invoices
               </CardTitle>
               <CardDescription>
@@ -353,7 +353,7 @@ export default function PricingSetup() {
                 disabled={!canEdit}
                 data-testid="historical-import-file-input"
               />
-              <div className="flex flex-wrap gap-2 text-sm text-slate-300">
+              <div className="flex flex-wrap gap-2 text-sm text-gray-600">
                 {selectedFiles.map((file) => (
                   <Badge key={`${file.name}-${file.size}`} variant="outline" data-testid="historical-import-selected-file-badge">
                     {file.name}
@@ -370,14 +370,14 @@ export default function PricingSetup() {
           <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
             <Card data-testid="historical-import-list-card">
               <CardHeader>
-                <CardTitle className="text-white">Import history</CardTitle>
+                <CardTitle>Import history</CardTitle>
                 <CardDescription>Select an import session to continue review.</CardDescription>
               </CardHeader>
               <CardContent>
                 {loading ? (
                   <div className="flex items-center justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-teal-500" /></div>
                 ) : imports.length === 0 ? (
-                  <p className="text-sm text-slate-400" data-testid="historical-import-empty-state">No imports yet.</p>
+                  <p className="text-sm text-gray-500" data-testid="historical-import-empty-state">No imports yet.</p>
                 ) : (
                   <div className="space-y-3">
                     {imports.map((item) => (
@@ -405,7 +405,7 @@ export default function PricingSetup() {
                 <>
                   <Card data-testid="historical-import-detail-card">
                     <CardHeader>
-                      <CardTitle className="text-white">Current import session</CardTitle>
+                      <CardTitle>Current import session</CardTitle>
                       <CardDescription>
                         Review file structure, confirm mapping, run AI analysis, and accept or reject suggestions.
                       </CardDescription>
@@ -429,7 +429,7 @@ export default function PricingSetup() {
                   {availableColumns.length > 0 && (
                     <Card data-testid="historical-import-mapping-card">
                       <CardHeader>
-                        <CardTitle className="text-white">Field mapping review</CardTitle>
+                        <CardTitle>Field mapping review</CardTitle>
                         <CardDescription>
                           Confirm which columns represent descriptions, quantities, totals, dimensions, and optional category hints.
                         </CardDescription>
@@ -500,10 +500,32 @@ export default function PricingSetup() {
                     </Card>
                   )}
 
+                  {/* Show analyze button when status is ready_for_analysis, even if rows are still being extracted */}
+                  {selectedImport.status === 'ready_for_analysis' && !selectedImport.normalized_rows?.length && (
+                    <Card data-testid="historical-import-ready-for-analysis-card">
+                      <CardHeader>
+                        <CardTitle>Ready for Analysis</CardTitle>
+                        <CardDescription>
+                          Your files have been uploaded. Click the button below to extract data and run AI pricing analysis.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-center gap-3 text-sm text-slate-300 p-4 rounded-lg border border-teal-500/30 bg-teal-500/10">
+                          <FileUp className="h-5 w-5 text-teal-400 flex-shrink-0" />
+                          <span>{selectedImport.files?.length || 0} file(s) uploaded and ready for processing</span>
+                        </div>
+                        <Button onClick={handleAnalyze} disabled={!canEdit || analyzing} className="bg-teal-600 hover:bg-teal-700" data-testid="historical-import-analyze-button">
+                          {analyzing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                          Extract & Analyze Invoices
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   {selectedImport.normalized_rows?.length > 0 && (
                     <Card data-testid="historical-import-preview-card">
                       <CardHeader>
-                        <CardTitle className="text-white">Extracted preview</CardTitle>
+                        <CardTitle>Extracted preview</CardTitle>
                         <CardDescription>Review normalized rows and optionally exclude flagged outliers before running AI analysis.</CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">
@@ -527,7 +549,7 @@ export default function PricingSetup() {
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm" data-testid="historical-import-preview-table">
                             <thead>
-                              <tr className="text-left text-slate-400 border-b border-gray-200">
+                              <tr className="text-left text-gray-500 border-b border-gray-200">
                                 <th className="py-2 pr-3">Description</th>
                                 <th className="py-2 pr-3">Qty</th>
                                 <th className="py-2 pr-3">Total</th>
@@ -537,12 +559,12 @@ export default function PricingSetup() {
                             </thead>
                             <tbody>
                               {selectedImport.normalized_rows.slice(0, 12).map((row) => (
-                                <tr key={row.row_id} className="border-b border-slate-800">
-                                  <td className="py-2 pr-3 text-white">{row.description}</td>
-                                  <td className="py-2 pr-3 text-slate-300">{row.quantity}</td>
-                                  <td className="py-2 pr-3 text-slate-300">${formatNumber(row.total)}</td>
-                                  <td className="py-2 pr-3 text-slate-300">{row.square_feet || '-'}</td>
-                                  <td className="py-2 pr-3 text-slate-300">{row.category_final}</td>
+                                <tr key={row.row_id} className="border-b border-gray-200">
+                                  <td className="py-2 pr-3 text-gray-900">{row.description}</td>
+                                  <td className="py-2 pr-3 text-gray-700">{row.quantity}</td>
+                                  <td className="py-2 pr-3 text-gray-700">${formatNumber(row.total)}</td>
+                                  <td className="py-2 pr-3 text-gray-700">{row.square_feet || '-'}</td>
+                                  <td className="py-2 pr-3 text-gray-700">{row.category_final}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -560,7 +582,7 @@ export default function PricingSetup() {
                   {selectedImport.analysis_summary && (
                     <Card data-testid="historical-import-analysis-summary-card">
                       <CardHeader>
-                        <CardTitle className="text-white">Analysis dashboard</CardTitle>
+                        <CardTitle>Analysis dashboard</CardTitle>
                         <CardDescription>AI-assisted benchmark summary before any value is applied.</CardDescription>
                       </CardHeader>
                       <CardContent className="grid gap-4 md:grid-cols-4">
@@ -587,7 +609,7 @@ export default function PricingSetup() {
                   {selectedImport.suggestions?.length > 0 && (
                     <Card data-testid="historical-import-suggestions-review-card">
                       <CardHeader>
-                        <CardTitle className="text-white">Review benchmark suggestions</CardTitle>
+                        <CardTitle>Review benchmark suggestions</CardTitle>
                         <CardDescription>
                           Accept, edit, or ignore each suggestion. Accepted values save to benchmark settings only.
                         </CardDescription>
@@ -660,7 +682,7 @@ export default function PricingSetup() {
               ) : (
                 <Card data-testid="historical-import-empty-detail-card">
                   <CardHeader>
-                    <CardTitle className="text-white">No import selected</CardTitle>
+                    <CardTitle>No import selected</CardTitle>
                     <CardDescription>Upload invoice files to begin the review workflow.</CardDescription>
                   </CardHeader>
                 </Card>

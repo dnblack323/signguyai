@@ -559,6 +559,22 @@ async def create_import(
     }
 
     await db.pricing_imports.insert_one(import_doc)
+    
+    # For PDF-only imports, extract and normalize rows immediately so analyze button appears
+    if not structured_file_present and any(f["extension"] == ".pdf" for f in saved_files):
+        try:
+            normalized_rows = await build_normalized_rows(import_doc)
+            await db.pricing_imports.update_one(
+                {"id": import_id, "tenant_id": current_user.tenant_id},
+                {"$set": {
+                    "normalized_rows": normalized_rows,
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }}
+            )
+        except Exception as e:
+            # Log but don't fail - user can still trigger analysis manually
+            print(f"Auto-extraction failed for import {import_id}: {e}")
+    
     return await get_import_or_404(import_id, current_user.tenant_id)
 
 
