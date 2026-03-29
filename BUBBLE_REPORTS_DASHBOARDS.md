@@ -999,3 +999,544 @@ The app now uses a 4-layer production system:
    - PDF generation for reports
    - CSV export for data tables
    - Scheduled email delivery
+
+---
+
+## AI-POWERED REPORTS
+
+These reports leverage AI to provide deeper insights, predictions, and actionable recommendations specific to sign shop operations.
+
+---
+
+### 1. AI PRODUCTION EFFICIENCY REPORT
+
+**Purpose:** Analyze production times vs estimates to identify bottlenecks and improvement opportunities.
+
+**AI Analysis Includes:**
+- Comparison of estimated vs actual production time per order/ticket
+- Identification of consistently over/under-estimated job types
+- Bottleneck detection (which stages cause delays)
+- Employee efficiency patterns
+- Recommendations for estimate adjustments
+
+**Data Sources:**
+- `Order` (estimates, due dates)
+- `JobTicket` (category, specs, timestamps)
+- `ProductionTask` (stage times, status changes)
+- `TimeEntry` (labor hours per task)
+
+**Sample AI Insights:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 🤖 AI PRODUCTION EFFICIENCY INSIGHTS                           │
+├─────────────────────────────────────────────────────────────────┤
+│ ⚠️  Vehicle Wraps averaging 2.3x estimated time               │
+│     → Recommendation: Increase wrap estimates by 40%           │
+│                                                                 │
+│ 🔴 Bottleneck Detected: "Lamination" stage                     │
+│     → 67% of delays occur here. Consider equipment upgrade.    │
+│                                                                 │
+│ ✅ Banner production running 15% ahead of estimates            │
+│     → Top performer: Employee "Mike S." (23% faster avg)       │
+│                                                                 │
+│ 📊 This Month vs Last Month:                                   │
+│     Production efficiency: +8% improvement                      │
+│     Average delay: 1.2 days → 0.8 days                         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Metrics Generated:**
+| Metric | Calculation | AI Enhancement |
+|--------|-------------|----------------|
+| Efficiency Ratio | Actual Time / Estimated Time | Pattern recognition across job types |
+| Bottleneck Score | Delay time per stage | Root cause analysis |
+| Employee Efficiency | Tasks completed vs time | Performance recommendations |
+| Estimate Accuracy | % within 10% of actual | Auto-suggest estimate adjustments |
+
+---
+
+### 2. AI CUSTOMER PROFITABILITY ANALYSIS
+
+**Purpose:** Identify which customers are most/least profitable after accounting for all costs.
+
+**AI Analysis Includes:**
+- True profit margin per customer (revenue - materials - labor - overhead)
+- Customer lifetime value prediction
+- Payment behavior patterns (early, on-time, late)
+- Maintenance level (high-touch vs low-touch customers)
+- Cross-sell/upsell opportunity identification
+
+**Data Sources:**
+- `Customer` (all orders, invoices, communications)
+- `Order` (totals, costs, timelines)
+- `Invoice` (payment dates, amounts)
+- `TimeEntry` (labor hours per customer's orders)
+
+**Sample AI Insights:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 🤖 AI CUSTOMER PROFITABILITY ANALYSIS                          │
+├─────────────────────────────────────────────────────────────────┤
+│ 💎 TOP 5 MOST PROFITABLE CUSTOMERS (Last 12 Months)            │
+│    1. ABC Corp — $47,200 revenue, 42% margin, always on-time   │
+│    2. City Events — $31,500 revenue, 38% margin, repeat buyer  │
+│    3. Joe's Auto — $28,900 revenue, 45% margin, low maintenance│
+│                                                                 │
+│ ⚠️  HIGH REVENUE, LOW PROFIT CUSTOMERS                         │
+│    • Downtown Restaurant Group — $52,000 revenue, 8% margin    │
+│      → Issue: Excessive revisions (avg 4.2 per order)          │
+│      → Recommendation: Implement revision fee policy           │
+│                                                                 │
+│ 📈 GROWTH OPPORTUNITIES                                        │
+│    • "Quick Print Co" — Only uses banners, good candidate for  │
+│      vehicle wrap services (similar profile to top wrap buyers)│
+│                                                                 │
+│ 💰 PAYMENT BEHAVIOR                                             │
+│    • 78% of customers pay within terms                         │
+│    • 3 customers consistently 30+ days late (flag for review)  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 3. AI MATERIAL WASTE & USAGE REPORT
+
+**Purpose:** Track material consumption, identify waste patterns, and optimize inventory.
+
+**AI Analysis Includes:**
+- Actual vs theoretical material usage per job type
+- Waste percentage trends over time
+- Correlation between waste and specific employees/equipment
+- Optimal material ordering recommendations
+- Cost-saving opportunities
+
+**Data Sources:**
+- `JobTicket` (dimensions, material specs)
+- `MaterialUsage` (logged consumption)
+- `Inventory` (stock levels, costs)
+- `Order` (quantity, pricing)
+
+**Sample AI Insights:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 🤖 AI MATERIAL WASTE ANALYSIS                                  │
+├─────────────────────────────────────────────────────────────────┤
+│ 📊 WASTE SUMMARY (This Month)                                  │
+│    Total Material Cost: $12,450                                │
+│    Estimated Waste: $1,870 (15%)                               │
+│    Industry Benchmark: 10-12%                                  │
+│                                                                 │
+│ 🔴 HIGH WASTE AREAS                                            │
+│    • 3M IJ180 Vinyl — 22% waste rate                          │
+│      → Pattern: Small cut vinyl jobs not being nested properly │
+│      → Recommendation: Batch similar size jobs together        │
+│                                                                 │
+│    • Coroplast 4mm — 18% waste rate                           │
+│      → Pattern: Standard sizes don't match common job sizes    │
+│      → Recommendation: Stock 18x24 sheets instead of 24x36    │
+│                                                                 │
+│ ✅ LOW WASTE (Best Practices)                                  │
+│    • Banner material — 6% waste (excellent)                    │
+│    • Vehicle wrap film — 9% waste (good)                       │
+│                                                                 │
+│ 💰 POTENTIAL MONTHLY SAVINGS: $620                             │
+│    If waste reduced to 12% benchmark                           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 4. AI SEASONAL DEMAND FORECAST
+
+**Purpose:** Predict busy/slow periods based on historical data to optimize staffing and inventory.
+
+**AI Analysis Includes:**
+- Order volume predictions by week/month
+- Category-specific seasonality (election signs, holiday banners, etc.)
+- Revenue forecasting
+- Staffing recommendations
+- Inventory pre-stocking suggestions
+
+**Data Sources:**
+- `Order` (historical dates, categories, values)
+- `JobTicket` (category trends)
+- `Customer` (industry types for B2B patterns)
+- External: Local event calendars, election cycles
+
+**Sample AI Insights:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 🤖 AI SEASONAL DEMAND FORECAST                                 │
+├─────────────────────────────────────────────────────────────────┤
+│ 📅 NEXT 90-DAY FORECAST                                        │
+│                                                                 │
+│    April: ████████████████░░░░ 78% capacity predicted          │
+│    May:   ████████████████████ 95% capacity predicted ⚠️       │
+│    June:  █████████████░░░░░░░ 65% capacity predicted          │
+│                                                                 │
+│ 🔥 UPCOMING DEMAND SPIKES                                      │
+│    • May 1-15: Graduation season (banners +180% vs avg)        │
+│    • May 20-31: Memorial Day events (yard signs +120%)         │
+│                                                                 │
+│ 📦 INVENTORY RECOMMENDATIONS                                   │
+│    Pre-stock by April 15:                                      │
+│    • 13oz banner material: +500 sq ft                          │
+│    • Coroplast 4mm: +200 sheets                                │
+│    • Graduation templates: Prepare 5 new designs               │
+│                                                                 │
+│ 👥 STAFFING RECOMMENDATION                                     │
+│    May: Consider 1 temp production worker                      │
+│    Estimated additional labor cost: $2,400                     │
+│    Estimated additional revenue enabled: $8,500                │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 5. AI QUOTE WIN/LOSS ANALYSIS
+
+**Purpose:** Understand why quotes convert or don't convert, and optimize pricing/follow-up strategy.
+
+**AI Analysis Includes:**
+- Win rate by category, customer type, quote value
+- Time-to-decision patterns
+- Price sensitivity analysis
+- Competitor loss reasons
+- Follow-up timing optimization
+
+**Data Sources:**
+- `Quote` (status, values, dates, notes)
+- `Order` (converted quotes)
+- `Customer` (history, type)
+- `QuoteActivity` (follow-ups, communications)
+
+**Sample AI Insights:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 🤖 AI QUOTE WIN/LOSS ANALYSIS                                  │
+├─────────────────────────────────────────────────────────────────┤
+│ 📊 OVERALL WIN RATE: 34% (Industry avg: 25-35%)                │
+│                                                                 │
+│ ✅ HIGHEST WIN RATES                                           │
+│    • Repeat customers: 67% win rate                            │
+│    • Vehicle wraps: 52% win rate                               │
+│    • Quotes under $500: 48% win rate                           │
+│    • Same-day quote delivery: 45% win rate                     │
+│                                                                 │
+│ 🔴 LOWEST WIN RATES                                            │
+│    • New customers, quotes over $2000: 18% win rate            │
+│      → AI Suggestion: Offer payment plans for large orders     │
+│                                                                 │
+│    • Quotes taking 3+ days to send: 12% win rate               │
+│      → AI Suggestion: Prioritize quote turnaround              │
+│                                                                 │
+│ 💡 PRICING INSIGHTS                                            │
+│    • Sweet spot: Quotes 5-10% below competitor tend to win     │
+│    • Over-discounting (>15%) doesn't improve win rate          │
+│                                                                 │
+│ ⏰ OPTIMAL FOLLOW-UP TIMING                                    │
+│    • Day 2 follow-up: +15% conversion vs no follow-up          │
+│    • Day 5 second follow-up: +8% additional conversion         │
+│    • After Day 10: Minimal impact                              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 6. AI LABOR COST OPTIMIZATION REPORT
+
+**Purpose:** Identify overtime patterns, scheduling inefficiencies, and labor cost reduction opportunities.
+
+**AI Analysis Includes:**
+- Overtime patterns and causes
+- Underutilization periods
+- Skill-matching efficiency (right person for right job)
+- Schedule optimization suggestions
+- Cost comparison: overtime vs new hire
+
+**Data Sources:**
+- `TimeEntry` (clock times, breaks, overtime)
+- `Employee` (rates, skills, schedule)
+- `ProductionTask` (assignments, completion times)
+- `Order` (due dates, rush status)
+
+**Sample AI Insights:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 🤖 AI LABOR COST OPTIMIZATION                                  │
+├─────────────────────────────────────────────────────────────────┤
+│ 💰 LABOR COST BREAKDOWN (This Month)                           │
+│    Regular hours: $18,400 (82%)                                │
+│    Overtime: $4,050 (18%) ⚠️ Above 10% target                  │
+│                                                                 │
+│ 📈 OVERTIME PATTERNS                                           │
+│    • Fridays: 65% of all overtime occurs                       │
+│      → Cause: Rush orders accepted Thursday afternoon          │
+│      → Suggestion: Rush fee increase for Thu-Fri deadlines     │
+│                                                                 │
+│    • Employee "Sarah M": 12 OT hours (highest)                 │
+│      → Cause: Only trained lamination operator                 │
+│      → Suggestion: Cross-train 1 additional employee           │
+│                                                                 │
+│ 📉 UNDERUTILIZATION DETECTED                                   │
+│    • Tuesday mornings: Avg 60% productivity                    │
+│    • Suggestion: Schedule equipment maintenance here           │
+│                                                                 │
+│ 💡 COST-SAVING OPPORTUNITIES                                   │
+│    1. Cross-train for lamination: Save ~$800/month             │
+│    2. Adjust rush pricing: Reduce Thu-Fri overtime 40%         │
+│    3. Batch similar jobs: Reduce setup time 15%                │
+│                                                                 │
+│    TOTAL POTENTIAL MONTHLY SAVINGS: $1,650                     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 7. AI REPEAT CUSTOMER & RETENTION REPORT
+
+**Purpose:** Track customer loyalty, identify at-risk customers, and find reactivation opportunities.
+
+**AI Analysis Includes:**
+- Customer purchase frequency patterns
+- Churn risk scoring
+- Reactivation candidates (dormant customers likely to return)
+- Loyalty program effectiveness
+- Referral tracking
+
+**Data Sources:**
+- `Customer` (order history, last contact)
+- `Order` (dates, values, categories)
+- `Communication` (touchpoints, responses)
+
+**Sample AI Insights:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 🤖 AI CUSTOMER RETENTION ANALYSIS                              │
+├─────────────────────────────────────────────────────────────────┤
+│ 📊 RETENTION METRICS                                           │
+│    Active customers (ordered in 12 months): 145                │
+│    Repeat rate: 62% (customers with 2+ orders)                 │
+│    Average orders per customer: 3.4                            │
+│                                                                 │
+│ ⚠️  AT-RISK CUSTOMERS (12)                                     │
+│    Previously active, no order in 4-6 months:                  │
+│    • ABC Events — Last order: 5 months ago                     │
+│      → Previously ordered monthly, sudden stop                 │
+│      → AI Suggestion: Personal outreach recommended            │
+│                                                                 │
+│ 💤 REACTIVATION OPPORTUNITIES (8)                              │
+│    Dormant 6-12 months, high previous value:                   │
+│    • Johnson Realty — $12,400 lifetime value                   │
+│      → Similar customers reactivate with 15% discount offer    │
+│                                                                 │
+│ 🌟 LOYALTY PROGRAM IMPACT                                      │
+│    • VIP customers (5+ orders): 89% retention rate             │
+│    • Non-VIP: 54% retention rate                               │
+│    • Suggestion: Lower VIP threshold to 3 orders               │
+│                                                                 │
+│ 📧 RECOMMENDED OUTREACH                                        │
+│    • 12 at-risk: Personal call/email                          │
+│    • 8 dormant: "We miss you" campaign with offer              │
+│    • 23 seasonal: Pre-season reminder (based on past orders)   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 8. AI PRODUCT MIX & MARGIN ANALYSIS
+
+**Purpose:** Understand which product categories are most profitable and identify optimization opportunities.
+
+**AI Analysis Includes:**
+- Revenue and margin by category
+- Trending products (growing vs declining)
+- Cross-sell patterns (what customers buy together)
+- Pricing optimization suggestions
+- Category profitability ranking
+
+**Data Sources:**
+- `JobTicket` (category, specs, pricing)
+- `Order` (totals, costs)
+- `PricingSettings` (costs, markups)
+
+**Sample AI Insights:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 🤖 AI PRODUCT MIX ANALYSIS                                     │
+├─────────────────────────────────────────────────────────────────┤
+│ 📊 CATEGORY PERFORMANCE (Last 12 Months)                       │
+│                                                                 │
+│ Category        │ Revenue  │ Margin │ Trend  │ Recommendation  │
+│─────────────────┼──────────┼────────┼────────┼─────────────────│
+│ Vehicle Wraps   │ $89,400  │ 45%    │ ↑ +22% │ ✅ Invest more  │
+│ Banners         │ $67,200  │ 35%    │ → 0%   │ Maintain        │
+│ Yard Signs      │ $34,500  │ 28%    │ ↓ -8%  │ ⚠️ Review pricing│
+│ Cut Vinyl       │ $28,100  │ 52%    │ ↑ +15% │ ✅ Promote more │
+│ Rigid Signs     │ $45,300  │ 38%    │ → +3%  │ Maintain        │
+│                                                                 │
+│ 💡 CROSS-SELL PATTERNS                                         │
+│    • Vehicle wrap buyers also buy cut vinyl (67% rate)         │
+│    • Banner buyers rarely buy other products (12% rate)        │
+│      → Opportunity: Bundle banner + yard sign packages         │
+│                                                                 │
+│ 🎯 PRICING RECOMMENDATIONS                                     │
+│    • Yard signs: Cost increased 15%, price only 5%             │
+│      → Suggest price increase of $0.50/sign                    │
+│                                                                 │
+│    • Cut vinyl: High margin, underpriced vs market             │
+│      → Could increase 10% without affecting volume             │
+│                                                                 │
+│ 📈 GROWTH OPPORTUNITY                                          │
+│    Vehicle wraps showing strongest growth.                     │
+│    Consider: Dedicated wrap bay, wrap-specific marketing       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 9. AI COMPETITIVE PRICING INTELLIGENCE
+
+**Purpose:** Compare your pricing to market rates and identify adjustment opportunities.
+
+**AI Analysis Includes:**
+- Price positioning vs market (from historical invoice imports)
+- Win rate correlation with pricing
+- Margin optimization suggestions
+- Rush pricing effectiveness
+- Quantity discount analysis
+
+**Data Sources:**
+- `PricingSettings` (your rates)
+- `HistoricalImport` (analyzed invoices, benchmarks)
+- `Quote` (win/loss with pricing)
+- `Order` (final pricing, discounts applied)
+
+**Sample AI Insights:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 🤖 AI PRICING INTELLIGENCE                                     │
+├─────────────────────────────────────────────────────────────────┤
+│ 📊 YOUR PRICING VS MARKET                                      │
+│                                                                 │
+│ Category        │ Your Avg │ Market Avg │ Position │ Action    │
+│─────────────────┼──────────┼────────────┼──────────┼───────────│
+│ Banners/sq ft   │ $4.25    │ $4.50      │ -6%      │ ↑ Can raise│
+│ Vehicle Wraps   │ $2,800   │ $2,650     │ +6%      │ OK (premium)│
+│ Yard Signs      │ $8.50    │ $9.00      │ -6%      │ ↑ Can raise│
+│ Cut Vinyl/sq ft │ $12.00   │ $14.00     │ -14%     │ ↑ Underpriced│
+│                                                                 │
+│ 💰 POTENTIAL REVENUE INCREASE                                  │
+│    If prices adjusted to market average:                       │
+│    • Monthly revenue increase: ~$2,800                         │
+│    • Annual increase: ~$33,600                                 │
+│    • Without significant volume impact (based on win rates)    │
+│                                                                 │
+│ ⏰ RUSH PRICING ANALYSIS                                       │
+│    Current rush fee: 25%                                       │
+│    Acceptance rate: 78%                                        │
+│    AI Suggestion: Test 35% rush fee — competitors at 30-40%    │
+│                                                                 │
+│ 📦 QUANTITY DISCOUNT EFFECTIVENESS                             │
+│    Current: 10% at 25+ units                                   │
+│    Analysis: 85% of quantity orders are 25-35 units            │
+│    Suggestion: Tier at 50+ for better margin preservation      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 10. AI CASH FLOW FORECAST
+
+**Purpose:** Predict cash flow based on outstanding invoices, expected orders, and recurring expenses.
+
+**AI Analysis Includes:**
+- Expected collections (based on customer payment patterns)
+- Upcoming expenses prediction
+- Cash position forecast (30/60/90 days)
+- Warning alerts for potential shortfalls
+- Recommendations for cash management
+
+**Data Sources:**
+- `Invoice` (outstanding, payment history)
+- `Order` (pipeline, expected completion)
+- `Expense` (recurring, one-time)
+- `Customer` (payment behavior patterns)
+- `Sale` (historical revenue patterns)
+
+**Sample AI Insights:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 🤖 AI CASH FLOW FORECAST                                       │
+├─────────────────────────────────────────────────────────────────┤
+│ 💵 CURRENT POSITION                                            │
+│    Cash on hand: $24,500                                       │
+│    Outstanding receivables: $18,200                            │
+│    Outstanding payables: $8,400                                │
+│                                                                 │
+│ 📅 30-DAY FORECAST                                             │
+│                                                                 │
+│    Expected Collections:                                       │
+│    • Week 1: $6,200 (85% confidence)                          │
+│    • Week 2: $4,800 (75% confidence)                          │
+│    • Week 3: $3,100 (70% confidence)                          │
+│    • Week 4: $2,400 (65% confidence)                          │
+│    Total: $16,500                                              │
+│                                                                 │
+│    Expected Expenses:                                          │
+│    • Payroll (2x): $9,200                                     │
+│    • Materials: $4,500                                         │
+│    • Rent/Utilities: $3,200                                    │
+│    • Other: $1,800                                             │
+│    Total: $18,700                                              │
+│                                                                 │
+│    Projected End Balance: $22,300                              │
+│                                                                 │
+│ ⚠️  ALERTS                                                     │
+│    • Invoice #1842 (ABC Corp, $4,200) — Usually pays Day 15   │
+│      but no payment yet (Day 22). Follow up recommended.       │
+│                                                                 │
+│    • Large material order due Week 3 ($3,200)                  │
+│      Consider: Delay to Week 4 or negotiate terms              │
+│                                                                 │
+│ 💡 RECOMMENDATIONS                                             │
+│    1. Send payment reminders to 3 overdue accounts ($7,400)    │
+│    2. Offer 2% early payment discount to accelerate $5,200     │
+│    3. Consider: Line of credit for seasonal cash gaps          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## AI REPORT IMPLEMENTATION NOTES
+
+### How AI Reports Work
+
+1. **Data Collection:** Reports pull from existing database tables
+2. **Pattern Analysis:** AI analyzes historical data for trends and anomalies
+3. **Benchmark Comparison:** Compares against industry standards and your historical averages
+4. **Insight Generation:** Generates specific, actionable recommendations
+5. **Confidence Scoring:** Each prediction includes confidence level
+
+### AI Credit Usage
+
+| Report Type | Credits | Frequency Recommendation |
+|-------------|---------|--------------------------|
+| Production Efficiency | 2 | Weekly |
+| Customer Profitability | 3 | Monthly |
+| Material Waste | 2 | Weekly |
+| Seasonal Forecast | 3 | Monthly |
+| Quote Win/Loss | 2 | Weekly |
+| Labor Optimization | 2 | Weekly |
+| Customer Retention | 2 | Monthly |
+| Product Mix | 2 | Monthly |
+| Pricing Intelligence | 3 | Monthly |
+| Cash Flow Forecast | 2 | Weekly |
+
+### Integration Points
+
+- **Dashboard Widgets:** Summary cards for each AI report
+- **Email Alerts:** Automatic alerts for critical insights
+- **PDF Export:** Full report generation for stakeholder review
+- **Action Items:** Convert AI suggestions to tasks automatically
+
