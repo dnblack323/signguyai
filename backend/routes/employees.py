@@ -685,22 +685,47 @@ async def get_pay_period_summary(
         emp_id = emp["id"]
         hourly_rate = emp.get("hourly_rate", 0)
         
-        # Get all hours from both sources
+        # Get all hours from ALL sources
+        # 1. Job time entries
         job_entries = await db.job_time_entries.find({
             "employee_id": emp_id,
             "tenant_id": current_user.tenant_id,
             "start_time": {"$gte": f"{start_str}T00:00:00", "$lte": f"{end_str}T23:59:59"}
         }, {"_id": 0}).to_list(1000)
         
+        # 2. Manual payroll hours
         manual_entries = await db.payroll_hours.find({
             "employee_id": emp_id,
             "tenant_id": current_user.tenant_id,
             "date": {"$gte": start_str, "$lte": end_str}
         }, {"_id": 0}).to_list(1000)
         
+        # 3. Time clock punches (timelogs) - CRITICAL: This was missing!
+        timelogs = await db.timelogs.find({
+            "employee_id": emp_id,
+            "tenant_id": current_user.tenant_id,
+            "clock_in": {"$gte": f"{start_str}T00:00:00", "$lte": f"{end_str}T23:59:59"}
+        }, {"_id": 0}).to_list(1000)
+        
         job_hours = sum((e.get("duration_minutes", 0) / 60) for e in job_entries)
         manual_hours_total = sum(m.get("hours", 0) for m in manual_entries)
-        total_hours = round(job_hours + manual_hours_total, 2)
+        
+        # Calculate clock hours from timelogs
+        clock_hours = 0
+        for log in timelogs:
+            if log.get("clock_out") and log.get("clock_in"):
+                try:
+                    clock_in = datetime.fromisoformat(log["clock_in"].replace("Z", "+00:00"))
+                    clock_out = datetime.fromisoformat(log["clock_out"].replace("Z", "+00:00"))
+                    duration = (clock_out - clock_in).total_seconds() / 3600  # hours
+                    # Subtract break time if recorded
+                    break_mins = log.get("break_minutes", 0) or 0
+                    duration -= break_mins / 60
+                    clock_hours += max(duration, 0)
+                except Exception:
+                    pass
+        
+        total_hours = round(job_hours + manual_hours_total + clock_hours, 2)
         
         # Overtime threshold depends on period type
         ot_threshold = 80 if period_type == "biweekly" else 40
@@ -734,6 +759,21 @@ async def get_pay_period_summary(
             if day not in daily:
                 daily[day] = 0
             daily[day] += me.get("hours", 0)
+        # Add clock in/out hours to daily breakdown
+        for log in timelogs:
+            if log.get("clock_out") and log.get("clock_in"):
+                try:
+                    clock_in = datetime.fromisoformat(log["clock_in"].replace("Z", "+00:00"))
+                    clock_out = datetime.fromisoformat(log["clock_out"].replace("Z", "+00:00"))
+                    day = clock_in.date().isoformat()
+                    if day not in daily:
+                        daily[day] = 0
+                    duration = (clock_out - clock_in).total_seconds() / 3600
+                    break_mins = log.get("break_minutes", 0) or 0
+                    duration -= break_mins / 60
+                    daily[day] += max(duration, 0)
+                except Exception:
+                    pass
         
         summary.append({
             "employee_id": emp_id,

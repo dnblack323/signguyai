@@ -19,7 +19,7 @@ import {
 import { formatCurrency, formatDate } from '../lib/utils';
 import {
   DollarSign, Plus, TrendingUp, TrendingDown, Minus, AlertTriangle,
-  Clock, Users, CalendarDays, Edit2, Trash2, Briefcase, Timer
+  Clock, Users, CalendarDays, Edit2, Trash2, Briefcase, Timer, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
