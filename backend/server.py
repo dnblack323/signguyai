@@ -1181,6 +1181,7 @@ from routes.orders import router as shop_orders_router
 from routes.job_tickets import router as job_tickets_router
 from routes.production_tasks import router as production_tasks_router
 from routes.workflow_templates import router as workflow_templates_router
+from routes.digest import router as digest_router
 
 # Include all routers in the api_router
 api_router.include_router(auth_router)
@@ -1227,6 +1228,7 @@ api_router.include_router(shop_orders_router)  # Shop Order System (Layer 1)
 api_router.include_router(job_tickets_router)  # Job Tickets (Layer 2)
 api_router.include_router(production_tasks_router)  # Production Tasks (Layer 4)
 api_router.include_router(workflow_templates_router)  # Workflow Templates (Admin)
+api_router.include_router(digest_router)  # Daily Digest Email
 
 # Backup & Restore
 from routes.backup import setup_backup_routes
@@ -1254,6 +1256,10 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_migrations():
     """Run one-time migrations on startup to fix known production issues."""
+    # Start the digest email scheduler
+    from services.digest_scheduler import start_digest_scheduler
+    start_digest_scheduler()
+
     try:
         # Fix: Re-hash any passwords that might have been created by old passlib
         # This runs silently and only fixes hashes that fail bcrypt verification
@@ -1275,6 +1281,8 @@ async def startup_migrations():
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    from services.digest_scheduler import stop_digest_scheduler
+    stop_digest_scheduler()
     client.close()
     logger.info("Database connection closed")
 

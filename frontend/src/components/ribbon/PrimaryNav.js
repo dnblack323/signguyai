@@ -82,6 +82,7 @@ export const tabSubItems = {
     { label: 'Pricing Setup', icon: ClipboardList, path: '/settings/pricing-setup' },
     { label: 'Pricing & Costs', icon: DollarSign, path: '/pricing-calculator/settings' },
     { label: 'Email Templates', icon: Mail, path: '/settings/email-templates' },
+    { label: 'Daily Digest', icon: Send, path: '/settings/digest' },
     { label: 'Production', icon: Wrench, path: '/settings/production' },
     { label: 'Backup', icon: Shield, path: '/settings/backup' },
     { label: 'Users', icon: Users, path: '/users' },
@@ -123,6 +124,7 @@ const routeToNavItem = {
   '/community': 'community',
   '/docs': 'community',
   '/settings': 'settings',
+  '/settings/digest': 'settings',
 };
 
 export const PrimaryNav = ({ activeTab, onTabChange }) => {

@@ -539,7 +539,7 @@ const RecentAIDocumentsWidget = ({ documents }) => {
   );
 };
 
-const QuickActions = () => (
+const QuickActions = ({ onSendDigest, sendingDigest }) => (
   <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
     <div className="px-4 sm:px-6 py-3 sm:py-4" style={{ borderBottom: '1px solid var(--border-light)' }}>
       <h2 className="font-heading text-sm sm:text-base font-semibold" style={{ color: 'var(--text)' }}>
@@ -567,16 +567,16 @@ const QuickActions = () => (
           <span className="truncate">New Order</span>
         </button>
       </Link>
-      <Link to="/orders/new">
-        <button 
-          className="w-full flex items-center justify-start gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 hover:shadow-sm"
-          style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
-          data-testid="quick-add-job"
-        >
-          <Plus className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" style={{ color: 'var(--accent)' }} /> 
-          <span className="truncate">New Order</span>
-        </button>
-      </Link>
+      <button 
+        onClick={onSendDigest}
+        disabled={sendingDigest}
+        className="w-full flex items-center justify-start gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 hover:shadow-sm disabled:opacity-50"
+        style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
+        data-testid="quick-send-digest"
+      >
+        <Send className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" style={{ color: '#8B5CF6' }} /> 
+        <span className="truncate">{sendingDigest ? 'Sending...' : "Send Digest"}</span>
+      </button>
       <Link to="/timeclock">
         <button 
           className="w-full flex items-center justify-start gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 hover:shadow-sm"
@@ -604,6 +604,7 @@ export default function Dashboard() {
   const [teamStatusToday, setTeamStatusToday] = useState(null);
   const [todaysSchedule, setTodaysSchedule] = useState([]);
   const [recentAIDocs, setRecentAIDocs] = useState([]);
+  const [sendingDigest, setSendingDigest] = useState(false);
   
   // Invoice preview modal state
   const [previewInvoiceId, setPreviewInvoiceId] = useState(null);
@@ -615,6 +616,20 @@ export default function Dashboard() {
   const handleInvoiceClick = (invoiceId) => {
     setPreviewInvoiceId(invoiceId);
     setIsInvoiceModalOpen(true);
+  };
+
+  const handleSendDigest = async () => {
+    setSendingDigest(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const res = await axios.post(`${API}/digest/send`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success(res.data.message || 'Daily digest sent!');
+    } catch (err) {
+      toast.error('Failed to send digest. Check Settings > Daily Digest to add recipients.');
+    }
+    setSendingDigest(false);
   };
 
   useEffect(() => {
@@ -758,7 +773,7 @@ export default function Dashboard() {
         
         {/* Right Column - Quick Actions & Recent AI Docs */}
         <div className="space-y-4 sm:space-y-6">
-          <QuickActions />
+          <QuickActions onSendDigest={handleSendDigest} sendingDigest={sendingDigest} />
           <RecentAIDocumentsWidget documents={recentAIDocs} />
         </div>
       </div>
