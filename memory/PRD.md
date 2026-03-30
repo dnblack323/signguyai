@@ -1,7 +1,7 @@
 # SignGuy AI - Product Requirements Document
 
-> **Last Updated:** March 27, 2026
-> **Version:** 6.0
+> **Last Updated:** March 30, 2026
+> **Version:** 6.1
 
 ---
 
@@ -18,6 +18,21 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ---
 
 ## What's Been Implemented
+
+### Session: March 30, 2026 (Dashboard Team Status & Navigation)
+- **Dashboard Team Status Widget (DONE):**
+  - Replaced basic ClockedInWidget with enhanced TeamStatusWidget
+  - New backend endpoint: GET /api/dashboard/team-status-today
+  - Combines employee schedule data with real-time clock-in status
+  - Shows "Scheduled Today" section with clock status badges (Clocked In / Not In / On Break / Finished)
+  - Shows "Clocked In (Unscheduled)" section for walk-ins
+  - Empty state with "Set Up Schedule" button linking to /payroll?tab=schedule
+  - Count badges: "X in" and "X scheduled" in header
+- **Employee Schedule Navigation Link (DONE):**
+  - Added "Employee Schedule" to Team sub-nav in PrimaryNav.js
+  - Added "Employee Schedule" to Team children in MobileNav.js
+  - Links to /payroll?tab=schedule which pre-selects the Schedule tab
+  - Payroll.js now reads ?tab query parameter to initialize active tab
 
 ### Session: March 27, 2026 (Bug Fixes & UI Improvements)
 - **Task List Display Bug (FIXED):**
