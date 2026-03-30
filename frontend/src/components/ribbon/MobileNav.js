@@ -61,6 +61,7 @@ const mobileNavItems = [
     id: 'team', label: 'Team', icon: UserCog, path: '/payroll',
     children: [
       { label: 'Payroll', path: '/payroll' },
+      { label: 'Employee Schedule', path: '/payroll?tab=schedule' },
       { label: 'Time Clock', path: '/timeclock' },
       { label: 'Users', path: '/users' },
     ]

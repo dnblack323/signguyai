@@ -372,6 +372,102 @@ async def get_onboarding_status(current_user: UserInDB = Depends(get_current_act
 
 
 
+@router.get("/team-status-today")
+async def get_team_status_today(current_user: UserInDB = Depends(get_current_active_user)):
+    """Get combined team status: who is scheduled today and their clock-in status"""
+    tenant_id = current_user.tenant_id
+    today = datetime.now(timezone.utc).date()
+    today_str = today.isoformat()
+
+    # Determine which day-of-week key to look up in shifts
+    day_keys = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+    day_key = day_keys[today.weekday()]
+
+    # Get the week_start (Monday) for today
+    days_since_monday = today.weekday()
+    week_start = (today - timedelta(days=days_since_monday)).isoformat()
+
+    # Fetch all active employees for this tenant
+    employees = await db.employees.find(
+        {"tenant_id": tenant_id, "is_active": True},
+        {"_id": 0}
+    ).to_list(200)
+
+    # Fetch schedules for this week
+    schedules = await db.employee_schedules.find(
+        {"tenant_id": tenant_id, "week_start": week_start},
+        {"_id": 0}
+    ).to_list(200)
+
+    # Build a map: employee_id -> shift for today
+    schedule_map = {}
+    for sched in schedules:
+        emp_id = sched.get("employee_id")
+        shifts = sched.get("shifts", {})
+        today_shift = shifts.get(day_key)
+        if today_shift and (today_shift.get("start") or today_shift.get("end")):
+            schedule_map[emp_id] = today_shift
+
+    # Check clock status for each employee
+    team_status = []
+    for emp in employees:
+        emp_id = emp.get("id", "")
+        is_scheduled = emp_id in schedule_map
+        shift_info = schedule_map.get(emp_id, {})
+
+        # Get today's latest timelog
+        logs = await db.timelogs.find({
+            "employee_id": emp_id,
+            "timestamp": {"$regex": f"^{today_str}"}
+        }, {"_id": 0}).sort("timestamp", -1).to_list(1)
+
+        clock_status = "not_clocked_in"
+        clocked_in_at = None
+        if logs:
+            last_action = logs[0].get("action")
+            if last_action in ["start_work", "break_end"]:
+                clock_status = "working"
+            elif last_action == "break_start":
+                clock_status = "on_break"
+            elif last_action == "end_work":
+                clock_status = "finished"
+
+            # Find first clock-in time
+            start_log = await db.timelogs.find_one({
+                "employee_id": emp_id,
+                "timestamp": {"$regex": f"^{today_str}"},
+                "action": "start_work"
+            }, {"_id": 0}, sort=[("timestamp", 1)])
+            if start_log:
+                clocked_in_at = start_log.get("timestamp")
+
+        entry = {
+            "employee_id": emp_id,
+            "employee_name": emp.get("name", "Unknown"),
+            "is_scheduled": is_scheduled,
+            "shift_start": shift_info.get("start", ""),
+            "shift_end": shift_info.get("end", ""),
+            "clock_status": clock_status,
+            "clocked_in_at": clocked_in_at,
+        }
+        team_status.append(entry)
+
+    # Sort: scheduled first, then by name
+    team_status.sort(key=lambda x: (not x["is_scheduled"], x["employee_name"]))
+
+    scheduled_count = sum(1 for t in team_status if t["is_scheduled"])
+    clocked_in_count = sum(1 for t in team_status if t["clock_status"] in ["working", "on_break"])
+
+    return {
+        "date": today_str,
+        "day_of_week": day_key,
+        "scheduled_count": scheduled_count,
+        "clocked_in_count": clocked_in_count,
+        "total_employees": len(team_status),
+        "employees": team_status
+    }
+
+
 @router.get("/recent-ai-documents")
 async def get_recent_ai_documents(
     current_user: UserInDB = Depends(get_current_active_user)

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Briefcase, FileText, Receipt, Users, 
   Store, Sparkles, BarChart3, Settings, MessageCircle,
-  Clock, DollarSign, FileCheck, Package, Tag,
+  Clock, DollarSign, FileCheck, Package, Tag, Calendar,
   ClipboardList, BookOpen, HelpCircle, UserCog, Wallet,
   Shield, Wrench, Mail, FolderOpen, Send, Clipboard
 } from 'lucide-react';
@@ -53,6 +53,7 @@ export const tabSubItems = {
   ],
   team: [
     { label: 'Payroll', icon: DollarSign, path: '/payroll' },
+    { label: 'Employee Schedule', icon: Calendar, path: '/payroll?tab=schedule' },
     { label: 'Time Clock', icon: Clock, path: '/timeclock' },
     { label: 'Users', icon: Users, path: '/users' },
   ],

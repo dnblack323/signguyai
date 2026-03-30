@@ -187,57 +187,155 @@ const MessagesWidget = ({ messages }) => {
   );
 };
 
-// Clocked In Employees Widget
-const ClockedInWidget = ({ employees }) => {
+// Team Status Widget — Shows who's scheduled today and clock-in status
+const TeamStatusWidget = ({ teamStatus }) => {
+  const scheduled = (teamStatus?.employees || []).filter(e => e.is_scheduled);
+  const unscheduledClockedIn = (teamStatus?.employees || []).filter(e => !e.is_scheduled && e.clock_status !== 'not_clocked_in');
+
+  const getStatusIcon = (status) => {
+    if (status === 'working') return <UserCheck className="h-4 w-4 text-emerald-500" />;
+    if (status === 'on_break') return <Coffee className="h-4 w-4 text-amber-500" />;
+    if (status === 'finished') return <Clock className="h-4 w-4 text-blue-400" />;
+    return <Clock className="h-4 w-4 text-gray-400" />;
+  };
+
+  const getStatusLabel = (status) => {
+    if (status === 'working') return 'Clocked In';
+    if (status === 'on_break') return 'On Break';
+    if (status === 'finished') return 'Finished';
+    return 'Not In';
+  };
+
+  const getStatusBadge = (status) => {
+    if (status === 'working') return { backgroundColor: '#22C55E', color: '#FFFFFF' };
+    if (status === 'on_break') return { backgroundColor: '#F59E0B', color: '#000000' };
+    if (status === 'finished') return { backgroundColor: '#6B7280', color: '#FFFFFF' };
+    return { backgroundColor: '#EF444433', color: '#EF4444' };
+  };
+
   return (
     <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
       <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
         <div className="flex items-center gap-2">
-          <UserCheck className="h-5 w-5 text-emerald-500" />
+          <Users className="h-5 w-5 text-emerald-500" />
           <h2 className="font-heading text-base font-semibold" style={{ color: 'var(--text)' }}>
-            Clocked In
+            Team Status
           </h2>
         </div>
-        <Link to="/timeclock">
-          <span className="text-xs text-blue-500 hover:underline">View all</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 font-medium" data-testid="team-clocked-in-count">
+            {teamStatus?.clocked_in_count || 0} in
+          </span>
+          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 font-medium" data-testid="team-scheduled-count">
+            {teamStatus?.scheduled_count || 0} scheduled
+          </span>
+        </div>
       </div>
       <div className="p-4">
-        {(!employees || employees.length === 0) ? (
-          <div className="text-center py-4">
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No employees clocked in</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {employees.map(emp => (
-              <div 
-                key={emp.employee_id}
-                className="flex items-center justify-between p-3 rounded-lg"
-                style={{ backgroundColor: 'var(--surface-2)' }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                    {emp.status === 'on_break' ? (
-                      <Coffee className="h-4 w-4 text-amber-500" />
-                    ) : (
-                      <UserCheck className="h-4 w-4 text-emerald-500" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>{emp.employee_name}</p>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      Since {new Date(emp.clocked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </div>
-                </div>
-                <span 
-                  className="px-2 py-0.5 rounded-full text-xs font-medium"
-                  style={getStatusBadgeStyles(emp.status)}
+        {/* Scheduled Today Section */}
+        {scheduled.length > 0 && (
+          <div className="mb-3">
+            <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
+              Scheduled Today
+            </p>
+            <div className="space-y-1.5">
+              {scheduled.map(emp => (
+                <div
+                  key={emp.employee_id}
+                  className="flex items-center justify-between p-2.5 rounded-lg"
+                  style={{ backgroundColor: 'var(--surface-2)' }}
+                  data-testid={`team-status-${emp.employee_id}`}
                 >
-                  {emp.status === 'on_break' ? 'Break' : 'Working'}
-                </span>
-              </div>
-            ))}
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: emp.clock_status === 'working' ? 'rgba(34,197,94,0.15)' : emp.clock_status === 'on_break' ? 'rgba(245,158,11,0.15)' : 'rgba(107,114,128,0.1)' }}
+                    >
+                      {getStatusIcon(emp.clock_status)}
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>{emp.employee_name}</p>
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        {emp.shift_start && emp.shift_end ? `${emp.shift_start} - ${emp.shift_end}` : 'Scheduled'}
+                        {emp.clocked_in_at && ` · In since ${new Date(emp.clocked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                      </p>
+                    </div>
+                  </div>
+                  <span
+                    className="px-2 py-0.5 rounded-full text-xs font-medium"
+                    style={getStatusBadge(emp.clock_status)}
+                  >
+                    {getStatusLabel(emp.clock_status)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Unscheduled but Clocked In */}
+        {unscheduledClockedIn.length > 0 && (
+          <div className="mb-3">
+            <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
+              Clocked In (Unscheduled)
+            </p>
+            <div className="space-y-1.5">
+              {unscheduledClockedIn.map(emp => (
+                <div
+                  key={emp.employee_id}
+                  className="flex items-center justify-between p-2.5 rounded-lg"
+                  style={{ backgroundColor: 'var(--surface-2)' }}
+                  data-testid={`team-status-unscheduled-${emp.employee_id}`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(34,197,94,0.15)' }}>
+                      {getStatusIcon(emp.clock_status)}
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>{emp.employee_name}</p>
+                      {emp.clocked_in_at && (
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                          Since {new Date(emp.clocked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <span
+                    className="px-2 py-0.5 rounded-full text-xs font-medium"
+                    style={getStatusBadge(emp.clock_status)}
+                  >
+                    {getStatusLabel(emp.clock_status)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {scheduled.length === 0 && unscheduledClockedIn.length === 0 && (
+          <div className="text-center py-4">
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No employees scheduled or clocked in today</p>
+            <Link to="/payroll?tab=schedule">
+              <Button size="sm" variant="outline" className="mt-3 text-xs">
+                <Calendar className="h-3 w-3 mr-1" /> Set Up Schedule
+              </Button>
+            </Link>
+          </div>
+        )}
+
+        {/* Footer link */}
+        {(scheduled.length > 0 || unscheduledClockedIn.length > 0) && (
+          <div className="flex items-center justify-between pt-2 mt-2" style={{ borderTop: '1px solid var(--border-light)' }}>
+            <Link to="/payroll?tab=schedule">
+              <span className="text-xs text-blue-500 hover:underline flex items-center gap-1">
+                <Calendar className="h-3 w-3" /> View Schedule
+              </span>
+            </Link>
+            <Link to="/timeclock">
+              <span className="text-xs text-blue-500 hover:underline flex items-center gap-1">
+                <Clock className="h-3 w-3" /> Time Clock
+              </span>
+            </Link>
           </div>
         )}
       </div>
@@ -503,6 +601,7 @@ export default function Dashboard() {
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [unreadMessages, setUnreadMessages] = useState([]);
   const [clockedInEmployees, setClockedInEmployees] = useState([]);
+  const [teamStatusToday, setTeamStatusToday] = useState(null);
   const [todaysSchedule, setTodaysSchedule] = useState([]);
   const [recentAIDocs, setRecentAIDocs] = useState([]);
   
@@ -535,6 +634,7 @@ export default function Dashboard() {
           axios.get(`${API}/dashboard/pending-approvals`, { headers }).then(res => setPendingApprovals(res.data)).catch(() => {}),
           axios.get(`${API}/dashboard/unread-messages`, { headers }).then(res => setUnreadMessages(res.data)).catch(() => {}),
           axios.get(`${API}/dashboard/clocked-in`, { headers }).then(res => setClockedInEmployees(res.data)).catch(() => {}),
+          axios.get(`${API}/dashboard/team-status-today`, { headers }).then(res => setTeamStatusToday(res.data)).catch(() => {}),
           axios.get(`${API}/dashboard/todays-schedule`, { headers }).then(res => setTodaysSchedule(res.data)).catch(() => {}),
           axios.get(`${API}/dashboard/recent-ai-documents`, { headers }).then(res => setRecentAIDocs(res.data)).catch(() => {}),
         ]);
@@ -650,10 +750,10 @@ export default function Dashboard() {
           <PendingApprovalsWidget approvals={pendingApprovals} />
         </div>
         
-        {/* Middle Column - Messages & Clocked In */}
+        {/* Middle Column - Messages & Team Status */}
         <div className="space-y-4 sm:space-y-6">
           <MessagesWidget messages={unreadMessages} />
-          <ClockedInWidget employees={clockedInEmployees} />
+          <TeamStatusWidget teamStatus={teamStatusToday} />
         </div>
         
         {/* Right Column - Quick Actions & Recent AI Docs */}
