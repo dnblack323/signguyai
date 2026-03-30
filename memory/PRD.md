@@ -43,6 +43,17 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
   - "Send Digest" quick action button on Dashboard
   - "Daily Digest" link in Settings sub-nav (desktop + mobile)
   - Send history tracking in MongoDB digest_logs collection
+- **Order Drawing Pad — Phase 1 (DONE):**
+  - New `order_drawings` collection with full CRUD API: `/api/order-drawings/*`
+  - Canvas-based drawing: mouse, touch, stylus support with high-DPI rendering
+  - PNG upload to Emergent Object Storage (`signguy-ai/orders/{id}/drawings/...`)
+  - Blank drawing prevention (< 1000 bytes rejected)
+  - "Drawings & Signatures" tab in Order Detail page with thumbnail grid
+  - Full-size preview modal with label, type badge, date, creator, notes
+  - Admin-only delete (soft-delete)
+  - `touch-none` CSS prevents page scroll while drawing on tablet/mobile
+  - Drawing types: signature, sketch, markup
+  - Object storage service: `/app/backend/services/object_storage.py`
 
 ### Session: March 27, 2026 (Bug Fixes & UI Improvements)
 - **Task List Display Bug (FIXED):**
