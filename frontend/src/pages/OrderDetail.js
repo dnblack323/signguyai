@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Package, FileText, Play, Clock, CheckCircle, AlertTriangle,
   Trash2, Loader2, Receipt, Wrench, MessageSquare, DollarSign, Pause, ChevronRight,
-  Copy, Calculator, Edit3, MoreHorizontal, Upload, FileUp, Paperclip, Send, Mail, ExternalLink
+  Copy, Calculator, Edit3, MoreHorizontal, Upload, FileUp, Paperclip, Send, Mail, ExternalLink,
+  Pen, Image as ImageIcon
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -13,6 +14,8 @@ import {
 } from '../components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import axios from 'axios';
+import DrawingModal from './DrawingModal';
+import DrawingPreviewModal from './DrawingPreviewModal';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const hdr = () => ({ Authorization: `Bearer ${localStorage.getItem('auth_token')}`, 'Content-Type': 'application/json' });
@@ -48,23 +51,48 @@ export default function OrderDetail() {
   const [taskLoading, setTaskLoading] = useState('');
   const [orderFiles, setOrderFiles] = useState([]);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [drawings, setDrawings] = useState([]);
+  const [showDrawingModal, setShowDrawingModal] = useState(false);
+  const [previewDrawing, setPreviewDrawing] = useState(null);
+  const [drawingThumbs, setDrawingThumbs] = useState({});
 
   const load = async () => {
     try {
-      const [orderRes, actRes, finRes, prodRes, filesRes] = await Promise.all([
+      const [orderRes, actRes, finRes, prodRes, filesRes, drawingsRes] = await Promise.all([
         axios.get(`${API}/orders/${id}`, { headers: hdr() }),
         axios.get(`${API}/orders/${id}/activity`, { headers: hdr() }),
         axios.get(`${API}/orders/${id}/financials`, { headers: hdr() }).catch(() => ({ data: { quotes: [], invoices: [] } })),
         axios.get(`${API}/orders/${id}/production-summary`, { headers: hdr() }).catch(() => ({ data: null })),
         axios.get(`${API}/orders/${id}/files`, { headers: hdr() }).catch(() => ({ data: [] })),
+        axios.get(`${API}/order-drawings/${id}`, { headers: hdr() }).catch(() => ({ data: [] })),
       ]);
       setOrder(orderRes.data);
       setActivities(actRes.data);
       setFinancials(finRes.data);
       setProdSummary(prodRes.data);
       setOrderFiles(filesRes.data || []);
+      const drawingsList = drawingsRes.data || [];
+      setDrawings(drawingsList);
+      // Load thumbnails
+      loadDrawingThumbs(drawingsList);
     } catch { toast.error('Failed to load order'); }
     finally { setLoading(false); }
+  };
+
+  const loadDrawingThumbs = async (drawingsList) => {
+    const thumbs = {};
+    for (const d of drawingsList) {
+      try {
+        const res = await axios.get(`${API}/order-drawings/file/${d.id}`, {
+          headers: hdr(),
+          responseType: 'blob',
+        });
+        thumbs[d.id] = URL.createObjectURL(res.data);
+      } catch {
+        thumbs[d.id] = null;
+      }
+    }
+    setDrawingThumbs(thumbs);
   };
 
   useEffect(() => { load(); }, [id]);
@@ -305,6 +333,7 @@ export default function OrderDetail() {
             { id: 'tickets', label: `Job Tickets (${tickets.length})` },
             { id: 'production', label: `Production (${allTasks.length})` },
             { id: 'financial', label: `Financial (${(financials.quotes?.length || 0) + (financials.invoices?.length || 0)})` },
+            { id: 'drawings', label: `Drawings (${drawings.length})` },
             { id: 'files', label: `Files (${orderFiles.length})` },
             { id: 'notes', label: 'Notes' },
             { id: 'activity', label: `Activity (${activities.length})` },
@@ -509,6 +538,56 @@ export default function OrderDetail() {
       )}
 
 
+      {/* === DRAWINGS TAB === */}
+      {tab === 'drawings' && (
+        <div className="space-y-4" data-testid="drawings-tab">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500">{drawings.length} drawing{drawings.length !== 1 ? 's' : ''}</p>
+            <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white gap-1" onClick={() => setShowDrawingModal(true)} data-testid="add-drawing-btn">
+              <Pen className="w-4 h-4" /> Add Drawing
+            </Button>
+          </div>
+          {drawings.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <Pen className="w-10 h-10 mx-auto mb-3 opacity-40" />
+              <p className="font-medium text-gray-500">No drawings yet</p>
+              <p className="text-sm mt-1">Add signatures, sketches, or markups to this order</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {drawings.map(d => (
+                <div
+                  key={d.id}
+                  className="border border-gray-200 rounded-xl overflow-hidden hover:border-violet-400 hover:shadow-md transition-all cursor-pointer group"
+                  onClick={() => setPreviewDrawing(d)}
+                  data-testid={`drawing-thumb-${d.id}`}
+                >
+                  <div className="aspect-[4/3] bg-gray-50 flex items-center justify-center overflow-hidden">
+                    {drawingThumbs[d.id] ? (
+                      <img src={drawingThumbs[d.id]} alt={d.label} className="w-full h-full object-contain" />
+                    ) : (
+                      <ImageIcon className="w-8 h-8 text-gray-300" />
+                    )}
+                  </div>
+                  <div className="p-2.5">
+                    <p className="text-sm font-medium text-gray-900 truncate">{d.label}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                        d.type === 'signature' ? 'bg-emerald-100 text-emerald-700' :
+                        d.type === 'sketch' ? 'bg-blue-100 text-blue-700' :
+                        'bg-amber-100 text-amber-700'
+                      }`}>{d.type}</span>
+                      <span className="text-[10px] text-gray-400">{new Date(d.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-0.5 truncate">{d.created_by}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* === FILES TAB === */}
       {tab === 'files' && (
         <div className="space-y-4">
@@ -604,6 +683,23 @@ export default function OrderDetail() {
       </div>
         </div>
       </Card>
+
+      {/* Drawing Modals */}
+      {showDrawingModal && (
+        <DrawingModal
+          orderId={id}
+          onClose={() => setShowDrawingModal(false)}
+          onSaved={load}
+        />
+      )}
+      {previewDrawing && (
+        <DrawingPreviewModal
+          drawing={previewDrawing}
+          onClose={() => setPreviewDrawing(null)}
+          onDeleted={load}
+          isAdmin={true}
+        />
+      )}
     </div>
   );
 }

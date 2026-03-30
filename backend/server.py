@@ -1182,6 +1182,7 @@ from routes.job_tickets import router as job_tickets_router
 from routes.production_tasks import router as production_tasks_router
 from routes.workflow_templates import router as workflow_templates_router
 from routes.digest import router as digest_router
+from routes.order_drawings import router as order_drawings_router
 
 # Include all routers in the api_router
 api_router.include_router(auth_router)
@@ -1229,6 +1230,7 @@ api_router.include_router(job_tickets_router)  # Job Tickets (Layer 2)
 api_router.include_router(production_tasks_router)  # Production Tasks (Layer 4)
 api_router.include_router(workflow_templates_router)  # Workflow Templates (Admin)
 api_router.include_router(digest_router)  # Daily Digest Email
+api_router.include_router(order_drawings_router)  # Order Drawings/Signatures
 
 # Backup & Restore
 from routes.backup import setup_backup_routes
@@ -1259,6 +1261,13 @@ async def startup_migrations():
     # Start the digest email scheduler
     from services.digest_scheduler import start_digest_scheduler
     start_digest_scheduler()
+
+    # Initialize object storage
+    try:
+        from services.object_storage import init_storage
+        init_storage()
+    except Exception as e:
+        logger.warning(f"Object storage init deferred: {e}")
 
     try:
         # Fix: Re-hash any passwords that might have been created by old passlib
