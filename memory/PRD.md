@@ -33,6 +33,16 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
   - Added "Employee Schedule" to Team children in MobileNav.js
   - Links to /payroll?tab=schedule which pre-selects the Schedule tab
   - Payroll.js now reads ?tab query parameter to initialize active tab
+- **Daily Notification Digest (DONE):**
+  - Full backend: /api/digest/* endpoints (preview, send, settings, history)
+  - Compiles: scheduled employees, jobs due today, overdue invoices, pending approvals, yesterday's revenue, unread messages
+  - Rich HTML email template rendered server-side with inline CSS
+  - SendGrid email delivery (configured in .env)
+  - APScheduler background scheduler checks every minute for scheduled sends
+  - Settings page at /settings/digest with enable toggle, time picker (UTC), and recipient management
+  - "Send Digest" quick action button on Dashboard
+  - "Daily Digest" link in Settings sub-nav (desktop + mobile)
+  - Send history tracking in MongoDB digest_logs collection
 
 ### Session: March 27, 2026 (Bug Fixes & UI Improvements)
 - **Task List Display Bug (FIXED):**
