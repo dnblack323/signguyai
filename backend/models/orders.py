@@ -15,6 +15,7 @@ import uuid
 # ============== ENUMS ==============
 
 class OrderStatus(str, Enum):
+    DRAFT = "draft"  # Save as draft before submitting
     NEW_INTAKE = "new_intake"
     AWAITING_REVIEW = "awaiting_review"
     AWAITING_QUOTE = "awaiting_quote"
@@ -187,6 +188,7 @@ class OrderCreate(BaseModel):
     order_source: str = OrderSource.PHONE.value
     requested_due_date: Optional[str] = None
     event_date: Optional[str] = None
+    status: Optional[str] = None  # Allow setting status on create (e.g., 'draft')
     pickup_delivery_method: str = PickupDeliveryMethod.PICKUP.value
     pickup_delivery_notes: str = ""
     internal_notes: str = ""
@@ -228,10 +230,32 @@ class JobTicketSpecs(BaseModel):
     hemming: bool = False
     mounting_type: str = ""
     install_required: bool = False
-    double_sided: bool = False
+    double_sided: str = ""  # Changed to str to accept "single"/"double" from frontend
     sides: int = 1
     print_method: str = ""
     cut_method: str = ""
+    # Additional fields from dynamic schemas
+    unit_of_measure: str = ""
+    indoor_outdoor: str = ""
+    hems: str = ""
+    pole_pockets: str = ""
+    wind_slits: bool = False
+    reinforced_corners: bool = False
+    sewn_edges: bool = False
+    webbing: bool = False
+    artwork_provided: bool = False
+    proof_rounds: int = 0
+    artwork_notes: str = ""
+    rush_order: bool = False
+    outsourced: bool = False
+    hardware_included: bool = False
+    packaging_notes: str = ""
+    delivery_notes: str = ""
+    vinyl_type: str = ""
+    num_colors: int = 1
+
+    class Config:
+        extra = "allow"  # Allow additional fields from dynamic schemas
 
 
 class JobTicket(BaseModel):

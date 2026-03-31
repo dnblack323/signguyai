@@ -1,0 +1,64 @@
+{
+  "summary": "Iteration 76 testing complete. All requested features verified working: Order form reorder, Save as Draft, Draft status filter, Banner unit of measure bug fix (16 sq ft for 2x8 feet), schema defaults auto-applied.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [],
+    "fixed_during_testing": [
+      {"file": "/app/backend/models/orders.py", "issue": "OrderCreate model missing 'status' field - draft orders were being created as new_intake", "fix": "Added status: Optional[str] = None to OrderCreate"},
+      {"file": "/app/backend/models/orders.py", "issue": "OrderStatus enum missing 'draft' value", "fix": "Added DRAFT = 'draft' to OrderStatus enum"},
+      {"file": "/app/backend/models/orders.py", "issue": "JobTicketSpecs.double_sided was bool but frontend sends 'single'/'double' strings", "fix": "Changed to str type with extra='allow' for dynamic schema fields"}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results": {
+    "backend_tests": {
+      "total": 10,
+      "passed": 10,
+      "failed": 0,
+      "tests": [
+        "test_create_order_as_draft - PASSED",
+        "test_get_draft_orders_filter - PASSED",
+        "test_update_draft_to_new_intake - PASSED",
+        "test_banner_schema_has_unit_of_measure_default - PASSED",
+        "test_banner_schema_has_sq_footage_calculated - PASSED",
+        "test_create_banner_ticket_with_feet - PASSED",
+        "test_pricing_calculation_with_feet - PASSED",
+        "test_pricing_calculate_with_feet_unit - PASSED",
+        "test_order_list_includes_draft_status - PASSED",
+        "test_cleanup_test_orders - PASSED"
+      ]
+    },
+    "frontend_tests": {
+      "new_order_form_layout": "VERIFIED - Customer section (no pickup/due date), Order Info (has Due Date), Job Tickets, Sketches & Notes (Add Sketch btn), Pickup/Delivery, Attachments, Save buttons",
+      "save_as_draft": "VERIFIED - Creates order with status='draft', shows toast 'Order saved as draft!', order detail shows Draft badge",
+      "orders_draft_filter": "VERIFIED - 'Drafts' option in status dropdown, filters to show only draft orders",
+      "banner_unit_of_measure": "VERIFIED - Width=2, Height=8, Unit=Feet shows 16.00 sq ft (correct calculation)",
+      "live_pricing_preview": "VERIFIED - Shows Material $20.00, Labor $26.88, Overhead $7.03, Estimated Sell Price $126.69"
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration76_features.py",
+    "/app/test_reports/pytest/iteration76_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/models/orders.py - Added status field to OrderCreate, DRAFT to OrderStatus enum, fixed JobTicketSpecs.double_sided type"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "email": "signguypa@gmail.com",
+    "password": "Billnel323"
+  },
+  "seed_data_creation": "Created test draft orders during testing (cleaned up)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "DB is signguy_ai. Order form has been reordered with sections: Customer -> Order Info -> Job Tickets -> Sketches & Notes -> Pickup/Delivery -> Attachments. Save as Draft creates orders with status='draft'. Banner unit of measure bug is fixed - schema defaults are auto-applied to specs on category change. The JobTicketSpecs model now has extra='allow' to accept dynamic schema fields."
+}

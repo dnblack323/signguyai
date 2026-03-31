@@ -232,9 +232,11 @@ export default function CompanySettings() {
     }
     setUploadingLogo(false);
     
-    // Reset the file input
+    // Reset the file input by forcing re-mount
     if (logoInputRef.current) {
-      logoInputRef.current.value = '';
+      logoInputRef.current.value = null;
+      logoInputRef.current.type = '';
+      logoInputRef.current.type = 'file';
     }
   };
 

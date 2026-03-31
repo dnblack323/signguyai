@@ -55,7 +55,7 @@ export default function MaterialsAdmin() {
   const addMaterial = () => {
     setNewItem({
       key: '', name: '', category: expandedCat || 'print_material',
-      cost_per_unit: 0, unit_type: 'sqft', description: '',
+      cost_per_unit: '', unit_type: 'sqft', description: '',
     });
   };
 
@@ -197,7 +197,7 @@ export default function MaterialsAdmin() {
                       <Input value={m.name} onChange={e => updateMaterial(m._idx, 'name', e.target.value)} placeholder="Material Name" className="bg-white border-gray-300 text-gray-900 h-8 text-sm" />
                     </div>
                     <div className="col-span-2">
-                      <Input type="number" step="0.01" value={m.cost_per_unit} onChange={e => updateMaterial(m._idx, 'cost_per_unit', parseFloat(e.target.value) || 0)} className="bg-white border-gray-300 text-gray-900 h-8 text-sm" />
+                      <Input type="number" step="0.01" value={m.cost_per_unit || ''} onChange={e => updateMaterial(m._idx, 'cost_per_unit', e.target.value === '' ? '' : parseFloat(e.target.value))} placeholder="0.00" className="bg-white border-gray-300 text-gray-900 h-8 text-sm" />
                     </div>
                     <div className="col-span-2">
                       <Select value={m.unit_type || 'sqft'} onValueChange={v => updateMaterial(m._idx, 'unit_type', v)}>
@@ -227,7 +227,7 @@ export default function MaterialsAdmin() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div><Label className="text-gray-600 text-xs">Material ID *</Label><Input value={newItem.key} onChange={e => setNewItem(p => ({ ...p, key: e.target.value.toLowerCase().replace(/\s+/g, '_') }))} placeholder="e.g. banner_18oz" className="bg-gray-50 border-gray-300 text-gray-900" /></div>
               <div><Label className="text-gray-600 text-xs">Name *</Label><Input value={newItem.name} onChange={e => setNewItem(p => ({ ...p, name: e.target.value }))} placeholder="e.g. 18oz Banner" className="bg-gray-50 border-gray-300 text-gray-900" /></div>
-              <div><Label className="text-gray-600 text-xs">Cost</Label><Input type="number" step="0.01" value={newItem.cost_per_unit} onChange={e => setNewItem(p => ({ ...p, cost_per_unit: parseFloat(e.target.value) || 0 }))} className="bg-gray-50 border-gray-300 text-gray-900" /></div>
+              <div><Label className="text-gray-600 text-xs">Cost</Label><Input type="number" step="0.01" value={newItem.cost_per_unit || ''} onChange={e => setNewItem(p => ({ ...p, cost_per_unit: e.target.value === '' ? '' : parseFloat(e.target.value) }))} placeholder="0.00" className="bg-gray-50 border-gray-300 text-gray-900" /></div>
               <div><Label className="text-gray-600 text-xs">Unit</Label>
                 <Select value={newItem.unit_type} onValueChange={v => setNewItem(p => ({ ...p, unit_type: v }))}>
                   <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900"><SelectValue /></SelectTrigger>

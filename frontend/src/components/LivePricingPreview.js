@@ -18,7 +18,7 @@ export default function LivePricingPreview({ category, specs, quantity }) {
 
   // Parse dimensions from specs
   const pricingInput = useMemo(() => {
-    const unit = specs?.unit_of_measure || 'inches';
+    const unit = (specs?.unit_of_measure || 'inches').toLowerCase();
     const wRaw = parseFloat(specs?.width) || 0;
     const hRaw = parseFloat(specs?.height) || 0;
     const wIn = unit === 'feet' ? wRaw * 12 : wRaw;
@@ -58,7 +58,7 @@ export default function LivePricingPreview({ category, specs, quantity }) {
       num_colors: parseInt(specs?.num_colors) || 1,
       complexity: 1,
     };
-  }, [category, specs]);
+  }, [category, JSON.stringify(specs)]);
 
   useEffect(() => {
     if (!category || !pricingInput.category) return;

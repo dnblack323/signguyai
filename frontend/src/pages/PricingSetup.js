@@ -450,7 +450,7 @@ export default function PricingSetup() {
                                 value={mapping[field] || ''}
                                 onChange={(event) => setMapping((current) => ({ ...current, [field]: event.target.value }))}
                                 disabled={!canEdit}
-                                className="w-full h-10 rounded-md border border-gray-200 bg-slate-950 px-3 text-sm text-white"
+                                className="w-full h-10 rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-900"
                                 data-testid={`historical-import-mapping-${field}`}
                               >
                                 <option value="">Not mapped</option>
@@ -479,7 +479,7 @@ export default function PricingSetup() {
                                       category_overrides: { ...current.category_overrides, [description]: event.target.value },
                                     }))}
                                     disabled={!canEdit}
-                                    className="w-full h-10 rounded-md border border-gray-200 bg-slate-950 px-3 text-sm text-white"
+                                    className="w-full h-10 rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-900"
                                     data-testid={`historical-import-category-override-${description.slice(0, 20).replace(/\s+/g, '-')}`}
                                   >
                                     {CATEGORY_OPTIONS.map((option) => (
@@ -546,25 +546,25 @@ export default function PricingSetup() {
                           </div>
                         )}
 
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm" data-testid="historical-import-preview-table">
+                        <div className="overflow-x-auto rounded-lg border border-gray-200">
+                          <table className="w-full text-sm bg-white" data-testid="historical-import-preview-table">
                             <thead>
-                              <tr className="text-left text-gray-500 border-b border-gray-200">
-                                <th className="py-2 pr-3">Description</th>
-                                <th className="py-2 pr-3">Qty</th>
-                                <th className="py-2 pr-3">Total</th>
-                                <th className="py-2 pr-3">Sq Ft</th>
-                                <th className="py-2 pr-3">Category</th>
+                              <tr className="text-left bg-gray-100 border-b border-gray-200">
+                                <th className="py-2.5 px-3 font-medium text-gray-700">Description</th>
+                                <th className="py-2.5 px-3 font-medium text-gray-700">Qty</th>
+                                <th className="py-2.5 px-3 font-medium text-gray-700">Total</th>
+                                <th className="py-2.5 px-3 font-medium text-gray-700">Sq Ft</th>
+                                <th className="py-2.5 px-3 font-medium text-gray-700">Category</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {selectedImport.normalized_rows.slice(0, 12).map((row) => (
-                                <tr key={row.row_id} className="border-b border-gray-200">
-                                  <td className="py-2 pr-3 text-gray-900">{row.description}</td>
-                                  <td className="py-2 pr-3 text-gray-700">{row.quantity}</td>
-                                  <td className="py-2 pr-3 text-gray-700">${formatNumber(row.total)}</td>
-                                  <td className="py-2 pr-3 text-gray-700">{row.square_feet || '-'}</td>
-                                  <td className="py-2 pr-3 text-gray-700">{row.category_final}</td>
+                              {selectedImport.normalized_rows.slice(0, 12).map((row, idx) => (
+                                <tr key={row.row_id} className={`border-b border-gray-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                                  <td className="py-2 px-3 text-gray-900 font-medium">{row.description}</td>
+                                  <td className="py-2 px-3 text-gray-800">{row.quantity}</td>
+                                  <td className="py-2 px-3 text-gray-800 font-medium">${formatNumber(row.total)}</td>
+                                  <td className="py-2 px-3 text-gray-800">{row.square_feet || '-'}</td>
+                                  <td className="py-2 px-3"><span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs font-medium">{row.category_final}</span></td>
                                 </tr>
                               ))}
                             </tbody>
@@ -586,21 +586,21 @@ export default function PricingSetup() {
                         <CardDescription>AI-assisted benchmark summary before any value is applied.</CardDescription>
                       </CardHeader>
                       <CardContent className="grid gap-4 md:grid-cols-4">
-                        <div className="rounded-xl border border-gray-200 bg-slate-900/40 p-4">
-                          <p className="text-xs uppercase text-slate-400">Invoices analyzed</p>
-                          <p className="text-2xl font-bold text-white mt-2">{selectedImport.analysis_summary.invoice_count}</p>
+                        <div className="rounded-xl border border-gray-200 bg-white p-4">
+                          <p className="text-xs uppercase text-gray-500 font-medium">Invoices analyzed</p>
+                          <p className="text-2xl font-bold text-gray-900 mt-2">{selectedImport.analysis_summary.invoice_count}</p>
                         </div>
-                        <div className="rounded-xl border border-gray-200 bg-slate-900/40 p-4">
-                          <p className="text-xs uppercase text-slate-400">Line items</p>
-                          <p className="text-2xl font-bold text-white mt-2">{selectedImport.analysis_summary.line_item_count}</p>
+                        <div className="rounded-xl border border-gray-200 bg-white p-4">
+                          <p className="text-xs uppercase text-gray-500 font-medium">Line items</p>
+                          <p className="text-2xl font-bold text-gray-900 mt-2">{selectedImport.analysis_summary.line_item_count}</p>
                         </div>
-                        <div className="rounded-xl border border-gray-200 bg-slate-900/40 p-4">
-                          <p className="text-xs uppercase text-slate-400">Categories detected</p>
-                          <p className="text-2xl font-bold text-white mt-2">{selectedImport.analysis_summary.categories_detected?.length || 0}</p>
+                        <div className="rounded-xl border border-gray-200 bg-white p-4">
+                          <p className="text-xs uppercase text-gray-500 font-medium">Categories detected</p>
+                          <p className="text-2xl font-bold text-gray-900 mt-2">{selectedImport.analysis_summary.categories_detected?.length || 0}</p>
                         </div>
-                        <div className="rounded-xl border border-gray-200 bg-slate-900/40 p-4">
-                          <p className="text-xs uppercase text-slate-400">Outliers flagged</p>
-                          <p className="text-2xl font-bold text-white mt-2">{selectedImport.analysis_summary.outlier_rows?.length || 0}</p>
+                        <div className="rounded-xl border border-gray-200 bg-white p-4">
+                          <p className="text-xs uppercase text-gray-500 font-medium">Outliers flagged</p>
+                          <p className="text-2xl font-bold text-gray-900 mt-2">{selectedImport.analysis_summary.outlier_rows?.length || 0}</p>
                         </div>
                       </CardContent>
                     </Card>
@@ -618,17 +618,17 @@ export default function PricingSetup() {
                         {selectedImport.suggestions.map((suggestion) => {
                           const reviewState = reviewDecisions[suggestion.id] || { status: 'pending', final_value: suggestion.final_value ?? suggestion.suggested_value };
                           return (
-                            <div key={suggestion.id} className="rounded-xl border border-gray-200 bg-slate-900/40 p-4" data-testid={`historical-import-suggestion-${suggestion.id}`}>
+                            <div key={suggestion.id} className="rounded-xl border border-gray-200 bg-white p-4" data-testid={`historical-import-suggestion-${suggestion.id}`}>
                               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                                 <div className="space-y-2">
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <p className="font-medium text-white">{suggestion.category_label} · {suggestion.benchmark_label}</p>
+                                    <p className="font-medium text-gray-900">{suggestion.category_label} · {suggestion.benchmark_label}</p>
                                     <Badge variant="outline">{suggestion.confidence}</Badge>
                                   </div>
-                                  <p className="text-sm text-slate-300">Suggested: ${formatNumber(suggestion.suggested_value)}</p>
-                                  {suggestion.summary && <p className="text-sm text-slate-400">{suggestion.summary}</p>}
+                                  <p className="text-sm text-gray-600">Suggested: ${formatNumber(suggestion.suggested_value)}</p>
+                                  {suggestion.summary && <p className="text-sm text-gray-500">{suggestion.summary}</p>}
                                   {!!suggestion.pattern_notes?.length && (
-                                    <ul className="list-disc list-inside text-xs text-slate-400 space-y-1">
+                                    <ul className="list-disc list-inside text-xs text-gray-500 space-y-1">
                                       {suggestion.pattern_notes.map((note, index) => <li key={`${suggestion.id}-${index}`}>{note}</li>)}
                                     </ul>
                                   )}

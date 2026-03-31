@@ -47,17 +47,45 @@ export default function DynamicCategoryFields({ category, subtype, specs, onChan
   useEffect(() => {
     if (!category) return;
     setLoading(true);
-    axios.get(`${API}/job-tickets/schema/${category}`, { headers: hdr() })
-      .then(res => setSchema(res.data))
-      .catch(() => setSchema(null))
-      .finally(() => setLoading(false));
+    let retries = 0;
+    const fetchSchema = () => {
+      axios.get(`${API}/job-tickets/schema/${category}`, { headers: hdr() })
+        .then(res => {
+          setSchema(res.data);
+          // Auto-set defaults for fields that have them, so calculations work immediately
+          if (res.data?.fields && onChange) {
+            const defaults = {};
+            let hasNewDefaults = false;
+            res.data.fields.forEach(f => {
+              if (f.default !== undefined && (specs[f.key] === undefined || specs[f.key] === '')) {
+                defaults[f.key] = f.default;
+                hasNewDefaults = true;
+              }
+            });
+            if (hasNewDefaults) {
+              onChange({ ...specs, ...defaults });
+            }
+          }
+          setLoading(false);
+        })
+        .catch(() => {
+          if (retries < 2) {
+            retries++;
+            setTimeout(fetchSchema, 500);
+          } else {
+            setSchema(null);
+            setLoading(false);
+          }
+        });
+    };
+    fetchSchema();
   }, [category]);
 
   // Auto-calculate square footage
   const sqFootage = useMemo(() => {
     const w = parseFloat(specs.width) || 0;
     const h = parseFloat(specs.height) || 0;
-    const unit = specs.unit_of_measure || 'inches';
+    const unit = (specs.unit_of_measure || 'inches').toLowerCase();
     if (w <= 0 || h <= 0) return 0;
     if (unit === 'feet') return (w * h).toFixed(2);
     return ((w * h) / 144).toFixed(2);

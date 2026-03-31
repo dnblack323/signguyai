@@ -4,8 +4,8 @@ import {
   LayoutDashboard, Briefcase, FileText, Receipt, Users, 
   Store, Sparkles, BarChart3, Settings, MessageCircle,
   Clock, DollarSign, FileCheck, Package, Tag, Calendar,
-  ClipboardList, BookOpen, HelpCircle, UserCog, Wallet,
-  Shield, Wrench, Mail, FolderOpen, Send, Clipboard
+  ClipboardList, BookOpen, HelpCircle, UserCog, Wallet, Send,
+  Shield, Wrench, Mail, FolderOpen, Clipboard
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 

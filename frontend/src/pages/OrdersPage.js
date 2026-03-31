@@ -20,6 +20,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const token = () => localStorage.getItem('auth_token');
 
 const STATUS_COLORS = {
+  draft: 'bg-gray-500/15 text-gray-400 border-gray-500/30',
   new_intake: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
   awaiting_review: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
   awaiting_quote: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
@@ -175,6 +176,7 @@ export default function OrdersPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="draft">Drafts</SelectItem>
               <SelectItem value="new_intake">New Intake</SelectItem>
               <SelectItem value="awaiting_review">Awaiting Review</SelectItem>
               <SelectItem value="approved">Approved</SelectItem>

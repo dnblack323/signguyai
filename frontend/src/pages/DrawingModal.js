@@ -12,7 +12,7 @@ import axios from 'axios';
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const hdr = () => ({ Authorization: `Bearer ${localStorage.getItem('auth_token')}` });
 
-export default function DrawingModal({ orderId, onClose, onSaved }) {
+export default function DrawingModal({ orderId, onClose, onSaved, onLocalSave }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -134,15 +134,18 @@ export default function DrawingModal({ orderId, onClose, onSaved }) {
       return;
     }
 
-    // Confirm if closing without label
     const finalLabel = label.trim() || `${type.charAt(0).toUpperCase() + type.slice(1)}`;
+    const canvas = canvasRef.current;
+    const imageData = canvas.toDataURL('image/png');
+
+    // Local save mode (for new order form — no order ID yet)
+    if (onLocalSave) {
+      onLocalSave(imageData, finalLabel, type);
+      return;
+    }
 
     setSaving(true);
     try {
-      const canvas = canvasRef.current;
-      // Export at original resolution for clarity
-      const imageData = canvas.toDataURL('image/png');
-
       await axios.post(`${API}/order-drawings/`, {
         order_id: orderId,
         type,

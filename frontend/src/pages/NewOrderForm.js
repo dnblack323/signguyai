@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Loader2, Trash2, Search, UserPlus, Upload, FileUp } from 'lucide-react';
+import { ArrowLeft, Plus, Loader2, Trash2, Search, UserPlus, Upload, FileUp, Pen, Truck } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import DynamicCategoryFields from '../components/DynamicCategoryFields';
 import LivePricingPreview from '../components/LivePricingPreview';
+import DrawingModal from './DrawingModal';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const token = () => localStorage.getItem('auth_token');
@@ -58,6 +59,8 @@ export default function NewOrderForm() {
   // Start with NO tickets — user adds them
   const [tickets, setTickets] = useState([]);
   const [orderFiles, setOrderFiles] = useState([]);
+  const [showSketchModal, setShowSketchModal] = useState(false);
+  const [orderSketches, setOrderSketches] = useState([]);
 
   useEffect(() => {
     axios.get(`${API}/customers?limit=200`, { headers: hdrs() })
@@ -97,11 +100,14 @@ export default function NewOrderForm() {
     setShowCustomerResults(false);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (saveAsDraft = false) => {
     if (!order.customer_name.trim()) { toast.error('Customer name is required'); return; }
     setSaving(true);
     try {
-      const orderRes = await axios.post(`${API}/orders`, order, { headers: hdrs() });
+      const orderPayload = { ...order };
+      if (saveAsDraft) orderPayload.status = 'draft';
+
+      const orderRes = await axios.post(`${API}/orders`, orderPayload, { headers: hdrs() });
       const orderId = orderRes.data.id;
 
       for (const t of tickets) {
@@ -136,7 +142,19 @@ export default function NewOrderForm() {
         });
       }
 
-      toast.success('Order saved!');
+      // Upload sketches as drawings
+      for (const sketch of orderSketches) {
+        try {
+          await axios.post(`${API}/order-drawings/`, {
+            order_id: orderId,
+            type: sketch.type || 'sketch',
+            label: sketch.label || 'Order Sketch',
+            image_data: sketch.image_data,
+          }, { headers: hdrs() });
+        } catch { console.error('Sketch upload failed'); }
+      }
+
+      toast.success(saveAsDraft ? 'Order saved as draft!' : 'Order saved!');
       navigate(`/orders/${orderId}`);
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Failed to create order');
@@ -195,6 +213,13 @@ export default function NewOrderForm() {
             <div><Label className="text-gray-700">Phone</Label><Input value={order.phone} onChange={e => updateOrder('phone', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" /></div>
             <div><Label className="text-gray-700">Email</Label><Input value={order.email} onChange={e => updateOrder('email', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" /></div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Order Information */}
+      <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <CardHeader><CardTitle className="text-gray-900 text-lg">Order Information</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div><Label className="text-gray-700">Source</Label>
               <Select value={order.order_source} onValueChange={v => updateOrder('order_source', v)}>
@@ -202,58 +227,11 @@ export default function NewOrderForm() {
                 <SelectContent>{SOURCES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><Label className="text-gray-700">Due Date</Label><Input type="date" value={order.requested_due_date} onChange={e => updateOrder('requested_due_date', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" /></div>
-            <div><Label className="text-gray-700">Pickup / Delivery</Label>
-              <Select value={order.pickup_delivery_method} onValueChange={v => updateOrder('pickup_delivery_method', v)}>
-                <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pickup">Pickup</SelectItem>
-                  <SelectItem value="delivery">Delivery</SelectItem>
-                  <SelectItem value="install">Install</SelectItem>
-                  <SelectItem value="ship">Ship</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <div><Label className="text-gray-700">Due Date</Label><Input type="date" value={order.requested_due_date} onChange={e => updateOrder('requested_due_date', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" data-testid="order-due-date" /></div>
+            <div><Label className="text-gray-700">Event Date</Label><Input type="date" value={order.event_date} onChange={e => updateOrder('event_date', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" /></div>
             <div />
           </div>
           <div><Label className="text-gray-700">Internal Notes</Label><Textarea value={order.internal_notes} onChange={e => updateOrder('internal_notes', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" rows={2} placeholder="Internal notes about this order..." /></div>
-
-          {/* File Upload Area */}
-          <div>
-            <Label className="text-gray-700">Attachments / Artwork / Notes</Label>
-            <div className="mt-1">
-              <input
-                type="file"
-                multiple
-                onChange={(e) => {
-                  const newFiles = Array.from(e.target.files || []);
-                  setOrderFiles(prev => [...prev, ...newFiles]);
-                  e.target.value = '';
-                }}
-                className="hidden"
-                id="order-file-input"
-                data-testid="order-file-input"
-              />
-              <label htmlFor="order-file-input" className="block border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-violet-400 transition-colors cursor-pointer bg-gray-50">
-                <Upload className="w-6 h-6 mx-auto text-gray-400 mb-1" />
-                <p className="text-sm text-gray-500">Click to upload artwork, drawings, photos, or notes</p>
-              </label>
-              {orderFiles.length > 0 && (
-                <div className="mt-2 space-y-1">
-                  {orderFiles.map((f, i) => (
-                    <div key={i} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded px-3 py-1.5 text-sm">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <FileUp className="w-4 h-4 text-violet-500 flex-shrink-0" />
-                        <span className="text-gray-700 truncate">{f.name}</span>
-                        <span className="text-gray-400 text-xs flex-shrink-0">({(f.size / 1024).toFixed(0)} KB)</span>
-                      </div>
-                      <button onClick={() => setOrderFiles(prev => prev.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-600 ml-2"><Trash2 className="w-3.5 h-3.5" /></button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
         </CardContent>
       </Card>
 
@@ -372,11 +350,122 @@ export default function NewOrderForm() {
         </div>
       )}
 
+      {/* Sketches / Drawing Pad */}
+      <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-gray-900 text-lg flex items-center gap-2"><Pen className="w-5 h-5 text-violet-500" /> Sketches & Notes</CardTitle>
+            <Button size="sm" variant="outline" className="gap-1 text-violet-600 border-violet-300 hover:bg-violet-50" onClick={() => setShowSketchModal(true)} data-testid="add-sketch-btn">
+              <Pen className="w-4 h-4" /> Add Sketch
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {orderSketches.length === 0 ? (
+            <div className="text-center py-6 text-gray-400 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+              <Pen className="w-8 h-8 mx-auto mb-2 opacity-40" />
+              <p className="text-sm">No sketches yet. Use the drawing pad to capture quick notes or layouts.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {orderSketches.map((s, i) => (
+                <div key={i} className="border border-gray-200 rounded-lg overflow-hidden group relative">
+                  <div className="aspect-[4/3] bg-gray-50">
+                    <img src={s.image_data} alt={s.label} className="w-full h-full object-contain" />
+                  </div>
+                  <div className="p-2 flex items-center justify-between">
+                    <span className="text-xs text-gray-700 truncate">{s.label || 'Sketch'}</span>
+                    <button onClick={() => setOrderSketches(prev => prev.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-600"><Trash2 className="w-3 h-3" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Pickup / Delivery */}
+      <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <CardHeader><CardTitle className="text-gray-900 text-lg flex items-center gap-2"><Truck className="w-5 h-5 text-blue-500" /> Pickup / Delivery</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div><Label className="text-gray-700">Method</Label>
+              <Select value={order.pickup_delivery_method} onValueChange={v => updateOrder('pickup_delivery_method', v)}>
+                <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900" data-testid="pickup-delivery-method"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pickup">Pickup</SelectItem>
+                  <SelectItem value="delivery">Delivery</SelectItem>
+                  <SelectItem value="install">Install</SelectItem>
+                  <SelectItem value="ship">Ship</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div><Label className="text-gray-700">Delivery / Pickup Notes</Label><Textarea value={order.pickup_delivery_notes} onChange={e => updateOrder('pickup_delivery_notes', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" rows={2} placeholder="Address, delivery instructions, or pickup details..." /></div>
+        </CardContent>
+      </Card>
+
+      {/* Attachments */}
+      <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <CardHeader><CardTitle className="text-gray-900 text-lg flex items-center gap-2"><Upload className="w-5 h-5 text-emerald-500" /> Attachments / Artwork</CardTitle></CardHeader>
+        <CardContent>
+          <input
+            type="file"
+            multiple
+            onChange={(e) => {
+              const newFiles = Array.from(e.target.files || []);
+              setOrderFiles(prev => [...prev, ...newFiles]);
+              e.target.value = '';
+            }}
+            className="hidden"
+            id="order-file-input"
+            data-testid="order-file-input"
+          />
+          <label htmlFor="order-file-input" className="block border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-violet-400 transition-colors cursor-pointer bg-gray-50">
+            <Upload className="w-6 h-6 mx-auto text-gray-400 mb-1" />
+            <p className="text-sm text-gray-500">Click to upload artwork, drawings, photos, or notes</p>
+          </label>
+          {orderFiles.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {orderFiles.map((f, i) => (
+                <div key={i} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded px-3 py-1.5 text-sm">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileUp className="w-4 h-4 text-violet-500 flex-shrink-0" />
+                    <span className="text-gray-700 truncate">{f.name}</span>
+                    <span className="text-gray-400 text-xs flex-shrink-0">({(f.size / 1024).toFixed(0)} KB)</span>
+                  </div>
+                  <button onClick={() => setOrderFiles(prev => prev.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-600 ml-2"><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Save Buttons */}
       <div className="flex gap-3 pt-2">
-        <Button onClick={handleSave} disabled={saving} className="bg-violet-600 hover:bg-violet-700 text-white flex-1 py-6 text-lg" data-testid="save-order-btn">
+        <Button variant="outline" onClick={() => handleSave(true)} disabled={saving} className="flex-1 py-6 text-lg bg-white text-gray-700 hover:bg-gray-50" data-testid="save-draft-btn">
+          Save as Draft
+        </Button>
+        <Button onClick={() => handleSave(false)} disabled={saving} className="bg-violet-600 hover:bg-violet-700 text-white flex-1 py-6 text-lg" data-testid="save-order-btn">
           {saving ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null} Save Order
         </Button>
       </div>
+
+      {/* Sketch Drawing Modal */}
+      {showSketchModal && (
+        <DrawingModal
+          orderId="__new_order__"
+          onClose={() => setShowSketchModal(false)}
+          onSaved={(imageData, label, type) => {
+            // For new order, we capture the sketch locally until order is saved
+          }}
+          onLocalSave={(imageData, label, type) => {
+            setOrderSketches(prev => [...prev, { image_data: imageData, label, type }]);
+            setShowSketchModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }
