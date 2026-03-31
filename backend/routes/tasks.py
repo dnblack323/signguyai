@@ -23,6 +23,9 @@ class TaskCreate(BaseModel):
     description: Optional[str] = None
     job_id: Optional[str] = None
     assigned_to: Optional[str] = None  # employee_id
+    status: Optional[str] = "open"
+    priority: Optional[str] = "normal"
+    start_datetime: Optional[str] = None
     due_date: Optional[str] = None
     is_complete: bool = False
 
@@ -32,6 +35,9 @@ class TaskUpdate(BaseModel):
     description: Optional[str] = None
     job_id: Optional[str] = None
     assigned_to: Optional[str] = None
+    status: Optional[str] = None
+    priority: Optional[str] = None
+    start_datetime: Optional[str] = None
     due_date: Optional[str] = None
     is_complete: Optional[bool] = None
 
@@ -43,6 +49,9 @@ class Task(BaseModel):
     description: Optional[str] = None
     job_id: Optional[str] = None
     assigned_to: Optional[str] = None
+    status: Optional[str] = "open"
+    priority: Optional[str] = "normal"
+    start_datetime: Optional[str] = None
     due_date: Optional[str] = None
     is_complete: bool = False
     created_at: str
@@ -85,6 +94,9 @@ async def create_task(
         "description": data.description,
         "job_id": data.job_id,
         "assigned_to": data.assigned_to,
+        "status": "completed" if data.is_complete else (data.status or "open"),
+        "priority": data.priority or "normal",
+        "start_datetime": data.start_datetime,
         "due_date": data.due_date,
         "is_complete": data.is_complete,
         "created_at": now,
@@ -119,6 +131,10 @@ async def update_task(
 ):
     """Update a task"""
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if "is_complete" in update_data and "status" not in update_data:
+        update_data["status"] = "completed" if update_data["is_complete"] else "open"
+    if "status" in update_data and "is_complete" not in update_data:
+        update_data["is_complete"] = update_data["status"] in {"completed", "done"}
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     
     result = await db.tasks.update_one(

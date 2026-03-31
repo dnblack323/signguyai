@@ -1,10 +1,25 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { getItemBadgeClass, PRODUCTIVITY_TYPE_LABELS } from '../../lib/productivity';
 
-export const ProductivityItemDialog = ({ item, open, onClose }) => {
+const WRITABLE_TYPES = new Set(['task', 'job', 'production_task']);
+
+export const ProductivityItemDialog = ({ item, open, onClose, employees = [], onUpdateItem }) => {
   if (!item) return null;
+
+  const isWritable = WRITABLE_TYPES.has(item.type);
+  const canAssign = ['task', 'production_task'].includes(item.type);
+  const canEditPriority = ['task', 'production_task'].includes(item.type);
+  const statusOptions = Array.from(new Set([item.status, 'to_do', 'open', 'pending', 'approved', 'in_progress', 'waiting', 'complete', 'completed', 'done'].filter(Boolean)));
+
+  const handleUpdate = (field, value) => {
+    if (!onUpdateItem) return;
+    onUpdateItem(item, { [field]: value });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -24,6 +39,50 @@ export const ProductivityItemDialog = ({ item, open, onClose }) => {
           {item.due_datetime && <p><span className="font-medium text-gray-900">Due:</span> {new Date(item.due_datetime).toLocaleString()}</p>}
           {item.notes && <p><span className="font-medium text-gray-900">Notes:</span> {item.notes}</p>}
           {item.source_reference && <p><span className="font-medium text-gray-900">Reference:</span> {item.source_reference}</p>}
+          {isWritable && (
+            <div className="grid gap-4 rounded-xl border border-gray-200 p-4 md:grid-cols-2" data-testid="productivity-item-edit-panel">
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={item.status} onValueChange={(value) => handleUpdate('status', value)}>
+                  <SelectTrigger data-testid="productivity-item-status-select"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map((status) => (
+                      <SelectItem key={status} value={status}>{status.replace(/_/g, ' ')}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Due Date</Label>
+                <Input type="date" value={item.due_datetime ? item.due_datetime.slice(0, 10) : ''} onChange={(event) => handleUpdate('due_datetime', event.target.value)} data-testid="productivity-item-due-input" />
+              </div>
+              {canEditPriority && (
+                <div className="space-y-2">
+                  <Label>Priority</Label>
+                  <Select value={item.priority || 'normal'} onValueChange={(value) => handleUpdate('priority', value)}>
+                    <SelectTrigger data-testid="productivity-item-priority-select"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {['normal', 'high', 'urgent', 'rush'].map((priority) => (
+                        <SelectItem key={priority} value={priority}>{priority}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {canAssign && (
+                <div className="space-y-2">
+                  <Label>Assigned User</Label>
+                  <Select value={item.assigned_user_id || 'unassigned'} onValueChange={(value) => handleUpdate('assigned_user_id', value === 'unassigned' ? '' : value)}>
+                    <SelectTrigger data-testid="productivity-item-assignee-select"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                      {employees.map((employee) => <SelectItem key={employee.id} value={employee.id}>{employee.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          )}
           <div className="pt-2">
             {item.source_route ? (
               <Button asChild size="sm" data-testid="productivity-open-source-button">

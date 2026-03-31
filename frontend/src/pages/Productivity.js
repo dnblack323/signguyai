@@ -50,6 +50,28 @@ export default function Productivity() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
 
+  const refreshAll = async () => {
+    await Promise.all([loadCore(), loadCalendar()]);
+  };
+
+  const handleUpdateItem = async (item, updates) => {
+    const response = await api.patch(`/productivity/items/${encodeURIComponent(item.uid)}`, updates);
+    if (selectedItem?.uid === item.uid) {
+      setSelectedItem(response.data);
+    }
+    await refreshAll();
+  };
+
+  const handleKanbanMove = (item, boardColumn) => {
+    if (item.board_column === boardColumn) return;
+    const status = item.type === 'production_task' && ['done', 'completed'].includes(boardColumn)
+      ? 'complete'
+      : item.type !== 'production_task' && boardColumn === 'complete'
+        ? 'completed'
+        : boardColumn;
+    handleUpdateItem(item, { status, is_completed: ['done', 'completed', 'complete'].includes(status) });
+  };
+
   useEffect(() => {
     setSearchParams((current) => {
       const next = new URLSearchParams(current);
@@ -117,8 +139,8 @@ export default function Productivity() {
       <ProductivityFiltersBar filters={filters} setFilters={setFilters} employees={employees || []} />
 
       {activeView === 'dashboard' && <ProductivityDashboardView items={items} summary={summary || {}} onOpenItem={setSelectedItem} />}
-      {activeView === 'tasks' && <ProductivityTaskListView items={items} onOpenItem={setSelectedItem} />}
-      {activeView === 'kanban' && <ProductivityKanbanView items={items.filter((item) => ['task', 'job', 'production_task'].includes(item.type))} onOpenItem={setSelectedItem} />}
+      {activeView === 'tasks' && <ProductivityTaskListView items={items} employees={employees || []} onOpenItem={setSelectedItem} onQuickUpdate={handleUpdateItem} />}
+      {activeView === 'kanban' && <ProductivityKanbanView items={items.filter((item) => ['task', 'job', 'production_task'].includes(item.type))} onOpenItem={setSelectedItem} onMoveItem={handleKanbanMove} />}
       {activeView === 'calendar' && (
         <ProductivityCalendarView
           calendarView={calendarView}
@@ -136,7 +158,7 @@ export default function Productivity() {
         />
       )}
 
-      <ProductivityItemDialog item={selectedItem} open={!!selectedItem} onClose={() => setSelectedItem(null)} />
+      <ProductivityItemDialog item={selectedItem} open={!!selectedItem} employees={employees || []} onUpdateItem={handleUpdateItem} onClose={() => setSelectedItem(null)} />
 
       <Dialog open={!!selectedDay} onOpenChange={() => setSelectedDay(null)}>
         <DialogContent className="sm:max-w-[620px]" data-testid="productivity-day-detail-dialog">

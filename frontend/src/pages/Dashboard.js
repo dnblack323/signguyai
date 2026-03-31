@@ -639,6 +639,7 @@ export default function Dashboard() {
       const headers = { Authorization: `Bearer ${token}` };
       
       try {
+        const today = new Date().toISOString().slice(0, 10);
         // Fetch all dashboard data in parallel
         await Promise.all([
           fetchDashboardStats(),
@@ -646,11 +647,46 @@ export default function Dashboard() {
           fetchJobs(),
           fetchInvoices(),
           // Fetch new widget data
-          axios.get(`${API}/dashboard/pending-approvals`, { headers }).then(res => setPendingApprovals(res.data)).catch(() => {}),
           axios.get(`${API}/dashboard/unread-messages`, { headers }).then(res => setUnreadMessages(res.data)).catch(() => {}),
           axios.get(`${API}/dashboard/clocked-in`, { headers }).then(res => setClockedInEmployees(res.data)).catch(() => {}),
           axios.get(`${API}/dashboard/team-status-today`, { headers }).then(res => setTeamStatusToday(res.data)).catch(() => {}),
-          axios.get(`${API}/dashboard/todays-schedule`, { headers }).then(res => setTodaysSchedule(res.data)).catch(() => {}),
+          axios.get(`${API}/productivity/items`, {
+            headers,
+            params: {
+              start_date: today,
+              end_date: today,
+              include_completed: false,
+              item_types: 'job,production_task,appointment,schedule_shift',
+            }
+          }).then(res => {
+            const items = res.data?.items || [];
+            setTodaysSchedule(items.map(item => ({
+              id: item.uid,
+              name: item.title,
+              customer_name: item.customer_name || item.assigned_user_name || item.source_label,
+              due_date: (item.start_datetime || item.due_datetime || '').slice(0, 10),
+              status: item.status,
+              priority: item.priority,
+            })));
+          }).catch(() => {}),
+          axios.get(`${API}/productivity/items`, {
+            headers,
+            params: {
+              include_completed: false,
+              statuses: 'pending,awaiting_approval,awaiting_quote,awaiting_review',
+              item_types: 'job,production_task',
+            }
+          }).then(res => {
+            const items = res.data?.items || [];
+            setPendingApprovals(items.map(item => ({
+              id: item.uid,
+              job_id: item.related_order_id || item.related_job_id || item.related_job_ticket_id || item.source_id,
+              job_name: item.title,
+              customer_name: item.customer_name || 'Unknown',
+              created_at: item.start_datetime || item.due_datetime || '',
+              status: item.status,
+            })));
+          }).catch(() => {}),
           axios.get(`${API}/dashboard/recent-ai-documents`, { headers }).then(res => setRecentAIDocs(res.data)).catch(() => {}),
         ]);
       } catch (err) {

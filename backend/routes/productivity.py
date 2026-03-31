@@ -4,12 +4,24 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 
 from server import db, get_current_active_user
 from models import UserInDB
-from services.productivity_query import build_productivity_summary, get_unified_productivity_items
+from services.productivity_query import build_productivity_summary, get_unified_productivity_items, update_productivity_source
 
 router = APIRouter(prefix="/productivity", tags=["Productivity"])
+
+
+class ProductivityUpdatePayload(BaseModel):
+    status: Optional[str] = None
+    priority: Optional[str] = None
+    assigned_user_id: Optional[str] = None
+    start_datetime: Optional[str] = None
+    due_datetime: Optional[str] = None
+    is_completed: Optional[bool] = None
+    notes: Optional[str] = None
+    schedule_day_key: Optional[str] = None
 
 
 @router.get("/items")
@@ -140,3 +152,15 @@ async def get_productivity_board(
     for item in items:
         groups.setdefault(item.board_column, []).append(item.model_dump())
     return {"groups": groups, "total": len(items)}
+
+
+@router.patch("/items/{item_uid}")
+async def patch_productivity_item(
+    item_uid: str,
+    payload: ProductivityUpdatePayload,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    await update_productivity_source(db, current_user.tenant_id, item_uid, {k: v for k, v in payload.model_dump().items() if v is not None})
+    items = await get_unified_productivity_items(db, current_user.tenant_id, {"include_completed": True})
+    updated = next((item for item in items if item.uid == item_uid), None)
+    return updated.model_dump() if updated else {"message": "Updated"}

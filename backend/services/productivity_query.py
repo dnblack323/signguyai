@@ -77,7 +77,7 @@ def _map_task(task: dict, maps: Dict[str, Dict[str, Any]]) -> ProductivityItem:
     assigned_employee = maps["employees"].get(task.get("assigned_to"), {})
     due_dt = _parse_dt(task.get("due_date"))
     is_completed = bool(task.get("is_complete"))
-    status = "completed" if is_completed else "open"
+    status = "completed" if is_completed else (task.get("status") or "open")
     return _build_item(
         uid=f"task:{task['id']}",
         id=task["id"],
@@ -95,7 +95,7 @@ def _map_task(task: dict, maps: Dict[str, Dict[str, Any]]) -> ProductivityItem:
         due_datetime=_to_iso(due_dt),
         all_day=True,
         is_completed=is_completed,
-        board_column="done" if is_completed else "to_do",
+        board_column="done" if is_completed else status,
         notes=task.get("description") or "",
         category="task",
         color=_status_color(status, "task", is_completed),
@@ -377,6 +377,99 @@ async def get_unified_productivity_items(db, tenant_id: str, filters: Optional[D
     filtered = _filter_items(items, filters)
     filtered.sort(key=lambda item: (_parse_dt(item.start_datetime) or _parse_dt(item.due_datetime) or datetime.max.replace(tzinfo=timezone.utc), item.title.lower()))
     return filtered
+
+
+async def update_productivity_source(db, tenant_id: str, item_uid: str, updates: Dict[str, Any]) -> None:
+    source_type, source_id = item_uid.split(":", 1)
+    now = datetime.now(timezone.utc).isoformat()
+
+    if source_type == "task":
+        task_updates: Dict[str, Any] = {"updated_at": now}
+        if "status" in updates:
+            task_updates["status"] = updates["status"]
+            task_updates["is_complete"] = updates["status"] in {"completed", "done"}
+        if "is_completed" in updates:
+            task_updates["is_complete"] = bool(updates["is_completed"])
+            task_updates["status"] = "completed" if updates["is_completed"] else (updates.get("status") or "open")
+        if "priority" in updates:
+            task_updates["priority"] = updates["priority"]
+        if "assigned_user_id" in updates:
+            task_updates["assigned_to"] = updates["assigned_user_id"]
+        if "due_datetime" in updates:
+            task_updates["due_date"] = str(updates["due_datetime"]).split("T")[0] if updates["due_datetime"] else None
+        if "start_datetime" in updates:
+            task_updates["start_datetime"] = updates["start_datetime"]
+        await db.tasks.update_one({"id": source_id, "tenant_id": tenant_id}, {"$set": task_updates})
+        return
+
+    if source_type == "order":
+        order_updates: Dict[str, Any] = {"updated_at": now}
+        if "status" in updates:
+            order_updates["status"] = updates["status"]
+        if "due_datetime" in updates:
+            order_updates["requested_due_date"] = str(updates["due_datetime"]).split("T")[0] if updates["due_datetime"] else None
+        await db.orders.update_one({"id": source_id, "tenant_id": tenant_id}, {"$set": order_updates})
+        return
+
+    if source_type == "legacy_job":
+        job_updates: Dict[str, Any] = {"updated_at": now}
+        if "status" in updates:
+            job_updates["status"] = updates["status"]
+        if "due_datetime" in updates:
+            job_updates["due_date"] = str(updates["due_datetime"]).split("T")[0] if updates["due_datetime"] else None
+        if "assigned_user_id" in updates:
+            job_updates["assigned_employees"] = [updates["assigned_user_id"]] if updates["assigned_user_id"] else []
+        await db.jobs.update_one({"id": source_id, "tenant_id": tenant_id}, {"$set": job_updates})
+        return
+
+    if source_type == "production_task":
+        existing = await db.production_tasks.find_one({"id": source_id, "tenant_id": tenant_id}, {"_id": 0, "job_ticket_id": 1})
+        if not existing:
+            return
+        task_updates: Dict[str, Any] = {"updated_at": now}
+        if "status" in updates:
+            task_updates["status"] = updates["status"]
+        if "assigned_user_id" in updates:
+            task_updates["assigned_to"] = updates["assigned_user_id"]
+        if "notes" in updates:
+            task_updates["notes"] = updates["notes"]
+        await db.production_tasks.update_one({"id": source_id, "tenant_id": tenant_id}, {"$set": task_updates})
+
+        ticket_updates: Dict[str, Any] = {"updated_at": now}
+        if "priority" in updates:
+            ticket_updates["priority"] = updates["priority"]
+        if "due_datetime" in updates:
+            ticket_updates["due_date"] = str(updates["due_datetime"]).split("T")[0] if updates["due_datetime"] else None
+        if "assigned_user_id" in updates:
+            ticket_updates["assigned_user_id"] = updates["assigned_user_id"]
+        if len(ticket_updates) > 1:
+            await db.job_tickets.update_one({"id": existing["job_ticket_id"], "tenant_id": tenant_id}, {"$set": ticket_updates})
+        return
+
+    if source_type == "schedule_shift":
+        day_key = updates.get("schedule_day_key")
+        if not day_key:
+            return
+        existing = await db.employee_schedules.find_one({"id": source_id, "tenant_id": tenant_id}, {"_id": 0})
+        if not existing:
+            return
+        shifts = existing.get("shifts", {})
+        shift = shifts.get(day_key, {})
+        if "start_datetime" in updates and updates["start_datetime"]:
+            shift["start"] = str(updates["start_datetime"])[11:16]
+        if "due_datetime" in updates and updates["due_datetime"]:
+            shift["end"] = str(updates["due_datetime"])[11:16]
+        shifts[day_key] = shift
+        await db.employee_schedules.update_one({"id": source_id, "tenant_id": tenant_id}, {"$set": {"shifts": shifts, "updated_at": now}})
+        return
+
+    if source_type == "appointment":
+        appointment_updates: Dict[str, Any] = {"updated_at": now}
+        if "status" in updates:
+            appointment_updates["status"] = updates["status"]
+        if "start_datetime" in updates:
+            appointment_updates["scheduled_at"] = updates["start_datetime"]
+        await db.appointments.update_one({"id": source_id, "tenant_id": tenant_id}, {"$set": appointment_updates})
 
 
 def build_productivity_summary(items: List[ProductivityItem], current_user_id: Optional[str] = None) -> ProductivitySummary:
