@@ -1,6 +1,6 @@
 # SignGuy AI - Product Requirements Document
 
-> **Last Updated:** March 30, 2026
+> **Last Updated:** March 31, 2026
 > **Version:** 6.1
 
 ---
@@ -18,6 +18,30 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ---
 
 ## What's Been Implemented
+
+### Session: March 31, 2026 (Order Workflow Hardening & Verification)
+- **Order Workflow Verification Pass (DONE):**
+  - Verified full order flow: order creation → job tickets → quote/invoice/work order generation → production start
+  - Added ticket-level workflow shortcuts from Order Detail + Job Ticket Detail:
+    - Assign employee
+    - Add to employee schedule
+    - Create productivity task
+- **Live Estimate + Saved Price Sync (DONE):**
+  - New Order and Add Ticket forms now auto-sync live pricing into `estimated_price`
+  - Banner, apparel, and vehicle-wrap tickets now save calculator-backed pricing snapshots during ticket creation
+  - Quotes and invoices now use active pricing snapshot values when available
+- **Category / Pricing Reliability Fixes (DONE):**
+  - Dynamic category schema now pulls pricing config and material options from tenant pricing settings with fallback catalog merge
+  - Vehicle Wrap category now correctly maps to `vehicle_wraps` settings defaults
+  - Vehicle coverage values (`25/50/75/custom`) now normalize correctly for pricing engine
+  - Added `pickup` vehicle support to pricing enums/calculator
+  - Apparel size breakdown now drives ticket quantity automatically
+- **Document Visibility Fix (DONE):**
+  - Generated work orders now appear in the Order Detail Financial tab alongside quotes and invoices
+- **Testing:**
+  - Self-tested backend pricing + workflow APIs with live tenant auth
+  - Screenshot smoke test passed on `/orders/new`
+  - Testing agent iteration_77 passed: backend 23 passed / 1 skipped, frontend 100%
 
 ### Session: March 30, 2026 (Dashboard Team Status & Navigation)
 - **Dashboard Team Status Widget (DONE):**

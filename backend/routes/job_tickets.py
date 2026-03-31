@@ -233,6 +233,7 @@ def _build_ticket_pricing_payload(ticket: dict, pricing_input: Optional[dict] = 
         "promo_misc": "promotional",
         "custom": "custom",
     }
+    is_vinyl_category = ticket.get("item_category") in {"cut_vinyl", "vehicle_wrap"}
     double_sided = specs.get("double_sided") == "double" or specs.get("double_sided") is True
     coverage_percent = float(specs.get("coverage_percent", 0) or 0)
     coverage_type = _normalize_vehicle_coverage(specs.get("coverage_type"), coverage_percent)
@@ -245,7 +246,7 @@ def _build_ticket_pricing_payload(ticket: dict, pricing_input: Optional[dict] = 
         "laminate": specs.get("lamination", "none") not in ("none", "", None, False),
         "laminate_type": specs.get("lamination") if specs.get("lamination") not in ("none", "") else None,
         "include_setup_fee": bool(specs.get("setup_required") or ticket.get("design_needed") or incoming.get("include_setup_fee")),
-        "vinyl_type": specs.get("vinyl_type") or specs.get("material"),
+        "vinyl_type": (specs.get("vinyl_type") or specs.get("material")) if is_vinyl_category else None,
         "print_material": specs.get("media_type") or specs.get("material"),
         "substrate_type": specs.get("substrate"),
         "num_colors": int(specs.get("num_colors", 1) or 1),
