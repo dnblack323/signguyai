@@ -21,9 +21,3 @@
 - Password: TestPassword123!
 - Note: This account is in test_database, NOT the production signguy_ai database
 
-## Production Employee Portal Test Account
-- Email: clockqa_02e57d@example.com
-- PIN: 1234
-- Name: Clock QA b7069
-- Role: staff / employee portal test user
-- Purpose: Verify admin timeclock + payroll + employee portal pay/timesheet workflows in production tenant

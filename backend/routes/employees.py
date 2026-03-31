@@ -75,6 +75,13 @@ class PayrollTransactionCreate(BaseModel):
     description: Optional[str] = None
     date: Optional[str] = None
 
+
+class PayrollTransactionUpdate(BaseModel):
+    type: Optional[PayrollTransactionType] = None
+    amount: Optional[float] = None
+    description: Optional[str] = None
+    date: Optional[str] = None
+
 class PayrollTransaction(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     employee_id: str
@@ -134,6 +141,11 @@ class TimeClockShiftUpdate(BaseModel):
 employees_router = APIRouter(prefix="/employees", tags=["Employees"])
 timeclock_router = APIRouter(prefix="/timeclock", tags=["Time Clock"])
 payroll_router = APIRouter(prefix="/payroll", tags=["Payroll"])
+
+
+def _require_payroll_edit_access(current_user: UserInDB):
+    if current_user.role not in ["owner", "admin", "superadmin"]:
+        raise HTTPException(status_code=403, detail="Only admin-level users can edit payroll data")
 
 
 async def _get_employee_compensation_snapshot(tenant_id: str, employee: dict, start_date: Optional[str] = None, end_date: Optional[str] = None):
@@ -342,14 +354,46 @@ async def get_clock_status(employee_id: str, current_user: UserInDB = Depends(ge
 # ============== PAYROLL ROUTES ==============
 
 @payroll_router.post("/transactions", response_model=PayrollTransaction)
-async def create_payroll_transaction(input: PayrollTransactionCreate):
+async def create_payroll_transaction(input: PayrollTransactionCreate, current_user: UserInDB = Depends(get_current_active_user)):
     """Create a payroll transaction (earnings, advance, payment)"""
+    _require_payroll_edit_access(current_user)
     # Filter out None values to allow defaults to work
     input_data = {k: v for k, v in input.model_dump().items() if v is not None}
     transaction = PayrollTransaction(**input_data)
     doc = transaction.model_dump()
     await db.payroll_transactions.insert_one(doc)
     return transaction
+
+
+@payroll_router.put("/transactions/{transaction_id}", response_model=PayrollTransaction)
+async def update_payroll_transaction(
+    transaction_id: str,
+    input: PayrollTransactionUpdate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    _require_payroll_edit_access(current_user)
+    update_data = {k: v for k, v in input.model_dump().items() if v is not None}
+    result = await db.payroll_transactions.update_one(
+        {"id": transaction_id, "employee_id": {"$in": [emp["id"] for emp in await db.employees.find({"tenant_id": current_user.tenant_id}, {"_id": 0, "id": 1}).to_list(1000)]}},
+        {"$set": update_data}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    updated = await db.payroll_transactions.find_one({"id": transaction_id}, {"_id": 0})
+    return updated
+
+
+@payroll_router.delete("/transactions/{transaction_id}")
+async def delete_payroll_transaction(
+    transaction_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    _require_payroll_edit_access(current_user)
+    tenant_employee_ids = [emp["id"] for emp in await db.employees.find({"tenant_id": current_user.tenant_id}, {"_id": 0, "id": 1}).to_list(1000)]
+    result = await db.payroll_transactions.delete_one({"id": transaction_id, "employee_id": {"$in": tenant_employee_ids}})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    return {"message": "Transaction deleted"}
 
 
 @payroll_router.get("/transactions", response_model=List[PayrollTransaction])
@@ -466,6 +510,7 @@ async def add_manual_hours(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Add manual hours entry for an employee"""
+    _require_payroll_edit_access(current_user)
     employee = await db.employees.find_one({
         "id": input.employee_id,
         "tenant_id": current_user.tenant_id
@@ -505,6 +550,7 @@ async def update_manual_hours(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Update a manual hours entry"""
+    _require_payroll_edit_access(current_user)
     entry = await db.payroll_hours.find_one({
         "id": entry_id,
         "tenant_id": current_user.tenant_id
@@ -532,6 +578,7 @@ async def delete_manual_hours(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Delete a manual hours entry"""
+    _require_payroll_edit_access(current_user)
     result = await db.payroll_hours.delete_one({
         "id": entry_id,
         "tenant_id": current_user.tenant_id
@@ -584,6 +631,7 @@ async def edit_timeclock_shift(
     input: TimeClockShiftUpdate,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
+    _require_payroll_edit_access(current_user)
     try:
         updated = await update_timeclock_shift(db, current_user.tenant_id, shift_id, {k: v for k, v in input.model_dump().items() if v is not None})
         return updated
@@ -765,6 +813,7 @@ async def save_schedule(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Save or update a schedule entry for an employee on a specific day."""
+    _require_payroll_edit_access(current_user)
     body = await request.json()
     employee_id = body.get("employee_id")
     week_start = body.get("week_start")

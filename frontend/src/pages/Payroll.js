@@ -53,9 +53,9 @@ function StatCard({ label, value, icon: Icon, color = 'text-blue-600', bgColor =
 }
 
 export default function Payroll() {
-  const { hasPermission } = useAuth();
+  const { hasPermission, isAdminOrOwner } = useAuth();
   const canViewPayroll = hasPermission(Permission.PAYROLL_VIEW);
-  const canEditPayroll = hasPermission(Permission.PAYROLL_EDIT);
+  const canEditPayroll = isAdminOrOwner() || hasPermission(Permission.PAYROLL_EDIT);
   
   const { employees, fetchEmployees, api } = useApp();
   
@@ -92,6 +92,7 @@ export default function Payroll() {
   const [transactions, setTransactions] = useState([]);
   const [txnEmployee, setTxnEmployee] = useState('');
   const [showAddTxn, setShowAddTxn] = useState(false);
+  const [editingTxn, setEditingTxn] = useState(null);
   const [txnForm, setTxnForm] = useState({
     employee_id: '', type: 'earnings', amount: '',
     description: '', date: new Date().toISOString().split('T')[0]
@@ -113,6 +114,14 @@ export default function Payroll() {
     const diff = d.getDate() - day + (day === 0 ? 0 : 7);
     return new Date(d.setDate(diff)).toISOString().split('T')[0];
   }
+
+  const formatTimeOfDay = (value) => {
+    if (!value) return '--:--';
+    const [hours, minutes] = value.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours || 0, minutes || 0, 0, 0);
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  };
 
   const loadPayPeriod = useCallback(async () => {
     try {
@@ -279,13 +288,44 @@ export default function Payroll() {
       return;
     }
     try {
-      await api.post('/payroll/transactions', { ...txnForm, amount: parseFloat(txnForm.amount) });
-      toast.success('Transaction recorded');
+      const payload = { ...txnForm, amount: parseFloat(txnForm.amount) };
+      if (editingTxn) {
+        await api.put(`/payroll/transactions/${editingTxn.id}`, payload);
+        toast.success('Transaction updated');
+      } else {
+        await api.post('/payroll/transactions', payload);
+        toast.success('Transaction recorded');
+      }
       setShowAddTxn(false);
+      setEditingTxn(null);
       setTxnForm({ employee_id: '', type: 'earnings', amount: '', description: '', date: new Date().toISOString().split('T')[0] });
       loadTransactions();
       loadPayPeriod();
     } catch { toast.error('Failed to record transaction'); }
+  };
+
+  const handleEditTransaction = (txn) => {
+    setEditingTxn(txn);
+    setTxnForm({
+      employee_id: txn.employee_id,
+      type: txn.type,
+      amount: String(txn.amount || ''),
+      description: txn.description || '',
+      date: txn.date || new Date().toISOString().split('T')[0],
+    });
+    setShowAddTxn(true);
+  };
+
+  const handleDeleteTransaction = async (transactionId) => {
+    if (!window.confirm('Delete this payroll transaction?')) return;
+    try {
+      await api.delete(`/payroll/transactions/${transactionId}`);
+      toast.success('Transaction deleted');
+      loadTransactions();
+      loadPayPeriod();
+    } catch {
+      toast.error('Failed to delete transaction');
+    }
   };
 
   const getTypeIcon = (type) => {
@@ -484,8 +524,8 @@ export default function Payroll() {
                               <TableRow key={entry.id || idx}>
                                 <TableCell className="text-sm">{entry.date}</TableCell>
                                 <TableCell>
-                                  <Badge variant="outline" className={entry.source === 'job_timer' ? 'text-blue-600 border-blue-400/30' : 'text-purple-600 border-purple-400/30'}>
-                                    {entry.source === 'job_timer' ? 'Timer' : 'Manual'}
+                                  <Badge variant="outline" className={entry.source === 'job_timer' ? 'text-blue-600 border-blue-400/30' : entry.source === 'time_clock' ? 'text-emerald-600 border-emerald-400/30' : 'text-purple-600 border-purple-400/30'}>
+                                    {entry.source === 'job_timer' ? 'Timer' : entry.source === 'time_clock' ? 'Time Clock' : 'Manual'}
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-sm text-gray-500">{entry.job_name || '-'}</TableCell>
@@ -548,7 +588,7 @@ export default function Payroll() {
                           <TableCell className="font-medium">{entry.employee_name}</TableCell>
                           <TableCell className="capitalize text-sm">{entry.task_type}</TableCell>
                           <TableCell className="text-sm text-gray-500">{entry.job_name || '-'}</TableCell>
-                          <TableCell className="text-sm text-gray-500">{entry.source === 'time_clock' ? `${entry.clock_in?.slice(11, 16) || '--:--'} - ${entry.clock_out?.slice(11, 16) || '--:--'} · Break ${entry.break_minutes || 0}m` : entry.description || '-'}</TableCell>
+                          <TableCell className="text-sm text-gray-500">{entry.source === 'time_clock' ? `${formatTimeOfDay(entry.clock_in?.slice(11, 16) || '')} - ${formatTimeOfDay(entry.clock_out?.slice(11, 16) || '')} · Break ${entry.break_minutes || 0}m` : entry.description || '-'}</TableCell>
                           <TableCell className="text-right font-medium">{entry.hours}</TableCell>
                           <TableCell className="text-right text-green-600">{formatCurrency(entry.gross_pay)}</TableCell>
                           <TableCell className="text-right">
@@ -589,7 +629,7 @@ export default function Payroll() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button onClick={() => { setTxnForm({ employee_id: '', type: 'earnings', amount: '', description: '', date: new Date().toISOString().split('T')[0] }); setShowAddTxn(true); }} data-testid="add-transaction-btn">
+                  <Button onClick={() => { setEditingTxn(null); setTxnForm({ employee_id: '', type: 'earnings', amount: '', description: '', date: new Date().toISOString().split('T')[0] }); setShowAddTxn(true); }} data-testid="add-transaction-btn">
                     <Plus className="h-4 w-4 mr-1.5" /> Add Transaction
                   </Button>
                 </div>
@@ -607,6 +647,7 @@ export default function Payroll() {
                       <TableHead>Type</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -625,6 +666,18 @@ export default function Payroll() {
                           </TableCell>
                           <TableCell className="text-sm text-gray-500">{txn.description || '-'}</TableCell>
                           <TableCell className={`text-right font-bold ${typeColor}`}>{formatCurrency(txn.amount)}</TableCell>
+                          <TableCell className="text-right">
+                            {canEditPayroll && (
+                              <div className="flex justify-end gap-1">
+                                <Button variant="ghost" size="sm" onClick={() => handleEditTransaction(txn)} data-testid={`edit-transaction-${txn.id}`}>
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => handleDeleteTransaction(txn.id)} data-testid={`delete-transaction-${txn.id}`}>
+                                  <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                                </Button>
+                              </div>
+                            )}
+                          </TableCell>
                         </TableRow>
                       );
                     })}
@@ -738,7 +791,7 @@ export default function Payroll() {
       <Dialog open={showAddTxn} onOpenChange={setShowAddTxn}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>New Transaction</DialogTitle>
+            <DialogTitle>{editingTxn ? 'Edit Transaction' : 'New Transaction'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAddTransaction} className="space-y-4">
             <div className="space-y-2">
@@ -786,7 +839,7 @@ export default function Payroll() {
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={() => setShowAddTxn(false)}>Cancel</Button>
-              <Button type="submit" data-testid="txn-submit-btn">Record</Button>
+              <Button type="submit" data-testid="txn-submit-btn">{editingTxn ? 'Update' : 'Record'}</Button>
             </div>
           </form>
         </DialogContent>
@@ -936,7 +989,7 @@ function ScheduleTab({ employees, api, canEdit }) {
                     <button key={day} onClick={() => openEdit(emp.id, day)} className={`rounded border p-1.5 text-center min-h-[44px] transition-colors ${hasShift ? 'bg-violet-50 border-violet-300 hover:bg-violet-100' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'} ${canEdit ? 'cursor-pointer' : 'cursor-default'}`} data-testid={`schedule-${emp.id}-${day}`}>
                       {hasShift ? (
                         <div>
-                          <p className="text-xs font-medium text-violet-700">{shift.start}-{shift.end}</p>
+                          <p className="text-xs font-medium text-violet-700">{formatTimeOfDay(shift.start)} - {formatTimeOfDay(shift.end)}</p>
                           {shift.notes && <p className="text-[10px] text-gray-500 truncate">{shift.notes}</p>}
                         </div>
                       ) : <span className="text-xs text-gray-300">—</span>}

@@ -569,7 +569,7 @@ export default function UserManagement() {
                 <ul className="text-xs space-y-1" className="text-gray-500">
                   <li>• Full access to customers, quotes, jobs, invoices</li>
                   <li>• Manage all time clock entries</li>
-                  <li>• View payroll and financials (no edit)</li>
+                  <li>• Edit payroll hours, time entries, and transactions</li>
                   <li>• View users (no role management)</li>
                 </ul>
               )}

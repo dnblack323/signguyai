@@ -41,7 +41,7 @@ export default function TimeClock() {
   const [todayLogs, setTodayLogs] = useState([]);
   const [shiftSummary, setShiftSummary] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newEmployee, setNewEmployee] = useState({ name: '', hourly_rate: 0 });
+  const [newEmployee, setNewEmployee] = useState({ name: '', hourly_rate: '' });
 
   useEffect(() => {
     loadEmployees();
@@ -96,9 +96,9 @@ export default function TimeClock() {
       return;
     }
     try {
-      await createEmployee(newEmployee);
+      await createEmployee({ ...newEmployee, hourly_rate: parseFloat(newEmployee.hourly_rate || 0) || 0 });
       toast.success('Employee created');
-      setNewEmployee({ name: '', hourly_rate: 0 });
+      setNewEmployee({ name: '', hourly_rate: '' });
       setIsDialogOpen(false);
       await loadEmployees();
     } catch (err) {
@@ -176,7 +176,8 @@ export default function TimeClock() {
                   type="number"
                   step="0.01"
                   value={newEmployee.hourly_rate}
-                  onChange={(e) => setNewEmployee({ ...newEmployee, hourly_rate: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, hourly_rate: e.target.value })}
+                  placeholder="0.00"
                   data-testid="employee-rate-input"
                 />
               </div>
