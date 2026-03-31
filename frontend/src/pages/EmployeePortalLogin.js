@@ -24,11 +24,15 @@ export default function EmployeePortalLogin() {
 
     try {
       const response = await axios.post(`${API_URL}/api/employee-portal/auth/login`, form);
+      const configResponse = await axios.get(`${API_URL}/api/employee-portal/config`, {
+        headers: { Authorization: `Bearer ${response.data.access_token}` }
+      }).catch(() => ({ data: {} }));
       
       localStorage.setItem('employee_token', response.data.access_token);
       localStorage.setItem('employee_id', response.data.employee_id);
       localStorage.setItem('employee_name', response.data.employee_name);
       localStorage.setItem('employee_tenant_id', response.data.tenant_id);
+      localStorage.setItem('employee_portal_config', JSON.stringify(configResponse.data || {}));
       navigate('/employee-portal');
     } catch (err) {
       console.error('Login error:', err);

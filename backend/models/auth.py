@@ -191,6 +191,7 @@ ROLE_PERMISSIONS = {
         Permission.JOBS_VIEW, Permission.JOBS_CREATE, Permission.JOBS_EDIT, Permission.JOBS_DELETE,
         Permission.INVOICES_VIEW, Permission.INVOICES_CREATE, Permission.INVOICES_EDIT, Permission.INVOICES_DELETE,
         Permission.TIME_CLOCK_OWN, Permission.TIME_CLOCK_VIEW_ALL, Permission.TIME_CLOCK_MANAGE,
+        Permission.PAYROLL_VIEW, Permission.PAYROLL_MANAGE,
         Permission.EMPLOYEES_VIEW, Permission.EMPLOYEES_MANAGE,
         Permission.FINANCIALS_VIEW,
         Permission.USERS_VIEW,

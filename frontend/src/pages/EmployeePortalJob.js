@@ -17,6 +17,14 @@ export default function EmployeePortalJob() {
   const navigate = useNavigate();
   const token = localStorage.getItem('employee_token');
   const employeeName = localStorage.getItem('employee_name') || 'Employee';
+  const portalConfig = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('employee_portal_config') || '{}');
+    } catch {
+      return {};
+    }
+  })();
+  const canSeeJobDetails = portalConfig?.can_see_job_details === true;
   const [loading, setLoading] = useState(true);
   const [jobData, setJobData] = useState(null);
 
@@ -58,8 +66,24 @@ export default function EmployeePortalJob() {
 
   if (loading) {
     return (
-      <EmployeePortalLayout employeeName={employeeName}>
+      <EmployeePortalLayout employeeName={employeeName} portalConfig={portalConfig}>
         <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500" /></div>
+      </EmployeePortalLayout>
+    );
+  }
+
+  if (!canSeeJobDetails) {
+    return (
+      <EmployeePortalLayout employeeName={employeeName} portalConfig={portalConfig}>
+        <div className="space-y-6 pb-24">
+          <Card style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)' }}>
+            <CardContent className="p-8 text-center">
+              <ArrowLeft className="h-10 w-10 mx-auto mb-3 text-amber-500" />
+              <p className="font-medium" style={{ color: 'var(--text)' }}>Job details are hidden</p>
+              <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>Your admin has disabled job-detail access for this portal account.</p>
+            </CardContent>
+          </Card>
+        </div>
       </EmployeePortalLayout>
     );
   }
@@ -67,7 +91,7 @@ export default function EmployeePortalJob() {
   const { job, customer_name, timelines = [] } = jobData || {};
 
   return (
-    <EmployeePortalLayout employeeName={employeeName}>
+    <EmployeePortalLayout employeeName={employeeName} portalConfig={portalConfig}>
       <div className="space-y-6 pb-24" data-testid="employee-job-detail-page">
         <Link to="/employee-portal">
           <Button variant="outline" data-testid="employee-job-back-button"><ArrowLeft className="h-4 w-4 mr-2" /> Back to Dashboard</Button>

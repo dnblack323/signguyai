@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -19,8 +20,9 @@ import {
   DialogTrigger,
 } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
+import { Switch } from '../components/ui/switch';
 import { formatTime, cn } from '../lib/utils';
-import { Play, Pause, Coffee, Square, Clock, Plus, User } from 'lucide-react';
+import { Play, Pause, Coffee, Square, Clock, Plus, User, Edit2, Trash2, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 
 const actionButtons = [
@@ -31,8 +33,9 @@ const actionButtons = [
 ];
 
 export default function TimeClock() {
+  const { isAdminOrOwner } = useAuth();
   const { 
-    employees, fetchEmployees, createEmployee,
+    employees, fetchEmployees, createEmployee, updateEmployee, api,
     clockAction, getClockStatus, getTodayLogs, getShiftSummary 
   } = useApp();
   const [loading, setLoading] = useState(true);
@@ -42,6 +45,11 @@ export default function TimeClock() {
   const [shiftSummary, setShiftSummary] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newEmployee, setNewEmployee] = useState({ name: '', hourly_rate: '' });
+  const [editingEmployee, setEditingEmployee] = useState(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [employeeForm, setEmployeeForm] = useState({ name: '', email: '', phone: '', hourly_rate: '', role: 'staff', pin: '' });
+  const [pinResetEmployee, setPinResetEmployee] = useState(null);
+  const [newPin, setNewPin] = useState('');
 
   useEffect(() => {
     loadEmployees();
@@ -103,6 +111,79 @@ export default function TimeClock() {
       await loadEmployees();
     } catch (err) {
       toast.error('Failed to create employee');
+    }
+  };
+
+  const handleSaveEmployee = async (e) => {
+    e.preventDefault();
+    if (!editingEmployee) return;
+    try {
+      await updateEmployee(editingEmployee.id, {
+        name: employeeForm.name,
+        email: employeeForm.email || null,
+        phone: employeeForm.phone || null,
+        hourly_rate: parseFloat(employeeForm.hourly_rate || 0) || 0,
+        role: employeeForm.role,
+      });
+      toast.success('Employee updated');
+      setShowEditDialog(false);
+      setEditingEmployee(null);
+      await loadEmployees();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to update employee');
+    }
+  };
+
+  const openEditEmployee = (employee) => {
+    setEditingEmployee(employee);
+    setEmployeeForm({
+      name: employee.name || '',
+      email: employee.email || '',
+      phone: employee.phone || '',
+      hourly_rate: employee.hourly_rate ? String(employee.hourly_rate) : '',
+      role: employee.role || 'staff',
+      pin: employee.pin || '',
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleToggleActive = async (employee) => {
+    try {
+      await updateEmployee(employee.id, { is_active: !employee.is_active });
+      toast.success(`Employee ${employee.is_active ? 'deactivated' : 'reactivated'}`);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to update employee');
+    }
+  };
+
+  const handleDeleteEmployee = async (employee) => {
+    if (!window.confirm(`Delete ${employee.name}? This removes employee-related records from admin tools.`)) return;
+    try {
+      await api.delete(`/employees/${employee.id}`);
+      toast.success('Employee deleted');
+      if (selectedEmployee === employee.id) {
+        setSelectedEmployee('');
+        setClockStatus(null);
+        setTodayLogs([]);
+        setShiftSummary(null);
+      }
+      await loadEmployees();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to delete employee');
+    }
+  };
+
+  const handleResetPin = async (e) => {
+    e.preventDefault();
+    if (!pinResetEmployee || !newPin) return;
+    try {
+      await api.post(`/employees/${pinResetEmployee.id}/reset-pin`, { pin: newPin });
+      toast.success('Employee PIN updated');
+      setPinResetEmployee(null);
+      setNewPin('');
+      await loadEmployees();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to update PIN');
     }
   };
 
@@ -331,6 +412,63 @@ export default function TimeClock() {
           </CardContent>
         </Card>
       )}
+
+      {isAdminOrOwner() && employees.length > 0 && (
+        <Card className="bg-white border-gray-200" data-testid="employee-directory-card">
+          <CardHeader>
+            <CardTitle className="font-heading uppercase">Employee Directory</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {employees.map((employee) => (
+              <div key={employee.id} className="rounded-lg border border-gray-200 p-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between" data-testid={`employee-directory-row-${employee.id}`}>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-medium text-gray-900">{employee.name}</p>
+                    <Badge variant="outline">{employee.role}</Badge>
+                    {!employee.is_active && <Badge className="bg-red-100 text-red-700 border-red-200">Inactive</Badge>}
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">{employee.email || 'No email'}{employee.phone ? ` · ${employee.phone}` : ''}</p>
+                  <p className="text-sm text-gray-500">Rate: {employee.hourly_rate ? `$${Number(employee.hourly_rate).toFixed(2)}/hr` : 'Not set'}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 justify-end">
+                  <Button variant="outline" size="sm" onClick={() => openEditEmployee(employee)} data-testid={`edit-employee-${employee.id}`}><Edit2 className="h-4 w-4 mr-1" /> Edit</Button>
+                  <Button variant="outline" size="sm" onClick={() => { setPinResetEmployee(employee); setNewPin(''); }} data-testid={`reset-pin-${employee.id}`}><KeyRound className="h-4 w-4 mr-1" /> Reset PIN</Button>
+                  <Button variant="outline" size="sm" onClick={() => handleToggleActive(employee)} data-testid={`toggle-employee-${employee.id}`}>{employee.is_active ? 'Deactivate' : 'Reactivate'}</Button>
+                  <Button variant="outline" size="sm" className="text-red-600" onClick={() => handleDeleteEmployee(employee)} data-testid={`delete-employee-${employee.id}`}><Trash2 className="h-4 w-4 mr-1" /> Delete</Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="sm:max-w-[460px]">
+          <DialogHeader><DialogTitle>Edit Employee</DialogTitle></DialogHeader>
+          <form onSubmit={handleSaveEmployee} className="space-y-4">
+            <div className="space-y-2"><Label>Name</Label><Input value={employeeForm.name} onChange={(e) => setEmployeeForm((prev) => ({ ...prev, name: e.target.value }))} data-testid="edit-employee-name-input" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Email</Label><Input value={employeeForm.email} onChange={(e) => setEmployeeForm((prev) => ({ ...prev, email: e.target.value }))} data-testid="edit-employee-email-input" /></div>
+              <div className="space-y-2"><Label>Phone</Label><Input value={employeeForm.phone} onChange={(e) => setEmployeeForm((prev) => ({ ...prev, phone: e.target.value }))} data-testid="edit-employee-phone-input" /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Hourly Rate</Label><Input type="number" step="0.01" value={employeeForm.hourly_rate} onChange={(e) => setEmployeeForm((prev) => ({ ...prev, hourly_rate: e.target.value }))} placeholder="0.00" data-testid="edit-employee-rate-input" /></div>
+              <div className="space-y-2"><Label>Role</Label><Select value={employeeForm.role} onValueChange={(value) => setEmployeeForm((prev) => ({ ...prev, role: value }))}><SelectTrigger data-testid="edit-employee-role-select"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="staff">Staff</SelectItem><SelectItem value="admin">Admin</SelectItem></SelectContent></Select></div>
+            </div>
+            <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setShowEditDialog(false)}>Cancel</Button><Button type="submit" data-testid="edit-employee-submit-btn">Save</Button></div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!pinResetEmployee} onOpenChange={() => setPinResetEmployee(null)}>
+        <DialogContent className="sm:max-w-[360px]">
+          <DialogHeader><DialogTitle>Reset Employee PIN</DialogTitle></DialogHeader>
+          <form onSubmit={handleResetPin} className="space-y-4">
+            <div className="space-y-2"><Label>New PIN (4-6 digits)</Label><Input value={newPin} onChange={(e) => setNewPin(e.target.value)} maxLength={6} data-testid="employee-pin-reset-input" /></div>
+            <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setPinResetEmployee(null)}>Cancel</Button><Button type="submit" data-testid="employee-pin-reset-submit">Save PIN</Button></div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

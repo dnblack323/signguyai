@@ -39,6 +39,14 @@ export default function EmployeePortalTasks() {
   
   const employeeName = localStorage.getItem('employee_name') || 'Employee';
   const token = localStorage.getItem('employee_token');
+  const portalConfig = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('employee_portal_config') || '{}');
+    } catch {
+      return {};
+    }
+  })();
+  const canViewTasks = portalConfig?.can_view_tasks !== false;
 
   useEffect(() => {
     if (!token) {
@@ -81,9 +89,25 @@ export default function EmployeePortalTasks() {
 
   if (loading) {
     return (
-      <EmployeePortalLayout employeeName={employeeName}>
+      <EmployeePortalLayout employeeName={employeeName} portalConfig={portalConfig}>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--accent)' }}></div>
+        </div>
+      </EmployeePortalLayout>
+    );
+  }
+
+  if (!canViewTasks) {
+    return (
+      <EmployeePortalLayout employeeName={employeeName} portalConfig={portalConfig}>
+        <div className="space-y-6 pb-24">
+          <Card style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)' }}>
+            <CardContent className="p-8 text-center">
+              <AlertTriangle className="h-10 w-10 mx-auto mb-3 text-amber-500" />
+              <p className="font-medium" style={{ color: 'var(--text)' }}>Tasks are hidden</p>
+              <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>Your admin has disabled task access for this portal account.</p>
+            </CardContent>
+          </Card>
         </div>
       </EmployeePortalLayout>
     );
@@ -93,7 +117,7 @@ export default function EmployeePortalTasks() {
   const completedTasks = tasks.filter(t => t.is_complete);
 
   return (
-    <EmployeePortalLayout employeeName={employeeName}>
+    <EmployeePortalLayout employeeName={employeeName} portalConfig={portalConfig}>
       <div className="space-y-6 pb-24">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold font-heading" style={{ color: 'var(--text)' }}>

@@ -106,6 +106,18 @@ class TimeLogEntry(BaseModel):
     timestamp: str
 
 
+DEFAULT_PORTAL_SETTINGS = {
+    "can_view_tasks": True,
+    "can_view_schedule": True,
+    "can_view_pay_stubs": True,
+    "can_view_time_clock": True,
+    "can_edit_profile": True,
+    "can_see_job_details": False,
+    "can_see_customer_info": False,
+    "can_see_pricing": False,
+}
+
+
 # ============== HELPER FUNCTIONS ==============
 
 def create_employee_token(employee_id: str, tenant_id: str) -> str:
@@ -171,6 +183,18 @@ async def get_assigned_job_ids(employee: dict) -> List[str]:
         if timeline.get("job_id"):
             job_ids.add(timeline["job_id"])
     return list(job_ids)
+
+
+async def get_employee_portal_settings(tenant_id: str) -> dict:
+    tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0, "employee_portal_settings": 1})
+    return {**DEFAULT_PORTAL_SETTINGS, **((tenant or {}).get("employee_portal_settings") or {})}
+
+
+async def require_portal_setting(tenant_id: str, setting_key: str):
+    settings = await get_employee_portal_settings(tenant_id)
+    if not settings.get(setting_key, False):
+        raise HTTPException(status_code=403, detail="This section is disabled by your admin")
+    return settings
 
 
 # ============== AUTH ROUTES ==============
@@ -247,6 +271,14 @@ async def get_employee_profile(authorization: str = Header(default="")):
     )
 
 
+@router.get("/config")
+async def get_employee_portal_config(authorization: str = Header(default="")):
+    token = extract_token(authorization)
+    employee = await get_current_employee(token)
+    settings = await get_employee_portal_settings(employee["tenant_id"])
+    return settings
+
+
 class ProfileImageUpdate(BaseModel):
     profile_image: str  # Base64 encoded image or URL
 
@@ -259,6 +291,7 @@ async def update_profile_image(
     """Update employee's profile image"""
     token = extract_token(authorization)
     employee = await get_current_employee(token)
+    await require_portal_setting(employee["tenant_id"], "can_edit_profile")
     
     # Update the employee's profile image
     await db.employees.update_one(
@@ -276,6 +309,7 @@ async def get_time_clock_status(authorization: str = Header(default="")):
     """Get current time clock status for employee"""
     token = extract_token(authorization)
     employee = await get_current_employee(token)
+    await require_portal_setting(employee["tenant_id"], "can_view_time_clock")
     
     today = datetime.now(timezone.utc).date().isoformat()
     status = await get_shared_timeclock_status(db, employee["tenant_id"], employee["id"])
@@ -298,6 +332,7 @@ async def punch_time_clock(action: str, authorization: str = Header(default=""))
     """Punch time clock (start_work, break_start, break_end, end_work)"""
     token = extract_token(authorization)
     employee = await get_current_employee(token)
+    await require_portal_setting(employee["tenant_id"], "can_view_time_clock")
     
     valid_actions = ["start_work", "break_start", "break_end", "end_work"]
     if action not in valid_actions:
@@ -318,6 +353,7 @@ async def get_time_clock_history(
     """Get time clock history for the past N days"""
     token = extract_token(authorization)
     employee = await get_current_employee(token)
+    await require_portal_setting(employee["tenant_id"], "can_view_time_clock")
     
     start_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
     
@@ -336,6 +372,7 @@ async def get_pay_summary(authorization: str = Header(default="")):
     """Get employee pay summary"""
     token = extract_token(authorization)
     employee = await get_current_employee(token)
+    await require_portal_setting(employee["tenant_id"], "can_view_pay_stubs")
     
     hourly_rate = employee.get("hourly_rate", 0)
     today = datetime.now(timezone.utc)
@@ -389,6 +426,7 @@ async def get_employee_tasks(
     """Get tasks assigned to employee"""
     token = extract_token(authorization)
     employee = await get_current_employee(token)
+    await require_portal_setting(employee["tenant_id"], "can_view_tasks")
     
     query = {"assigned_to": employee["id"]}
     if not include_completed:
@@ -422,6 +460,9 @@ async def get_assigned_jobs(authorization: str = Header(default="")):
     """Get jobs assigned to the current employee."""
     token = extract_token(authorization)
     employee = await get_current_employee(token)
+    settings = await get_employee_portal_settings(employee["tenant_id"])
+    if not settings.get("can_view_tasks", True) and not settings.get("can_see_job_details", False):
+        raise HTTPException(status_code=403, detail="Assigned jobs are hidden by your admin")
     job_ids = await get_assigned_job_ids(employee)
 
     jobs = await db.jobs.find(
@@ -448,7 +489,7 @@ async def get_assigned_jobs(authorization: str = Header(default="")):
             id=job["id"],
             job_number=job["id"][:8].upper(),
             job_name=job.get("name", "Untitled Job"),
-            customer_name=customer.get("name", "Unknown") if customer else "Unknown",
+            customer_name=(customer.get("name", "Unknown") if customer else "Unknown") if settings.get("can_see_customer_info", False) else "Assigned Customer",
             job_type=job.get("status", "job"),
             current_production_stage=current_stage,
             priority="urgent" if job.get("due_date") and job.get("due_date") <= datetime.now(timezone.utc).date().isoformat() else "normal",
@@ -461,6 +502,7 @@ async def get_assigned_jobs(authorization: str = Header(default="")):
 async def get_employee_job_detail(job_id: str, authorization: str = Header(default="")):
     token = extract_token(authorization)
     employee = await get_current_employee(token)
+    settings = await require_portal_setting(employee["tenant_id"], "can_see_job_details")
     job_ids = await get_assigned_job_ids(employee)
     if job_id not in job_ids:
         raise HTTPException(status_code=404, detail="Assigned job not found")
@@ -471,7 +513,7 @@ async def get_employee_job_detail(job_id: str, authorization: str = Header(defau
     timelines = await db.production_timelines.find({"job_id": job_id, "tenant_id": employee["tenant_id"]}, {"_id": 0}).to_list(200)
     return {
         "job": job,
-        "customer_name": customer.get("name", "Unknown") if customer else "Unknown",
+        "customer_name": (customer.get("name", "Unknown") if customer else "Unknown") if settings.get("can_see_customer_info", False) else "Assigned Customer",
         "job_items": job_items,
         "timelines": timelines,
     }
@@ -481,6 +523,7 @@ async def get_employee_job_detail(job_id: str, authorization: str = Header(defau
 async def get_employee_work_summary(authorization: str = Header(default="")):
     token = extract_token(authorization)
     employee = await get_current_employee(token)
+    await require_portal_setting(employee["tenant_id"], "can_view_time_clock")
     job_ids = await get_assigned_job_ids(employee)
     today = datetime.now(timezone.utc).date().isoformat()
     week_start = (datetime.now(timezone.utc) - timedelta(days=datetime.now(timezone.utc).weekday())).date().isoformat()
@@ -515,6 +558,7 @@ async def act_on_stage(
 ):
     token = extract_token(authorization)
     employee = await get_current_employee(token)
+    await require_portal_setting(employee["tenant_id"], "can_see_job_details")
     job_ids = await get_assigned_job_ids(employee)
     if job_id not in job_ids:
         raise HTTPException(status_code=404, detail="Assigned job not found")

@@ -75,6 +75,24 @@ export const Permission = {
   SETTINGS_EDIT: 'settings:edit',
 };
 
+const PERMISSION_ALIASES = {
+  'timeclock:view_own': ['time:own'],
+  'timeclock:view_all': ['time:view_all'],
+  'timeclock:clock_in': ['time:own', 'time:manage'],
+  'timeclock:edit': ['time:manage'],
+  'payroll:edit': ['payroll:manage'],
+  'financials:create': ['financials:manage'],
+  'financials:edit': ['financials:manage'],
+  'financials:delete': ['financials:manage'],
+  'settings:edit': ['settings:manage'],
+  'users:create': ['users:manage'],
+  'users:edit': ['users:manage'],
+  'users:delete': ['users:manage'],
+  'users:manage_roles': ['users:manage'],
+  'webstores:edit': ['webstores:manage'],
+  'webstores:delete': ['webstores:manage'],
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [permissions, setPermissions] = useState([]);
@@ -234,7 +252,9 @@ export function AuthProvider({ children }) {
   const hasPermission = (permission) => {
     // Owner has all permissions
     if (user?.role === UserRole.OWNER || user?.role === 'owner') return true;
-    return permissions.includes(permission);
+    if (permissions.includes(permission)) return true;
+    const aliases = PERMISSION_ALIASES[permission] || [];
+    return aliases.some((alias) => permissions.includes(alias));
   };
 
   // Check if user has any of the specified permissions

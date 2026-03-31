@@ -14,14 +14,26 @@ import { toast } from 'sonner';
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 // Employee Portal Layout wrapper
-const EmployeePortalLayout = ({ children, employeeName }) => {
+const EmployeePortalLayout = ({ children, employeeName, portalConfig }) => {
   const navigate = useNavigate();
+  const storedConfig = portalConfig || (() => {
+    try {
+      return JSON.parse(localStorage.getItem('employee_portal_config') || '{}');
+    } catch {
+      return {};
+    }
+  })();
+  const canViewTimeClock = storedConfig?.can_view_time_clock !== false;
+  const canViewPay = storedConfig?.can_view_pay_stubs !== false;
+  const canViewTasks = storedConfig?.can_view_tasks !== false;
+  const canEditProfile = storedConfig?.can_edit_profile !== false;
 
   const handleLogout = () => {
     localStorage.removeItem('employee_token');
     localStorage.removeItem('employee_id');
     localStorage.removeItem('employee_name');
     localStorage.removeItem('employee_tenant_id');
+    localStorage.removeItem('employee_portal_config');
     navigate('/employee-portal/login');
   };
 
@@ -72,22 +84,22 @@ const EmployeePortalLayout = ({ children, employeeName }) => {
         style={{ backgroundColor: 'var(--sidebar-bg)', borderColor: 'var(--border-dark)' }}
       >
         <div className="max-w-4xl mx-auto px-4 py-2 flex items-center justify-around">
-          <Link to="/employee-portal" className="flex flex-col items-center py-2 px-4">
+          {canViewTimeClock && <Link to="/employee-portal" className="flex flex-col items-center py-2 px-4">
             <Clock className="h-5 w-5" style={{ color: 'var(--accent)' }} />
             <span className="text-xs mt-1" style={{ color: 'var(--text-on-dark)' }}>Clock</span>
-          </Link>
-          <Link to="/employee-portal/pay" className="flex flex-col items-center py-2 px-4">
+          </Link>}
+          {canViewPay && <Link to="/employee-portal/pay" className="flex flex-col items-center py-2 px-4">
             <DollarSign className="h-5 w-5" style={{ color: 'var(--text-muted-on-dark)' }} />
             <span className="text-xs mt-1" style={{ color: 'var(--text-muted-on-dark)' }}>My Pay</span>
-          </Link>
-          <Link to="/employee-portal/tasks" className="flex flex-col items-center py-2 px-4">
+          </Link>}
+          {canViewTasks && <Link to="/employee-portal/tasks" className="flex flex-col items-center py-2 px-4">
             <ListTodo className="h-5 w-5" style={{ color: 'var(--text-muted-on-dark)' }} />
             <span className="text-xs mt-1" style={{ color: 'var(--text-muted-on-dark)' }}>Tasks</span>
-          </Link>
-          <Link to="/employee-portal/profile" className="flex flex-col items-center py-2 px-4">
+          </Link>}
+          {canEditProfile && <Link to="/employee-portal/profile" className="flex flex-col items-center py-2 px-4">
             <User className="h-5 w-5" style={{ color: 'var(--text-muted-on-dark)' }} />
             <span className="text-xs mt-1" style={{ color: 'var(--text-muted-on-dark)' }}>Profile</span>
-          </Link>
+          </Link>}
         </div>
       </nav>
     </div>
@@ -115,6 +127,7 @@ export default function EmployeePortalDashboard() {
   const [punching, setPunching] = useState(false);
   const [assignedJobs, setAssignedJobs] = useState([]);
   const [workSummary, setWorkSummary] = useState(null);
+  const [portalConfig, setPortalConfig] = useState(null);
   
   const employeeName = localStorage.getItem('employee_name') || 'Employee';
   const token = localStorage.getItem('employee_token');
@@ -129,20 +142,25 @@ export default function EmployeePortalDashboard() {
 
   const loadClockStatus = async () => {
     try {
-      const [statusRes, jobsRes, summaryRes] = await Promise.all([
+      const [statusRes, jobsRes, summaryRes, configRes] = await Promise.all([
         axios.get(`${API_URL}/api/employee-portal/time-clock/status`, {
           headers: { Authorization: `Bearer ${token}` }
-        }),
+        }).catch(() => ({ data: null })),
         axios.get(`${API_URL}/api/employee-portal/jobs`, {
           headers: { Authorization: `Bearer ${token}` }
-        }),
+        }).catch(() => ({ data: [] })),
         axios.get(`${API_URL}/api/employee-portal/work-summary`, {
           headers: { Authorization: `Bearer ${token}` }
-        })
+        }).catch(() => ({ data: null })),
+        axios.get(`${API_URL}/api/employee-portal/config`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(() => ({ data: {} }))
       ]);
       setClockStatus(statusRes.data);
       setAssignedJobs(jobsRes.data || []);
       setWorkSummary(summaryRes.data);
+      setPortalConfig(configRes.data || {});
+      localStorage.setItem('employee_portal_config', JSON.stringify(configRes.data || {}));
     } catch (err) {
       console.error('Failed to load clock status:', err);
       if (err.response?.status === 401) {
@@ -181,9 +199,13 @@ export default function EmployeePortalDashboard() {
   }
 
   const { is_clocked_in, current_status, clocked_in_at, total_hours_today, break_time_today } = clockStatus || {};
+  const canViewTimeClock = portalConfig?.can_view_time_clock !== false;
+  const canViewPay = portalConfig?.can_view_pay_stubs !== false;
+  const canViewTasks = portalConfig?.can_view_tasks !== false;
+  const canSeeJobDetails = portalConfig?.can_see_job_details === true;
 
   return (
-    <EmployeePortalLayout employeeName={employeeName}>
+    <EmployeePortalLayout employeeName={employeeName} portalConfig={portalConfig}>
       <div className="space-y-6 pb-24">
         {/* Greeting */}
         <div className="text-center">
@@ -196,6 +218,7 @@ export default function EmployeePortalDashboard() {
         </div>
 
         {/* Clock Status Card */}
+        {canViewTimeClock && (
         <Card style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)' }}>
           <CardContent className="pt-6">
             <div className="text-center mb-6">
@@ -312,10 +335,11 @@ export default function EmployeePortalDashboard() {
             </div>
           </CardContent>
         </Card>
+        )}
 
         {/* Quick Links */}
         <div className="grid grid-cols-2 gap-4">
-          <Link to="/employee-portal/pay">
+          {canViewPay && <Link to="/employee-portal/pay">
             <Card 
               className="cursor-pointer hover:shadow-md transition-shadow"
               style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)' }}
@@ -330,9 +354,9 @@ export default function EmployeePortalDashboard() {
                 <ChevronRight className="h-5 w-5" style={{ color: 'var(--text-muted)' }} />
               </CardContent>
             </Card>
-          </Link>
+          </Link>}
           
-          <Link to="/employee-portal/tasks">
+          {canViewTasks && <Link to="/employee-portal/tasks">
             <Card 
               className="cursor-pointer hover:shadow-md transition-shadow"
               style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)' }}
@@ -347,10 +371,10 @@ export default function EmployeePortalDashboard() {
                 <ChevronRight className="h-5 w-5" style={{ color: 'var(--text-muted)' }} />
               </CardContent>
             </Card>
-          </Link>
+          </Link>}
         </div>
 
-        <Card style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)' }} data-testid="employee-work-summary-card">
+        {canViewTimeClock && <Card style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)' }} data-testid="employee-work-summary-card">
           <CardHeader>
             <CardTitle style={{ color: 'var(--text)' }}>Personal Work Summary</CardTitle>
           </CardHeader>
@@ -375,8 +399,9 @@ export default function EmployeePortalDashboard() {
             </div>
           </CardContent>
         </Card>
+        }
 
-        <Card style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)' }} data-testid="employee-assigned-jobs-card">
+        {canSeeJobDetails && <Card style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)' }} data-testid="employee-assigned-jobs-card">
           <CardHeader>
             <CardTitle style={{ color: 'var(--text)' }}>My Assigned Jobs</CardTitle>
           </CardHeader>
@@ -403,6 +428,7 @@ export default function EmployeePortalDashboard() {
             ))}
           </CardContent>
         </Card>
+        }
       </div>
     </EmployeePortalLayout>
   );

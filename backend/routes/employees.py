@@ -54,6 +54,10 @@ class EmployeeUpdate(BaseModel):
     pin: Optional[str] = None
     profile_image: Optional[str] = None
 
+
+class EmployeePinReset(BaseModel):
+    pin: str
+
 class Employee(EmployeeBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -300,6 +304,46 @@ async def update_employee(
         {"_id": 0}
     )
     return employee
+
+
+@employees_router.delete("/{employee_id}")
+async def delete_employee(
+    employee_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    _require_payroll_edit_access(current_user)
+    employee = await db.employees.find_one({"id": employee_id, "tenant_id": current_user.tenant_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    await db.timelogs.delete_many({"employee_id": employee_id})
+    await db.timeclock_shifts.delete_many({"employee_id": employee_id, "tenant_id": current_user.tenant_id})
+    await db.payroll_hours.delete_many({"employee_id": employee_id, "tenant_id": current_user.tenant_id})
+    await db.payroll_transactions.delete_many({"employee_id": employee_id})
+    await db.employee_schedules.delete_many({"employee_id": employee_id, "tenant_id": current_user.tenant_id})
+    await db.production_tasks.update_many({"assigned_to": employee_id, "tenant_id": current_user.tenant_id}, {"$set": {"assigned_to": None}})
+    await db.job_tickets.update_many({"assigned_user_id": employee_id, "tenant_id": current_user.tenant_id}, {"$set": {"assigned_user_id": None}})
+    await db.tasks.update_many({"assigned_to": employee_id, "tenant_id": current_user.tenant_id}, {"$set": {"assigned_to": None}})
+    await db.employees.delete_one({"id": employee_id, "tenant_id": current_user.tenant_id})
+    return {"message": "Employee deleted"}
+
+
+@employees_router.post("/{employee_id}/reset-pin")
+async def reset_employee_pin(
+    employee_id: str,
+    input: EmployeePinReset,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    _require_payroll_edit_access(current_user)
+    if not input.pin or len(input.pin) < 4 or len(input.pin) > 6 or not input.pin.isdigit():
+        raise HTTPException(status_code=400, detail="PIN must be 4-6 digits")
+    result = await db.employees.update_one(
+        {"id": employee_id, "tenant_id": current_user.tenant_id},
+        {"$set": {"pin": input.pin}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    return {"message": "PIN updated"}
 
 
 # ============== TIME CLOCK ROUTES ==============

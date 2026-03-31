@@ -30,6 +30,14 @@ export default function EmployeePortalProfile() {
   
   const employeeName = localStorage.getItem('employee_name') || 'Employee';
   const token = localStorage.getItem('employee_token');
+  const portalConfig = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('employee_portal_config') || '{}');
+    } catch {
+      return {};
+    }
+  })();
+  const canEditProfile = portalConfig?.can_edit_profile !== false;
 
   useEffect(() => {
     if (!token) {
@@ -138,7 +146,7 @@ export default function EmployeePortalProfile() {
 
   if (loading) {
     return (
-      <EmployeePortalLayout employeeName={employeeName}>
+      <EmployeePortalLayout employeeName={employeeName} portalConfig={portalConfig}>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--accent)' }}></div>
         </div>
@@ -147,7 +155,7 @@ export default function EmployeePortalProfile() {
   }
 
   return (
-    <EmployeePortalLayout employeeName={employeeName}>
+    <EmployeePortalLayout employeeName={employeeName} portalConfig={portalConfig}>
       <div className="space-y-6 pb-24">
         <h2 className="text-2xl font-bold font-heading" style={{ color: 'var(--text)' }}>
           Profile
@@ -181,15 +189,15 @@ export default function EmployeePortalProfile() {
                   className="hidden"
                 />
                 <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
+                  onClick={() => canEditProfile && fileInputRef.current?.click()}
+                  disabled={uploading || !canEditProfile}
                   className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-colors"
                   style={{ 
                     backgroundColor: 'var(--accent)', 
                     color: 'white',
                     border: '2px solid var(--surface)'
                   }}
-                  title="Change photo"
+                  title={canEditProfile ? 'Change photo' : 'Profile editing disabled'}
                 >
                   {uploading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -235,6 +243,12 @@ export default function EmployeePortalProfile() {
         </Card>
 
         {/* Recent Time History */}
+        {!canEditProfile && (
+          <div className="p-3 rounded-lg text-sm text-center" style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text-muted)' }}>
+            Profile editing is disabled by your admin.
+          </div>
+        )}
+
         <Card style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)' }}>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2" style={{ color: 'var(--text)' }}>
