@@ -19,6 +19,50 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
+### Session: March 31, 2026 (Unified Productivity Layer + Calendar Phase 1)
+- **Audit / Reuse Pass (DONE):**
+  - Audited and reused existing productivity-related sources instead of creating another siloed system
+  - Reused/mapped: `/api/tasks`, `orders`, legacy `jobs`, `production_tasks`, `employee_schedules`, `appointments`, and dashboard schedule concepts
+  - Promoted Productivity to a top-level navigation area with submenu links for Dashboard / Calendar / Kanban Board / Task List
+- **Shared Productivity Data Layer (DONE):**
+  - Added backend model: `/app/backend/models/productivity.py`
+  - Added shared normalization/query service: `/app/backend/services/productivity_query.py`
+  - Added unified endpoints:
+    - `GET /api/productivity/items`
+    - `GET /api/productivity/summary`
+    - `GET /api/productivity/calendar-range`
+    - `GET /api/productivity/board`
+  - All views now consume one shared record shape with unified filtering for:
+    - date range
+    - assigned employee
+    - status
+    - priority
+    - item type/source type
+    - completed/open
+    - search
+- **Calendar Phase 1 (DONE):**
+  - Rebuilt Productivity page around unified layer
+  - Month is now the default calendar view
+  - Added large readable month cells with visible item pills and `+N more` behavior
+  - Added Month / Week / Day view switching
+  - Added Today / Previous / Next controls
+  - Clicking a day opens a day detail dialog using unified records
+  - Calendar now runs from the unified productivity API rather than isolated task-only data
+- **Unified Productivity Views (Initial Connected Versions) (DONE):**
+  - Dashboard view uses unified summary/widgets from shared layer
+  - Task List view uses unified item records
+  - Kanban Board view uses unified item records grouped by shared `board_column`
+  - Shared item detail dialog added for cross-view inspection
+- **Still intentionally left for later merge/polish:**
+  - Replace older standalone Dashboard widgets with unified productivity queries
+  - Deeper write-back/edit actions from unified views (drag/drop persistence, inline edits)
+  - Full add-item flow for reminders/follow-ups/appointments from Productivity UI
+  - Final consolidation of older standalone production board/task-specific screens
+- **Testing:**
+  - Self-tested unified endpoints and new Productivity UI
+  - Screenshot smoke test passed with top-level Productivity nav + calendar layout
+  - Testing agent iteration_79 passed (backend 23/23, frontend 100%)
+
 ### Session: March 31, 2026 (Signature & Drawing System)
 - **Signature System (DONE):**
   - Added tenant-level `signature_settings` feature toggle in Company Settings
