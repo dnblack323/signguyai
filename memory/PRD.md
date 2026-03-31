@@ -38,11 +38,17 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
   - Added payroll endpoint for saved shift retrieval/editing: `/api/payroll/timeclock-shifts`
   - Admin can now edit saved timeclock shifts from Payroll Time Sheets and Time Entries views
   - Payroll Time Entries tab now shows combined entries from manual hours + time clock shifts
+  - Added admin transaction edit/delete support for payroll advances, earnings, and payment records
+  - Enforced payroll mutations as admin-only server-side
+  - Switched admin-facing payroll schedule/time-entry displays to 12-hour AM/PM formatting
+  - Fixed sticky numeric `0` behavior on employee hourly-rate input in Time Clock admin flow
 - **Employee Portal Pay Sync (DONE):**
   - Employee pay summary now reflects connected hours/earnings/advances instead of isolated legacy data pulls
 - **Testing:**
   - Self-tested admin timeclock flow, payroll summary rollup, timesheet rollup, shift editing, employee portal pay summary, and racing AI generation UX
   - Testing agent iteration_81 passed backend 24/24 and frontend 100%
+  - Follow-up admin cleanup pass iteration_82 passed frontend 100% and backend 14/15 with the only skipped case due no saved shift existing in that agent-created fixture
+  - Temporary payroll/timeclock test employees were cleaned back out of production data after verification
 
 ### Session: March 31, 2026 (Feature Catalog Refresh)
 - Updated internal and public-facing feature catalog surfaces to reflect the current product state
