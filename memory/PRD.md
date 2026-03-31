@@ -19,6 +19,31 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
+### Session: March 31, 2026 (AI Racing Tool + Timeclock / Payroll Integration Fixes)
+- **Racing Number AI Tool (DONE):**
+  - Fixed the apparent "black screen" on Race Number Designer generation
+  - Root cause: AI credit confirmation modal stayed open during long-running image generation, leaving the page dimmed/blocked
+  - Updated credit-confirmation flow to close the modal immediately before generation begins, while keeping generation progress visible inline
+- **Timeclock / Payroll / Timesheet Data Sync (DONE):**
+  - Added shared backend service: `/app/backend/services/timeclock_service.py`
+  - Time clock punches now persist both raw `timelogs` and normalized `timeclock_shifts`
+  - Added historical backfill from existing raw action logs into saved shift records so previous days are no longer lost from payroll views
+  - Fixed payroll summaries to stop using nonexistent `clock_in` / `clock_out` fields on raw timelogs
+  - Payroll now calculates from connected sources:
+    - time clock shifts
+    - manual payroll hours
+    - job timer entries
+    - payroll transactions (advances / payments)
+- **Admin Editing Improvements (DONE):**
+  - Added payroll endpoint for saved shift retrieval/editing: `/api/payroll/timeclock-shifts`
+  - Admin can now edit saved timeclock shifts from Payroll Time Sheets and Time Entries views
+  - Payroll Time Entries tab now shows combined entries from manual hours + time clock shifts
+- **Employee Portal Pay Sync (DONE):**
+  - Employee pay summary now reflects connected hours/earnings/advances instead of isolated legacy data pulls
+- **Testing:**
+  - Self-tested admin timeclock flow, payroll summary rollup, timesheet rollup, shift editing, employee portal pay summary, and racing AI generation UX
+  - Testing agent iteration_81 passed backend 24/24 and frontend 100%
+
 ### Session: March 31, 2026 (Feature Catalog Refresh)
 - Updated internal and public-facing feature catalog surfaces to reflect the current product state
 - Refreshed marketing/pricing copy to include:
