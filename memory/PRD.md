@@ -19,6 +19,14 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
+### Session: March 31, 2026 (Feature Catalog Refresh)
+- Updated internal and public-facing feature catalog surfaces to reflect the current product state
+- Refreshed marketing/pricing copy to include:
+  - unified productivity system (Dashboard / Calendar / Kanban / Task List)
+  - signatures, drawings, and image markup
+  - current order/job workflow language
+- Refreshed in-app Productivity documentation to match the unified Phase 1–2 implementation
+
 ### Session: March 31, 2026 (Unified Productivity Phase 2 — Write-Back + Interactive Views)
 - **Kanban Drag/Drop Persistence (DONE):**
   - Added unified PATCH endpoint: `PATCH /api/productivity/items/{item_uid}`

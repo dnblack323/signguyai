@@ -346,7 +346,7 @@ def get_founders_edition_config() -> dict:
         "product_line": "founders",
         "display_name": "Founders Edition",
         "tagline": "Only 100 Spots Available",
-        "description": "Early adopter exclusive - all features, unlimited access, 150 AI credits/month",
+        "description": "Early adopter exclusive - all features, unified productivity, signatures/drawings, and 150 AI credits/month",
         
         # Pricing
         "pricing": {

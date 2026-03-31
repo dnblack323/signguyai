@@ -51,6 +51,7 @@ export default function FoundersEditionPricing() {
     { icon: Store, title: 'Unlimited Webstores', desc: 'B2B, Fundraiser, Creator stores' },
     { icon: Sparkles, title: '150 AI Credits/Month', desc: 'Generate content, images, more' },
     { icon: Shield, title: 'All Features Unlocked', desc: 'No restrictions, ever' },
+    { icon: FileText, title: 'Signatures & Drawings', desc: 'Approvals, sketches, markup' },
     { icon: Cpu, title: 'AI Business Assistant', desc: 'Data-aware queries' },
     { icon: Clock, title: 'Time Clock & Payroll', desc: 'Full workforce management' },
   ];
@@ -58,9 +59,12 @@ export default function FoundersEditionPricing() {
   const includedFeatures = [
     'Customer Management',
     'Orders & Job Tickets',
+    'Unified Productivity Dashboard / Calendar / Kanban / Task List',
     'Invoicing with Online Payments',
     'Customer Portal',
     'Artwork Approvals',
+    'Customer Signature Requests & Approvals',
+    'Order / Item Drawings & Image Markup',
     'Time Clock & Payroll',
     'Task Management',
     'AI Image Generation',

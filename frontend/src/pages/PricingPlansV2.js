@@ -14,12 +14,14 @@ import { toast } from 'sonner';
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const FEATURES = [
-  'Full Shop Management (CRM, Jobs, Invoices)',
+  'Full Shop Management (CRM, Orders, Job Tickets, Invoices)',
   'Employee Payroll & Time Tracking',
   'Customer & Employee Portals',
   '28+ AI Tools (Design, Business, Marketing)',
   'AI Business Assistant with Voice',
   'Unlimited Webstores (B2B, Fundraiser, Creator)',
+  'Unified Productivity (Dashboard, Calendar, Kanban, Task List)',
+  'Customer Signatures + Drawings + Image Markup',
   'Production Workflow & Timeline',
   'Document Library & Questionnaires',
   'Artwork Proofs & Approvals',
