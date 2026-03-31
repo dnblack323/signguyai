@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Calculator, DollarSign, Loader2, AlertTriangle } from 'lucide-react';
+import { Calculator, Loader2, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import axios from 'axios';
@@ -11,10 +11,33 @@ const hdr = () => ({ Authorization: `Bearer ${localStorage.getItem('auth_token')
  * Live pricing preview for new order form — calls pricing API directly
  * without requiring a saved ticket ID. Shows real-time estimate as fields change.
  */
-export default function LivePricingPreview({ category, specs, quantity }) {
+const getEffectiveQuantity = (category, specs, quantity) => {
+  if (category === 'apparel') {
+    const sizeKeys = ['size_xs', 'size_s', 'size_m', 'size_l', 'size_xl', 'size_2xl', 'size_3xl', 'size_4xl', 'size_5xl'];
+    const total = sizeKeys.reduce((sum, key) => sum + (parseInt(specs?.[key]) || 0), 0);
+    if (total > 0) return total;
+  }
+  return quantity || 1;
+};
+
+const normalizeCoverageType = (value) => {
+  const raw = String(value || '').toLowerCase();
+  if (raw === '25') return 'spot';
+  if (raw === '50') return 'half';
+  if (raw === '75') return 'partial';
+  if (raw === '100' || raw === 'full_wrap') return 'full';
+  if (raw === 'partial_50') return 'half';
+  if (raw === 'partial_75') return 'partial';
+  if (raw === 'spot_graphics') return 'spot';
+  if (raw === 'custom') return 'partial';
+  return raw || undefined;
+};
+
+export default function LivePricingPreview({ category, specs, quantity, onPriceChange }) {
   const [calc, setCalc] = useState(null);
   const [loading, setLoading] = useState(false);
   const debounceRef = useRef(null);
+  const lastSentPrice = useRef(null);
 
   // Parse dimensions from specs
   const pricingInput = useMemo(() => {
@@ -32,6 +55,9 @@ export default function LivePricingPreview({ category, specs, quantity }) {
       apparel: 'apparel', promo_misc: 'promotional', custom: 'custom',
     };
 
+    // Only set vinyl_type for cut_vinyl and vehicle_wrap categories
+    const isVinylCategory = ['cut_vinyl', 'vehicle_wrap'].includes(category);
+    
     return {
       category: CATEGORY_MAP[category] || 'custom',
       width_inches: wIn || null,
@@ -39,14 +65,14 @@ export default function LivePricingPreview({ category, specs, quantity }) {
       double_sided: doubleSided,
       laminate: hasLam,
       laminate_type: specs?.lamination,
-      vinyl_type: specs?.vinyl_type || specs?.material,
+      vinyl_type: isVinylCategory ? (specs?.vinyl_type || null) : null,
       substrate_type: specs?.substrate,
       print_material: specs?.material,
       apparel_type: specs?.garment_type,
       transfer_type: specs?.decoration_method,
       num_print_locations: (specs?.print_locations || []).length || 1,
       vehicle_type: specs?.vehicle_type,
-      coverage_type: specs?.coverage_type,
+      coverage_type: normalizeCoverageType(specs?.coverage_type),
       // Finishing options that affect price
       grommets: specs?.grommets === true || (specs?.grommets && specs.grommets !== 'none'),
       hemming: specs?.hemming === true || (specs?.hems && specs.hems !== 'none'),
@@ -60,11 +86,27 @@ export default function LivePricingPreview({ category, specs, quantity }) {
     };
   }, [category, JSON.stringify(specs)]);
 
+  const effectiveQuantity = useMemo(() => getEffectiveQuantity(category, specs, quantity), [category, specs, quantity]);
+
   useEffect(() => {
-    if (!category || !pricingInput.category) return;
+    if (!category || !pricingInput.category) {
+      setCalc(null);
+      if (onPriceChange && lastSentPrice.current !== 0) {
+        lastSentPrice.current = 0;
+        onPriceChange(0, null);
+      }
+      return;
+    }
     // Need at least some input to calculate
     const hasInput = pricingInput.width_inches || pricingInput.apparel_type || pricingInput.vehicle_type || pricingInput.substrate_type || pricingInput.vinyl_type;
-    if (!hasInput) return;
+    if (!hasInput) {
+      setCalc(null);
+      if (onPriceChange && lastSentPrice.current !== 0) {
+        lastSentPrice.current = 0;
+        onPriceChange(0, null);
+      }
+      return;
+    }
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
@@ -73,16 +115,24 @@ export default function LivePricingPreview({ category, specs, quantity }) {
         const res = await axios.post(`${API}/pricing/calculate`, {
           category: pricingInput.category,
           pricing_data: pricingInput,
-          quantity: quantity || 1,
+          quantity: effectiveQuantity,
         }, { headers: hdr() });
         setCalc(res.data);
+        if (onPriceChange && res.data?.selling_price !== lastSentPrice.current) {
+          lastSentPrice.current = res.data?.selling_price ?? 0;
+          onPriceChange(res.data?.selling_price ?? 0, res.data);
+        }
       } catch {
         setCalc(null);
+        if (onPriceChange && lastSentPrice.current !== 0) {
+          lastSentPrice.current = 0;
+          onPriceChange(0, null);
+        }
       } finally {
         setLoading(false);
       }
     }, 600);
-  }, [pricingInput, quantity, category]);
+  }, [pricingInput, effectiveQuantity, category, onPriceChange]);
 
   if (!category) return null;
 
@@ -123,7 +173,7 @@ export default function LivePricingPreview({ category, specs, quantity }) {
             <div className="bg-violet-50 border border-violet-200 rounded-lg p-3 text-center mt-2">
               <p className="text-xs text-violet-600">Estimated Sell Price</p>
               <p className="text-2xl font-bold text-gray-900">${(breakdown.selling_price || 0).toFixed(2)}</p>
-              {quantity > 1 && <p className="text-xs text-gray-500">${((breakdown.selling_price || 0) / quantity).toFixed(2)} each</p>}
+              {effectiveQuantity > 1 && <p className="text-xs text-gray-500">${((breakdown.selling_price || 0) / effectiveQuantity).toFixed(2)} each</p>}
             </div>
           </div>
         ) : (

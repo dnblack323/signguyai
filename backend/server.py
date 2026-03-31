@@ -842,6 +842,7 @@ async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, 
     vehicle_sqft = {
         "car_sedan": 120,
         "car_suv": 160,
+        "pickup": 175,
         "van_mini": 140,
         "van_cargo": 200,
         "van_sprinter": 250,

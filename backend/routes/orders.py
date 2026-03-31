@@ -83,7 +83,7 @@ async def create_order(data: OrderCreate, current_user: UserInDB = Depends(get_c
     order = Order(
         tenant_id=current_user.tenant_id,
         created_by=current_user.id,
-        **data.model_dump()
+        **data.model_dump(exclude_none=True)
     )
     order.order_number = await _next_order_number(current_user.tenant_id)
 
@@ -163,7 +163,8 @@ async def generate_quote_from_order(order_id: str, current_user: UserInDB = Depe
     line_items = []
     subtotal = 0.0
     for t in tickets:
-        price = t.get("estimated_price", 0)
+        snapshot = t.get("pricing_snapshot") or {}
+        price = snapshot.get("active_price") or t.get("estimated_price", 0)
         line_items.append({
             "description": f"{t.get('item_name', 'Item')} — {t.get('item_category', '')} (Qty: {t.get('quantity', 1)})",
             "quantity": t.get("quantity", 1),
@@ -246,7 +247,7 @@ async def start_production(order_id: str, current_user: UserInDB = Depends(get_c
                        "production_started", f"Production started: {tasks_created} tasks created for {len(tickets)} ticket(s)",
                        user_id=current_user.id, user_name=current_user.full_name or "")
 
-    return {"message": f"Production started", "tickets_activated": len(tickets), "tasks_created": tasks_created}
+    return {"message": "Production started", "tickets_activated": len(tickets), "tasks_created": tasks_created}
 
 
 @router.get("/{order_id}/activity")
@@ -278,7 +279,8 @@ async def generate_invoice_from_order(order_id: str, current_user: UserInDB = De
     line_items = []
     subtotal = 0.0
     for t in tickets:
-        price = t.get("estimated_price", 0)
+        snapshot = t.get("pricing_snapshot") or {}
+        price = snapshot.get("active_price") or t.get("estimated_price", 0)
         line_items.append({
             "description": f"{t.get('item_name', 'Item')} — {t.get('item_category', '')} (Qty: {t.get('quantity', 1)})",
             "quantity": t.get("quantity", 1),
@@ -385,7 +387,7 @@ async def generate_work_order(order_id: str, current_user: UserInDB = Depends(ge
 
 @router.get("/{order_id}/financials")
 async def get_order_financials(order_id: str, current_user: UserInDB = Depends(get_current_active_user)):
-    """Get all quotes and invoices linked to this order."""
+    """Get all quotes, invoices, and work orders linked to this order."""
     order = await db.orders.find_one(
         {"id": order_id, "tenant_id": current_user.tenant_id}, {"_id": 0}
     )
@@ -399,8 +401,14 @@ async def get_order_financials(order_id: str, current_user: UserInDB = Depends(g
 
     quotes = [d for d in docs if d.get("type") == "quote"]
     invoices = [d for d in docs if d.get("type") == "invoice"]
+    work_orders = [d for d in docs if d.get("type") == "work_order"]
 
-    return {"quotes": quotes, "invoices": invoices, "total_documents": len(docs)}
+    return {
+        "quotes": quotes,
+        "invoices": invoices,
+        "work_orders": work_orders,
+        "total_documents": len(docs),
+    }
 
 
 @router.get("/{order_id}/production-summary")

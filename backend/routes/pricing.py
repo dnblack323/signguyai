@@ -133,65 +133,12 @@ async def get_materials(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Get available materials (for dropdowns)"""
-    materials = {
-        "vinyl": [
-            {"id": "oracal_651", "name": "Oracal 651 (Intermediate)", "cost_per_sqft": 0.50},
-            {"id": "oracal_751", "name": "Oracal 751 (High Performance)", "cost_per_sqft": 0.75},
-            {"id": "oracal_951", "name": "Oracal 951 (Premium Cast)", "cost_per_sqft": 1.25},
-            {"id": "avery_hp750", "name": "Avery HP750", "cost_per_sqft": 0.90},
-            {"id": "reflective", "name": "Reflective Vinyl", "cost_per_sqft": 2.50},
-            {"id": "specialty", "name": "Specialty Vinyl", "cost_per_sqft": 1.50},
-        ],
-        "print_material": [
-            {"id": "banner_13oz", "name": "13oz Banner", "cost_per_sqft": 0.75},
-            {"id": "banner_18oz", "name": "18oz Banner (Heavy)", "cost_per_sqft": 1.10},
-            {"id": "vinyl_adhesive", "name": "Adhesive Vinyl", "cost_per_sqft": 1.25},
-            {"id": "poster_paper", "name": "Poster Paper", "cost_per_sqft": 0.35},
-            {"id": "canvas", "name": "Canvas", "cost_per_sqft": 2.50},
-            {"id": "backlit", "name": "Backlit Film", "cost_per_sqft": 2.00},
-            {"id": "perforated", "name": "Perforated Window Film", "cost_per_sqft": 1.75},
-        ],
-        "substrate": [
-            {"id": "coroplast_4mm", "name": "Coroplast 4mm", "cost_per_sqft": 0.45},
-            {"id": "coroplast_10mm", "name": "Coroplast 10mm", "cost_per_sqft": 0.65},
-            {"id": "aluminum_040", "name": "Aluminum .040", "cost_per_sqft": 1.50},
-            {"id": "aluminum_063", "name": "Aluminum .063", "cost_per_sqft": 2.25},
-            {"id": "aluminum_080", "name": "Aluminum .080", "cost_per_sqft": 3.00},
-            {"id": "pvc_3mm", "name": "PVC 3mm", "cost_per_sqft": 1.00},
-            {"id": "pvc_6mm", "name": "PVC 6mm", "cost_per_sqft": 1.50},
-            {"id": "acrylic", "name": "Acrylic", "cost_per_sqft": 4.00},
-            {"id": "dibond", "name": "Dibond/ACM", "cost_per_sqft": 3.50},
-            {"id": "mdo", "name": "MDO Plywood", "cost_per_sqft": 2.00},
-        ],
-        "apparel": [
-            {"id": "tshirt", "name": "T-Shirt", "cost_each": 4.50},
-            {"id": "hoodie", "name": "Hoodie", "cost_each": 18.00},
-            {"id": "hat", "name": "Hat/Cap", "cost_each": 8.00},
-            {"id": "polo", "name": "Polo Shirt", "cost_each": 12.00},
-            {"id": "tank", "name": "Tank Top", "cost_each": 4.00},
-            {"id": "longsleeve", "name": "Long Sleeve", "cost_each": 7.50},
-            {"id": "jacket", "name": "Jacket", "cost_each": 25.00},
-        ],
-        "transfer_type": [
-            {"id": "htv", "name": "HTV (Heat Transfer Vinyl)", "cost_per_color": 0.50},
-            {"id": "screen_print", "name": "Screen Print", "cost_per_color": 0.35},
-            {"id": "dtf", "name": "DTF (Direct to Film)", "cost_per_color": 0.75},
-            {"id": "sublimation", "name": "Sublimation", "cost_per_color": 1.00},
-            {"id": "embroidery", "name": "Embroidery", "cost_per_stitch": 0.01},
-        ],
-        "vehicle_type": [
-            {"id": "car_sedan", "name": "Car (Sedan)", "base_sqft": 150},
-            {"id": "car_suv", "name": "Car (SUV)", "base_sqft": 200},
-            {"id": "van_mini", "name": "Minivan", "base_sqft": 180},
-            {"id": "van_cargo", "name": "Cargo Van", "base_sqft": 250},
-            {"id": "van_sprinter", "name": "Sprinter Van", "base_sqft": 350},
-            {"id": "box_truck_12ft", "name": "Box Truck (12ft)", "base_sqft": 400},
-            {"id": "box_truck_16ft", "name": "Box Truck (16ft)", "base_sqft": 500},
-            {"id": "box_truck_24ft", "name": "Box Truck (24ft)", "base_sqft": 650},
-            {"id": "trailer", "name": "Trailer", "base_sqft": 450},
-            {"id": "semi", "name": "Semi Truck", "base_sqft": 800},
-        ]
-    }
+    from routes.job_tickets import _build_materials_catalog
+
+    defaults = await get_pricing_defaults(current_user.tenant_id)
+    materials = _build_materials_catalog(defaults)
+    if "decoration" in materials and "transfer_type" not in materials:
+        materials["transfer_type"] = materials["decoration"]
     
     if category:
         return {category: materials.get(category, [])}

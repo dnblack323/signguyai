@@ -36,6 +36,15 @@ const SOURCES = [
   { value: 'repeat_order', label: 'Repeat Order' }, { value: 'sales_rep', label: 'Sales Rep' },
 ];
 
+const getDerivedQuantity = (category, specs, quantity) => {
+  if (category === 'apparel') {
+    const sizeKeys = ['size_xs', 'size_s', 'size_m', 'size_l', 'size_xl', 'size_2xl', 'size_3xl', 'size_4xl', 'size_5xl'];
+    const total = sizeKeys.reduce((sum, key) => sum + (parseInt(specs?.[key]) || 0), 0);
+    if (total > 0) return total;
+  }
+  return quantity || 1;
+};
+
 export default function NewOrderForm() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -320,12 +329,25 @@ export default function NewOrderForm() {
                       <DynamicCategoryFields
                         category={ticket.item_category}
                         specs={ticket.specs}
-                        onChange={(newSpecs) => updateTicket(i, 'specs', newSpecs)}
+                        onChange={(newSpecs) => setTickets(prev => prev.map((currentTicket, idx) => idx === i ? {
+                          ...currentTicket,
+                          specs: newSpecs,
+                          quantity: getDerivedQuantity(currentTicket.item_category, newSpecs, currentTicket.quantity),
+                        } : currentTicket))}
                         mode="edit"
                       />
                       <div><Label className="text-gray-700">Special Instructions</Label><Textarea value={ticket.special_instructions} onChange={e => updateTicket(i, 'special_instructions', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" rows={2} /></div>
                     </div>
-                    <LivePricingPreview category={ticket.item_category} specs={ticket.specs} quantity={ticket.quantity} />
+                    <LivePricingPreview
+                      category={ticket.item_category}
+                      specs={ticket.specs}
+                      quantity={ticket.quantity}
+                      onPriceChange={(price) => setTickets(prev => prev.map((currentTicket, idx) => idx === i ? {
+                        ...currentTicket,
+                        estimated_price: price,
+                        quantity: getDerivedQuantity(currentTicket.item_category, currentTicket.specs, currentTicket.quantity),
+                      } : currentTicket))}
+                    />
                   </div>
                 ) : (
                   <div className="py-6 text-center text-gray-400 bg-gray-50 rounded-lg border border-dashed border-gray-300">

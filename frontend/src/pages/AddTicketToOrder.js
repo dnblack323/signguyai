@@ -29,6 +29,15 @@ const CATEGORIES = [
   { value: 'custom', label: 'Custom' },
 ];
 
+const getDerivedQuantity = (category, specs, quantity) => {
+  if (category === 'apparel') {
+    const sizeKeys = ['size_xs', 'size_s', 'size_m', 'size_l', 'size_xl', 'size_2xl', 'size_3xl', 'size_4xl', 'size_5xl'];
+    const total = sizeKeys.reduce((sum, key) => sum + (parseInt(specs?.[key]) || 0), 0);
+    if (total > 0) return total;
+  }
+  return quantity || 1;
+};
+
 export default function AddTicketToOrder() {
   const navigate = useNavigate();
   const { id: orderId } = useParams();
@@ -266,7 +275,11 @@ export default function AddTicketToOrder() {
                     <DynamicCategoryFields
                       category={ticket.item_category}
                       specs={ticket.specs}
-                      onChange={(newSpecs) => updateTicket('specs', newSpecs)}
+                      onChange={(newSpecs) => setTicket((current) => ({
+                        ...current,
+                        specs: newSpecs,
+                        quantity: getDerivedQuantity(current.item_category, newSpecs, current.quantity),
+                      }))}
                       mode="edit"
                     />
                     <div>
@@ -282,7 +295,12 @@ export default function AddTicketToOrder() {
                   <LivePricingPreview 
                     category={ticket.item_category} 
                     specs={ticket.specs} 
-                    quantity={ticket.quantity} 
+                    quantity={ticket.quantity}
+                    onPriceChange={(price) => setTicket((current) => ({
+                      ...current,
+                      estimated_price: price,
+                      quantity: getDerivedQuantity(current.item_category, current.specs, current.quantity),
+                    }))}
                   />
                 </div>
               ) : (

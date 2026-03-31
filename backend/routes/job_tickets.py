@@ -7,6 +7,7 @@ CRUD for Job Ticket records (Layer 2) — the operational source of truth.
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Optional
 from datetime import datetime, timezone
+from copy import deepcopy
 
 from server import db, get_current_active_user
 from models import UserInDB
@@ -19,6 +20,280 @@ from services.workflow_engine import (
 )
 
 router = APIRouter(prefix="/job-tickets", tags=["Job Tickets"])
+
+SETTINGS_CATEGORY_KEYS = {
+    "vehicle_wrap": "vehicle_wraps",
+    "promo_misc": "custom",
+    "digital_print": "banners",
+}
+
+FALLBACK_MATERIALS_CATALOG = {
+    "vinyl": [
+        {"id": "oracal_651", "name": "Oracal 651 (Intermediate)", "cost_per_sqft": 0.50},
+        {"id": "oracal_751", "name": "Oracal 751 (High Performance)", "cost_per_sqft": 0.75},
+        {"id": "oracal_951", "name": "Oracal 951 (Premium Cast)", "cost_per_sqft": 1.25},
+        {"id": "avery_hp750", "name": "Avery HP750", "cost_per_sqft": 0.90},
+        {"id": "reflective", "name": "Reflective Vinyl", "cost_per_sqft": 2.50},
+        {"id": "specialty", "name": "Specialty Vinyl", "cost_per_sqft": 1.50},
+    ],
+    "print_material": [
+        {"id": "banner_13oz", "name": "13oz Banner", "cost_per_sqft": 0.75},
+        {"id": "banner_18oz", "name": "18oz Banner (Heavy)", "cost_per_sqft": 1.10},
+        {"id": "mesh", "name": "Mesh Banner", "cost_per_sqft": 0.85},
+        {"id": "vinyl_adhesive", "name": "Adhesive Vinyl", "cost_per_sqft": 1.25},
+        {"id": "poster_paper", "name": "Poster Paper", "cost_per_sqft": 0.35},
+        {"id": "canvas", "name": "Canvas", "cost_per_sqft": 2.50},
+        {"id": "backlit", "name": "Backlit Film", "cost_per_sqft": 2.00},
+        {"id": "perforated", "name": "Perforated Window Film", "cost_per_sqft": 1.75},
+        {"id": "blockout", "name": "Blockout Banner", "cost_per_sqft": 1.00},
+        {"id": "retractable_film", "name": "Retractable Film", "cost_per_sqft": 1.50},
+        {"id": "static_cling", "name": "Static Cling", "cost_per_sqft": 1.60},
+        {"id": "floor_graphic", "name": "Floor Graphic Media", "cost_per_sqft": 2.00},
+    ],
+    "substrate": [
+        {"id": "coroplast_4mm", "name": "Coroplast 4mm", "cost_per_sqft": 0.45},
+        {"id": "coroplast_10mm", "name": "Coroplast 10mm", "cost_per_sqft": 0.65},
+        {"id": "aluminum_040", "name": "Aluminum .040", "cost_per_sqft": 1.50},
+        {"id": "aluminum_063", "name": "Aluminum .063", "cost_per_sqft": 2.25},
+        {"id": "aluminum_080", "name": "Aluminum .080", "cost_per_sqft": 3.00},
+        {"id": "pvc_3mm", "name": "PVC 3mm", "cost_per_sqft": 1.00},
+        {"id": "pvc_6mm", "name": "PVC 6mm", "cost_per_sqft": 1.50},
+        {"id": "acrylic", "name": "Acrylic", "cost_per_sqft": 4.00},
+        {"id": "dibond", "name": "Dibond/ACM", "cost_per_sqft": 3.50},
+        {"id": "mdo", "name": "MDO Plywood", "cost_per_sqft": 2.00},
+        {"id": "foam_board", "name": "Foam Board", "cost_per_sqft": 0.75},
+    ],
+    "apparel": [
+        {"id": "tshirt", "name": "T-Shirt", "cost_each": 4.50},
+        {"id": "hoodie", "name": "Hoodie", "cost_each": 18.00},
+        {"id": "hat", "name": "Hat/Cap", "cost_each": 8.00},
+        {"id": "polo", "name": "Polo Shirt", "cost_each": 12.00},
+        {"id": "tank", "name": "Tank Top", "cost_each": 4.00},
+        {"id": "longsleeve", "name": "Long Sleeve", "cost_each": 7.50},
+        {"id": "jacket", "name": "Jacket", "cost_each": 25.00},
+        {"id": "crewneck", "name": "Crewneck Sweatshirt", "cost_each": 15.00},
+        {"id": "safety_vest", "name": "Safety Vest", "cost_each": 10.00},
+    ],
+    "decoration": [
+        {"id": "htv", "name": "HTV (Heat Transfer Vinyl)", "cost_per_color": 0.50},
+        {"id": "screen_print", "name": "Screen Print Transfer", "cost_per_color": 0.35},
+        {"id": "dtf", "name": "DTF / Printed Transfer", "cost_per_sqin": 0.03},
+        {"id": "sublimation", "name": "Sublimation", "cost_per_sqin": 0.04},
+        {"id": "embroidery", "name": "Embroidery", "cost_per_stitch": 0.01},
+        {"id": "patch", "name": "Patch / Emblem", "cost_each": 3.00},
+    ],
+    "vehicle_type": [
+        {"id": "car_sedan", "name": "Car (Sedan)", "base_sqft": 150},
+        {"id": "car_suv", "name": "Car (SUV)", "base_sqft": 200},
+        {"id": "pickup", "name": "Pickup Truck", "base_sqft": 175},
+        {"id": "van_cargo", "name": "Cargo Van", "base_sqft": 250},
+        {"id": "van_sprinter", "name": "Sprinter Van", "base_sqft": 350},
+        {"id": "box_truck_12ft", "name": "Box Truck (12ft)", "base_sqft": 400},
+        {"id": "box_truck_16ft", "name": "Box Truck (16ft)", "base_sqft": 500},
+        {"id": "box_truck_24ft", "name": "Box Truck (24ft)", "base_sqft": 650},
+        {"id": "trailer", "name": "Trailer", "base_sqft": 450},
+        {"id": "semi", "name": "Semi Truck", "base_sqft": 800},
+        {"id": "other", "name": "Other Vehicle", "base_sqft": 160},
+    ],
+}
+
+
+def _settings_category_key(category: str) -> str:
+    return SETTINGS_CATEGORY_KEYS.get(category, category)
+
+
+def _sum_apparel_sizes(specs: dict) -> int:
+    if not isinstance(specs, dict):
+        return 0
+    size_keys = [
+        "size_xs", "size_s", "size_m", "size_l", "size_xl",
+        "size_2xl", "size_3xl", "size_4xl", "size_5xl",
+    ]
+    return sum(int(specs.get(key, 0) or 0) for key in size_keys)
+
+
+def _derive_ticket_quantity(category: str, quantity: int, specs: dict) -> int:
+    if category == "apparel":
+        size_total = _sum_apparel_sizes(specs or {})
+        if size_total > 0:
+            return size_total
+    return max(int(quantity or 1), 1)
+
+
+def _normalize_vehicle_coverage(coverage_type: Optional[str], coverage_percent: Optional[float] = None) -> Optional[str]:
+    raw = str(coverage_type or "").strip().lower()
+    mapping = {
+        "25": "spot",
+        "50": "half",
+        "75": "partial",
+        "100": "full",
+        "spot_graphics": "spot",
+        "partial_50": "half",
+        "partial_75": "partial",
+        "full_wrap": "full",
+    }
+    if raw in mapping:
+        return mapping[raw]
+    if raw == "custom":
+        percent = float(coverage_percent or 0)
+        if percent >= 100:
+            return "full"
+        if percent >= 60:
+            return "partial"
+        if percent >= 35:
+            return "half"
+        if percent > 0:
+            return "spot"
+        return "partial"
+    return raw or None
+
+
+def _infer_material_bucket(material: dict) -> Optional[str]:
+    category = str(material.get("category") or "").lower()
+    key = str(material.get("key") or material.get("id") or "").lower()
+    if category in {"print_material", "media", "banner"}:
+        return "print_material"
+    if category == "vinyl":
+        return "vinyl"
+    if category in {"substrate", "board"}:
+        return "substrate"
+    if category == "apparel":
+        return "apparel"
+    if category in {"decoration", "transfer_type"}:
+        return "decoration"
+    if category == "vehicle_type":
+        return "vehicle_type"
+    if key.startswith("banner_") or key in {"mesh", "vinyl_adhesive", "poster_paper", "canvas", "backlit", "perforated", "blockout", "retractable_film", "static_cling", "floor_graphic"}:
+        return "print_material"
+    if key in {"oracal_651", "oracal_751", "oracal_951", "avery_hp750", "reflective", "specialty", "vinyl"}:
+        return "vinyl"
+    if key.startswith("coroplast") or key.startswith("aluminum") or key.startswith("pvc") or key in {"acrylic", "dibond", "mdo", "foam_board", "rigid_sign_board", "acrylic_sheet"}:
+        return "substrate"
+    if key in {"tshirt", "hoodie", "hat", "polo", "tank", "longsleeve", "jacket", "crewneck", "safety_vest", "apparel_blank"}:
+        return "apparel"
+    if key in {"htv", "screen_print", "dtf", "sublimation", "embroidery", "patch", "apparel_decoration"}:
+        return "decoration"
+    if key in {"car_sedan", "car_suv", "pickup", "van_mini", "van_cargo", "van_sprinter", "box_truck_12ft", "box_truck_16ft", "box_truck_24ft", "trailer", "semi", "other"}:
+        return "vehicle_type"
+    return None
+
+
+def _build_materials_catalog(defaults: dict) -> dict:
+    catalog = deepcopy(FALLBACK_MATERIALS_CATALOG)
+    active_materials = [m for m in defaults.get("materials", []) if m.get("is_active", True)]
+    for material in active_materials:
+        bucket = _infer_material_bucket(material)
+        if not bucket:
+            continue
+        key = material.get("key") or material.get("id")
+        if not key:
+            continue
+        entry = {"id": key, "name": material.get("name") or key.replace("_", " ").title()}
+        cost = float(material.get("cost_per_unit", 0) or 0)
+        unit_type = material.get("unit_type")
+        if bucket == "apparel":
+            entry["cost_each"] = cost
+        elif bucket == "decoration":
+            if unit_type == "per_stitch":
+                entry["cost_per_stitch"] = cost
+            elif unit_type == "per_sqin":
+                entry["cost_per_sqin"] = cost
+            elif unit_type == "per_color":
+                entry["cost_per_color"] = cost
+            else:
+                entry["cost_each"] = cost
+        elif bucket == "vehicle_type":
+            entry["base_sqft"] = float(material.get("base_sqft", 0) or 0)
+        else:
+            entry["cost_per_sqft"] = cost
+
+        existing_idx = next((idx for idx, item in enumerate(catalog[bucket]) if item.get("id") == key), None)
+        if existing_idx is None:
+            catalog[bucket].append(entry)
+        else:
+            catalog[bucket][existing_idx] = {**catalog[bucket][existing_idx], **entry}
+    return catalog
+
+
+def _build_ticket_pricing_payload(ticket: dict, pricing_input: Optional[dict] = None):
+    specs = ticket.get("specs", {}) or {}
+    incoming = pricing_input or {}
+    unit = str(specs.get("unit_of_measure") or "inches").lower()
+    width_raw = _parse_dimension(specs.get("width") or incoming.get("width_inches"))
+    height_raw = _parse_dimension(specs.get("height") or incoming.get("length_inches"))
+    width_inches = (width_raw * 12) if unit == "feet" and width_raw else width_raw
+    height_inches = (height_raw * 12) if unit == "feet" and height_raw else height_raw
+    category_map = {
+        "banners": "digital_print",
+        "rigid_signs": "rigid_signs",
+        "cut_vinyl": "cut_vinyl",
+        "digital_print": "digital_print",
+        "vehicle_wrap": "vehicle_graphics",
+        "apparel": "apparel",
+        "promo_misc": "promotional",
+        "custom": "custom",
+    }
+    double_sided = specs.get("double_sided") == "double" or specs.get("double_sided") is True
+    coverage_percent = float(specs.get("coverage_percent", 0) or 0)
+    coverage_type = _normalize_vehicle_coverage(specs.get("coverage_type"), coverage_percent)
+    merged_input = {
+        "category": category_map.get(ticket.get("item_category"), "custom"),
+        "complexity": int(incoming.get("complexity", 1) or 1),
+        "width_inches": width_inches,
+        "length_inches": height_inches,
+        "double_sided": double_sided,
+        "laminate": specs.get("lamination", "none") not in ("none", "", None, False),
+        "laminate_type": specs.get("lamination") if specs.get("lamination") not in ("none", "") else None,
+        "include_setup_fee": bool(specs.get("setup_required") or ticket.get("design_needed") or incoming.get("include_setup_fee")),
+        "vinyl_type": specs.get("vinyl_type") or specs.get("material"),
+        "print_material": specs.get("media_type") or specs.get("material"),
+        "substrate_type": specs.get("substrate"),
+        "num_colors": int(specs.get("num_colors", 1) or 1),
+        "apparel_type": specs.get("garment_type") or specs.get("subtype"),
+        "transfer_type": specs.get("decoration_method") or specs.get("print_method"),
+        "num_print_locations": len(specs.get("print_locations", [])) or 1,
+        "vehicle_type": specs.get("vehicle_type"),
+        "coverage_type": coverage_type,
+        "estimated_vehicle_sqft": float(specs.get("estimated_vehicle_sqft", 0) or 0) or None,
+        "estimated_hours": float(specs.get("estimated_install_hours", 0) or 0) or None,
+        **{k: v for k, v in incoming.items() if v is not None and k not in {"complexity"}},
+    }
+    sanitized = {}
+    for key, value in merged_input.items():
+        if key == "category":
+            sanitized[key] = value
+        elif isinstance(value, str) and value.strip() == "":
+            sanitized[key] = None
+        else:
+            sanitized[key] = value
+    return sanitized["category"], sanitized
+
+
+async def _calculate_ticket_snapshot(ticket: dict, tenant_id: str):
+    from server import calculate_pricing
+    from models.enums import PricingCategory
+    from models.pricing import JobItemPricingData
+
+    pricing_category, pricing_input = _build_ticket_pricing_payload(ticket)
+    quantity = _derive_ticket_quantity(ticket.get("item_category", "custom"), ticket.get("quantity", 1), ticket.get("specs", {}))
+    try:
+        category_enum = PricingCategory(pricing_category)
+        pricing_data = JobItemPricingData(**pricing_input)
+        calculation = await calculate_pricing(category_enum, pricing_data, quantity, tenant_id)
+        calculation_data = calculation.model_dump()
+        return {
+            "estimated_price": calculation.selling_price,
+            "pricing_snapshot": {
+                "pricing_mode": "calculator",
+                "calculated_price": calculation.selling_price,
+                "manual_price": 0,
+                "active_price": calculation.selling_price,
+                "calculation_breakdown": calculation_data,
+                "saved_at": datetime.now(timezone.utc).isoformat(),
+            },
+        }
+    except Exception:
+        return None
 
 
 
@@ -291,78 +566,9 @@ async def get_category_field_schema(category: str, current_user: UserInDB = Depe
     from models.enums import PromoProductType
 
     defaults = await get_pricing_defaults(current_user.tenant_id)
-    cat_config = defaults.get("category_defaults", {}).get(category, {})
-
-    # Load materials catalog (same source as /api/pricing/materials)
-    from routes.pricing import get_materials as _get_mats_fn
-    # Build catalog inline since we can't call the endpoint directly
-    materials_catalog = {
-        "vinyl": [
-            {"id": "oracal_651", "name": "Oracal 651 (Intermediate)", "cost_per_sqft": 0.50},
-            {"id": "oracal_751", "name": "Oracal 751 (High Performance)", "cost_per_sqft": 0.75},
-            {"id": "oracal_951", "name": "Oracal 951 (Premium Cast)", "cost_per_sqft": 1.25},
-            {"id": "avery_hp750", "name": "Avery HP750", "cost_per_sqft": 0.90},
-            {"id": "reflective", "name": "Reflective Vinyl", "cost_per_sqft": 2.50},
-            {"id": "specialty", "name": "Specialty Vinyl", "cost_per_sqft": 1.50},
-        ],
-        "print_material": [
-            {"id": "banner_13oz", "name": "13oz Banner", "cost_per_sqft": 0.75},
-            {"id": "banner_18oz", "name": "18oz Banner (Heavy)", "cost_per_sqft": 1.10},
-            {"id": "mesh", "name": "Mesh Banner", "cost_per_sqft": 0.85},
-            {"id": "vinyl_adhesive", "name": "Adhesive Vinyl", "cost_per_sqft": 1.25},
-            {"id": "poster_paper", "name": "Poster Paper", "cost_per_sqft": 0.35},
-            {"id": "canvas", "name": "Canvas", "cost_per_sqft": 2.50},
-            {"id": "backlit", "name": "Backlit Film", "cost_per_sqft": 2.00},
-            {"id": "perforated", "name": "Perforated Window Film", "cost_per_sqft": 1.75},
-            {"id": "blockout", "name": "Blockout Banner", "cost_per_sqft": 1.00},
-            {"id": "retractable_film", "name": "Retractable Film", "cost_per_sqft": 1.50},
-            {"id": "static_cling", "name": "Static Cling", "cost_per_sqft": 1.60},
-            {"id": "floor_graphic", "name": "Floor Graphic Media", "cost_per_sqft": 2.00},
-        ],
-        "substrate": [
-            {"id": "coroplast_4mm", "name": "Coroplast 4mm", "cost_per_sqft": 0.45},
-            {"id": "coroplast_10mm", "name": "Coroplast 10mm", "cost_per_sqft": 0.65},
-            {"id": "aluminum_040", "name": "Aluminum .040", "cost_per_sqft": 1.50},
-            {"id": "aluminum_063", "name": "Aluminum .063", "cost_per_sqft": 2.25},
-            {"id": "aluminum_080", "name": "Aluminum .080", "cost_per_sqft": 3.00},
-            {"id": "pvc_3mm", "name": "PVC 3mm", "cost_per_sqft": 1.00},
-            {"id": "pvc_6mm", "name": "PVC 6mm", "cost_per_sqft": 1.50},
-            {"id": "acrylic", "name": "Acrylic", "cost_per_sqft": 4.00},
-            {"id": "dibond", "name": "Dibond/ACM", "cost_per_sqft": 3.50},
-            {"id": "mdo", "name": "MDO Plywood", "cost_per_sqft": 2.00},
-            {"id": "foam_board", "name": "Foam Board", "cost_per_sqft": 0.75},
-        ],
-        "apparel": [
-            {"id": "tshirt", "name": "T-Shirt", "cost_each": 4.50},
-            {"id": "hoodie", "name": "Hoodie", "cost_each": 18.00},
-            {"id": "hat", "name": "Hat/Cap", "cost_each": 8.00},
-            {"id": "polo", "name": "Polo Shirt", "cost_each": 12.00},
-            {"id": "tank", "name": "Tank Top", "cost_each": 4.00},
-            {"id": "longsleeve", "name": "Long Sleeve", "cost_each": 7.50},
-            {"id": "jacket", "name": "Jacket", "cost_each": 25.00},
-            {"id": "crewneck", "name": "Crewneck Sweatshirt", "cost_each": 15.00},
-            {"id": "safety_vest", "name": "Safety Vest", "cost_each": 10.00},
-        ],
-        "decoration": [
-            {"id": "htv", "name": "HTV (Heat Transfer Vinyl)", "cost_per_color": 0.50},
-            {"id": "screen_print", "name": "Screen Print Transfer", "cost_per_color": 0.35},
-            {"id": "dtf", "name": "DTF / Printed Transfer", "cost_per_sqin": 0.03},
-            {"id": "sublimation", "name": "Sublimation", "cost_per_sqin": 0.04},
-            {"id": "embroidery", "name": "Embroidery", "cost_per_stitch": 0.01},
-            {"id": "patch", "name": "Patch / Emblem", "cost_each": 3.00},
-        ],
-        "vehicle_type": [
-            {"id": "car_sedan", "name": "Car (Sedan)", "base_sqft": 150},
-            {"id": "car_suv", "name": "Car (SUV)", "base_sqft": 200},
-            {"id": "van_cargo", "name": "Cargo Van", "base_sqft": 250},
-            {"id": "van_sprinter", "name": "Sprinter Van", "base_sqft": 350},
-            {"id": "box_truck_12ft", "name": "Box Truck (12ft)", "base_sqft": 400},
-            {"id": "box_truck_16ft", "name": "Box Truck (16ft)", "base_sqft": 500},
-            {"id": "box_truck_24ft", "name": "Box Truck (24ft)", "base_sqft": 650},
-            {"id": "trailer", "name": "Trailer", "base_sqft": 450},
-            {"id": "pickup", "name": "Pickup Truck", "base_sqft": 175},
-        ],
-    }
+    settings_category = _settings_category_key(category)
+    cat_config = defaults.get("category_defaults", {}).get(settings_category, {})
+    materials_catalog = _build_materials_catalog(defaults)
 
     def cat_opts(catalog_key):
         return [{"value": m["id"], "label": m["name"]} for m in materials_catalog.get(catalog_key, [])]
@@ -550,6 +756,7 @@ async def create_job_ticket(data: JobTicketCreate, current_user: UserInDB = Depe
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
+    normalized_quantity = _derive_ticket_quantity(data.item_category, data.quantity, data.specs or {})
     specs = JobTicketSpecs(**(data.specs or {}))
     ticket = JobTicket(
         tenant_id=current_user.tenant_id,
@@ -557,7 +764,7 @@ async def create_job_ticket(data: JobTicketCreate, current_user: UserInDB = Depe
         item_name=data.item_name,
         item_category=data.item_category,
         item_subcategory=data.item_subcategory,
-        quantity=data.quantity,
+        quantity=normalized_quantity,
         unit_type=data.unit_type,
         due_date=data.due_date,
         priority=data.priority,
@@ -579,6 +786,10 @@ async def create_job_ticket(data: JobTicketCreate, current_user: UserInDB = Depe
     ticket.ticket_number = await _next_ticket_number(data.order_id, current_user.tenant_id)
 
     doc = ticket.model_dump()
+    if doc.get("estimated_price", 0) <= 0:
+        snapshot = await _calculate_ticket_snapshot(doc, current_user.tenant_id)
+        if snapshot:
+            doc.update(snapshot)
     await db.job_tickets.insert_one(doc)
 
     # If production workflow enabled, auto-generate tasks
@@ -622,6 +833,11 @@ async def update_job_ticket(ticket_id: str, data: JobTicketUpdate, current_user:
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
 
+    next_category = update_data.get("item_category", existing.get("item_category"))
+    next_specs = update_data.get("specs", existing.get("specs", {}))
+    next_quantity = _derive_ticket_quantity(next_category, update_data.get("quantity", existing.get("quantity", 1)), next_specs)
+    update_data["quantity"] = next_quantity
+
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
 
     # Log status changes
@@ -638,6 +854,15 @@ async def update_job_ticket(ticket_id: str, data: JobTicketUpdate, current_user:
             await seed_default_templates(db, current_user.tenant_id)
             merged = {**existing, **update_data}
             await generate_production_tasks(db, merged, current_user.tenant_id)
+
+    pricing_mode = (existing.get("pricing_snapshot") or {}).get("pricing_mode")
+    should_refresh_pricing = any(field in update_data for field in {"specs", "item_category", "quantity"}) and pricing_mode != "manual"
+    if should_refresh_pricing:
+        merged = {**existing, **update_data}
+        if update_data.get("estimated_price", merged.get("estimated_price", 0)) <= 0 or pricing_mode != "manual":
+            snapshot = await _calculate_ticket_snapshot(merged, current_user.tenant_id)
+            if snapshot:
+                update_data.update(snapshot)
 
     await db.job_tickets.update_one({"id": ticket_id}, {"$set": update_data})
 
@@ -724,63 +949,12 @@ async def calculate_ticket_pricing(ticket_id: str, pricing_input: dict = {}, cur
     if not ticket:
         raise HTTPException(status_code=404, detail="Job ticket not found")
 
-    # Map job ticket category to pricing category
-    CATEGORY_MAP = {
-        "banners": "digital_print",
-        "rigid_signs": "rigid_signs",
-        "cut_vinyl": "cut_vinyl",
-        "digital_print": "digital_print",
-        "vehicle_wrap": "vehicle_graphics",
-        "apparel": "apparel",
-        "promo_misc": "promotional",
-        "custom": "custom",
-    }
-    pricing_cat = CATEGORY_MAP.get(ticket.get("item_category"), "custom")
-
-    # Build pricing data from ALL ticket specs → pricing engine fields
-    specs = ticket.get("specs", {})
-    unit = specs.get("unit_of_measure", "inches")
-    w_raw = _parse_dimension(specs.get("width") or pricing_input.get("width_inches"))
-    h_raw = _parse_dimension(specs.get("height") or pricing_input.get("length_inches"))
-    # Convert feet to inches for pricing engine
-    w_in = (w_raw * 12) if unit == "feet" and w_raw else w_raw
-    h_in = (h_raw * 12) if unit == "feet" and h_raw else h_raw
-
-    # Map dynamic field values to JobItemPricingData fields
-    double_sided_val = specs.get("double_sided", "single")
-    is_double = double_sided_val == "double" or double_sided_val is True
-
-    merged_input = {
-        "category": pricing_cat,
-        "complexity": pricing_input.get("complexity", 1),
-        "width_inches": w_in,
-        "length_inches": h_in,
-        "double_sided": is_double,
-        "laminate": specs.get("lamination", "none") not in ("none", "", None, False),
-        "laminate_type": specs.get("lamination") if specs.get("lamination") not in ("none", "") else None,
-        "include_setup_fee": specs.get("setup_required", False) or specs.get("design_needed", False) or pricing_input.get("include_setup_fee", False),
-        # Vinyl fields
-        "vinyl_type": specs.get("vinyl_type") or specs.get("material"),
-        "num_colors": int(specs.get("num_colors", 1) or 1),
-        # Substrate fields
-        "substrate_type": specs.get("substrate"),
-        # Apparel fields
-        "apparel_type": specs.get("garment_type"),
-        "transfer_type": specs.get("decoration_method") or specs.get("print_method"),
-        "num_print_locations": len(specs.get("print_locations", [])) or 1,
-        # Vehicle fields
-        "vehicle_type": specs.get("vehicle_type"),
-        "coverage_type": specs.get("coverage_type"),
-        # Service fields
-        "estimated_hours": float(specs.get("estimated_install_hours", 0) or 0),
-        # Overrides from pricing_input
-        **{k: v for k, v in pricing_input.items() if v is not None and k not in ("complexity",)},
-    }
+    pricing_cat, merged_input = _build_ticket_pricing_payload(ticket, pricing_input)
 
     try:
         category_enum = PricingCategory(pricing_cat)
         pricing_data = JobItemPricingData(**merged_input)
-        quantity = ticket.get("quantity", 1)
+        quantity = _derive_ticket_quantity(ticket.get("item_category", "custom"), ticket.get("quantity", 1), ticket.get("specs", {}))
 
         result = await calculate_pricing(category_enum, pricing_data, quantity, current_user.tenant_id)
         return {

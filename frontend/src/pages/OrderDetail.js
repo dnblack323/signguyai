@@ -4,6 +4,7 @@ import {
   ArrowLeft, Plus, Package, FileText, Play, Clock, CheckCircle, AlertTriangle,
   Trash2, Loader2, Receipt, Wrench, MessageSquare, DollarSign, Pause, ChevronRight,
   Copy, Calculator, Edit3, MoreHorizontal, Upload, FileUp, Paperclip, Send, Mail, ExternalLink,
+  UserPlus, CalendarPlus, ListTodo,
   Pen, Image as ImageIcon
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -16,6 +17,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import DrawingModal from './DrawingModal';
 import DrawingPreviewModal from './DrawingPreviewModal';
+import { TicketWorkflowShortcutDialog } from '../components/TicketWorkflowShortcutDialog';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const hdr = () => ({ Authorization: `Bearer ${localStorage.getItem('auth_token')}`, 'Content-Type': 'application/json' });
@@ -33,7 +35,7 @@ const STATUS_COLORS = {
   not_started: 'bg-gray-200 text-gray-700', in_progress: 'bg-violet-500/15 text-violet-400',
   paused: 'bg-orange-500/15 text-orange-400', complete: 'bg-green-500/15 text-green-400',
 };
-const CATEGORY_LABELS = { rigid_signs: 'Rigid Signs', banners: 'Banners', cut_vinyl: 'Cut Vinyl', vehicle_wrap: 'Vehicle Wrap', apparel: 'Apparel', promo_misc: 'Promo / Misc', custom: 'Custom' };
+const CATEGORY_LABELS = { rigid_signs: 'Rigid Signs', banners: 'Banners', cut_vinyl: 'Cut Vinyl', digital_print: 'Digital Print', vehicle_wrap: 'Vehicle Wrap', apparel: 'Apparel', promo_misc: 'Promo / Misc', custom: 'Custom' };
 const PRIORITY_COLORS = { rush: 'bg-red-500 text-gray-900', urgent: 'bg-orange-500 text-gray-900', high: 'bg-amber-500/80 text-black', normal: 'bg-slate-600 text-slate-200' };
 const DEPT_LABELS = { design: 'Design', print: 'Print', cut_trim: 'Cut / Trim', lamination: 'Lamination', weed_mask: 'Weed / Mask', sewing_finishing: 'Sewing', assembly: 'Assembly', apparel: 'Apparel', wrap_prep: 'Wrap Prep', install: 'Install', qc_review: 'QC', packaging: 'Packaging', delivery: 'Delivery' };
 const fmt = (s) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -43,7 +45,7 @@ export default function OrderDetail() {
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [activities, setActivities] = useState([]);
-  const [financials, setFinancials] = useState({ quotes: [], invoices: [] });
+  const [financials, setFinancials] = useState({ quotes: [], invoices: [], work_orders: [] });
   const [prodSummary, setProdSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState('');
@@ -55,22 +57,27 @@ export default function OrderDetail() {
   const [showDrawingModal, setShowDrawingModal] = useState(false);
   const [previewDrawing, setPreviewDrawing] = useState(null);
   const [drawingThumbs, setDrawingThumbs] = useState({});
+  const [employees, setEmployees] = useState([]);
+  const [shortcutMode, setShortcutMode] = useState('');
+  const [shortcutTicket, setShortcutTicket] = useState(null);
 
   const load = async () => {
     try {
-      const [orderRes, actRes, finRes, prodRes, filesRes, drawingsRes] = await Promise.all([
+      const [orderRes, actRes, finRes, prodRes, filesRes, drawingsRes, employeesRes] = await Promise.all([
         axios.get(`${API}/orders/${id}`, { headers: hdr() }),
         axios.get(`${API}/orders/${id}/activity`, { headers: hdr() }),
-        axios.get(`${API}/orders/${id}/financials`, { headers: hdr() }).catch(() => ({ data: { quotes: [], invoices: [] } })),
+        axios.get(`${API}/orders/${id}/financials`, { headers: hdr() }).catch(() => ({ data: { quotes: [], invoices: [], work_orders: [] } })),
         axios.get(`${API}/orders/${id}/production-summary`, { headers: hdr() }).catch(() => ({ data: null })),
         axios.get(`${API}/orders/${id}/files`, { headers: hdr() }).catch(() => ({ data: [] })),
         axios.get(`${API}/order-drawings/${id}`, { headers: hdr() }).catch(() => ({ data: [] })),
+        axios.get(`${API}/employees`, { headers: hdr() }).catch(() => ({ data: [] })),
       ]);
       setOrder(orderRes.data);
       setActivities(actRes.data);
       setFinancials(finRes.data);
       setProdSummary(prodRes.data);
       setOrderFiles(filesRes.data || []);
+      setEmployees(employeesRes.data || []);
       const drawingsList = drawingsRes.data || [];
       setDrawings(drawingsList);
       // Load thumbnails
@@ -111,7 +118,11 @@ export default function OrderDetail() {
     setActionLoading(type);
     try {
       const res = await axios.post(`${API}/orders/${id}/generate-${type}`, {}, { headers: hdr() });
-      toast.success(`${fmt(type)} generated: $${res.data.total?.toFixed(2)}`);
+      if (type === 'work_order') {
+        toast.success(`Work order generated with ${res.data.total_tickets || 0} ticket(s)`);
+      } else {
+        toast.success(`${fmt(type)} generated: $${(res.data.total || 0).toFixed(2)}`);
+      }
       load();
     } catch (e) { toast.error(e.response?.data?.detail || 'Failed'); }
     finally { setActionLoading(''); }
@@ -217,6 +228,7 @@ export default function OrderDetail() {
   if (!order) return <div className="text-center py-20 text-gray-500">Order not found</div>;
 
   const tickets = order.job_tickets || [];
+  const getEmployeeName = (employeeId) => employees.find((employee) => employee.id === employeeId)?.name || employeeId;
   // Order total: use active price from pricing snapshot, fallback to estimated_price
   const orderTotal = order.order_total || tickets.reduce((sum, t) => {
     const snapshot = t.pricing_snapshot;
@@ -332,7 +344,7 @@ export default function OrderDetail() {
           {[
             { id: 'tickets', label: `Job Tickets (${tickets.length})` },
             { id: 'production', label: `Production (${allTasks.length})` },
-            { id: 'financial', label: `Financial (${(financials.quotes?.length || 0) + (financials.invoices?.length || 0)})` },
+            { id: 'financial', label: `Financial (${(financials.quotes?.length || 0) + (financials.invoices?.length || 0) + (financials.work_orders?.length || 0)})` },
             { id: 'drawings', label: `Drawings (${drawings.length})` },
             { id: 'files', label: `Files (${orderFiles.length})` },
             { id: 'notes', label: 'Notes' },
@@ -373,6 +385,7 @@ export default function OrderDetail() {
                           <Badge variant="outline" className={STATUS_COLORS[ticket.status]}>{fmt(ticket.status)}</Badge>
                           {ticket.priority !== 'normal' && <Badge className={PRIORITY_COLORS[ticket.priority]}>{ticket.priority}</Badge>}
                           {ticket.production_flow_enabled && <Badge variant="outline" className="bg-violet-500/10 text-violet-400 border-violet-500/30 text-xs">Workflow</Badge>}
+                          {ticket.assigned_user_id && <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30 text-xs">Assigned: {getEmployeeName(ticket.assigned_user_id)}</Badge>}
                           {/* Pricing mode badge */}
                           {pricingMode === 'calculator' && <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/30 text-xs"><Calculator className="w-3 h-3 mr-1" />Calc</Badge>}
                           {pricingMode === 'manual' && <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/30 text-xs"><Edit3 className="w-3 h-3 mr-1" />Manual</Badge>}
@@ -416,6 +429,15 @@ export default function OrderDetail() {
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); duplicateTicket(ticket.id); }}>
                             <Copy className="w-4 h-4 mr-2" /> Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setShortcutTicket(ticket); setShortcutMode('assign'); }} data-testid={`ticket-assign-shortcut-${ticket.id}`}>
+                            <UserPlus className="w-4 h-4 mr-2" /> Assign Employee
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setShortcutTicket(ticket); setShortcutMode('schedule'); }} data-testid={`ticket-schedule-shortcut-${ticket.id}`}>
+                            <CalendarPlus className="w-4 h-4 mr-2" /> Add to Schedule
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setShortcutTicket(ticket); setShortcutMode('task'); }} data-testid={`ticket-task-shortcut-${ticket.id}`}>
+                            <ListTodo className="w-4 h-4 mr-2" /> Create Task
                           </DropdownMenuItem>
                           <DropdownMenuItem className="text-red-400" onClick={(e) => deleteTicket(ticket.id, e)}>
                             <Trash2 className="w-4 h-4 mr-2" /> Delete
@@ -531,8 +553,26 @@ export default function OrderDetail() {
               ))}
             </div>
           )}
-          {(financials.quotes?.length || 0) === 0 && (financials.invoices?.length || 0) === 0 && (
-            <Card className="bg-white rounded-xl border border-gray-200 shadow-sm"><CardContent className="py-12 text-center text-gray-500">No financial documents yet. Generate a quote or invoice from the job tickets.</CardContent></Card>
+          {financials.work_orders?.length > 0 && (
+            <div>
+              <h3 className="text-sm font-bold text-gray-700 uppercase mb-2">Work Orders ({financials.work_orders.length})</h3>
+              {financials.work_orders.map((workOrder) => (
+                <Card key={workOrder.id} className="bg-white border-gray-200 mb-2" data-testid={`work-order-card-${workOrder.id}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2"><Wrench className="w-4 h-4 text-amber-500" /><span className="text-gray-900 font-medium">Work Order</span><Badge variant="outline" className={STATUS_COLORS[workOrder.status] || STATUS_COLORS.draft}>{fmt(workOrder.status)}</Badge></div>
+                        <p className="text-xs text-gray-500 mt-1">{new Date(workOrder.created_at).toLocaleDateString()} | {workOrder.total_tickets || 0} tickets</p>
+                      </div>
+                      <p className="text-sm font-medium text-gray-900">{workOrder.order_number || order.order_number}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+          {(financials.quotes?.length || 0) === 0 && (financials.invoices?.length || 0) === 0 && (financials.work_orders?.length || 0) === 0 && (
+            <Card className="bg-white rounded-xl border border-gray-200 shadow-sm"><CardContent className="py-12 text-center text-gray-500">No documents yet. Generate a quote, invoice, or work order from the job tickets.</CardContent></Card>
           )}
         </div>
       )}
@@ -700,6 +740,18 @@ export default function OrderDetail() {
           isAdmin={true}
         />
       )}
+      <TicketWorkflowShortcutDialog
+        open={!!shortcutMode && !!shortcutTicket}
+        mode={shortcutMode}
+        ticket={shortcutTicket}
+        order={order}
+        employees={employees}
+        onClose={() => {
+          setShortcutMode('');
+          setShortcutTicket(null);
+        }}
+        onCompleted={load}
+      />
     </div>
   );
 }

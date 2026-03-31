@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, Package, Wrench, FileImage, MessageSquare, Clock, CheckCircle, AlertTriangle,
-  Play, Pause, RotateCcw, Eye, Upload, Loader2, ChevronDown, ChevronRight, Edit3
+  Play, Pause, RotateCcw, Eye, Upload, Loader2, ChevronDown, ChevronRight, Edit3,
+  UserPlus, CalendarPlus, ListTodo
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -14,6 +15,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import LivePricingPanel from '../components/LivePricingPanel';
 import DynamicCategoryFields from '../components/DynamicCategoryFields';
+import { TicketWorkflowShortcutDialog } from '../components/TicketWorkflowShortcutDialog';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const hdr = () => ({ Authorization: `Bearer ${localStorage.getItem('auth_token')}`, 'Content-Type': 'application/json' });
@@ -30,7 +32,7 @@ const TASK_COLORS = {
   needs_review: 'bg-amber-500/15 text-amber-400', complete: 'bg-green-500/15 text-green-400', rework: 'bg-red-500/15 text-red-400',
 };
 const PRIORITY_COLORS = { rush: 'bg-red-500 text-gray-900', urgent: 'bg-orange-500 text-gray-900', high: 'bg-amber-500/80 text-black', normal: 'bg-slate-600 text-slate-200' };
-const CATEGORY_LABELS = { rigid_signs: 'Rigid Signs', banners: 'Banners', cut_vinyl: 'Cut Vinyl', vehicle_wrap: 'Vehicle Wrap', apparel: 'Apparel', promo_misc: 'Promo / Misc', custom: 'Custom' };
+const CATEGORY_LABELS = { rigid_signs: 'Rigid Signs', banners: 'Banners', cut_vinyl: 'Cut Vinyl', digital_print: 'Digital Print', vehicle_wrap: 'Vehicle Wrap', apparel: 'Apparel', promo_misc: 'Promo / Misc', custom: 'Custom' };
 const fmt = (s) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 export default function JobTicketDetail() {
@@ -40,11 +42,22 @@ export default function JobTicketDetail() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('specs');
   const [taskLoading, setTaskLoading] = useState('');
+  const [employees, setEmployees] = useState([]);
+  const [orderSummary, setOrderSummary] = useState(null);
+  const [shortcutMode, setShortcutMode] = useState('');
 
   const load = async () => {
     try {
-      const res = await axios.get(`${API}/job-tickets/${ticketId}`, { headers: hdr() });
-      setTicket(res.data);
+      const [ticketRes, employeesRes] = await Promise.all([
+        axios.get(`${API}/job-tickets/${ticketId}`, { headers: hdr() }),
+        axios.get(`${API}/employees`, { headers: hdr() }).catch(() => ({ data: [] })),
+      ]);
+      setTicket(ticketRes.data);
+      setEmployees(employeesRes.data || []);
+      if (ticketRes.data?.order_id) {
+        const orderRes = await axios.get(`${API}/orders/${ticketRes.data.order_id}`, { headers: hdr() }).catch(() => ({ data: null }));
+        setOrderSummary(orderRes.data);
+      }
     } catch { toast.error('Failed to load ticket'); }
     finally { setLoading(false); }
   };
@@ -94,6 +107,7 @@ export default function JobTicketDetail() {
   const tasks = ticket.production_tasks || [];
   const specs = ticket.specs || {};
   const completedTasks = tasks.filter(t => t.status === 'complete').length;
+  const getEmployeeName = (employeeId) => employees.find((employee) => employee.id === employeeId)?.name || employeeId;
 
   return (
     <div className="space-y-6" data-testid="job-ticket-detail-page">
@@ -114,14 +128,27 @@ export default function JobTicketDetail() {
         </div>
       </div>
 
+      <div className="flex flex-wrap gap-2" data-testid="job-ticket-shortcut-actions">
+        <Button variant="outline" size="sm" onClick={() => setShortcutMode('assign')} data-testid="job-ticket-assign-shortcut-button">
+          <UserPlus className="w-4 h-4 mr-2" /> Assign Employee
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => setShortcutMode('schedule')} data-testid="job-ticket-schedule-shortcut-button">
+          <CalendarPlus className="w-4 h-4 mr-2" /> Add to Schedule
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => setShortcutMode('task')} data-testid="job-ticket-task-shortcut-button">
+          <ListTodo className="w-4 h-4 mr-2" /> Create Task
+        </Button>
+      </div>
+
       {/* Summary Row */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         {[
           { label: 'Price', value: ticket.estimated_price ? `$${ticket.estimated_price.toFixed(2)}` : '-' },
           { label: 'Progress', value: `${Math.round(ticket.progress || 0)}%` },
           { label: 'Tasks', value: tasks.length > 0 ? `${completedTasks}/${tasks.length}` : 'None' },
           { label: 'Due', value: ticket.due_date ? new Date(ticket.due_date).toLocaleDateString() : '-' },
           { label: 'Proof', value: fmt(ticket.proof_approval_status || 'none') },
+          { label: 'Assigned', value: ticket.assigned_user_id ? getEmployeeName(ticket.assigned_user_id) : 'Unassigned' },
         ].map(c => (
           <Card key={c.label} className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardContent className="p-3 text-center">
@@ -220,7 +247,7 @@ export default function JobTicketDetail() {
                           {task.qc_required && <Badge variant="outline" className="text-xs bg-cyan-500/10 text-cyan-400 border-cyan-500/30">QC</Badge>}
                           {task.rework_flag && <Badge className="bg-red-500 text-gray-900 text-xs">Rework</Badge>}
                         </div>
-                        <p className="text-xs text-gray-500 mt-0.5">{fmt(task.department)}{task.assigned_to ? ` | ${task.assigned_to}` : ''}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{fmt(task.department)}{task.assigned_to ? ` | ${getEmployeeName(task.assigned_to)}` : ''}</p>
                       </div>
                     </div>
                     <div className="flex gap-1 flex-shrink-0">
@@ -313,6 +340,16 @@ export default function JobTicketDetail() {
           ))}
         </div>
       )}
+
+      <TicketWorkflowShortcutDialog
+        open={!!shortcutMode}
+        mode={shortcutMode}
+        ticket={ticket}
+        order={orderSummary}
+        employees={employees}
+        onClose={() => setShortcutMode('')}
+        onCompleted={load}
+      />
     </div>
   );
 }

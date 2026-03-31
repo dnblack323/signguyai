@@ -226,8 +226,8 @@ class JobTicketSpecs(BaseModel):
     color_specs: str = ""
     finish: str = ""
     lamination: str = ""
-    grommets: bool = False
-    hemming: bool = False
+    grommets: str = ""  # Changed to str to accept "corners", "every_2ft", etc from schema
+    hemming: str = ""  # Changed to str for consistency
     mounting_type: str = ""
     install_required: bool = False
     double_sided: str = ""  # Changed to str to accept "single"/"double" from frontend

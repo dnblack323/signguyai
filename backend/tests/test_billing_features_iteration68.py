@@ -19,7 +19,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://team-schedule-32.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://multi-tenant-orders-7.preview.emergentagent.com')
 
 # Test credentials
 ADMIN_EMAIL = "thesigntistslab@gmail.com"

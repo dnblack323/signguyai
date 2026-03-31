@@ -132,6 +132,7 @@ class SubstrateType(str, Enum):
 class VehicleType(str, Enum):
     CAR_SEDAN = "car_sedan"
     CAR_SUV = "car_suv"
+    PICKUP = "pickup"
     VAN_MINI = "van_mini"
     VAN_CARGO = "van_cargo"
     VAN_SPRINTER = "van_sprinter"
