@@ -55,6 +55,42 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
   - Drawing types: signature, sketch, markup
   - Object storage service: `/app/backend/services/object_storage.py`
 
+### Session: March 31, 2026 (Bug Fixes & Drawing Phase 2)
+- **Unit of Measure Bug Fix (DONE):**
+  - Root cause: Schema defaults not applied to specs on category load
+  - DynamicCategoryFields now auto-sets defaults from schema fields
+  - Case-insensitive unit comparison in sqFootage and LivePricingPreview
+  - Banner: Width=2, Height=8, Feet now correctly shows 16.00 sq ft
+- **New Order Form Reorder (DONE):**
+  - Customer section: search, name, company, phone, email only
+  - Order Information: source, due date (moved here), event date, internal notes
+  - Job Tickets section
+  - Sketches & Notes: new section with "Add Sketch" drawing pad
+  - Pickup / Delivery: moved to end with method + delivery notes
+  - Attachments / Artwork: moved to end
+  - Save as Draft + Save Order buttons
+- **Order Drafts Feature (DONE):**
+  - "Save as Draft" button creates order with status='draft'
+  - Draft status added to OrderStatus enum and OrderCreate model
+  - Drafts filter in Orders page status dropdown
+  - Draft status badge styling (gray)
+- **Material Price Zero Placeholder Fix (DONE):**
+  - Changed initial cost_per_unit from 0 to '' (empty string)
+  - Clean numeric input without leading zeros
+- **Invoice History Preview Colors Fix (DONE):**
+  - Changed dark slate backgrounds to white/gray-100
+  - All text now dark (gray-900/gray-700) for readability
+  - Preview table has alternating row colors
+  - Suggestion cards and stat cards on white backgrounds
+- **Logo Upload Update Fix (DONE):**
+  - File input reset forces re-mount after upload
+  - Can now upload and then update logo reliably
+- **Category Schema Fetch Reliability (DONE):**
+  - Added retry logic (up to 2 retries with 500ms delay) for schema endpoint
+- **Drawing Pad on New Order Form (DONE):**
+  - DrawingModal supports onLocalSave for pre-order sketches
+  - Sketches stored in-memory until order is saved, then uploaded as order_drawings
+
 ### Session: March 27, 2026 (Bug Fixes & UI Improvements)
 - **Task List Display Bug (FIXED):**
   - Updated AppContext.js to use local state updates instead of refetching
