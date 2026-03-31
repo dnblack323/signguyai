@@ -19,6 +19,35 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
+### Session: April 1, 2026 (Employee Module Consistency Pass)
+- **Employee Admin Lifecycle (DONE):**
+  - Added admin lifecycle support for employee records:
+    - edit employee details/rate/role
+    - deactivate/reactivate employee
+    - reset employee portal PIN
+    - delete employee with related cleanup
+  - Added these controls to the admin Time Clock page as an Employee Directory panel
+- **Employee Portal Config & Permissions (DONE):**
+  - Added `/api/employee-portal/config`
+  - Employee portal now respects tenant `employee_portal_settings` for:
+    - pay access
+    - task access
+    - timeclock/work summary access
+    - job detail visibility
+    - profile edit visibility
+  - Frontend employee portal now stores config and hides disabled nav/sections cleanly
+  - Direct access to disabled employee portal sections now shows blocked/hidden states instead of exposing data
+- **Permission Consistency (DONE):**
+  - Added frontend permission alias mapping so older permission checks resolve correctly to current backend permissions
+  - Admin role now explicitly includes payroll view/manage access in backend role config
+- **Employee UI Quality Fixes (DONE):**
+  - Fixed sticky `0` behavior on employee hourly-rate input
+  - Added missing dialog descriptions on Time Clock admin employee dialogs for accessibility
+- **Testing:**
+  - Self-tested employee create/update/deactivate/reset PIN/delete flows
+  - Self-tested employee portal settings enforcement and permission-gated behavior
+  - Testing agent iteration_83 passed backend 30/30 and frontend 100%
+
 ### Session: March 31, 2026 (AI Racing Tool + Timeclock / Payroll Integration Fixes)
 - **Racing Number AI Tool (DONE):**
   - Fixed the apparent "black screen" on Race Number Designer generation

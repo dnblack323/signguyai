@@ -15,6 +15,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -240,6 +241,7 @@ export default function TimeClock() {
           <DialogContent className="sm:max-w-[400px]">
             <DialogHeader>
               <DialogTitle className="font-heading uppercase">New Employee</DialogTitle>
+              <DialogDescription>Create a new employee for the time clock, payroll, and employee portal system.</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleAddEmployee} className="space-y-4">
               <div className="space-y-2">
@@ -444,7 +446,7 @@ export default function TimeClock() {
 
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="sm:max-w-[460px]">
-          <DialogHeader><DialogTitle>Edit Employee</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Edit Employee</DialogTitle><DialogDescription>Update employee details, role, and hourly rate.</DialogDescription></DialogHeader>
           <form onSubmit={handleSaveEmployee} className="space-y-4">
             <div className="space-y-2"><Label>Name</Label><Input value={employeeForm.name} onChange={(e) => setEmployeeForm((prev) => ({ ...prev, name: e.target.value }))} data-testid="edit-employee-name-input" /></div>
             <div className="grid grid-cols-2 gap-3">
@@ -462,7 +464,7 @@ export default function TimeClock() {
 
       <Dialog open={!!pinResetEmployee} onOpenChange={() => setPinResetEmployee(null)}>
         <DialogContent className="sm:max-w-[360px]">
-          <DialogHeader><DialogTitle>Reset Employee PIN</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Reset Employee PIN</DialogTitle><DialogDescription>Set a new 4-6 digit employee portal PIN.</DialogDescription></DialogHeader>
           <form onSubmit={handleResetPin} className="space-y-4">
             <div className="space-y-2"><Label>New PIN (4-6 digits)</Label><Input value={newPin} onChange={(e) => setNewPin(e.target.value)} maxLength={6} data-testid="employee-pin-reset-input" /></div>
             <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setPinResetEmployee(null)}>Cancel</Button><Button type="submit" data-testid="employee-pin-reset-submit">Save PIN</Button></div>
