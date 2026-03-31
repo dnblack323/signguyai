@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -54,6 +54,7 @@ export const SignatureCaptureModal = ({ open, onClose, context, onSaved }) => {
       <DialogContent className="sm:max-w-[760px]" data-testid="signature-capture-modal">
         <DialogHeader>
           <DialogTitle data-testid="signature-capture-title">Capture Signature</DialogTitle>
+          <DialogDescription>Capture an internal signature for this exact record and store who signed, when, and what was approved.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">

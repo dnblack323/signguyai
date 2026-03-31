@@ -19,6 +19,38 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
+### Session: March 31, 2026 (Signature & Drawing System)
+- **Signature System (DONE):**
+  - Added tenant-level `signature_settings` feature toggle in Company Settings
+  - Signature UI now hides completely when disabled on tested surfaces
+  - New structured `/api/signatures/*` flow with:
+    - per-record signature requirements
+    - email signature request links
+    - public review + sign page (`/customer-sign/:token`)
+    - internal signature capture modal
+  - Signatures store context: parent record, order/job context, type, signer info, signed timestamp, version reference, and image
+  - Order Detail now exposes signatures for:
+    - Order authorization
+    - Change approval
+    - Pickup / delivery / install confirmation
+    - Quote / invoice / work order cards
+  - Added proof signature controls in Approvals preview and document signature controls in Document Library details
+  - Parent order signature history view added
+- **Drawing / Sketch / Markup System (DONE):**
+  - Upgraded drawing pad with undo, pen size selector, color picker, and improved touch support
+  - Added autosave draft behavior for persisted order/item/image drawings
+  - Extended drawing storage to structured contexts:
+    - order-level
+    - job-ticket/item-level
+    - uploaded-image markup
+  - Order Detail Drawings tab now supports combined filtered views: All / Order / Item / Image
+  - Job Ticket Detail now has item-level drawings tab with enable/reveal behavior and image markup actions
+  - Added secure image content endpoint for markup-on-uploaded-image flow
+- **Testing:**
+  - Self-tested: signature capture, email request creation, public signing flow, order/item drawings, image markup API paths
+  - Screenshot smoke test passed for signature UI on Order Detail
+  - Testing agent iteration_78 passed (backend 22/22, frontend 100%; skipped cases only due missing seed data)
+
 ### Session: March 31, 2026 (Order Workflow Hardening & Verification)
 - **Order Workflow Verification Pass (DONE):**
   - Verified full order flow: order creation → job tickets → quote/invoice/work order generation → production start

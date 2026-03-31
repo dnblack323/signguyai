@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Switch } from './ui/switch';
@@ -163,7 +163,10 @@ export const SignatureSection = ({
 
       <Dialog open={showRequestDialog} onOpenChange={setShowRequestDialog}>
         <DialogContent className="sm:max-w-[460px]" data-testid={`signature-request-dialog-${parentRecordId}`}>
-          <DialogHeader><DialogTitle>Request Signature</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Request Signature</DialogTitle>
+            <DialogDescription>Email a secure review-and-sign link for this exact record.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="signature-request-email">Customer Email</Label>
