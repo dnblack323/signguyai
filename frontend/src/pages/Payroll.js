@@ -77,12 +77,16 @@ export default function Payroll() {
   
   // Manual hours state
   const [manualHours, setManualHours] = useState([]);
+  const [timeclockShifts, setTimeclockShifts] = useState([]);
   const [showAddHours, setShowAddHours] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
+  const [editingShift, setEditingShift] = useState(null);
+  const [showEditShift, setShowEditShift] = useState(false);
   const [hoursForm, setHoursForm] = useState({
     employee_id: '', date: new Date().toISOString().split('T')[0],
     hours: '', description: '', job_id: '', task_type: 'general'
   });
+  const [shiftForm, setShiftForm] = useState({ date: new Date().toISOString().split('T')[0], clock_in_time: '08:00', clock_out_time: '17:00', break_minutes: '0', notes: '' });
   
   // Transactions state
   const [transactions, setTransactions] = useState([]);
@@ -133,6 +137,13 @@ export default function Payroll() {
     } catch (err) { console.error('Error loading hours:', err); }
   }, [api, timesheetRange]);
 
+  const loadTimeclockShifts = useCallback(async () => {
+    try {
+      const res = await api.get('/payroll/timeclock-shifts', { params: { start_date: timesheetRange.start, end_date: timesheetRange.end } });
+      setTimeclockShifts(res.data);
+    } catch (err) { console.error('Error loading timeclock shifts:', err); }
+  }, [api, timesheetRange]);
+
   const loadTransactions = useCallback(async () => {
     try {
       const params = {};
@@ -158,6 +169,7 @@ export default function Payroll() {
   useEffect(() => { if (canViewPayroll) loadPayPeriod(); }, [canViewPayroll, loadPayPeriod]);
   useEffect(() => { if (canViewPayroll) loadTimesheet(); }, [canViewPayroll, loadTimesheet]);
   useEffect(() => { if (canViewPayroll) loadManualHours(); }, [canViewPayroll, loadManualHours]);
+  useEffect(() => { if (canViewPayroll) loadTimeclockShifts(); }, [canViewPayroll, loadTimeclockShifts]);
   useEffect(() => { if (canViewPayroll) loadTransactions(); }, [canViewPayroll, loadTransactions]);
 
   if (!canViewPayroll) {
@@ -195,6 +207,7 @@ export default function Payroll() {
       setEditingEntry(null);
       setHoursForm({ employee_id: '', date: new Date().toISOString().split('T')[0], hours: '', description: '', job_id: '', task_type: 'general' });
       loadManualHours();
+      loadTimeclockShifts();
       loadTimesheet();
       loadPayPeriod();
     } catch (err) {
@@ -208,6 +221,7 @@ export default function Payroll() {
       await api.delete(`/payroll/hours/${id}`);
       toast.success('Hours entry deleted');
       loadManualHours();
+      loadTimeclockShifts();
       loadTimesheet();
       loadPayPeriod();
     } catch { toast.error('Failed to delete'); }
@@ -222,6 +236,39 @@ export default function Payroll() {
       task_type: entry.task_type || 'general'
     });
     setShowAddHours(true);
+  };
+
+  const handleEditShift = (entry) => {
+    setEditingShift(entry);
+    setShiftForm({
+      date: entry.date,
+      clock_in_time: entry.clock_in ? entry.clock_in.slice(11, 16) : '08:00',
+      clock_out_time: entry.clock_out ? entry.clock_out.slice(11, 16) : '17:00',
+      break_minutes: String(entry.break_minutes || 0),
+      notes: entry.description || '',
+    });
+    setShowEditShift(true);
+  };
+
+  const handleSaveShift = async (e) => {
+    e.preventDefault();
+    if (!editingShift) return;
+    try {
+      await api.put(`/payroll/timeclock-shifts/${editingShift.id}`, {
+        clock_in: `${shiftForm.date}T${shiftForm.clock_in_time}:00`,
+        clock_out: `${shiftForm.date}T${shiftForm.clock_out_time}:00`,
+        break_minutes: parseFloat(shiftForm.break_minutes || 0),
+        notes: shiftForm.notes,
+      });
+      toast.success('Time clock shift updated');
+      setShowEditShift(false);
+      setEditingShift(null);
+      loadTimeclockShifts();
+      loadTimesheet();
+      loadPayPeriod();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to update shift');
+    }
   };
 
   // Transaction handlers
@@ -248,6 +295,18 @@ export default function Payroll() {
   };
 
   const totals = payPeriod?.totals || {};
+  const combinedEntries = [
+    ...timeclockShifts.map((entry) => ({
+      ...entry,
+      source: 'time_clock',
+      employee_name: employees.find((emp) => emp.id === entry.employee_id)?.name || entry.employee_id,
+      hours: entry.net_hours,
+      gross_pay: (employees.find((emp) => emp.id === entry.employee_id)?.hourly_rate || 0) * (entry.net_hours || 0),
+      task_type: 'time_clock',
+      description: entry.notes || '',
+    })),
+    ...manualHours.map((entry) => ({ ...entry, source: 'manual', employee_name: employees.find((emp) => emp.id === entry.employee_id)?.name || entry.employee_id })),
+  ].sort((a, b) => `${b.date}${b.clock_in || ''}`.localeCompare(`${a.date}${a.clock_in || ''}`));
 
   return (
     <div className="space-y-6 animate-fade-in" data-testid="payroll-page">
@@ -435,7 +494,7 @@ export default function Payroll() {
                                 <TableCell className="text-right text-green-600">{formatCurrency(entry.pay)}</TableCell>
                                 <TableCell className="text-right">
                                   {canEditPayroll && (
-                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleEditHours(entry)} data-testid={`edit-timesheet-${entry.id}`}>
+                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => entry.source === 'time_clock' ? handleEditShift(entry) : handleEditHours(entry)} data-testid={`edit-timesheet-${entry.id}`}>
                                       <Edit2 className="h-3.5 w-3.5 text-gray-400 hover:text-violet-600" />
                                     </Button>
                                   )}
@@ -458,15 +517,15 @@ export default function Payroll() {
           <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Manual Hours</CardTitle>
+                <CardTitle className="text-lg">Time Entries</CardTitle>
                 <Button onClick={() => { setEditingEntry(null); setHoursForm({ employee_id: '', date: new Date().toISOString().split('T')[0], hours: '', description: '', job_id: '', task_type: 'general' }); setShowAddHours(true); }} data-testid="add-hours-btn">
                   <Plus className="h-4 w-4 mr-1.5" /> Add Hours
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              {manualHours.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No manual hours entries. Click "Add Hours" to record hours manually.</p>
+              {combinedEntries.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">No time entries found. Add manual hours or use the employee time clock.</p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -482,25 +541,24 @@ export default function Payroll() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {manualHours.map((entry) => {
-                      const emp = employees.find(e => e.id === entry.employee_id);
+                    {combinedEntries.map((entry) => {
                       return (
                         <TableRow key={entry.id} data-testid={`hours-row-${entry.id}`}>
                           <TableCell className="text-sm">{entry.date}</TableCell>
-                          <TableCell className="font-medium">{emp?.name || entry.employee_id}</TableCell>
+                          <TableCell className="font-medium">{entry.employee_name}</TableCell>
                           <TableCell className="capitalize text-sm">{entry.task_type}</TableCell>
                           <TableCell className="text-sm text-gray-500">{entry.job_name || '-'}</TableCell>
-                          <TableCell className="text-sm text-gray-500">{entry.description || '-'}</TableCell>
+                          <TableCell className="text-sm text-gray-500">{entry.source === 'time_clock' ? `${entry.clock_in?.slice(11, 16) || '--:--'} - ${entry.clock_out?.slice(11, 16) || '--:--'} · Break ${entry.break_minutes || 0}m` : entry.description || '-'}</TableCell>
                           <TableCell className="text-right font-medium">{entry.hours}</TableCell>
                           <TableCell className="text-right text-green-600">{formatCurrency(entry.gross_pay)}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
-                              <Button variant="ghost" size="sm" onClick={() => handleEditHours(entry)} data-testid={`edit-hours-${entry.id}`}>
+                              <Button variant="ghost" size="sm" onClick={() => entry.source === 'time_clock' ? handleEditShift(entry) : handleEditHours(entry)} data-testid={`edit-hours-${entry.id}`}>
                                 <Edit2 className="h-3.5 w-3.5" />
                               </Button>
-                              <Button variant="ghost" size="sm" onClick={() => handleDeleteHours(entry.id)} data-testid={`delete-hours-${entry.id}`}>
+                              {entry.source !== 'time_clock' && <Button variant="ghost" size="sm" onClick={() => handleDeleteHours(entry.id)} data-testid={`delete-hours-${entry.id}`}>
                                 <Trash2 className="h-3.5 w-3.5 text-red-600" />
-                              </Button>
+                              </Button>}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -729,6 +787,42 @@ export default function Payroll() {
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={() => setShowAddTxn(false)}>Cancel</Button>
               <Button type="submit" data-testid="txn-submit-btn">Record</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showEditShift} onOpenChange={setShowEditShift}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>Edit Time Clock Shift</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveShift} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Date</Label>
+              <Input type="date" value={shiftForm.date} onChange={(e) => setShiftForm((prev) => ({ ...prev, date: e.target.value }))} data-testid="shift-date-input" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Clock In</Label>
+                <Input type="time" value={shiftForm.clock_in_time} onChange={(e) => setShiftForm((prev) => ({ ...prev, clock_in_time: e.target.value }))} data-testid="shift-clock-in-input" />
+              </div>
+              <div className="space-y-2">
+                <Label>Clock Out</Label>
+                <Input type="time" value={shiftForm.clock_out_time} onChange={(e) => setShiftForm((prev) => ({ ...prev, clock_out_time: e.target.value }))} data-testid="shift-clock-out-input" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Break Minutes</Label>
+              <Input type="number" min="0" step="1" value={shiftForm.break_minutes} onChange={(e) => setShiftForm((prev) => ({ ...prev, break_minutes: e.target.value }))} data-testid="shift-break-input" />
+            </div>
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Input value={shiftForm.notes} onChange={(e) => setShiftForm((prev) => ({ ...prev, notes: e.target.value }))} data-testid="shift-notes-input" />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setShowEditShift(false)}>Cancel</Button>
+              <Button type="submit" data-testid="shift-submit-btn">Save Shift</Button>
             </div>
           </form>
         </DialogContent>

@@ -91,9 +91,9 @@ export const useAICreditGuard = () => {
       if (rememberPreference) {
         await savePreference(actionType, preflight.credit_cost, preflight.preferences);
       }
+      setDialogState({ open: false, mode: 'confirm', data: null });
       const result = await executeRef.current();
       window.dispatchEvent(new Event('creditsRefresh'));
-      setDialogState({ open: false, mode: 'confirm', data: null });
       pendingPromiseRef.current?.resolve?.(result);
     } catch (error) {
       pendingPromiseRef.current?.reject?.(error);

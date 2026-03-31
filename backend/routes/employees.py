@@ -17,6 +17,15 @@ import uuid
 from server import db, logger, get_current_active_user
 
 from models import UserInDB, PayrollTransactionType
+from services.timeclock_service import (
+    backfill_timeclock_shifts,
+    calculate_shift_metrics,
+    get_timeclock_shifts,
+    get_timeclock_status as get_shared_timeclock_status,
+    get_timeclock_summary_for_date,
+    record_timeclock_action,
+    update_timeclock_shift,
+)
 
 
 # ============== LOCAL MODELS (to be moved to models/employees.py) ==============
@@ -113,11 +122,98 @@ class ManualHoursEntry(BaseModel):
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
+class TimeClockShiftUpdate(BaseModel):
+    clock_in: Optional[str] = None
+    clock_out: Optional[str] = None
+    break_minutes: Optional[float] = None
+    notes: Optional[str] = None
+
+
 # ============== ROUTERS ==============
 
 employees_router = APIRouter(prefix="/employees", tags=["Employees"])
 timeclock_router = APIRouter(prefix="/timeclock", tags=["Time Clock"])
 payroll_router = APIRouter(prefix="/payroll", tags=["Payroll"])
+
+
+async def _get_employee_compensation_snapshot(tenant_id: str, employee: dict, start_date: Optional[str] = None, end_date: Optional[str] = None):
+    emp_id = employee["id"]
+    hourly_rate = employee.get("hourly_rate", 0)
+
+    if start_date and end_date:
+        await backfill_timeclock_shifts(db, tenant_id, emp_id, start_date, end_date)
+    else:
+        earliest_log = await db.timelogs.find_one({"employee_id": emp_id}, {"_id": 0, "timestamp": 1}, sort=[("timestamp", 1)])
+        if earliest_log and earliest_log.get("timestamp"):
+            await backfill_timeclock_shifts(db, tenant_id, emp_id, earliest_log["timestamp"][:10], datetime.now(timezone.utc).date().isoformat())
+
+    job_query = {"employee_id": emp_id, "tenant_id": tenant_id}
+    if start_date and end_date:
+        job_query["start_time"] = {"$gte": f"{start_date}T00:00:00", "$lte": f"{end_date}T23:59:59"}
+    job_entries = await db.job_time_entries.find(job_query, {"_id": 0}).to_list(5000)
+
+    manual_query = {"employee_id": emp_id, "tenant_id": tenant_id}
+    if start_date and end_date:
+        manual_query["date"] = {"$gte": start_date, "$lte": end_date}
+    manual_entries = await db.payroll_hours.find(manual_query, {"_id": 0}).to_list(5000)
+
+    shifts = await get_timeclock_shifts(db, tenant_id, employee_id=emp_id, start_date=start_date, end_date=end_date)
+
+    job_hours = sum((entry.get("duration_minutes", 0) / 60) for entry in job_entries)
+    manual_hours = sum(entry.get("hours", 0) for entry in manual_entries)
+    clock_hours = sum(shift.get("net_hours", 0) for shift in shifts)
+
+    job_details = [{
+        "id": entry.get("id"),
+        "job_id": entry.get("job_id"),
+        "job_name": entry.get("job_name", ""),
+        "task_type": entry.get("task_type", "production"),
+        "date": entry.get("start_time", "")[:10],
+        "hours": round((entry.get("duration_minutes", 0) / 60), 2),
+        "pay": round(entry.get("labor_cost", 0), 2),
+        "source": "job_timer"
+    } for entry in job_entries]
+
+    manual_details = [{
+        "id": entry.get("id"),
+        "job_id": entry.get("job_id"),
+        "job_name": entry.get("job_name", ""),
+        "task_type": entry.get("task_type", "general"),
+        "date": entry.get("date"),
+        "hours": entry.get("hours", 0),
+        "pay": entry.get("gross_pay", 0),
+        "description": entry.get("description", ""),
+        "source": "manual"
+    } for entry in manual_entries]
+
+    shift_details = [{
+        "id": shift.get("id"),
+        "job_id": None,
+        "job_name": None,
+        "task_type": "time_clock",
+        "date": shift.get("date"),
+        "hours": shift.get("net_hours", 0),
+        "pay": round((shift.get("net_hours", 0) * hourly_rate), 2),
+        "description": shift.get("notes", ""),
+        "clock_in": shift.get("clock_in"),
+        "clock_out": shift.get("clock_out"),
+        "break_minutes": shift.get("break_minutes", 0),
+        "source": "time_clock"
+    } for shift in shifts]
+
+    total_hours = round(job_hours + manual_hours + clock_hours, 2)
+    return {
+        "job_entries": job_entries,
+        "manual_entries": manual_entries,
+        "timeclock_shifts": shifts,
+        "job_details": job_details,
+        "manual_details": manual_details,
+        "shift_details": shift_details,
+        "job_hours": round(job_hours, 2),
+        "manual_hours": round(manual_hours, 2),
+        "clock_hours": round(clock_hours, 2),
+        "total_hours": total_hours,
+    }
 
 
 # ============== EMPLOYEE ROUTES ==============
@@ -197,49 +293,24 @@ async def update_employee(
 # ============== TIME CLOCK ROUTES ==============
 
 @timeclock_router.post("", response_model=TimeLog)
-async def clock_action(input: TimeLogCreate):
+async def clock_action(input: TimeLogCreate, current_user: UserInDB = Depends(get_current_active_user)):
     """Record a time clock action (start_work, break_start, break_end, end_work)"""
-    valid_actions = ["start_work", "break_start", "break_end", "end_work"]
-    if input.action not in valid_actions:
-        raise HTTPException(status_code=400, detail=f"Invalid action. Must be one of: {valid_actions}")
-    
-    # Get today's logs for this employee
-    today = datetime.now(timezone.utc).date().isoformat()
-    today_logs = await db.timelogs.find({
-        "employee_id": input.employee_id,
-        "timestamp": {"$regex": f"^{today}"}
-    }, {"_id": 0}).sort("timestamp", 1).to_list(100)
-    
-    # Validate sequence
-    last_action = today_logs[-1]["action"] if today_logs else None
-    
-    valid_sequences = {
-        None: ["start_work"],
-        "start_work": ["break_start", "end_work"],
-        "break_start": ["break_end"],
-        "break_end": ["break_start", "end_work"],
-        "end_work": ["start_work"]
-    }
-    
-    if input.action not in valid_sequences.get(last_action, []):
-        raise HTTPException(
-            status_code=400, 
-            detail=f"Invalid sequence. After '{last_action}', valid actions are: {valid_sequences.get(last_action, [])}"
-        )
-    
-    time_log = TimeLog(
-        employee_id=input.employee_id,
-        action=input.action,
-        timestamp=datetime.now(timezone.utc).isoformat()
-    )
-    doc = time_log.model_dump()
-    await db.timelogs.insert_one(doc)
-    return time_log
+    employee = await db.employees.find_one({"id": input.employee_id, "tenant_id": current_user.tenant_id}, {"_id": 0, "id": 1})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    try:
+        log = await record_timeclock_action(db, current_user.tenant_id, input.employee_id, input.action)
+        return TimeLog(**log)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @timeclock_router.get("/{employee_id}/today")
-async def get_today_logs(employee_id: str):
+async def get_today_logs(employee_id: str, current_user: UserInDB = Depends(get_current_active_user)):
     """Get today's time logs for an employee"""
+    employee = await db.employees.find_one({"id": employee_id, "tenant_id": current_user.tenant_id}, {"_id": 0, "id": 1})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
     today = datetime.now(timezone.utc).date().isoformat()
     logs = await db.timelogs.find({
         "employee_id": employee_id,
@@ -249,71 +320,23 @@ async def get_today_logs(employee_id: str):
 
 
 @timeclock_router.get("/{employee_id}/summary")
-async def get_shift_summary(employee_id: str, date: Optional[str] = None):
+async def get_shift_summary(employee_id: str, date: Optional[str] = None, current_user: UserInDB = Depends(get_current_active_user)):
     """Get work/break time summary for an employee on a specific date"""
     if not date:
         date = datetime.now(timezone.utc).date().isoformat()
-    
-    logs = await db.timelogs.find({
-        "employee_id": employee_id,
-        "timestamp": {"$regex": f"^{date}"}
-    }, {"_id": 0}).sort("timestamp", 1).to_list(100)
-    
-    work_minutes = 0
-    break_minutes = 0
-    work_start = None
-    break_start = None
-    
-    for log in logs:
-        ts = datetime.fromisoformat(log["timestamp"].replace("Z", "+00:00"))
-        action = log["action"]
-        
-        if action == "start_work":
-            work_start = ts
-        elif action == "break_start" and work_start:
-            break_start = ts
-        elif action == "break_end" and break_start:
-            break_minutes += (ts - break_start).total_seconds() / 60
-            break_start = None
-        elif action == "end_work" and work_start:
-            work_minutes += (ts - work_start).total_seconds() / 60
-            work_start = None
-    
-    return {
-        "employee_id": employee_id,
-        "date": date,
-        "work_minutes": round(work_minutes, 2),
-        "break_minutes": round(break_minutes, 2),
-        "net_minutes": round(work_minutes - break_minutes, 2),
-        "net_hours": round((work_minutes - break_minutes) / 60, 2)
-    }
+    employee = await db.employees.find_one({"id": employee_id, "tenant_id": current_user.tenant_id}, {"_id": 0, "id": 1})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    return await get_timeclock_summary_for_date(db, current_user.tenant_id, employee_id, date)
 
 
 @timeclock_router.get("/{employee_id}/status")
-async def get_clock_status(employee_id: str):
+async def get_clock_status(employee_id: str, current_user: UserInDB = Depends(get_current_active_user)):
     """Get current clock status for an employee"""
-    today = datetime.now(timezone.utc).date().isoformat()
-    logs = await db.timelogs.find({
-        "employee_id": employee_id,
-        "timestamp": {"$regex": f"^{today}"}
-    }, {"_id": 0}).sort("timestamp", -1).to_list(1)
-    
-    if not logs:
-        return {"status": "not_started", "last_action": None}
-    
-    last_log = logs[0]
-    status_map = {
-        "start_work": "working",
-        "break_start": "on_break",
-        "break_end": "working",
-        "end_work": "finished"
-    }
-    
-    return {
-        "status": status_map.get(last_log["action"], "unknown"),
-        "last_action": last_log["action"],
-        "last_timestamp": last_log["timestamp"]
-    }
+    employee = await db.employees.find_one({"id": employee_id, "tenant_id": current_user.tenant_id}, {"_id": 0, "id": 1})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    return await get_shared_timeclock_status(db, current_user.tenant_id, employee_id)
 
 
 # ============== PAYROLL ROUTES ==============
@@ -373,9 +396,9 @@ async def get_payroll_balance(
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
     
+    snapshot = await _get_employee_compensation_snapshot(current_user.tenant_id, employee)
+    total_earnings = round(employee.get("hourly_rate", 0) * snapshot["total_hours"], 2)
     transactions = await db.payroll_transactions.find({"employee_id": employee_id}, {"_id": 0}).to_list(1000)
-    
-    total_earnings = sum(t["amount"] for t in transactions if t["type"] == "earnings")
     total_advances = sum(t["amount"] for t in transactions if t["type"] == "advance")
     total_payments = sum(t["amount"] for t in transactions if t["type"] == "payment")
     
@@ -405,12 +428,9 @@ async def get_payroll_report(
     report = []
     
     for emp in employees:
-        transactions = await db.payroll_transactions.find({
-            "employee_id": emp["id"],
-            "date": {"$gte": start_date, "$lte": end_date}
-        }, {"_id": 0}).to_list(1000)
-        
-        earnings = sum(t["amount"] for t in transactions if t["type"] == "earnings")
+        snapshot = await _get_employee_compensation_snapshot(current_user.tenant_id, emp, start_date, end_date)
+        earnings = round(emp.get("hourly_rate", 0) * snapshot["total_hours"], 2)
+        transactions = await db.payroll_transactions.find({"employee_id": emp["id"], "date": {"$gte": start_date, "$lte": end_date}}, {"_id": 0}).to_list(1000)
         advances = sum(t["amount"] for t in transactions if t["type"] == "advance")
         payments = sum(t["amount"] for t in transactions if t["type"] == "payment")
         
@@ -418,6 +438,7 @@ async def get_payroll_report(
             "employee_id": emp["id"],
             "employee_name": emp["name"],
             "hourly_rate": emp.get("hourly_rate", 0),
+            "hours": snapshot["total_hours"],
             "earnings": earnings,
             "advances": advances,
             "payments": payments,
@@ -542,6 +563,34 @@ async def get_manual_hours(
     return entries
 
 
+@payroll_router.get("/timeclock-shifts")
+async def get_saved_timeclock_shifts(
+    employee_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    target_employee_ids = [employee_id] if employee_id else [emp["id"] for emp in await db.employees.find({"tenant_id": current_user.tenant_id}, {"_id": 0, "id": 1}).to_list(1000)]
+    if start_date and end_date:
+        for emp_id in target_employee_ids:
+            await backfill_timeclock_shifts(db, current_user.tenant_id, emp_id, start_date, end_date)
+    shifts = await get_timeclock_shifts(db, current_user.tenant_id, employee_id=employee_id, start_date=start_date, end_date=end_date)
+    return shifts
+
+
+@payroll_router.put("/timeclock-shifts/{shift_id}")
+async def edit_timeclock_shift(
+    shift_id: str,
+    input: TimeClockShiftUpdate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    try:
+        updated = await update_timeclock_shift(db, current_user.tenant_id, shift_id, {k: v for k, v in input.model_dump().items() if v is not None})
+        return updated
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 # ============== TIMESHEET & PAY PERIOD ROUTES ==============
 
 @payroll_router.get("/timesheet")
@@ -559,70 +608,16 @@ async def get_timesheet(
     
     timesheet = []
     for emp in employees:
-        emp_id = emp["id"]
         hourly_rate = emp.get("hourly_rate", 0)
-        
-        # Get job time entries for this employee in range
-        job_entries = await db.job_time_entries.find({
-            "employee_id": emp_id,
-            "tenant_id": current_user.tenant_id,
-            "start_time": {"$gte": f"{start_date}T00:00:00", "$lte": f"{end_date}T23:59:59"}
-        }, {"_id": 0}).to_list(1000)
-        
-        # Get manual hours entries
-        manual_entries = await db.payroll_hours.find({
-            "employee_id": emp_id,
-            "tenant_id": current_user.tenant_id,
-            "date": {"$gte": start_date, "$lte": end_date}
-        }, {"_id": 0}).to_list(1000)
-        
-        # Calculate totals from job time entries
-        job_hours = 0
-        job_pay = 0
-        job_details = []
-        for je in job_entries:
-            minutes = je.get("duration_minutes", 0)
-            if minutes:
-                hours = minutes / 60
-                job_hours += hours
-                cost = je.get("labor_cost", 0)
-                job_pay += cost
-                job_details.append({
-                    "id": je.get("id"),
-                    "job_id": je.get("job_id"),
-                    "job_name": je.get("job_name", ""),
-                    "task_type": je.get("task_type", "production"),
-                    "date": je.get("start_time", "")[:10],
-                    "hours": round(hours, 2),
-                    "pay": round(cost, 2),
-                    "source": "job_timer"
-                })
-        
-        # Calculate totals from manual entries
-        manual_hours = sum(m.get("hours", 0) for m in manual_entries)
-        manual_pay = sum(m.get("gross_pay", 0) for m in manual_entries)
-        manual_details = [{
-            "id": m.get("id"),
-            "job_id": m.get("job_id"),
-            "job_name": m.get("job_name", ""),
-            "task_type": m.get("task_type", "general"),
-            "date": m.get("date"),
-            "hours": m.get("hours", 0),
-            "pay": m.get("gross_pay", 0),
-            "description": m.get("description", ""),
-            "source": "manual"
-        } for m in manual_entries]
-        
-        total_hours = round(job_hours + manual_hours, 2)
-        total_pay = round(job_pay + manual_pay, 2)
-        
+        snapshot = await _get_employee_compensation_snapshot(current_user.tenant_id, emp, start_date, end_date)
+        total_hours = snapshot["total_hours"]
         # Overtime calc: anything over 40 hours/week is 1.5x
         regular_hours = min(total_hours, 40)
         overtime_hours = max(total_hours - 40, 0)
         overtime_pay = round(overtime_hours * hourly_rate * 0.5, 2)  # Extra 0.5x on top of regular
         
         timesheet.append({
-            "employee_id": emp_id,
+            "employee_id": emp["id"],
             "employee_name": emp.get("name"),
             "hourly_rate": hourly_rate,
             "total_hours": total_hours,
@@ -630,8 +625,8 @@ async def get_timesheet(
             "overtime_hours": round(overtime_hours, 2),
             "regular_pay": round(regular_hours * hourly_rate, 2),
             "overtime_pay": overtime_pay,
-            "total_pay": round(total_pay + overtime_pay, 2),
-            "entries": sorted(job_details + manual_details, key=lambda x: x.get("date", ""), reverse=True)
+            "total_pay": round((total_hours * hourly_rate) + overtime_pay, 2),
+            "entries": sorted(snapshot["job_details"] + snapshot["manual_details"] + snapshot["shift_details"], key=lambda x: (x.get("date", ""), x.get("clock_in", "")), reverse=True)
         })
     
     return {
@@ -682,50 +677,9 @@ async def get_pay_period_summary(
     
     summary = []
     for emp in employees:
-        emp_id = emp["id"]
         hourly_rate = emp.get("hourly_rate", 0)
-        
-        # Get all hours from ALL sources
-        # 1. Job time entries
-        job_entries = await db.job_time_entries.find({
-            "employee_id": emp_id,
-            "tenant_id": current_user.tenant_id,
-            "start_time": {"$gte": f"{start_str}T00:00:00", "$lte": f"{end_str}T23:59:59"}
-        }, {"_id": 0}).to_list(1000)
-        
-        # 2. Manual payroll hours
-        manual_entries = await db.payroll_hours.find({
-            "employee_id": emp_id,
-            "tenant_id": current_user.tenant_id,
-            "date": {"$gte": start_str, "$lte": end_str}
-        }, {"_id": 0}).to_list(1000)
-        
-        # 3. Time clock punches (timelogs) - CRITICAL: This was missing!
-        timelogs = await db.timelogs.find({
-            "employee_id": emp_id,
-            "tenant_id": current_user.tenant_id,
-            "clock_in": {"$gte": f"{start_str}T00:00:00", "$lte": f"{end_str}T23:59:59"}
-        }, {"_id": 0}).to_list(1000)
-        
-        job_hours = sum((e.get("duration_minutes", 0) / 60) for e in job_entries)
-        manual_hours_total = sum(m.get("hours", 0) for m in manual_entries)
-        
-        # Calculate clock hours from timelogs
-        clock_hours = 0
-        for log in timelogs:
-            if log.get("clock_out") and log.get("clock_in"):
-                try:
-                    clock_in = datetime.fromisoformat(log["clock_in"].replace("Z", "+00:00"))
-                    clock_out = datetime.fromisoformat(log["clock_out"].replace("Z", "+00:00"))
-                    duration = (clock_out - clock_in).total_seconds() / 3600  # hours
-                    # Subtract break time if recorded
-                    break_mins = log.get("break_minutes", 0) or 0
-                    duration -= break_mins / 60
-                    clock_hours += max(duration, 0)
-                except Exception:
-                    pass
-        
-        total_hours = round(job_hours + manual_hours_total + clock_hours, 2)
+        snapshot = await _get_employee_compensation_snapshot(current_user.tenant_id, emp, start_str, end_str)
+        total_hours = snapshot["total_hours"]
         
         # Overtime threshold depends on period type
         ot_threshold = 80 if period_type == "biweekly" else 40
@@ -736,10 +690,7 @@ async def get_pay_period_summary(
         overtime_pay = round(overtime_hours * hourly_rate * 1.5, 2)
         
         # Get transactions in this period
-        transactions = await db.payroll_transactions.find({
-            "employee_id": emp_id,
-            "date": {"$gte": start_str, "$lte": end_str}
-        }, {"_id": 0}).to_list(1000)
+        transactions = await db.payroll_transactions.find({"employee_id": emp["id"], "date": {"$gte": start_str, "$lte": end_str}}, {"_id": 0}).to_list(1000)
         
         advances = sum(t["amount"] for t in transactions if t["type"] == "advance")
         payments = sum(t["amount"] for t in transactions if t["type"] == "payment")
@@ -747,36 +698,16 @@ async def get_pay_period_summary(
         gross_pay = regular_pay + overtime_pay
         net_owed = gross_pay - advances - payments
         
-        # Build daily breakdown
         daily = {}
-        for je in job_entries:
-            day = je.get("start_time", "")[:10]
-            if day not in daily:
-                daily[day] = 0
-            daily[day] += je.get("duration_minutes", 0) / 60
-        for me in manual_entries:
-            day = me.get("date", "")
-            if day not in daily:
-                daily[day] = 0
-            daily[day] += me.get("hours", 0)
-        # Add clock in/out hours to daily breakdown
-        for log in timelogs:
-            if log.get("clock_out") and log.get("clock_in"):
-                try:
-                    clock_in = datetime.fromisoformat(log["clock_in"].replace("Z", "+00:00"))
-                    clock_out = datetime.fromisoformat(log["clock_out"].replace("Z", "+00:00"))
-                    day = clock_in.date().isoformat()
-                    if day not in daily:
-                        daily[day] = 0
-                    duration = (clock_out - clock_in).total_seconds() / 3600
-                    break_mins = log.get("break_minutes", 0) or 0
-                    duration -= break_mins / 60
-                    daily[day] += max(duration, 0)
-                except Exception:
-                    pass
+        for entry in snapshot["job_details"] + snapshot["manual_details"] + snapshot["shift_details"]:
+            day = entry.get("date", "")
+            if not day:
+                continue
+            daily.setdefault(day, 0)
+            daily[day] += float(entry.get("hours", 0) or 0)
         
         summary.append({
-            "employee_id": emp_id,
+            "employee_id": emp["id"],
             "employee_name": emp.get("name"),
             "hourly_rate": hourly_rate,
             "total_hours": total_hours,

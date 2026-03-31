@@ -18,6 +18,7 @@ import uuid
 import os
 
 from server import db, SECRET_KEY, ALGORITHM, pwd_context
+from services.timeclock_service import backfill_timeclock_shifts, get_timeclock_shifts, get_timeclock_status as get_shared_timeclock_status, record_timeclock_action
 
 
 router = APIRouter(prefix="/employee-portal", tags=["Employee Portal"])
@@ -277,78 +278,18 @@ async def get_time_clock_status(authorization: str = Header(default="")):
     employee = await get_current_employee(token)
     
     today = datetime.now(timezone.utc).date().isoformat()
-    
-    # Get today's time logs
-    logs = await db.timelogs.find({
-        "employee_id": employee["id"],
-        "timestamp": {"$regex": f"^{today}"}
-    }, {"_id": 0}).sort("timestamp", 1).to_list(100)
-    
-    is_clocked_in = False
-    current_status = None
-    clocked_in_at = None
-    total_work_seconds = 0
-    total_break_seconds = 0
-    
-    if logs:
-        # Determine current status from last log
-        last_log = logs[-1]
-        last_action = last_log.get("action")
-        
-        if last_action in ["start_work", "break_end"]:
-            is_clocked_in = True
-            current_status = "working"
-        elif last_action == "break_start":
-            is_clocked_in = True
-            current_status = "on_break"
-        elif last_action == "end_work":
-            is_clocked_in = False
-            current_status = None
-        
-        # Find clock in time
-        for log in logs:
-            if log.get("action") == "start_work":
-                clocked_in_at = log.get("timestamp")
-                break
-        
-        # Calculate hours worked
-        work_start = None
-        break_start = None
-        
-        for log in logs:
-            action = log.get("action")
-            ts = datetime.fromisoformat(log.get("timestamp").replace("Z", "+00:00"))
-            
-            if action == "start_work":
-                work_start = ts
-            elif action == "break_start" and work_start:
-                total_work_seconds += (ts - work_start).total_seconds()
-                break_start = ts
-                work_start = None
-            elif action == "break_end":
-                if break_start:
-                    total_break_seconds += (ts - break_start).total_seconds()
-                work_start = ts
-                break_start = None
-            elif action == "end_work":
-                if work_start:
-                    total_work_seconds += (ts - work_start).total_seconds()
-                work_start = None
-        
-        # If still working, add time up to now
-        if work_start:
-            now = datetime.now(timezone.utc)
-            total_work_seconds += (now - work_start).total_seconds()
-        if break_start:
-            now = datetime.now(timezone.utc)
-            total_break_seconds += (now - break_start).total_seconds()
+    status = await get_shared_timeclock_status(db, employee["tenant_id"], employee["id"])
+    await backfill_timeclock_shifts(db, employee["tenant_id"], employee["id"], today, today)
+    shifts = await get_timeclock_shifts(db, employee["tenant_id"], employee_id=employee["id"], start_date=today, end_date=today)
+    total_hours = round(sum(shift.get("net_hours", 0) for shift in shifts), 2)
+    break_hours = round(sum((shift.get("break_minutes", 0) or 0) / 60 for shift in shifts), 2)
     
     return TimeClockStatus(
-        is_clocked_in=is_clocked_in,
-        current_status=current_status,
-        clocked_in_at=clocked_in_at,
-        total_hours_today=round(total_work_seconds / 3600, 2),
-        break_time_today=round(total_break_seconds / 3600, 2)
+        is_clocked_in=status.get("status") in {"working", "on_break"},
+        current_status=status.get("status") if status.get("status") != "not_started" else None,
+        clocked_in_at=status.get("last_timestamp"),
+        total_hours_today=total_hours,
+        break_time_today=break_hours,
     )
 
 
@@ -362,18 +303,11 @@ async def punch_time_clock(action: str, authorization: str = Header(default=""))
     if action not in valid_actions:
         raise HTTPException(status_code=400, detail=f"Invalid action. Must be one of: {valid_actions}")
     
-    # Create time log
-    log = {
-        "id": str(uuid.uuid4()),
-        "employee_id": employee["id"],
-        "action": action,
-        "timestamp": datetime.now(timezone.utc).isoformat()
-    }
-    
-    await db.timelogs.insert_one(log)
-    log.pop("_id", None)
-    
-    return {"message": f"Successfully recorded: {action.replace('_', ' ')}", "log": log}
+    try:
+        log = await record_timeclock_action(db, employee["tenant_id"], employee["id"], action)
+        return {"message": f"Successfully recorded: {action.replace('_', ' ')}", "log": log}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/time-clock/history", response_model=List[TimeLogEntry])
@@ -404,82 +338,35 @@ async def get_pay_summary(authorization: str = Header(default="")):
     employee = await get_current_employee(token)
     
     hourly_rate = employee.get("hourly_rate", 0)
-    
-    # Calculate current pay period (assume weekly, Monday-Sunday)
     today = datetime.now(timezone.utc)
-    days_since_monday = today.weekday()
-    period_start = (today - timedelta(days=days_since_monday)).replace(hour=0, minute=0, second=0, microsecond=0)
-    
-    # Get time logs for current period
-    current_period_logs = await db.timelogs.find({
-        "employee_id": employee["id"],
-        "timestamp": {"$gte": period_start.isoformat()}
-    }, {"_id": 0}).to_list(500)
-    
-    # Calculate hours for current period
-    current_period_hours = 0
-    work_start = None
-    
-    for log in sorted(current_period_logs, key=lambda x: x.get("timestamp", "")):
-        action = log.get("action")
-        ts = datetime.fromisoformat(log.get("timestamp").replace("Z", "+00:00"))
-        
-        if action == "start_work":
-            work_start = ts
-        elif action in ["break_start", "end_work"] and work_start:
-            current_period_hours += (ts - work_start).total_seconds() / 3600
-            work_start = None
-        elif action == "break_end":
-            work_start = ts
-    
-    # If still working, add time up to now
-    if work_start:
-        current_period_hours += (datetime.now(timezone.utc) - work_start).total_seconds() / 3600
-    
+    current_period_start = (today - timedelta(days=today.weekday())).date().isoformat()
+    current_period_end = today.date().isoformat()
+    year_start = datetime(today.year, 1, 1, tzinfo=timezone.utc).date().isoformat()
+
+    await backfill_timeclock_shifts(db, employee["tenant_id"], employee["id"], year_start, current_period_end)
+    current_shifts = await get_timeclock_shifts(db, employee["tenant_id"], employee_id=employee["id"], start_date=current_period_start, end_date=current_period_end)
+    ytd_shifts = await get_timeclock_shifts(db, employee["tenant_id"], employee_id=employee["id"], start_date=year_start, end_date=current_period_end)
+
+    current_manual = await db.payroll_hours.find({"employee_id": employee["id"], "tenant_id": employee["tenant_id"], "date": {"$gte": current_period_start, "$lte": current_period_end}}, {"_id": 0}).to_list(1000)
+    ytd_manual = await db.payroll_hours.find({"employee_id": employee["id"], "tenant_id": employee["tenant_id"], "date": {"$gte": year_start, "$lte": current_period_end}}, {"_id": 0}).to_list(5000)
+    current_job_entries = await db.job_time_entries.find({"employee_id": employee["id"], "tenant_id": employee["tenant_id"], "start_time": {"$gte": f"{current_period_start}T00:00:00", "$lte": f"{current_period_end}T23:59:59"}}, {"_id": 0}).to_list(1000)
+    ytd_job_entries = await db.job_time_entries.find({"employee_id": employee["id"], "tenant_id": employee["tenant_id"], "start_time": {"$gte": f"{year_start}T00:00:00", "$lte": f"{current_period_end}T23:59:59"}}, {"_id": 0}).to_list(5000)
+
+    current_period_hours = round(sum(shift.get("net_hours", 0) for shift in current_shifts) + sum(entry.get("hours", 0) for entry in current_manual) + sum((entry.get("duration_minutes", 0) / 60) for entry in current_job_entries), 2)
+    ytd_hours = round(sum(shift.get("net_hours", 0) for shift in ytd_shifts) + sum(entry.get("hours", 0) for entry in ytd_manual) + sum((entry.get("duration_minutes", 0) / 60) for entry in ytd_job_entries), 2)
+
     current_period_earnings = current_period_hours * hourly_rate
-    
-    # Get YTD data
-    year_start = datetime(today.year, 1, 1, tzinfo=timezone.utc).isoformat()
-    ytd_logs = await db.timelogs.find({
-        "employee_id": employee["id"],
-        "timestamp": {"$gte": year_start}
-    }, {"_id": 0}).to_list(10000)
-    
-    ytd_hours = 0
-    work_start = None
-    for log in sorted(ytd_logs, key=lambda x: x.get("timestamp", "")):
-        action = log.get("action")
-        ts = datetime.fromisoformat(log.get("timestamp").replace("Z", "+00:00"))
-        
-        if action == "start_work":
-            work_start = ts
-        elif action in ["break_start", "end_work"] and work_start:
-            ytd_hours += (ts - work_start).total_seconds() / 3600
-            work_start = None
-        elif action == "break_end":
-            work_start = ts
-    
-    if work_start:
-        ytd_hours += (datetime.now(timezone.utc) - work_start).total_seconds() / 3600
-    
     ytd_earnings = ytd_hours * hourly_rate
-    
-    # Get last payment
-    last_payment = await db.payroll.find_one(
+
+    last_payment = await db.payroll_transactions.find_one(
         {"employee_id": employee["id"], "type": "payment"},
         {"_id": 0},
         sort=[("date", -1)]
     )
-    
-    # Calculate balance owed (earnings - payments)
-    total_payments = 0
-    payments = await db.payroll.find(
-        {"employee_id": employee["id"], "type": "payment"},
-        {"_id": 0}
-    ).to_list(1000)
-    total_payments = sum(p.get("amount", 0) for p in payments)
-    
-    balance_owed = ytd_earnings - total_payments
+    transactions = await db.payroll_transactions.find({"employee_id": employee["id"]}, {"_id": 0}).to_list(5000)
+    total_advances = sum(item.get("amount", 0) for item in transactions if item.get("type") == "advance")
+    total_payments = sum(item.get("amount", 0) for item in transactions if item.get("type") == "payment")
+    balance_owed = ytd_earnings - total_advances - total_payments
     
     return PaySummary(
         current_period_earnings=round(current_period_earnings, 2),
@@ -601,22 +488,9 @@ async def get_employee_work_summary(authorization: str = Header(default="")):
     status = await get_time_clock_status(authorization)
     today_hours = status.total_hours_today
 
-    week_logs = await db.timelogs.find(
-        {"employee_id": employee["id"], "timestamp": {"$gte": f"{week_start}T00:00:00"}},
-        {"_id": 0}
-    ).sort("timestamp", 1).to_list(500)
-    week_hours = 0
-    work_start = None
-    for log in week_logs:
-        action = log.get("action")
-        ts = datetime.fromisoformat(log.get("timestamp").replace("Z", "+00:00"))
-        if action == "start_work":
-            work_start = ts
-        elif action in ["break_start", "end_work"] and work_start:
-            week_hours += (ts - work_start).total_seconds() / 3600
-            work_start = None
-        elif action == "break_end":
-            work_start = ts
+    await backfill_timeclock_shifts(db, employee["tenant_id"], employee["id"], week_start, today)
+    week_shifts = await get_timeclock_shifts(db, employee["tenant_id"], employee_id=employee["id"], start_date=week_start, end_date=today)
+    week_hours = sum(shift.get("net_hours", 0) for shift in week_shifts)
 
     completed_stages_today = await db.production_timelines.count_documents({
         "tenant_id": employee["tenant_id"],
