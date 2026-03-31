@@ -20,6 +20,7 @@ const primaryNavItems = [
   { id: 'team', label: 'Team', icon: UserCog, path: '/payroll' },
   { id: 'ai-tools', label: 'AI Tools', icon: Sparkles, path: '/ai-tools' },
   { id: 'financials', label: 'Financials', icon: DollarSign, path: '/financials' },
+  { id: 'productivity', label: 'Productivity', icon: BarChart3, path: '/productivity' },
   { id: 'reports', label: 'Reports', icon: BarChart3, path: '/reports' },
   { id: 'community', label: 'Community', icon: MessageCircle, path: '/community' },
   { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
@@ -64,9 +65,14 @@ export const tabSubItems = {
   financials: [
     { label: 'Daily Sales & Expenses', icon: DollarSign, path: '/financials' },
   ],
+  productivity: [
+    { label: 'Dashboard', icon: BarChart3, path: '/productivity?view=dashboard' },
+    { label: 'Calendar', icon: Calendar, path: '/productivity?view=calendar' },
+    { label: 'Kanban Board', icon: Clipboard, path: '/productivity?view=kanban' },
+    { label: 'Task List', icon: ClipboardList, path: '/productivity?view=tasks' },
+  ],
   reports: [
     { label: 'Profit & Margin Analytics', icon: BarChart3, path: '/reports/profit-margin' },
-    { label: 'Productivity', icon: BarChart3, path: '/productivity' },
     { label: 'Sales Analytics', icon: DollarSign, path: '/financials' },
     { label: 'Webstore Analytics', icon: Store, path: '/webstores' },
   ],
@@ -120,7 +126,7 @@ const routeToNavItem = {
   '/financials': 'financials',
   '/reports': 'reports',
   '/reports/profit-margin': 'reports',
-  '/productivity': 'reports',
+  '/productivity': 'productivity',
   '/community': 'community',
   '/docs': 'community',
   '/settings': 'settings',

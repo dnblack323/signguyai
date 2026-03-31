@@ -74,10 +74,18 @@ const mobileNavItems = [
     ]
   },
   { 
+    id: 'productivity', label: 'Productivity', icon: BarChart3, path: '/productivity',
+    children: [
+      { label: 'Dashboard', path: '/productivity?view=dashboard' },
+      { label: 'Calendar', path: '/productivity?view=calendar' },
+      { label: 'Kanban Board', path: '/productivity?view=kanban' },
+      { label: 'Task List', path: '/productivity?view=tasks' },
+    ]
+  },
+  { 
     id: 'reports', label: 'Reports', icon: BarChart3, path: '/financials',
     children: [
       { label: 'Financials', path: '/financials' },
-      { label: 'Productivity', path: '/productivity' },
       { label: 'Profit & Margin', path: '/reports/profit-margin' },
     ]
   },

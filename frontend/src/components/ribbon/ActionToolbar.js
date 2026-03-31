@@ -11,7 +11,8 @@ import { useState, useRef, useEffect } from 'react';
 import { tabSubItems } from './PrimaryNav';
 
 const ToolbarButton = ({ icon: Icon, label, onClick, active = false, route, currentPath, href }) => {
-  const isActive = active || (route && currentPath?.startsWith(route));
+  const routeBase = route?.split('?')[0];
+  const isActive = active || (routeBase && currentPath?.startsWith(routeBase));
   
   if (href) {
     return (
@@ -63,6 +64,9 @@ const quickActions = {
   ],
   customers: [
     { icon: UserPlus, label: 'New Customer', route: '/customers?new=true' },
+  ],
+  productivity: [
+    { icon: Plus, label: 'New Task', route: '/productivity?view=tasks' },
   ],
   webstores: [
     { icon: Plus, label: 'New Store', route: '/webstores?new=true' },

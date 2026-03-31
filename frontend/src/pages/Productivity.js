@@ -1,481 +1,166 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { format } from 'date-fns';
+import { BarChart3, CalendarDays, KanbanSquare, ListTodo, Loader2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Checkbox } from '../components/ui/checkbox';
-import { Label } from '../components/ui/label';
-import { Badge } from '../components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '../components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Calendar } from '../components/ui/calendar';
-import { formatDate, getStatusColor, cn } from '../lib/utils';
-import { Plus, CalendarDays, ListTodo, LayoutGrid, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { ProductivityFiltersBar } from '../components/productivity/ProductivityFiltersBar';
+import { ProductivityItemDialog } from '../components/productivity/ProductivityItemDialog';
+import { ProductivityDashboardView } from '../components/productivity/ProductivityDashboardView';
+import { ProductivityTaskListView } from '../components/productivity/ProductivityTaskListView';
+import { ProductivityKanbanView } from '../components/productivity/ProductivityKanbanView';
+import { ProductivityCalendarView } from '../components/productivity/ProductivityCalendarView';
+import { parseItemDate, sortItemsByDate } from '../lib/productivity';
+
+const buildCommonParams = (filters) => {
+  const params = { include_completed: filters.includeCompleted };
+  if (filters.search) params.search = filters.search;
+  if (filters.assignedUserId) params.assigned_user_ids = filters.assignedUserId;
+  if (filters.status) params.statuses = filters.status;
+  if (filters.itemTypes.length) params.item_types = filters.itemTypes.join(',');
+  return params;
+};
+
+const VIEW_OPTIONS = [
+  { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+  { id: 'calendar', label: 'Calendar', icon: CalendarDays },
+  { id: 'kanban', label: 'Kanban Board', icon: KanbanSquare },
+  { id: 'tasks', label: 'Task List', icon: ListTodo },
+];
 
 export default function Productivity() {
-  const { 
-    tasks, jobs, fetchTasks, fetchJobs, updateJob,
-    createTask, updateTask, deleteTask 
-  } = useApp();
-  const navigate = useNavigate();
+  const { api, employees, fetchEmployees } = useApp();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState('list');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [draggedJob, setDraggedJob] = useState(null);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    job_id: '',
-    due_date: '',
-    is_complete: false
+  const [activeView, setActiveView] = useState(() => searchParams.get('view') || 'calendar');
+  const [calendarView, setCalendarView] = useState(() => searchParams.get('calendar') || 'month');
+  const [anchorDate, setAnchorDate] = useState(() => searchParams.get('date') || format(new Date(), 'yyyy-MM-dd'));
+  const [filters, setFilters] = useState({
+    search: '',
+    assignedUserId: '',
+    status: '',
+    includeCompleted: false,
+    itemTypes: ['task', 'job', 'production_task', 'schedule_shift', 'appointment'],
   });
+  const [items, setItems] = useState([]);
+  const [summary, setSummary] = useState(null);
+  const [calendarPayload, setCalendarPayload] = useState({ items: [], range: null, summary: null });
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(null);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set('view', activeView);
+      next.set('calendar', calendarView);
+      next.set('date', anchorDate);
+      return next;
+    });
+  }, [activeView, calendarView, anchorDate, setSearchParams]);
 
-  const loadData = async () => {
+  const loadCore = async () => {
     setLoading(true);
-    await Promise.all([fetchTasks(), fetchJobs()]);
-    setLoading(false);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.title.trim()) {
-      toast.error('Please enter a task title');
-      return;
-    }
     try {
-      await createTask({
-        ...formData,
-        due_date: formData.due_date || null,
-        job_id: formData.job_id || null
-      });
-      toast.success('Task created');
-      setFormData({
-        title: '',
-        description: '',
-        job_id: '',
-        due_date: '',
-        is_complete: false
-      });
-      setIsDialogOpen(false);
-    } catch (err) {
-      toast.error('Failed to create task');
+      await fetchEmployees();
+      const params = buildCommonParams(filters);
+      const [itemsRes, summaryRes] = await Promise.all([
+        api.get('/productivity/items', { params }),
+        api.get('/productivity/summary', { params: { ...params, include_completed: true } }),
+      ]);
+      setItems(itemsRes.data.items || []);
+      setSummary(summaryRes.data || null);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleToggleComplete = async (task) => {
-    try {
-      await updateTask(task.id, { is_complete: !task.is_complete });
-    } catch (err) {
-      toast.error('Failed to update task');
-    }
+  const loadCalendar = async () => {
+    const params = { ...buildCommonParams(filters), anchor_date: anchorDate, view: calendarView };
+    const response = await api.get('/productivity/calendar-range', { params });
+    setCalendarPayload(response.data || { items: [], range: null, summary: null });
   };
 
-  const handleDelete = async (taskId) => {
-    try {
-      await deleteTask(taskId);
-      toast.success('Task deleted');
-    } catch (err) {
-      toast.error('Failed to delete task');
-    }
-  };
+  useEffect(() => { loadCore(); }, [filters.search, filters.assignedUserId, filters.status, filters.includeCompleted, filters.itemTypes.join(',')]);
+  useEffect(() => { loadCalendar(); }, [anchorDate, calendarView, filters.search, filters.assignedUserId, filters.status, filters.includeCompleted, filters.itemTypes.join(',')]);
 
-  const getJobName = (jobId) => {
-    if (!jobId) return null;
-    const job = jobs.find(j => j.id === jobId);
-    return job?.name || 'Unknown Job';
-  };
+  const dayItems = useMemo(() => {
+    if (!selectedDay) return [];
+    return sortItemsByDate((calendarPayload.items || []).filter((item) => {
+      const itemDate = parseItemDate(item);
+      return itemDate && format(itemDate, 'yyyy-MM-dd') === format(selectedDay, 'yyyy-MM-dd');
+    }));
+  }, [calendarPayload.items, selectedDay]);
 
-  // Get tasks for selected date (for calendar view)
-  const getTasksForDate = (date) => {
-    const dateStr = date.toISOString().split('T')[0];
-    return tasks.filter(t => t.due_date === dateStr);
-  };
-
-  // Get dates with tasks
-  const datesWithTasks = tasks
-    .filter(t => t.due_date)
-    .map(t => new Date(t.due_date));
-
-  // Group jobs by status for Kanban
-  const jobStatuses = ['quote', 'approved', 'in_progress', 'completed', 'invoiced'];
-  const jobsByStatus = jobStatuses.reduce((acc, status) => {
-    acc[status] = jobs.filter(j => j.status === status);
-    return acc;
-  }, {});
-
-  // Drag and drop handlers
-  const handleDragStart = (e, job) => {
-    setDraggedJob(job);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', job.id);
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDrop = async (e, newStatus) => {
-    e.preventDefault();
-    if (!draggedJob || draggedJob.status === newStatus) {
-      setDraggedJob(null);
-      return;
-    }
-    
-    try {
-      await updateJob(draggedJob.id, { status: newStatus });
-      await fetchJobs();
-      toast.success(`Job moved to ${newStatus.replace('_', ' ')}`);
-    } catch (err) {
-      toast.error('Failed to update job status');
-    }
-    setDraggedJob(null);
-  };
-
-  const handleJobClick = (jobId) => {
-    navigate(`/jobs/${jobId}`);
-  };
-
-  const incompleteTasks = tasks.filter(t => !t.is_complete);
-  const completedTasks = tasks.filter(t => t.is_complete);
+  if (loading && !summary) {
+    return <div className="flex items-center justify-center py-24"><Loader2 className="w-8 h-8 animate-spin text-violet-500" /></div>;
+  }
 
   return (
-    <div className="space-y-6 animate-fade-in" data-testid="productivity-page">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-6" data-testid="productivity-page-unified">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-gray-900">Productivity</h1>
-          <p className="text-slate-300 mt-1">Tasks, calendar, and job tracking</p>
+          <h1 className="text-4xl font-bold text-white font-heading">Productivity</h1>
+          <p className="text-slate-300 mt-1">Calendar, Kanban, Task List, and Dashboard now pull from one unified productivity layer.</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-violet-600 hover:bg-violet-700 text-white" data-testid="add-task-btn">
-              <Plus className="h-4 w-4 mr-2" /> New Task
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[400px]">
-            <DialogHeader>
-              <DialogTitle className="font-heading uppercase">New Task</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Title *</Label>
-                <Input
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="Task title"
-                  data-testid="task-title-input"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Input
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Optional description"
-                  data-testid="task-description-input"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Linked Job</Label>
-                  <Select
-                    value={formData.job_id || "none"}
-                    onValueChange={(val) => setFormData({ ...formData, job_id: val === "none" ? "" : val })}
-                  >
-                    <SelectTrigger data-testid="task-job-select">
-                      <SelectValue placeholder="Select job" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      {jobs.map((j) => (
-                        <SelectItem key={j.id} value={j.id}>
-                          {j.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Due Date</Label>
-                  <Input
-                    type="date"
-                    value={formData.due_date}
-                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                    data-testid="task-due-date-input"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" data-testid="task-submit-btn">Create</Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
       </div>
 
-      {/* View Tabs */}
-      <Tabs value={view} onValueChange={setView}>
-        <TabsList>
-          <TabsTrigger value="list" data-testid="productivity-list-view">
-            <ListTodo className="h-4 w-4 mr-2" /> Tasks
-          </TabsTrigger>
-          <TabsTrigger value="calendar" data-testid="productivity-calendar-view">
-            <CalendarDays className="h-4 w-4 mr-2" /> Calendar
-          </TabsTrigger>
-          <TabsTrigger value="kanban" data-testid="productivity-kanban-view">
-            <LayoutGrid className="h-4 w-4 mr-2" /> Job Kanban
-          </TabsTrigger>
-        </TabsList>
+      <div className="flex flex-wrap gap-2" data-testid="productivity-view-nav">
+        {VIEW_OPTIONS.map((view) => (
+          <Button key={view.id} variant={activeView === view.id ? 'default' : 'outline'} onClick={() => setActiveView(view.id)} data-testid={`productivity-nav-${view.id}`}>
+            <view.icon className="w-4 h-4 mr-2" /> {view.label}
+          </Button>
+        ))}
+      </div>
 
-        {/* Task List View */}
-        <TabsContent value="list" className="mt-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Incomplete Tasks */}
-            <Card className="bg-white border-gray-200">
-              <CardHeader>
-                <CardTitle className="font-heading uppercase flex items-center gap-2">
-                  <ListTodo className="h-5 w-5 text-primary" />
-                  To Do ({incompleteTasks.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {incompleteTasks.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">No pending tasks</p>
-                ) : (
-                  <div className="space-y-3">
-                    {incompleteTasks.map((task) => (
-                      <div 
-                        key={task.id} 
-                        className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
-                        data-testid={`task-${task.id}`}
-                      >
-                        <Checkbox
-                          checked={task.is_complete}
-                          onCheckedChange={() => handleToggleComplete(task)}
-                          data-testid={`task-checkbox-${task.id}`}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium">{task.title}</p>
-                          {task.description && (
-                            <p className="text-sm text-gray-500">{task.description}</p>
-                          )}
-                          <div className="flex items-center gap-2 mt-2">
-                            {task.due_date && (
-                              <Badge variant="outline" className="text-xs">
-                                Due: {formatDate(task.due_date)}
-                              </Badge>
-                            )}
-                            {task.job_id && (
-                              <Badge variant="outline" className="text-xs text-primary">
-                                {getJobName(task.job_id)}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(task.id)}
-                          data-testid={`delete-task-${task.id}`}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+      <ProductivityFiltersBar filters={filters} setFilters={setFilters} employees={employees || []} />
 
-            {/* Completed Tasks */}
-            <Card className="bg-white border-gray-200">
-              <CardHeader>
-                <CardTitle className="font-heading uppercase flex items-center gap-2 text-green-400">
-                  Completed ({completedTasks.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {completedTasks.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">No completed tasks</p>
-                ) : (
-                  <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                    {completedTasks.map((task) => (
-                      <div 
-                        key={task.id} 
-                        className="flex items-start gap-3 p-3 bg-green-500/10 rounded-lg"
-                      >
-                        <Checkbox
-                          checked={task.is_complete}
-                          onCheckedChange={() => handleToggleComplete(task)}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium line-through text-gray-500">
-                            {task.title}
-                          </p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(task.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+      {activeView === 'dashboard' && <ProductivityDashboardView items={items} summary={summary || {}} onOpenItem={setSelectedItem} />}
+      {activeView === 'tasks' && <ProductivityTaskListView items={items} onOpenItem={setSelectedItem} />}
+      {activeView === 'kanban' && <ProductivityKanbanView items={items.filter((item) => ['task', 'job', 'production_task'].includes(item.type))} onOpenItem={setSelectedItem} />}
+      {activeView === 'calendar' && (
+        <ProductivityCalendarView
+          calendarView={calendarView}
+          anchorDate={anchorDate}
+          setAnchorDate={setAnchorDate}
+          items={calendarPayload.items || []}
+          onOpenItem={setSelectedItem}
+          onOpenDay={(day, action) => {
+            if (action === 'month' || action === 'week' || action === 'day') {
+              setCalendarView(action);
+              return;
+            }
+            if (day) setSelectedDay(day);
+          }}
+        />
+      )}
 
-        {/* Calendar View */}
-        <TabsContent value="calendar" className="mt-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="bg-white border-gray-200 lg:col-span-2">
-              <CardContent className="p-4">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(date) => date && setSelectedDate(date)}
-                  className="rounded-md border-0"
-                  modifiers={{
-                    hasTasks: datesWithTasks
-                  }}
-                  modifiersStyles={{
-                    hasTasks: { 
-                      backgroundColor: 'hsl(var(--primary) / 0.2)',
-                      borderRadius: '50%'
-                    }
-                  }}
-                />
-              </CardContent>
-            </Card>
-            <Card className="bg-white border-gray-200">
-              <CardHeader>
-                <CardTitle className="font-heading uppercase text-sm">
-                  {selectedDate.toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {getTasksForDate(selectedDate).length === 0 ? (
-                  <p className="text-gray-500 text-center py-4 text-sm">
-                    No tasks for this date
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {getTasksForDate(selectedDate).map((task) => (
-                      <div 
-                        key={task.id} 
-                        className={cn(
-                          "p-2 rounded-lg text-sm",
-                          task.is_complete ? "bg-green-500/10" : "bg-gray-50/50"
-                        )}
-                      >
-                        <p className={task.is_complete ? "line-through text-gray-500" : ""}>
-                          {task.title}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+      <ProductivityItemDialog item={selectedItem} open={!!selectedItem} onClose={() => setSelectedItem(null)} />
 
-        {/* Kanban View */}
-        <TabsContent value="kanban" className="mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 overflow-x-auto">
-            {jobStatuses.map((status) => (
-              <div 
-                key={status} 
-                className="min-w-[250px]"
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, status)}
-              >
-                <div className="bg-gray-50 rounded-lg p-3 mb-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-sm uppercase tracking-wide" style={{ color: 'var(--text)' }}>
-                      {status.replace('_', ' ')}
-                    </h3>
-                    <Badge variant="outline">{jobsByStatus[status].length}</Badge>
+      <Dialog open={!!selectedDay} onOpenChange={() => setSelectedDay(null)}>
+        <DialogContent className="sm:max-w-[620px]" data-testid="productivity-day-detail-dialog">
+          <DialogHeader>
+            <DialogTitle>{selectedDay ? format(selectedDay, 'EEEE, MMMM d, yyyy') : 'Day Detail'}</DialogTitle>
+            <DialogDescription>All unified productivity items for this day.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {dayItems.length === 0 ? (
+              <Card className="bg-white border-gray-200"><CardContent className="p-6 text-center text-gray-500">No items scheduled for this day.</CardContent></Card>
+            ) : dayItems.map((item) => (
+              <Card key={item.uid} className="bg-white border-gray-200">
+                <CardContent className="p-4 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-gray-900">{item.title}</p>
+                    <p className="text-sm text-gray-500 mt-1">{item.customer_name || item.source_label || item.type}</p>
                   </div>
-                </div>
-                <div className="space-y-3 min-h-[200px]">
-                  {jobsByStatus[status].map((job) => (
-                    <Card 
-                      key={job.id} 
-                      className={cn(
-                        "cursor-pointer transition-all hover:shadow-md active:cursor-grabbing",
-                        draggedJob?.id === job.id && "opacity-50"
-                      )}
-                      style={{ 
-                        backgroundColor: 'var(--surface)',
-                        borderColor: 'var(--border-light)'
-                      }}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, job)}
-                      onClick={() => handleJobClick(job.id)}
-                    >
-                      <CardContent className="p-4">
-                        <h4 className="font-medium text-sm" style={{ color: 'var(--text)' }}>{job.name}</h4>
-                        {job.due_date && (
-                          <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-                            Due: {formatDate(job.due_date)}
-                          </p>
-                        )}
-                        <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                          Drag to change stage
-                        </p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  {jobsByStatus[status].length === 0 && (
-                    <div 
-                      className={cn(
-                        "text-center py-8 text-sm border-2 border-dashed rounded-lg transition-colors",
-                        draggedJob ? "border-blue-400 bg-blue-50/10" : "border-gray-200"
-                      )}
-                      style={{ color: 'var(--text-muted)' }}
-                    >
-                      {draggedJob ? 'Drop here' : 'No jobs'}
-                    </div>
-                  )}
-                </div>
-              </div>
+                  <Button variant="outline" size="sm" onClick={() => { setSelectedItem(item); }} data-testid={`day-detail-open-${item.uid}`}>Open</Button>
+                </CardContent>
+              </Card>
             ))}
           </div>
-        </TabsContent>
-      </Tabs>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
