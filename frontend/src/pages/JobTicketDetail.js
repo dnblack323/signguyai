@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, Package, Wrench, FileImage, MessageSquare, Clock, CheckCircle, AlertTriangle,
   Play, Pause, RotateCcw, Eye, Upload, Loader2, ChevronDown, ChevronRight, Edit3,
-  UserPlus, CalendarPlus, ListTodo
+  UserPlus, CalendarPlus, ListTodo, Pen, Image as ImageIcon
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -16,6 +16,8 @@ import axios from 'axios';
 import LivePricingPanel from '../components/LivePricingPanel';
 import DynamicCategoryFields from '../components/DynamicCategoryFields';
 import { TicketWorkflowShortcutDialog } from '../components/TicketWorkflowShortcutDialog';
+import DrawingModal from './DrawingModal';
+import DrawingPreviewModal from './DrawingPreviewModal';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const hdr = () => ({ Authorization: `Bearer ${localStorage.getItem('auth_token')}`, 'Content-Type': 'application/json' });
@@ -38,13 +40,20 @@ const fmt = (s) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperC
 export default function JobTicketDetail() {
   const { ticketId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('specs');
+  const [tab, setTab] = useState(() => searchParams.get('tab') || 'specs');
   const [taskLoading, setTaskLoading] = useState('');
   const [employees, setEmployees] = useState([]);
   const [orderSummary, setOrderSummary] = useState(null);
   const [shortcutMode, setShortcutMode] = useState('');
+  const [ticketDrawings, setTicketDrawings] = useState([]);
+  const [orderFiles, setOrderFiles] = useState([]);
+  const [showDrawingModal, setShowDrawingModal] = useState(false);
+  const [markupImage, setMarkupImage] = useState(null);
+  const [previewDrawing, setPreviewDrawing] = useState(null);
+  const [drawingsEnabled, setDrawingsEnabled] = useState(false);
 
   const load = async () => {
     try {
@@ -55,8 +64,15 @@ export default function JobTicketDetail() {
       setTicket(ticketRes.data);
       setEmployees(employeesRes.data || []);
       if (ticketRes.data?.order_id) {
-        const orderRes = await axios.get(`${API}/orders/${ticketRes.data.order_id}`, { headers: hdr() }).catch(() => ({ data: null }));
+        const [orderRes, drawingsRes, filesRes] = await Promise.all([
+          axios.get(`${API}/orders/${ticketRes.data.order_id}`, { headers: hdr() }).catch(() => ({ data: null })),
+          axios.get(`${API}/order-drawings`, { headers: hdr(), params: { job_ticket_id: ticketId } }).catch(() => ({ data: [] })),
+          axios.get(`${API}/orders/${ticketRes.data.order_id}/files`, { headers: hdr() }).catch(() => ({ data: [] })),
+        ]);
         setOrderSummary(orderRes.data);
+        setTicketDrawings(drawingsRes.data || []);
+        setOrderFiles((filesRes.data || []).filter((file) => file.content_type?.startsWith('image/')));
+        setDrawingsEnabled((drawingsRes.data || []).length > 0);
       }
     } catch { toast.error('Failed to load ticket'); }
     finally { setLoading(false); }
@@ -108,6 +124,7 @@ export default function JobTicketDetail() {
   const specs = ticket.specs || {};
   const completedTasks = tasks.filter(t => t.status === 'complete').length;
   const getEmployeeName = (employeeId) => employees.find((employee) => employee.id === employeeId)?.name || employeeId;
+  const latestDraftDrawing = ticketDrawings.find((drawing) => drawing.status === 'draft') || null;
 
   return (
     <div className="space-y-6" data-testid="job-ticket-detail-page">
@@ -172,6 +189,7 @@ export default function JobTicketDetail() {
           {[
             { id: 'specs', label: 'Specs' },
             { id: 'production', label: `Production (${tasks.length})` },
+            { id: 'drawings', label: `Drawings (${ticketDrawings.length})` },
             { id: 'artwork', label: 'Artwork / Files' },
             { id: 'notes', label: 'Notes' },
           ].map(t => (
@@ -281,6 +299,79 @@ export default function JobTicketDetail() {
         </div>
       )}
 
+      {tab === 'drawings' && (
+        <div className="space-y-4" data-testid="job-ticket-drawings-tab">
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white p-4">
+            <div>
+              <p className="font-medium text-gray-900">Item Drawings</p>
+              <p className="text-sm text-gray-500">Sketches, measurement notes, install notes, and image markups attached only to this item.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-sm text-gray-600">Add Sketch/Notes</Label>
+              <Button variant={drawingsEnabled ? 'default' : 'outline'} size="sm" onClick={() => setDrawingsEnabled((current) => !current)} data-testid="job-ticket-drawings-toggle-button">
+                {drawingsEnabled ? 'Enabled' : 'Enable'}
+              </Button>
+            </div>
+          </div>
+
+          {(drawingsEnabled || ticketDrawings.length > 0) && (
+            <Card className="bg-white border-gray-200">
+              <CardContent className="p-4 space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white" onClick={() => { setMarkupImage(null); setShowDrawingModal(true); }} data-testid="job-ticket-create-drawing-button">
+                    <Pen className="w-4 h-4 mr-2" /> {latestDraftDrawing ? 'Resume Draft' : 'Create Drawing'}
+                  </Button>
+                </div>
+
+                {orderFiles.length > 0 && (
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium text-gray-700">Markup Uploaded Images</p>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {orderFiles.map((file) => (
+                        <div key={file.id} className="rounded-xl border border-gray-200 p-3 flex items-center justify-between gap-3" data-testid={`job-ticket-markup-file-${file.id}`}>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{file.label || file.filename}</p>
+                            <p className="text-xs text-gray-500 truncate">{file.filename}</p>
+                          </div>
+                          <Button variant="outline" size="sm" onClick={() => {
+                            setMarkupImage({
+                              id: file.id,
+                              label: file.label || file.filename,
+                              contentUrl: `${process.env.REACT_APP_BACKEND_URL}/api/orders/${ticket.order_id}/files/${file.id}/content`,
+                            });
+                            setShowDrawingModal(true);
+                          }} data-testid={`job-ticket-markup-button-${file.id}`}>
+                            Markup
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {ticketDrawings.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-sm text-gray-500">No item drawings attached yet.</div>
+                ) : (
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                    {ticketDrawings.map((drawing) => (
+                      <button key={drawing.id} className="rounded-xl border border-gray-200 overflow-hidden text-left hover:border-violet-300 transition-colors" onClick={() => setPreviewDrawing(drawing)} data-testid={`job-ticket-drawing-${drawing.id}`}>
+                        <div className="aspect-[4/3] bg-gray-50 flex items-center justify-center">
+                          <img src={`${process.env.REACT_APP_BACKEND_URL}${drawing.image_url}`} alt={drawing.label} className="w-full h-full object-contain" />
+                        </div>
+                        <div className="p-3">
+                          <p className="text-sm font-medium text-gray-900 truncate">{drawing.label}</p>
+                          <p className="text-xs text-gray-500 mt-1">{drawing.type?.replace(/_/g, ' ')}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
       {/* ARTWORK TAB */}
       {tab === 'artwork' && (
         <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
@@ -350,6 +441,25 @@ export default function JobTicketDetail() {
         onClose={() => setShortcutMode('')}
         onCompleted={load}
       />
+      {showDrawingModal && (
+        <DrawingModal
+          orderId={ticket.order_id}
+          parentType={markupImage ? 'uploaded_image' : 'job_ticket'}
+          parentId={markupImage ? markupImage.id : ticket.id}
+          jobTicketId={ticket.id}
+          uploadedImage={markupImage}
+          existingDrawing={!markupImage ? latestDraftDrawing : null}
+          defaultType={markupImage ? 'markup' : 'sketch'}
+          onClose={() => {
+            setShowDrawingModal(false);
+            setMarkupImage(null);
+          }}
+          onSaved={load}
+        />
+      )}
+      {previewDrawing && (
+        <DrawingPreviewModal drawing={previewDrawing} onClose={() => setPreviewDrawing(null)} onDeleted={load} isAdmin />
+      )}
     </div>
   );
 }

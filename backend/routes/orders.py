@@ -4,11 +4,12 @@ Orders API Routes
 CRUD for the master Order record (Layer 1).
 """
 
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, Response
 from typing import Optional, List
 from datetime import datetime, timezone
 import uuid
 import base64
+import mimetypes
 
 from server import db, get_current_active_user
 from models import UserInDB
@@ -509,3 +510,20 @@ async def delete_order_file(order_id: str, file_id: str, current_user: UserInDB 
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="File not found")
     return {"message": "File deleted"}
+
+
+@router.get("/{order_id}/files/{file_id}/content")
+async def get_order_file_content(order_id: str, file_id: str, current_user: UserInDB = Depends(get_current_active_user)):
+    file_doc = await db.order_files.find_one(
+        {"id": file_id, "order_id": order_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    if not file_doc:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    media_type = file_doc.get("content_type") or mimetypes.guess_type(file_doc.get("filename", ""))[0] or "application/octet-stream"
+    try:
+        content = base64.b64decode(file_doc.get("file_data", ""))
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail="Failed to decode file") from exc
+    return Response(content=content, media_type=media_type)

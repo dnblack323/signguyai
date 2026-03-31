@@ -23,9 +23,10 @@ import base64
 from io import BytesIO
 
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle, Image as ReportLabImage
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
+from services.object_storage import get_object
 
 from models import (
     Conversation, ConversationMessage, MessageType,
@@ -960,6 +961,30 @@ async def download_portal_invoice_pdf(
         ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
     ]))
     elements.append(table)
+
+    signature = await db.signatures.find_one(
+        {
+            "tenant_id": customer.get("tenant_id"),
+            "parent_record_type": "invoice",
+            "parent_record_id": invoice_id,
+            "status": "signed",
+            "signature_storage_path": {"$exists": True},
+        },
+        {"_id": 0}
+    )
+    if signature:
+        try:
+            image_bytes, _content_type = get_object(signature["signature_storage_path"])
+            elements.append(Spacer(1, 18))
+            elements.append(Paragraph("Authorized Signature", styles['Heading3']))
+            elements.append(Spacer(1, 6))
+            elements.append(ReportLabImage(BytesIO(image_bytes), width=180, height=72))
+            elements.append(Spacer(1, 4))
+            elements.append(Paragraph(f"Signed by: {signature.get('printed_name') or signature.get('signer_name')}", styles['BodyText']))
+            elements.append(Paragraph(f"Type: {signature.get('signature_type', '').replace('_', ' ').title()}", styles['BodyText']))
+            elements.append(Paragraph(f"Signed at: {signature.get('signed_at', '')}", styles['BodyText']))
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(f"Failed to render invoice signature block: {exc}")
     doc.build(elements)
     output.seek(0)
     return StreamingResponse(output, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename=invoice_{invoice['id'][:8].upper()}.pdf"})

@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDate } from '../../lib/utils';
+import { SignatureSection } from '../../components/SignatureSection';
 
 const CATEGORIES = [
   { value: 'contract', label: 'Contract', color: 'bg-blue-500/20 text-blue-400' },
@@ -757,6 +758,15 @@ export default function Documents() {
                   <CheckCircle2 className="h-3 w-3 mr-1" /> Template
                 </Badge>
               )}
+
+              <SignatureSection
+                parentRecordType={selectedDoc.category === 'customer_form' ? 'form' : 'document'}
+                parentRecordId={selectedDoc.id}
+                orderId={(selectedDoc.linked_jobs || [])[0]}
+                signatureType={selectedDoc.category === 'customer_form' ? 'terms_acknowledgment' : 'terms_acknowledgment'}
+                documentVersion={String(selectedDoc.updated_at || selectedDoc.created_at || '')}
+                title="Document Signature"
+              />
               
               <Separator />
               

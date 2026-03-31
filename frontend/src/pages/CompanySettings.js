@@ -58,6 +58,11 @@ export default function CompanySettings() {
     can_see_pricing: false
   });
   const [savingPortalSettings, setSavingPortalSettings] = useState(false);
+  const [signatureSettings, setSignatureSettings] = useState({
+    enabled: false,
+    link_expiry_days: 7,
+  });
+  const [savingSignatureSettings, setSavingSignatureSettings] = useState(false);
 
   // Logo upload state
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -120,6 +125,10 @@ export default function CompanySettings() {
           can_see_pricing: data.employee_portal_settings.can_see_pricing ?? false
         });
       }
+      setSignatureSettings({
+        enabled: data.signature_settings?.enabled ?? false,
+        link_expiry_days: data.signature_settings?.link_expiry_days ?? 7,
+      });
     } catch (err) {
       console.error('Error loading tenant:', err);
       toast.error('Failed to load company settings');
@@ -186,6 +195,22 @@ export default function CompanySettings() {
       toast.error('Failed to update employee portal permissions');
     }
     setSavingPortalSettings(false);
+  };
+
+  const handleSaveSignatureSettings = async () => {
+    if (!canEditSettings) {
+      toast.error('You do not have permission to edit settings');
+      return;
+    }
+    setSavingSignatureSettings(true);
+    try {
+      await updateTenant({ signature_settings: signatureSettings });
+      toast.success('Signature settings updated');
+    } catch (err) {
+      console.error('Error updating signature settings:', err);
+      toast.error('Failed to update signature settings');
+    }
+    setSavingSignatureSettings(false);
   };
 
   // Logo upload handler
@@ -874,6 +899,54 @@ export default function CompanySettings() {
             </div>
             <span className="text-gray-500">&rarr;</span>
           </button>
+        </CardContent>
+      </Card>
+
+      {/* Data Management Card */}
+      <Card className="border" style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }}>
+        <CardHeader>
+          <CardTitle className="text-gray-900">Signature Capture</CardTitle>
+          <CardDescription className="text-gray-500">
+            Enable or hide all customer-facing and internal signature tools across orders, proofs, invoices, and documents.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-4 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
+            <div>
+              <Label className="font-medium text-gray-900">Enable Signatures</Label>
+              <p className="text-sm text-gray-500">When disabled, signature-related UI is hidden throughout the app.</p>
+            </div>
+            <Switch
+              checked={signatureSettings.enabled}
+              onCheckedChange={(checked) => setSignatureSettings((current) => ({ ...current, enabled: checked }))}
+              disabled={!canEditSettings}
+              data-testid="signature-feature-toggle"
+            />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="signature-expiry-days" className="text-gray-900">Signature Link Expiry (days)</Label>
+              <Input
+                id="signature-expiry-days"
+                type="number"
+                min="1"
+                max="30"
+                value={signatureSettings.link_expiry_days}
+                onChange={(e) => setSignatureSettings((current) => ({ ...current, link_expiry_days: parseInt(e.target.value, 10) || 7 }))}
+                disabled={!canEditSettings}
+                data-testid="signature-expiry-days-input"
+                style={{ background: '#FFFFFF', borderColor: '#D7DCE2' }}
+              />
+            </div>
+          </div>
+          {canEditSettings && (
+            <div className="flex justify-end pt-2">
+              <Button onClick={handleSaveSignatureSettings} disabled={savingSignatureSettings} data-testid="save-signature-settings-btn" style={{ background: '#2F8BFB' }} className="text-white hover:opacity-90">
+                <Save className="h-4 w-4 mr-2" />
+                {savingSignatureSettings ? 'Saving...' : 'Save Signature Settings'}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 

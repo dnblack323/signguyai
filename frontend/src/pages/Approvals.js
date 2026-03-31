@@ -20,6 +20,7 @@ import {
   Eye, Trash2, Plus, Filter, X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { SignatureSection } from '../components/SignatureSection';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -686,6 +687,16 @@ export default function Approvals() {
                 </div>
               )}
             </div>
+            {previewProof && (
+              <SignatureSection
+                parentRecordType="proof"
+                parentRecordId={previewProof.id}
+                orderId={previewProof.order_id}
+                signatureType="artwork_approval"
+                documentVersion={String(previewProof.version || '')}
+                title="Proof Signature"
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>

@@ -1,5 +1,5 @@
-import { useRef, useState, useEffect, useCallback } from 'react';
-import { X, Trash2, Save, Loader2, Pen } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { X, Save, Loader2, Pen, Image as ImageIcon } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -8,55 +8,30 @@ import {
 } from '../components/ui/select';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { DrawingCanvasPad } from '../components/DrawingCanvasPad';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const hdr = () => ({ Authorization: `Bearer ${localStorage.getItem('auth_token')}` });
 
-export default function DrawingModal({ orderId, onClose, onSaved, onLocalSave }) {
-  const canvasRef = useRef(null);
-  const containerRef = useRef(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [label, setLabel] = useState('');
-  const [type, setType] = useState('sketch');
-  const [notes, setNotes] = useState('');
+export default function DrawingModal({
+  orderId,
+  parentType = 'order',
+  parentId,
+  jobTicketId,
+  uploadedImage,
+  existingDrawing,
+  defaultType = 'sketch',
+  onClose,
+  onSaved,
+  onLocalSave,
+}) {
+  const [label, setLabel] = useState(existingDrawing?.label || (uploadedImage ? `Markup — ${uploadedImage.label || 'Image'}` : ''));
+  const [type, setType] = useState(existingDrawing?.type || defaultType);
+  const [notes, setNotes] = useState(existingDrawing?.notes || '');
   const [saving, setSaving] = useState(false);
-  const [hasStrokes, setHasStrokes] = useState(false);
-  const lastPoint = useRef(null);
-
-  // High DPI canvas setup
-  const setupCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    const container = containerRef.current;
-    if (!canvas || !container) return;
-
-    const rect = container.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    const w = rect.width;
-    const h = Math.max(300, Math.min(w * 0.6, 500));
-
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
-
-    const ctx = canvas.getContext('2d');
-    ctx.scale(dpr, dpr);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, w, h);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#0F172A';
-    ctx.lineWidth = 2.5;
-
-    setHasStrokes(false);
-  }, []);
-
-  useEffect(() => {
-    setupCanvas();
-    const handleResize = () => setupCanvas();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [setupCanvas]);
+  const [draftId, setDraftId] = useState(existingDrawing?.id || null);
+  const [currentImageData, setCurrentImageData] = useState('');
+  const [hasDrawingData, setHasDrawingData] = useState(false);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -64,96 +39,39 @@ export default function DrawingModal({ orderId, onClose, onSaved, onLocalSave })
     return () => { document.body.style.overflow = ''; };
   }, []);
 
-  const getPos = (e) => {
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    if (e.touches && e.touches.length > 0) {
-      return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
-    }
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-  };
-
-  const startDraw = (e) => {
-    e.preventDefault();
-    setIsDrawing(true);
-    const pos = getPos(e);
-    lastPoint.current = pos;
-    const ctx = canvasRef.current.getContext('2d');
-    ctx.beginPath();
-    ctx.moveTo(pos.x, pos.y);
-  };
-
-  const draw = (e) => {
-    if (!isDrawing) return;
-    e.preventDefault();
-    const pos = getPos(e);
-    const ctx = canvasRef.current.getContext('2d');
-
-    // Smooth line using quadratic bezier
-    if (lastPoint.current) {
-      const mid = {
-        x: (lastPoint.current.x + pos.x) / 2,
-        y: (lastPoint.current.y + pos.y) / 2,
-      };
-      ctx.quadraticCurveTo(lastPoint.current.x, lastPoint.current.y, mid.x, mid.y);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(mid.x, mid.y);
-    }
-    lastPoint.current = pos;
-    setHasStrokes(true);
-  };
-
-  const endDraw = (e) => {
-    if (!isDrawing) return;
-    e.preventDefault();
-    setIsDrawing(false);
-    lastPoint.current = null;
-    const ctx = canvasRef.current.getContext('2d');
-    ctx.closePath();
-  };
-
-  const clearCanvas = () => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.scale(dpr, dpr);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#0F172A';
-    ctx.lineWidth = 2.5;
-    setHasStrokes(false);
+  const saveDrawing = async (status, imageData) => {
+    const response = await axios.post(`${API}/order-drawings/`, {
+      id: draftId || undefined,
+      order_id: orderId,
+      parent_type: parentType,
+      parent_id: parentId || orderId,
+      job_ticket_id: jobTicketId || undefined,
+      uploaded_image_id: uploadedImage?.id || undefined,
+      drawing_type: type,
+      title: (label.trim() || type.replace(/_/g, ' ')).trim(),
+      notes: notes.trim(),
+      image_data: imageData,
+      status,
+    }, { headers: { ...hdr(), 'Content-Type': 'application/json' } });
+    setDraftId(response.data.id);
+    return response.data;
   };
 
   const handleSave = async () => {
-    if (!hasStrokes) {
+    if (!hasDrawingData || !currentImageData) {
       toast.error('Please draw something before saving');
       return;
     }
 
-    const finalLabel = label.trim() || `${type.charAt(0).toUpperCase() + type.slice(1)}`;
-    const canvas = canvasRef.current;
-    const imageData = canvas.toDataURL('image/png');
-
     // Local save mode (for new order form — no order ID yet)
     if (onLocalSave) {
-      onLocalSave(imageData, finalLabel, type);
+      onLocalSave(currentImageData, label.trim() || type, type);
       return;
     }
 
     setSaving(true);
     try {
-      await axios.post(`${API}/order-drawings/`, {
-        order_id: orderId,
-        type,
-        label: finalLabel,
-        notes: notes.trim(),
-        image_data: imageData,
-      }, { headers: { ...hdr(), 'Content-Type': 'application/json' } });
-
+      await saveDrawing('saved', currentImageData);
       toast.success('Drawing saved');
       onSaved?.();
       onClose();
@@ -166,13 +84,13 @@ export default function DrawingModal({ orderId, onClose, onSaved, onLocalSave })
   };
 
   const handleClose = () => {
-    if (hasStrokes && !window.confirm('Discard this drawing?')) return;
+    if (hasDrawingData && !window.confirm('Discard this drawing?')) return;
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden" data-testid="drawing-modal">
+      <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden" data-testid="drawing-modal">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
           <div className="flex items-center gap-2">
@@ -183,6 +101,12 @@ export default function DrawingModal({ orderId, onClose, onSaved, onLocalSave })
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
+
+        {uploadedImage && (
+          <div className="px-5 py-3 border-b border-gray-100 bg-amber-50 text-sm text-amber-700 flex items-center gap-2" data-testid="drawing-markup-banner">
+            <ImageIcon className="w-4 h-4" /> Markup mode is active for {uploadedImage.label || 'this uploaded image'}.
+          </div>
+        )}
 
         {/* Form Fields */}
         <div className="px-5 py-3 flex flex-col sm:flex-row gap-3 border-b border-gray-100">
@@ -203,28 +127,35 @@ export default function DrawingModal({ orderId, onClose, onSaved, onLocalSave })
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="signature">Signature</SelectItem>
                 <SelectItem value="sketch">Sketch</SelectItem>
                 <SelectItem value="markup">Markup</SelectItem>
+                <SelectItem value="measurement_note">Measurement Note</SelectItem>
+                <SelectItem value="install_note">Install Note</SelectItem>
+                <SelectItem value="layout_note">Layout Note</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
         {/* Canvas */}
-        <div className="flex-1 px-5 py-3 overflow-hidden" ref={containerRef}>
-          <canvas
-            ref={canvasRef}
-            className="rounded-lg border-2 border-dashed border-gray-300 cursor-crosshair touch-none"
-            onMouseDown={startDraw}
-            onMouseMove={draw}
-            onMouseUp={endDraw}
-            onMouseLeave={endDraw}
-            onTouchStart={startDraw}
-            onTouchMove={draw}
-            onTouchEnd={endDraw}
-            onTouchCancel={endDraw}
-            data-testid="drawing-canvas"
+        <div className="flex-1 px-5 py-3 overflow-hidden">
+          <DrawingCanvasPad
+            backgroundImageUrl={uploadedImage?.contentUrl}
+            initialImageUrl={existingDrawing ? `${process.env.REACT_APP_BACKEND_URL}${existingDrawing.image_url}` : undefined}
+            autosaveEnabled={!onLocalSave && !!orderId}
+            onAutosave={async (imageData) => {
+              if (!imageData || !orderId) return;
+              try {
+                await saveDrawing('draft', imageData);
+              } catch {
+                // Silent autosave failure to keep the canvas smooth.
+              }
+            }}
+            onChange={({ hasChanges, imageData }) => {
+              setHasDrawingData(hasChanges);
+              setCurrentImageData(imageData);
+            }}
           />
         </div>
 
@@ -241,9 +172,9 @@ export default function DrawingModal({ orderId, onClose, onSaved, onLocalSave })
 
         {/* Actions */}
         <div className="flex items-center justify-between px-5 py-3 border-t border-gray-200 bg-gray-50">
-          <Button variant="outline" size="sm" onClick={clearCanvas} className="text-red-500 hover:text-red-600 hover:bg-red-50 border-red-200" data-testid="drawing-clear-btn">
-            <Trash2 className="w-4 h-4 mr-1" /> Clear
-          </Button>
+          <div className="text-xs text-gray-500" data-testid="drawing-context-label">
+            {parentType === 'job_ticket' ? 'Saving to this item' : uploadedImage ? 'Saving to this image markup' : 'Saving to the full order'}
+          </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleClose} data-testid="drawing-cancel-btn">
               Cancel
@@ -252,7 +183,7 @@ export default function DrawingModal({ orderId, onClose, onSaved, onLocalSave })
               size="sm"
               className="bg-violet-600 hover:bg-violet-700 text-white"
               onClick={handleSave}
-              disabled={saving || !hasStrokes}
+              disabled={saving || !hasDrawingData}
               data-testid="drawing-save-btn"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />}

@@ -1184,6 +1184,7 @@ from routes.production_tasks import router as production_tasks_router
 from routes.workflow_templates import router as workflow_templates_router
 from routes.digest import router as digest_router
 from routes.order_drawings import router as order_drawings_router
+from routes.signatures import router as signatures_router
 
 # Include all routers in the api_router
 api_router.include_router(auth_router)
@@ -1232,6 +1233,7 @@ api_router.include_router(production_tasks_router)  # Production Tasks (Layer 4)
 api_router.include_router(workflow_templates_router)  # Workflow Templates (Admin)
 api_router.include_router(digest_router)  # Daily Digest Email
 api_router.include_router(order_drawings_router)  # Order Drawings/Signatures
+api_router.include_router(signatures_router)  # Structured Signature Requests
 
 # Backup & Restore
 from routes.backup import setup_backup_routes

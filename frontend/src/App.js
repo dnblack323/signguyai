@@ -96,6 +96,7 @@ import ContactPage from "./pages/ContactPage";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ProductionSetup from "./pages/ProductionSetup";
+import PublicSignaturePage from "./pages/PublicSignaturePage";
 
 // Marketing Pages - Product Overviews
 import {
@@ -280,6 +281,7 @@ function App() {
                 
                 {/* Public Questionnaire - No Auth Required */}
                 <Route path="/questionnaire/:questionnaireId" element={<PublicQuestionnaire />} />
+                <Route path="/customer-sign/:token" element={<PublicSignaturePage />} />
                 
                 {/* Public Pricing Page - New Multi-Product Version */}
                 <Route path="/pricing-plans" element={<PricingPlansV2 />} />

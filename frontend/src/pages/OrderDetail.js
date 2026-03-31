@@ -18,6 +18,8 @@ import axios from 'axios';
 import DrawingModal from './DrawingModal';
 import DrawingPreviewModal from './DrawingPreviewModal';
 import { TicketWorkflowShortcutDialog } from '../components/TicketWorkflowShortcutDialog';
+import { SignatureSection } from '../components/SignatureSection';
+import { SignatureActivityList } from '../components/SignatureActivityList';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const hdr = () => ({ Authorization: `Bearer ${localStorage.getItem('auth_token')}`, 'Content-Type': 'application/json' });
@@ -55,11 +57,13 @@ export default function OrderDetail() {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [drawings, setDrawings] = useState([]);
   const [showDrawingModal, setShowDrawingModal] = useState(false);
+  const [drawingMarkupImage, setDrawingMarkupImage] = useState(null);
   const [previewDrawing, setPreviewDrawing] = useState(null);
   const [drawingThumbs, setDrawingThumbs] = useState({});
   const [employees, setEmployees] = useState([]);
   const [shortcutMode, setShortcutMode] = useState('');
   const [shortcutTicket, setShortcutTicket] = useState(null);
+  const [drawingFilter, setDrawingFilter] = useState('all');
 
   const load = async () => {
     try {
@@ -229,6 +233,14 @@ export default function OrderDetail() {
 
   const tickets = order.job_tickets || [];
   const getEmployeeName = (employeeId) => employees.find((employee) => employee.id === employeeId)?.name || employeeId;
+  const drawingFilterOptions = [
+    { id: 'all', label: 'All Drawings' },
+    { id: 'order', label: 'Order Drawings' },
+    { id: 'job_ticket', label: 'Item Drawings' },
+    { id: 'uploaded_image', label: 'Image Markups' },
+  ];
+  const filteredDrawings = drawings.filter((drawing) => drawingFilter === 'all' || drawing.parent_type === drawingFilter);
+  const latestOrderDraftDrawing = drawings.find((drawing) => drawing.parent_type === 'order' && drawing.status === 'draft') || null;
   // Order total: use active price from pricing snapshot, fallback to estimated_price
   const orderTotal = order.order_total || tickets.reduce((sum, t) => {
     const snapshot = t.pricing_snapshot;
@@ -371,6 +383,7 @@ export default function OrderDetail() {
             const activePrice = snapshot?.active_price || ticket.estimated_price || 0;
             const specs = ticket.specs || {};
             const specSummary = [specs.width, specs.height, specs.material].filter(Boolean).join(' × ');
+            const ticketDrawingCount = drawings.filter((drawing) => drawing.job_ticket_id === ticket.id).length;
             return (
               <Card key={ticket.id} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:border-violet-500/30 transition-colors cursor-pointer" onClick={() => navigate(`/job-tickets/${ticket.id}`)} data-testid={`ticket-${ticket.ticket_number}`}>
                 <CardContent className="p-4">
@@ -391,6 +404,7 @@ export default function OrderDetail() {
                           {pricingMode === 'manual' && <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/30 text-xs"><Edit3 className="w-3 h-3 mr-1" />Manual</Badge>}
                           {ticket.design_needed && <Badge variant="outline" className="bg-purple-500/10 text-purple-400 border-purple-500/30 text-xs">Design</Badge>}
                           {ticket.proof_required && <Badge variant="outline" className="bg-cyan-500/10 text-cyan-400 border-cyan-500/30 text-xs">Proof</Badge>}
+                          {ticketDrawingCount > 0 && <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200 text-xs">{ticketDrawingCount} drawing{ticketDrawingCount !== 1 ? 's' : ''}</Badge>}
                         </div>
                         <p className="text-gray-900 font-medium mt-0.5">{ticket.item_name}</p>
                         <p className="text-gray-500 text-xs">
@@ -429,6 +443,9 @@ export default function OrderDetail() {
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); duplicateTicket(ticket.id); }}>
                             <Copy className="w-4 h-4 mr-2" /> Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/job-tickets/${ticket.id}?tab=drawings`); }} data-testid={`ticket-drawings-shortcut-${ticket.id}`}>
+                            <Pen className="w-4 h-4 mr-2" /> Open Drawings
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setShortcutTicket(ticket); setShortcutMode('assign'); }} data-testid={`ticket-assign-shortcut-${ticket.id}`}>
                             <UserPlus className="w-4 h-4 mr-2" /> Assign Employee
@@ -530,6 +547,17 @@ export default function OrderDetail() {
                       </div>
                       <p className="text-xl font-bold text-gray-900">${(q.total || 0).toFixed(2)}</p>
                     </div>
+                    <div className="mt-4">
+                      <SignatureSection
+                        compact
+                        title="Quote Signature"
+                        parentRecordType="quote"
+                        parentRecordId={q.id}
+                        orderId={order.id}
+                        signatureType="quote_acceptance"
+                        documentVersion={String(q.created_at || '')}
+                      />
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -547,6 +575,17 @@ export default function OrderDetail() {
                         <p className="text-xs text-gray-500 mt-1">{new Date(inv.created_at).toLocaleDateString()} | {inv.line_items?.length || 0} items{inv.due_date ? ` | Due: ${new Date(inv.due_date).toLocaleDateString()}` : ''}</p>
                       </div>
                       <p className="text-xl font-bold text-gray-900">${(inv.total || 0).toFixed(2)}</p>
+                    </div>
+                    <div className="mt-4">
+                      <SignatureSection
+                        compact
+                        title="Invoice Signature"
+                        parentRecordType="invoice"
+                        parentRecordId={inv.id}
+                        orderId={order.id}
+                        signatureType="payment_authorization"
+                        documentVersion={String(inv.created_at || '')}
+                      />
                     </div>
                   </CardContent>
                 </Card>
@@ -566,6 +605,17 @@ export default function OrderDetail() {
                       </div>
                       <p className="text-sm font-medium text-gray-900">{workOrder.order_number || order.order_number}</p>
                     </div>
+                    <div className="mt-4">
+                      <SignatureSection
+                        compact
+                        title="Work Order Signature"
+                        parentRecordType="work_order"
+                        parentRecordId={workOrder.id}
+                        orderId={order.id}
+                        signatureType="order_authorization"
+                        documentVersion={String(workOrder.created_at || '')}
+                      />
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -581,21 +631,37 @@ export default function OrderDetail() {
       {/* === DRAWINGS TAB === */}
       {tab === 'drawings' && (
         <div className="space-y-4" data-testid="drawings-tab">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">{drawings.length} drawing{drawings.length !== 1 ? 's' : ''}</p>
-            <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white gap-1" onClick={() => setShowDrawingModal(true)} data-testid="add-drawing-btn">
-              <Pen className="w-4 h-4" /> Add Drawing
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <p className="text-sm text-gray-500">{drawings.length} drawing{drawings.length !== 1 ? 's' : ''} across the order, items, and markup images</p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {drawingFilterOptions.map((option) => (
+                  <Button key={option.id} variant={drawingFilter === option.id ? 'default' : 'outline'} size="sm" onClick={() => setDrawingFilter(option.id)} data-testid={`drawing-filter-${option.id}`}>
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white gap-1" onClick={() => { setDrawingMarkupImage(null); setShowDrawingModal(true); }} data-testid="add-drawing-btn">
+              <Pen className="w-4 h-4" /> {latestOrderDraftDrawing ? 'Resume Order Draft' : 'Add Order Drawing'}
             </Button>
           </div>
-          {drawings.length === 0 ? (
+          {filteredDrawings.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
               <Pen className="w-10 h-10 mx-auto mb-3 opacity-40" />
               <p className="font-medium text-gray-500">No drawings yet</p>
-              <p className="text-sm mt-1">Add signatures, sketches, or markups to this order</p>
+              <p className="text-sm mt-1">Add order sketches, item notes, or image markups to this order</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {drawings.map(d => (
+              {filteredDrawings.map(d => {
+                const relatedTicket = tickets.find((ticket) => ticket.id === d.job_ticket_id);
+                const contextLabel = d.parent_type === 'job_ticket'
+                  ? `Item Drawing: ${relatedTicket?.item_name || 'Item'}`
+                  : d.parent_type === 'uploaded_image'
+                    ? `Image Markup: ${d.label}`
+                    : 'Order Drawing';
+                return (
                 <div
                   key={d.id}
                   className="border border-gray-200 rounded-xl overflow-hidden hover:border-violet-400 hover:shadow-md transition-all cursor-pointer group"
@@ -611,9 +677,9 @@ export default function OrderDetail() {
                   </div>
                   <div className="p-2.5">
                     <p className="text-sm font-medium text-gray-900 truncate">{d.label}</p>
+                    <p className="text-[10px] text-gray-500 truncate mt-0.5">{contextLabel}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                        d.type === 'signature' ? 'bg-emerald-100 text-emerald-700' :
                         d.type === 'sketch' ? 'bg-blue-100 text-blue-700' :
                         'bg-amber-100 text-amber-700'
                       }`}>{d.type}</span>
@@ -622,7 +688,7 @@ export default function OrderDetail() {
                     <p className="text-[10px] text-gray-400 mt-0.5 truncate">{d.created_by}</p>
                   </div>
                 </div>
-              ))}
+              );})}
             </div>
           )}
         </div>
@@ -664,9 +730,23 @@ export default function OrderDetail() {
                         <p className="text-xs text-gray-500">{f.filename} | {(f.file_size / 1024).toFixed(0)} KB | {new Date(f.created_at).toLocaleDateString()}</p>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-600" onClick={() => deleteFile(f.id)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      {f.content_type?.startsWith('image/') && (
+                        <Button variant="ghost" size="sm" className="text-amber-500 hover:text-amber-600" onClick={() => {
+                          setDrawingMarkupImage({
+                            id: f.id,
+                            label: f.label || f.filename,
+                            contentUrl: `${process.env.REACT_APP_BACKEND_URL}/api/orders/${id}/files/${f.id}/content`,
+                          });
+                          setShowDrawingModal(true);
+                        }} data-testid={`markup-order-file-${f.id}`}>
+                          <Pen className="w-4 h-4" />
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-600" onClick={() => deleteFile(f.id)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -678,6 +758,31 @@ export default function OrderDetail() {
       {/* === NOTES TAB === */}
       {tab === 'notes' && (
         <div className="space-y-4">
+          <SignatureSection
+            title="Order Authorization Signature"
+            parentRecordType="order"
+            parentRecordId={order.id}
+            orderId={order.id}
+            signatureType="order_authorization"
+            documentVersion={String(order.updated_at || order.date_created || '')}
+          />
+          <SignatureSection
+            title="Change Approval Signature"
+            parentRecordType="change_order"
+            parentRecordId={order.id}
+            orderId={order.id}
+            signatureType="change_approval"
+            documentVersion={String(order.updated_at || order.date_created || '')}
+          />
+          <SignatureSection
+            title={order.pickup_delivery_method === 'install' ? 'Install Completion Signature' : order.pickup_delivery_method === 'delivery' ? 'Delivery Confirmation Signature' : 'Pickup Confirmation Signature'}
+            parentRecordType={order.pickup_delivery_method === 'install' ? 'install_record' : order.pickup_delivery_method === 'delivery' ? 'delivery_record' : 'pickup_record'}
+            parentRecordId={order.id}
+            orderId={order.id}
+            signatureType={order.pickup_delivery_method === 'install' ? 'install_completion' : order.pickup_delivery_method === 'delivery' ? 'delivery_confirmation' : 'pickup_confirmation'}
+            documentVersion={String(order.updated_at || order.date_created || '')}
+          />
+          <SignatureActivityList orderId={order.id} />
           <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2"><MessageSquare className="w-4 h-4 text-gray-500" /><p className="text-sm font-medium text-gray-700">Internal Notes</p></div>
@@ -728,7 +833,15 @@ export default function OrderDetail() {
       {showDrawingModal && (
         <DrawingModal
           orderId={id}
-          onClose={() => setShowDrawingModal(false)}
+          parentType={drawingMarkupImage ? 'uploaded_image' : 'order'}
+          parentId={drawingMarkupImage ? drawingMarkupImage.id : id}
+          uploadedImage={drawingMarkupImage}
+          existingDrawing={!drawingMarkupImage ? latestOrderDraftDrawing : null}
+          defaultType={drawingMarkupImage ? 'markup' : 'sketch'}
+          onClose={() => {
+            setShowDrawingModal(false);
+            setDrawingMarkupImage(null);
+          }}
           onSaved={load}
         />
       )}

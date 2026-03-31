@@ -1,7 +1,7 @@
 """
 User, Authentication, and Tenant related Pydantic models.
 """
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from datetime import datetime, timezone
 import uuid
@@ -39,6 +39,8 @@ class TenantBase(BaseModel):
     founder_number: Optional[int] = None
     founder_locked_at: Optional[str] = None
     time_tracking_settings: Optional[TimeTrackingSettings] = None
+    employee_portal_settings: Optional[Dict[str, bool]] = None
+    signature_settings: Optional[Dict[str, Any]] = None
 
 class TenantCreate(BaseModel):
     name: str
@@ -57,7 +59,9 @@ class TenantUpdate(BaseModel):
     website: Optional[str] = None
     logo_url: Optional[str] = None
     time_tracking_settings: Optional[TimeTrackingSettings] = None
+    employee_portal_settings: Optional[Dict[str, bool]] = None
     customer_portal_settings: Optional[Dict[str, bool]] = None
+    signature_settings: Optional[Dict[str, Any]] = None
 
 class Tenant(TenantBase):
     model_config = ConfigDict(extra="ignore")
