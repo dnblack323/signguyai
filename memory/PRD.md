@@ -19,6 +19,44 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
+### Session: March 31, 2026 (Unified Productivity Phase 2 — Write-Back + Interactive Views)
+- **Kanban Drag/Drop Persistence (DONE):**
+  - Added unified PATCH endpoint: `PATCH /api/productivity/items/{item_uid}`
+  - Dragging cards between Kanban columns now writes status updates back to source records
+  - Source-aware write-back implemented for:
+    - `task`
+    - `order` (current job workflow)
+    - `legacy_job`
+    - `production_task`
+  - Updates now propagate back through unified layer and reflect across `/items`, `/board`, and `/calendar-range`
+- **Task List Rich Interactions (DONE):**
+  - Added inline quick actions in Task List for supported item types
+  - Supported inline edits now include:
+    - status
+    - priority
+    - due date
+    - assigned user
+    - complete / reopen toggle
+  - Task schema extended to persist richer productivity fields:
+    - `status`
+    - `priority`
+    - `start_datetime`
+- **Unified Source Detail / Edit Flow (DONE):**
+  - Clicking unified items now opens a source-aware detail/edit dialog
+  - Writable item types expose edit controls directly in the dialog
+  - Deep-link button still routes users to the original source screen when available
+- **Dashboard Widget Consolidation (DONE):**
+  - Main dashboard schedule/pending-approval widgets now pull from unified productivity queries rather than separate disconnected dashboard endpoints
+  - Kept older dashboard endpoints in place for safe compatibility during transition
+- **Legacy Screens intentionally kept for now:**
+  - `/production-board` remains during safe consolidation
+  - older task/order dashboards remain until unified replacements are proven stable in more workflows
+  - no destructive removals performed in this phase
+- **Testing:**
+  - Self-tested write-back for task / order / production task sources
+  - Screenshot smoke tests passed for Productivity Task List and navigation
+  - Testing agent iteration_80 passed frontend 100%; backend 15/16 passed with 1 production-task case skipped only due no available seeded item during agent run
+
 ### Session: March 31, 2026 (Unified Productivity Layer + Calendar Phase 1)
 - **Audit / Reuse Pass (DONE):**
   - Audited and reused existing productivity-related sources instead of creating another siloed system
