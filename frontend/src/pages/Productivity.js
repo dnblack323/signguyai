@@ -6,6 +6,8 @@ import { useApp } from '../context/AppContext';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { ProductivityFiltersBar } from '../components/productivity/ProductivityFiltersBar';
 import { ProductivityItemDialog } from '../components/productivity/ProductivityItemDialog';
 import { ProductivityDashboardView } from '../components/productivity/ProductivityDashboardView';
@@ -49,6 +51,8 @@ export default function Productivity() {
   const [calendarPayload, setCalendarPayload] = useState({ items: [], range: null, summary: null });
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
+  const [creatingDayTask, setCreatingDayTask] = useState(false);
+  const [dayTaskForm, setDayTaskForm] = useState({ title: '', assigned_to: '' });
 
   const refreshAll = async () => {
     await Promise.all([loadCore(), loadCalendar()]);
@@ -115,6 +119,22 @@ export default function Productivity() {
     }));
   }, [calendarPayload.items, selectedDay]);
 
+  const handleCreateDayTask = async () => {
+    if (!selectedDay || !dayTaskForm.title.trim()) return;
+    setCreatingDayTask(true);
+    try {
+      await api.post('/tasks', {
+        title: dayTaskForm.title.trim(),
+        assigned_to: dayTaskForm.assigned_to || null,
+        due_date: format(selectedDay, 'yyyy-MM-dd'),
+      });
+      setDayTaskForm({ title: '', assigned_to: '' });
+      await refreshAll();
+    } finally {
+      setCreatingDayTask(false);
+    }
+  };
+
   if (loading && !summary) {
     return <div className="flex items-center justify-center py-24"><Loader2 className="w-8 h-8 animate-spin text-violet-500" /></div>;
   }
@@ -166,6 +186,20 @@ export default function Productivity() {
             <DialogTitle>{selectedDay ? format(selectedDay, 'EEEE, MMMM d, yyyy') : 'Day Detail'}</DialogTitle>
             <DialogDescription>All unified productivity items for this day.</DialogDescription>
           </DialogHeader>
+          <div className="rounded-lg border border-gray-200 p-3 space-y-3">
+            <p className="text-sm font-medium text-gray-900">Add Task for This Day</p>
+            <Input value={dayTaskForm.title} onChange={(event) => setDayTaskForm((current) => ({ ...current, title: event.target.value }))} placeholder="Task title" data-testid="day-task-title-input" />
+            <div className="flex gap-2">
+              <Select value={dayTaskForm.assigned_to || 'unassigned'} onValueChange={(value) => setDayTaskForm((current) => ({ ...current, assigned_to: value === 'unassigned' ? '' : value }))}>
+                <SelectTrigger className="w-[220px]" data-testid="day-task-assignee-select"><SelectValue placeholder="Assignee (optional)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {(employees || []).map((employee) => <SelectItem key={employee.id} value={employee.id}>{employee.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Button onClick={handleCreateDayTask} disabled={creatingDayTask || !dayTaskForm.title.trim()} data-testid="day-task-create-button">{creatingDayTask ? 'Saving...' : 'Add Task'}</Button>
+            </div>
+          </div>
           <div className="space-y-3">
             {dayItems.length === 0 ? (
               <Card className="bg-white border-gray-200"><CardContent className="p-6 text-center text-gray-500">No items scheduled for this day.</CardContent></Card>

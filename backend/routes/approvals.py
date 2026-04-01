@@ -66,6 +66,16 @@ class ProofResponse(BaseModel):
     created_at: str
 
 
+async def _get_proof_parent_name(tenant_id: str, parent_id: str):
+    job = await db.jobs.find_one({"id": parent_id, "tenant_id": tenant_id}, {"_id": 0, "name": 1})
+    if job:
+        return job.get("name"), job
+    order = await db.orders.find_one({"id": parent_id, "tenant_id": tenant_id}, {"_id": 0, "order_number": 1})
+    if order:
+        return order.get("order_number") or "Order", order
+    return "Unknown", None
+
+
 @router.get("/stats", response_model=ApprovalStats)
 async def get_approval_stats(
     current_user: UserInDB = Depends(get_current_active_user)
@@ -112,13 +122,10 @@ async def get_approvals(
             {"id": proof.get("customer_id"), "tenant_id": current_user.tenant_id},
             {"_id": 0, "name": 1}
         )
-        job = await db.jobs.find_one(
-            {"id": proof.get("job_id"), "tenant_id": current_user.tenant_id},
-            {"_id": 0, "name": 1}
-        )
+        job_name, _parent = await _get_proof_parent_name(current_user.tenant_id, proof.get("job_id"))
         
         proof["customer_name"] = customer.get("name") if customer else "Unknown"
-        proof["job_name"] = job.get("name") if job else "Unknown"
+        proof["job_name"] = job_name
         enriched.append(proof)
     
     return enriched
@@ -142,13 +149,10 @@ async def get_approval(
         {"id": proof.get("customer_id"), "tenant_id": current_user.tenant_id},
         {"_id": 0, "name": 1}
     )
-    job = await db.jobs.find_one(
-        {"id": proof.get("job_id"), "tenant_id": current_user.tenant_id},
-        {"_id": 0, "name": 1}
-    )
+    job_name, _parent = await _get_proof_parent_name(current_user.tenant_id, proof.get("job_id"))
     
     proof["customer_name"] = customer.get("name") if customer else "Unknown"
-    proof["job_name"] = job.get("name") if job else "Unknown"
+    proof["job_name"] = job_name
     
     return proof
 
@@ -170,12 +174,12 @@ async def create_approval(
         raise HTTPException(status_code=404, detail="Customer not found")
     
     # Verify job belongs to tenant
-    job = await db.jobs.find_one(
-        {"id": input.job_id, "tenant_id": tenant_id},
-        {"_id": 0}
-    )
+    job = await db.jobs.find_one({"id": input.job_id, "tenant_id": tenant_id}, {"_id": 0})
+    order = None
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        order = await db.orders.find_one({"id": input.job_id, "tenant_id": tenant_id}, {"_id": 0})
+    if not job and not order:
+        raise HTTPException(status_code=404, detail="Job or order not found")
     
     # Get latest version for this job
     latest = await db.artwork_proofs.find_one(
@@ -206,7 +210,7 @@ async def create_approval(
         "customer_id": input.customer_id,
         "notification_type": "proof_ready",
         "title": "New Artwork Ready for Review",
-        "message": f"A new proof (Version {version}) is ready for your review for job: {job.get('name', 'Unknown')}",
+        "message": f"A new proof (Version {version}) is ready for your review for job: {(job or order or {}).get('name') or (order or {}).get('order_number') or 'Unknown'}",
         "link": f"/customer-portal/proofs/{proof.id}",
         "is_read": False,
         "created_at": datetime.now(timezone.utc).isoformat()
@@ -216,7 +220,7 @@ async def create_approval(
     # Return enriched response
     result = proof.model_dump()
     result["customer_name"] = customer.get("name")
-    result["job_name"] = job.get("name")
+    result["job_name"] = (job or order or {}).get("name") or (order or {}).get("order_number") or "Unknown"
     
     return result
 
@@ -253,13 +257,10 @@ async def update_approval(
         {"id": updated.get("customer_id"), "tenant_id": current_user.tenant_id},
         {"_id": 0, "name": 1}
     )
-    job = await db.jobs.find_one(
-        {"id": updated.get("job_id"), "tenant_id": current_user.tenant_id},
-        {"_id": 0, "name": 1}
-    )
+    job_name, _parent = await _get_proof_parent_name(current_user.tenant_id, updated.get("job_id"))
     
     updated["customer_name"] = customer.get("name") if customer else "Unknown"
-    updated["job_name"] = job.get("name") if job else "Unknown"
+    updated["job_name"] = job_name
     
     return updated
 
@@ -292,10 +293,7 @@ async def resend_approval_notification(
     if not proof:
         raise HTTPException(status_code=404, detail="Proof not found")
     
-    job = await db.jobs.find_one(
-        {"id": proof.get("job_id"), "tenant_id": current_user.tenant_id},
-        {"_id": 0, "name": 1}
-    )
+    job_name, _parent = await _get_proof_parent_name(current_user.tenant_id, proof.get("job_id"))
     
     # Create new notification
     notification = {
@@ -304,7 +302,7 @@ async def resend_approval_notification(
         "customer_id": proof["customer_id"],
         "notification_type": "proof_reminder",
         "title": "Reminder: Artwork Awaiting Your Review",
-        "message": f"Please review proof (Version {proof['version']}) for job: {job.get('name', 'Unknown')}",
+        "message": f"Please review proof (Version {proof['version']}) for job: {job_name}",
         "link": f"/customer-portal/proofs/{proof_id}",
         "is_read": False,
         "created_at": datetime.now(timezone.utc).isoformat()

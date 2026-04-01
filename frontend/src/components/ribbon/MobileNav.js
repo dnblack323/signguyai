@@ -101,7 +101,6 @@ const mobileNavItems = [
       { label: 'Workflow Templates', path: '/workflow-templates' },
       { label: 'Daily Digest', path: '/settings/digest' },
       { label: 'Billing & Plan', path: '/billing' },
-      { label: 'Promo Codes', path: '/promo-codes' },
       { label: 'Production Workflow', path: '/settings/production' },
       { label: 'Backup & Restore', path: '/settings/backup' },
       { label: 'Onboarding', path: '/onboarding' },

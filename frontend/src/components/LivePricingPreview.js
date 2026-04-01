@@ -39,6 +39,7 @@ export default function LivePricingPreview({ category, specs, quantity, onPriceC
   const [loading, setLoading] = useState(false);
   const debounceRef = useRef(null);
   const lastSentPrice = useRef(null);
+  const lastError = useRef('');
 
   // Parse dimensions from specs
   const pricingInput = useMemo(() => {
@@ -53,7 +54,7 @@ export default function LivePricingPreview({ category, specs, quantity, onPriceC
     const CATEGORY_MAP = {
       banners: 'digital_print', rigid_signs: 'rigid_signs', cut_vinyl: 'cut_vinyl',
       digital_print: 'digital_print', vehicle_wrap: 'vehicle_graphics',
-      apparel: 'apparel', promo_misc: 'promotional', custom: 'custom',
+      apparel: 'apparel', services: 'services', promo_misc: 'promotional', custom: 'custom',
     };
 
     // Only set vinyl_type for cut_vinyl and vehicle_wrap categories
@@ -72,6 +73,8 @@ export default function LivePricingPreview({ category, specs, quantity, onPriceC
       apparel_type: specs?.garment_type,
       transfer_type: specs?.decoration_method,
       num_print_locations: (specs?.print_locations || []).length || 1,
+      service_type: specs?.service_type,
+      estimated_hours: specs?.estimated_hours ? Number(specs.estimated_hours) : null,
       vehicle_type: specs?.vehicle_type,
       coverage_type: normalizeCoverageType(specs?.coverage_type),
       // Finishing options that affect price
@@ -99,7 +102,7 @@ export default function LivePricingPreview({ category, specs, quantity, onPriceC
       return;
     }
     // Need at least some input to calculate
-    const hasInput = pricingInput.width_inches || pricingInput.apparel_type || pricingInput.vehicle_type || pricingInput.substrate_type || pricingInput.vinyl_type;
+    const hasInput = pricingInput.width_inches || pricingInput.apparel_type || pricingInput.vehicle_type || pricingInput.substrate_type || pricingInput.vinyl_type || pricingInput.service_type || pricingInput.estimated_hours;
     if (!hasInput) {
       setCalc(null);
       if (onPriceChange && lastSentPrice.current !== 0) {
@@ -118,6 +121,17 @@ export default function LivePricingPreview({ category, specs, quantity, onPriceC
           pricing_data: pricingInput,
           quantity: effectiveQuantity,
         }, { headers: hdr() });
+        if (res.data?.error) {
+          setCalc(res.data);
+          if (res.data.error !== lastError.current) {
+            lastError.current = res.data.error;
+          }
+          if (onPriceChange && lastSentPrice.current !== 0) {
+            lastSentPrice.current = 0;
+            onPriceChange(0, res.data);
+          }
+          return;
+        }
         setCalc(res.data);
         if (onPriceChange && res.data?.selling_price !== lastSentPrice.current) {
           lastSentPrice.current = res.data?.selling_price ?? 0;
@@ -149,7 +163,13 @@ export default function LivePricingPreview({ category, specs, quantity, onPriceC
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {hasCalc ? (
+        {calc?.error ? (
+          <div className="text-center py-3">
+            <AlertTriangle className="w-5 h-5 mx-auto text-amber-400 mb-1" />
+            <p className="text-xs text-amber-600">Pricing needs more setup</p>
+            <p className="text-[11px] text-gray-500 mt-1">{calc.error}</p>
+          </div>
+        ) : hasCalc ? (
           <div className="space-y-2">
             {[
               { label: 'Material', value: breakdown.material_cost },

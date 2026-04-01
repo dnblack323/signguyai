@@ -27,6 +27,7 @@ const CATEGORIES = [
   { value: 'digital_print', label: 'Digital Print' },
   { value: 'vehicle_wrap', label: 'Vehicle Wrap' },
   { value: 'apparel', label: 'Apparel' },
+  { value: 'services', label: 'Services' },
   { value: 'promo_misc', label: 'Promotional / Misc' },
   { value: 'custom', label: 'Custom' },
 ];
@@ -49,6 +50,7 @@ const getDerivedQuantity = (category, specs, quantity) => {
 export default function NewOrderForm() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const today = new Date().toISOString().split('T')[0];
   const [saving, setSaving] = useState(false);
   const [customers, setCustomers] = useState([]);
   const [customerSearch, setCustomerSearch] = useState(searchParams.get('customer_name') || '');
@@ -61,7 +63,7 @@ export default function NewOrderForm() {
     email: searchParams.get('email') || '',
     company_name: searchParams.get('company') || '',
     customer_id: searchParams.get('customer_id') || '',
-    order_source: 'phone', requested_due_date: '', event_date: '',
+    order_source: 'phone', date_created: today, requested_due_date: '',
     pickup_delivery_method: 'pickup', pickup_delivery_notes: '',
     internal_notes: '', customer_notes: '',
   });
@@ -120,14 +122,16 @@ export default function NewOrderForm() {
       const orderRes = await axios.post(`${API}/orders`, orderPayload, { headers: hdrs() });
       const orderId = orderRes.data.id;
 
+      const createdTicketIds = [];
       for (const t of tickets) {
         if (!t.item_name.trim()) continue;
         try {
-          await axios.post(`${API}/job-tickets`, {
+          const ticketRes = await axios.post(`${API}/job-tickets`, {
             order_id: orderId,
             item_name: t.item_name,
             item_category: t.item_category || 'custom',
             quantity: t.quantity || 1,
+            due_date: t.due_date || order.requested_due_date || null,
             priority: t.priority || 'normal',
             production_flow_enabled: t.production_flow_enabled || false,
             design_needed: t.design_needed || false,
@@ -136,10 +140,18 @@ export default function NewOrderForm() {
             special_instructions: t.special_instructions || '',
             specs: t.specs || {},
           }, { headers: hdrs() });
+          createdTicketIds.push(ticketRes.data.id);
         } catch (ticketErr) {
           console.error('Ticket creation error:', ticketErr);
           toast.error(`Failed to create ticket: ${t.item_name}`);
         }
+      }
+
+      if (createdTicketIds.length > 0 && window.confirm('Do you want to send these items to production now?')) {
+        for (const ticketId of createdTicketIds) {
+          await axios.put(`${API}/job-tickets/${ticketId}`, { production_flow_enabled: true }, { headers: hdrs() });
+        }
+        await axios.post(`${API}/orders/${orderId}/start-production`, {}, { headers: hdrs() });
       }
 
       // Upload files
@@ -237,9 +249,8 @@ export default function NewOrderForm() {
                 <SelectContent>{SOURCES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            <div><Label className="text-gray-700">Today's Date</Label><Input type="date" value={order.date_created} onChange={e => updateOrder('date_created', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" data-testid="order-date-created" /></div>
             <div><Label className="text-gray-700">Due Date</Label><Input type="date" value={order.requested_due_date} onChange={e => updateOrder('requested_due_date', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" data-testid="order-due-date" /></div>
-            <div><Label className="text-gray-700">Event Date</Label><Input type="date" value={order.event_date} onChange={e => updateOrder('event_date', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" /></div>
-            <div />
           </div>
           <div><Label className="text-gray-700">Internal Notes</Label><Textarea value={order.internal_notes} onChange={e => updateOrder('internal_notes', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" rows={2} placeholder="Internal notes about this order..." /></div>
         </CardContent>
@@ -478,7 +489,7 @@ export default function NewOrderForm() {
       {/* Sketch Drawing Modal */}
       {showSketchModal && (
         <DrawingModal
-          orderId="__new_order__"
+          orderId={null}
           onClose={() => setShowSketchModal(false)}
           onSaved={(imageData, label, type) => {
             // For new order, we capture the sketch locally until order is saved

@@ -42,6 +42,7 @@ class EmployeeBase(BaseModel):
     tenant_id: Optional[str] = None
     pin: Optional[str] = None  # 4-6 digit PIN for employee portal login
     profile_image: Optional[str] = None  # URL to profile image
+    linked_user_id: Optional[str] = None
 
 class EmployeeCreate(EmployeeBase):
     pass
@@ -259,6 +260,26 @@ async def create_employee(
             employee_data["pin"] = employee_data["phone"][-4:]
         else:
             employee_data["pin"] = "1234"
+
+    linked_user_id = None
+    if employee_data.get("email"):
+        existing_user = await db.users.find_one({"email": employee_data["email"].lower(), "tenant_id": current_user.tenant_id}, {"_id": 0, "id": 1})
+        if existing_user:
+            linked_user_id = existing_user["id"]
+        else:
+            from routes.auth import get_password_hash
+            user_doc = UserInDB(
+                email=employee_data["email"].lower(),
+                full_name=employee_data.get("name", "Employee"),
+                company_name=current_user.company_name,
+                role="admin" if employee_data.get("role") == "admin" else "staff",
+                tenant_id=current_user.tenant_id,
+                hashed_password=get_password_hash(employee_data.get("pin") or "temporary-password"),
+                is_active=employee_data.get("is_active", True),
+            ).model_dump()
+            linked_user_id = user_doc["id"]
+            await db.users.insert_one(user_doc)
+    employee_data["linked_user_id"] = linked_user_id
     
     employee = Employee(**employee_data)
     doc = employee.model_dump()
@@ -312,6 +333,37 @@ async def update_employee(
         {"id": employee_id, "tenant_id": current_user.tenant_id}, 
         {"_id": 0}
     )
+    linked_user_id = employee.get("linked_user_id")
+    if employee.get("email") and not linked_user_id:
+        existing_user = await db.users.find_one({"email": employee["email"].lower(), "tenant_id": current_user.tenant_id}, {"_id": 0, "id": 1})
+        if existing_user:
+            linked_user_id = existing_user["id"]
+        else:
+            from routes.auth import get_password_hash
+            user_doc = UserInDB(
+                email=employee["email"].lower(),
+                full_name=employee.get("name", "Employee"),
+                company_name=current_user.company_name,
+                role="admin" if employee.get("role") == "admin" else "staff",
+                tenant_id=current_user.tenant_id,
+                hashed_password=get_password_hash(employee.get("pin") or "temporary-password"),
+                is_active=employee.get("is_active", True),
+            ).model_dump()
+            linked_user_id = user_doc["id"]
+            await db.users.insert_one(user_doc)
+        await db.employees.update_one({"id": employee_id}, {"$set": {"linked_user_id": linked_user_id}})
+        employee["linked_user_id"] = linked_user_id
+
+    if linked_user_id:
+        await db.users.update_one(
+            {"id": linked_user_id, "tenant_id": current_user.tenant_id},
+            {"$set": {
+                "email": employee.get("email", "").lower() if employee.get("email") else None,
+                "full_name": employee.get("name", "Employee"),
+                "role": "admin" if employee.get("role") == "admin" else "staff",
+                "is_active": employee.get("is_active", True),
+            }}
+        )
     return employee
 
 
@@ -324,6 +376,9 @@ async def delete_employee(
     employee = await db.employees.find_one({"id": employee_id, "tenant_id": current_user.tenant_id}, {"_id": 0})
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
+
+    if employee.get("linked_user_id"):
+        await db.users.delete_one({"id": employee["linked_user_id"], "tenant_id": current_user.tenant_id})
 
     await db.timelogs.delete_many({"employee_id": employee_id})
     await db.timeclock_shifts.delete_many({"employee_id": employee_id, "tenant_id": current_user.tenant_id})

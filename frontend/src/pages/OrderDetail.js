@@ -21,6 +21,7 @@ import { TicketWorkflowShortcutDialog } from '../components/TicketWorkflowShortc
 import { SignatureSection } from '../components/SignatureSection';
 import { SignatureActivityList } from '../components/SignatureActivityList';
 import { getAuthToken } from '../lib/authStorage';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const hdr = () => ({ Authorization: `Bearer ${getAuthToken()}`, 'Content-Type': 'application/json' });
@@ -38,7 +39,7 @@ const STATUS_COLORS = {
   not_started: 'bg-gray-200 text-gray-700', in_progress: 'bg-violet-500/15 text-violet-400',
   paused: 'bg-orange-500/15 text-orange-400', complete: 'bg-green-500/15 text-green-400',
 };
-const CATEGORY_LABELS = { rigid_signs: 'Rigid Signs', banners: 'Banners', cut_vinyl: 'Cut Vinyl', digital_print: 'Digital Print', vehicle_wrap: 'Vehicle Wrap', apparel: 'Apparel', promo_misc: 'Promo / Misc', custom: 'Custom' };
+const CATEGORY_LABELS = { rigid_signs: 'Rigid Signs', banners: 'Banners', cut_vinyl: 'Cut Vinyl', digital_print: 'Digital Print', vehicle_wrap: 'Vehicle Wrap', apparel: 'Apparel', services: 'Services', promo_misc: 'Promo / Misc', custom: 'Custom' };
 const PRIORITY_COLORS = { rush: 'bg-red-500 text-gray-900', urgent: 'bg-orange-500 text-gray-900', high: 'bg-amber-500/80 text-black', normal: 'bg-slate-600 text-slate-200' };
 const DEPT_LABELS = { design: 'Design', print: 'Print', cut_trim: 'Cut / Trim', lamination: 'Lamination', weed_mask: 'Weed / Mask', sewing_finishing: 'Sewing', assembly: 'Assembly', apparel: 'Apparel', wrap_prep: 'Wrap Prep', install: 'Install', qc_review: 'QC', packaging: 'Packaging', delivery: 'Delivery' };
 const fmt = (s) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -65,6 +66,7 @@ export default function OrderDetail() {
   const [shortcutMode, setShortcutMode] = useState('');
   const [shortcutTicket, setShortcutTicket] = useState(null);
   const [drawingFilter, setDrawingFilter] = useState('all');
+  const [previewFile, setPreviewFile] = useState(null);
 
   const load = async () => {
     try {
@@ -227,6 +229,33 @@ export default function OrderDetail() {
       toast.success('File deleted');
       setOrderFiles(prev => prev.filter(f => f.id !== fileId));
     } catch { toast.error('Failed to delete file'); }
+  };
+
+  const getFileContentUrl = async (file) => {
+    const response = await axios.get(`${API}/orders/${id}/files/${file.id}/content`, { headers: hdr(), responseType: 'blob' });
+    return URL.createObjectURL(response.data);
+  };
+
+  const sendFileForApproval = async (file) => {
+    try {
+      const blobRes = await axios.get(`${API}/orders/${id}/files/${file.id}/content`, { headers: hdr(), responseType: 'blob' });
+      const reader = new FileReader();
+      const dataUrl = await new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blobRes.data);
+      });
+      await axios.post(`${API}/approvals`, {
+        customer_id: order.customer_id,
+        job_id: id,
+        file_url: dataUrl,
+        file_name: file.filename,
+        description: `Artwork approval for ${order.order_number}`,
+      }, { headers: hdr() });
+      toast.success('Artwork sent for approval');
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Failed to send artwork for approval');
+    }
   };
 
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-violet-500" /></div>;
@@ -734,14 +763,22 @@ export default function OrderDetail() {
                     <div className="flex items-center gap-1">
                       {f.content_type?.startsWith('image/') && (
                         <Button variant="ghost" size="sm" className="text-amber-500 hover:text-amber-600" onClick={() => {
-                          setDrawingMarkupImage({
-                            id: f.id,
-                            label: f.label || f.filename,
-                            contentUrl: `${process.env.REACT_APP_BACKEND_URL}/api/orders/${id}/files/${f.id}/content`,
+                          getFileContentUrl(f).then((contentUrl) => {
+                            setDrawingMarkupImage({ id: f.id, label: f.label || f.filename, contentUrl });
+                            setShowDrawingModal(true);
                           });
-                          setShowDrawingModal(true);
                         }} data-testid={`markup-order-file-${f.id}`}>
                           <Pen className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {f.content_type?.startsWith('image/') && (
+                        <Button variant="ghost" size="sm" className="text-blue-500 hover:text-blue-600" onClick={() => getFileContentUrl(f).then((contentUrl) => setPreviewFile({ label: f.label || f.filename, contentUrl }))} data-testid={`preview-order-file-${f.id}`}>
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {f.content_type?.startsWith('image/') && order.customer_id && (
+                        <Button variant="ghost" size="sm" className="text-emerald-500 hover:text-emerald-600" onClick={() => sendFileForApproval(f)} data-testid={`approve-order-file-${f.id}`}>
+                          <Send className="w-4 h-4" />
                         </Button>
                       )}
                       <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-600" onClick={() => deleteFile(f.id)}>
@@ -866,6 +903,12 @@ export default function OrderDetail() {
         }}
         onCompleted={load}
       />
+      <Dialog open={!!previewFile} onOpenChange={() => setPreviewFile(null)}>
+        <DialogContent className="sm:max-w-[760px]">
+          <DialogHeader><DialogTitle>{previewFile?.label || 'Artwork Preview'}</DialogTitle></DialogHeader>
+          {previewFile?.contentUrl && <img src={previewFile.contentUrl} alt={previewFile.label} className="w-full max-h-[70vh] object-contain rounded-lg" />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

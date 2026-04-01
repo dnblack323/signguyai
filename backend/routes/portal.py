@@ -572,6 +572,9 @@ async def get_portal_proofs(
     # Enrich with job info
     for proof in proofs:
         job = await db.jobs.find_one({"id": proof["job_id"]}, {"_id": 0, "id": 1, "name": 1})
+        if not job:
+            order = await db.orders.find_one({"id": proof["job_id"]}, {"_id": 0, "id": 1, "order_number": 1})
+            job = {"id": order["id"], "name": order.get("order_number", "Order")} if order else None
         proof["job"] = job
     
     return proofs
@@ -589,6 +592,9 @@ async def get_portal_proof_detail(
     
     # Get job info
     job = await db.jobs.find_one({"id": proof["job_id"]}, {"_id": 0})
+    if not job:
+        order = await db.orders.find_one({"id": proof["job_id"]}, {"_id": 0, "id": 1, "order_number": 1})
+        job = {"id": order["id"], "name": order.get("order_number", "Order")} if order else None
     proof["job"] = job
 
     history = await db.artwork_proofs.find(

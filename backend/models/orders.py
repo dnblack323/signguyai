@@ -81,8 +81,10 @@ class JobTicketCategory(str, Enum):
     RIGID_SIGNS = "rigid_signs"
     BANNERS = "banners"
     CUT_VINYL = "cut_vinyl"
+    DIGITAL_PRINT = "digital_print"
     VEHICLE_WRAP = "vehicle_wrap"
     APPAREL = "apparel"
+    SERVICES = "services"
     PROMO_MISC = "promo_misc"
     CUSTOM = "custom"
 
@@ -186,6 +188,7 @@ class OrderCreate(BaseModel):
     email: str = ""
     company_name: str = ""
     order_source: str = OrderSource.PHONE.value
+    date_created: Optional[str] = None
     requested_due_date: Optional[str] = None
     event_date: Optional[str] = None
     status: Optional[str] = None  # Allow setting status on create (e.g., 'draft')
@@ -203,6 +206,7 @@ class OrderUpdate(BaseModel):
     email: Optional[str] = None
     company_name: Optional[str] = None
     order_source: Optional[str] = None
+    date_created: Optional[str] = None
     requested_due_date: Optional[str] = None
     event_date: Optional[str] = None
     status: Optional[str] = None

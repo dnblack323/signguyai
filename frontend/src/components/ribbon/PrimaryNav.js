@@ -46,7 +46,6 @@ export const tabSubItems = {
   webstores: [
     { label: 'Stores', icon: Store, path: '/webstores' },
     { label: 'Products', icon: Package, path: '/products' },
-    { label: 'Promo Codes', icon: Tag, path: '/promo-codes' },
   ],
   documents: [
     { label: 'Document Library', icon: FolderOpen, path: '/documents' },
@@ -115,7 +114,7 @@ const routeToNavItem = {
   '/admin-portal': 'customers',
   '/webstores': 'webstores',
   '/products': 'webstores',
-  '/promo-codes': 'webstores',
+  '/promo-codes': 'settings',
   '/documents': 'documents',
   '/questionnaires': 'documents',
   '/payroll': 'team',

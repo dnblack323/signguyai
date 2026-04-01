@@ -8,6 +8,7 @@ import {
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Textarea } from '../components/ui/textarea';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -35,7 +36,7 @@ const TASK_COLORS = {
   needs_review: 'bg-amber-500/15 text-amber-400', complete: 'bg-green-500/15 text-green-400', rework: 'bg-red-500/15 text-red-400',
 };
 const PRIORITY_COLORS = { rush: 'bg-red-500 text-gray-900', urgent: 'bg-orange-500 text-gray-900', high: 'bg-amber-500/80 text-black', normal: 'bg-slate-600 text-slate-200' };
-const CATEGORY_LABELS = { rigid_signs: 'Rigid Signs', banners: 'Banners', cut_vinyl: 'Cut Vinyl', digital_print: 'Digital Print', vehicle_wrap: 'Vehicle Wrap', apparel: 'Apparel', promo_misc: 'Promo / Misc', custom: 'Custom' };
+const CATEGORY_LABELS = { rigid_signs: 'Rigid Signs', banners: 'Banners', cut_vinyl: 'Cut Vinyl', digital_print: 'Digital Print', vehicle_wrap: 'Vehicle Wrap', apparel: 'Apparel', services: 'Services', promo_misc: 'Promo / Misc', custom: 'Custom' };
 const fmt = (s) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 export default function JobTicketDetail() {
@@ -55,6 +56,7 @@ export default function JobTicketDetail() {
   const [markupImage, setMarkupImage] = useState(null);
   const [previewDrawing, setPreviewDrawing] = useState(null);
   const [drawingsEnabled, setDrawingsEnabled] = useState(false);
+  const [previewFile, setPreviewFile] = useState(null);
 
   const load = async () => {
     try {
@@ -126,6 +128,16 @@ export default function JobTicketDetail() {
   const completedTasks = tasks.filter(t => t.status === 'complete').length;
   const getEmployeeName = (employeeId) => employees.find((employee) => employee.id === employeeId)?.name || employeeId;
   const latestDraftDrawing = ticketDrawings.find((drawing) => drawing.status === 'draft') || null;
+
+  const buildImageMarkupPayload = async (file) => {
+    const response = await axios.get(`${API}/orders/${ticket.order_id}/files/${file.id}/content`, { headers: hdr(), responseType: 'blob' });
+    const objectUrl = URL.createObjectURL(response.data);
+    return {
+      id: file.id,
+      label: file.label || file.filename,
+      contentUrl: objectUrl,
+    };
+  };
 
   return (
     <div className="space-y-6" data-testid="job-ticket-detail-page">
@@ -335,14 +347,15 @@ export default function JobTicketDetail() {
                             <p className="text-xs text-gray-500 truncate">{file.filename}</p>
                           </div>
                           <Button variant="outline" size="sm" onClick={() => {
-                            setMarkupImage({
-                              id: file.id,
-                              label: file.label || file.filename,
-                              contentUrl: `${process.env.REACT_APP_BACKEND_URL}/api/orders/${ticket.order_id}/files/${file.id}/content`,
+                            buildImageMarkupPayload(file).then((payload) => {
+                              setMarkupImage(payload);
+                              setShowDrawingModal(true);
                             });
-                            setShowDrawingModal(true);
                           }} data-testid={`job-ticket-markup-button-${file.id}`}>
                             Markup
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => buildImageMarkupPayload(file).then(setPreviewFile)} data-testid={`job-ticket-preview-file-${file.id}`}>
+                            <ImageIcon className="w-4 h-4" />
                           </Button>
                         </div>
                       ))}
@@ -461,6 +474,12 @@ export default function JobTicketDetail() {
       {previewDrawing && (
         <DrawingPreviewModal drawing={previewDrawing} onClose={() => setPreviewDrawing(null)} onDeleted={load} isAdmin />
       )}
+      <Dialog open={!!previewFile} onOpenChange={() => setPreviewFile(null)}>
+        <DialogContent className="sm:max-w-[760px]">
+          <DialogHeader><DialogTitle>{previewFile?.label || 'Artwork Preview'}</DialogTitle></DialogHeader>
+          {previewFile?.contentUrl && <img src={previewFile.contentUrl} alt={previewFile.label} className="w-full max-h-[70vh] object-contain rounded-lg" />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

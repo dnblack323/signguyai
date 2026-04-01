@@ -29,7 +29,7 @@ const routeToTab = {
   '/customers': 'customers',
   '/webstores': 'webstores',
   '/products': 'webstores',
-  '/promo-codes': 'webstores',
+  '/promo-codes': 'settings',
   '/ai-tools': 'ai-tools',
   '/ai-assistant': 'ai-tools',
   '/approvals': 'ai-tools',

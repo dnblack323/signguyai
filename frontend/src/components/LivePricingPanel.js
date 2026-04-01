@@ -21,10 +21,20 @@ export default function LivePricingPanel({ ticketId, ticketData, onPriceSaved })
   const [calc, setCalc] = useState(null);
   const [loading, setLoading] = useState(false);
   const [pricingMode, setPricingMode] = useState('calculator');
-  const [manualPrice, setManualPrice] = useState(0);
+  const [manualPrice, setManualPrice] = useState('');
   const [saving, setSaving] = useState(false);
   const [pricingInputs, setPricingInputs] = useState({});
   const debounceRef = useRef(null);
+
+  useEffect(() => {
+    const snapshot = ticketData?.pricing_snapshot || {};
+    const nextMode = snapshot.pricing_mode || 'calculator';
+    setPricingMode(nextMode);
+    setManualPrice(snapshot.manual_price ? String(snapshot.manual_price) : '');
+    if (snapshot.calculation_breakdown) {
+      setCalc({ calculation: snapshot.calculation_breakdown, active_price: snapshot.active_price || ticketData?.estimated_price || 0 });
+    }
+  }, [ticketData]);
 
   const runCalculation = useCallback(async (extraInputs = {}) => {
     if (!ticketId) return;
@@ -34,7 +44,7 @@ export default function LivePricingPanel({ ticketId, ticketData, onPriceSaved })
         { ...pricingInputs, ...extraInputs }, 
         { headers: hdr() }
       );
-      if (res.data.calculation) {
+        if (res.data.calculation || res.data.error) {
         setCalc(res.data);
       }
     } catch {
@@ -66,7 +76,7 @@ export default function LivePricingPanel({ ticketId, ticketData, onPriceSaved })
       const body = {
         pricing_mode: pricingMode,
         calculated_price: calc?.active_price || 0,
-        manual_price: manualPrice,
+        manual_price: parseFloat(manualPrice || 0) || 0,
         calculation_breakdown: calc?.calculation || {},
       };
       const res = await axios.post(`${API}/job-tickets/${ticketId}/save-pricing`, body, { headers: hdr() });
@@ -80,7 +90,7 @@ export default function LivePricingPanel({ ticketId, ticketData, onPriceSaved })
   };
 
   const breakdown = calc?.calculation || {};
-  const activePrice = pricingMode === 'manual' ? manualPrice : (calc?.active_price || 0);
+  const activePrice = pricingMode === 'manual' ? (parseFloat(manualPrice || 0) || 0) : (calc?.active_price || ticketData?.pricing_snapshot?.active_price || ticketData?.estimated_price || 0);
 
   return (
     <Card className="bg-white rounded-xl border border-gray-200 shadow-sm" data-testid="live-pricing-panel">
@@ -136,7 +146,13 @@ export default function LivePricingPanel({ ticketId, ticketData, onPriceSaved })
           </div>
         )}
 
-        {pricingMode === 'calculator' && !calc?.calculation && !loading && (
+        {pricingMode === 'calculator' && calc?.error && !loading && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
+            {calc.error}
+          </div>
+        )}
+
+        {pricingMode === 'calculator' && !calc?.calculation && !calc?.error && !loading && (
           <p className="text-xs text-gray-500 text-center py-3">Enter dimensions and specs to see pricing</p>
         )}
 
@@ -149,7 +165,8 @@ export default function LivePricingPanel({ ticketId, ticketData, onPriceSaved })
               <Input
                 type="number" min={0} step={0.01}
                 value={manualPrice}
-                onChange={(e) => setManualPrice(parseFloat(e.target.value) || 0)}
+                onChange={(e) => setManualPrice(e.target.value)}
+                placeholder=""
                 className="pl-8 bg-gray-50 border-gray-300 text-gray-900"
                 data-testid="manual-price-input"
               />

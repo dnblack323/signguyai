@@ -140,6 +140,8 @@ class PricingDefaults(BaseModel):
     minimum_sign_charge: float = 50.0
     minimum_service_charge: float = 75.0
     minimum_wrap_charge: float = 500.0
+    banner_grommet_price_each: float = 1.0
+    banner_hemming_tape_price_per_linear_inch: float = 0.03
     
     # Complexity multipliers
     complexity_multiplier_base: float = 1.0
@@ -225,6 +227,8 @@ class JobItemPricingData(BaseModel):
     print_material: Optional[PrintMaterial] = None
     laminate: bool = False
     laminate_type: Optional[str] = None
+    grommets: Optional[str] = None
+    hemming: Optional[str] = None
     
     # Rigid Signs
     substrate_type: Optional[SubstrateType] = None

@@ -616,10 +616,30 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
     hemming = getattr(data, 'hemming', False)
     lamination = data.laminate
     
-    if grommets:
-        finishing_cost += 1.00 * quantity
-    if hemming:
-        finishing_cost += 0.50 * quantity
+    grommet_price = float(defaults.get("banner_grommet_price_each", 1.0) or 0)
+    hemming_price_per_inch = float(defaults.get("banner_hemming_tape_price_per_linear_inch", 0.03) or 0)
+
+    if grommets and grommets != 'none':
+        perimeter_inches = (width + height) * 2
+        perimeter_feet = perimeter_inches / 12 if perimeter_inches else 0
+        if grommets == 'corners':
+            grommet_count = 4
+        elif grommets == 'every_2ft':
+            grommet_count = max(int(perimeter_feet / 2), 1)
+        elif grommets == 'every_3ft':
+            grommet_count = max(int(perimeter_feet / 3), 1)
+        else:
+            grommet_count = max(int(getattr(data, 'custom_grommet_count', 0) or 0), 0)
+        finishing_cost += grommet_count * grommet_price * quantity
+    else:
+        grommet_count = 0
+
+    if hemming and hemming != 'none':
+        perimeter_inches = (width + height) * 2
+        hem_linear_inches = width * 2 if hemming == 'top_bottom' else perimeter_inches
+        finishing_cost += hem_linear_inches * hemming_price_per_inch * quantity
+    else:
+        hem_linear_inches = 0
 
     labor_hours = sqft * quantity * float(category_config.get("default_labor_hours_per_sqft", 0.06) or 0)
     production_rate = float(defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75)) or 0)
@@ -661,7 +681,11 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
             "laminate_cost_per_sqft": laminate_cost_per_sqft,
             "finishing_cost": round(finishing_cost, 2),
             "grommets": grommets,
+            "grommet_count": grommet_count,
+            "grommet_price_each": grommet_price,
             "hemming": hemming,
+            "hem_linear_inches": round(hem_linear_inches, 2),
+            "hemming_price_per_linear_inch": hemming_price_per_inch,
             "lamination": lamination,
             "labor_hours": round(labor_hours, 2),
             "production_rate": production_rate,

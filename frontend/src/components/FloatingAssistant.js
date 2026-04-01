@@ -207,7 +207,7 @@ What would you like to do?`,
     const lowerMsg = message.toLowerCase();
     
     // Detect create job intent
-    if (lowerMsg.includes('create') && (lowerMsg.includes('job') || lowerMsg.includes('work order'))) {
+    if (lowerMsg.includes('create') && (lowerMsg.includes('job') || lowerMsg.includes('work order') || lowerMsg.includes('order'))) {
       return await handleCreateJobIntent(message);
     }
     

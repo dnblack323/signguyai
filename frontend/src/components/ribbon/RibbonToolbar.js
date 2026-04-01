@@ -237,7 +237,6 @@ const WebstoresToolbar = ({ navigate }) => (
 
     <RibbonGroup title="Marketing">
       <RibbonButton icon={Share2} label="Share" onClick={() => {}} />
-      <RibbonButton icon={Ticket} label="Promos" onClick={() => navigate('/promo-codes')} />
     </RibbonGroup>
   </div>
 );

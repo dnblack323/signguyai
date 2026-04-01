@@ -1411,6 +1411,17 @@ async def ai_business_assistant(
     has_business_data_access = data_aware_result.allowed or data_limited_result.allowed
     
     try:
+        def normalize_llm_response(value):
+            if isinstance(value, str):
+                return value
+            if isinstance(value, dict):
+                return value.get("text") or value.get("content") or str(value)
+            if hasattr(value, 'text') and getattr(value, 'text'):
+                return value.text
+            if hasattr(value, 'content') and getattr(value, 'content'):
+                return value.content
+            return str(value)
+
         # Only fetch shop data if user has access
         shop_data = None
         shop_summary = ""
@@ -1535,6 +1546,7 @@ Note: For personalized insights based on their actual business data, users can u
         
         # Send message and get response
         response = await chat.send_message(UserMessage(text=full_prompt))
+        assistant_text = normalize_llm_response(response)
         await deduct_credits_after_success(
             db,
             tenant_id=current_user.tenant_id,
@@ -1553,7 +1565,7 @@ Note: For personalized insights based on their actual business data, users can u
             "created_at": datetime.now(timezone.utc).isoformat()
         })
         
-        return {"response": response}
+        return {"response": assistant_text}
         
     except Exception as e:
         await log_failed_ai_usage(
@@ -1575,7 +1587,8 @@ async def transcribe_voice_input(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Transcribe assistant voice input using OpenAI Whisper."""
-    if not OPENAI_API_KEY:
+    voice_api_key = OPENAI_API_KEY or EMERGENT_LLM_KEY
+    if not voice_api_key:
         raise HTTPException(status_code=500, detail="Voice input is not configured")
 
     preview = await preview_credit_usage(db, current_user.tenant_id, "voice_transcription", 1)
@@ -1594,15 +1607,17 @@ async def transcribe_voice_input(
             tmp_path = tmp.name
 
         try:
-            stt = OpenAISpeechToText(api_key=OPENAI_API_KEY)
+            stt = OpenAISpeechToText(api_key=voice_api_key)
             # Open as file object with proper name for the library
             with open(tmp_path, "rb") as audio_file:
-                transcription = await stt.transcribe(audio_file, model="whisper-1")
+                transcription = await stt.transcribe(audio_file, model="whisper-1", response_format="json", language="en")
             # Extract text from response - handle dict, object with .text, or string
             if isinstance(transcription, dict):
                 text = transcription.get("text", "")
             elif hasattr(transcription, 'text'):
                 text = transcription.text
+            elif hasattr(transcription, 'model_dump'):
+                text = transcription.model_dump().get('text', '')
             else:
                 text = str(transcription)
         finally:

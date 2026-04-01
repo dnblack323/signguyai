@@ -26,8 +26,9 @@ const Widget = ({ title, value, items, onOpenItem }) => (
 
 export const ProductivityDashboardView = ({ items, summary, onOpenItem }) => {
   const today = new Date().toISOString().slice(0, 10);
-  const dueTodayItems = items.filter((item) => item.due_datetime?.slice(0, 10) === today && !item.is_completed);
-  const overdueItems = items.filter((item) => item.due_datetime?.slice(0, 10) < today && !item.is_completed);
+  const productionRelevantItems = items.filter((item) => item.type !== 'schedule_shift');
+  const dueTodayItems = productionRelevantItems.filter((item) => item.due_datetime?.slice(0, 10) === today && !item.is_completed);
+  const overdueItems = productionRelevantItems.filter((item) => item.due_datetime?.slice(0, 10) < today && !item.is_completed);
   const waitingItems = items.filter((item) => ['pending', 'awaiting_approval', 'awaiting_quote', 'awaiting_review'].includes(item.status));
   const scheduledItems = items.filter((item) => item.start_datetime && !item.is_completed);
 

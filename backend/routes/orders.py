@@ -81,10 +81,11 @@ async def get_order(order_id: str, current_user: UserInDB = Depends(get_current_
 
 @router.post("")
 async def create_order(data: OrderCreate, current_user: UserInDB = Depends(get_current_active_user)):
+    payload = data.model_dump(exclude_none=True)
     order = Order(
         tenant_id=current_user.tenant_id,
         created_by=current_user.id,
-        **data.model_dump(exclude_none=True)
+        **payload
     )
     order.order_number = await _next_order_number(current_user.tenant_id)
 

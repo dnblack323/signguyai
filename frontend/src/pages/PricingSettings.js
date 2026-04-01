@@ -482,6 +482,8 @@ export default function PricingSettings() {
                 ['design_hourly_rate', 'Designer Hourly Rate'],
                 ['production_hourly_rate', 'Production Hourly Rate'],
                 ['installer_hourly_rate', 'Installer Hourly Rate'],
+                ['banner_grommet_price_each', 'Banner Grommet Price Each'],
+                ['banner_hemming_tape_price_per_linear_inch', 'Banner Hem Tape / Linear Inch'],
                 ['overhead_percentage', 'Overhead Percentage'],
                 ['shop_overhead_per_hour', 'Shop Overhead Per Hour'],
                 ['target_profit_margin_percent', 'Target Profit Margin %'],

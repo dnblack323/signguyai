@@ -26,6 +26,7 @@ const CATEGORIES = [
   { value: 'digital_print', label: 'Digital Print' },
   { value: 'vehicle_wrap', label: 'Vehicle Wrap' },
   { value: 'apparel', label: 'Apparel' },
+  { value: 'services', label: 'Services' },
   { value: 'promo_misc', label: 'Promotional / Misc' },
   { value: 'custom', label: 'Custom' },
 ];
@@ -78,11 +79,12 @@ export default function AddTicketToOrder() {
     }
     setSaving(true);
     try {
-      await axios.post(`${API}/job-tickets`, {
+      const created = await axios.post(`${API}/job-tickets`, {
         order_id: orderId,
         item_name: ticket.item_name,
         item_category: ticket.item_category || 'custom',
         quantity: ticket.quantity || 1,
+        due_date: ticket.due_date || order?.requested_due_date || null,
         priority: ticket.priority || 'normal',
         production_flow_enabled: ticket.production_flow_enabled || false,
         design_needed: ticket.design_needed || false,
@@ -91,6 +93,11 @@ export default function AddTicketToOrder() {
         special_instructions: ticket.special_instructions || '',
         specs: ticket.specs || {},
       }, { headers: hdrs() });
+
+      if (window.confirm('Send this item to production now?')) {
+        await axios.put(`${API}/job-tickets/${created.data.id}`, { production_flow_enabled: true }, { headers: hdrs() });
+        await axios.post(`${API}/orders/${orderId}/start-production`, {}, { headers: hdrs() });
+      }
 
       toast.success('Job ticket added!');
       navigate(`/orders/${orderId}`);

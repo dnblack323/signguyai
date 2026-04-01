@@ -230,6 +230,7 @@ def _build_ticket_pricing_payload(ticket: dict, pricing_input: Optional[dict] = 
         "digital_print": "digital_print",
         "vehicle_wrap": "vehicle_graphics",
         "apparel": "apparel",
+        "services": "services",
         "promo_misc": "promotional",
         "custom": "custom",
     }
@@ -245,6 +246,8 @@ def _build_ticket_pricing_payload(ticket: dict, pricing_input: Optional[dict] = 
         "double_sided": double_sided,
         "laminate": specs.get("lamination", "none") not in ("none", "", None, False),
         "laminate_type": specs.get("lamination") if specs.get("lamination") not in ("none", "") else None,
+        "grommets": specs.get("grommets"),
+        "hemming": specs.get("hems") or specs.get("hemming"),
         "include_setup_fee": bool(specs.get("setup_required") or ticket.get("design_needed") or incoming.get("include_setup_fee")),
         "vinyl_type": (specs.get("vinyl_type") or specs.get("material")) if is_vinyl_category else None,
         "print_material": specs.get("media_type") or specs.get("material"),
@@ -253,10 +256,12 @@ def _build_ticket_pricing_payload(ticket: dict, pricing_input: Optional[dict] = 
         "apparel_type": specs.get("garment_type") or specs.get("subtype"),
         "transfer_type": specs.get("decoration_method") or specs.get("print_method"),
         "num_print_locations": len(specs.get("print_locations", [])) or 1,
+        "service_type": specs.get("service_type") or specs.get("subtype"),
+        "hourly_rate_override": float(specs.get("hourly_rate_override", 0) or 0) or None,
         "vehicle_type": specs.get("vehicle_type"),
         "coverage_type": coverage_type,
         "estimated_vehicle_sqft": float(specs.get("estimated_vehicle_sqft", 0) or 0) or None,
-        "estimated_hours": float(specs.get("estimated_install_hours", 0) or 0) or None,
+        "estimated_hours": float(specs.get("estimated_hours", 0) or specs.get("estimated_install_hours", 0) or 0) or None,
         **{k: v for k, v in incoming.items() if v is not None and k not in {"complexity"}},
     }
     sanitized = {}
@@ -315,12 +320,8 @@ def _banner_schema(defaults, material_opts):
         {"key": "grommets", "label": "Grommets", "type": "select", "options": [{"value": "none", "label": "None"}, {"value": "corners", "label": "Corners Only"}, {"value": "every_2ft", "label": "Every 2 ft"}, {"value": "every_3ft", "label": "Every 3 ft"}, {"value": "custom", "label": "Custom"}], "default": "corners", "group": "finishing", "pricing": True},
         {"key": "pole_pockets", "label": "Pole Pockets", "type": "select", "options": [{"value": "none", "label": "None"}, {"value": "top", "label": "Top"}, {"value": "bottom", "label": "Bottom"}, {"value": "both", "label": "Both"}, {"value": "custom", "label": "Custom"}], "default": "none", "group": "finishing", "pricing": True},
         {"key": "wind_slits", "label": "Wind Slits", "type": "toggle", "default": False, "group": "finishing", "pricing": True},
-        {"key": "reinforced_corners", "label": "Reinforced Corners", "type": "toggle", "default": False, "group": "finishing", "pricing": True},
-        {"key": "sewn_edges", "label": "Sewn Edges", "type": "toggle", "default": False, "group": "finishing", "pricing": True},
-        {"key": "webbing", "label": "Webbing / Reinforcement", "type": "toggle", "default": False, "group": "finishing", "pricing": True},
         # Design / Artwork
         {"key": "artwork_provided", "label": "Artwork Provided", "type": "toggle", "default": False, "group": "design"},
-        {"key": "proof_rounds", "label": "Expected Proof Rounds", "type": "number", "placeholder": "1", "group": "design"},
         {"key": "artwork_notes", "label": "Artwork Notes", "type": "textarea", "group": "design"},
         # Production / Delivery
         {"key": "rush_order", "label": "Rush Order", "type": "toggle", "default": False, "group": "production", "pricing": True},
@@ -498,6 +499,25 @@ def _digital_print_schema(defaults, media_opts):
     ]
 
 
+def _services_schema(defaults):
+    service_options = [
+        {"value": "design", "label": "Logo / Graphic Design"},
+        {"value": "consultation", "label": "Consultation"},
+        {"value": "installation", "label": "Installation"},
+        {"value": "removal", "label": "Removal"},
+        {"value": "site_survey", "label": "Site Survey"},
+        {"value": "travel", "label": "Travel"},
+        {"value": "other", "label": "Other Service"},
+    ]
+    return [
+        {"key": "service_type", "label": "Service Type", "type": "select", "options": service_options, "group": "specs", "required": True, "pricing": True},
+        {"key": "estimated_hours", "label": "Hours", "type": "number", "placeholder": "1", "group": "specs", "required": True, "pricing": True},
+        {"key": "complexity", "label": "Complexity (1-5)", "type": "number", "default": 1, "group": "specs", "pricing": True},
+        {"key": "hourly_rate_override", "label": "Override Hourly Rate", "type": "number", "placeholder": "Optional", "group": "specs", "pricing": True},
+        {"key": "service_notes", "label": "Service Notes", "type": "textarea", "group": "specs"},
+    ]
+
+
 def _vehicle_wrap_schema(defaults, vinyl_opts, vehicle_type_opts):
     """Full Vehicle Wrap category schema — materials from catalog."""
     difficulty_opts = [
@@ -587,6 +607,7 @@ async def get_category_field_schema(category: str, current_user: UserInDB = Depe
         "cut_vinyl": _cut_vinyl_schema(defaults, cat_opts("vinyl")),
         "vehicle_wrap": _vehicle_wrap_schema(defaults, cat_opts("vinyl"), cat_opts("vehicle_type")),
         "digital_print": _digital_print_schema(defaults, cat_opts("print_material")),
+        "services": _services_schema(defaults),
         "promo_misc": [
             {"key": "material", "label": "Product Type", "type": "select", "options": [{"value": m.value, "label": m.value.replace("_"," ").title()} for m in PromoProductType], "group": "material"},
             {"key": "size_description", "label": "Size / Specs", "type": "text", "group": "specs"},
