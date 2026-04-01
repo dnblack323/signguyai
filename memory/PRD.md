@@ -19,6 +19,27 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
+### Session: April 1, 2026 (Employee/User Bug Fixes + Portal Invite)
+- **Timesheet Manual Entry Fixes (DONE):**
+  - Fixed manual time-entry editing from the Time Sheets tab
+  - Root cause: manual timesheet snapshot entries were missing `employee_id`, causing the edit form to fail validation and behave like employee selection was missing
+  - Added delete controls to Time Sheets for:
+    - manual entries
+    - saved timeclock shifts
+- **User Management Tenant Scope Fix (DONE):**
+  - Fixed `/api/admin/users` to return only users for the current tenant
+  - Scoped admin user actions (reset password, status toggle, role change) to the current tenant
+  - Added tenant-scoped admin user creation route
+  - Updated User Management copy to clarify tenant-only scope
+- **Employee Portal Invite Flow (DONE):**
+  - Added admin employee portal invite endpoint: `/api/employees/{employee_id}/invite-portal`
+  - Time Clock employee directory now includes an **Invite Portal** action
+  - Invite returns login URL + PIN metadata and sends email through the existing SendGrid email service when configured
+  - If email service is unavailable, admin still receives manual invite info in the response/toast
+- **Testing:**
+  - Self-tested tenant-scoped users list, employee portal invite, timesheet edit/delete, and timeclock shift delete
+  - Testing agent iteration_84 passed backend 17/17 and frontend 100%
+
 ### Session: April 1, 2026 (Employee Module Consistency Pass)
 - **Employee Admin Lifecycle (DONE):**
   - Added admin lifecycle support for employee records:
