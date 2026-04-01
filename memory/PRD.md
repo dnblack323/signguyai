@@ -56,6 +56,10 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
   - Auth storage regression testing agent iteration_86 passed backend 17/17 and frontend 7/7 representative pages loaded
   - Self-tested login, dashboard load, and product description AI generation after refactors
 
+### Session: April 1, 2026 (Memory Catalog + Remaining Issues Tracking)
+- Added `/app/memory/feature_catalog.md` to keep the current implemented feature set in one place
+- Added `/app/memory/remaining_code_issues.md` to track the remaining cleanup / hardening items after the major review pass
+
 ### Session: April 1, 2026 (Code Review Remediation Pass)
 - **Critical Review Fixes (DONE):**
   - Removed the `server.py ↔ routes/tiers.py` circular-import dependency by moving tier route access to `request.app.state` instead of importing from `server`
