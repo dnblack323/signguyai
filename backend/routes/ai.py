@@ -2049,6 +2049,12 @@ async def get_available_action_types():
     return {
         "action_types": [
             {
+                "type": ActionType.CREATE_ORDER.value,
+                "description": "Create a new order",
+                "requires_confirmation": False,
+                "parameters": ["customer_name", "company_name", "description", "requested_due_date", "pickup_delivery_method"]
+            },
+            {
                 "type": ActionType.CREATE_JOB.value,
                 "description": "Create a new job",
                 "requires_confirmation": False,

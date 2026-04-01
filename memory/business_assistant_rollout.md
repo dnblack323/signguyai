@@ -37,7 +37,8 @@ That means:
 - Post-response actions and guided next steps are still incomplete
 
 ### Current status
-- **Phase 0 = NEXT REQUIRED WORK**
+- **Phase 0 = COMPLETE**
+- **Phase 1 = NEXT REQUIRED WORK (do not start until explicitly approved)**
 - Later phases are planned but should not be started yet
 
 ---
@@ -76,7 +77,7 @@ Make the current assistant reliable enough to use daily before adding bigger con
 - no broken response objects shown in UI
 
 ### Status
-- **Planned / not yet complete**
+- **Complete and verified**
 
 ---
 
@@ -264,3 +265,12 @@ Do not move to Phase 1 until these are true:
 - common create/query commands are dependable
 - clarification prompts work consistently
 - current assistant actions are stable in real use
+
+### Phase 0 verification result
+- Voice transcription endpoint working
+- Voice speak / TTS endpoint working
+- Transcript confirmation UI working (`Send Now`, `Edit First`, `Discard`)
+- Plain-text assistant responses verified (no `[object Object]` / `object, object` output)
+- `create_order` parsing and action execution working for phrasing like `create an order for Sara Manning`
+- Assistant confirmation/cancel flow verified
+- Regression testing passed

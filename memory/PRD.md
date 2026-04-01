@@ -25,6 +25,22 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
   - do not begin the next phase until the previous phase is fully working and verified
 - Added dedicated memory file: `/app/memory/business_assistant_rollout.md`
 
+### Session: April 1, 2026 (Business Assistant Phase 0 Complete)
+- **Business Assistant Phase 0 — Stabilization & Core Usability (DONE):**
+  - Fixed broken assistant response rendering so responses return as plain text instead of object-style output
+  - Improved voice transcription handling and recording setup in Floating Assistant
+  - Added transcript confirmation flow after voice capture:
+    - Send Now
+    - Edit First
+    - Discard
+  - Added support for `create_order` assistant parsing and execution
+  - Voice/business assistant now correctly handles phrasing like: `create an order for Sara Manning`
+  - Added `create_order` to the documented assistant action types endpoint
+- **Testing:**
+  - Self-tested parse + execute action for order creation
+  - Cleaned temporary assistant test orders/customers after validation
+  - Testing agent iteration_89 passed backend 16/16 and frontend 100%
+
 ### Session: April 1, 2026 (Security & Test-Credential Hardening Pass)
 - **Auth / Token Storage Hardening (IN PROGRESS, major pieces DONE):**
   - Added shared frontend token helpers in `/app/frontend/src/lib/authStorage.js`
