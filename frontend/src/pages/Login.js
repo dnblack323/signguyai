@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Checkbox } from '../components/ui/checkbox';
 import { Loader2, Eye, EyeOff, LogIn, UserPlus, KeyRound, ArrowLeft } from 'lucide-react';
+import { clearAuthToken } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -50,6 +51,10 @@ export default function Login() {
   const [resetConfirmPassword, setResetConfirmPassword] = useState('');
   const [resetMessage, setResetMessage] = useState('');
   const [resetError, setResetError] = useState('');
+
+  useEffect(() => {
+    clearAuthToken();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

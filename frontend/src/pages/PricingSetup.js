@@ -10,6 +10,7 @@ import { ArrowLeft, CheckCircle2, FileUp, Loader2, Settings2, Sparkles, UploadCl
 import { toast } from 'sonner';
 import { useAuth, Permission } from '../context/AuthContext';
 import { useAICreditGuard } from '../components/credits/AICreditConfirmationDialog';
+import { getAuthToken } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 const CATEGORY_OPTIONS = [
@@ -50,7 +51,7 @@ export default function PricingSetup() {
   const [excludedRowIds, setExcludedRowIds] = useState([]);
   const [reviewDecisions, setReviewDecisions] = useState({});
 
-  const getToken = () => localStorage.getItem('auth_token');
+  const getToken = () => getAuthToken();
 
   const loadImports = useCallback(async () => {
     const token = getToken();

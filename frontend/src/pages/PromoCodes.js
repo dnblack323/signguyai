@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { getAuthToken } from '../lib/authStorage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -49,7 +50,7 @@ export default function PromoCodes() {
 
   const fetchCodes = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await axios.get(`${API}/promo-codes`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -68,7 +69,7 @@ export default function PromoCodes() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('auth_token');
+    const token = getAuthToken();
     
     try {
       const payload = {
@@ -102,7 +103,7 @@ export default function PromoCodes() {
   const handleDelete = async (codeId) => {
     if (!window.confirm('Are you sure you want to delete this promo code?')) return;
     
-    const token = localStorage.getItem('auth_token');
+    const token = getAuthToken();
     try {
       await axios.delete(`${API}/promo-codes/${codeId}`, {
         headers: { Authorization: `Bearer ${token}` }

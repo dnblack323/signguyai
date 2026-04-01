@@ -6,3 +6,4 @@
 - Verify employee portal section access respects tenant `employee_portal_settings`
 - Verify admin-only employee lifecycle actions (deactivate/delete/reset PIN) remain blocked for non-admin users
 - Verify payroll/timeclock admin mutations remain admin-only
+- Verify auth token storage now prefers `sessionStorage` by default and only uses `localStorage` for remembered admin login persistence

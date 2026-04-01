@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { getAuthToken, setAuthToken, clearAuthToken } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -96,7 +97,7 @@ const PERMISSION_ALIASES = {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [permissions, setPermissions] = useState([]);
-  const [token, setToken] = useState(() => localStorage.getItem('auth_token'));
+  const [token, setToken] = useState(() => getAuthToken());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -131,7 +132,7 @@ export function AuthProvider({ children }) {
         return userData;
       } else {
         // Token is invalid or expired
-        localStorage.removeItem('auth_token');
+        clearAuthToken();
         setToken(null);
         setUser(null);
         setPermissions([]);
@@ -184,7 +185,7 @@ export function AuthProvider({ children }) {
       }
 
       const data = await response.json();
-      localStorage.setItem('auth_token', data.access_token);
+      setAuthToken(data.access_token, true);
       setToken(data.access_token);
       await fetchUserProfile(data.access_token);
       return { success: true };
@@ -227,7 +228,7 @@ export function AuthProvider({ children }) {
       }
 
       const data = await response.json();
-      localStorage.setItem('auth_token', data.access_token);
+      setAuthToken(data.access_token, rememberMe);
       setToken(data.access_token);
       await fetchUserProfile(data.access_token);
       return { success: true };
@@ -241,7 +242,7 @@ export function AuthProvider({ children }) {
 
   // Logout user
   const logout = () => {
-    localStorage.removeItem('auth_token');
+    clearAuthToken();
     setToken(null);
     setUser(null);
     setPermissions([]);

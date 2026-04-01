@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { getAuthToken } from '../lib/authStorage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -11,7 +12,7 @@ const api = axios.create({
 // Add auth token to all requests
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('auth_token');
+    const token = getAuthToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

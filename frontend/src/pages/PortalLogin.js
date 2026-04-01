@@ -8,6 +8,7 @@ import { Label } from '../components/ui/label';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Loader2, LogIn, UserPlus, Building2 } from 'lucide-react';
+import { setPortalToken } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -29,7 +30,7 @@ export default function PortalLogin() {
     try {
       const response = await axios.post(`${API_URL}/api/portal/auth/login`, loginForm);
       
-      localStorage.setItem('portal_token', response.data.access_token);
+      setPortalToken(response.data.access_token);
       localStorage.setItem('portal_customer_id', response.data.customer_id);
       localStorage.setItem('portal_customer_name', response.data.customer_name);
       navigate('/customer-portal');
@@ -73,7 +74,7 @@ export default function PortalLogin() {
         password: registerForm.password
       });
       
-      localStorage.setItem('portal_token', response.data.access_token);
+      setPortalToken(response.data.access_token);
       localStorage.setItem('portal_customer_id', response.data.customer_id);
       localStorage.setItem('portal_customer_name', response.data.customer_name);
       navigate('/customer-portal');

@@ -7,6 +7,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Loader2, LogIn, HardHat, Clock } from 'lucide-react';
+import { setEmployeePortalToken } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -28,7 +29,7 @@ export default function EmployeePortalLogin() {
         headers: { Authorization: `Bearer ${response.data.access_token}` }
       }).catch(() => ({ data: {} }));
       
-      localStorage.setItem('employee_token', response.data.access_token);
+      setEmployeePortalToken(response.data.access_token);
       localStorage.setItem('employee_id', response.data.employee_id);
       localStorage.setItem('employee_name', response.data.employee_name);
       localStorage.setItem('employee_tenant_id', response.data.tenant_id);
