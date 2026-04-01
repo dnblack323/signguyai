@@ -19,6 +19,12 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
+### Session: April 1, 2026 (Business Assistant Rollout Planning)
+- Added phased rollout plan for Business Assistant enhancements
+- Saved to memory with strict release-gate rule:
+  - do not begin the next phase until the previous phase is fully working and verified
+- Added dedicated memory file: `/app/memory/business_assistant_rollout.md`
+
 ### Session: April 1, 2026 (Security & Test-Credential Hardening Pass)
 - **Auth / Token Storage Hardening (IN PROGRESS, major pieces DONE):**
   - Added shared frontend token helpers in `/app/frontend/src/lib/authStorage.js`
