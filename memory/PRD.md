@@ -40,6 +40,22 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
   - Revalidated key code-review regression pages/endpoints after hardening changes
   - Note: broader non-priority localStorage cleanup and full test-suite refactor still remain for a later hardening sweep if desired
 
+### Session: April 1, 2026 (Continuing Hardening + Complexity Reduction)
+- **Auth Storage Sweep Expanded (DONE for token-sensitive paths):**
+  - Removed remaining direct raw `localStorage` token reads for admin auth, customer portal auth, and employee portal auth token flows across frontend pages/components
+  - Fixed all batch-import regressions introduced during the sweep and revalidated frontend runtime
+- **Test Secret Cleanup Expanded (DONE for targeted literals):**
+  - Removed the remaining targeted hardcoded credential literals identified in the backend tests search pass
+  - Replaced them with centralized helper constants or synthetic placeholders from `test_credentials_helper.py`
+  - Cleaned a large amount of low-risk test lint noise (`f"literal"`, `== True/False`, bare excepts, and unused locals in touched tests)
+- **Complexity Reduction (DONE for two top frontend offenders + AI helpers):**
+  - Refactored `DynamicCategoryFields.js` into clearer helper-driven rendering sections while preserving behavior
+  - Refactored `DrawingCanvasPad.js` by extracting repeated canvas/image helper logic
+  - Reduced complexity in AI route helpers by extracting parsing helpers for product descriptions and data helpers inside shop context generation
+- **Testing:**
+  - Auth storage regression testing agent iteration_86 passed backend 17/17 and frontend 7/7 representative pages loaded
+  - Self-tested login, dashboard load, and product description AI generation after refactors
+
 ### Session: April 1, 2026 (Code Review Remediation Pass)
 - **Critical Review Fixes (DONE):**
   - Removed the `server.py ↔ routes/tiers.py` circular-import dependency by moving tier route access to `request.app.state` instead of importing from `server`

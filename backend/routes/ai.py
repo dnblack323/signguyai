@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Depends, Header, Request, UploadFi
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field
+import asyncio
 import uuid
 import os
 import base64
@@ -1229,59 +1230,58 @@ async def generate_product_description(
         raise HTTPException(status_code=500, detail=f"Failed to generate product description: {str(e)}")
 
 
-def parse_product_description(text: str) -> dict:
-    """Parse the generated description to extract structured components"""
-    result = {
-        "headline": "",
-        "bullet_points": [],
-        "call_to_action": ""
-    }
-    
-    lines = text.split('\n')
-    
-    # Extract headline (usually first non-empty line or after "Headline Hook")
-    for i, line in enumerate(lines):
-        line = line.strip()
-        if "headline" in line.lower() and i + 1 < len(lines):
-            result["headline"] = lines[i + 1].strip().strip('*').strip('"').strip()
-            break
-        elif line and not line.startswith('#') and not line.startswith('*') and len(line) < 150:
-            if not result["headline"] and line:
-                result["headline"] = line.strip('*').strip('"').strip()
-    
-    # Extract bullet points
+def _clean_markdown_line(value: str) -> str:
+    return value.strip().strip('*').strip('"').strip()
+
+
+def _extract_headline(lines: list[str]) -> str:
+    fallback = ""
+    for index, raw_line in enumerate(lines):
+        line = raw_line.strip()
+        if "headline" in line.lower() and index + 1 < len(lines):
+            return _clean_markdown_line(lines[index + 1])
+        if line and not line.startswith('#') and not line.startswith('*') and len(line) < 150 and not fallback:
+            fallback = _clean_markdown_line(line)
+    return fallback
+
+
+def _extract_bullets(lines: list[str]) -> list[str]:
+    bullets = []
     in_bullet_section = False
-    for line in lines:
-        line = line.strip()
+    for raw_line in lines:
+        line = raw_line.strip()
         if "bullet" in line.lower() or "selling points" in line.lower():
             in_bullet_section = True
             continue
-        if in_bullet_section:
-            if line.startswith('-') or line.startswith('•') or line.startswith('*'):
-                bullet = line.lstrip('-•* ').strip()
-                if bullet and len(bullet) > 10:
-                    result["bullet_points"].append(bullet)
-            elif line.startswith('#') or "call to action" in line.lower():
-                in_bullet_section = False
-    
-    # Extract call to action
-    for i, line in enumerate(lines):
-        if "call to action" in line.lower() and i + 1 < len(lines):
-            cta = lines[i + 1].strip().strip('*').strip('"').strip()
+        if in_bullet_section and (line.startswith('#') or "call to action" in line.lower()):
+            in_bullet_section = False
+        if not in_bullet_section and not (line.startswith('-') or line.startswith('•')):
+            continue
+        if line.startswith('-') or line.startswith('•') or line.startswith('*'):
+            bullet = line.lstrip('-•* ').strip()
+            if bullet and len(bullet) > 10:
+                bullets.append(bullet)
+    return bullets
+
+
+def _extract_call_to_action(lines: list[str]) -> str:
+    for index, line in enumerate(lines):
+        if "call to action" in line.lower() and index + 1 < len(lines):
+            cta = _clean_markdown_line(lines[index + 1])
             if cta:
-                result["call_to_action"] = cta
-            break
-    
-    # Fallback: if no bullet points found, extract any lines starting with - or •
-    if not result["bullet_points"]:
-        for line in lines:
-            line = line.strip()
-            if line.startswith('-') or line.startswith('•'):
-                bullet = line.lstrip('-•* ').strip()
-                if bullet and len(bullet) > 10:
-                    result["bullet_points"].append(bullet)
-    
-    return result
+                return cta
+    return ""
+
+
+def parse_product_description(text: str) -> dict:
+    """Parse the generated description to extract structured components"""
+    lines = text.split('\n')
+    bullets = _extract_bullets(lines)
+    return {
+        "headline": _extract_headline(lines),
+        "bullet_points": bullets,
+        "call_to_action": _extract_call_to_action(lines),
+    }
 
 
 # ============== AI BUSINESS ASSISTANT ==============
@@ -1298,127 +1298,87 @@ class VoiceSpeakRequest(BaseModel):
     speed: float = 1.0
 
 
-async def get_shop_context(tenant_id: str) -> dict:
-    """Fetch comprehensive shop data for AI context"""
-    from datetime import datetime, timedelta, timezone
-    
-    now = datetime.now(timezone.utc)
-    thirty_days_ago = now - timedelta(days=30)
-    
-    # Get tenant info
-    tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
-    company_name = tenant.get("company_name", "Your Shop") if tenant else "Your Shop"
-    
-    # Get customer stats
-    total_customers = await db.customers.count_documents({"tenant_id": tenant_id})
-    new_customers_30d = await db.customers.count_documents({
-        "tenant_id": tenant_id,
-        "created_at": {"$gte": thirty_days_ago.isoformat()}
-    })
-    
-    # Get job stats
-    total_jobs = await db.jobs.count_documents({"tenant_id": tenant_id})
-    active_jobs = await db.jobs.count_documents({"tenant_id": tenant_id, "status": {"$in": ["pending", "in_progress", "production"]}})
-    completed_jobs_30d = await db.jobs.count_documents({
-        "tenant_id": tenant_id, 
-        "status": "completed",
-        "updated_at": {"$gte": thirty_days_ago.isoformat()}
-    })
-    
-    # Get revenue from invoices
-    paid_invoices = await db.invoices.find({
-        "tenant_id": tenant_id,
-        "status": "paid"
-    }, {"_id": 0, "total": 1, "paid_at": 1, "created_at": 1}).to_list(1000)
-    
-    total_revenue = sum(inv.get("total", 0) for inv in paid_invoices)
-    revenue_30d = sum(inv.get("total", 0) for inv in paid_invoices 
-                      if inv.get("paid_at", inv.get("created_at", "")) >= thirty_days_ago.isoformat())
-    
-    # Get pending invoices
-    pending_invoices = await db.invoices.find({
-        "tenant_id": tenant_id,
-        "status": {"$in": ["sent", "draft", "overdue"]}
-    }, {"_id": 0, "total": 1}).to_list(500)
-    pending_revenue = sum(inv.get("total", 0) for inv in pending_invoices)
-    
-    # Get quote stats
-    total_quotes = await db.quotes.count_documents({"tenant_id": tenant_id})
-    quotes_30d = await db.quotes.count_documents({
-        "tenant_id": tenant_id,
-        "created_at": {"$gte": thirty_days_ago.isoformat()}
-    })
-    accepted_quotes = await db.quotes.count_documents({"tenant_id": tenant_id, "status": "accepted"})
-    quote_conversion_rate = (accepted_quotes / total_quotes * 100) if total_quotes > 0 else 0
-    
-    # Get job categories/types breakdown
-    jobs_pipeline = [
+async def _get_job_category_breakdown(tenant_id: str) -> list:
+    pipeline = [
         {"$match": {"tenant_id": tenant_id}},
         {"$group": {"_id": "$category", "count": {"$sum": 1}, "total_value": {"$sum": "$total"}}},
         {"$sort": {"total_value": -1}},
-        {"$limit": 10}
+        {"$limit": 10},
     ]
-    job_categories = await db.jobs.aggregate(jobs_pipeline).to_list(10)
-    
-    # Get top customers by revenue
-    customer_pipeline = [
+    job_categories = await db.jobs.aggregate(pipeline).to_list(10)
+    return [{"category": item["_id"] or "Uncategorized", "count": item["count"], "revenue": round(item.get("total_value", 0), 2)} for item in job_categories]
+
+
+async def _get_top_customers(tenant_id: str) -> list:
+    pipeline = [
         {"$match": {"tenant_id": tenant_id, "status": "paid"}},
         {"$group": {"_id": "$customer_id", "total_spent": {"$sum": "$total"}, "invoice_count": {"$sum": 1}}},
         {"$sort": {"total_spent": -1}},
-        {"$limit": 5}
+        {"$limit": 5},
     ]
-    top_customers_data = await db.invoices.aggregate(customer_pipeline).to_list(5)
-    
-    # Enrich with customer names
+    top_customers_data = await db.invoices.aggregate(pipeline).to_list(5)
     top_customers = []
-    for tc in top_customers_data:
-        customer = await db.customers.find_one({"id": tc["_id"]}, {"_id": 0, "name": 1})
+    for customer_total in top_customers_data:
+        customer = await db.customers.find_one({"id": customer_total["_id"]}, {"_id": 0, "name": 1})
         if customer:
             top_customers.append({
                 "name": customer.get("name", "Unknown"),
-                "total_spent": tc["total_spent"],
-                "orders": tc["invoice_count"]
+                "total_spent": customer_total["total_spent"],
+                "orders": customer_total["invoice_count"],
             })
-    
-    # Get employee count
+    return top_customers
+
+
+async def get_shop_context(tenant_id: str) -> dict:
+    """Fetch comprehensive shop data for AI context"""
+    from datetime import datetime, timedelta, timezone
+
+    now = datetime.now(timezone.utc)
+    thirty_days_ago = now - timedelta(days=30)
+    thirty_days_iso = thirty_days_ago.isoformat()
+
+    tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    company_name = tenant.get("company_name", "Your Shop") if tenant else "Your Shop"
+
+    total_customers = await db.customers.count_documents({"tenant_id": tenant_id})
+    new_customers_30d = await db.customers.count_documents({"tenant_id": tenant_id, "created_at": {"$gte": thirty_days_iso}})
+
+    total_jobs = await db.jobs.count_documents({"tenant_id": tenant_id})
+    active_jobs = await db.jobs.count_documents({"tenant_id": tenant_id, "status": {"$in": ["pending", "in_progress", "production"]}})
+    completed_jobs_30d = await db.jobs.count_documents({"tenant_id": tenant_id, "status": "completed", "updated_at": {"$gte": thirty_days_iso}})
+
+    paid_invoices = await db.invoices.find({"tenant_id": tenant_id, "status": "paid"}, {"_id": 0, "total": 1, "paid_at": 1, "created_at": 1}).to_list(1000)
+    total_revenue = sum(invoice.get("total", 0) for invoice in paid_invoices)
+    revenue_30d = sum(invoice.get("total", 0) for invoice in paid_invoices if invoice.get("paid_at", invoice.get("created_at", "")) >= thirty_days_iso)
+
+    pending_invoices = await db.invoices.find({"tenant_id": tenant_id, "status": {"$in": ["sent", "draft", "overdue"]}}, {"_id": 0, "total": 1}).to_list(500)
+    pending_revenue = sum(invoice.get("total", 0) for invoice in pending_invoices)
+
+    total_quotes = await db.quotes.count_documents({"tenant_id": tenant_id})
+    quotes_30d = await db.quotes.count_documents({"tenant_id": tenant_id, "created_at": {"$gte": thirty_days_iso}})
+    accepted_quotes = await db.quotes.count_documents({"tenant_id": tenant_id, "status": "accepted"})
+    quote_conversion_rate = (accepted_quotes / total_quotes * 100) if total_quotes > 0 else 0
+
+    job_categories, top_customers = await asyncio.gather(
+        _get_job_category_breakdown(tenant_id),
+        _get_top_customers(tenant_id),
+    )
+
     employee_count = await db.employees.count_documents({"tenant_id": tenant_id})
-    
-    # Get webstore stats
     webstore_count = await db.webstores_v2.count_documents({"tenant_id": tenant_id})
     webstore_orders = await db.webstore_orders.count_documents({"tenant_id": tenant_id})
-    
-    # Calculate average job value
     avg_job_value = total_revenue / total_jobs if total_jobs > 0 else 0
-    
+
     return {
         "company_name": company_name,
-        "customers": {
-            "total": total_customers,
-            "new_last_30_days": new_customers_30d
-        },
-        "jobs": {
-            "total": total_jobs,
-            "active": active_jobs,
-            "completed_last_30_days": completed_jobs_30d,
-            "average_value": round(avg_job_value, 2)
-        },
-        "revenue": {
-            "total_all_time": round(total_revenue, 2),
-            "last_30_days": round(revenue_30d, 2),
-            "pending": round(pending_revenue, 2)
-        },
-        "quotes": {
-            "total": total_quotes,
-            "last_30_days": quotes_30d,
-            "conversion_rate": round(quote_conversion_rate, 1)
-        },
-        "job_categories": [{"category": jc["_id"] or "Uncategorized", "count": jc["count"], "revenue": round(jc.get("total_value", 0), 2)} for jc in job_categories],
+        "customers": {"total": total_customers, "new_last_30_days": new_customers_30d},
+        "jobs": {"total": total_jobs, "active": active_jobs, "completed_last_30_days": completed_jobs_30d, "average_value": round(avg_job_value, 2)},
+        "revenue": {"total_all_time": round(total_revenue, 2), "last_30_days": round(revenue_30d, 2), "pending": round(pending_revenue, 2)},
+        "quotes": {"total": total_quotes, "last_30_days": quotes_30d, "conversion_rate": round(quote_conversion_rate, 1)},
+        "job_categories": job_categories,
         "top_customers": top_customers,
         "team_size": employee_count,
-        "webstores": {
-            "count": webstore_count,
-            "total_orders": webstore_orders
-        }
+        "webstores": {"count": webstore_count, "total_orders": webstore_orders},
     }
 
 
@@ -1624,7 +1584,7 @@ async def transcribe_voice_input(
 
     try:
         from emergentintegrations.llm.openai.speech_to_text import OpenAISpeechToText
-        import tempfile, os
+        import tempfile
 
         # Save uploaded file to a temp file with proper extension
         ext = (audio.filename or "audio.webm").rsplit(".", 1)[-1] or "webm"
