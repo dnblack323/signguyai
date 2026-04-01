@@ -11,7 +11,7 @@ import {
   FileImage, FileSpreadsheet, File, ExternalLink, FolderOpen
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getPortalToken } from '../lib/authStorage';
+import { getPortalToken, clearPortalToken, clearPortalCustomerId, clearPortalCustomerName, getPortalCustomerName } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -20,9 +20,9 @@ function PortalLayout({ children, activeNav, customerName }) {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem('portal_token');
-    localStorage.removeItem('portal_customer_id');
-    localStorage.removeItem('portal_customer_name');
+    clearPortalToken();
+    clearPortalCustomerId();
+    clearPortalCustomerName();
     navigate('/customer-portal/login');
   };
 
@@ -172,7 +172,7 @@ export default function PortalDocuments() {
   }, [navigate]);
 
   useEffect(() => {
-    const name = localStorage.getItem('portal_customer_name');
+    const name = getPortalCustomerName();
     if (name) setCustomerName(name);
     fetchDocuments();
   }, [fetchDocuments]);

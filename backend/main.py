@@ -18,7 +18,6 @@ import uvicorn
 
 # Import from modular structure
 from core import db, shutdown_db_client, logger
-from models import *
 
 # Import the existing server.py's app and routes
 # This maintains backward compatibility during migration

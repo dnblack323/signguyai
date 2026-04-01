@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { EmployeePortalLayout } from './EmployeePortalDashboard';
 import { ArrowLeft, CheckCircle2, Pause, Play } from 'lucide-react';
 import { toast } from 'sonner';
-import { getEmployeePortalToken } from '../lib/authStorage';
+import { getEmployeePortalToken, getEmployeePortalName, getEmployeePortalConfig } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -17,14 +17,8 @@ export default function EmployeePortalJob() {
   const { jobId } = useParams();
   const navigate = useNavigate();
   const token = getEmployeePortalToken();
-  const employeeName = localStorage.getItem('employee_name') || 'Employee';
-  const portalConfig = (() => {
-    try {
-      return JSON.parse(localStorage.getItem('employee_portal_config') || '{}');
-    } catch {
-      return {};
-    }
-  })();
+  const employeeName = getEmployeePortalName() || 'Employee';
+  const portalConfig = getEmployeePortalConfig();
   const canSeeJobDetails = portalConfig?.can_see_job_details === true;
   const [loading, setLoading] = useState(true);
   const [jobData, setJobData] = useState(null);

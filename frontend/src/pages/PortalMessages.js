@@ -12,7 +12,7 @@ import {
   AlertCircle, CheckCircle, Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getPortalToken } from '../lib/authStorage';
+import { getPortalToken, getPortalCustomerName } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -23,7 +23,7 @@ export function PortalMessages() {
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [newConv, setNewConv] = useState({ subject: '', message: '' });
   const [creating, setCreating] = useState(false);
-  const customerName = localStorage.getItem('portal_customer_name') || 'Customer';
+  const customerName = getPortalCustomerName() || 'Customer';
 
   const fetchConversations = useCallback(async () => {
     const token = getPortalToken();
@@ -246,7 +246,7 @@ export function PortalConversation() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef(null);
-  const customerName = localStorage.getItem('portal_customer_name') || 'Customer';
+  const customerName = getPortalCustomerName() || 'Customer';
 
   const fetchMessages = useCallback(async () => {
     const token = getPortalToken();

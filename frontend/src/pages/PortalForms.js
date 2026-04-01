@@ -13,7 +13,7 @@ import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { AlertCircle, CheckCircle, ChevronLeft, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getPortalToken } from '../lib/authStorage';
+import { getPortalToken, getPortalCustomerName } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -28,7 +28,7 @@ const getToken = () => getPortalToken();
 
 export function PortalForms() {
   const navigate = useNavigate();
-  const customerName = localStorage.getItem('portal_customer_name') || 'Customer';
+  const customerName = getPortalCustomerName() || 'Customer';
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [forms, setForms] = useState([]);
@@ -109,7 +109,7 @@ export function PortalForms() {
 export function PortalFormDetail() {
   const navigate = useNavigate();
   const { requestId } = useParams();
-  const customerName = localStorage.getItem('portal_customer_name') || 'Customer';
+  const customerName = getPortalCustomerName() || 'Customer';
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [detail, setDetail] = useState(null);

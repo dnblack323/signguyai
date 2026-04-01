@@ -14,7 +14,7 @@ import {
   Camera, FileText, CheckCircle, AlertCircle, Lock
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getPortalToken } from '../lib/authStorage';
+import { getPortalToken, getPortalCustomerName, setPortalCustomerName } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -27,7 +27,7 @@ export default function PortalProfile() {
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
   const [changingPassword, setChangingPassword] = useState(false);
-  const customerName = localStorage.getItem('portal_customer_name') || 'Customer';
+  const customerName = getPortalCustomerName() || 'Customer';
 
   const fetchProfile = useCallback(async () => {
     const token = getPortalToken();
@@ -88,7 +88,7 @@ export default function PortalProfile() {
       if (response.ok) {
         const updated = await response.json();
         setProfile(updated);
-        localStorage.setItem('portal_customer_name', updated.name);
+        setPortalCustomerName(updated.name);
         toast.success('Profile updated successfully!');
       } else {
         const err = await response.json();

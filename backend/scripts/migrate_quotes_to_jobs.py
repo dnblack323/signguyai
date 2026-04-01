@@ -91,7 +91,7 @@ async def migrate_quotes_to_jobs():
         print(f"  Migrated quote {quote_id[:8]} -> job with status '{job['status']}'")
         migrated += 1
     
-    print(f"\nMigration complete!")
+    print("\nMigration complete!")
     print(f"  Migrated: {migrated}")
     print(f"  Skipped: {skipped}")
     print(f"  Total quotes: {len(quotes)}")

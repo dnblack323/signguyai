@@ -7,7 +7,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Loader2, LogIn, HardHat, Clock } from 'lucide-react';
-import { setEmployeePortalToken } from '../lib/authStorage';
+import { setEmployeePortalToken, setEmployeePortalId, setEmployeePortalName, setEmployeePortalTenantId, setEmployeePortalConfig } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -30,10 +30,10 @@ export default function EmployeePortalLogin() {
       }).catch(() => ({ data: {} }));
       
       setEmployeePortalToken(response.data.access_token);
-      localStorage.setItem('employee_id', response.data.employee_id);
-      localStorage.setItem('employee_name', response.data.employee_name);
-      localStorage.setItem('employee_tenant_id', response.data.tenant_id);
-      localStorage.setItem('employee_portal_config', JSON.stringify(configResponse.data || {}));
+      setEmployeePortalId(response.data.employee_id);
+      setEmployeePortalName(response.data.employee_name);
+      setEmployeePortalTenantId(response.data.tenant_id);
+      setEmployeePortalConfig(configResponse.data || {});
       navigate('/employee-portal');
     } catch (err) {
       console.error('Login error:', err);

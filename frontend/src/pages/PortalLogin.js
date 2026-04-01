@@ -8,7 +8,7 @@ import { Label } from '../components/ui/label';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Loader2, LogIn, UserPlus, Building2 } from 'lucide-react';
-import { setPortalToken } from '../lib/authStorage';
+import { setPortalToken, setPortalCustomerId, setPortalCustomerName } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -31,8 +31,8 @@ export default function PortalLogin() {
       const response = await axios.post(`${API_URL}/api/portal/auth/login`, loginForm);
       
       setPortalToken(response.data.access_token);
-      localStorage.setItem('portal_customer_id', response.data.customer_id);
-      localStorage.setItem('portal_customer_name', response.data.customer_name);
+      setPortalCustomerId(response.data.customer_id);
+      setPortalCustomerName(response.data.customer_name);
       navigate('/customer-portal');
     } catch (err) {
       console.error('Login error:', err);
@@ -75,8 +75,8 @@ export default function PortalLogin() {
       });
       
       setPortalToken(response.data.access_token);
-      localStorage.setItem('portal_customer_id', response.data.customer_id);
-      localStorage.setItem('portal_customer_name', response.data.customer_name);
+      setPortalCustomerId(response.data.customer_id);
+      setPortalCustomerName(response.data.customer_name);
       navigate('/customer-portal');
     } catch (err) {
       console.error('Registration error:', err);

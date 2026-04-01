@@ -10,31 +10,25 @@ import {
   ChevronRight, AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getEmployeePortalToken } from '../lib/authStorage';
+import { getEmployeePortalToken, getEmployeePortalName, getEmployeePortalConfig, clearEmployeePortalToken, clearEmployeePortalId, clearEmployeePortalName, clearEmployeePortalTenantId, clearEmployeePortalConfig, setEmployeePortalConfig } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 // Employee Portal Layout wrapper
 const EmployeePortalLayout = ({ children, employeeName, portalConfig }) => {
   const navigate = useNavigate();
-  const storedConfig = portalConfig || (() => {
-    try {
-      return JSON.parse(localStorage.getItem('employee_portal_config') || '{}');
-    } catch {
-      return {};
-    }
-  })();
+  const storedConfig = portalConfig || getEmployeePortalConfig();
   const canViewTimeClock = storedConfig?.can_view_time_clock !== false;
   const canViewPay = storedConfig?.can_view_pay_stubs !== false;
   const canViewTasks = storedConfig?.can_view_tasks !== false;
   const canEditProfile = storedConfig?.can_edit_profile !== false;
 
   const handleLogout = () => {
-    localStorage.removeItem('employee_token');
-    localStorage.removeItem('employee_id');
-    localStorage.removeItem('employee_name');
-    localStorage.removeItem('employee_tenant_id');
-    localStorage.removeItem('employee_portal_config');
+    clearEmployeePortalToken();
+    clearEmployeePortalId();
+    clearEmployeePortalName();
+    clearEmployeePortalTenantId();
+    clearEmployeePortalConfig();
     navigate('/employee-portal/login');
   };
 
@@ -130,7 +124,7 @@ export default function EmployeePortalDashboard() {
   const [workSummary, setWorkSummary] = useState(null);
   const [portalConfig, setPortalConfig] = useState(null);
   
-  const employeeName = localStorage.getItem('employee_name') || 'Employee';
+  const employeeName = getEmployeePortalName() || 'Employee';
   const token = getEmployeePortalToken();
 
   useEffect(() => {
@@ -161,7 +155,7 @@ export default function EmployeePortalDashboard() {
       setAssignedJobs(jobsRes.data || []);
       setWorkSummary(summaryRes.data);
       setPortalConfig(configRes.data || {});
-      localStorage.setItem('employee_portal_config', JSON.stringify(configRes.data || {}));
+      setEmployeePortalConfig(configRes.data || {});
     } catch (err) {
       console.error('Failed to load clock status:', err);
       if (err.response?.status === 401) {

@@ -8,7 +8,7 @@ import {
   CreditCard, AlertCircle
 } from 'lucide-react';
 import { EmployeePortalLayout, formatHours } from './EmployeePortalDashboard';
-import { getEmployeePortalToken } from '../lib/authStorage';
+import { getEmployeePortalToken, getEmployeePortalName, getEmployeePortalConfig } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -24,15 +24,9 @@ export default function EmployeePortalPay() {
   const [loading, setLoading] = useState(true);
   const [paySummary, setPaySummary] = useState(null);
   
-  const employeeName = localStorage.getItem('employee_name') || 'Employee';
+  const employeeName = getEmployeePortalName() || 'Employee';
   const token = getEmployeePortalToken();
-  const portalConfig = (() => {
-    try {
-      return JSON.parse(localStorage.getItem('employee_portal_config') || '{}');
-    } catch {
-      return {};
-    }
-  })();
+  const portalConfig = getEmployeePortalConfig();
   const canViewPay = portalConfig?.can_view_pay_stubs !== false;
 
   useEffect(() => {

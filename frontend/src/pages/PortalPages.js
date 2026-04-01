@@ -4,7 +4,7 @@ import { PortalLayout } from './PortalDashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { getPortalToken } from '../lib/authStorage';
+import { getPortalToken, getPortalCustomerName } from '../lib/authStorage';
 import { 
   Loader2, FileText, Receipt, ChevronRight, Calendar, Clock,
   CheckCircle, AlertCircle, DollarSign
@@ -18,7 +18,7 @@ export function PortalQuotes() {
   const [loading, setLoading] = useState(true);
   const [quotes, setQuotes] = useState([]);
   const [filter, setFilter] = useState('all');
-  const customerName = localStorage.getItem('portal_customer_name') || 'Customer';
+  const customerName = getPortalCustomerName() || 'Customer';
 
   const fetchQuotes = useCallback(async () => {
     const token = getPortalToken();
@@ -174,7 +174,7 @@ export function PortalInvoices() {
   const [invoices, setInvoices] = useState([]);
   const [filter, setFilter] = useState('all');
   const [payingInvoiceId, setPayingInvoiceId] = useState('');
-  const customerName = localStorage.getItem('portal_customer_name') || 'Customer';
+  const customerName = getPortalCustomerName() || 'Customer';
 
   const fetchInvoices = useCallback(async () => {
     const token = getPortalToken();
@@ -393,7 +393,7 @@ export function PortalAppointments() {
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState([]);
   const [showPast, setShowPast] = useState(false);
-  const customerName = localStorage.getItem('portal_customer_name') || 'Customer';
+  const customerName = getPortalCustomerName() || 'Customer';
 
   const fetchAppointments = useCallback(async () => {
     const token = getPortalToken();

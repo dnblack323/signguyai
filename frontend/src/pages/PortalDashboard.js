@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../co
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
-import { getPortalToken, clearPortalToken } from '../lib/authStorage';
+import { getPortalToken, clearPortalToken, clearPortalCustomerId, clearPortalCustomerName, getPortalCustomerName } from '../lib/authStorage';
 import { 
   Loader2, LogOut, FileText, Briefcase, Receipt, MessageSquare, 
   Image, Bell, Calendar, User, ChevronRight, Home, Settings,
@@ -19,8 +19,8 @@ function PortalLayout({ children, activeNav, customerName }) {
 
   const handleLogout = () => {
     clearPortalToken();
-    localStorage.removeItem('portal_customer_id');
-    localStorage.removeItem('portal_customer_name');
+    clearPortalCustomerId();
+    clearPortalCustomerName();
     navigate('/customer-portal/login');
   };
 
@@ -115,7 +115,7 @@ export default function PortalDashboard() {
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState(null);
   const [error, setError] = useState('');
-  const customerName = localStorage.getItem('portal_customer_name') || 'Customer';
+  const customerName = getPortalCustomerName() || 'Customer';
 
   const fetchDashboard = useCallback(async () => {
     const token = getPortalToken();
@@ -133,7 +133,7 @@ export default function PortalDashboard() {
         const data = await response.json();
         setDashboard(data);
       } else if (response.status === 401) {
-        localStorage.removeItem('portal_token');
+        clearPortalToken();
         navigate('/customer-portal/login');
       } else {
         const err = await response.json();

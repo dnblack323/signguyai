@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { EmployeePortalLayout } from './EmployeePortalDashboard';
-import { getEmployeePortalToken } from '../lib/authStorage';
+import { getEmployeePortalToken, getEmployeePortalName, getEmployeePortalConfig } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -38,15 +38,9 @@ export default function EmployeePortalTasks() {
   const [tasks, setTasks] = useState([]);
   const [showCompleted, setShowCompleted] = useState(false);
   
-  const employeeName = localStorage.getItem('employee_name') || 'Employee';
+  const employeeName = getEmployeePortalName() || 'Employee';
   const token = getEmployeePortalToken();
-  const portalConfig = (() => {
-    try {
-      return JSON.parse(localStorage.getItem('employee_portal_config') || '{}');
-    } catch {
-      return {};
-    }
-  })();
+  const portalConfig = getEmployeePortalConfig();
   const canViewTasks = portalConfig?.can_view_tasks !== false;
 
   useEffect(() => {

@@ -87,7 +87,7 @@ export default function PrivacyPolicy() {
 
           <section>
             <h2 className="text-xl font-semibold text-white mb-3">9. Cookies</h2>
-            <p>We use essential cookies for authentication (JWT tokens stored in localStorage) and session management. We do not use third-party tracking cookies or advertising pixels. Analytics data is collected server-side without cookies.</p>
+            <p>We use essential browser storage for authentication and session management. Auth tokens are stored with session-first handling, and persistent storage is used only when explicitly requested (for example, with a remembered login). We do not use third-party tracking cookies or advertising pixels. Analytics data is collected server-side without marketing cookies.</p>
           </section>
 
           <section>

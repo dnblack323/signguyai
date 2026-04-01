@@ -1,0 +1,75 @@
+{
+  "summary": "Iteration 87 - Auth Storage Regression Tests Complete. All 19 backend API tests passed (100%). Frontend verified: Admin login works, Customer Portal login page loads with all elements, Employee Portal login page loads with all elements, Privacy Policy page loads with updated session-first wording. All portal pages correctly use authStorage helpers instead of direct localStorage access.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration87_auth_storage_regression.py",
+    "/app/test_reports/pytest/iteration87_auth_storage_regression_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_iteration87_auth_storage_regression.py"
+  ],
+  "success_rate": {
+    "backend": "100% (19/19 passed)",
+    "frontend": "100% (All portal login pages and Privacy Policy load correctly)"
+  },
+  "test_credentials": "Admin: signguypa@gmail.com / Billnel323",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Auth storage hardening verified in iteration 87: 1) authStorage.js expanded with customer portal metadata helpers (getPortalCustomerId, setPortalCustomerId, clearPortalCustomerId, getPortalCustomerName, setPortalCustomerName, clearPortalCustomerName) and employee portal metadata helpers (getEmployeePortalId, setEmployeePortalId, clearEmployeePortalId, getEmployeePortalName, setEmployeePortalName, clearEmployeePortalName, getEmployeePortalTenantId, setEmployeePortalTenantId, clearEmployeePortalTenantId, getEmployeePortalConfig, setEmployeePortalConfig, clearEmployeePortalConfig), 2) All customer portal pages (PortalLogin, PortalDashboard, PortalOrders, PortalDocuments, PortalForms, PortalMessages, PortalProfile, PortalProofs) use authStorage helpers correctly, 3) All employee portal pages (EmployeePortalLogin, EmployeePortalDashboard, EmployeePortalPay, EmployeePortalTasks, EmployeePortalProfile, EmployeePortalJob) use authStorage helpers correctly, 4) Portal logout functions use helper clears (clearPortalToken, clearPortalCustomerId, clearPortalCustomerName for customer portal; clearEmployeePortalToken, clearEmployeePortalId, clearEmployeePortalName, clearEmployeePortalTenantId, clearEmployeePortalConfig for employee portal), 5) Privacy Policy updated with session-first auth storage wording, 6) Backend main.py wildcard import cleaned, 7) Migration script f-string lint fixed",
+  "features_verified": {
+    "admin_auth": {
+      "login": "PASS - returns access_token, navigates to dashboard",
+      "profile_fetch": "PASS - returns user data",
+      "permissions_fetch": "PASS - returns permissions"
+    },
+    "tier_endpoints": {
+      "plans_public": "PASS",
+      "my_plan_authenticated": "PASS",
+      "usage_authenticated": "PASS"
+    },
+    "billing_endpoints": {
+      "pricing_public": "PASS",
+      "trial_status_authenticated": "PASS"
+    },
+    "customer_portal_auth": {
+      "login_endpoint": "PASS - endpoint exists and returns proper error codes",
+      "register_endpoint": "PASS - endpoint exists and returns proper error codes"
+    },
+    "employee_portal_auth": {
+      "login_endpoint": "PASS - endpoint exists and returns proper error codes"
+    },
+    "portal_pages": {
+      "customer_portal_login": "PASS - loads with Sign In/Register tabs, email field, password field, submit button",
+      "employee_portal_login": "PASS - loads with email field, PIN field, login button",
+      "privacy_policy": "PASS - loads with session-first auth storage wording"
+    },
+    "auth_storage_helpers": {
+      "customer_portal_metadata": "PASS - getPortalCustomerId, setPortalCustomerId, clearPortalCustomerId, getPortalCustomerName, setPortalCustomerName, clearPortalCustomerName",
+      "employee_portal_metadata": "PASS - getEmployeePortalId, setEmployeePortalId, clearEmployeePortalId, getEmployeePortalName, setEmployeePortalName, clearEmployeePortalName, getEmployeePortalTenantId, setEmployeePortalTenantId, clearEmployeePortalTenantId, getEmployeePortalConfig, setEmployeePortalConfig, clearEmployeePortalConfig"
+    },
+    "backend_health": {
+      "startup": "PASS - backend running with scheduler",
+      "tenant_endpoint": "PASS",
+      "credits_balance": "PASS",
+      "orders_list": "PASS",
+      "customers_list": "PASS"
+    }
+  },
+  "ui_verification": {
+    "admin_dashboard": "PASS - Loads with Total Customers, Active Orders, Pending Invoices, Today's Revenue widgets",
+    "customer_portal_login": "PASS - Loads with Customer Portal title, Sign In/Register tabs, email/password fields",
+    "employee_portal_login": "PASS - Loads with Employee Portal title, email/PIN fields, login button",
+    "privacy_policy": "PASS - Loads with Privacy Policy title, Cookies section, session-first wording"
+  }
+}

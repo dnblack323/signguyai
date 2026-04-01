@@ -11,7 +11,7 @@ import {
   AlertCircle, ZoomIn, Download
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getPortalToken } from '../lib/authStorage';
+import { getPortalToken, getPortalCustomerName } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -20,7 +20,7 @@ export function PortalProofs() {
   const [loading, setLoading] = useState(true);
   const [proofs, setProofs] = useState([]);
   const [filter, setFilter] = useState('pending');
-  const customerName = localStorage.getItem('portal_customer_name') || 'Customer';
+  const customerName = getPortalCustomerName() || 'Customer';
 
   const fetchProofs = useCallback(async () => {
     const token = getPortalToken();
@@ -187,7 +187,7 @@ export function PortalProofDetail() {
   const [showImageModal, setShowImageModal] = useState(false);
   const [responseModal, setResponseModal] = useState({ open: false, type: null });
   const [comment, setComment] = useState('');
-  const customerName = localStorage.getItem('portal_customer_name') || 'Customer';
+  const customerName = getPortalCustomerName() || 'Customer';
 
   useEffect(() => {
     const fetchProof = async () => {
