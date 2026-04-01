@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import axios from 'axios';
 import { getAuthToken } from '../lib/authStorage';
+import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const hdr = () => ({ Authorization: `Bearer ${getAuthToken()}`, 'Content-Type': 'application/json' });
@@ -125,6 +126,7 @@ export default function LivePricingPreview({ category, specs, quantity, onPriceC
           setCalc(res.data);
           if (res.data.error !== lastError.current) {
             lastError.current = res.data.error;
+            toast.error(`Pricing needs more setup: ${res.data.error}`);
           }
           if (onPriceChange && lastSentPrice.current !== 0) {
             lastSentPrice.current = 0;

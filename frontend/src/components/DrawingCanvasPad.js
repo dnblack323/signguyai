@@ -266,9 +266,7 @@ export const DrawingCanvasPad = ({
       </div>
 
       <div ref={containerRef} className="rounded-2xl border border-gray-200 bg-white p-2">
-        {loadingBase ? (
-          <div className="flex min-h-[320px] items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-violet-500" /></div>
-        ) : (
+        <div className="relative min-h-[320px]">
           <canvas
             ref={canvasRef}
             className="w-full touch-none rounded-xl border border-dashed border-gray-300 bg-white"
@@ -282,7 +280,8 @@ export const DrawingCanvasPad = ({
             onTouchCancel={endDraw}
             data-testid="drawing-canvas"
           />
-        )}
+          {loadingBase && <div className="absolute inset-0 flex items-center justify-center bg-white/75 rounded-xl"><Loader2 className="w-6 h-6 animate-spin text-violet-500" /></div>}
+        </div>
       </div>
     </div>
   );

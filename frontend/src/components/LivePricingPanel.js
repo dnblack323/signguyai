@@ -46,6 +46,9 @@ export default function LivePricingPanel({ ticketId, ticketData, onPriceSaved })
       );
         if (res.data.calculation || res.data.error) {
         setCalc(res.data);
+          if (res.data.error) {
+            toast.error(`Pricing needs more setup: ${res.data.error}`);
+          }
       }
     } catch {
       // Silent fail — pricing preview is optional
