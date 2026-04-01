@@ -805,6 +805,21 @@ async def delete_timeclock_shift(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     _require_payroll_edit_access(current_user)
+    shift = await db.timeclock_shifts.find_one({"id": shift_id, "tenant_id": current_user.tenant_id}, {"_id": 0})
+    if not shift:
+        raise HTTPException(status_code=404, detail="Time clock shift not found")
+
+    # Delete matching raw timelogs too, otherwise the shift will be auto-backfilled again.
+    if shift.get("employee_id") and shift.get("date"):
+        log_query = {
+            "employee_id": shift["employee_id"],
+            "tenant_id": current_user.tenant_id,
+            "timestamp": {"$regex": f"^{shift['date']}"},
+        }
+        if shift.get("clock_in") and shift.get("clock_out"):
+            log_query["timestamp"] = {"$gte": shift["clock_in"], "$lte": shift["clock_out"]}
+        await db.timelogs.delete_many(log_query)
+
     result = await db.timeclock_shifts.delete_one({"id": shift_id, "tenant_id": current_user.tenant_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Time clock shift not found")

@@ -50,7 +50,10 @@ What would you like to do?`,
   const [isRecording, setIsRecording] = useState(false);
   const [voiceLoading, setVoiceLoading] = useState(false);
   const [pendingTranscript, setPendingTranscript] = useState(null);
+  const [position, setPosition] = useState({ right: 24, bottom: 80 });
+  const [isDragging, setIsDragging] = useState(false);
   const recordingTimeoutRef = useRef(null);
+  const dragRef = useRef({ startX: 0, startY: 0, startRight: 24, startBottom: 80 });
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -74,6 +77,36 @@ What would you like to do?`,
       if (recordingTimeoutRef.current) clearTimeout(recordingTimeoutRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isDragging) return undefined;
+    const onMove = (event) => {
+      const dx = event.clientX - dragRef.current.startX;
+      const dy = event.clientY - dragRef.current.startY;
+      setPosition({
+        right: Math.max(12, dragRef.current.startRight - dx),
+        bottom: Math.max(12, dragRef.current.startBottom - dy),
+      });
+    };
+    const onUp = () => setIsDragging(false);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [isDragging]);
+
+  const startDrag = (event) => {
+    if (event.button !== 0 || isMinimized) return;
+    dragRef.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      startRight: position.right,
+      startBottom: position.bottom,
+    };
+    setIsDragging(true);
+  };
 
   const stopRecording = async () => {
     return new Promise((resolve) => {
@@ -516,7 +549,8 @@ What would you like to do?`,
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-20 right-6 z-50 w-14 h-14 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-105 flex items-center justify-center group"
+        className="fixed z-50 w-14 h-14 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-105 flex items-center justify-center group"
+        style={{ right: position.right, bottom: position.bottom }}
         data-testid="floating-assistant-trigger"
       >
         <Bot className="h-7 w-7 text-white" />
@@ -531,15 +565,21 @@ What would you like to do?`,
     <div
       className={`fixed z-50 bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col transition-all duration-200 ${
         isMinimized 
-          ? 'bottom-20 right-6 w-80 h-14' 
-          : 'bottom-20 right-6 w-96 h-[32rem]'
+          ? 'w-80 h-14' 
+          : 'w-96 h-[32rem]'
       }`}
+      style={{ right: position.right, bottom: position.bottom }}
       data-testid="floating-assistant-panel"
     >
       {/* Header */}
       <div 
-        className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-t-2xl cursor-pointer"
+        className={`flex items-center justify-between px-4 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-t-2xl cursor-pointer ${isDragging ? 'select-none' : ''}`}
         onClick={() => isMinimized && setIsMinimized(false)}
+        onMouseDown={startDrag}
+        onContextMenu={(event) => {
+          event.preventDefault();
+          setIsOpen(false);
+        }}
       >
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
