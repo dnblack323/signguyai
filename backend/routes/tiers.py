@@ -10,7 +10,7 @@ API endpoints for:
 NOTE: Uses authoritative plan_configs.py system (not legacy tier_config.py)
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import List, Optional
 
@@ -27,26 +27,22 @@ router = APIRouter(prefix="/tiers", tags=["Subscription Tiers"])
 # ============== DEPENDENCY INJECTION ==============
 # These functions handle lazy imports to avoid circular dependencies
 
-async def get_db():
-    """Get database connection"""
-    from server import db
-    return db
-
-
-async def get_current_user_dep(credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False))):
+async def get_current_user_dep(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
+):
     """Get current user - wrapper to avoid circular import"""
-    from server import get_current_active_user, security
-    # We need to call the actual function
-    from server import db, SECRET_KEY, ALGORITHM
-    from models import TokenData
     import jwt
+    db = request.app.state.db
+    secret_key = request.app.state.secret_key
+    algorithm = request.app.state.algorithm
     
     if credentials is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
     try:
         token = credentials.credentials
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, secret_key, algorithms=[algorithm])
         user_id: str = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid token")
@@ -62,9 +58,14 @@ async def get_current_user_dep(credentials: HTTPAuthorizationCredentials = Depen
     return UserInDB(**user)
 
 
-async def get_gate_dep():
+async def get_db(request: Request):
+    """Get database connection"""
+    return request.app.state.db
+
+
+async def get_gate_dep(request: Request):
     """Get feature gate instance"""
-    db = await get_db()
+    db = await get_db(request)
     return FeatureGate(db)
 
 
@@ -181,35 +182,40 @@ def _get_tier_highlights(tier: PlanConfig) -> list:
 # ============== TENANT FEATURES ==============
 
 @router.get("/my-plan")
-async def get_my_plan(current_user: UserInDB = Depends(get_current_user_dep)):
+async def get_my_plan(
+    request: Request,
+    current_user: UserInDB = Depends(get_current_user_dep),
+):
     """Get current tenant's subscription plan and all feature access"""
-    gate = await get_gate_dep()
+    gate = await get_gate_dep(request)
     return await gate.get_tenant_features(current_user.tenant_id)
 
 
 @router.get("/check/{category}/{feature}")
 async def check_feature_access(
+    request: Request,
     category: str,
     feature: str,
-    current_user: UserInDB = Depends(get_current_user_dep)
+    current_user: UserInDB = Depends(get_current_user_dep),
 ):
     """Check if current tenant can access a specific feature"""
-    gate = await get_gate_dep()
+    gate = await get_gate_dep(request)
     result = await gate.check_feature(current_user.tenant_id, category, feature)
     return result.model_dump()
 
 
 @router.post("/use/{category}/{feature}")
 async def use_feature(
+    request: Request,
     category: str,
     feature: str,
-    current_user: UserInDB = Depends(get_current_user_dep)
+    current_user: UserInDB = Depends(get_current_user_dep),
 ):
     """
     Use a limited feature (increments usage counter).
     Call this when actually consuming a limited resource (e.g., AI generation).
     """
-    gate = await get_gate_dep()
+    gate = await get_gate_dep(request)
     result = await gate.check_feature(
         current_user.tenant_id, 
         category, 
@@ -240,9 +246,12 @@ async def use_feature(
 # ============== USAGE TRACKING ==============
 
 @router.get("/usage")
-async def get_my_usage(current_user: UserInDB = Depends(get_current_user_dep)):
+async def get_my_usage(
+    request: Request,
+    current_user: UserInDB = Depends(get_current_user_dep),
+):
     """Get current tenant's usage for all limited features"""
-    db = await get_db()
+    db = await get_db(request)
     
     usage_records = await db.tenant_usage.find(
         {"tenant_id": current_user.tenant_id},
@@ -300,6 +309,7 @@ async def get_full_tier_config(
 async def set_tenant_plan(
     tenant_id: str,
     plan: str,
+    request: Request,
     current_user: UserInDB = Depends(get_current_user_dep)
 ):
     """Change a tenant's subscription plan (admin only)"""
@@ -312,14 +322,14 @@ async def set_tenant_plan(
     except ValueError:
         plan_type = legacy_tier_to_plan(plan)
     
-    db = await get_db()
+    db = await get_db(request)
     
     # Check tenant exists
     tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
     
-    gate = await get_gate_dep()
+    gate = await get_gate_dep(request)
     await gate.set_tenant_plan(tenant_id, plan_type)
     
     return {
@@ -335,22 +345,24 @@ async def set_tenant_plan(
 async def set_tenant_tier(
     tenant_id: str,
     tier: str,
+    request: Request,
     current_user: UserInDB = Depends(get_current_user_dep)
 ):
     """DEPRECATED: Use /admin/tenant/{tenant_id}/plan instead"""
-    return await set_tenant_plan(tenant_id, tier, current_user)
+    return await set_tenant_plan(tenant_id, tier, request, current_user)
 
 
 @router.post("/admin/tenant/{tenant_id}/reset-usage")
 async def reset_tenant_usage(
     tenant_id: str,
+    request: Request,
     current_user: UserInDB = Depends(get_current_user_dep)
 ):
     """Reset monthly usage for a tenant (admin only)"""
     if not user_has_permission(current_user.role, Permission.SETTINGS_EDIT):
         raise HTTPException(status_code=403, detail="Permission denied")
     
-    gate = await get_gate_dep()
+    gate = await get_gate_dep(request)
     await gate.reset_monthly_usage(tenant_id)
     
     return {"success": True, "message": "Monthly usage reset"}
@@ -362,10 +374,11 @@ async def reset_tenant_usage(
 async def get_upgrade_prompt(
     category: str,
     feature: str,
+    request: Request,
     current_user: UserInDB = Depends(get_current_user_dep)
 ):
     """Get upgrade prompt details for a blocked feature"""
-    gate = await get_gate_dep()
+    gate = await get_gate_dep(request)
     current_plan = await gate.get_tenant_plan(current_user.tenant_id)
     
     # Find which plan unlocks this feature (check higher tiers in same product line)

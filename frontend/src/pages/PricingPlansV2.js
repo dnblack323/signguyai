@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -38,16 +38,18 @@ export default function PricingPlansV2() {
   const [spots, setSpots] = useState(null);
   const [checkoutLoading, setCheckoutLoading] = useState(null);
 
-  useEffect(() => {
-    fetchSpots();
-  }, []);
-
-  const fetchSpots = async () => {
+  const fetchSpots = useCallback(async () => {
     try {
       const response = await axios.get(`${API_URL}/api/billing/founders/spots`);
       setSpots(response.data);
-    } catch {}
-  };
+    } catch (error) {
+      console.error('Failed to fetch founder spots:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSpots();
+  }, [fetchSpots]);
 
   const handleCheckout = async (interval) => {
     if (!isAuthenticated) {

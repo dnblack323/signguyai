@@ -678,7 +678,6 @@ async def get_webstore_analytics(
     # Calculate summary stats
     total_orders = len(orders)
     total_revenue = sum(o.get("subtotal", 0) for o in orders)
-    total_cost = sum(o.get("total_cost", 0) for o in orders)
     total_profit = sum(o.get("total_profit", 0) for o in orders)
     total_commission = sum(o.get("commission_amount", 0) for o in orders)
     
@@ -774,7 +773,7 @@ async def get_webstore_analytics(
                 else:
                     end_date = datetime.strptime(end_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                 days_remaining = max(0, (end_date - now).days)
-            except:
+            except Exception:
                 pass
         
         fundraiser_metrics = {

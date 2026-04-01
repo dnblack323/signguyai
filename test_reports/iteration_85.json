@@ -1,0 +1,71 @@
+{
+  "summary": "Iteration 85 - Code Review Fixes Testing Complete. All 15 backend API tests passed (100%). Fixed tiers.py circular import issue by adding missing `request` parameter to route handlers. All 7 frontend pages load correctly after useCallback/dependency/key/empty-catch fixes.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration85_code_review_fixes.py",
+    "/app/test_reports/pytest/iteration85_code_review_fixes_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/routes/tiers.py"
+  ],
+  "success_rate": {
+    "backend": "100% (15/15 passed)",
+    "frontend": "100% (7/7 pages loaded)"
+  },
+  "test_credentials": "Admin: signguypa@gmail.com / Billnel323",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Code review fixes verified: 1) Tiers endpoints work after circular import refactor - PASS (fixed missing request parameter in get_my_plan, check_feature_access, use_feature, set_tenant_tier routes), 2) Billing endpoints work - PASS, 3) Webstores endpoints work - PASS, 4) Job tickets endpoints work after mutable-default fixes - PASS, 5) Admin users endpoint remains tenant-scoped - PASS, 6) All 7 frontend pages load correctly after React hook dependency/key fixes - PASS",
+  "features_verified": {
+    "tiers_endpoints": {
+      "plans_public": "PASS",
+      "my_plan_authenticated": "PASS - Fixed missing request parameter",
+      "usage_authenticated": "PASS"
+    },
+    "billing_endpoints": {
+      "pricing_public": "PASS",
+      "founder_status_public": "PASS",
+      "trial_status_authenticated": "PASS",
+      "subscription_authenticated": "PASS",
+      "subscription_v2_authenticated": "PASS",
+      "founders_plan_authenticated": "PASS",
+      "founders_spots_public": "PASS"
+    },
+    "webstores_endpoints": {
+      "list_webstores": "PASS",
+      "list_products": "PASS"
+    },
+    "job_tickets_endpoints": {
+      "list_tickets": "PASS",
+      "schema_categories": "PASS"
+    },
+    "admin_users_endpoint": {
+      "list_users_tenant_scoped": "PASS"
+    }
+  },
+  "ui_verification": {
+    "production_settings_page": "PASS - Loads with workflow templates and analytics tabs",
+    "digest_settings_page": "PASS - Loads with schedule and recipients settings",
+    "webstores_page": "PASS - Loads with store management UI",
+    "timeclock_page": "PASS - Loads with employee selection",
+    "quotes_page": "PASS - Loads with orders list (redirects to /orders)",
+    "billing_page": "PASS - Loads with Founders Edition subscription details",
+    "backup_restore_page": "PASS - Loads with download/restore options"
+  },
+  "bug_fix_applied": {
+    "file": "/app/backend/routes/tiers.py",
+    "issue": "Routes using get_gate_dep dependency were missing the request parameter",
+    "fix": "Added request: Request parameter to get_my_plan, check_feature_access, use_feature, and set_tenant_tier routes, then called get_gate_dep(request) explicitly instead of using Depends()"
+  }
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -53,23 +53,13 @@ export default function TimeClock() {
   const [newPin, setNewPin] = useState('');
   const [invitingEmployeeId, setInvitingEmployeeId] = useState('');
 
-  useEffect(() => {
-    loadEmployees();
-  }, []);
-
-  useEffect(() => {
-    if (selectedEmployee) {
-      loadEmployeeData();
-    }
-  }, [selectedEmployee]);
-
-  const loadEmployees = async () => {
+  const loadEmployees = useCallback(async () => {
     setLoading(true);
     await fetchEmployees();
     setLoading(false);
-  };
+  }, [fetchEmployees]);
 
-  const loadEmployeeData = async () => {
+  const loadEmployeeData = useCallback(async () => {
     if (!selectedEmployee) return;
     try {
       const [status, logs, summary] = await Promise.all([
@@ -83,7 +73,17 @@ export default function TimeClock() {
     } catch (err) {
       console.error('Error loading employee data:', err);
     }
-  };
+  }, [getClockStatus, getTodayLogs, getShiftSummary, selectedEmployee]);
+
+  useEffect(() => {
+    loadEmployees();
+  }, [loadEmployees]);
+
+  useEffect(() => {
+    if (selectedEmployee) {
+      loadEmployeeData();
+    }
+  }, [selectedEmployee, loadEmployeeData]);
 
   const handleClockAction = async (action) => {
     if (!selectedEmployee) {

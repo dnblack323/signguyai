@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -24,11 +24,7 @@ export default function DigestSettings() {
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       const [settingsRes, historyRes] = await Promise.all([
         api.get('/digest/settings'),
@@ -40,7 +36,11 @@ export default function DigestSettings() {
       console.error('Failed to load digest settings', err);
     }
     setLoading(false);
-  };
+  }, [api]);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   const saveSettings = async (updates) => {
     setSaving(true);
@@ -269,8 +269,8 @@ export default function DigestSettings() {
               <p className="text-sm text-gray-500 text-center py-4">No digests sent yet</p>
             ) : (
               <div className="space-y-2">
-                {history.map((log, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-100">
+                {history.map((log) => (
+                  <div key={log.id || log.sent_at} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-100">
                     <div>
                       <p className="text-sm text-gray-800">
                         {new Date(log.sent_at).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}

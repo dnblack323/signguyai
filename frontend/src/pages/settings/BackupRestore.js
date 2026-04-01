@@ -27,7 +27,9 @@ export default function BackupRestore() {
     try {
       const res = await api.get('/backup/status');
       setBackupStatus(res.data);
-    } catch { /* ignore */ }
+    } catch (error) {
+      console.error('Failed to fetch backup status:', error);
+    }
   }, [api]);
 
   useEffect(() => { fetchStatus(); }, [fetchStatus]);

@@ -11,6 +11,7 @@ RULES:
 
 import os
 import stripe
+import uuid
 from typing import Optional, Dict, Any, Tuple
 from datetime import datetime, timezone
 from fastapi import HTTPException
@@ -301,7 +302,7 @@ async def create_multi_product_checkout(
     
     # Record transaction
     transaction = {
-        "id": str(__import__("uuid").uuid4()),
+        "id": str(uuid.uuid4()),
         "tenant_id": tenant_id,
         "user_id": user_id,
         "email": email,
@@ -363,7 +364,7 @@ async def handle_checkout_completed(db, event_data: Any) -> None:
                 current_period_end = datetime.fromtimestamp(
                     stripe_sub.current_period_end, tz=timezone.utc
                 ).isoformat()
-            except:
+            except Exception:
                 pass
         
         # Activate subscription
@@ -490,7 +491,7 @@ async def handle_invoice_payment_succeeded(db, event_data: Any) -> None:
             update_data["current_period_start"] = datetime.fromtimestamp(
                 stripe_sub.current_period_start, tz=timezone.utc
             ).isoformat()
-        except:
+        except Exception:
             pass
         
         await db.subscriptions.update_one(
@@ -514,7 +515,7 @@ async def handle_invoice_payment_succeeded(db, event_data: Any) -> None:
         
         # Record transaction
         await db.payment_transactions.insert_one({
-            "id": str(__import__("uuid").uuid4()),
+            "id": str(uuid.uuid4()),
             "tenant_id": sub.get("tenant_id") if sub else None,
             "stripe_invoice_id": event_data.id,
             "stripe_subscription_id": subscription_id,

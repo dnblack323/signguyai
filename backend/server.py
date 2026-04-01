@@ -45,6 +45,9 @@ logger = logging.getLogger(__name__)
 
 # Create the main app
 app = FastAPI(title="SignGuy AI API")
+app.state.db = db
+app.state.secret_key = SECRET_KEY
+app.state.algorithm = ALGORITHM
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")

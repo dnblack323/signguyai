@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -159,7 +159,7 @@ export default function Webstores() {
     creator_commission_value: 20,
   });
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [storesData, ordersData, productsData] = await Promise.all([
@@ -174,13 +174,13 @@ export default function Webstores() {
       console.error('Error loading data:', err);
     }
     setLoading(false);
-  };
+  }, [getWebstores, getWebstoreOrdersV2, getProducts]);
 
   // Check Stripe Connect status first
   // DEV MODE: Set to true to bypass Stripe requirement for testing
   const DEV_BYPASS_STRIPE = true;
   
-  const checkStripeStatus = async () => {
+  const checkStripeStatus = useCallback(async () => {
     // Bypass Stripe check in dev/test mode
     if (DEV_BYPASS_STRIPE) {
       console.log('DEV MODE: Bypassing Stripe Connect requirement');
@@ -195,7 +195,7 @@ export default function Webstores() {
       console.error('Error checking Stripe status:', err);
       setStripeConnected(false);
     }
-  };
+  }, [getStripeConnectStatus]);
 
   const handleConnectStripe = async () => {
     setConnectingStripe(true);
@@ -214,7 +214,7 @@ export default function Webstores() {
   useEffect(() => {
     checkStripeStatus();
     loadData();
-  }, []);
+  }, [checkStripeStatus, loadData]);
 
   const resetForm = () => {
     setFormData({

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -130,17 +130,17 @@ export default function Quotes() {
     toast.success('Item added from calculator!');
   };
 
-  useEffect(() => {
-    loadData();
-  }, [statusFilter]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     const params = {};
     if (statusFilter !== 'all') params.status = statusFilter;
     await Promise.all([fetchQuotes(params), fetchCustomers()]);
     setLoading(false);
-  };
+  }, [fetchCustomers, fetchQuotes, statusFilter]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -52,13 +52,7 @@ export default function ProductionSettings() {
   const [analytics, setAnalytics] = useState(null);
   const [stageReport, setStageReport] = useState([]);
 
-  useEffect(() => {
-    loadWorkflowSettings();
-    loadTemplates();
-    loadAnalytics();
-  }, []);
-
-  const loadWorkflowSettings = async () => {
+  const loadWorkflowSettings = useCallback(async () => {
     try {
       const token = localStorage.getItem('auth_token');
       const res = await axios.get(`${API}/api/production-timeline/settings`, {
@@ -69,9 +63,9 @@ export default function ProductionSettings() {
     } catch (err) {
       console.error('Failed to load workflow settings:', err);
     }
-  };
+  }, []);
 
-  const loadTemplates = async () => {
+  const loadTemplates = useCallback(async () => {
     try {
       const token = localStorage.getItem('auth_token');
       const res = await axios.get(`${API}/api/production-timeline/templates`, {
@@ -86,9 +80,9 @@ export default function ProductionSettings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedTemplate]);
 
-  const loadAnalytics = async () => {
+  const loadAnalytics = useCallback(async () => {
     try {
       const token = localStorage.getItem('auth_token');
       const [analyticsRes, reportRes] = await Promise.all([
@@ -104,7 +98,13 @@ export default function ProductionSettings() {
     } catch (err) {
       console.error('Failed to load analytics:', err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadWorkflowSettings();
+    loadTemplates();
+    loadAnalytics();
+  }, [loadWorkflowSettings, loadTemplates, loadAnalytics]);
 
   const selectTemplate = (template) => {
     setSelectedTemplate(template);
@@ -456,7 +456,7 @@ export default function ProductionSettings() {
                   <div className="space-y-3">
                     {editingStages.map((stage, index) => (
                       <div
-                        key={index}
+                        key={`${stage.name}-${stage.order}`}
                         className="flex items-center gap-2 p-3 border rounded-lg bg-slate-50"
                       >
                         <div className="text-slate-400 cursor-move">
@@ -629,8 +629,8 @@ export default function ProductionSettings() {
               <CardContent>
                 {stageReport.length > 0 ? (
                   <div className="space-y-3">
-                    {stageReport.map((stage, index) => (
-                      <div key={index} className="flex items-center gap-4">
+                    {stageReport.map((stage) => (
+                      <div key={stage.stage_name} className="flex items-center gap-4">
                         <div className="w-48 flex-shrink-0">
                           <p className="font-medium text-sm">{stage.stage_name}</p>
                           <p className="text-xs text-slate-500">{stage.count} samples</p>
@@ -676,9 +676,9 @@ export default function ProductionSettings() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {analytics.bottlenecks.filter(b => b.is_bottleneck).map((bottleneck, index) => (
+                    {analytics.bottlenecks.filter(b => b.is_bottleneck).map((bottleneck) => (
                       <div
-                        key={index}
+                        key={bottleneck.stage_name}
                         className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg"
                       >
                         <div className="flex items-center gap-3">

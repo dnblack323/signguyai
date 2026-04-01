@@ -30,6 +30,7 @@ from models.billing import (
     PricingPlan, PricingResponse, TrialStatus
 )
 from models import UserInDB
+from models.product_tiers import PlanType
 
 router = APIRouter(prefix="/billing", tags=["Billing & Subscriptions"])
 webhook_router = APIRouter(tags=["Webhooks"])
@@ -1068,23 +1069,19 @@ async def get_subscription_v2(
     
     # Determine current plan
     plan_str = None
-    product_line = None
     is_founder = False
     
     if subscription:
         plan_str = subscription.get("plan")
-        product_line = subscription.get("product_line")
         is_founder = subscription.get("is_founder", False)
     
     if not plan_str and tenant:
         plan_str = tenant.get("plan")
-        product_line = tenant.get("product_line")
         is_founder = tenant.get("is_founder", False)
     
     # Default to OS Starter for new tenants
     if not plan_str:
         plan_str = "os_starter"
-        product_line = "os"
     
     # Try to parse as PlanType enum
     try:
@@ -1155,7 +1152,7 @@ async def get_subscription_v2(
 
 def _get_upgrade_options(current_plan: 'PlanType') -> list:
     """Get available upgrade options based on current plan"""
-    from models.product_tiers import PlanType, ProductLine
+    from models.product_tiers import ProductLine
     from services.plan_configs import get_plan_config
     
     config = get_plan_config(current_plan)
@@ -1544,8 +1541,6 @@ async def create_founders_checkout(
     body = await request.json()
     interval = body.get("billing_interval", "monthly")
     origin_url = body.get("origin_url", "")
-    use_promo = body.get("use_promo", False)
-    
     price_id = STRIPE_PRICE_FOUNDERS_ANNUAL if interval == "annual" else STRIPE_PRICE_FOUNDERS_MONTHLY
     if not price_id:
         raise HTTPException(status_code=500, detail=f"Stripe price ID not configured for {interval}")

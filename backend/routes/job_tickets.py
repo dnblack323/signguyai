@@ -937,7 +937,7 @@ async def duplicate_job_ticket(ticket_id: str, current_user: UserInDB = Depends(
 
 
 @router.post("/{ticket_id}/calculate-pricing")
-async def calculate_ticket_pricing(ticket_id: str, pricing_input: dict = {}, current_user: UserInDB = Depends(get_current_active_user)):
+async def calculate_ticket_pricing(ticket_id: str, pricing_input: Optional[dict] = None, current_user: UserInDB = Depends(get_current_active_user)):
     """Calculate pricing for a job ticket using the existing pricing engine.
     Reads pricing settings from tenant config. Can be called with partial input for live updates."""
     from server import calculate_pricing, get_pricing_defaults
@@ -950,7 +950,7 @@ async def calculate_ticket_pricing(ticket_id: str, pricing_input: dict = {}, cur
     if not ticket:
         raise HTTPException(status_code=404, detail="Job ticket not found")
 
-    pricing_cat, merged_input = _build_ticket_pricing_payload(ticket, pricing_input)
+    pricing_cat, merged_input = _build_ticket_pricing_payload(ticket, pricing_input or {})
 
     try:
         category_enum = PricingCategory(pricing_cat)
