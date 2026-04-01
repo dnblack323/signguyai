@@ -33,6 +33,7 @@ from models import UserInDB, Permission, user_has_permission
 
 class ActionType(str, Enum):
     """All supported structured actions"""
+    CREATE_ORDER = "create_order"
     CREATE_JOB = "create_job"
     UPDATE_JOB_STATUS = "update_job_status"
     CREATE_CALENDAR_EVENT = "create_calendar_event"
@@ -76,6 +77,7 @@ class ActionResponse(BaseModel):
 # ============== PERMISSION MAPPING ==============
 
 ACTION_PERMISSIONS = {
+    ActionType.CREATE_ORDER: Permission.JOBS_EDIT,
     ActionType.CREATE_JOB: Permission.JOBS_EDIT,
     ActionType.UPDATE_JOB_STATUS: Permission.JOBS_EDIT,
     ActionType.CREATE_CALENDAR_EVENT: Permission.JOBS_EDIT,  # Calendar tied to jobs
@@ -273,6 +275,99 @@ class AIAssistantActions:
             "name": job["name"],
             "status": job["status"],
             "message": f"Job '{job['name']}' created successfully"
+        }
+
+    async def _handle_create_order(self, tenant_id: str, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a new order in the current order workflow."""
+        now = datetime.now(timezone.utc).isoformat()
+
+        customer_id = params.get("customer_id")
+        customer_name = (params.get("customer_name") or "").strip()
+        company_name = (params.get("company_name") or "").strip()
+
+        if not customer_id and customer_name:
+            customer = await self.db.customers.find_one(
+                {
+                    "tenant_id": tenant_id,
+                    "$or": [
+                        {"name": {"$regex": f"^{customer_name}$", "$options": "i"}},
+                        {"company": {"$regex": f"^{customer_name}$", "$options": "i"}},
+                    ],
+                },
+                {"_id": 0, "id": 1, "name": 1, "company": 1},
+            )
+            if customer:
+                customer_id = customer["id"]
+                customer_name = customer.get("name") or customer_name
+                company_name = company_name or customer.get("company") or ""
+
+        if not customer_id and customer_name:
+            customer_id = str(uuid.uuid4())
+            customer_doc = {
+                "id": customer_id,
+                "tenant_id": tenant_id,
+                "name": customer_name,
+                "company": company_name or None,
+                "phone": None,
+                "email": None,
+                "status": "lead",
+                "notes": "Created by AI assistant",
+                "profile_image_url": None,
+                "is_tax_exempt": False,
+                "tax_exempt_document_url": None,
+                "portal_password_hash": None,
+                "portal_enabled": False,
+                "notification_preferences": {
+                    "email_messages": True,
+                    "email_orders": True,
+                    "email_approvals": True,
+                    "email_payments": True,
+                },
+                "created_at": now,
+                "updated_at": now,
+            }
+            await self.db.customers.insert_one(customer_doc)
+
+        last = await self.db.orders.find({"tenant_id": tenant_id}, {"_id": 0, "order_number": 1}).sort("date_created", -1).limit(1).to_list(1)
+        order_number = f"ORD-{(await self.db.orders.count_documents({'tenant_id': tenant_id})) + 1:04d}"
+        if last and last[0].get("order_number"):
+            try:
+                num = int(last[0]["order_number"].split("-")[-1])
+                order_number = f"ORD-{num + 1:04d}"
+            except (ValueError, IndexError):
+                pass
+
+        order_id = str(uuid.uuid4())
+        order_doc = {
+            "id": order_id,
+            "order_number": order_number,
+            "tenant_id": tenant_id,
+            "customer_id": customer_id,
+            "customer_name": customer_name or company_name or "New Customer",
+            "company_name": company_name,
+            "order_source": "ai_assistant",
+            "date_created": params.get("date_created") or now[:10],
+            "requested_due_date": params.get("requested_due_date"),
+            "event_date": None,
+            "status": "pending",
+            "payment_status": "unpaid",
+            "pickup_delivery_method": params.get("pickup_delivery_method") or "pickup",
+            "pickup_delivery_notes": params.get("pickup_delivery_notes") or "",
+            "internal_notes": params.get("description") or params.get("order_notes") or "Created by AI assistant",
+            "created_by": "ai_assistant",
+            "created_at": now,
+            "updated_at": now,
+            "is_archived": False,
+            "job_tickets": [],
+            "order_total": 0.0,
+        }
+        await self.db.orders.insert_one(order_doc)
+
+        return {
+            "order_id": order_id,
+            "order_number": order_number,
+            "customer_name": order_doc["customer_name"],
+            "message": f"Order {order_number} created successfully for {order_doc['customer_name']}",
         }
     
     async def _handle_update_job_status(self, tenant_id: str, params: Dict[str, Any]) -> Dict[str, Any]:

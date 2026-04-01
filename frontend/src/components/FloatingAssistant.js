@@ -7,7 +7,7 @@ import { ScrollArea } from './ui/scroll-area';
 import {
   Bot, Send, X, Minimize2, Maximize2, Loader2, User,
   Sparkles, CheckCircle2, AlertCircle, Briefcase, Calendar,
-  FileText, Clock, Users, DollarSign, Mic, MicOff, Volume2
+  FileText, Clock, Users, DollarSign, Mic, MicOff, Volume2, Wand2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -49,6 +49,8 @@ What would you like to do?`,
   const [sessionId] = useState(() => `floating_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [isRecording, setIsRecording] = useState(false);
   const [voiceLoading, setVoiceLoading] = useState(false);
+  const [pendingTranscript, setPendingTranscript] = useState(null);
+  const recordingTimeoutRef = useRef(null);
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -69,12 +71,17 @@ What would you like to do?`,
   useEffect(() => {
     return () => {
       streamRef.current?.getTracks?.().forEach((track) => track.stop());
+      if (recordingTimeoutRef.current) clearTimeout(recordingTimeoutRef.current);
     };
   }, []);
 
   const stopRecording = async () => {
     return new Promise((resolve) => {
       if (!mediaRecorderRef.current) { resolve(null); return; }
+      if (recordingTimeoutRef.current) {
+        clearTimeout(recordingTimeoutRef.current);
+        recordingTimeoutRef.current = null;
+      }
       mediaRecorderRef.current.onstop = () => {
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         audioChunksRef.current = [];
@@ -88,43 +95,64 @@ What would you like to do?`,
     });
   };
 
+  const transcribeAudioBlob = async (audioBlob) => {
+    await runGuardedAction({
+      actionType: 'voice_transcription',
+      featureName: 'Floating Assistant Voice Input',
+      execute: async () => {
+        setVoiceLoading(true);
+        try {
+          const formData = new FormData();
+          formData.append('audio', audioBlob, 'assistant-input.webm');
+          const response = await axios.post(`${API_URL}/api/ai/voice/transcribe`, formData, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
+          });
+          if (response.data.text) {
+            setPendingTranscript(response.data.text);
+            setMessages(prev => [...prev, {
+              role: 'assistant',
+              content: `I heard: **${response.data.text}**\n\nWould you like me to use this exactly, let you edit it first, or discard it?`,
+              actions: [
+                { label: 'Send Now', action: 'send_transcript', variant: 'default' },
+                { label: 'Edit First', action: 'edit_transcript', variant: 'outline' },
+                { label: 'Discard', action: 'discard_transcript', variant: 'outline' }
+              ]
+            }]);
+            toast.success('Voice captured');
+          }
+        } finally {
+          setVoiceLoading(false);
+        }
+      }
+    });
+  };
+
   const handleVoiceInput = async () => {
     if (isRecording) {
       const audioBlob = await stopRecording();
       if (!audioBlob) return;
-      await runGuardedAction({
-        actionType: 'voice_transcription',
-        featureName: 'Floating Assistant Voice Input',
-        execute: async () => {
-          setVoiceLoading(true);
-          try {
-            const formData = new FormData();
-            formData.append('audio', audioBlob, 'assistant-input.webm');
-            const response = await axios.post(`${API_URL}/api/ai/voice/transcribe`, formData, {
-              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
-            });
-            if (response.data.text) {
-              setInput(response.data.text);
-              toast.success('Voice captured');
-            }
-          } finally {
-            setVoiceLoading(false);
-          }
-        }
-      });
+      await transcribeAudioBlob(audioBlob);
     } else {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
         streamRef.current = stream;
-        const recorder = new MediaRecorder(stream);
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : undefined;
+        const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
         mediaRecorderRef.current = recorder;
         audioChunksRef.current = [];
         recorder.ondataavailable = (event) => {
           if (event.data.size > 0) audioChunksRef.current.push(event.data);
         };
-        recorder.start();
+        recorder.start(250);
         setIsRecording(true);
         toast.info('Recording... click mic again to stop');
+        if (recordingTimeoutRef.current) clearTimeout(recordingTimeoutRef.current);
+        recordingTimeoutRef.current = setTimeout(async () => {
+          if (mediaRecorderRef.current) {
+            const audioBlob = await stopRecording();
+            if (audioBlob) await transcribeAudioBlob(audioBlob);
+          }
+        }, 45000);
       } catch {
         toast.error('Microphone access denied');
       }
@@ -206,6 +234,11 @@ What would you like to do?`,
   const detectAndExecuteAction = async (message) => {
     const lowerMsg = message.toLowerCase();
     
+    // Detect create order intent first
+    if (lowerMsg.includes('create') && lowerMsg.includes('order')) {
+      return await handleCreateOrderIntent(message);
+    }
+
     // Detect create job intent
     if (lowerMsg.includes('create') && (lowerMsg.includes('job') || lowerMsg.includes('work order') || lowerMsg.includes('order'))) {
       return await handleCreateJobIntent(message);
@@ -279,6 +312,41 @@ What would you like to do?`,
       return {
         role: 'assistant',
         content: "I'd like to create a job for you. Could you tell me the job name and customer?"
+      };
+    }
+  };
+
+  const handleCreateOrderIntent = async (message) => {
+    try {
+      const parsed = await runParseAction(message, 'create_order');
+      if (!parsed) return null;
+
+      if (parsed.needs_more_info) {
+        return {
+          role: 'assistant',
+          content: parsed.question || 'Who is this order for, and do you have a due date or any quick notes for it?'
+        };
+      }
+
+      setPendingAction({
+        type: 'create_order',
+        params: parsed.parameters,
+        description: `Create order for ${parsed.parameters.customer_name}`
+      });
+
+      return {
+        role: 'assistant',
+        content: `I'll create this order for you:\n\n**Customer:** ${parsed.parameters.customer_name}\n**Due Date:** ${parsed.parameters.requested_due_date || 'Not set'}\n**Notes:** ${parsed.parameters.description || 'None'}\n\nShould I create this order?`,
+        actions: [
+          { label: 'Yes, create it', action: 'confirm', variant: 'default' },
+          { label: 'No, cancel', action: 'cancel', variant: 'outline' }
+        ]
+      };
+    } catch (err) {
+      console.error('Error parsing order:', err);
+      return {
+        role: 'assistant',
+        content: 'I can create an order for you. Who is it for, and do you want to include a due date or short note?'
       };
     }
   };
@@ -361,6 +429,22 @@ What would you like to do?`,
   };
 
   const handleActionButton = async (action) => {
+    if (action === 'send_transcript' && pendingTranscript) {
+      const transcript = pendingTranscript;
+      setPendingTranscript(null);
+      handleSend(transcript);
+      return;
+    }
+    if (action === 'edit_transcript' && pendingTranscript) {
+      setInput(pendingTranscript);
+      setPendingTranscript(null);
+      return;
+    }
+    if (action === 'discard_transcript') {
+      setPendingTranscript(null);
+      return;
+    }
+
     if (action === 'confirm' && pendingAction) {
       setLoading(true);
       try {

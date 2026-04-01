@@ -1886,6 +1886,7 @@ async def execute_assistant_action(
     - Require confirmation for destructive changes (unless confirmed=True)
     
     Supported actions:
+    - create_order
     - create_job
     - update_job_status
     - create_calendar_event
@@ -2152,7 +2153,24 @@ async def parse_action_intent(
     job_names = [j['name'] for j in active_jobs]
     
     # Build parsing prompt based on action type
-    if data.action_type == "create_job":
+    if data.action_type == "create_order":
+        system_prompt = f"""You are a parsing assistant. Extract order details from the user's message.
+
+Known customers: {', '.join(customer_names[:10]) if customer_names else 'None yet'}
+
+Return a JSON object with these fields:
+- customer_name: Customer name (required)
+- company_name: Company name if mentioned
+- description: Order note or item summary if mentioned
+- requested_due_date: Date in YYYY-MM-DD format if mentioned
+- pickup_delivery_method: one of 'pickup', 'delivery', 'install' if determinable
+
+If you cannot determine the customer name, return:
+{{"needs_more_info": true, "question": "Who is the order for?"}}
+
+Respond ONLY with valid JSON, nothing else."""
+
+    elif data.action_type == "create_job":
         system_prompt = f"""You are a parsing assistant. Extract job details from the user's message.
 
 Known customers: {', '.join(customer_names[:10]) if customer_names else 'None yet'}
@@ -2235,7 +2253,7 @@ Respond ONLY with valid JSON, nothing else."""
             
             # If we got parameters, try to match customer/job IDs
             if not parsed.get("needs_more_info"):
-                if data.action_type == "create_job" and parsed.get("customer_name"):
+                if data.action_type in {"create_job", "create_order"} and parsed.get("customer_name"):
                     # Try to match customer
                     for c in recent_customers:
                         if parsed["customer_name"].lower() in c["name"].lower():
