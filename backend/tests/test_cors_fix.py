@@ -16,14 +16,16 @@ import pytest
 import requests
 import os
 import uuid
+from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
+from backend.tests.test_credentials_helper import COMMON_TEST_EMAIL, COMMON_TEST_PASSWORD, DEMO_TEST_EMAIL, DEMO_TEST_PASSWORD, PORTAL_TEST_PASSWORD
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test credentials from requirements
-ADMIN_EMAIL = "thesigntistslab@gmail.com"
-ADMIN_PASSWORD = "password123"
-TEST_EMAIL = "test@test.com"
-TEST_PASSWORD = "password"
+ADMIN_EMAIL = LEGACY_ADMIN_EMAIL
+ADMIN_PASSWORD = LEGACY_ADMIN_PASSWORD
+TEST_EMAIL = FALLBACK_TEST_EMAIL
+TEST_PASSWORD = FALLBACK_TEST_PASSWORD
 
 
 class TestCORSHeaders:
@@ -293,7 +295,7 @@ class TestRegistrationFlow:
         unique_email = f"TEST_cors_fix_{uuid.uuid4().hex[:8]}@example.com"
         payload = {
             "email": unique_email,
-            "password": "TestPass123!",
+            "password": COMMON_TEST_PASSWORD,
             "full_name": "CORS Fix Test User",
             "company_name": "CORS Test Company"
         }

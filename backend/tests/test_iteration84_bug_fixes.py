@@ -17,12 +17,14 @@ import requests
 import os
 import uuid
 from datetime import datetime, timedelta
+from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
+from backend.tests.test_credentials_helper import COMMON_TEST_EMAIL, COMMON_TEST_PASSWORD, DEMO_TEST_EMAIL, DEMO_TEST_PASSWORD, PORTAL_TEST_PASSWORD
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test credentials
-ADMIN_EMAIL = "signguypa@gmail.com"
-ADMIN_PASSWORD = "Billnel323"
+ADMIN_EMAIL = PRODUCTION_OWNER_EMAIL
+ADMIN_PASSWORD = PRODUCTION_OWNER_PASSWORD
 
 
 class TestTenantScopedUserList:
@@ -108,7 +110,7 @@ class TestAdminCreateUser:
         
         response = requests.post(f"{BASE_URL}/api/admin/users/create", headers=self.headers, json={
             "email": test_email,
-            "password": "TestPass123!",
+            "password": COMMON_TEST_PASSWORD,
             "full_name": "TEST Iter84 User",
             "company_name": "Test Company",
             "role": "staff"
@@ -135,7 +137,7 @@ class TestAdminCreateUser:
         # Create user
         create_response = requests.post(f"{BASE_URL}/api/admin/users/create", headers=self.headers, json={
             "email": test_email,
-            "password": "TestPass123!",
+            "password": COMMON_TEST_PASSWORD,
             "full_name": "TEST Iter84 List User",
             "role": "staff"
         })

@@ -5,6 +5,7 @@ Tests the /api/ai/generate-product-description endpoint for webstore products
 import pytest
 import requests
 import os
+from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
@@ -13,8 +14,8 @@ BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 def auth_token():
     """Get authentication token for test user"""
     response = requests.post(f"{BASE_URL}/api/auth/login", json={
-        "email": "test@test.com",
-        "password": "password"
+        "email": FALLBACK_TEST_EMAIL,
+        "password": FALLBACK_TEST_PASSWORD
     })
     if response.status_code == 200:
         return response.json().get("access_token")

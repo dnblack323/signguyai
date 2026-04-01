@@ -19,11 +19,12 @@ the error handling is correct.
 import pytest
 import requests
 import os
+from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test credentials
-TEST_EMAIL = "testuser@example.com"
+TEST_EMAIL = DEV_TEST_EMAIL
 TEST_PASSWORD = "testpass123"
 
 
@@ -382,7 +383,7 @@ class TestStripeConnectWebstoreCheckout:
             params={"origin_url": "https://example.com"},
             json={
                 "items": [{"product_id": "test", "quantity": 1, "price": 10.00}],
-                "customer_info": {"name": "Test", "email": "test@test.com"}
+                "customer_info": {"name": "Test", "email": FALLBACK_TEST_EMAIL}
             }
         )
         assert response.status_code == 404
@@ -396,7 +397,7 @@ class TestStripeConnectWebstoreCheckout:
             params={"origin_url": "https://example.com"},
             json={
                 "items": [],  # Empty items
-                "customer_info": {"name": "Test", "email": "test@test.com"}
+                "customer_info": {"name": "Test", "email": FALLBACK_TEST_EMAIL}
             }
         )
         # Should return 404 (store not found) since store doesn't exist

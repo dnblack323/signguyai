@@ -13,14 +13,15 @@ import requests
 import os
 import uuid
 from datetime import datetime
+from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test credentials from iteration_60
-ADMIN_EMAIL = "thesigntistslab@gmail.com"
-ADMIN_PASSWORD = "password123"
+ADMIN_EMAIL = LEGACY_ADMIN_EMAIL
+ADMIN_PASSWORD = LEGACY_ADMIN_PASSWORD
 PORTAL_CUSTOMER_EMAIL = "portal1773603307@example.com"
-PORTAL_CUSTOMER_PASSWORD = "password123"
+PORTAL_CUSTOMER_PASSWORD = LEGACY_ADMIN_PASSWORD
 
 
 @pytest.fixture(scope="module")

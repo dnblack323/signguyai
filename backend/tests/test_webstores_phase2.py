@@ -11,12 +11,13 @@ Test Webstores Phase 2 Features:
 import pytest
 import requests
 import os
+from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test credentials
-OWNER_EMAIL = "testowner@signguy.ai"
-OWNER_PASSWORD = "owner123"
+OWNER_EMAIL = SYNTHETIC_OWNER_EMAIL
+OWNER_PASSWORD = SYNTHETIC_OWNER_PASSWORD
 
 
 class TestWebstoresPhase2:

@@ -14,6 +14,7 @@ import requests
 import os
 import uuid
 from datetime import datetime
+from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
@@ -31,8 +32,8 @@ class TestProductionWorkflowSettings:
         """Authenticate before tests"""
         if TestProductionWorkflowSettings.auth_token is None:
             response = requests.post(f"{BASE_URL}/api/auth/login", json={
-                "email": "thesigntistslab@gmail.com",
-                "password": "password123"
+                "email": LEGACY_ADMIN_EMAIL,
+                "password": LEGACY_ADMIN_PASSWORD
             })
             assert response.status_code == 200, f"Login failed: {response.text}"
             data = response.json()
@@ -115,8 +116,8 @@ class TestProductionTimelineEnable:
         """Authenticate before tests"""
         if TestProductionTimelineEnable.auth_token is None:
             response = requests.post(f"{BASE_URL}/api/auth/login", json={
-                "email": "thesigntistslab@gmail.com",
-                "password": "password123"
+                "email": LEGACY_ADMIN_EMAIL,
+                "password": LEGACY_ADMIN_PASSWORD
             })
             assert response.status_code == 200, f"Login failed: {response.text}"
             data = response.json()
@@ -249,8 +250,8 @@ class TestJobHistory:
         """Authenticate before tests"""
         if TestJobHistory.auth_token is None:
             response = requests.post(f"{BASE_URL}/api/auth/login", json={
-                "email": "thesigntistslab@gmail.com",
-                "password": "password123"
+                "email": LEGACY_ADMIN_EMAIL,
+                "password": LEGACY_ADMIN_PASSWORD
             })
             assert response.status_code == 200, f"Login failed: {response.text}"
             data = response.json()
@@ -372,8 +373,8 @@ class TestProductionTimelineAdvanceEdit:
         """Authenticate before tests"""
         if TestProductionTimelineAdvanceEdit.auth_token is None:
             response = requests.post(f"{BASE_URL}/api/auth/login", json={
-                "email": "thesigntistslab@gmail.com",
-                "password": "password123"
+                "email": LEGACY_ADMIN_EMAIL,
+                "password": LEGACY_ADMIN_PASSWORD
             })
             assert response.status_code == 200, f"Login failed: {response.text}"
             data = response.json()
@@ -457,8 +458,8 @@ class TestNoRegression:
         """Authenticate before tests"""
         if TestNoRegression.auth_token is None:
             response = requests.post(f"{BASE_URL}/api/auth/login", json={
-                "email": "thesigntistslab@gmail.com",
-                "password": "password123"
+                "email": LEGACY_ADMIN_EMAIL,
+                "password": LEGACY_ADMIN_PASSWORD
             })
             assert response.status_code == 200, f"Login failed: {response.text}"
             data = response.json()
@@ -504,8 +505,8 @@ class TestCleanup:
         """Authenticate before tests"""
         if TestCleanup.auth_token is None:
             response = requests.post(f"{BASE_URL}/api/auth/login", json={
-                "email": "thesigntistslab@gmail.com",
-                "password": "password123"
+                "email": LEGACY_ADMIN_EMAIL,
+                "password": LEGACY_ADMIN_PASSWORD
             })
             if response.status_code == 200:
                 data = response.json()

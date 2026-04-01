@@ -12,12 +12,13 @@ import pytest
 import requests
 import uuid
 import os
+from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
 
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/")
 
 # Test credentials
-TEST_EMAIL = "thesigntistslab@gmail.com"
-TEST_PASSWORD = "password123"
+TEST_EMAIL = LEGACY_ADMIN_EMAIL
+TEST_PASSWORD = LEGACY_ADMIN_PASSWORD
 
 
 class TestAdminPortalAuth:

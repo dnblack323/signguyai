@@ -12,6 +12,7 @@ import pytest
 import requests
 import os
 import uuid
+from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
@@ -187,8 +188,8 @@ class TestExistingTestCredentials:
     def test_login_with_test_credentials(self):
         """Test login with test@test.com / password"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "test@test.com",
-            "password": "password"
+            "email": FALLBACK_TEST_EMAIL,
+            "password": FALLBACK_TEST_PASSWORD
         })
         
         # This test user may or may not exist

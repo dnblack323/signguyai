@@ -11,6 +11,8 @@ import pytest
 import requests
 import os
 import base64
+from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
+from backend.tests.test_credentials_helper import COMMON_TEST_EMAIL, COMMON_TEST_PASSWORD, DEMO_TEST_EMAIL, DEMO_TEST_PASSWORD, PORTAL_TEST_PASSWORD
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
@@ -22,7 +24,7 @@ class TestAuth:
         """Get authentication token for test user"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "email": "testuser123@test.com",
-            "password": "Test123!"
+            "password": COMMON_TEST_PASSWORD
         })
         assert response.status_code == 200, f"Login failed: {response.text}"
         data = response.json()
@@ -33,7 +35,7 @@ class TestAuth:
         """Test login with valid credentials"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "email": "testuser123@test.com",
-            "password": "Test123!"
+            "password": COMMON_TEST_PASSWORD
         })
         assert response.status_code == 200
         data = response.json()
@@ -49,7 +51,7 @@ class TestStripeConnectStatus:
         """Get authentication token"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "email": "testuser123@test.com",
-            "password": "Test123!"
+            "password": COMMON_TEST_PASSWORD
         })
         return response.json()["access_token"]
     
@@ -75,7 +77,7 @@ class TestProductCRUDWithImages:
         """Get authentication token"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "email": "testuser123@test.com",
-            "password": "Test123!"
+            "password": COMMON_TEST_PASSWORD
         })
         return response.json()["access_token"]
     
@@ -217,7 +219,7 @@ class TestWebstoreCreation:
         """Get authentication token"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "email": "testuser123@test.com",
-            "password": "Test123!"
+            "password": COMMON_TEST_PASSWORD
         })
         return response.json()["access_token"]
     
@@ -301,7 +303,7 @@ class TestWebstoreCheckoutStripeGate:
         """Get authentication token"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "email": "testuser123@test.com",
-            "password": "Test123!"
+            "password": COMMON_TEST_PASSWORD
         })
         return response.json()["access_token"]
     
@@ -398,7 +400,7 @@ class TestCleanup:
         """Get authentication token"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "email": "testuser123@test.com",
-            "password": "Test123!"
+            "password": COMMON_TEST_PASSWORD
         })
         return response.json()["access_token"]
     

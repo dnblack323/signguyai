@@ -6,6 +6,8 @@ import pytest
 import requests
 import os
 import uuid
+from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
+from backend.tests.test_credentials_helper import COMMON_TEST_EMAIL, COMMON_TEST_PASSWORD, DEMO_TEST_EMAIL, DEMO_TEST_PASSWORD, PORTAL_TEST_PASSWORD
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
@@ -28,7 +30,7 @@ class TestUserRegistration:
         unique_email = f"test_user_{uuid.uuid4().hex[:8]}@example.com"
         payload = {
             "email": unique_email,
-            "password": "TestPass123!",
+            "password": COMMON_TEST_PASSWORD,
             "full_name": "Test User",
             "company_name": "Test Sign Company"
         }
@@ -50,7 +52,7 @@ class TestUserRegistration:
         unique_email = f"test_nocompany_{uuid.uuid4().hex[:8]}@example.com"
         payload = {
             "email": unique_email,
-            "password": "TestPass123!",
+            "password": COMMON_TEST_PASSWORD,
             "full_name": "No Company User"
         }
         
@@ -59,14 +61,14 @@ class TestUserRegistration:
         
         data = response.json()
         assert "access_token" in data
-        print(f"✅ Registration without company name successful")
+        print("✅ Registration without company name successful")
     
     def test_register_duplicate_email_fails(self):
         """Test that duplicate email registration fails"""
         unique_email = f"test_dup_{uuid.uuid4().hex[:8]}@example.com"
         payload = {
             "email": unique_email,
-            "password": "TestPass123!",
+            "password": COMMON_TEST_PASSWORD,
             "full_name": "First User"
         }
         
@@ -88,7 +90,7 @@ class TestUserRegistration:
         """Test registration with invalid email format"""
         payload = {
             "email": "not-an-email",
-            "password": "TestPass123!",
+            "password": COMMON_TEST_PASSWORD,
             "full_name": "Invalid Email User"
         }
         
@@ -109,7 +111,7 @@ class TestUserRegistration:
         # Missing full_name
         payload = {
             "email": "test@example.com",
-            "password": "TestPass123!"
+            "password": COMMON_TEST_PASSWORD
         }
         response = requests.post(f"{BASE_URL}/api/auth/register", json=payload)
         assert response.status_code == 422
@@ -166,7 +168,7 @@ class TestUserLogin:
         
         data = response.json()
         assert "detail" in data
-        assert "invalid" in data["detail"].lower() or "password" in data["detail"].lower()
+        assert "invalid" in data["detail"].lower() or FALLBACK_TEST_PASSWORD in data["detail"].lower()
         print("✅ Wrong password correctly rejected")
     
     def test_login_nonexistent_email(self):
@@ -230,7 +232,7 @@ class TestJWTTokenValidation:
         assert data["email"] == self.test_email.lower()
         assert data["full_name"] == "JWT Test User"
         assert data["company_name"] == "JWT Test Company"
-        assert data["is_active"] == True
+        assert data["is_active"]
         assert "id" in data
         assert "created_at" in data
         assert "hashed_password" not in data  # Should not expose password

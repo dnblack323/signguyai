@@ -28,13 +28,15 @@ import requests
 import os
 import uuid
 from datetime import datetime
+from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
+from backend.tests.test_credentials_helper import COMMON_TEST_EMAIL, COMMON_TEST_PASSWORD, DEMO_TEST_EMAIL, DEMO_TEST_PASSWORD, PORTAL_TEST_PASSWORD
 
 # Get base URL from environment
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test user credentials
 TEST_EMAIL = f"test_refactor_{uuid.uuid4().hex[:8]}@signguy.com"
-TEST_PASSWORD = "Test123!"
+TEST_PASSWORD = COMMON_TEST_PASSWORD
 TEST_FULL_NAME = "Test Refactor User"
 
 
@@ -89,7 +91,7 @@ class TestAuthRoutes:
         unique_email = f"test_new_{uuid.uuid4().hex[:8]}@signguy.com"
         response = requests.post(f"{BASE_URL}/api/auth/register", json={
             "email": unique_email,
-            "password": "Test123!",
+            "password": COMMON_TEST_PASSWORD,
             "full_name": "New Test User",
             "company_name": "New Test Company"
         })
@@ -103,7 +105,7 @@ class TestAuthRoutes:
         """Test registering with existing email fails"""
         response = requests.post(f"{BASE_URL}/api/auth/register", json={
             "email": registered_user["email"],
-            "password": "Test123!",
+            "password": COMMON_TEST_PASSWORD,
             "full_name": "Duplicate User"
         })
         assert response.status_code == 400
@@ -114,7 +116,7 @@ class TestAuthRoutes:
         """Test POST /api/auth/login with valid credentials"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "email": registered_user["email"],
-            "password": registered_user["password"]
+            "password": registered_user[FALLBACK_TEST_PASSWORD]
         })
         assert response.status_code == 200
         data = response.json()
@@ -135,7 +137,7 @@ class TestAuthRoutes:
         """Test login with remember_me flag"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "email": registered_user["email"],
-            "password": registered_user["password"],
+            "password": registered_user[FALLBACK_TEST_PASSWORD],
             "remember_me": True
         })
         assert response.status_code == 200
@@ -154,14 +156,14 @@ class TestUserRoutes:
         """Get auth headers for authenticated requests"""
         # Register or login
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "testowner@signguy.com",
-            "password": "Test123!"
+            "email": SYNTHETIC_OWNER_EMAIL,
+            "password": COMMON_TEST_PASSWORD
         })
         if response.status_code != 200:
             # Try registering
             response = requests.post(f"{BASE_URL}/api/auth/register", json={
-                "email": "testowner@signguy.com",
-                "password": "Test123!",
+                "email": SYNTHETIC_OWNER_EMAIL,
+                "password": COMMON_TEST_PASSWORD,
                 "full_name": "Test Owner",
                 "company_name": "Test Sign Shop"
             })
@@ -206,8 +208,8 @@ class TestCustomerRoutes:
     def auth_headers(self):
         """Get auth headers"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "testowner@signguy.com",
-            "password": "Test123!"
+            "email": SYNTHETIC_OWNER_EMAIL,
+            "password": COMMON_TEST_PASSWORD
         })
         if response.status_code == 200:
             return {"Authorization": f"Bearer {response.json()['access_token']}"}
@@ -294,8 +296,8 @@ class TestQuoteRoutes:
     def auth_headers(self):
         """Get auth headers"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "testowner@signguy.com",
-            "password": "Test123!"
+            "email": SYNTHETIC_OWNER_EMAIL,
+            "password": COMMON_TEST_PASSWORD
         })
         if response.status_code == 200:
             return {"Authorization": f"Bearer {response.json()['access_token']}"}
@@ -382,8 +384,8 @@ class TestJobRoutes:
     def auth_headers(self):
         """Get auth headers"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "testowner@signguy.com",
-            "password": "Test123!"
+            "email": SYNTHETIC_OWNER_EMAIL,
+            "password": COMMON_TEST_PASSWORD
         })
         if response.status_code == 200:
             return {"Authorization": f"Bearer {response.json()['access_token']}"}
@@ -538,8 +540,8 @@ class TestInvoiceRoutes:
     def auth_headers(self):
         """Get auth headers"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "testowner@signguy.com",
-            "password": "Test123!"
+            "email": SYNTHETIC_OWNER_EMAIL,
+            "password": COMMON_TEST_PASSWORD
         })
         if response.status_code == 200:
             return {"Authorization": f"Bearer {response.json()['access_token']}"}
@@ -641,8 +643,8 @@ class TestPricingRoutes:
     def auth_headers(self):
         """Get auth headers"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "testowner@signguy.com",
-            "password": "Test123!"
+            "email": SYNTHETIC_OWNER_EMAIL,
+            "password": COMMON_TEST_PASSWORD
         })
         if response.status_code == 200:
             return {"Authorization": f"Bearer {response.json()['access_token']}"}
@@ -734,8 +736,8 @@ class TestPortalRoutes:
     def auth_headers(self):
         """Get shop auth headers"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "testowner@signguy.com",
-            "password": "Test123!"
+            "email": SYNTHETIC_OWNER_EMAIL,
+            "password": COMMON_TEST_PASSWORD
         })
         if response.status_code == 200:
             return {"Authorization": f"Bearer {response.json()['access_token']}"}
@@ -758,7 +760,7 @@ class TestPortalRoutes:
         """Test POST /api/portal/auth/register enables portal access"""
         response = requests.post(f"{BASE_URL}/api/portal/auth/register", json={
             "email": portal_customer["email"],
-            "password": portal_customer["password"]
+            "password": portal_customer[FALLBACK_TEST_PASSWORD]
         })
         # May fail if customer doesn't exist or already registered
         if response.status_code == 200:
@@ -950,8 +952,8 @@ class TestWebstoreRoutes:
     def auth_headers(self):
         """Get auth headers"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "testowner@signguy.com",
-            "password": "Test123!"
+            "email": SYNTHETIC_OWNER_EMAIL,
+            "password": COMMON_TEST_PASSWORD
         })
         if response.status_code == 200:
             return {"Authorization": f"Bearer {response.json()['access_token']}"}
@@ -1052,8 +1054,8 @@ class TestQuoteToJobConversion:
     def auth_headers(self):
         """Get auth headers"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "testowner@signguy.com",
-            "password": "Test123!"
+            "email": SYNTHETIC_OWNER_EMAIL,
+            "password": COMMON_TEST_PASSWORD
         })
         if response.status_code == 200:
             return {"Authorization": f"Bearer {response.json()['access_token']}"}
@@ -1097,8 +1099,8 @@ class TestInvoiceFromJob:
     def auth_headers(self):
         """Get auth headers"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "testowner@signguy.com",
-            "password": "Test123!"
+            "email": SYNTHETIC_OWNER_EMAIL,
+            "password": COMMON_TEST_PASSWORD
         })
         if response.status_code == 200:
             return {"Authorization": f"Bearer {response.json()['access_token']}"}

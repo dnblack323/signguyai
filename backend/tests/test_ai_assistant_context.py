@@ -14,6 +14,7 @@ import pytest
 import requests
 import os
 import uuid
+from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
@@ -23,7 +24,7 @@ def auth_token():
     """Get authentication token using test_ai@test.com credentials"""
     response = requests.post(
         f"{BASE_URL}/api/auth/login",
-        json={"email": "test_ai@test.com", "password": "password123"}
+        json={"email": COMMON_TEST_EMAIL, "password": LEGACY_ADMIN_PASSWORD}
     )
     assert response.status_code == 200, f"Login failed: {response.text}"
     return response.json()["access_token"]

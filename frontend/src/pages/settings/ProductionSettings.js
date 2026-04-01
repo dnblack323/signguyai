@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { getAuthToken } from '../../lib/authStorage';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -54,7 +55,7 @@ export default function ProductionSettings() {
 
   const loadWorkflowSettings = useCallback(async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await axios.get(`${API}/api/production-timeline/settings`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -67,7 +68,7 @@ export default function ProductionSettings() {
 
   const loadTemplates = useCallback(async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await axios.get(`${API}/api/production-timeline/templates`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -84,7 +85,7 @@ export default function ProductionSettings() {
 
   const loadAnalytics = useCallback(async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const [analyticsRes, reportRes] = await Promise.all([
         axios.get(`${API}/api/production-timeline/analytics`, {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -160,7 +161,7 @@ export default function ProductionSettings() {
     
     setSaving(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       await axios.put(
         `${API}/api/production-timeline/templates/${selectedTemplate.id}`,
         null,
@@ -198,7 +199,7 @@ export default function ProductionSettings() {
     
     setSaving(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       
       // Get stages to copy
       let stages = [];
@@ -251,7 +252,7 @@ export default function ProductionSettings() {
     if (!window.confirm('Are you sure you want to delete this template?')) return;
     
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       await axios.delete(
         `${API}/api/production-timeline/templates/${selectedTemplate.id}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
@@ -315,7 +316,7 @@ export default function ProductionSettings() {
             onClick={async () => {
               setSavingWorkflowMode(true);
               try {
-                const token = localStorage.getItem('auth_token');
+                const token = getAuthToken();
                 await axios.put(
                   `${API}/api/production-timeline/settings`,
                   { workflow_mode: workflowMode, category_template_map: categoryTemplateMap },
@@ -425,7 +426,7 @@ export default function ProductionSettings() {
                           const nextMap = { ...categoryTemplateMap, [selectedTemplate.category]: selectedTemplate.id };
                           setCategoryTemplateMap(nextMap);
                           try {
-                            const token = localStorage.getItem('auth_token');
+                            const token = getAuthToken();
                             await axios.put(
                               `${API}/api/production-timeline/settings`,
                               { workflow_mode: workflowMode, category_template_map: nextMap },

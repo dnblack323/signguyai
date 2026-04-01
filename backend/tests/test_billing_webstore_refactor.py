@@ -17,12 +17,14 @@ import requests
 import os
 import uuid
 from datetime import datetime
+from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
+from backend.tests.test_credentials_helper import COMMON_TEST_EMAIL, COMMON_TEST_PASSWORD, DEMO_TEST_EMAIL, DEMO_TEST_PASSWORD, PORTAL_TEST_PASSWORD
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test credentials from review_request
 TEST_USER_EMAIL = "billing_test@example.com"
-TEST_USER_PASSWORD = "TestPass123!"
+TEST_USER_PASSWORD = COMMON_TEST_PASSWORD
 TEST_WEBSTORE_ID = "f3d4acf9-8468-43ad-b51a-12ebb29d333c"
 TEST_PRODUCT_ID = "5f0c0f3f-9e44-4d93-b5d7-45675504eef0"
 
@@ -477,7 +479,7 @@ def auth_token(api_client):
     # Fallback to known test user
     response = api_client.post(f"{BASE_URL}/api/auth/login", json={
         "email": "testuser123@test.com",
-        "password": "Test123!"
+        "password": COMMON_TEST_PASSWORD
     })
     
     if response.status_code == 200:

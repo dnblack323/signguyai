@@ -13,6 +13,7 @@ import pytest
 import requests
 import os
 import uuid
+from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD, DEMO_TEST_EMAIL, DEMO_TEST_PASSWORD )
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
@@ -22,7 +23,7 @@ def auth_token():
     """Get authentication token for API calls"""
     response = requests.post(
         f"{BASE_URL}/api/auth/login",
-        json={"email": "demo@signguy.com", "password": "Demo123!"}
+        json={"email": DEMO_TEST_EMAIL, "password": DEMO_TEST_PASSWORD}
     )
     assert response.status_code == 200, f"Login failed: {response.text}"
     return response.json()["access_token"]
@@ -552,7 +553,7 @@ class TestAIEmailGenerator:
         data = response.json()
         assert "subject" in data
         assert "body" in data
-        print(f"✅ generate-email (invoice_reminder) passed")
+        print("✅ generate-email (invoice_reminder) passed")
 
     def test_generate_thank_you_email(self, auth_headers):
         """Generate thank you email"""
@@ -573,7 +574,7 @@ class TestAIEmailGenerator:
         data = response.json()
         assert "subject" in data
         assert "body" in data
-        print(f"✅ generate-email (thank_you) passed")
+        print("✅ generate-email (thank_you) passed")
 
 
 # ============== AI HISTORY ==============

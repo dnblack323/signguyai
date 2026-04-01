@@ -10,6 +10,7 @@ import pytest
 import requests
 import os
 import uuid
+from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
@@ -24,7 +25,7 @@ class TestOnboardingSystem:
         if not TestOnboardingSystem.auth_token:
             login_response = requests.post(
                 f"{BASE_URL}/api/auth/login",
-                json={"email": "thesigntistslab@gmail.com", "password": "password123"}
+                json={"email": LEGACY_ADMIN_EMAIL, "password": LEGACY_ADMIN_PASSWORD}
             )
             assert login_response.status_code == 200, f"Login failed: {login_response.text}"
             TestOnboardingSystem.auth_token = login_response.json().get("access_token")
@@ -140,7 +141,7 @@ class TestPortalInvite:
         if not TestPortalInvite.auth_token:
             login_response = requests.post(
                 f"{BASE_URL}/api/auth/login",
-                json={"email": "thesigntistslab@gmail.com", "password": "password123"}
+                json={"email": LEGACY_ADMIN_EMAIL, "password": LEGACY_ADMIN_PASSWORD}
             )
             assert login_response.status_code == 200, f"Login failed: {login_response.text}"
             TestPortalInvite.auth_token = login_response.json().get("access_token")
@@ -249,7 +250,7 @@ class TestDashboardOnboarding:
         if not TestDashboardOnboarding.auth_token:
             login_response = requests.post(
                 f"{BASE_URL}/api/auth/login",
-                json={"email": "thesigntistslab@gmail.com", "password": "password123"}
+                json={"email": LEGACY_ADMIN_EMAIL, "password": LEGACY_ADMIN_PASSWORD}
             )
             assert login_response.status_code == 200, f"Login failed: {login_response.text}"
             TestDashboardOnboarding.auth_token = login_response.json().get("access_token")
@@ -284,7 +285,7 @@ class TestProductionWorkflowSettings:
         if not TestProductionWorkflowSettings.auth_token:
             login_response = requests.post(
                 f"{BASE_URL}/api/auth/login",
-                json={"email": "thesigntistslab@gmail.com", "password": "password123"}
+                json={"email": LEGACY_ADMIN_EMAIL, "password": LEGACY_ADMIN_PASSWORD}
             )
             assert login_response.status_code == 200
             TestProductionWorkflowSettings.auth_token = login_response.json().get("access_token")
@@ -325,7 +326,7 @@ class TestPricingDefaults:
         if not TestPricingDefaults.auth_token:
             login_response = requests.post(
                 f"{BASE_URL}/api/auth/login",
-                json={"email": "thesigntistslab@gmail.com", "password": "password123"}
+                json={"email": LEGACY_ADMIN_EMAIL, "password": LEGACY_ADMIN_PASSWORD}
             )
             assert login_response.status_code == 200
             TestPricingDefaults.auth_token = login_response.json().get("access_token")

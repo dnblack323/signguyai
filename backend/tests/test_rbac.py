@@ -6,12 +6,14 @@ import pytest
 import requests
 import os
 import uuid
+from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
+from backend.tests.test_credentials_helper import COMMON_TEST_EMAIL, COMMON_TEST_PASSWORD, DEMO_TEST_EMAIL, DEMO_TEST_PASSWORD, PORTAL_TEST_PASSWORD
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test credentials from the review request
-OWNER_EMAIL = "testowner@signguy.ai"
-OWNER_PASSWORD = "owner123"
+OWNER_EMAIL = SYNTHETIC_OWNER_EMAIL
+OWNER_PASSWORD = SYNTHETIC_OWNER_PASSWORD
 STAFF_EMAIL = "teststaff@signguy.ai"
 STAFF_PASSWORD = "staff123"
 
@@ -442,7 +444,7 @@ class TestAPIPermissionEnforcement:
             headers={"Authorization": f"Bearer {staff_token}"},
             json={
                 "email": f"test_{uuid.uuid4().hex[:8]}@test.com",
-                "password": "test123",
+                "password": COMMON_TEST_PASSWORD,
                 "full_name": "Test User"
             }
         )

@@ -7,6 +7,7 @@ import pytest
 import requests
 import os
 from datetime import datetime, timedelta
+from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
@@ -21,8 +22,8 @@ class TestPayrollEnhancement:
         
         # Login as admin
         login_res = self.session.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "thesigntistslab@gmail.com",
-            "password": "password123"
+            "email": LEGACY_ADMIN_EMAIL,
+            "password": LEGACY_ADMIN_PASSWORD
         })
         
         if login_res.status_code != 200:
@@ -463,8 +464,8 @@ class TestPayrollHoursValidation:
         self.session.headers.update({"Content-Type": "application/json"})
         
         login_res = self.session.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "thesigntistslab@gmail.com",
-            "password": "password123"
+            "email": LEGACY_ADMIN_EMAIL,
+            "password": LEGACY_ADMIN_PASSWORD
         })
         
         if login_res.status_code != 200:

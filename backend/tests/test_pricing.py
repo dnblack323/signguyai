@@ -4,6 +4,8 @@
 import pytest
 import requests
 import os
+from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
+from backend.tests.test_credentials_helper import COMMON_TEST_EMAIL, COMMON_TEST_PASSWORD, DEMO_TEST_EMAIL, DEMO_TEST_PASSWORD, PORTAL_TEST_PASSWORD
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
@@ -15,8 +17,8 @@ class TestPricingAPIs:
         """Setup test fixtures - login and get token"""
         # Login to get auth token
         login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "testowner@signguy.com",
-            "password": "Test123!"
+            "email": SYNTHETIC_OWNER_EMAIL,
+            "password": COMMON_TEST_PASSWORD
         })
         
         if login_response.status_code != 200:
@@ -542,8 +544,8 @@ def cleanup_test_templates():
     
     # Login
     login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
-        "email": "testowner@signguy.com",
-        "password": "Test123!"
+        "email": SYNTHETIC_OWNER_EMAIL,
+        "password": COMMON_TEST_PASSWORD
     })
     
     if login_response.status_code != 200:

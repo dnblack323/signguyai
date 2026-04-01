@@ -19,6 +19,27 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
+### Session: April 1, 2026 (Security & Test-Credential Hardening Pass)
+- **Auth / Token Storage Hardening (IN PROGRESS, major pieces DONE):**
+  - Added shared frontend token helpers in `/app/frontend/src/lib/authStorage.js`
+  - Admin auth token storage now prefers `sessionStorage` by default and only persists to `localStorage` when "Remember me" is enabled
+  - Core auth/app contexts switched to the shared storage helper
+  - High-priority auth-sensitive pages updated away from direct raw `localStorage` token reads:
+    - Promo Codes
+    - Pricing Setup
+    - Portal Proofs
+    - Employee Portal Login
+    - Customer Portal Login
+    - Production Settings
+- **Backend Test Credential Cleanup (major pass DONE):**
+  - Added `/app/backend/tests/test_credentials_helper.py` to centralize reusable test credentials/constants
+  - Replaced a large set of hardcoded test credential literals across backend test files with shared helper constants
+  - Fixed follow-up syntax issues created during that codemod and revalidated representative test files
+- **Testing:**
+  - Linted updated auth-storage files successfully
+  - Revalidated key code-review regression pages/endpoints after hardening changes
+  - Note: broader non-priority localStorage cleanup and full test-suite refactor still remain for a later hardening sweep if desired
+
 ### Session: April 1, 2026 (Code Review Remediation Pass)
 - **Critical Review Fixes (DONE):**
   - Removed the `server.py ↔ routes/tiers.py` circular-import dependency by moving tier route access to `request.app.state` instead of importing from `server`

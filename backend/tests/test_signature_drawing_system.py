@@ -9,12 +9,13 @@ import requests
 import os
 import uuid
 import base64
+from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test credentials
-TEST_EMAIL = "signguypa@gmail.com"
-TEST_PASSWORD = "Billnel323"
+TEST_EMAIL = PRODUCTION_OWNER_EMAIL
+TEST_PASSWORD = PRODUCTION_OWNER_PASSWORD
 
 # Test order ID from test_credentials.md
 TEST_ORDER_ID = "1efe0ae8-473d-4d5f-bde7-dbfde8180cda"
