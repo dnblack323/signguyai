@@ -15,6 +15,7 @@ from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 import jwt
 import re
+from pydantic import BaseModel
 
 from models import (
     User, UserCreate, UserLogin, UserInDB, UserRoleUpdate,
@@ -38,6 +39,14 @@ from server import (
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 users_router = APIRouter(prefix="/users", tags=["Users"])
 admin_router = APIRouter(prefix="/admin", tags=["Admin"])
+
+
+class AdminCreateUserInput(BaseModel):
+    email: str
+    password: str
+    full_name: str
+    company_name: Optional[str] = None
+    role: UserRole = UserRole.STAFF
 
 
 # ============== AUTH ROUTES ==============
@@ -275,7 +284,7 @@ async def setup_admin_account(request_body: dict):
                         "trial_ends_at": None,
                     }}
                 )
-                results.append(f"Tenant updated: platform_owner=true, founder=true, active")
+                results.append("Tenant updated: platform_owner=true, founder=true, active")
         else:
             results.append(f"User {email} not found")
     
@@ -380,8 +389,36 @@ async def list_all_users(current_user: UserInDB = Depends(get_current_active_use
     if not has_permission(current_user, Permission.USERS_VIEW):
         raise HTTPException(status_code=403, detail="Permission denied: Cannot view users")
     
-    users = await db.users.find({}, {"_id": 0, "hashed_password": 0}).to_list(1000)
+    users = await db.users.find({"tenant_id": current_user.tenant_id}, {"_id": 0, "hashed_password": 0}).to_list(1000)
     return [User(**u) for u in users]
+
+
+@admin_router.post("/users/create", response_model=User)
+async def admin_create_user(
+    input: AdminCreateUserInput,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    if not has_permission(current_user, Permission.USERS_MANAGE):
+        raise HTTPException(status_code=403, detail="Permission denied: Cannot create users")
+
+    if input.role == UserRole.OWNER and current_user.role != UserRole.OWNER:
+        raise HTTPException(status_code=403, detail="Only owners can create another owner")
+
+    existing = await db.users.find_one({"email": input.email.lower()}, {"_id": 0, "id": 1})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    hashed_password = get_password_hash(input.password)
+    user = UserInDB(
+        email=input.email.lower(),
+        full_name=input.full_name,
+        company_name=input.company_name or current_user.company_name,
+        role=input.role,
+        tenant_id=current_user.tenant_id,
+        hashed_password=hashed_password,
+    )
+    await db.users.insert_one(user.model_dump())
+    return User(**{k: v for k, v in user.model_dump().items() if k != "hashed_password"})
 
 
 @admin_router.post("/users/{user_id}/reset-password")
@@ -395,7 +432,7 @@ async def admin_reset_password(
         raise HTTPException(status_code=403, detail="Permission denied: Cannot reset passwords")
     
     # Find target user
-    target_user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    target_user = await db.users.find_one({"id": user_id, "tenant_id": current_user.tenant_id}, {"_id": 0})
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found")
     
@@ -410,7 +447,7 @@ async def admin_reset_password(
     # Hash and update password
     hashed_password = get_password_hash(input.new_password)
     await db.users.update_one(
-        {"id": user_id},
+        {"id": user_id, "tenant_id": current_user.tenant_id},
         {"$set": {"hashed_password": hashed_password, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
     
@@ -431,7 +468,7 @@ async def admin_toggle_user_status(
     if user_id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot modify your own account status")
     
-    target_user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    target_user = await db.users.find_one({"id": user_id, "tenant_id": current_user.tenant_id}, {"_id": 0})
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found")
     
@@ -440,7 +477,7 @@ async def admin_toggle_user_status(
         raise HTTPException(status_code=403, detail="Only owners can modify owner accounts")
     
     await db.users.update_one(
-        {"id": user_id},
+        {"id": user_id, "tenant_id": current_user.tenant_id},
         {"$set": {"is_active": is_active, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
     
@@ -462,13 +499,13 @@ async def admin_update_user_role(
     if user_id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot modify your own role")
     
-    target_user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    target_user = await db.users.find_one({"id": user_id, "tenant_id": current_user.tenant_id}, {"_id": 0})
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found")
     
     # Update role
     await db.users.update_one(
-        {"id": user_id},
+        {"id": user_id, "tenant_id": current_user.tenant_id},
         {"$set": {"role": input.role.value, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
     

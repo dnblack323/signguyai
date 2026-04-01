@@ -1,0 +1,76 @@
+{
+  "summary": "Iteration 84 - Bug Fixes Testing Complete. All 17 backend API tests passed (100%). Fixed Permission.USERS_CREATE bug in auth.py (changed to USERS_MANAGE). UI verified: User Management shows tenant-scoped users with Add User dialog, Time Clock has Employee Directory with Invite Portal/Edit/Reset PIN/Delete buttons, Payroll page has all tabs working.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration84_bug_fixes.py",
+    "/app/test_reports/pytest/iteration84_bug_fixes_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/routes/auth.py",
+    "/app/backend/tests/test_iteration84_bug_fixes.py"
+  ],
+  "success_rate": {
+    "backend": "100% (17/17 passed)",
+    "frontend": "100%"
+  },
+  "test_credentials": "Admin: signguypa@gmail.com / Billnel323",
+  "seed_data_creation": "Test employees and users created and cleaned up during tests (test_iter84_*, TEST UI Employee)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Bug fixes verified: 1) Tenant-scoped user list (/api/admin/users) returns only current tenant users - PASS, 2) Admin create user route works within current tenant - PASS (fixed Permission.USERS_CREATE -> USERS_MANAGE), 3) Employee portal invite endpoint returns invite metadata/PIN - PASS, 4) Timesheet entries include employee_id for editing manual entries - PASS, 5) Manual timesheet entry can be edited/deleted - PASS, 6) Time clock shift can be deleted - PASS, 7) No regression in Time Entries tab - PASS, 8) No regression in payroll transactions - PASS",
+  "features_verified": {
+    "tenant_scoped_user_list": {
+      "admin_users_returns_only_tenant_users": "PASS",
+      "admin_users_does_not_include_other_tenants": "PASS"
+    },
+    "admin_create_user": {
+      "create_user_success": "PASS",
+      "created_user_appears_in_list": "PASS"
+    },
+    "employee_portal_invite": {
+      "invite_returns_metadata_and_pin": "PASS",
+      "invite_requires_email": "PASS"
+    },
+    "timesheet_entry_editing": {
+      "entries_include_employee_id": "PASS",
+      "manual_entry_can_be_edited": "PASS",
+      "manual_entry_can_be_deleted": "PASS"
+    },
+    "timeclock_shift_delete": {
+      "shift_can_be_deleted": "PASS"
+    },
+    "payroll_transactions_no_regression": {
+      "create_transaction": "PASS",
+      "edit_transaction": "PASS",
+      "delete_transaction": "PASS",
+      "list_transactions": "PASS"
+    },
+    "time_entries_no_regression": {
+      "get_manual_hours": "PASS",
+      "get_timeclock_shifts": "PASS",
+      "manual_hours_crud_flow": "PASS"
+    }
+  },
+  "ui_verification": {
+    "user_management_page": "PASS - Shows 6 tenant users, Add User button opens Create New User dialog with Full Name, Email, Password, Company Name, Role fields",
+    "time_clock_page": "PASS - Employee Directory shows employees with Edit, Invite Portal, Reset PIN, Deactivate, Delete buttons",
+    "payroll_page": "PASS - Shows Overview, Time Sheets, Time Entries, Transactions, Schedule tabs",
+    "invite_portal_button": "PASS - Present in Employee Directory for each employee"
+  },
+  "bug_fix_applied": {
+    "file": "/app/backend/routes/auth.py",
+    "line": 401,
+    "issue": "Permission.USERS_CREATE does not exist in Permission enum",
+    "fix": "Changed to Permission.USERS_MANAGE which is the correct permission for user creation"
+  }
+}

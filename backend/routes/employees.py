@@ -12,6 +12,7 @@ from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field
 import uuid
+import random
 
 # Import from server module
 from server import db, logger, get_current_active_user
@@ -26,6 +27,7 @@ from services.timeclock_service import (
     record_timeclock_action,
     update_timeclock_shift,
 )
+from services.email_service import email_service
 
 
 # ============== LOCAL MODELS (to be moved to models/employees.py) ==============
@@ -57,6 +59,10 @@ class EmployeeUpdate(BaseModel):
 
 class EmployeePinReset(BaseModel):
     pin: str
+
+
+class EmployeePortalInviteRequest(BaseModel):
+    origin_url: Optional[str] = None
 
 class Employee(EmployeeBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -181,6 +187,7 @@ async def _get_employee_compensation_snapshot(tenant_id: str, employee: dict, st
 
     job_details = [{
         "id": entry.get("id"),
+        "employee_id": emp_id,
         "job_id": entry.get("job_id"),
         "job_name": entry.get("job_name", ""),
         "task_type": entry.get("task_type", "production"),
@@ -192,6 +199,7 @@ async def _get_employee_compensation_snapshot(tenant_id: str, employee: dict, st
 
     manual_details = [{
         "id": entry.get("id"),
+        "employee_id": emp_id,
         "job_id": entry.get("job_id"),
         "job_name": entry.get("job_name", ""),
         "task_type": entry.get("task_type", "general"),
@@ -204,6 +212,7 @@ async def _get_employee_compensation_snapshot(tenant_id: str, employee: dict, st
 
     shift_details = [{
         "id": shift.get("id"),
+        "employee_id": emp_id,
         "job_id": None,
         "job_name": None,
         "task_type": "time_clock",
@@ -344,6 +353,58 @@ async def reset_employee_pin(
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Employee not found")
     return {"message": "PIN updated"}
+
+
+@employees_router.post("/{employee_id}/invite-portal")
+async def invite_employee_to_portal(
+    employee_id: str,
+    input: EmployeePortalInviteRequest,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    _require_payroll_edit_access(current_user)
+    employee = await db.employees.find_one({"id": employee_id, "tenant_id": current_user.tenant_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    if not employee.get("email"):
+        raise HTTPException(status_code=400, detail="Employee must have an email address before they can be invited")
+
+    pin = employee.get("pin") or str(random.randint(1000, 9999))
+    if not employee.get("pin"):
+        await db.employees.update_one({"id": employee_id}, {"$set": {"pin": pin}})
+
+    login_url = f"{(input.origin_url or '').rstrip('/')}/employee-portal/login" if input.origin_url else "/employee-portal/login"
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0, "name": 1})
+    company_name = (tenant or {}).get("name") or current_user.company_name or "Your Sign Shop"
+    subject = f"{company_name} Employee Portal Access"
+    html_content = f"""
+      <div style='font-family:Arial,sans-serif;max-width:640px;margin:0 auto;padding:24px;'>
+        <h2 style='color:#0f172a;'>You're invited to the employee portal</h2>
+        <p>Hello {employee.get('name')},</p>
+        <p>{current_user.full_name} invited you to the employee portal for <strong>{company_name}</strong>.</p>
+        <div style='background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin:16px 0;'>
+          <p><strong>Login URL:</strong> <a href='{login_url}'>{login_url}</a></p>
+          <p><strong>Email:</strong> {employee.get('email')}</p>
+          <p><strong>PIN:</strong> {pin}</p>
+        </div>
+        <p>Use your email address and PIN to log in. Your admin can reset the PIN any time.</p>
+      </div>
+    """
+
+    email_result = await email_service.send_email(
+        to_email=employee["email"],
+        subject=subject,
+        html_content=html_content,
+        tenant_id=current_user.tenant_id,
+    )
+    return {
+        "message": "Employee portal invitation processed",
+        "employee_id": employee_id,
+        "employee_email": employee["email"],
+        "temporary_pin": pin,
+        "email_sent": bool(email_result.get("success")),
+        "login_url": login_url,
+        "email_error": email_result.get("error") if not email_result.get("success") else None,
+    }
 
 
 # ============== TIME CLOCK ROUTES ==============
@@ -681,6 +742,18 @@ async def edit_timeclock_shift(
         return updated
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@payroll_router.delete("/timeclock-shifts/{shift_id}")
+async def delete_timeclock_shift(
+    shift_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    _require_payroll_edit_access(current_user)
+    result = await db.timeclock_shifts.delete_one({"id": shift_id, "tenant_id": current_user.tenant_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Time clock shift not found")
+    return {"message": "Time clock shift deleted"}
 
 
 # ============== TIMESHEET & PAY PERIOD ROUTES ==============

@@ -277,7 +277,7 @@ export default function UserManagement() {
             User Management
           </h1>
           <p className="text-slate-300 mt-1">
-            Manage user accounts, roles, and permissions
+            Manage user accounts, roles, and permissions for this tenant only
           </p>
         </div>
         {canCreateUsers && (

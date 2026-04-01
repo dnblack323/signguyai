@@ -51,6 +51,7 @@ export default function TimeClock() {
   const [employeeForm, setEmployeeForm] = useState({ name: '', email: '', phone: '', hourly_rate: '', role: 'staff', pin: '' });
   const [pinResetEmployee, setPinResetEmployee] = useState(null);
   const [newPin, setNewPin] = useState('');
+  const [invitingEmployeeId, setInvitingEmployeeId] = useState('');
 
   useEffect(() => {
     loadEmployees();
@@ -185,6 +186,26 @@ export default function TimeClock() {
       await loadEmployees();
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to update PIN');
+    }
+  };
+
+  const handleInvitePortal = async (employee) => {
+    if (!employee.email) {
+      toast.error('Add an employee email before sending a portal invite');
+      return;
+    }
+    setInvitingEmployeeId(employee.id);
+    try {
+      const res = await api.post(`/employees/${employee.id}/invite-portal`, { origin_url: window.location.origin });
+      if (res.data.email_sent) {
+        toast.success(`Portal invite sent to ${employee.email}. PIN: ${res.data.temporary_pin}`);
+      } else {
+        toast.success(`Invite prepared. Email service was unavailable, so use PIN ${res.data.temporary_pin} manually.`);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to invite employee');
+    } finally {
+      setInvitingEmployeeId('');
     }
   };
 
@@ -434,6 +455,7 @@ export default function TimeClock() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2 justify-end">
                   <Button variant="outline" size="sm" onClick={() => openEditEmployee(employee)} data-testid={`edit-employee-${employee.id}`}><Edit2 className="h-4 w-4 mr-1" /> Edit</Button>
+                  <Button variant="outline" size="sm" onClick={() => handleInvitePortal(employee)} disabled={invitingEmployeeId === employee.id} data-testid={`invite-portal-${employee.id}`}><User className="h-4 w-4 mr-1" /> {invitingEmployeeId === employee.id ? 'Inviting...' : 'Invite Portal'}</Button>
                   <Button variant="outline" size="sm" onClick={() => { setPinResetEmployee(employee); setNewPin(''); }} data-testid={`reset-pin-${employee.id}`}><KeyRound className="h-4 w-4 mr-1" /> Reset PIN</Button>
                   <Button variant="outline" size="sm" onClick={() => handleToggleActive(employee)} data-testid={`toggle-employee-${employee.id}`}>{employee.is_active ? 'Deactivate' : 'Reactivate'}</Button>
                   <Button variant="outline" size="sm" className="text-red-600" onClick={() => handleDeleteEmployee(employee)} data-testid={`delete-employee-${employee.id}`}><Trash2 className="h-4 w-4 mr-1" /> Delete</Button>

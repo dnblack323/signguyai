@@ -236,10 +236,21 @@ export default function Payroll() {
     } catch { toast.error('Failed to delete'); }
   };
 
-  const handleEditHours = (entry) => {
+  const handleDeleteShift = async (id) => {
+    if (!window.confirm('Delete this time clock shift?')) return;
+    try {
+      await api.delete(`/payroll/timeclock-shifts/${id}`);
+      toast.success('Time clock shift deleted');
+      loadTimeclockShifts();
+      loadTimesheet();
+      loadPayPeriod();
+    } catch { toast.error('Failed to delete shift'); }
+  };
+
+  const handleEditHours = (entry, fallbackEmployeeId = '') => {
     setEditingEntry(entry);
     setHoursForm({
-      employee_id: entry.employee_id,
+      employee_id: entry.employee_id || fallbackEmployeeId || selectedEmployee || '',
       date: entry.date, hours: String(entry.hours),
       description: entry.description || '', job_id: entry.job_id || '',
       task_type: entry.task_type || 'general'
@@ -534,9 +545,20 @@ export default function Payroll() {
                                 <TableCell className="text-right text-green-600">{formatCurrency(entry.pay)}</TableCell>
                                 <TableCell className="text-right">
                                   {canEditPayroll && (
-                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => entry.source === 'time_clock' ? handleEditShift(entry) : handleEditHours(entry)} data-testid={`edit-timesheet-${entry.id}`}>
-                                      <Edit2 className="h-3.5 w-3.5 text-gray-400 hover:text-violet-600" />
-                                    </Button>
+                                    <div className="flex justify-end gap-1">
+                                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => entry.source === 'time_clock' ? handleEditShift(entry) : handleEditHours(entry, emp.employee_id)} data-testid={`edit-timesheet-${entry.id}`}>
+                                        <Edit2 className="h-3.5 w-3.5 text-gray-400 hover:text-violet-600" />
+                                      </Button>
+                                      {entry.source === 'time_clock' ? (
+                                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleDeleteShift(entry.id)} data-testid={`delete-timesheet-${entry.id}`}>
+                                          <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                                        </Button>
+                                      ) : entry.source === 'manual' ? (
+                                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleDeleteHours(entry.id)} data-testid={`delete-timesheet-${entry.id}`}>
+                                          <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                                        </Button>
+                                      ) : null}
+                                    </div>
                                   )}
                                 </TableCell>
                               </TableRow>
@@ -596,9 +618,9 @@ export default function Payroll() {
                               <Button variant="ghost" size="sm" onClick={() => entry.source === 'time_clock' ? handleEditShift(entry) : handleEditHours(entry)} data-testid={`edit-hours-${entry.id}`}>
                                 <Edit2 className="h-3.5 w-3.5" />
                               </Button>
-                              {entry.source !== 'time_clock' && <Button variant="ghost" size="sm" onClick={() => handleDeleteHours(entry.id)} data-testid={`delete-hours-${entry.id}`}>
+                              <Button variant="ghost" size="sm" onClick={() => entry.source === 'time_clock' ? handleDeleteShift(entry.id) : handleDeleteHours(entry.id)} data-testid={`delete-hours-${entry.id}`}>
                                 <Trash2 className="h-3.5 w-3.5 text-red-600" />
-                              </Button>}
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -726,9 +748,10 @@ export default function Payroll() {
           <form onSubmit={handleAddHours} className="space-y-4">
             <div className="space-y-2">
               <Label>Employee *</Label>
-              <Select value={hoursForm.employee_id} onValueChange={(val) => setHoursForm({ ...hoursForm, employee_id: val })} disabled={!!editingEntry}>
+              <Select value={hoursForm.employee_id || 'unselected'} onValueChange={(val) => setHoursForm({ ...hoursForm, employee_id: val === 'unselected' ? '' : val })} disabled={!!editingEntry && !!hoursForm.employee_id}>
                 <SelectTrigger data-testid="hours-employee-select"><SelectValue placeholder="Select employee" /></SelectTrigger>
                 <SelectContent>
+                  {!hoursForm.employee_id && <SelectItem value="unselected">Select employee</SelectItem>}
                   {employees.map((emp) => (
                     <SelectItem key={emp.id} value={emp.id}>{emp.name} ({formatCurrency(emp.hourly_rate)}/hr)</SelectItem>
                   ))}
