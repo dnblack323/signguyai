@@ -19,6 +19,36 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
+### Session: April 1, 2026 (Code Review Remediation Pass)
+- **Critical Review Fixes (DONE):**
+  - Removed the `server.py ↔ routes/tiers.py` circular-import dependency by moving tier route access to `request.app.state` instead of importing from `server`
+  - Fixed real backend runtime/lint issues found in the review pass across:
+    - `routes/billing.py`
+    - `routes/webstores.py`
+    - `services/multi_product_billing.py`
+    - `routes/job_tickets.py`
+  - Fixed mutable default argument in job ticket pricing endpoint
+  - Replaced dynamic `__import__("uuid")` usage with static `uuid` imports in billing service
+  - Replaced bare `except` blocks in touched backend files with explicit exception handling
+- **React Reliability Fixes (DONE):**
+  - Added targeted `useCallback` / dependency-array fixes for priority pages from the review:
+    - Production Settings
+    - Digest Settings
+    - Webstores
+    - TimeClock
+    - Quotes
+    - PricingPlansV2
+    - BackupRestore
+  - Replaced unstable array-index keys in the touched high-risk Production Settings / Digest Settings lists
+  - Replaced empty catch blocks in touched React pages with explicit logging
+- **Intentionally deferred to later hardening pass (per approved scope):**
+  - broad localStorage security sweep
+  - large test-secret cleanup across all test files
+  - broad complexity decomposition outside touched files
+- **Testing:**
+  - Self-tested tier, billing, user, and page-load smoke paths
+  - Testing agent iteration_85 passed backend 15/15 and frontend 7/7 pages loaded successfully
+
 ### Session: April 1, 2026 (Employee/User Bug Fixes + Portal Invite)
 - **Timesheet Manual Entry Fixes (DONE):**
   - Fixed manual time-entry editing from the Time Sheets tab
