@@ -1,10 +1,82 @@
 # SignGuy AI - Complete Feature Catalog
-**Updated: March 18, 2026**
+**Updated: April 1, 2026**
 **Version: Current Build**
 
 ---
 
 # A) APP FEATURE CATALOG (IMPLEMENTED)
+
+## RECENT FEATURE ADDITIONS (APRIL 2026)
+
+These items were added after the earlier March 2026 catalog and are now part of the current build.
+
+### Unified Productivity System
+- Productivity rebuilt so **Calendar, Kanban Board, Task List, and Productivity Dashboard** use the same underlying productivity data/query layer
+- Unified productivity endpoints:
+  - `/api/productivity/items`
+  - `/api/productivity/summary`
+  - `/api/productivity/calendar-range`
+  - `/api/productivity/board`
+- Calendar upgraded to:
+  - Month default view
+  - Week view
+  - Day view
+  - readable day cells with multiple visible items
+  - click-through day detail modal
+- Kanban drag/drop persistence writes back to source records for supported item types
+- Task List supports inline edits for supported item types (status, due date, assignee, priority, complete/reopen)
+- Dashboard schedule/pending-approval widgets now use unified productivity queries
+
+### Signatures, Drawings & Markup
+- Feature-toggle controlled signature system in Company Settings
+- Internal signature capture modal
+- Customer review-and-sign links
+- Record-specific signature tracking for:
+  - orders
+  - quotes
+  - invoices
+  - work orders
+  - proofs
+  - change approvals
+  - pickup / delivery / install confirmation flows
+- Order-level drawings
+- Item-level drawings
+- Uploaded image markup mode
+- Drawing pad upgrades:
+  - undo
+  - pen size selector
+  - color picker
+  - autosave draft behavior
+
+### Order Workflow Enhancements
+- Work orders generated from orders and shown in Financial tab
+- Ticket-level workflow shortcuts:
+  - assign employee
+  - add to schedule
+  - create task
+- Live estimate values sync into saved ticket pricing
+- Apparel size breakdown auto-drives ticket quantity
+- Vehicle wrap pricing/category mapping fixes
+
+### Time Clock / Payroll / Employee Management Enhancements
+- Normalized saved `timeclock_shifts` layer added on top of raw punch logs
+- Historical timeclock backfill from older raw logs
+- Payroll/timesheets now combine:
+  - time clock shifts
+  - manual payroll hours
+  - job timer entries
+  - payroll transactions
+- Admin editing added for:
+  - manual hours
+  - saved timeclock shifts
+  - payroll transactions
+- Employee admin lifecycle improvements:
+  - edit employee
+  - deactivate/reactivate
+  - reset PIN
+  - delete employee
+- Employee Portal invite flow with PIN/login details
+- Employee portal permission gating by tenant settings
 
 ---
 
@@ -164,6 +236,9 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 - Prevents duplicate active timers per employee per job
 - Kiosk mode (simplified clock-in interface)
 - Auto-suggest time entry on order status change (configurable)
+- Normalized saved `timeclock_shifts` records alongside raw action logs
+- Historical shift backfill from previous punch history
+- Admin editing of saved timeclock shifts from payroll views
 
 **Data:** `timelogs`, `job_time_entries`
 
@@ -196,17 +271,20 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 - Per-job allocation (optional job assignment)
 - Task type categorization (general, design, production, installation, admin)
 - Automatic gross pay calculation (hours x hourly rate)
+- Time clock shifts shown in combined time-entry views
+- Admin can edit/delete saved timeclock shifts from payroll screens
 
 **Transactions Tab:**
 - Earnings, Advances, Payments ledger
 - Employee filter
 - Add Transaction dialog (type, amount, date, description)
 - Balance formula: Earnings - Advances - Payments
+- Edit/Delete transactions (admin-level)
 
 **Overtime Calculation:**
 - Automatic 1.5x overtime for hours over 40/week (or 80/biweekly)
 
-**Data:** `payroll_transactions`, `payroll_hours`, `employees`, `job_time_entries`
+**Data:** `payroll_transactions`, `payroll_hours`, `employees`, `job_time_entries`, `timeclock_shifts`
 
 **API Endpoints:** `/api/payroll/hours` (CRUD), `/api/payroll/timesheet`, `/api/payroll/pay-period`, `/api/payroll/transactions`, `/api/payroll/balance/{id}`, `/api/payroll/report`
 
@@ -228,6 +306,9 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 - Profile image upload
 - Employee Portal permissions configuration (Tasks, Schedule, Pay Stubs, Time Clock, Edit Profile)
 - Sensitive info toggles (Order Details, Customer Info, Pricing - all OFF by default)
+- Employee Portal invite action with login URL + PIN
+- Admin lifecycle actions: edit, deactivate/reactivate, reset PIN, delete employee
+- Tenant-scoped employee/user management fixes
 
 **Data:** `employees`
 
@@ -240,10 +321,40 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 **Where it lives:** `/productivity`
 
 **Sub-features:**
-- Daily productivity summary
-- Orders completed tracking
-- Time logged summary
-- Employee productivity comparison
+- Unified productivity record/query layer
+- Productivity Dashboard
+- Calendar (Month / Week / Day)
+- Task List
+- Kanban Board
+- Shared filters across views
+- Shared day detail modal
+- Cross-view synchronization from one data source
+- Write-back status persistence for supported item types
+- Employee schedule integration
+- Production task integration
+
+**Status:** WORKING
+
+---
+
+## 9A. SIGNATURES, DRAWINGS & MARKUP
+
+**Where it lives:** Order detail, job ticket detail, approvals, documents, customer signing pages
+
+**Who can access it:** Feature-toggle controlled for signatures; drawings available in order/item workflows
+
+**Sub-features:**
+- Structured signature records tied to the exact signed record
+- Customer review-before-sign flow
+- Email signature request links
+- Internal signature capture
+- Signature history visible at order level
+- Order-level sketch/drawing storage
+- Item-level sketch/drawing storage
+- Uploaded image markup workflow
+- Drawing preview, delete, and draft resume behavior
+
+**Data:** `signatures`, `order_drawings`, object storage image assets
 
 **Status:** WORKING
 
