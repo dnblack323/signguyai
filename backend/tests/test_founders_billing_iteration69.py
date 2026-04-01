@@ -110,8 +110,8 @@ class TestFoundersPlanEndpoint:
         
         # Verify credit settings
         assert plan.get("ai_credits_monthly") == 150, f"Expected 150 credits, got {plan.get('ai_credits_monthly')}"
-        assert plan.get("monthly_credit_rollover") == False, "Monthly credits should NOT rollover"
-        assert plan.get("purchased_credit_rollover") == True, "Purchased credits SHOULD rollover"
+        assert not plan.get("monthly_credit_rollover"), "Monthly credits should NOT rollover"
+        assert plan.get("purchased_credit_rollover"), "Purchased credits SHOULD rollover"
         print(f"PASS: Credit allowance verified - {plan['ai_credits_monthly']}/month, purchased rollover: {plan['purchased_credit_rollover']}")
 
     def test_founders_plan_has_spots_info(self, auth_token):
@@ -200,7 +200,7 @@ class TestFoundersCheckoutEndpoint:
         data = response.json()
         
         assert "checkout_url" in data, "Missing checkout_url"
-        assert data["checkout_url"].startswith("https://checkout.stripe.com"), f"Invalid Stripe URL"
+        assert data["checkout_url"].startswith("https://checkout.stripe.com"), "Invalid Stripe URL"
         print(f"PASS: Annual checkout URL generated - {data['checkout_url'][:60]}...")
 
     def test_checkout_requires_auth(self):
@@ -234,7 +234,7 @@ class TestFoundersCreditPurchaseEndpoint:
         
         assert "checkout_url" in data, "Missing checkout_url"
         assert data["checkout_url"].startswith("https://checkout.stripe.com")
-        print(f"PASS: pack_small checkout URL generated")
+        print("PASS: pack_small checkout URL generated")
 
     def test_purchase_medium_pack_generates_url(self, auth_token):
         """Verify pack_medium (300/$25) checkout works"""
@@ -250,7 +250,7 @@ class TestFoundersCreditPurchaseEndpoint:
         data = response.json()
         
         assert "checkout_url" in data
-        print(f"PASS: pack_medium checkout URL generated")
+        print("PASS: pack_medium checkout URL generated")
 
     def test_purchase_large_pack_generates_url(self, auth_token):
         """Verify pack_large (1000/$60) checkout works"""
@@ -266,7 +266,7 @@ class TestFoundersCreditPurchaseEndpoint:
         data = response.json()
         
         assert "checkout_url" in data
-        print(f"PASS: pack_large checkout URL generated")
+        print("PASS: pack_large checkout URL generated")
 
     def test_purchase_invalid_pack_fails(self, auth_token):
         """Verify invalid pack_id is rejected"""
@@ -348,8 +348,8 @@ class TestFoundersCreditsEndpoint:
         
         # Verify values
         assert data["monthly_allowance"] == 150
-        assert data["monthly_rollover"] == False
-        assert data["purchased_rollover"] == True
+        assert not data["monthly_rollover"]
+        assert data["purchased_rollover"]
         assert data["total_available"] == data["monthly_credits"] + data["purchased_credits"]
         print(f"PASS: Credits - {data['total_available']} total ({data['monthly_credits']} monthly, {data['purchased_credits']} purchased)")
 
@@ -389,7 +389,7 @@ class TestOldTierEndpointsBehavior:
                 # Founders Edition is the only active plan
                 # Old tiers should not be prominently displayed
                 print(f"INFO: Found plan in /pricing: {plan_id}")
-        print(f"PASS: Checked /billing/pricing endpoint")
+        print("PASS: Checked /billing/pricing endpoint")
 
 
 class TestFeatureGatingForFounders:
@@ -407,8 +407,8 @@ class TestFeatureGatingForFounders:
         data = response.json()
         
         # Founders should have access
-        assert data.get("allowed") == True, f"Founders should have feature access, got: {data}"
-        print(f"PASS: Feature gating - founders have ai_tools access")
+        assert data.get("allowed"), f"Founders should have feature access, got: {data}"
+        print("PASS: Feature gating - founders have ai_tools access")
 
 
 # Run tests

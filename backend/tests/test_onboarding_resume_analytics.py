@@ -173,7 +173,7 @@ class TestOnboardingSessionPersistence:
         assert data.get("current_tier") == "standard_setup"
         assert data.get("current_step_id") == "standard_historical_invoices"
         
-        print(f"✓ Session updated to standard_setup tier")
+        print("✓ Session updated to standard_setup tier")
 
     def test_session_tracks_last_activity(self, api_client):
         """Verify last_opened_at is updated on session save"""
@@ -187,7 +187,7 @@ class TestOnboardingSessionPersistence:
         
         response1 = api_client.put(f"{BASE_URL}/api/onboarding/session", json=payload)
         assert response1.status_code == 200
-        timestamp1 = response1.json().get("last_opened_at")
+        _timestamp1 = response1.json().get("last_opened_at")
         
         # Wait briefly
         time.sleep(0.5)
@@ -207,7 +207,7 @@ class TestOnboardingStepStatus:
 
     def test_mark_step_completed(self, api_client):
         """Test marking a step as completed"""
-        step_id = f"quick_portal_test"  # Manual step
+        step_id = "quick_portal_test"  # Manual step
         
         response = api_client.put(
             f"{BASE_URL}/api/onboarding/steps/{step_id}",
@@ -360,7 +360,7 @@ class TestCustomerPortalInvite:
             assert len(data["temporary_pin"]) == 6, "PIN should be 6 digits"
             assert data["temporary_pin"].isdigit(), "PIN should be numeric"
             
-            print(f"✓ Portal invite returned 6-digit PIN")
+            print("✓ Portal invite returned 6-digit PIN")
         finally:
             # Cleanup
             api_client.delete(f"{BASE_URL}/api/customers/{customer_id}")

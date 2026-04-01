@@ -3,9 +3,9 @@ import { Coins, AlertTriangle, Zap } from 'lucide-react';
 import { Progress } from '../ui/progress';
 import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
+import { getAuthToken } from '../../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
-const getAuthToken = () => localStorage.getItem('auth_token');
 
 export const CreditMeter = ({ 
   variant = 'default', // 'default' | 'compact' | 'dashboard'

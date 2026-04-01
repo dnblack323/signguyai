@@ -75,7 +75,7 @@ class TestJobTimeTrackingStart(TestAuth):
         # Verify response structure
         assert "id" in data, "Response missing 'id'"
         assert data["job_id"] == TEST_JOB_ID, "Wrong job_id in response"
-        assert data["is_active"] == True, "Timer should be active"
+        assert data["is_active"], "Timer should be active"
         assert data["task_type"] == "production", "Wrong task_type"
         assert "start_time" in data, "Response missing 'start_time'"
         
@@ -151,7 +151,7 @@ class TestJobTimeTrackingStop(TestAuth):
         data = response.json()
         
         # Verify response
-        assert data["is_active"] == False, "Timer should be inactive after stop"
+        assert not data["is_active"], "Timer should be inactive after stop"
         assert "end_time" in data and data["end_time"], "Should have end_time"
         assert "duration_minutes" in data, "Should have duration_minutes"
         

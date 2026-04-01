@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { useSignatureFeature } from '../hooks/useSignatureFeature';
+import { getAuthToken } from '../lib/authStorage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -13,7 +14,7 @@ export const SignatureActivityList = ({ orderId }) => {
   useEffect(() => {
     if (!enabled || !orderId) return;
     axios.get(`${API}/signatures`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
+      headers: { Authorization: `Bearer ${getAuthToken()}` },
       params: { order_id: orderId },
     }).then((response) => setSignatures(response.data || [])).catch(() => setSignatures([]));
   }, [enabled, orderId]);

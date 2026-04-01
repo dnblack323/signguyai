@@ -16,6 +16,7 @@ import { FoundersBadge, CreditMeter } from '../components/founders';
 import { CreditPurchaseModal } from '../components/credits/CreditBalance';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { getAuthToken } from '../lib/authStorage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -403,7 +404,7 @@ const ScheduleWidget = ({ schedule }) => {
 const RecentAIDocumentsWidget = ({ documents }) => {
   const handleDownload = async (doc) => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await axios.get(`${API}/documents/${doc.id}/download`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -433,7 +434,7 @@ const RecentAIDocumentsWidget = ({ documents }) => {
 
   const handleView = async (doc) => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await axios.get(`${API}/documents/${doc.id}/download`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -621,7 +622,7 @@ export default function Dashboard() {
   const handleSendDigest = async () => {
     setSendingDigest(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await axios.post(`${API}/digest/send`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -635,7 +636,7 @@ export default function Dashboard() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const headers = { Authorization: `Bearer ${token}` };
       
       try {

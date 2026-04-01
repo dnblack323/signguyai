@@ -34,6 +34,7 @@ import { Plus, Edit2, CheckCircle, AlertTriangle, Eye, CreditCard, Send, Search 
 import { toast } from 'sonner';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
 import axios from 'axios';
+import { getAuthToken } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 const statusOptions = ['draft', 'sent', 'paid', 'overdue'];
@@ -169,7 +170,7 @@ export default function Invoices() {
 
   const handleCreatePaymentLink = async (invoiceId) => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const response = await axios.post(
         `${API_URL}/api/stripe-connect/invoice/${invoiceId}/pay`,
         null,

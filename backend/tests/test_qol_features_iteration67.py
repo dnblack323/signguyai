@@ -231,7 +231,7 @@ class TestCustomerPortalInvite:
             
             assert invite_response.status_code == 200, f"Portal invite failed: {invite_response.text}"
             data = invite_response.json()
-            assert data.get("portal_enabled") == True
+            assert data.get("portal_enabled")
             assert "temporary_pin" in data
             print(f"PASS: Portal invite succeeded, PIN: {data.get('temporary_pin')}")
         finally:

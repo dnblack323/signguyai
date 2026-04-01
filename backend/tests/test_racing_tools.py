@@ -355,7 +355,7 @@ class TestRacingToolsBackend:
             assert len(data["images"]) >= 1
             first_image = data["images"][0]
             assert first_image.startswith("data:image/")
-            print(f"✓ Race Number Designer image generation successful")
+            print("✓ Race Number Designer image generation successful")
         else:
             print("✓ Image generation feature gating working correctly")
     
@@ -386,7 +386,7 @@ class TestRacingToolsBackend:
             data = response.json()
             assert "images" in data
             assert len(data["images"]) >= 1
-            print(f"✓ Driver Name Plate image generation successful")
+            print("✓ Driver Name Plate image generation successful")
         else:
             print("✓ Image generation feature gating working correctly")
     
@@ -417,7 +417,7 @@ class TestRacingToolsBackend:
             data = response.json()
             assert "images" in data
             assert len(data["images"]) >= 1
-            print(f"✓ Race Team Branding image generation successful")
+            print("✓ Race Team Branding image generation successful")
         else:
             print("✓ Image generation feature gating working correctly")
 

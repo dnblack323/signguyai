@@ -370,7 +370,7 @@ class TestJobTicketCreation:
         
         ticket = response.json()
         assert ticket["item_category"] == "vehicle_wrap"
-        print(f"PASSED: test_create_vehicle_wrap_ticket")
+        print("PASSED: test_create_vehicle_wrap_ticket")
         
         # Cleanup
         api_client.delete(f"{BASE_URL}/api/job-tickets/{ticket['id']}")
@@ -578,7 +578,7 @@ class TestTicketShortcuts:
     def test_create_task_from_ticket(self, api_client, shortcut_order):
         """Test creating a task from ticket context"""
         task_data = {
-            "title": f"TEST_Task_from_ticket",
+            "title": "TEST_Task_from_ticket",
             "description": f"Follow up on ticket {shortcut_order['ticket_id']}",
             "due_date": (datetime.now() + timedelta(days=3)).strftime("%Y-%m-%d")
         }
@@ -606,7 +606,7 @@ class TestOrderTotals:
         order_id = order["id"]
         
         # Add ticket with price
-        ticket1 = api_client.post(f"{BASE_URL}/api/job-tickets", json={
+        _ticket1 = api_client.post(f"{BASE_URL}/api/job-tickets", json={
             "order_id": order_id,
             "item_name": "TEST_Item_1",
             "item_category": "banners",
@@ -619,7 +619,7 @@ class TestOrderTotals:
         assert order_detail.get("order_total", 0) >= 100.00 or len(order_detail.get("job_tickets", [])) == 1
         
         # Add another ticket
-        ticket2 = api_client.post(f"{BASE_URL}/api/job-tickets", json={
+        _ticket2 = api_client.post(f"{BASE_URL}/api/job-tickets", json={
             "order_id": order_id,
             "item_name": "TEST_Item_2",
             "item_category": "rigid_signs",

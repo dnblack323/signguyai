@@ -12,6 +12,7 @@ import {
   AlertCircle, CheckCircle, Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getPortalToken } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -25,7 +26,7 @@ export function PortalMessages() {
   const customerName = localStorage.getItem('portal_customer_name') || 'Customer';
 
   const fetchConversations = useCallback(async () => {
-    const token = localStorage.getItem('portal_token');
+    const token = getPortalToken();
     if (!token) {
       navigate('/customer-portal/login');
       return;
@@ -59,7 +60,7 @@ export function PortalMessages() {
       return;
     }
 
-    const token = localStorage.getItem('portal_token');
+    const token = getPortalToken();
     setCreating(true);
 
     try {
@@ -248,7 +249,7 @@ export function PortalConversation() {
   const customerName = localStorage.getItem('portal_customer_name') || 'Customer';
 
   const fetchMessages = useCallback(async () => {
-    const token = localStorage.getItem('portal_token');
+    const token = getPortalToken();
     if (!token) {
       navigate('/customer-portal/login');
       return;
@@ -284,7 +285,7 @@ export function PortalConversation() {
   const handleSendMessage = async () => {
     if (!newMessage.trim() || conversation?.is_closed) return;
 
-    const token = localStorage.getItem('portal_token');
+    const token = getPortalToken();
     setSending(true);
 
     try {

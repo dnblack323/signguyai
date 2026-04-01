@@ -10,6 +10,7 @@ import {
   ChevronRight, AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getEmployeePortalToken } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -130,7 +131,7 @@ export default function EmployeePortalDashboard() {
   const [portalConfig, setPortalConfig] = useState(null);
   
   const employeeName = localStorage.getItem('employee_name') || 'Employee';
-  const token = localStorage.getItem('employee_token');
+  const token = getEmployeePortalToken();
 
   useEffect(() => {
     if (!token) {

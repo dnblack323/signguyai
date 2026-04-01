@@ -43,6 +43,7 @@ import {
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { getAuthToken } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -228,7 +229,7 @@ export default function Customers() {
     }
     setInvitingPortal(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await axios.post(`${API_URL}/api/customers/${customer.id}/invite-portal`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });

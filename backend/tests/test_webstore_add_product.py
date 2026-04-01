@@ -15,6 +15,7 @@ import pytest
 import requests
 import os
 from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
+from backend.tests.test_credentials_helper import COMMON_TEST_EMAIL, COMMON_TEST_PASSWORD
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
@@ -133,7 +134,7 @@ class TestWebstoreAddProduct:
         product_in_store = next((p for p in products if p["id"] == product_id), None)
         assert product_in_store is not None
         assert product_in_store.get("price_override") == 45.00 or product_in_store.get("effective_price") == 45.00
-        print(f"PASS: Product verified in webstore with correct price")
+        print("PASS: Product verified in webstore with correct price")
     
     def test_update_existing_product_assignment(self, auth_headers, test_webstore, test_product):
         """Test updating an existing product assignment (re-adding updates price)"""

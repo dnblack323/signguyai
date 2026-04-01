@@ -298,12 +298,12 @@ class TestPricingSetup:
             if cat_key in benchmarks:
                 benchmark = benchmarks[cat_key]
                 # Benchmarks should NOT have cost-related fields
-                assert "default_labor_hours_per_sqft" not in benchmark, f"Benchmark should not have cost field"
+                assert "default_labor_hours_per_sqft" not in benchmark, "Benchmark should not have cost field"
                 # Benchmarks should have selling-price fields
                 # (may have average_sell_price_per_sqft or average_sell_price_per_unit depending on category)
             
             if cat_key in category_defaults:
-                cost_settings = category_defaults[cat_key]
+                _cost_settings = category_defaults[cat_key]
                 # Cost settings should have labor/markup fields
                 # (specific fields depend on category type)
         
@@ -337,7 +337,7 @@ class TestPricingSetup:
         )
         assert fake_response.status_code == 404, "Fake import ID should return 404"
         
-        print(f"[PASS] Tenant isolation verified - can access own imports, 404 for non-existent")
+        print("[PASS] Tenant isolation verified - can access own imports, 404 for non-existent")
     
     # ===================== NO REGRESSION ON PRICING SETTINGS =====================
     
@@ -390,7 +390,7 @@ class TestPricingSetup:
         assert "selling_price" in calc_data
         assert "total_cost" in calc_data
         
-        print(f"[PASS] No regression - pricing settings and calculator still working")
+        print("[PASS] No regression - pricing settings and calculator still working")
     
     # ===================== CONFIDENCE LEVELS CHECK =====================
     
@@ -443,7 +443,7 @@ class TestPricingSetup:
         
         # Get a description to override
         test_description = normalized_rows[0].get("description", "")
-        original_category = normalized_rows[0].get("category_final", "")
+        _original_category = normalized_rows[0].get("category_final", "")
         
         # Update mapping with category override
         mapping_payload = {
@@ -475,10 +475,10 @@ class TestPricingSetup:
                 break
         
         if overridden_row:
-            assert overridden_row.get("category_final") == "services", f"Category override not applied"
+            assert overridden_row.get("category_final") == "services", "Category override not applied"
             print(f"[PASS] Category override applied: '{test_description[:30]}...' -> services")
         else:
-            print(f"[WARN] Could not verify category override - row not found")
+            print("[WARN] Could not verify category override - row not found")
     
     # ===================== XLSX UPLOAD TEST (if available) =====================
     
@@ -509,7 +509,7 @@ class TestPricingSetup:
         # May succeed or fail depending on pandas XLSX parsing of CSV content
         # We're mainly testing the endpoint accepts xlsx mime type
         if response.status_code == 200:
-            print(f"[PASS] XLSX upload accepted")
+            print("[PASS] XLSX upload accepted")
         else:
             print(f"[INFO] XLSX upload returned {response.status_code} - may need real XLSX content")
     
@@ -545,7 +545,7 @@ class TestPricingSetup:
         response = requests.get(f"{BASE_URL}/api/pricing-setup/imports", headers=self.get_headers())
         assert response.status_code == 200, "Admin should have access"
         
-        print(f"[PASS] Admin access to pricing-setup endpoints verified")
+        print("[PASS] Admin access to pricing-setup endpoints verified")
     
     # ===================== CLEANUP =====================
     

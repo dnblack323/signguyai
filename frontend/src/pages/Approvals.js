@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SignatureSection } from '../components/SignatureSection';
+import { getAuthToken } from '../lib/authStorage';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -63,7 +64,7 @@ export default function Approvals() {
 
   const loadData = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       if (!token) {
         setLoading(false);
         return;
@@ -96,7 +97,7 @@ export default function Approvals() {
 
   const loadApprovals = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       if (!token) return;
       
       let url = `${API}/api/approvals`;
@@ -119,7 +120,7 @@ export default function Approvals() {
 
   const loadJobs = async (customerId) => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await fetch(`${API}/api/approvals/jobs/list?customer_id=${customerId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -230,7 +231,7 @@ export default function Approvals() {
     setUploading(true);
     
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       
       // Create the approval with base64 image
       const approvalRes = await fetch(`${API}/api/approvals`, {
@@ -277,7 +278,7 @@ export default function Approvals() {
 
   const handleResend = async (proofId) => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       await fetch(`${API}/api/approvals/${proofId}/resend`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
@@ -292,7 +293,7 @@ export default function Approvals() {
     if (!window.confirm('Are you sure you want to delete this proof?')) return;
     
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       await fetch(`${API}/api/approvals/${proofId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }

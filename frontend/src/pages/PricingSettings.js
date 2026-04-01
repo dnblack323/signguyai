@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth, Permission } from '../context/AuthContext';
+import { getAuthToken } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -137,7 +138,7 @@ export default function PricingSettings() {
   const [hasChanges, setHasChanges] = useState(false);
   const [settings, setSettings] = useState(null);
 
-  const getToken = () => localStorage.getItem('auth_token');
+  const getToken = () => getAuthToken();
 
   const fetchSettings = useCallback(async () => {
     const token = getToken();

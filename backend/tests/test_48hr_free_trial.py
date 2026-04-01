@@ -98,7 +98,7 @@ class TestRegistrationCreatesTrial:
         
         assert "access_token" in data, "Response should have access_token"
         token = data["access_token"]
-        print(f"✓ User registered successfully, got access token")
+        print("✓ User registered successfully, got access token")
         
         # Check trial status immediately after registration
         headers = {"Authorization": f"Bearer {token}"}
@@ -108,10 +108,10 @@ class TestRegistrationCreatesTrial:
         trial_data = trial_response.json()
         
         # Verify trial status
-        assert trial_data.get("is_trial") == True, f"Expected is_trial=True, got {trial_data.get('is_trial')}"
+        assert trial_data.get("is_trial"), f"Expected is_trial=True, got {trial_data.get('is_trial')}"
         assert trial_data.get("trial_type") == "free_trial", f"Expected trial_type='free_trial', got {trial_data.get('trial_type')}"
-        assert trial_data.get("is_locked") == False, f"New trial should not be locked"
-        assert trial_data.get("can_upgrade") == True, "Trial should be upgradeable"
+        assert not trial_data.get("is_locked"), "New trial should not be locked"
+        assert trial_data.get("can_upgrade"), "Trial should be upgradeable"
         
         # Verify hours remaining is approximately 48 (within a few minutes tolerance)
         hours_remaining = trial_data.get("hours_remaining", 0)
@@ -155,7 +155,7 @@ class TestTrialStatusAPI:
         for field in required_fields:
             assert field in data, f"Missing required field: {field}"
         
-        print(f"✓ Trial status response has all required fields")
+        print("✓ Trial status response has all required fields")
     
     def test_trial_status_for_new_user(self, auth_token):
         """Test trial status for newly registered user"""
@@ -165,9 +165,9 @@ class TestTrialStatusAPI:
         assert response.status_code == 200
         data = response.json()
         
-        assert data["is_trial"] == True
+        assert data["is_trial"]
         assert data["trial_type"] == "free_trial"
-        assert data["is_locked"] == False
+        assert not data["is_locked"]
         
         # Should have hours_remaining close to 48
         hours = data.get("hours_remaining", 0)
@@ -243,7 +243,7 @@ class TestSampleDataCreation:
             if len(sample_customers) > 0:
                 print(f"✓ Sample customers created: {len(sample_customers)} sample customers found")
             else:
-                print(f"ℹ No sample customers found (may be in different format)")
+                print("ℹ No sample customers found (may be in different format)")
         else:
             print(f"ℹ Could not fetch customers (status={response.status_code})")
     

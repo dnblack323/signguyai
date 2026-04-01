@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AIEmailComposer from './AIEmailComposer';
+import { getAuthToken } from '../lib/authStorage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -36,7 +37,7 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
     setLoading(true);
     try {
       const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await fetch(`${API}/invoices/${invoiceId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -95,7 +96,7 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
     if (!invoice) return;
     setSendingToPortal(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await fetch(`${API}/invoices/${invoice.id}/send-to-portal`, {
         method: 'POST',
         headers: {

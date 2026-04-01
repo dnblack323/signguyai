@@ -53,7 +53,7 @@ class TestOnboardingSystem:
         assert isinstance(step_statuses, dict), "step_statuses should be a dictionary"
         
         # Check for expected Quick Start step IDs
-        quick_start_steps = [
+        _quick_start_steps = [
             "quick_company_profile", "quick_stripe_connect", "quick_production_workflow",
             "quick_first_employee", "quick_basic_pricing", "quick_customer_portal",
             "quick_first_job", "quick_portal_test"
@@ -183,7 +183,7 @@ class TestPortalInvite:
         assert "temporary_pin" in data, "Response should contain temporary_pin"
         
         # Verify values
-        assert data["portal_enabled"] == True, "Portal should be enabled"
+        assert data["portal_enabled"], "Portal should be enabled"
         assert len(data["temporary_pin"]) == 6, f"Temporary PIN should be 6 digits, got: {data['temporary_pin']}"
         assert data["temporary_pin"].isdigit(), "Temporary PIN should be numeric"
         
@@ -234,7 +234,7 @@ class TestPortalInvite:
         assert response.status_code == 200, f"Failed to get customer: {response.text}"
         
         customer = response.json()
-        assert customer.get("portal_enabled") == True, "Customer should have portal_enabled=True after invite"
+        assert customer.get("portal_enabled"), "Customer should have portal_enabled=True after invite"
         # Note: portal_invited_at is stored in DB but not exposed in Customer model response
         print(f"Customer portal_enabled verified: {customer.get('portal_enabled')}")
 

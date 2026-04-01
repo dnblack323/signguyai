@@ -15,6 +15,7 @@ import requests
 import os
 import uuid
 from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
+from backend.tests.test_credentials_helper import COMMON_TEST_EMAIL, COMMON_TEST_PASSWORD
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
@@ -84,7 +85,7 @@ class TestAIAssistantContextAwareness:
         for phrase in generic_phrases:
             assert phrase not in response_text.lower(), f"Response should not contain generic phrase: '{phrase}'"
         
-        print(f"✅ AI Assistant returned context-aware response with revenue data")
+        print("✅ AI Assistant returned context-aware response with revenue data")
         print(f"   First 200 chars: {response_text[:200]}...")
 
     def test_ai_assistant_jobs_question(self, auth_headers):
@@ -110,7 +111,7 @@ class TestAIAssistantContextAwareness:
         assert any(kw in response_text.lower() for kw in ["job", "active", "total"]), \
             "Response should mention job-related terms"
         
-        print(f"✅ AI Assistant returned context-aware job data")
+        print("✅ AI Assistant returned context-aware job data")
 
     def test_ai_assistant_customer_question(self, auth_headers):
         """AI Assistant should return actual customer statistics"""
@@ -135,7 +136,7 @@ class TestAIAssistantContextAwareness:
         assert any(kw in response_text.lower() for kw in ["customer", "total"]), \
             "Response should mention customer-related terms"
         
-        print(f"✅ AI Assistant returned context-aware customer data")
+        print("✅ AI Assistant returned context-aware customer data")
 
 
 class TestDocumentComposer:

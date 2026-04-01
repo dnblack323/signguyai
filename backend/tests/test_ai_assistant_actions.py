@@ -163,7 +163,7 @@ class TestCreateJob:
         response = await actions.execute_action(user, request, confirmed=False)
         
         assert response.status == ActionStatus.EXECUTED
-        assert response.confirmation_required == False
+        assert not response.confirmation_required
 
 
 class TestUpdateJobStatus:
@@ -195,7 +195,7 @@ class TestUpdateJobStatus:
         response = await actions.execute_action(user, request, confirmed=False)
         
         assert response.status == ActionStatus.PENDING_CONFIRMATION
-        assert response.confirmation_required == True
+        assert response.confirmation_required
         assert "completed" in response.confirmation_message
     
     @pytest.mark.asyncio

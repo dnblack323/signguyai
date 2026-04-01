@@ -258,7 +258,7 @@ class TestPayrollAdminOnlyMutations:
         final_balance = self.session.get(f"{BASE_URL}/api/payroll/balance/{employee_id}").json()
         assert abs(final_balance.get("total_advances", 0) - initial_advances) < 0.01, "Advances should return to original"
         
-        print(f"PASS: Payroll rollups stay correct after transaction changes")
+        print("PASS: Payroll rollups stay correct after transaction changes")
     
     # ============== TIMESHEET INCLUDES TIMECLOCK ENTRIES ==============
     
@@ -423,7 +423,7 @@ class TestScheduleEndpoint:
             "notes": "TEST_iter82_schedule"
         })
         assert response.status_code == 200, f"Failed to save schedule: {response.text}"
-        print(f"PASS: Admin saved schedule entry")
+        print("PASS: Admin saved schedule entry")
 
 
 class TestCleanupVerification:
@@ -455,7 +455,7 @@ class TestCleanupVerification:
             try:
                 self.session.delete(f"{BASE_URL}/api/payroll/transactions/{txn['id']}")
                 deleted_count += 1
-            except:
+            except Exception:
                 pass
         
         print(f"PASS: Cleaned up {deleted_count} test transactions")
@@ -477,7 +477,7 @@ class TestCleanupVerification:
             try:
                 self.session.delete(f"{BASE_URL}/api/payroll/hours/{entry['id']}")
                 deleted_count += 1
-            except:
+            except Exception:
                 pass
         
         print(f"PASS: Cleaned up {deleted_count} test manual hours entries")

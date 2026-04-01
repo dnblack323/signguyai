@@ -178,7 +178,7 @@ class TestFoundersEdition(TestBillingAuth):
         
         assert response.status_code == 200
         data = response.json()
-        assert data.get("valid") == False, "Invalid promo should be rejected"
+        assert not data.get("valid"), "Invalid promo should be rejected"
         print(f"Invalid promo correctly rejected: {data.get('reason')}")
 
 

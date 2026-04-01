@@ -286,7 +286,7 @@ class TestTimeclockPayrollIntegration:
             assert "advances" in emp, "Employee should have advances"
             assert "payments_made" in emp, "Employee should have payments_made"
             assert "net_owed" in emp, "Employee should have net_owed"
-            print(f"PASS: Employee data structure verified")
+            print("PASS: Employee data structure verified")
     
     # ============== PAYROLL TIMESHEET ==============
     
@@ -562,7 +562,7 @@ class TestAICreditConfirmation:
         data = response.json()
         
         assert "monthly_credits" in data or "total_credits" in data, "Should have credits info"
-        print(f"PASS: AI credits balance retrieved")
+        print("PASS: AI credits balance retrieved")
 
 
 if __name__ == "__main__":

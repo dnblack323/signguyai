@@ -534,5 +534,5 @@ def cleanup(auth_headers, created_questionnaire_ids):
                     f"{BASE_URL}/api/questionnaires/{q_id}",
                     headers=auth_headers
                 )
-            except:
+            except Exception:
                 pass

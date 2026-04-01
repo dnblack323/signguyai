@@ -43,7 +43,7 @@ class TestAuthentication:
         assert "access_token" in data, "No access_token in response"
         assert "token_type" in data, "No token_type in response"
         assert data["token_type"] == "bearer"
-        print(f"Login successful - token obtained")
+        print("Login successful - token obtained")
     
     def test_login_invalid_credentials(self):
         """Test login with invalid credentials"""
@@ -65,7 +65,7 @@ def auth_token():
     )
     if response.status_code == 200:
         token = response.json().get("access_token")
-        print(f"Auth token obtained successfully")
+        print("Auth token obtained successfully")
         return token
     pytest.skip("Authentication failed - skipping authenticated tests")
 

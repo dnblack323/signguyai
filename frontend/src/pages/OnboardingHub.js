@@ -11,6 +11,7 @@ import { Separator } from '../components/ui/separator';
 import { ArrowLeft, ArrowRight, CheckCircle2, Clock3, PlayCircle, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApp } from '../context/AppContext';
+import { getAuthToken } from '../lib/authStorage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -99,7 +100,7 @@ export default function OnboardingHub() {
   const loadProgram = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await fetch(`${API}/onboarding/status`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       setProgram(data);
@@ -139,7 +140,7 @@ export default function OnboardingHub() {
   useEffect(() => {
     const saveSession = async () => {
       if (!selectedTierId || !selectedTier?.steps?.[currentStepIndex]) return;
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       await fetch(`${API}/onboarding/session`, {
         method: 'PUT',
         headers: {
@@ -160,7 +161,7 @@ export default function OnboardingHub() {
   const selectedTierCompleteCount = selectedTier.steps.filter((step) => getStepStatus(step.id) === 'completed').length;
 
   const updateStepStatus = async (stepId, status) => {
-    const token = localStorage.getItem('auth_token');
+    const token = getAuthToken();
     await fetch(`${API}/onboarding/steps/${stepId}`, {
       method: 'PUT',
       headers: {
@@ -175,7 +176,7 @@ export default function OnboardingHub() {
   const saveWorkflowMode = async () => {
     setSaving(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       await fetch(`${API}/production-timeline/settings`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -209,7 +210,7 @@ export default function OnboardingHub() {
   const saveBasicPricing = async () => {
     setSaving(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       await fetch(`${API}/pricing/defaults`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },

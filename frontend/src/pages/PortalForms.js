@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { AlertCircle, CheckCircle, ChevronLeft, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getPortalToken } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -23,7 +24,7 @@ const statusBadge = {
   completed: 'bg-green-100 text-green-700',
 };
 
-const getToken = () => localStorage.getItem('portal_token');
+const getToken = () => getPortalToken();
 
 export function PortalForms() {
   const navigate = useNavigate();

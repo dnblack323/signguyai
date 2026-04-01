@@ -198,7 +198,7 @@ class TestOwnerPermissions:
         
         # Try to change role (just verify endpoint works, then change back)
         user_id = staff_user.get("id")
-        current_role = staff_user.get("role")
+        _current_role = staff_user.get("role")
         
         # Change to admin
         response = requests.put(

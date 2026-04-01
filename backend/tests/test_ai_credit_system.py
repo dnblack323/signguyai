@@ -109,7 +109,7 @@ class TestCreditPreflight:
         """Preflight should include 'low_balance' in popup_reasons when total credits are low"""
         # Get current balance first
         balance_resp = admin_session.get(f"{BASE_URL}/api/credits/balance")
-        balance_data = balance_resp.json()
+        _balance_data = balance_resp.json()
         
         # Request preflight
         response = admin_session.post(f"{BASE_URL}/api/credits/preflight", json={
@@ -154,7 +154,7 @@ class TestCreditPreflight:
         
         # Verify logic: if monthly < cost, will_use_purchased should be True
         if data["monthly_credits"] < data["credit_cost"] and data["purchased_credits"] > 0:
-            assert data["will_use_purchased"] == True
+            assert data["will_use_purchased"]
             assert "purchased_credits_needed" in data["popup_reasons"]
         
         print(f"Purchase usage check: will_use={data['will_use_purchased']}, monthly_use={data['monthly_credits_to_use']}, purchased_use={data['purchased_credits_to_use']}")
@@ -196,7 +196,7 @@ class TestCreditPreferences:
         assert verify_response.status_code == 200
         
         data = verify_response.json()
-        assert data["hide_ai_credit_popup"] == True
+        assert data["hide_ai_credit_popup"]
         assert data["acknowledged_costs"].get("product_description") == 2
         assert data["acknowledged_costs"].get("ai_business_assistant") == 2
         
@@ -403,7 +403,7 @@ class TestMonthlyVsPurchasedDeduction:
         
         data = response.json()
         monthly = data["monthly_credits"]
-        purchased = data["purchased_credits"]
+        _purchased = data["purchased_credits"]
         cost = data["credit_cost"]
         
         # Check deduction plan

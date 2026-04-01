@@ -11,6 +11,7 @@ import {
   FileImage, FileSpreadsheet, File, ExternalLink, FolderOpen
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getPortalToken } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -147,7 +148,7 @@ export default function PortalDocuments() {
   const [customerName, setCustomerName] = useState('');
 
   const fetchDocuments = useCallback(async () => {
-    const token = localStorage.getItem('portal_token');
+    const token = getPortalToken();
     if (!token) {
       navigate('/customer-portal/login');
       return;
@@ -192,7 +193,7 @@ export default function PortalDocuments() {
       window.open(fileUrl, '_blank');
       
       // Mark as viewed
-      const token = localStorage.getItem('portal_token');
+      const token = getPortalToken();
       try {
         await axios.get(`${API_URL}/api/portal/documents/${doc.id}`, {
           headers: { Authorization: `Bearer ${token}` }

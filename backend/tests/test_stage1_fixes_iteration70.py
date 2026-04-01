@@ -125,7 +125,7 @@ class TestPromoCodeSystem:
             json={"code": ""}
         )
         assert response.status_code == 400, f"Expected 400 for empty code, got {response.status_code}"
-        print(f"✓ Empty promo code returns 400 correctly")
+        print("✓ Empty promo code returns 400 correctly")
     
     def test_apply_promo_invalid_code_returns_404(self, auth_token):
         """POST /api/billing/apply-promo with invalid code returns 404"""
@@ -146,7 +146,7 @@ class TestPromoCodeSystem:
             json={"code": "TESTCODE"}
         )
         assert response.status_code == 401, f"Expected 401 without auth, got {response.status_code}"
-        print(f"✓ Apply promo requires authentication")
+        print("✓ Apply promo requires authentication")
     
     def test_promo_validate_endpoint_works(self):
         """POST /api/promo-codes/validate endpoint works (public)"""
@@ -175,7 +175,7 @@ class TestFoundersBillingEndpoints:
         data = response.json()
         assert "plan" in data, f"Missing 'plan' in response: {data}"
         assert "fees" in data, f"Missing 'fees' in response: {data}"
-        print(f"✓ Founders plan endpoint returns data")
+        print("✓ Founders plan endpoint returns data")
     
     def test_founders_fees_endpoint(self, auth_token):
         """GET /api/billing/founders/fees returns fee structure"""
@@ -195,7 +195,7 @@ class TestFoundersBillingEndpoints:
         assert response.status_code == 200, f"Founders spots failed: {response.status_code}"
         data = response.json()
         assert "remaining" in data or "spots_remaining" in str(data).lower(), f"Missing spots info: {data}"
-        print(f"✓ Founders spots endpoint returns data")
+        print("✓ Founders spots endpoint returns data")
     
     def test_founders_credits_endpoint(self, auth_token):
         """GET /api/billing/founders/credits returns credit balance"""
@@ -207,7 +207,7 @@ class TestFoundersBillingEndpoints:
         data = response.json()
         # Should contain credit balance info
         assert "monthly_credits" in data or "total_available" in data, f"Missing credit info: {data}"
-        print(f"✓ Founders credits endpoint returns balance info")
+        print("✓ Founders credits endpoint returns balance info")
 
 
 class TestTrialStatus:

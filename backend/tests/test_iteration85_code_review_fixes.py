@@ -68,7 +68,7 @@ class TestTiersEndpoints:
         data = response.json()
         # Should return tenant features
         assert isinstance(data, dict)
-        print(f"✓ /api/tiers/my-plan returned tenant features")
+        print("✓ /api/tiers/my-plan returned tenant features")
     
     def test_tiers_usage_authenticated(self, auth_headers):
         """Test /api/tiers/usage - requires auth"""
@@ -80,7 +80,7 @@ class TestTiersEndpoints:
         
         data = response.json()
         assert "usage" in data
-        print(f"✓ /api/tiers/usage returned usage data")
+        print("✓ /api/tiers/usage returned usage data")
 
 
 class TestBillingEndpoints:
@@ -93,7 +93,7 @@ class TestBillingEndpoints:
         
         data = response.json()
         assert "plans" in data
-        print(f"✓ /api/billing/pricing returned pricing data")
+        print("✓ /api/billing/pricing returned pricing data")
     
     def test_billing_founder_status_public(self):
         """Test /api/billing/founder-status - public endpoint"""
@@ -103,7 +103,7 @@ class TestBillingEndpoints:
         data = response.json()
         assert "founders_claimed" in data
         assert "founders_remaining" in data
-        print(f"✓ /api/billing/founder-status returned founder status")
+        print("✓ /api/billing/founder-status returned founder status")
     
     def test_billing_trial_status_authenticated(self, auth_headers):
         """Test /api/billing/trial-status - requires auth"""
@@ -115,7 +115,7 @@ class TestBillingEndpoints:
         
         data = response.json()
         assert "is_trial" in data or "is_locked" in data
-        print(f"✓ /api/billing/trial-status returned trial status")
+        print("✓ /api/billing/trial-status returned trial status")
     
     def test_billing_subscription_authenticated(self, auth_headers):
         """Test /api/billing/subscription - requires auth"""
@@ -127,7 +127,7 @@ class TestBillingEndpoints:
         
         data = response.json()
         assert "plan" in data or "status" in data
-        print(f"✓ /api/billing/subscription returned subscription data")
+        print("✓ /api/billing/subscription returned subscription data")
 
 
 class TestWebstoresEndpoints:
@@ -228,7 +228,7 @@ class TestFoundersEndpoints:
         
         data = response.json()
         assert "plan" in data
-        print(f"✓ /api/billing/founders/plan returned founders plan info")
+        print("✓ /api/billing/founders/plan returned founders plan info")
     
     def test_founders_spots_public(self):
         """Test /api/billing/founders/spots - public endpoint"""
@@ -237,7 +237,7 @@ class TestFoundersEndpoints:
         
         data = response.json()
         assert "total" in data or "remaining" in data or "is_available" in data
-        print(f"✓ /api/billing/founders/spots returned spots info")
+        print("✓ /api/billing/founders/spots returned spots info")
 
 
 class TestMultiProductBilling:
@@ -254,7 +254,7 @@ class TestMultiProductBilling:
         data = response.json()
         assert "plan_type" in data
         assert "product_line" in data
-        print(f"✓ /api/billing/subscription/v2 returned v2 subscription data")
+        print("✓ /api/billing/subscription/v2 returned v2 subscription data")
 
 
 if __name__ == "__main__":

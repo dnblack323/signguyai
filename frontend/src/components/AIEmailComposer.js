@@ -21,6 +21,7 @@ import { Sparkles, Mail, Loader2, Copy, Check, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { useAICreditGuard } from './credits/AICreditConfirmationDialog';
+import { getAuthToken } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -93,7 +94,7 @@ export default function AIEmailComposer({
       execute: async () => {
         setLoading(true);
         try {
-          const token = localStorage.getItem('auth_token');
+          const token = getAuthToken();
           const response = await axios.post(
             `${API_URL}/api/ai/generate-email`,
             {

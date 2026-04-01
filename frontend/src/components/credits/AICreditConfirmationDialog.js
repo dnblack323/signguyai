@@ -5,10 +5,9 @@ import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
+import { getAuthToken } from '../../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
-
-const getAuthToken = () => localStorage.getItem('auth_token');
 
 export const useAICreditGuard = () => {
   const [dialogState, setDialogState] = useState({ open: false, mode: 'confirm', data: null });

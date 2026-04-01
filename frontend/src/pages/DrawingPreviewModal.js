@@ -3,9 +3,10 @@ import { X, Trash2, Loader2, Pen, Calendar, User, Tag, FileText } from 'lucide-r
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import axios from 'axios';
+import { getAuthToken } from '../lib/authStorage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const hdr = () => ({ Authorization: `Bearer ${localStorage.getItem('auth_token')}` });
+const hdr = () => ({ Authorization: `Bearer ${getAuthToken()}` });
 
 const TYPE_COLORS = {
   sketch: 'bg-blue-100 text-blue-700 border-blue-200',

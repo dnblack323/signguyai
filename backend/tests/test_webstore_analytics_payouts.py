@@ -132,7 +132,7 @@ class TestWebstoreAnalytics:
         try:
             requests.delete(f"{BASE_URL}/api/webstores/v2/{webstore['id']}", headers=auth_headers)
             requests.delete(f"{BASE_URL}/api/products/{product['id']}", headers=auth_headers)
-        except:
+        except Exception:
             pass
     
     # ============== Test 1: Analytics Endpoint Returns 200 ==============
@@ -145,7 +145,7 @@ class TestWebstoreAnalytics:
             headers=auth_headers
         )
         assert response.status_code == 200, f"Analytics endpoint returned {response.status_code}: {response.text}"
-        print(f"✓ Analytics endpoint returns 200")
+        print("✓ Analytics endpoint returns 200")
     
     # ============== Test 2: Analytics Returns Summary ==============
     def test_analytics_summary(self, auth_headers, test_webstore_with_order):
@@ -172,7 +172,7 @@ class TestWebstoreAnalytics:
         assert summary["total_orders"] >= 1, "Should have at least 1 order"
         assert summary["total_revenue"] >= expected_subtotal, f"Revenue should be at least {expected_subtotal}"
         
-        print(f"✓ Analytics summary structure verified")
+        print("✓ Analytics summary structure verified")
         print(f"  - Total Revenue: ${summary['total_revenue']:.2f}")
         print(f"  - Total Orders: {summary['total_orders']}")
         print(f"  - Total Profit: ${summary['total_profit']:.2f}")
@@ -207,7 +207,7 @@ class TestWebstoreAnalytics:
         if today_sales:
             print(f"✓ Today's sales: ${today_sales['amount']:.2f}")
         
-        print(f"✓ Sales by day structure verified (14 days)")
+        print("✓ Sales by day structure verified (14 days)")
     
     # ============== Test 4: Analytics Returns Top Products ==============
     def test_analytics_top_products(self, auth_headers, test_webstore_with_order):
@@ -240,7 +240,7 @@ class TestWebstoreAnalytics:
             assert product["id"] in product_ids, "Test product should be in top products"
             
             test_product_stats = next((p for p in top_products if p["product_id"] == product["id"]), None)
-            print(f"✓ Top products structure verified")
+            print("✓ Top products structure verified")
             print(f"  - {test_product_stats['name']}: {test_product_stats['quantity']} units, ${test_product_stats['revenue']:.2f}")
     
     # ============== Test 5: Analytics Returns Fundraiser Metrics ==============
@@ -269,7 +269,7 @@ class TestWebstoreAnalytics:
         assert fundraiser_metrics["goal"] == 1000.00, "Goal should be 1000.00"
         assert fundraiser_metrics["profit_percent"] == 20, "Profit percent should be 20"
         
-        print(f"✓ Fundraiser metrics structure verified")
+        print("✓ Fundraiser metrics structure verified")
         print(f"  - Goal: ${fundraiser_metrics['goal']:.2f}")
         print(f"  - Raised: ${fundraiser_metrics['raised']:.2f}")
         print(f"  - Progress: {fundraiser_metrics['progress_percent']:.1f}%")
@@ -293,7 +293,7 @@ class TestWebstoreAnalytics:
         for field in required_fields:
             assert field in payout_info, f"Payout info missing '{field}' field"
         
-        print(f"✓ Payout info structure verified")
+        print("✓ Payout info structure verified")
         print(f"  - Total Owed: ${payout_info['total_owed']:.2f}")
         print(f"  - Total Paid: ${payout_info['total_paid']:.2f}")
 
@@ -346,7 +346,7 @@ class TestWebstorePayouts:
         # Cleanup
         try:
             requests.delete(f"{BASE_URL}/api/webstores/v2/{webstore['id']}", headers=auth_headers)
-        except:
+        except Exception:
             pass
     
     # ============== Test 7: Payouts Endpoint Returns 200 ==============
@@ -357,7 +357,7 @@ class TestWebstorePayouts:
             headers=auth_headers
         )
         assert response.status_code == 200, f"Payouts endpoint returned {response.status_code}: {response.text}"
-        print(f"✓ Payouts endpoint returns 200")
+        print("✓ Payouts endpoint returns 200")
     
     # ============== Test 8: Payouts Returns Array ==============
     def test_payouts_returns_array(self, auth_headers, test_webstore):
@@ -478,7 +478,7 @@ class TestWebstoreRecordPayout:
         try:
             requests.delete(f"{BASE_URL}/api/webstores/v2/{webstore['id']}", headers=auth_headers)
             requests.delete(f"{BASE_URL}/api/products/{product['id']}", headers=auth_headers)
-        except:
+        except Exception:
             pass
     
     # ============== Test 9: Record Payout Success ==============
@@ -510,7 +510,7 @@ class TestWebstoreRecordPayout:
         expected_balance = payout_owed - payout_amount
         assert abs(result["new_balance_owed"] - expected_balance) < 0.01, f"Balance mismatch: expected {expected_balance}, got {result['new_balance_owed']}"
         
-        print(f"✓ Payout recorded successfully")
+        print("✓ Payout recorded successfully")
         print(f"  - Amount: ${payout_amount:.2f}")
         print(f"  - New Balance: ${result['new_balance_owed']:.2f}")
         print(f"  - Total Paid: ${result['total_paid']:.2f}")
@@ -526,7 +526,7 @@ class TestWebstoreRecordPayout:
             params={"amount": 0, "notes": "Should fail"}
         )
         assert response.status_code == 400, f"Expected 400 for zero amount, got {response.status_code}"
-        print(f"✓ Zero amount correctly rejected with 400")
+        print("✓ Zero amount correctly rejected with 400")
     
     # ============== Test 11: Record Payout Validation - Negative Amount ==============
     def test_record_payout_negative_amount(self, auth_headers, test_webstore_with_balance):
@@ -539,7 +539,7 @@ class TestWebstoreRecordPayout:
             params={"amount": -10.00, "notes": "Should fail"}
         )
         assert response.status_code == 400, f"Expected 400 for negative amount, got {response.status_code}"
-        print(f"✓ Negative amount correctly rejected with 400")
+        print("✓ Negative amount correctly rejected with 400")
     
     # ============== Test 12: Record Payout Validation - Exceeds Owed ==============
     def test_record_payout_exceeds_owed(self, auth_headers, test_webstore_with_balance):
@@ -561,7 +561,7 @@ class TestWebstoreRecordPayout:
             params={"amount": current_owed + 1000.00, "notes": "Should fail"}
         )
         assert response.status_code == 400, f"Expected 400 for amount exceeding owed, got {response.status_code}"
-        print(f"✓ Amount exceeding owed correctly rejected with 400")
+        print("✓ Amount exceeding owed correctly rejected with 400")
     
     # ============== Test 13: Payout Appears in Payouts List ==============
     def test_payout_appears_in_list(self, auth_headers, test_webstore_with_balance):
@@ -585,7 +585,7 @@ class TestWebstoreRecordPayout:
         
         assert payout["webstore_id"] == webstore["id"]
         
-        print(f"✓ Payout appears in payouts list")
+        print("✓ Payout appears in payouts list")
         print(f"  - Payout ID: {payout['id'][:8]}...")
         print(f"  - Amount: ${payout['amount']:.2f}")
 
@@ -614,7 +614,7 @@ class TestAnalyticsEdgeCases:
             headers=auth_headers
         )
         assert response.status_code == 404, f"Expected 404, got {response.status_code}"
-        print(f"✓ Analytics returns 404 for invalid webstore")
+        print("✓ Analytics returns 404 for invalid webstore")
     
     # ============== Test 15: Payouts 404 for Invalid Webstore ==============
     def test_payouts_invalid_webstore(self, auth_headers):
@@ -624,7 +624,7 @@ class TestAnalyticsEdgeCases:
             headers=auth_headers
         )
         assert response.status_code == 404, f"Expected 404, got {response.status_code}"
-        print(f"✓ Payouts returns 404 for invalid webstore")
+        print("✓ Payouts returns 404 for invalid webstore")
     
     # ============== Test 16: Record Payout 404 for Invalid Webstore ==============
     def test_record_payout_invalid_webstore(self, auth_headers):
@@ -635,7 +635,7 @@ class TestAnalyticsEdgeCases:
             params={"amount": 10.00}
         )
         assert response.status_code == 404, f"Expected 404, got {response.status_code}"
-        print(f"✓ Record-payout returns 404 for invalid webstore")
+        print("✓ Record-payout returns 404 for invalid webstore")
     
     # ============== Test 17: Analytics Requires Auth ==============
     def test_analytics_requires_auth(self):
@@ -644,7 +644,7 @@ class TestAnalyticsEdgeCases:
             f"{BASE_URL}/api/webstores/v2/some-id/analytics"
         )
         assert response.status_code in [401, 403], f"Expected 401/403 without auth, got {response.status_code}"
-        print(f"✓ Analytics requires authentication")
+        print("✓ Analytics requires authentication")
     
     # ============== Test 18: Payouts Requires Auth ==============
     def test_payouts_requires_auth(self):
@@ -653,7 +653,7 @@ class TestAnalyticsEdgeCases:
             f"{BASE_URL}/api/webstores/v2/some-id/payouts"
         )
         assert response.status_code in [401, 403], f"Expected 401/403 without auth, got {response.status_code}"
-        print(f"✓ Payouts requires authentication")
+        print("✓ Payouts requires authentication")
     
     # ============== Test 19: Record Payout Requires Auth ==============
     def test_record_payout_requires_auth(self):
@@ -663,7 +663,7 @@ class TestAnalyticsEdgeCases:
             params={"amount": 10.00}
         )
         assert response.status_code in [401, 403], f"Expected 401/403 without auth, got {response.status_code}"
-        print(f"✓ Record-payout requires authentication")
+        print("✓ Record-payout requires authentication")
 
 
 class TestBusinessWebstoreAnalytics:
@@ -731,7 +731,7 @@ class TestBusinessWebstoreAnalytics:
         try:
             requests.delete(f"{BASE_URL}/api/webstores/v2/{webstore['id']}", headers=auth_headers)
             requests.delete(f"{BASE_URL}/api/products/{product['id']}", headers=auth_headers)
-        except:
+        except Exception:
             pass
     
     # ============== Test 20: Business Store Has No Fundraiser Metrics ==============
@@ -745,7 +745,7 @@ class TestBusinessWebstoreAnalytics:
         
         data = response.json()
         assert data["fundraiser_metrics"] is None, "Business store should have null fundraiser_metrics"
-        print(f"✓ Business store correctly has null fundraiser_metrics")
+        print("✓ Business store correctly has null fundraiser_metrics")
 
 
 # Run tests if executed directly

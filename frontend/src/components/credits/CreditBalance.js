@@ -11,11 +11,9 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
 import { toast } from 'sonner';
+import { getAuthToken } from '../../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
-
-// Helper to get auth token
-const getAuthToken = () => localStorage.getItem('auth_token');
 
 export const CreditBalance = ({ compact = false, darkMode = false }) => {
   const [credits, setCredits] = useState(null);

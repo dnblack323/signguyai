@@ -1,3 +1,4 @@
+import { getAuthToken } from '../lib/authStorage';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from './ui/badge';
@@ -69,7 +70,7 @@ export const JobHistoryPanel = ({ isOpen, onClose, jobId, jobName, onOpenInvoice
       if (!isOpen || !jobId) return;
       setLoading(true);
       try {
-        const token = localStorage.getItem('auth_token');
+        const token = getAuthToken();
         const response = await fetch(`${API}/jobs/${jobId}/history`, {
           headers: { Authorization: `Bearer ${token}` },
         });

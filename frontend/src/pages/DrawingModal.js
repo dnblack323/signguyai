@@ -9,9 +9,10 @@ import {
 import { toast } from 'sonner';
 import axios from 'axios';
 import { DrawingCanvasPad } from '../components/DrawingCanvasPad';
+import { getAuthToken } from '../lib/authStorage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const hdr = () => ({ Authorization: `Bearer ${localStorage.getItem('auth_token')}` });
+const hdr = () => ({ Authorization: `Bearer ${getAuthToken()}` });
 
 export default function DrawingModal({
   orderId,

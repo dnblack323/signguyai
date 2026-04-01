@@ -10,9 +10,10 @@ import { Label } from './ui/label';
 import { Switch } from './ui/switch';
 import { useSignatureFeature } from '../hooks/useSignatureFeature';
 import { SignatureCaptureModal } from './SignatureCaptureModal';
+import { getAuthToken } from '../lib/authStorage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const headers = () => ({ Authorization: `Bearer ${localStorage.getItem('auth_token')}`, 'Content-Type': 'application/json' });
+const headers = () => ({ Authorization: `Bearer ${getAuthToken()}`, 'Content-Type': 'application/json' });
 
 const STATUS_STYLES = {
   pending: 'bg-amber-100 text-amber-700',

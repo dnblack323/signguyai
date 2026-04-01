@@ -5,6 +5,7 @@ import { Lock, Clock, Rocket, ArrowRight, Star, Loader2, Tag } from 'lucide-reac
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { useAuth } from '../context/AuthContext';
+import { getAuthToken, clearAuthToken } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -213,7 +214,7 @@ const LockoutScreen = () => {
           {/* Logout / Switch Account */}
           <button
             onClick={() => {
-              localStorage.removeItem('auth_token');
+              clearAuthToken();
               window.location.href = '/login';
             }}
             className="mt-6 text-sm text-slate-500 hover:text-white underline transition-colors"

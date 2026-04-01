@@ -13,9 +13,10 @@ import axios from 'axios';
 import DynamicCategoryFields from '../components/DynamicCategoryFields';
 import LivePricingPreview from '../components/LivePricingPreview';
 import DrawingModal from './DrawingModal';
+import { getAuthToken } from '../lib/authStorage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const token = () => localStorage.getItem('auth_token');
+const token = () => getAuthToken();
 const hdrs = () => ({ Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' });
 
 const CATEGORIES = [

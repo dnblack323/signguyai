@@ -18,9 +18,10 @@ import DynamicCategoryFields from '../components/DynamicCategoryFields';
 import { TicketWorkflowShortcutDialog } from '../components/TicketWorkflowShortcutDialog';
 import DrawingModal from './DrawingModal';
 import DrawingPreviewModal from './DrawingPreviewModal';
+import { getAuthToken } from '../lib/authStorage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const hdr = () => ({ Authorization: `Bearer ${localStorage.getItem('auth_token')}`, 'Content-Type': 'application/json' });
+const hdr = () => ({ Authorization: `Bearer ${getAuthToken()}`, 'Content-Type': 'application/json' });
 
 const STATUS_COLORS = {
   new: 'bg-blue-500/15 text-blue-400 border-blue-500/30', awaiting_info: 'bg-yellow-500/15 text-yellow-400', awaiting_proof: 'bg-orange-500/15 text-orange-400',

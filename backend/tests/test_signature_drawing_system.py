@@ -75,7 +75,7 @@ class TestSignatureFeatureToggle:
         })
         assert response.status_code == 200
         data = response.json()
-        assert data.get("signature_settings", {}).get("enabled") == True
+        assert data.get("signature_settings", {}).get("enabled")
         print("Signature feature enabled successfully")
     
     def test_signature_settings_persist(self, api_client):
@@ -84,7 +84,7 @@ class TestSignatureFeatureToggle:
         assert response.status_code == 200
         data = response.json()
         settings = data.get("signature_settings", {})
-        assert settings.get("enabled") == True
+        assert settings.get("enabled")
         assert settings.get("link_expiry_days") == 7
         print("Signature settings persisted correctly")
 
@@ -114,7 +114,7 @@ class TestSignatureAPIs:
         assert response.status_code == 200
         data = response.json()
         assert data.get("parent_record_type") == "order"
-        assert data.get("requires_signature") == True
+        assert data.get("requires_signature")
         assert data.get("status") == "pending"
         print(f"Created signature requirement: {data.get('id')}")
     
@@ -175,7 +175,7 @@ class TestPublicSignatureFlow:
             "order_id": order_id
         })
         assert sig_response.status_code == 200
-        signatures = sig_response.json()
+        _signatures = sig_response.json()
         
         # The token is not returned in list, so we need to get it from the request
         # For testing, we'll create a new request and capture the token
@@ -215,7 +215,7 @@ class TestInternalSignatureCapture:
         assert response.status_code == 200
         data = response.json()
         assert data.get("status") == "signed"
-        assert data.get("signature_acquired") == True
+        assert data.get("signature_acquired")
         assert data.get("signer_name") == "Test Internal Signer"
         assert "signature_image" in data
         print(f"Internal signature captured: {data.get('id')}")
@@ -466,7 +466,7 @@ class TestSignatureFeatureDisabled:
         })
         assert response.status_code == 200
         data = response.json()
-        assert data.get("signature_settings", {}).get("enabled") == False
+        assert not data.get("signature_settings", {}).get("enabled")
         print("Signature feature disabled")
     
     def test_signature_apis_return_404_when_disabled(self, api_client):

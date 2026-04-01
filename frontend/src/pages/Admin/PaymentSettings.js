@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { getAuthToken } from '../../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -31,7 +32,7 @@ export default function PaymentSettings() {
 
   const fetchConnectStatus = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const response = await axios.get(`${API_URL}/api/stripe-connect/status`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -47,7 +48,7 @@ export default function PaymentSettings() {
   const handleConnectStripe = async () => {
     setConnecting(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const currentUrl = window.location.origin;
       
       const response = await axios.post(
@@ -76,7 +77,7 @@ export default function PaymentSettings() {
   const handleRefreshOnboarding = async () => {
     setConnecting(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const currentUrl = window.location.origin;
       
       const response = await axios.post(
@@ -102,7 +103,7 @@ export default function PaymentSettings() {
     }
     
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       await axios.delete(`${API_URL}/api/stripe-connect/disconnect`, {
         headers: { Authorization: `Bearer ${token}` }
       });

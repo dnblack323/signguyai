@@ -20,9 +20,10 @@ import DrawingPreviewModal from './DrawingPreviewModal';
 import { TicketWorkflowShortcutDialog } from '../components/TicketWorkflowShortcutDialog';
 import { SignatureSection } from '../components/SignatureSection';
 import { SignatureActivityList } from '../components/SignatureActivityList';
+import { getAuthToken } from '../lib/authStorage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const hdr = () => ({ Authorization: `Bearer ${localStorage.getItem('auth_token')}`, 'Content-Type': 'application/json' });
+const hdr = () => ({ Authorization: `Bearer ${getAuthToken()}`, 'Content-Type': 'application/json' });
 
 const STATUS_COLORS = {
   new_intake: 'bg-blue-500/15 text-blue-400 border-blue-500/30', awaiting_review: 'bg-yellow-500/15 text-yellow-400',
@@ -211,7 +212,7 @@ export default function OrderDetail() {
         formData.append('file', f);
         formData.append('label', f.name);
         await axios.post(`${API}/orders/${id}/upload`, formData, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
+          headers: { Authorization: `Bearer ${getAuthToken()}` },
         });
       }
       toast.success(`${files.length} file(s) uploaded`);

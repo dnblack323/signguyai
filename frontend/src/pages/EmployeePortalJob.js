@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { EmployeePortalLayout } from './EmployeePortalDashboard';
 import { ArrowLeft, CheckCircle2, Pause, Play } from 'lucide-react';
 import { toast } from 'sonner';
+import { getEmployeePortalToken } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -15,7 +16,7 @@ const formatDateTime = (value) => value ? new Date(value).toLocaleString() : '-'
 export default function EmployeePortalJob() {
   const { jobId } = useParams();
   const navigate = useNavigate();
-  const token = localStorage.getItem('employee_token');
+  const token = getEmployeePortalToken();
   const employeeName = localStorage.getItem('employee_name') || 'Employee';
   const portalConfig = (() => {
     try {

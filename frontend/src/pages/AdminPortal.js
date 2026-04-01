@@ -19,6 +19,7 @@ import {
   ChevronRight, Paperclip, FolderOpen, Bell
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getAuthToken } from '../lib/authStorage';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -92,7 +93,7 @@ export default function AdminPortal() {
 
   const loadDashboard = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await fetch(`${API}/api/admin-portal/dashboard`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -108,7 +109,7 @@ export default function AdminPortal() {
 
   const loadConversations = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await fetch(`${API}/api/admin-portal/conversations`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -123,7 +124,7 @@ export default function AdminPortal() {
 
   const loadConversationMessages = async (conversationId) => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await fetch(`${API}/api/admin-portal/conversations/${conversationId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -144,7 +145,7 @@ export default function AdminPortal() {
     
     setSendingMessage(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await fetch(`${API}/api/admin-portal/conversations/${selectedConversation.id}/messages?content=${encodeURIComponent(newMessage)}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
@@ -171,7 +172,7 @@ export default function AdminPortal() {
 
     setCreatingConversation(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await fetch(`${API}/api/admin-portal/conversations`, {
         method: 'POST',
         headers: {
@@ -206,7 +207,7 @@ export default function AdminPortal() {
 
   const loadArtworkQueue = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const url = artworkFilter === 'all' 
         ? `${API}/api/admin-portal/artwork-queue`
         : `${API}/api/admin-portal/artwork-queue?status=${artworkFilter}`;
@@ -229,7 +230,7 @@ export default function AdminPortal() {
       return;
     }
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await fetch(`${API}/api/admin-portal/jobs?customer_id=${customerId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -250,7 +251,7 @@ export default function AdminPortal() {
 
     setUploadingArtwork(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       
       // First upload the file
       const formData = new FormData();
@@ -306,7 +307,7 @@ export default function AdminPortal() {
 
   const loadSharedDocuments = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await fetch(`${API}/api/admin-portal/documents`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -321,7 +322,7 @@ export default function AdminPortal() {
 
   const loadQuestionnaires = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await fetch(`${API}/api/questionnaires`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -336,7 +337,7 @@ export default function AdminPortal() {
 
   const loadFormRequests = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await fetch(`${API}/api/admin-portal/forms`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -356,7 +357,7 @@ export default function AdminPortal() {
     }
     setSendingForm(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await fetch(`${API}/api/admin-portal/forms/send`, {
         method: 'POST',
         headers: {

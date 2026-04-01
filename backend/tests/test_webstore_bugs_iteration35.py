@@ -64,8 +64,8 @@ class TestStripeConnectStatus:
         data = response.json()
         
         # Verify Stripe is NOT connected
-        assert data["connected"] == False, "Stripe should NOT be connected for test user"
-        assert data["charges_enabled"] == False
+        assert not data["connected"], "Stripe should NOT be connected for test user"
+        assert not data["charges_enabled"]
         assert data["account_id"] is None
 
 

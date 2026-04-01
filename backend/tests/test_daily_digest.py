@@ -182,12 +182,12 @@ class TestDigestEndpoints:
         assert update_response.status_code == 200, f"Expected 200, got {update_response.status_code}"
         
         updated_data = update_response.json()
-        assert test_email in updated_data["recipients"], f"Test email not in recipients"
+        assert test_email in updated_data["recipients"], "Test email not in recipients"
         
         # Revert back
         self.session.put(f"{BASE_URL}/api/digest/settings", json={"recipients": current_recipients})
         
-        print(f"PASS: Digest settings recipients update works")
+        print("PASS: Digest settings recipients update works")
     
     # ==================== GET /api/digest/history ====================
     
@@ -216,7 +216,7 @@ class TestDigestEndpoints:
         assert isinstance(data, list), f"Expected list, got {type(data)}"
         assert len(data) <= 5, f"Expected max 5 entries, got {len(data)}"
         
-        print(f"PASS: Digest history respects limit parameter")
+        print("PASS: Digest history respects limit parameter")
     
     # ==================== POST /api/digest/send ====================
     

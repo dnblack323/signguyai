@@ -63,7 +63,7 @@ class TestBillingCheckout:
             data = response.json()
             assert "url" in data, "Response should contain checkout URL"
             assert "session_id" in data, "Response should contain session_id"
-            print(f"✅ tier_1 checkout creates subscription session - URL returned")
+            print("✅ tier_1 checkout creates subscription session - URL returned")
         else:
             # Stripe may not be configured in test env
             print(f"⚠️ Checkout returned {response.status_code} - may need Stripe configuration")
@@ -90,7 +90,7 @@ class TestBillingCheckout:
             data = response.json()
             assert "url" in data, "Response should contain checkout URL"
             assert "session_id" in data, "Response should contain session_id"
-            print(f"✅ extended_trial checkout creates payment session - URL returned")
+            print("✅ extended_trial checkout creates payment session - URL returned")
         else:
             print(f"⚠️ Checkout returned {response.status_code} - may need Stripe configuration")
     
@@ -135,7 +135,7 @@ class TestStorefrontSanitization:
             
             # Verify safe fields ARE present
             if data:  # Only check if we got data
-                print(f"✅ Storefront sanitized - no sensitive fields exposed")
+                print("✅ Storefront sanitized - no sensitive fields exposed")
                 print(f"   Safe fields present: {list(data.keys())}")
         else:
             print(f"⚠️ Storefront endpoint returned {response.status_code}")
@@ -187,7 +187,7 @@ class TestOrderValidation:
             detail = str(data.get("detail", ""))
             assert "invalid" in detail.lower() or "unavailable" in detail.lower() or "not found" in detail.lower(), \
                 f"Error message should mention invalid product: {detail}"
-            print(f"✅ Order correctly rejected invalid product ID with 400")
+            print("✅ Order correctly rejected invalid product ID with 400")
     
     def test_order_rejects_zero_quantity(self, api_client):
         """POST /api/webstores/v2/orders should reject zero quantities with 400 error"""
@@ -485,7 +485,7 @@ def auth_token(api_client):
     if response.status_code == 200:
         token = response.json().get("access_token")
         if token:
-            print(f"✅ Authenticated as testuser123@test.com (fallback)")
+            print("✅ Authenticated as testuser123@test.com (fallback)")
             return token
     
     # Try to create the billing_test user if it doesn't exist

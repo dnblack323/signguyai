@@ -39,7 +39,7 @@ class TestAuthentication:
         """Test that login works"""
         assert auth_token is not None
         assert len(auth_token) > 0
-        print(f"✅ Login successful, got token")
+        print("✅ Login successful, got token")
     
     def test_get_user_profile(self, auth_token):
         """Test getting user profile"""
@@ -104,14 +104,14 @@ class TestPayrollAccess:
         headers = {"Authorization": f"Bearer {auth_token}"}
         response = requests.get(f"{BASE_URL}/api/payroll/transactions", headers=headers)
         assert response.status_code == 200, f"Payroll transactions failed: {response.status_code} - {response.text}"
-        print(f"✅ Payroll transactions accessible")
+        print("✅ Payroll transactions accessible")
     
     def test_payroll_report_endpoint(self, auth_token):
         """Test payroll report endpoint"""
         headers = {"Authorization": f"Bearer {auth_token}"}
         response = requests.get(f"{BASE_URL}/api/payroll/report?start_date=2025-01-01&end_date=2025-12-31", headers=headers)
         assert response.status_code == 200, f"Payroll report failed: {response.status_code} - {response.text}"
-        print(f"✅ Payroll report accessible")
+        print("✅ Payroll report accessible")
 
 
 class TestFinancialsAccess:
@@ -132,21 +132,21 @@ class TestFinancialsAccess:
         headers = {"Authorization": f"Bearer {auth_token}"}
         response = requests.get(f"{BASE_URL}/api/financials/sales", headers=headers)
         assert response.status_code == 200, f"Sales entries failed: {response.status_code} - {response.text}"
-        print(f"✅ Sales entries accessible")
+        print("✅ Sales entries accessible")
     
     def test_expense_entries_endpoint(self, auth_token):
         """Test expense entries endpoint"""
         headers = {"Authorization": f"Bearer {auth_token}"}
         response = requests.get(f"{BASE_URL}/api/financials/expenses", headers=headers)
         assert response.status_code == 200, f"Expense entries failed: {response.status_code} - {response.text}"
-        print(f"✅ Expense entries accessible")
+        print("✅ Expense entries accessible")
     
     def test_financial_summary_endpoint(self, auth_token):
         """Test financial summary endpoint"""
         headers = {"Authorization": f"Bearer {auth_token}"}
         response = requests.get(f"{BASE_URL}/api/financials/summary?start_date=2025-01-01&end_date=2025-12-31", headers=headers)
         assert response.status_code == 200, f"Financial summary failed: {response.status_code} - {response.text}"
-        print(f"✅ Financial summary accessible")
+        print("✅ Financial summary accessible")
 
 
 class TestPricingCalculator:
@@ -236,7 +236,7 @@ class TestPricingCalculator:
         print(f"Rigid sign price with complexity 1: ${price_low}")
         print(f"Rigid sign price with complexity 5: ${price_high}")
         
-        assert price_high > price_low, f"Complexity should affect rigid sign price!"
+        assert price_high > price_low, "Complexity should affect rigid sign price!"
         print(f"✅ Rigid signs complexity works: ${price_low} vs ${price_high}")
     
     def test_setup_fee_not_multiplied_by_quantity(self, auth_token):
@@ -304,7 +304,7 @@ class TestAITools:
         headers = {"Authorization": f"Bearer {auth_token}"}
         response = requests.get(f"{BASE_URL}/api/ai/history", headers=headers)
         assert response.status_code == 200, f"AI history failed: {response.status_code} - {response.text}"
-        print(f"✅ AI history endpoint accessible")
+        print("✅ AI history endpoint accessible")
     
     def test_ai_generate_tagline(self, auth_token):
         """Test AI tagline generation (text tool)"""
@@ -323,7 +323,7 @@ class TestAITools:
         # If AI service is configured, should return 200
         # If not configured, might return 500 with "AI service not configured"
         if response.status_code == 500 and "not configured" in response.text.lower():
-            print(f"⚠️ AI service not configured (expected if no API key)")
+            print("⚠️ AI service not configured (expected if no API key)")
             pytest.skip("AI service not configured")
         
         assert response.status_code == 200, f"AI generate failed: {response.status_code} - {response.text}"

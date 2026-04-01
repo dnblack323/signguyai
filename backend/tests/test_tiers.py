@@ -56,7 +56,7 @@ class TestTierPlansPublic:
         assert starter is not None, "Starter plan should exist"
         assert starter["name"] == "Starter", f"Expected 'Starter', got {starter['name']}"
         assert starter["price_monthly"] == 0, f"Starter should be free, got {starter['price_monthly']}"
-        assert starter["price_yearly"] == 0, f"Starter yearly should be free"
+        assert starter["price_yearly"] == 0, "Starter yearly should be free"
         assert "highlights" in starter, "Should have highlights"
         assert len(starter["highlights"]) > 0, "Should have at least one highlight"
     
@@ -183,7 +183,7 @@ class TestFeatureCheckON:
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         
         data = response.json()
-        assert data["allowed"] == True, f"text_tools should be allowed, got {data}"
+        assert data["allowed"], f"text_tools should be allowed, got {data}"
         assert data["status"] == "on", f"Status should be 'on', got {data['status']}"
         assert data["feature"] == "ai_tools.text_tools"
     
@@ -196,7 +196,7 @@ class TestFeatureCheckON:
         
         assert response.status_code == 200
         data = response.json()
-        assert data["allowed"] == True
+        assert data["allowed"]
         assert data["status"] == "on"
     
     def test_check_on_feature_core_modules_jobs(self, auth_headers):
@@ -208,7 +208,7 @@ class TestFeatureCheckON:
         
         assert response.status_code == 200
         data = response.json()
-        assert data["allowed"] == True
+        assert data["allowed"]
         assert data["status"] == "on"
 
 
@@ -225,7 +225,7 @@ class TestFeatureCheckOFF:
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         
         data = response.json()
-        assert data["allowed"] == False, f"image_generation should NOT be allowed for starter, got {data}"
+        assert not data["allowed"], f"image_generation should NOT be allowed for starter, got {data}"
         assert data["status"] == "off", f"Status should be 'off', got {data['status']}"
         assert "message" in data, "Should have upgrade message"
         assert "upgrade" in data["message"].lower(), f"Message should mention upgrade: {data['message']}"
@@ -239,7 +239,7 @@ class TestFeatureCheckOFF:
         
         assert response.status_code == 200
         data = response.json()
-        assert data["allowed"] == False
+        assert not data["allowed"]
         assert data["status"] == "off"
     
     def test_check_off_feature_time_clock(self, auth_headers):
@@ -251,7 +251,7 @@ class TestFeatureCheckOFF:
         
         assert response.status_code == 200
         data = response.json()
-        assert data["allowed"] == False
+        assert not data["allowed"]
         assert data["status"] == "off"
 
 
@@ -268,7 +268,7 @@ class TestFeatureCheckLIMITED:
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         
         data = response.json()
-        assert data["allowed"] == True, f"Should be allowed if under limit, got {data}"
+        assert data["allowed"], f"Should be allowed if under limit, got {data}"
         assert data["status"] == "limited", f"Status should be 'limited', got {data['status']}"
         assert "limit" in data, "Should have limit field"
         assert data["limit"] == 25, f"Starter limit should be 25, got {data['limit']}"
@@ -322,7 +322,7 @@ class TestUseFeature:
         assert use_response.status_code == 200, f"Expected 200, got {use_response.status_code}: {use_response.text}"
         
         data = use_response.json()
-        assert data["success"] == True, f"Should succeed, got {data}"
+        assert data["success"], f"Should succeed, got {data}"
         assert "remaining" in data, "Should return remaining count"
         assert "limit" in data, "Should return limit"
         
@@ -344,7 +344,7 @@ class TestUseFeature:
         
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         data = response.json()
-        assert data["success"] == True
+        assert data["success"]
     
     def test_use_off_feature_fails(self, auth_headers):
         """Using an OFF feature should return 403"""
@@ -457,7 +457,7 @@ class TestInvalidFeatures:
         assert response.status_code == 200, f"Expected 200, got {response.status_code}"
         data = response.json()
         # Invalid category should return OFF status
-        assert data["allowed"] == False
+        assert not data["allowed"]
         assert data["status"] == "off"
     
     def test_check_invalid_feature(self, auth_headers):
@@ -469,7 +469,7 @@ class TestInvalidFeatures:
         
         assert response.status_code == 200
         data = response.json()
-        assert data["allowed"] == False
+        assert not data["allowed"]
         assert data["status"] == "off"
 
 

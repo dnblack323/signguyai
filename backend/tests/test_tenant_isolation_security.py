@@ -157,13 +157,13 @@ class TestTenantIsolation:
         
         # Tenant B should NOT access Tenant A's employee directly
         get_resp = requests.get(f"{BASE_URL}/api/employees/{employee_a_id}", headers=headers_b)
-        assert get_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can access Tenant A's employee!"
+        assert get_resp.status_code == 404, "SECURITY ISSUE: Tenant B can access Tenant A's employee!"
         
         # Tenant B should NOT update Tenant A's employee
         update_resp = requests.put(f"{BASE_URL}/api/employees/{employee_a_id}", json={
             "name": "HACKED_EMPLOYEE"
         }, headers=headers_b)
-        assert update_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can update Tenant A's employee!"
+        assert update_resp.status_code == 404, "SECURITY ISSUE: Tenant B can update Tenant A's employee!"
         
         # Verify not modified
         verify_resp = requests.get(f"{BASE_URL}/api/employees/{employee_a_id}", headers=headers_a)
@@ -201,21 +201,21 @@ class TestTenantIsolation:
         
         # Tenant B should NOT access Tenant A's job directly
         get_resp = requests.get(f"{BASE_URL}/api/jobs/{job_a_id}", headers=headers_b)
-        assert get_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can access Tenant A's job!"
+        assert get_resp.status_code == 404, "SECURITY ISSUE: Tenant B can access Tenant A's job!"
         
         # Tenant B should NOT access job details
         details_resp = requests.get(f"{BASE_URL}/api/jobs/{job_a_id}/details", headers=headers_b)
-        assert details_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can access Tenant A's job details!"
+        assert details_resp.status_code == 404, "SECURITY ISSUE: Tenant B can access Tenant A's job details!"
         
         # Tenant B should NOT update Tenant A's job
         update_resp = requests.put(f"{BASE_URL}/api/jobs/{job_a_id}", json={
             "name": "HACKED_JOB"
         }, headers=headers_b)
-        assert update_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can update Tenant A's job!"
+        assert update_resp.status_code == 404, "SECURITY ISSUE: Tenant B can update Tenant A's job!"
         
         # Tenant B should NOT delete Tenant A's job
         delete_resp = requests.delete(f"{BASE_URL}/api/jobs/{job_a_id}", headers=headers_b)
-        assert delete_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can delete Tenant A's job!"
+        assert delete_resp.status_code == 404, "SECURITY ISSUE: Tenant B can delete Tenant A's job!"
         
         # Cleanup
         requests.delete(f"{BASE_URL}/api/jobs/{job_a_id}", headers=headers_a)
@@ -244,17 +244,17 @@ class TestTenantIsolation:
         
         # Tenant B should NOT access Tenant A's task directly
         get_resp = requests.get(f"{BASE_URL}/api/tasks/{task_a_id}", headers=headers_b)
-        assert get_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can access Tenant A's task!"
+        assert get_resp.status_code == 404, "SECURITY ISSUE: Tenant B can access Tenant A's task!"
         
         # Tenant B should NOT update Tenant A's task
         update_resp = requests.put(f"{BASE_URL}/api/tasks/{task_a_id}", json={
             "title": "HACKED_TASK"
         }, headers=headers_b)
-        assert update_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can update Tenant A's task!"
+        assert update_resp.status_code == 404, "SECURITY ISSUE: Tenant B can update Tenant A's task!"
         
         # Tenant B should NOT delete Tenant A's task
         delete_resp = requests.delete(f"{BASE_URL}/api/tasks/{task_a_id}", headers=headers_b)
-        assert delete_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can delete Tenant A's task!"
+        assert delete_resp.status_code == 404, "SECURITY ISSUE: Tenant B can delete Tenant A's task!"
         
         # Verify task not accessed without auth
         no_auth_resp = requests.get(f"{BASE_URL}/api/tasks")
@@ -297,17 +297,17 @@ class TestTenantIsolation:
         
         # Tenant B should NOT access Tenant A's job item via standalone route
         get_resp = requests.get(f"{BASE_URL}/api/job-items/{item_a_id}", headers=headers_b)
-        assert get_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can access Tenant A's job item!"
+        assert get_resp.status_code == 404, "SECURITY ISSUE: Tenant B can access Tenant A's job item!"
         
         # Tenant B should NOT update Tenant A's job item
         update_resp = requests.put(f"{BASE_URL}/api/job-items/{item_a_id}", json={
             "description": "HACKED_ITEM"
         }, headers=headers_b)
-        assert update_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can update Tenant A's job item!"
+        assert update_resp.status_code == 404, "SECURITY ISSUE: Tenant B can update Tenant A's job item!"
         
         # Tenant B should NOT delete Tenant A's job item
         delete_resp = requests.delete(f"{BASE_URL}/api/job-items/{item_a_id}", headers=headers_b)
-        assert delete_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can delete Tenant A's job item!"
+        assert delete_resp.status_code == 404, "SECURITY ISSUE: Tenant B can delete Tenant A's job item!"
         
         # Tenant B should NOT create item on Tenant A's job
         create_b_resp = requests.post(f"{BASE_URL}/api/jobs/{job_a_id}/items", json={
@@ -353,17 +353,17 @@ class TestTenantIsolation:
         
         # Tenant B should NOT access Tenant A's quote directly
         get_resp = requests.get(f"{BASE_URL}/api/quotes/{quote_a_id}", headers=headers_b)
-        assert get_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can access Tenant A's quote!"
+        assert get_resp.status_code == 404, "SECURITY ISSUE: Tenant B can access Tenant A's quote!"
         
         # Tenant B should NOT update Tenant A's quote
         update_resp = requests.put(f"{BASE_URL}/api/quotes/{quote_a_id}", json={
             "notes": "HACKED_QUOTE"
         }, headers=headers_b)
-        assert update_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can update Tenant A's quote!"
+        assert update_resp.status_code == 404, "SECURITY ISSUE: Tenant B can update Tenant A's quote!"
         
         # Tenant B should NOT delete Tenant A's quote
         delete_resp = requests.delete(f"{BASE_URL}/api/quotes/{quote_a_id}", headers=headers_b)
-        assert delete_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can delete Tenant A's quote!"
+        assert delete_resp.status_code == 404, "SECURITY ISSUE: Tenant B can delete Tenant A's quote!"
         
         # Cleanup
         requests.delete(f"{BASE_URL}/api/quotes/{quote_a_id}", headers=headers_a)
@@ -399,17 +399,17 @@ class TestTenantIsolation:
         
         # Tenant B should NOT access Tenant A's invoice directly
         get_resp = requests.get(f"{BASE_URL}/api/invoices/{invoice_a_id}", headers=headers_b)
-        assert get_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can access Tenant A's invoice!"
+        assert get_resp.status_code == 404, "SECURITY ISSUE: Tenant B can access Tenant A's invoice!"
         
         # Tenant B should NOT update Tenant A's invoice
         update_resp = requests.put(f"{BASE_URL}/api/invoices/{invoice_a_id}", json={
             "status": "paid"
         }, headers=headers_b)
-        assert update_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can update Tenant A's invoice!"
+        assert update_resp.status_code == 404, "SECURITY ISSUE: Tenant B can update Tenant A's invoice!"
         
         # Tenant B should NOT delete Tenant A's invoice
         delete_resp = requests.delete(f"{BASE_URL}/api/invoices/{invoice_a_id}", headers=headers_b)
-        assert delete_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can delete Tenant A's invoice!"
+        assert delete_resp.status_code == 404, "SECURITY ISSUE: Tenant B can delete Tenant A's invoice!"
         
         # Cleanup
         requests.delete(f"{BASE_URL}/api/invoices/{invoice_a_id}", headers=headers_a)
@@ -439,17 +439,17 @@ class TestTenantIsolation:
         
         # Tenant B should NOT access Tenant A's webstore directly
         get_resp = requests.get(f"{BASE_URL}/api/webstores/v2/{store_a_id}", headers=headers_b)
-        assert get_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can access Tenant A's webstore!"
+        assert get_resp.status_code == 404, "SECURITY ISSUE: Tenant B can access Tenant A's webstore!"
         
         # Tenant B should NOT update Tenant A's webstore
         update_resp = requests.put(f"{BASE_URL}/api/webstores/v2/{store_a_id}", json={
             "name": "HACKED_STORE"
         }, headers=headers_b)
-        assert update_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can update Tenant A's webstore!"
+        assert update_resp.status_code == 404, "SECURITY ISSUE: Tenant B can update Tenant A's webstore!"
         
         # Tenant B should NOT delete Tenant A's webstore
         delete_resp = requests.delete(f"{BASE_URL}/api/webstores/v2/{store_a_id}", headers=headers_b)
-        assert delete_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can delete Tenant A's webstore!"
+        assert delete_resp.status_code == 404, "SECURITY ISSUE: Tenant B can delete Tenant A's webstore!"
         
         # Cleanup
         requests.delete(f"{BASE_URL}/api/webstores/v2/{store_a_id}", headers=headers_a)
@@ -479,17 +479,17 @@ class TestTenantIsolation:
         
         # Tenant B should NOT access Tenant A's product directly
         get_resp = requests.get(f"{BASE_URL}/api/products/{product_a_id}", headers=headers_b)
-        assert get_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can access Tenant A's product!"
+        assert get_resp.status_code == 404, "SECURITY ISSUE: Tenant B can access Tenant A's product!"
         
         # Tenant B should NOT update Tenant A's product
         update_resp = requests.put(f"{BASE_URL}/api/products/{product_a_id}", json={
             "name": "HACKED_PRODUCT"
         }, headers=headers_b)
-        assert update_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can update Tenant A's product!"
+        assert update_resp.status_code == 404, "SECURITY ISSUE: Tenant B can update Tenant A's product!"
         
         # Tenant B should NOT delete Tenant A's product
         delete_resp = requests.delete(f"{BASE_URL}/api/products/{product_a_id}", headers=headers_b)
-        assert delete_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can delete Tenant A's product!"
+        assert delete_resp.status_code == 404, "SECURITY ISSUE: Tenant B can delete Tenant A's product!"
         
         # Cleanup
         requests.delete(f"{BASE_URL}/api/products/{product_a_id}", headers=headers_a)
@@ -563,7 +563,7 @@ class TestTenantIsolation:
         
         # Tenant B should NOT access Tenant A's employee payroll balance
         balance_resp = requests.get(f"{BASE_URL}/api/payroll/balance/{employee_a_id}", headers=headers_b)
-        assert balance_resp.status_code == 404, f"SECURITY ISSUE: Tenant B can access Tenant A's employee payroll!"
+        assert balance_resp.status_code == 404, "SECURITY ISSUE: Tenant B can access Tenant A's employee payroll!"
         
         # Cleanup
         requests.delete(f"{BASE_URL}/api/employees/{employee_a_id}", headers=headers_a)

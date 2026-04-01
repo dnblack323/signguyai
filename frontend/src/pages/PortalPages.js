@@ -4,6 +4,7 @@ import { PortalLayout } from './PortalDashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
+import { getPortalToken } from '../lib/authStorage';
 import { 
   Loader2, FileText, Receipt, ChevronRight, Calendar, Clock,
   CheckCircle, AlertCircle, DollarSign
@@ -20,7 +21,7 @@ export function PortalQuotes() {
   const customerName = localStorage.getItem('portal_customer_name') || 'Customer';
 
   const fetchQuotes = useCallback(async () => {
-    const token = localStorage.getItem('portal_token');
+    const token = getPortalToken();
     if (!token) {
       navigate('/customer-portal/login');
       return;
@@ -176,7 +177,7 @@ export function PortalInvoices() {
   const customerName = localStorage.getItem('portal_customer_name') || 'Customer';
 
   const fetchInvoices = useCallback(async () => {
-    const token = localStorage.getItem('portal_token');
+    const token = getPortalToken();
     if (!token) {
       navigate('/customer-portal/login');
       return;
@@ -204,7 +205,7 @@ export function PortalInvoices() {
   }, [navigate, filter]);
 
   useEffect(() => {
-    const token = localStorage.getItem('portal_token');
+    const token = getPortalToken();
     if (token) {
       invoices.forEach((invoice) => {
         fetch(`${API_URL}/api/portal/invoices/${invoice.id}/viewed`, {
@@ -231,7 +232,7 @@ export function PortalInvoices() {
   };
 
   const handlePayNow = async (invoiceId) => {
-    const token = localStorage.getItem('portal_token');
+    const token = getPortalToken();
     setPayingInvoiceId(invoiceId);
     try {
       const response = await fetch(`${API_URL}/api/portal/invoices/${invoiceId}/pay`, {
@@ -395,7 +396,7 @@ export function PortalAppointments() {
   const customerName = localStorage.getItem('portal_customer_name') || 'Customer';
 
   const fetchAppointments = useCallback(async () => {
-    const token = localStorage.getItem('portal_token');
+    const token = getPortalToken();
     if (!token) {
       navigate('/customer-portal/login');
       return;

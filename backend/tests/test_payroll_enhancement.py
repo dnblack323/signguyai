@@ -45,7 +45,7 @@ class TestPayrollEnhancement:
             for entry_id in self.created_hours_ids:
                 try:
                     self.session.delete(f"{BASE_URL}/api/payroll/hours/{entry_id}")
-                except:
+                except Exception:
                     pass
 
     # =================== MANUAL HOURS CRUD ===================
@@ -70,7 +70,7 @@ class TestPayrollEnhancement:
         })
         
         assert res.status_code == 200, f"Expected 200, got {res.status_code}"
-        print(f"PASS: GET /api/payroll/hours with date filter works")
+        print("PASS: GET /api/payroll/hours with date filter works")
     
     def test_create_manual_hours(self):
         """POST /api/payroll/hours - creates manual hours entry"""

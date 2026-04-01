@@ -176,7 +176,7 @@ class TestProductivityPhase2WriteBack:
                     "assigned_user_id": original_assignee or ""
                 })
                 
-                print(f"✓ Task assignee update working")
+                print("✓ Task assignee update working")
             else:
                 print("⚠ Only one employee available, skipping assignee change test")
         else:
@@ -208,7 +208,7 @@ class TestProductivityPhase2WriteBack:
         updated_item = patch_response.json()
         # Due datetime should contain the new date
         if updated_item.get("due_datetime"):
-            assert new_due in updated_item["due_datetime"], f"Due date not updated correctly"
+            assert new_due in updated_item["due_datetime"], "Due date not updated correctly"
         
         # Restore original due date
         if original_due:
@@ -239,7 +239,7 @@ class TestProductivityPhase2WriteBack:
         assert patch_response.status_code == 200, f"PATCH failed: {patch_response.text}"
         
         updated_item = patch_response.json()
-        assert updated_item.get("is_completed") == (not original_completed), f"Completion not toggled"
+        assert updated_item.get("is_completed") == (not original_completed), "Completion not toggled"
         
         # Restore original state
         self.session.patch(f"{BASE_URL}/api/productivity/items/{item_uid}", json={"is_completed": original_completed})
@@ -344,7 +344,7 @@ class TestTaskSchemaExpanded:
         # Cleanup
         self.session.delete(f"{BASE_URL}/api/tasks/{task['id']}")
         
-        print(f"✓ Task created with status=pending, priority=high")
+        print("✓ Task created with status=pending, priority=high")
     
     def test_task_create_with_start_datetime(self):
         """Test creating task with start_datetime field"""
@@ -363,7 +363,7 @@ class TestTaskSchemaExpanded:
         # Cleanup
         self.session.delete(f"{BASE_URL}/api/tasks/{task['id']}")
         
-        print(f"✓ Task created with start_datetime")
+        print("✓ Task created with start_datetime")
     
     def test_task_update_status_via_tasks_endpoint(self):
         """Test updating task status via /api/tasks endpoint"""
@@ -390,7 +390,7 @@ class TestTaskSchemaExpanded:
         # Cleanup
         self.session.delete(f"{BASE_URL}/api/tasks/{task_id}")
         
-        print(f"✓ Task status updated via /api/tasks endpoint")
+        print("✓ Task status updated via /api/tasks endpoint")
 
 
 class TestDashboardUnifiedQueries:
@@ -559,7 +559,7 @@ class TestKanbanDragDropPersistence:
         assert patch_response.status_code == 200
         
         updated = patch_response.json()
-        assert updated.get("is_completed") == True, "is_completed not set to True"
+        assert updated.get("is_completed"), "is_completed not set to True"
         
         # Restore
         self.session.patch(f"{BASE_URL}/api/productivity/items/{item_uid}", json={
@@ -567,7 +567,7 @@ class TestKanbanDragDropPersistence:
             "is_completed": False
         })
         
-        print(f"✓ Moving to complete column sets is_completed=True")
+        print("✓ Moving to complete column sets is_completed=True")
 
 
 class TestCrossViewConsistency:
@@ -651,7 +651,7 @@ class TestCrossViewConsistency:
         # Restore
         self.session.patch(f"{BASE_URL}/api/productivity/items/{item_uid}", json={"status": original_status})
         
-        print(f"✓ Update reflects across all endpoints: /items, /board, /calendar-range")
+        print("✓ Update reflects across all endpoints: /items, /board, /calendar-range")
 
 
 if __name__ == "__main__":

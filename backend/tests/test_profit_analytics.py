@@ -132,9 +132,9 @@ class TestProfitAnalyticsPreferences:
         assert response.status_code == 200
         
         saved = response.json()
-        assert saved["simple_mode"] == True
+        assert saved["simple_mode"]
         assert "profit_by_category" in saved["widget_order"]
-        assert saved["enabled_widgets"]["low_margin_jobs"] == False
+        assert not saved["enabled_widgets"]["low_margin_jobs"]
     
     def test_preferences_persist_in_dashboard(self, api_client):
         """Preferences are returned in dashboard response"""
@@ -150,7 +150,7 @@ class TestProfitAnalyticsPreferences:
         data = response.json()
         
         preferences = data.get("preferences", {})
-        assert preferences.get("simple_mode") == True
+        assert preferences.get("simple_mode")
     
     def test_preferences_reset_to_defaults(self, api_client):
         """Can reset preferences to default values"""
@@ -167,7 +167,7 @@ class TestProfitAnalyticsPreferences:
         assert response.status_code == 200
         
         saved = response.json()
-        assert saved["simple_mode"] == False
+        assert not saved["simple_mode"]
 
 
 class TestProfitAnalyticsExport:

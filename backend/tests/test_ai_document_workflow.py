@@ -12,6 +12,7 @@ import requests
 import os
 import base64
 from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
+from backend.tests.test_credentials_helper import COMMON_TEST_EMAIL, COMMON_TEST_PASSWORD
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 TEST_EMAIL = COMMON_TEST_EMAIL
@@ -419,7 +420,7 @@ class TestDocumentLibraryIntegration:
         assert get_response.status_code == 200, f"Get failed: {get_response.text}"
         data = get_response.json()
         assert "file_data" in data, "file_data not included when requested"
-        print(f"✓ Document retrieved with file data")
+        print("✓ Document retrieved with file data")
 
 
 if __name__ == "__main__":

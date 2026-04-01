@@ -448,7 +448,7 @@ class TestAdminJobAssignment:
         assigned_ids = [e["id"] for e in details.get("assigned_employee_details", [])]
         assert employee_data["id"] in assigned_ids
         
-        print(f"SUCCESS: Employee assigned to job and persisted")
+        print("SUCCESS: Employee assigned to job and persisted")
     
     def test_job_details_includes_assigned_employees(self, admin_token, employee_data, test_job_with_assignment):
         """Test that job details includes assigned_employee_details"""

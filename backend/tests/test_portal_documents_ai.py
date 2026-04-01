@@ -15,6 +15,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
+from backend.tests.test_credentials_helper import COMMON_TEST_EMAIL, COMMON_TEST_PASSWORD
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
@@ -89,10 +90,10 @@ class TestAIBusinessAssistant:
         data = response.json()
         
         # Check that the response mentions specific data (not generic)
-        response_text = data["response"].lower()
+        _response_text = data["response"].lower()
         # Should contain some specific information
         assert len(data["response"]) >= 50, "Response too short - may not have context"
-        print(f"Context-aware response check passed")
+        print("Context-aware response check passed")
         print(f"Response: {data['response'][:300]}...")
     
     def test_ai_assistant_with_conversation_history(self):
@@ -180,7 +181,7 @@ class TestDocumentSendToPortal:
             data = response.json()
             TestDocumentSendToPortal.customer_id = data.get("id")
             print(f"Created test customer: {TestDocumentSendToPortal.customer_id}")
-            assert data.get("portal_enabled") == True, "Portal should be enabled"
+            assert data.get("portal_enabled"), "Portal should be enabled"
         else:
             # Try to find existing customers with portal enabled
             customers_resp = requests.get(f"{BASE_URL}/api/customers", headers=headers)
@@ -204,7 +205,7 @@ class TestDocumentSendToPortal:
         # Create a simple test PDF-like content (actually just text for testing)
         import base64
         test_content = b"Test document content for portal testing"
-        test_b64 = base64.b64encode(test_content).decode()
+        _test_b64 = base64.b64encode(test_content).decode()
         
         # Using form data for document upload
         files = {

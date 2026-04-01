@@ -9,6 +9,7 @@ import { Badge } from './ui/badge';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { getAuthToken } from '../lib/authStorage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -46,7 +47,7 @@ export default function DevPanel() {
 
   const checkAdminStatus = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       if (!token) return;
       
       const res = await axios.get(`${API}/users/me`, {
@@ -68,7 +69,7 @@ export default function DevPanel() {
 
   const fetchTenantInfo = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await axios.get(`${API}/billing/trial-status`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -87,7 +88,7 @@ export default function DevPanel() {
   const updateSubscriptionMode = async (mode) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       await axios.post(`${API}/dev/set-subscription-mode`, 
         { mode },
         { headers: { Authorization: `Bearer ${token}` }}
@@ -106,7 +107,7 @@ export default function DevPanel() {
   const updateCredits = async (amount) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       await axios.post(`${API}/dev/set-credits`, 
         { credits: amount },
         { headers: { Authorization: `Bearer ${token}` }}
@@ -124,7 +125,7 @@ export default function DevPanel() {
   const resetToDefaults = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       await axios.post(`${API}/dev/reset-to-admin`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });

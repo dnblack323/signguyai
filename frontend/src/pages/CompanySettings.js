@@ -11,6 +11,7 @@ import { Switch } from '../components/ui/switch';
 import { Building2, Phone, MapPin, Globe, Save, AlertTriangle, Crown, Timer, Clock, Users, Shield, Eye, EyeOff, Upload, X, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { getAuthToken } from '../lib/authStorage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -91,7 +92,7 @@ export default function CompanySettings() {
       // Fetch logo separately if tenant has one
       if (data.has_logo) {
         try {
-          const token = localStorage.getItem('auth_token');
+          const token = getAuthToken();
           const logoRes = await axios.get(`${API}/tenant/logo`, {
             headers: { Authorization: `Bearer ${token}` }
           });
@@ -236,7 +237,7 @@ export default function CompanySettings() {
       const formDataUpload = new FormData();
       formDataUpload.append('file', file);
 
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const response = await axios.post(`${API}/tenant/upload-logo`, formDataUpload, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -271,7 +272,7 @@ export default function CompanySettings() {
 
     setUploadingLogo(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       await axios.delete(`${API}/tenant/logo`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });

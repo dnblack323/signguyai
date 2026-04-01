@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Eraser, Loader2, Palette, Trash2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Palette, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -13,6 +13,41 @@ const COLORS = [
 ];
 
 const SIZES = ['2', '4', '6', '8', '12'];
+
+const waitForImage = (src) => new Promise((resolve) => {
+  const image = new Image();
+  image.crossOrigin = 'anonymous';
+  image.onload = () => resolve(image);
+  image.onerror = () => resolve(image);
+  image.src = src;
+});
+
+const configureContext = (context, strokeColor, penSize) => {
+  context.lineCap = 'round';
+  context.lineJoin = 'round';
+  context.strokeStyle = strokeColor;
+  context.lineWidth = Number(penSize);
+};
+
+const drawCenteredImage = (context, image, width, height) => {
+  if (!image.width || !image.height) return;
+  const scale = Math.min(width / image.width, height / image.height);
+  const drawWidth = image.width * scale;
+  const drawHeight = image.height * scale;
+  const offsetX = (width - drawWidth) / 2;
+  const offsetY = (height - drawHeight) / 2;
+  context.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+};
+
+const getCanvasPosition = (canvas, event) => {
+  const rect = canvas.getBoundingClientRect();
+  if (event.touches?.length) {
+    return { x: event.touches[0].clientX - rect.left, y: event.touches[0].clientY - rect.top };
+  }
+  return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+};
+
+const getCanvasSnapshot = (canvas) => canvas.toDataURL('image/png');
 
 export const DrawingCanvasPad = ({
   backgroundImageUrl,
@@ -42,18 +77,13 @@ export const DrawingCanvasPad = ({
     const canvas = canvasRef.current;
     if (!canvas || !snapshot) return;
     const context = canvas.getContext('2d');
-    const image = new Image();
-    image.onload = () => {
+    waitForImage(snapshot).then((image) => {
       context.setTransform(1, 0, 0, 1, 0, 0);
       context.clearRect(0, 0, canvas.width, canvas.height);
       context.drawImage(image, 0, 0, canvas.width, canvas.height);
       context.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
-      context.lineCap = 'round';
-      context.lineJoin = 'round';
-      context.strokeStyle = strokeColor;
-      context.lineWidth = Number(penSize);
-    };
-    image.src = snapshot;
+      configureContext(context, strokeColor, penSize);
+    });
   }, [penSize, strokeColor]);
 
   const buildBaseCanvas = useCallback(async () => {
@@ -78,44 +108,22 @@ export const DrawingCanvasPad = ({
     context.fillRect(0, 0, width, height);
 
     if (backgroundImageUrl) {
-      const image = new Image();
-      image.crossOrigin = 'anonymous';
-      await new Promise((resolve) => {
-        image.onload = resolve;
-        image.onerror = resolve;
-        image.src = backgroundImageUrl;
-      });
-      if (image.width && image.height) {
-        const scale = Math.min(width / image.width, height / image.height);
-        const drawWidth = image.width * scale;
-        const drawHeight = image.height * scale;
-        const offsetX = (width - drawWidth) / 2;
-        const offsetY = (height - drawHeight) / 2;
-        context.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
-      }
+      const image = await waitForImage(backgroundImageUrl);
+      drawCenteredImage(context, image, width, height);
     }
 
-    const baseSnapshot = canvas.toDataURL('image/png');
+    const baseSnapshot = getCanvasSnapshot(canvas);
     baseSnapshotRef.current = baseSnapshot;
 
     if (initialImageUrl) {
-      const draftImage = new Image();
-      draftImage.crossOrigin = 'anonymous';
-      await new Promise((resolve) => {
-        draftImage.onload = resolve;
-        draftImage.onerror = resolve;
-        draftImage.src = initialImageUrl;
-      });
+      const draftImage = await waitForImage(initialImageUrl);
       if (draftImage.width && draftImage.height) {
         context.drawImage(draftImage, 0, 0, width, height);
       }
     }
 
-    context.lineCap = 'round';
-    context.lineJoin = 'round';
-    context.strokeStyle = strokeColor;
-    context.lineWidth = Number(penSize);
-    const snapshot = canvas.toDataURL('image/png');
+    configureContext(context, strokeColor, penSize);
+    const snapshot = getCanvasSnapshot(canvas);
     historyRef.current = initialImageUrl ? [baseSnapshot, snapshot] : [snapshot];
     setHasChanges(false);
     onChange?.({ hasChanges: false, imageData: snapshot });
@@ -129,20 +137,12 @@ export const DrawingCanvasPad = ({
     return () => window.removeEventListener('resize', handleResize);
   }, [buildBaseCanvas]);
 
-  const getPosition = (event) => {
-    const rect = canvasRef.current.getBoundingClientRect();
-    if (event.touches?.length) {
-      return { x: event.touches[0].clientX - rect.left, y: event.touches[0].clientY - rect.top };
-    }
-    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
-  };
-
   const scheduleAutosave = useCallback(() => {
     if (!autosaveEnabled || !onAutosave) return;
     if (drawIdleTimeoutRef.current) clearTimeout(drawIdleTimeoutRef.current);
     drawIdleTimeoutRef.current = setTimeout(async () => {
       setAutosaveState('Saving...');
-      await onAutosave(canvasRef.current.toDataURL('image/png'));
+      await onAutosave(getCanvasSnapshot(canvasRef.current));
       setAutosaveState('Draft autosaved');
     }, 1800);
   }, [autosaveEnabled, onAutosave]);
@@ -152,7 +152,7 @@ export const DrawingCanvasPad = ({
     autosaveIntervalRef.current = setInterval(async () => {
       if (!hasChanges) return;
       setAutosaveState('Saving...');
-      await onAutosave(canvasRef.current.toDataURL('image/png'));
+      await onAutosave(getCanvasSnapshot(canvasRef.current));
       setAutosaveState('All changes saved');
     }, 45000);
     return () => {
@@ -167,7 +167,7 @@ export const DrawingCanvasPad = ({
     const context = canvasRef.current.getContext('2d');
     context.strokeStyle = strokeColor;
     context.lineWidth = Number(penSize);
-    const position = getPosition(event);
+    const position = getCanvasPosition(canvasRef.current, event);
     lastPointRef.current = position;
     context.beginPath();
     context.moveTo(position.x, position.y);
@@ -177,7 +177,7 @@ export const DrawingCanvasPad = ({
     if (!isDrawing) return;
     event.preventDefault();
     const context = canvasRef.current.getContext('2d');
-    const position = getPosition(event);
+    const position = getCanvasPosition(canvasRef.current, event);
     if (lastPointRef.current) {
       const midpoint = {
         x: (lastPointRef.current.x + position.x) / 2,
@@ -196,7 +196,7 @@ export const DrawingCanvasPad = ({
     event.preventDefault();
     setIsDrawing(false);
     lastPointRef.current = null;
-    const snapshot = canvasRef.current.toDataURL('image/png');
+    const snapshot = getCanvasSnapshot(canvasRef.current);
     historyRef.current = [...historyRef.current, snapshot];
     setHasChanges(true);
     onChange?.({ hasChanges: true, imageData: snapshot });

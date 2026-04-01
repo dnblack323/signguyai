@@ -255,7 +255,7 @@ class TestCustomerRoutes:
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == test_customer["id"]
-        print(f"✅ Get customer by ID working")
+        print("✅ Get customer by ID working")
     
     def test_update_customer(self, auth_headers, test_customer):
         """Test PUT /api/customers/{id} updates customer"""

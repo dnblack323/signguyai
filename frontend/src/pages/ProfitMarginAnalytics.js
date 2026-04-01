@@ -15,6 +15,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { ArrowDown, ArrowUp, Download, Filter, Loader2, Settings2, TrendingDown, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
+import { getAuthToken } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -67,7 +68,7 @@ export default function ProfitMarginAnalytics() {
     enabled_widgets: Object.fromEntries(Object.keys(WIDGET_LABELS).map((key) => [key, true])),
   });
 
-  const getToken = () => localStorage.getItem('auth_token');
+  const getToken = () => getAuthToken();
 
   const fetchDashboard = useCallback(async () => {
     const token = getToken();

@@ -39,7 +39,7 @@ class TestPublicStorefrontNoAuth:
         
         assert "id" in data
         assert data["id"] == EXISTING_STORE_ID
-        assert data["is_public"] == True
+        assert data["is_public"]
         assert data["status"] == "active"
         assert "name" in data
         assert "owner_name" in data
@@ -150,7 +150,7 @@ class TestProductMultipleImages:
         data = response.json()
         
         assert len(data["images"]) <= 3, "Images should be limited to 3"
-        print(f"✅ Images correctly limited to 3")
+        print("✅ Images correctly limited to 3")
         
         # Cleanup
         self.session.delete(f"{BASE_URL}/api/products/{data['id']}")
@@ -230,7 +230,7 @@ class TestProductApparelVariants:
         assert response.status_code == 200, f"Failed: {response.text}"
         data = response.json()
         
-        assert data["has_variants"] == True
+        assert data["has_variants"]
         assert len(data["variants"]) == 12  # 3 tiers * 4 sizes
         
         # Verify tier info is saved
@@ -255,7 +255,7 @@ class TestProductApparelVariants:
         if not tshirt:
             pytest.skip("Custom T-Shirt product not found")
         
-        assert tshirt["has_variants"] == True
+        assert tshirt["has_variants"]
         assert len(tshirt["variants"]) >= 9  # At least 3 tiers * 3 sizes
         
         # Check tiers exist
@@ -305,7 +305,7 @@ class TestWebstoreCreationAndProducts:
         
         assert data["name"] == store_data["name"]
         assert data["store_type"] == "business"
-        assert data["is_public"] == True
+        assert data["is_public"]
         assert data["status"] == "active"
         assert data["branding"]["primary_color"] == "#0066FF"
         
@@ -340,7 +340,7 @@ class TestWebstoreCreationAndProducts:
         product_ids = [p["id"] for p in prods]
         assert product["id"] in product_ids or any(p.get("product_id") == product["id"] for p in prods)
         
-        print(f"✅ Product added to webstore")
+        print("✅ Product added to webstore")
     
     def test_webstore_shows_sales_stats(self):
         """Test that webstore has sales/profit stats"""
@@ -509,7 +509,7 @@ class TestDecalSizeVariants:
         data = response.json()
         
         assert data["category"] == "decals"
-        assert data["has_variants"] == True
+        assert data["has_variants"]
         assert len(data["variants"]) == 4
         
         # Verify size pricing
@@ -579,12 +579,12 @@ class TestWebstoreIntegration:
             params={"product_id": product["id"]}
         )
         assert assign_response.status_code == 200
-        print(f"3. ✅ Added product to webstore")
+        print("3. ✅ Added product to webstore")
         
         # 4. Verify public access
         public_response = requests.get(f"{BASE_URL}/api/storefront/{store['id']}")
         assert public_response.status_code == 200
-        print(f"4. ✅ Public storefront accessible")
+        print("4. ✅ Public storefront accessible")
         
         # 5. Get products from public endpoint
         public_products = requests.get(f"{BASE_URL}/api/storefront/{store['id']}/products")

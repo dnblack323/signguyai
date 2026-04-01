@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { getAuthToken } from '../lib/authStorage';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -56,7 +57,7 @@ export function ProductionTimelinePanel({
   useEffect(() => {
     const loadEmployees = async () => {
       try {
-        const token = localStorage.getItem('auth_token');
+        const token = getAuthToken();
         const res = await axios.get(`${API}/api/employees`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -109,7 +110,7 @@ export function ProductionTimelinePanel({
     setAdvancing(true);
     
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await axios.post(
         `${API}/api/production-timeline/${timeline.id}/advance`,
         {},
@@ -139,7 +140,7 @@ export function ProductionTimelinePanel({
     if (!timeline || !editingStage) return;
     
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const updateData = {};
       
       if (editForm.notes !== editingStage.notes) {
@@ -393,7 +394,7 @@ export function EnableTimelineDialog({
   const handleEnable = async () => {
     setEnabling(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await axios.post(
         `${API}/api/production-timeline/enable`,
         null,
@@ -478,7 +479,7 @@ export function TimelineToggle({
 
   const loadTimeline = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const res = await axios.get(
         `${API}/api/production-timeline/line-item/${lineItemId}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
@@ -496,7 +497,7 @@ export function TimelineToggle({
     
     setLoading(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       await axios.delete(
         `${API}/api/production-timeline/line-item/${lineItemId}`,
         { headers: { 'Authorization': `Bearer ${token}` } }

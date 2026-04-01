@@ -138,7 +138,7 @@ class TestAdminJobDetailsPortalData:
         for field in expected_fields:
             assert field in data, f"Field '{field}' missing from job details"
         
-        print(f"PASS: All expected fields present in job details response")
+        print("PASS: All expected fields present in job details response")
 
 
 class TestPortalInvoicePayment:
@@ -224,7 +224,7 @@ class TestPortalInvoicePayment:
             # If Stripe IS enabled, we should get a URL and session_id
             data = response.json()
             assert "url" in data or "session_id" in data
-            print(f"INFO: Stripe IS enabled - got checkout URL")
+            print("INFO: Stripe IS enabled - got checkout URL")
         else:
             pytest.fail(f"Unexpected status code: {response.status_code}")
 
@@ -257,7 +257,7 @@ class TestPortalInvoicePayment:
         assert response.status_code == 400
         data = response.json()
         assert "already paid" in data.get("detail", "").lower()
-        print(f"PASS: Correctly rejects payment for already paid invoice")
+        print("PASS: Correctly rejects payment for already paid invoice")
 
     def test_invoice_not_found(self, portal_token):
         """Verify 404 for non-existent invoice"""
@@ -316,7 +316,7 @@ class TestPortalDashboardRegression:
         for field in expected_stats:
             assert field in stats, f"Stats missing '{field}'"
         
-        print(f"PASS: Portal dashboard returns enriched stats")
+        print("PASS: Portal dashboard returns enriched stats")
 
     def test_portal_dashboard_arrays(self, portal_token):
         """Verify portal dashboard returns widget arrays"""
@@ -333,7 +333,7 @@ class TestPortalDashboardRegression:
             assert field in data, f"Dashboard missing '{field}' array"
             assert isinstance(data[field], list), f"'{field}' should be a list"
         
-        print(f"PASS: Portal dashboard returns all expected widget arrays")
+        print("PASS: Portal dashboard returns all expected widget arrays")
 
 
 class TestPortalOrdersDetailRegression:
@@ -382,7 +382,7 @@ class TestPortalOrdersDetailRegression:
             assert "label" in timeline[0]
             assert "status" in timeline[0]
         
-        print(f"PASS: Portal order detail returns enriched data with timeline")
+        print("PASS: Portal order detail returns enriched data with timeline")
 
 
 class TestPortalProofsRegression:
@@ -475,4 +475,4 @@ class TestPortalInvoicesRegression:
         )
         assert response.status_code == 200
         assert "application/pdf" in response.headers.get("content-type", "")
-        print(f"PASS: Portal invoice PDF download works")
+        print("PASS: Portal invoice PDF download works")

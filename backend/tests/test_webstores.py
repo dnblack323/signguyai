@@ -78,7 +78,7 @@ class TestWebstoreAPI:
         # Cleanup
         store_id = data["id"]
         requests.delete(f"{BASE_URL}/api/webstores/v2/{store_id}")
-        print(f"✅ Created and deleted test store with branding")
+        print("✅ Created and deleted test store with branding")
     
     def test_update_webstore_branding(self):
         """Test updating webstore branding"""
@@ -111,7 +111,7 @@ class TestWebstoreAPI:
         
         # Cleanup
         requests.delete(f"{BASE_URL}/api/webstores/v2/{store_id}")
-        print(f"✅ Updated webstore branding successfully")
+        print("✅ Updated webstore branding successfully")
 
 
 class TestWebstoreProducts:
@@ -234,7 +234,7 @@ class TestStorefrontPublicAccess:
         response = requests.get(f"{BASE_URL}/api/webstores/v2/{TEST_STORE_ID}")
         assert response.status_code == 200
         data = response.json()
-        assert data["is_public"] == True
+        assert data["is_public"]
         print(f"✅ Store is public: {data['name']}")
     
     def test_store_products_accessible(self):

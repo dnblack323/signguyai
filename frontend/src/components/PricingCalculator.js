@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAICreditGuard } from './credits/AICreditConfirmationDialog';
+import { getAuthToken } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -192,7 +193,7 @@ export default function PricingCalculator({
   const [savingTemplate, setSavingTemplate] = useState(false);
 
   // Get auth token
-  const getToken = () => localStorage.getItem('auth_token');
+  const getToken = () => getAuthToken();
 
   // Fetch AI-powered pricing suggestions
   const fetchAiSuggestions = async () => {

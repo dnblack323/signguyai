@@ -53,6 +53,7 @@ import { JobHistoryPanel } from '../components/JobHistoryPanel';
 import { toast } from 'sonner';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
 import PricingCalculatorModal, { PricingCalculatorButton } from '../components/PricingCalculatorModal';
+import { getAuthToken } from '../lib/authStorage';
 
 // Updated status options for unified system
 const statusOptions = ['quote', 'approved', 'in_progress', 'completed', 'invoiced', 'archived'];
@@ -1136,7 +1137,7 @@ export function JobDetails() {
 
   const handleSaveAssignments = async (employeeIds) => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/jobs/${id}/assign-employees`, {
         method: 'PUT',
         headers: {

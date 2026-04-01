@@ -80,7 +80,7 @@ class TestWebstoreOrderFlow:
         # Cleanup: Delete the webstore after tests
         try:
             requests.delete(f"{BASE_URL}/api/webstores/v2/{webstore['id']}", headers=auth_headers)
-        except:
+        except Exception:
             pass
     
     @pytest.fixture(scope="class")
@@ -111,7 +111,7 @@ class TestWebstoreOrderFlow:
         # Cleanup: Delete the product after tests
         try:
             requests.delete(f"{BASE_URL}/api/products/{product['id']}", headers=auth_headers)
-        except:
+        except Exception:
             pass
     
     # ============== Test 1: User Login ==============
@@ -119,14 +119,14 @@ class TestWebstoreOrderFlow:
         """Test 1: User login and authentication works"""
         assert auth_token is not None, "Auth token should not be None"
         assert len(auth_token) > 0, "Auth token should not be empty"
-        print(f"✓ Login successful, received auth token")
+        print("✓ Login successful, received auth token")
     
     # ============== Test 2: Create Webstore ==============
     def test_create_webstore(self, test_webstore):
         """Test 2: Create a new webstore (Business type)"""
         assert test_webstore["store_type"] == "business"
         assert test_webstore["status"] == "active"
-        assert test_webstore["is_public"] == True
+        assert test_webstore["is_public"]
         assert "owner_name" in test_webstore
         print(f"✓ Created webstore: {test_webstore['name']} (ID: {test_webstore['id']})")
     
@@ -136,7 +136,7 @@ class TestWebstoreOrderFlow:
         assert test_product["category"] == "signs"
         assert test_product["base_cost"] == 15.00
         assert test_product["retail_price"] == 25.00
-        assert test_product["is_active"] == True
+        assert test_product["is_active"]
         print(f"✓ Created product: {test_product['name']} (ID: {test_product['id']})")
     
     # ============== Test 4: Assign Product to Webstore ==============

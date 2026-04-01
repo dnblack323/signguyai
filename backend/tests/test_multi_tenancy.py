@@ -133,7 +133,7 @@ class TestMultiTenancy:
         # Get current tenant first
         get_response = self.session.get(f"{BASE_URL}/api/tenant/current")
         assert get_response.status_code == 200
-        original_tenant = get_response.json()
+        _original_tenant = get_response.json()
         
         # Update tenant settings
         update_data = {

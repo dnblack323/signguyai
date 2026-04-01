@@ -57,7 +57,7 @@ class TestCORSHeaders:
         # Check for access-control-allow-origin header (case-insensitive)
         allow_origin = response.headers.get("access-control-allow-origin", "")
         assert allow_origin == "*", f"Expected '*', got '{allow_origin}'"
-        print(f"✅ access-control-allow-origin: * present")
+        print("✅ access-control-allow-origin: * present")
     
     def test_options_preflight_no_credentials_header(self):
         """OPTIONS response should NOT have access-control-allow-credentials header"""
@@ -73,7 +73,7 @@ class TestCORSHeaders:
         credentials_header = response.headers.get("access-control-allow-credentials", None)
         assert credentials_header is None or credentials_header.lower() != "true", \
             f"CORS FIX NOT APPLIED: access-control-allow-credentials should NOT be 'true', got '{credentials_header}'"
-        print(f"✅ access-control-allow-credentials header is NOT 'true' (fix verified)")
+        print("✅ access-control-allow-credentials header is NOT 'true' (fix verified)")
     
     def test_options_preflight_allows_post_method(self):
         """OPTIONS response should allow POST method"""
@@ -88,7 +88,7 @@ class TestCORSHeaders:
         allow_methods = response.headers.get("access-control-allow-methods", "")
         assert "POST" in allow_methods or "*" in allow_methods, \
             f"POST not in allowed methods: {allow_methods}"
-        print(f"✅ POST method allowed in CORS preflight")
+        print("✅ POST method allowed in CORS preflight")
     
     def test_post_response_has_cors_headers(self):
         """POST response should also have CORS headers"""
@@ -107,8 +107,8 @@ class TestCORSHeaders:
         # Verify no credentials header
         credentials_header = response.headers.get("access-control-allow-credentials", None)
         assert credentials_header is None or credentials_header.lower() != "true", \
-            f"POST response should NOT have credentials: true"
-        print(f"✅ POST response has correct CORS headers")
+            "POST response should NOT have credentials: true"
+        print("✅ POST response has correct CORS headers")
     
     def test_options_preflight_users_me(self):
         """OPTIONS preflight to protected endpoint /api/users/me should work"""
@@ -125,7 +125,7 @@ class TestCORSHeaders:
         # Check credentials header is NOT set to true
         credentials_header = response.headers.get("access-control-allow-credentials", None)
         assert credentials_header is None or credentials_header.lower() != "true", \
-            f"Protected endpoint CORS should not have credentials: true"
+            "Protected endpoint CORS should not have credentials: true"
         print(f"✅ OPTIONS /api/users/me returns {response.status_code} with correct headers")
 
 
@@ -146,7 +146,7 @@ class TestLoginWithAdminCredentials:
         assert "access_token" in data, "No access_token in response"
         assert data["token_type"] == "bearer"
         assert len(data["access_token"]) > 0
-        print(f"✅ Admin login successful")
+        print("✅ Admin login successful")
         
         return data["access_token"]
     
@@ -168,7 +168,7 @@ class TestLoginWithAdminCredentials:
         data = profile_response.json()
         assert data["email"] == ADMIN_EMAIL.lower() or data["email"] == ADMIN_EMAIL
         assert "id" in data
-        print(f"✅ GET /api/users/me returns admin profile")
+        print("✅ GET /api/users/me returns admin profile")
     
     def test_login_admin_get_permissions(self):
         """After admin login, GET /api/users/me/permissions should return permissions"""
@@ -208,9 +208,9 @@ class TestLoginWithTestCredentials:
         if response.status_code == 200:
             data = response.json()
             assert "access_token" in data
-            print(f"✅ Test user login successful")
+            print("✅ Test user login successful")
         elif response.status_code == 401:
-            print(f"⚠️ Test user (test@test.com) does not exist or wrong password - this is OK if not seeded")
+            print("⚠️ Test user (test@test.com) does not exist or wrong password - this is OK if not seeded")
         else:
             pytest.fail(f"Unexpected status: {response.status_code} - {response.text}")
 
@@ -240,7 +240,7 @@ class TestLoginWithRememberMe:
         else:
             # Token is valid even if expires_in not returned
             assert len(data["access_token"]) > 0
-            print(f"✅ Login with remember_me=true successful (token issued)")
+            print("✅ Login with remember_me=true successful (token issued)")
     
     def test_login_with_remember_me_false(self):
         """POST /api/auth/login with remember_me=false should return standard token"""
@@ -255,7 +255,7 @@ class TestLoginWithRememberMe:
         
         data = response.json()
         assert "access_token" in data
-        print(f"✅ Login with remember_me=false successful")
+        print("✅ Login with remember_me=false successful")
 
 
 class TestLoginInvalidCredentials:
@@ -273,7 +273,7 @@ class TestLoginInvalidCredentials:
         
         data = response.json()
         assert "detail" in data
-        print(f"✅ Wrong password returns 401")
+        print("✅ Wrong password returns 401")
     
     def test_login_nonexistent_email(self):
         """POST /api/auth/login with non-existent email should return 401"""
@@ -284,7 +284,7 @@ class TestLoginInvalidCredentials:
         
         response = requests.post(f"{BASE_URL}/api/auth/login", json=payload)
         assert response.status_code == 401, f"Expected 401, got {response.status_code}"
-        print(f"✅ Non-existent email returns 401")
+        print("✅ Non-existent email returns 401")
 
 
 class TestRegistrationFlow:
@@ -315,7 +315,7 @@ class TestRegistrationFlow:
         
         profile = profile_response.json()
         assert profile["email"] == unique_email.lower()
-        print(f"✅ New user can access protected endpoint with token")
+        print("✅ New user can access protected endpoint with token")
 
 
 class TestHealthEndpoint:
@@ -328,7 +328,7 @@ class TestHealthEndpoint:
         
         data = response.json()
         assert data["status"] == "healthy"
-        print(f"✅ Health endpoint returns healthy")
+        print("✅ Health endpoint returns healthy")
 
 
 if __name__ == "__main__":

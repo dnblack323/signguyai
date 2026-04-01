@@ -138,7 +138,7 @@ class TestEmployeeAdminLifecycle:
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["is_active"] == False
+        assert not data["is_active"]
         print("PASS: Deactivate employee works correctly")
     
     def test_05_reactivate_employee(self, admin_token, test_employee_id):
@@ -150,7 +150,7 @@ class TestEmployeeAdminLifecycle:
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["is_active"] == True
+        assert data["is_active"]
         print("PASS: Reactivate employee works correctly")
     
     def test_06_reset_employee_pin(self, admin_token, test_employee_id):

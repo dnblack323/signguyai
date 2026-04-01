@@ -182,7 +182,7 @@ class TestOrderDrawingsCreateEndpoint:
         assert "storage_path" in data, "Should have storage_path"
         assert "created_at" in data, "Should have created_at"
         assert "created_by" in data, "Should have created_by"
-        assert data["is_deleted"] == False, "is_deleted should be False"
+        assert not data["is_deleted"], "is_deleted should be False"
         
         print(f"Created drawing with ID: {data['id']}")
         

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../co
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
+import { getPortalToken } from '../lib/authStorage';
 import { 
   Loader2, Briefcase, ChevronLeft, ChevronRight, FileText, 
   Clock, CheckCircle, Truck, Package, AlertCircle
@@ -20,7 +21,7 @@ export function PortalOrders() {
   const customerName = localStorage.getItem('portal_customer_name') || 'Customer';
 
   const fetchOrders = useCallback(async () => {
-    const token = localStorage.getItem('portal_token');
+    const token = getPortalToken();
     if (!token) {
       navigate('/customer-portal/login');
       return;
@@ -172,7 +173,7 @@ export function PortalOrderDetail() {
 
   useEffect(() => {
     const fetchOrder = async () => {
-      const token = localStorage.getItem('portal_token');
+      const token = getPortalToken();
       if (!token) {
         navigate('/customer-portal/login');
         return;

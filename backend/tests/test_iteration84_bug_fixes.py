@@ -72,7 +72,7 @@ class TestTenantScopedUserList:
         
         # Should only have one tenant_id (current tenant)
         assert len(tenant_ids) <= 1, f"Found users from multiple tenants: {tenant_ids}"
-        print(f"PASS: All users belong to single tenant")
+        print("PASS: All users belong to single tenant")
 
 
 class TestAdminCreateUser:
@@ -101,7 +101,7 @@ class TestAdminCreateUser:
                     f"{BASE_URL}/api/admin/users/{user_id}/status?is_active=false",
                     headers=self.headers
                 )
-            except:
+            except Exception:
                 pass
     
     def test_admin_create_user_success(self):
@@ -151,9 +151,9 @@ class TestAdminCreateUser:
         
         users = list_response.json()
         user_emails = [u.get("email") for u in users]
-        assert test_email.lower() in user_emails, f"Created user not found in user list"
+        assert test_email.lower() in user_emails, "Created user not found in user list"
         
-        print(f"PASS: Created user appears in tenant user list")
+        print("PASS: Created user appears in tenant user list")
 
 
 class TestEmployeePortalInvite:
@@ -176,7 +176,7 @@ class TestEmployeePortalInvite:
         for emp_id in self.created_employee_ids:
             try:
                 requests.delete(f"{BASE_URL}/api/employees/{emp_id}", headers=self.headers)
-            except:
+            except Exception:
                 pass
     
     def test_invite_portal_returns_metadata(self):
@@ -237,7 +237,7 @@ class TestEmployeePortalInvite:
         assert invite_response.status_code == 400, f"Expected 400, got {invite_response.status_code}"
         assert "email" in invite_response.text.lower(), "Error should mention email requirement"
         
-        print(f"PASS: Invite portal correctly requires employee email")
+        print("PASS: Invite portal correctly requires employee email")
 
 
 class TestTimesheetEntryEditing:
@@ -261,12 +261,12 @@ class TestTimesheetEntryEditing:
         for hours_id in self.created_hours_ids:
             try:
                 requests.delete(f"{BASE_URL}/api/payroll/hours/{hours_id}", headers=self.headers)
-            except:
+            except Exception:
                 pass
         for emp_id in self.created_employee_ids:
             try:
                 requests.delete(f"{BASE_URL}/api/employees/{emp_id}", headers=self.headers)
-            except:
+            except Exception:
                 pass
     
     def test_timesheet_entries_include_employee_id(self):
@@ -322,7 +322,7 @@ class TestTimesheetEntryEditing:
                 assert entry["employee_id"] == employee["id"], \
                     f"Entry has wrong employee_id: {entry.get('employee_id')}"
         
-        print(f"PASS: Timesheet manual entries include employee_id")
+        print("PASS: Timesheet manual entries include employee_id")
     
     def test_manual_entry_can_be_edited(self):
         """Test that manual hours entry can be edited"""
@@ -365,7 +365,7 @@ class TestTimesheetEntryEditing:
         assert updated_entry["description"] == "Updated description"
         assert updated_entry["task_type"] == "production"
         
-        print(f"PASS: Manual hours entry can be edited")
+        print("PASS: Manual hours entry can be edited")
     
     def test_manual_entry_can_be_deleted(self):
         """Test that manual hours entry can be deleted"""
@@ -408,7 +408,7 @@ class TestTimesheetEntryEditing:
         remaining_ids = [h["id"] for h in remaining]
         assert hours_entry["id"] not in remaining_ids, "Deleted entry still exists"
         
-        print(f"PASS: Manual hours entry can be deleted")
+        print("PASS: Manual hours entry can be deleted")
 
 
 class TestTimeclockShiftDelete:
@@ -431,7 +431,7 @@ class TestTimeclockShiftDelete:
         for emp_id in self.created_employee_ids:
             try:
                 requests.delete(f"{BASE_URL}/api/employees/{emp_id}", headers=self.headers)
-            except:
+            except Exception:
                 pass
     
     def test_timeclock_shift_can_be_deleted(self):
@@ -493,7 +493,7 @@ class TestTimeclockShiftDelete:
         remaining_ids = [s["id"] for s in remaining_shifts]
         assert shift_id not in remaining_ids, "Deleted shift still exists"
         
-        print(f"PASS: Time clock shift can be deleted")
+        print("PASS: Time clock shift can be deleted")
 
 
 class TestPayrollTransactionsNoRegression:
@@ -517,12 +517,12 @@ class TestPayrollTransactionsNoRegression:
         for txn_id in self.created_transaction_ids:
             try:
                 requests.delete(f"{BASE_URL}/api/payroll/transactions/{txn_id}", headers=self.headers)
-            except:
+            except Exception:
                 pass
         for emp_id in self.created_employee_ids:
             try:
                 requests.delete(f"{BASE_URL}/api/employees/{emp_id}", headers=self.headers)
-            except:
+            except Exception:
                 pass
     
     def test_create_transaction(self):
@@ -554,7 +554,7 @@ class TestPayrollTransactionsNoRegression:
         assert txn["type"] == "advance"
         assert txn["amount"] == 100.0
         
-        print(f"PASS: Payroll transaction created successfully")
+        print("PASS: Payroll transaction created successfully")
     
     def test_edit_transaction(self):
         """Test editing a payroll transaction"""
@@ -595,7 +595,7 @@ class TestPayrollTransactionsNoRegression:
         assert updated_txn["amount"] == 250.0
         assert updated_txn["description"] == "Updated payment"
         
-        print(f"PASS: Payroll transaction edited successfully")
+        print("PASS: Payroll transaction edited successfully")
     
     def test_delete_transaction(self):
         """Test deleting a payroll transaction"""
@@ -638,7 +638,7 @@ class TestPayrollTransactionsNoRegression:
         remaining_ids = [t["id"] for t in remaining]
         assert txn["id"] not in remaining_ids, "Deleted transaction still exists"
         
-        print(f"PASS: Payroll transaction deleted successfully")
+        print("PASS: Payroll transaction deleted successfully")
     
     def test_list_transactions(self):
         """Test listing payroll transactions"""
@@ -672,12 +672,12 @@ class TestTimeEntriesNoRegression:
         for hours_id in self.created_hours_ids:
             try:
                 requests.delete(f"{BASE_URL}/api/payroll/hours/{hours_id}", headers=self.headers)
-            except:
+            except Exception:
                 pass
         for emp_id in self.created_employee_ids:
             try:
                 requests.delete(f"{BASE_URL}/api/employees/{emp_id}", headers=self.headers)
-            except:
+            except Exception:
                 pass
     
     def test_get_manual_hours(self):
@@ -770,7 +770,7 @@ class TestTimeEntriesNoRegression:
         remaining = verify_response.json()
         assert not any(e["id"] == entry["id"] for e in remaining), "Entry not deleted"
         
-        print(f"PASS: Manual hours CRUD flow works correctly")
+        print("PASS: Manual hours CRUD flow works correctly")
 
 
 if __name__ == "__main__":

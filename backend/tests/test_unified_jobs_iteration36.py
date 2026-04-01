@@ -90,7 +90,7 @@ class TestJobsUnifiedSystem:
                 for job in jobs:
                     if job.get("name", "").startswith(TEST_PREFIX):
                         self.session.delete(f"{BASE_URL}/api/jobs/{job['id']}")
-        except:
+        except Exception:
             pass
     
     # ============== TEST: Create Job with status='quote' ==============
@@ -231,7 +231,7 @@ class TestJobsUnifiedSystem:
         # CRITICAL: Verify the same ID - no record duplication
         assert job_after["id"] == quote_job_id, "Job ID should remain the same after approval (no duplication)"
         
-        print(f"✅ Job approved successfully: status changed from 'quote' to 'approved'")
+        print("✅ Job approved successfully: status changed from 'quote' to 'approved'")
         print(f"✅ Same job ID: {quote_job_id} - No record duplication")
     
     def test_approve_already_approved_fails(self):
@@ -250,8 +250,8 @@ class TestJobsUnifiedSystem:
     def test_dashboard_active_jobs_excludes_quotes(self):
         """Test that dashboard 'active_jobs' count does NOT include quotes"""
         # Create a quote and an approved job
-        quote_id = self.test_create_job_as_quote()
-        approved_id = self.test_create_job_as_approved()
+        _quote_id = self.test_create_job_as_quote()
+        _approved_id = self.test_create_job_as_approved()
         
         # Get dashboard stats
         stats_response = self.session.get(f"{BASE_URL}/api/dashboard/stats")

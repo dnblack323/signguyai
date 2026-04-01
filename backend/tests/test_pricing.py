@@ -29,7 +29,7 @@ class TestPricingAPIs:
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json"
         }
-        print(f"✅ Logged in successfully, token obtained")
+        print("✅ Logged in successfully, token obtained")
     
     # ============== PRICING DEFAULTS TESTS ==============
     
@@ -72,7 +72,7 @@ class TestPricingAPIs:
         assert update_response.status_code == 200, f"Expected 200, got {update_response.status_code}: {update_response.text}"
         
         updated_data = update_response.json()
-        assert updated_data.get("hourly_rate") == new_hourly_rate, f"Hourly rate not updated"
+        assert updated_data.get("hourly_rate") == new_hourly_rate, "Hourly rate not updated"
         print(f"✅ Pricing defaults updated: hourly_rate={new_hourly_rate}")
         
         # Verify persistence with GET
@@ -83,7 +83,7 @@ class TestPricingAPIs:
         assert verify_response.status_code == 200
         verify_data = verify_response.json()
         assert verify_data.get("hourly_rate") == new_hourly_rate, "Update not persisted"
-        print(f"✅ Update persisted correctly")
+        print("✅ Update persisted correctly")
         
         # Restore original value
         requests.put(
@@ -359,7 +359,7 @@ class TestPricingAPIs:
         templates = list_response.json()
         template_ids = [t["id"] for t in templates]
         assert data["id"] in template_ids, "Created template not in list"
-        print(f"✅ Template persisted and appears in list")
+        print("✅ Template persisted and appears in list")
         
         return data["id"]
     
@@ -396,7 +396,7 @@ class TestPricingAPIs:
         templates = list_response.json()
         found = any(t["id"] == template_id for t in templates)
         assert found, "Template not found in list"
-        print(f"✅ Template found in list")
+        print("✅ Template found in list")
         
         # UPDATE (toggle favorite)
         favorite_response = requests.put(
@@ -405,8 +405,8 @@ class TestPricingAPIs:
         )
         assert favorite_response.status_code == 200
         fav_data = favorite_response.json()
-        assert fav_data.get("is_favorite") == True, "Favorite not toggled"
-        print(f"✅ Template favorited")
+        assert fav_data.get("is_favorite"), "Favorite not toggled"
+        print("✅ Template favorited")
         
         # DELETE
         delete_response = requests.delete(
@@ -414,7 +414,7 @@ class TestPricingAPIs:
             headers=self.headers
         )
         assert delete_response.status_code == 200
-        print(f"✅ Template deleted")
+        print("✅ Template deleted")
         
         # Verify deletion
         verify_response = requests.get(
@@ -424,7 +424,7 @@ class TestPricingAPIs:
         templates = verify_response.json()
         found = any(t["id"] == template_id for t in templates)
         assert not found, "Template still exists after deletion"
-        print(f"✅ Template deletion verified")
+        print("✅ Template deletion verified")
     
     def test_template_filter_by_category(self):
         """Test GET /api/pricing/templates with category filter"""
@@ -514,7 +514,7 @@ class TestPricingAPIs:
         )
         
         assert response.status_code == 401, f"Expected 401, got {response.status_code}"
-        print(f"✅ Calculate endpoint requires auth (401)")
+        print("✅ Calculate endpoint requires auth (401)")
     
     def test_templates_requires_auth(self):
         """Test GET /api/pricing/templates requires authentication"""
@@ -524,7 +524,7 @@ class TestPricingAPIs:
         )
         
         assert response.status_code == 401, f"Expected 401, got {response.status_code}"
-        print(f"✅ Templates endpoint requires auth (401)")
+        print("✅ Templates endpoint requires auth (401)")
     
     def test_defaults_requires_auth(self):
         """Test GET /api/pricing/defaults requires authentication"""
@@ -534,7 +534,7 @@ class TestPricingAPIs:
         )
         
         assert response.status_code == 401, f"Expected 401, got {response.status_code}"
-        print(f"✅ Defaults endpoint requires auth (401)")
+        print("✅ Defaults endpoint requires auth (401)")
 
 
 # Cleanup function to remove test templates

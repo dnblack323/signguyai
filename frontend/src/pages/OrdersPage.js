@@ -15,9 +15,10 @@ import {
 } from '../components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { getAuthToken } from '../lib/authStorage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const token = () => localStorage.getItem('auth_token');
+const token = () => getAuthToken();
 
 const STATUS_COLORS = {
   draft: 'bg-gray-500/15 text-gray-400 border-gray-500/30',

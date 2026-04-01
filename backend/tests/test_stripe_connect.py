@@ -120,7 +120,7 @@ class TestStripeConnectStatus:
         for field in expected_fields:
             assert field in data, f"Missing field: {field}"
         
-        print(f"✓ All expected fields present in status response")
+        print("✓ All expected fields present in status response")
 
 
 class TestStripeConnectCreateAccount:
@@ -171,7 +171,7 @@ class TestStripeConnectCreateAccount:
             data = response.json()
             assert "url" in data
             assert "account_id" in data
-            print(f"✓ Create account returned onboarding URL")
+            print("✓ Create account returned onboarding URL")
         else:
             # Expected failure if Connect not enabled
             error = response.json().get("detail", "")
@@ -238,7 +238,7 @@ class TestStripeConnectRefreshLink:
         if response.status_code == 200:
             data = response.json()
             assert "url" in data
-            print(f"✓ Refresh link returned new onboarding URL")
+            print("✓ Refresh link returned new onboarding URL")
         else:
             error = response.json().get("detail", "")
             print(f"✓ Refresh link correctly fails when no account: {error}")
@@ -291,7 +291,7 @@ class TestStripeConnectDisconnect:
             headers=auth_headers
         )
         verify_status = verify_response.json()
-        assert verify_status["connected"] == False
+        assert not verify_status["connected"]
         print("✓ Verified account is disconnected")
 
 

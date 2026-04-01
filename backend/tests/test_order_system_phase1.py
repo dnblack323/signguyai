@@ -223,7 +223,7 @@ class TestOrderSystemPhase1:
         assert "ticket_number" in ticket, "Ticket should have a ticket_number"
         assert ticket["order_id"] == order_id
         assert ticket["item_category"] == "banners"
-        assert ticket["production_flow_enabled"] == True
+        assert ticket["production_flow_enabled"]
         
         # Store for later tests
         self.__class__.test_ticket_id = ticket["id"]
@@ -285,7 +285,7 @@ class TestOrderSystemPhase1:
         for ticket in data["tickets"]:
             assert ticket["item_category"] == "banners"
         
-        print(f"✓ Listed job tickets with filters")
+        print("✓ Listed job tickets with filters")
     
     def test_update_job_ticket_enable_production_flow(self, auth_headers):
         """Test PUT /api/job-tickets/{id} updates ticket, enables production flow toggle"""
@@ -318,7 +318,7 @@ class TestOrderSystemPhase1:
         assert response.status_code == 200
         ticket = response.json()
         
-        assert ticket["production_flow_enabled"] == True
+        assert ticket["production_flow_enabled"]
         assert "production_tasks" in ticket
         assert len(ticket["production_tasks"]) == 8, f"Cut vinyl template should have 8 tasks, got {len(ticket['production_tasks'])}"
         
@@ -368,7 +368,7 @@ class TestOrderSystemPhase1:
         response = requests.get(f"{BASE_URL}/api/production-tasks?status=not_started", headers=auth_headers)
         assert response.status_code == 200
         
-        print(f"✓ Listed production tasks with filters")
+        print("✓ Listed production tasks with filters")
     
     def test_update_production_task_status_with_timestamp(self, auth_headers):
         """Test PUT /api/production-tasks/{id} updates status with timestamp history, triggers roll-up"""
@@ -399,7 +399,7 @@ class TestOrderSystemPhase1:
         assert task.get("end_datetime") is not None, "end_datetime should be set when status becomes complete"
         assert task["completion_percent"] == 100.0
         
-        print(f"✓ Updated task status with timestamp history")
+        print("✓ Updated task status with timestamp history")
     
     def test_production_board_grouped_by_department(self, auth_headers):
         """Test GET /api/production-tasks/board?view=department returns grouped tasks"""
@@ -551,7 +551,7 @@ class TestOrderSystemPhase1:
         # Store for cleanup
         self.__class__.test_promo_ticket_id = ticket_id
         
-        print(f"✓ Status roll-up: All tasks complete → ticket status = completed")
+        print("✓ Status roll-up: All tasks complete → ticket status = completed")
     
     def test_status_rollup_order_partial_completion(self, auth_headers):
         """Test status roll-up: partial ticket completion sets order to partially_complete or in_production"""

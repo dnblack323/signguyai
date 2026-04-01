@@ -528,7 +528,7 @@ class TestPricingExpansion:
         assert item.get("pricing_category") == "cut_vinyl", "pricing_category not persisted"
         assert item.get("cost_snapshot") is not None, "cost_snapshot not persisted"
         
-        print(f"[PASS] Created cut_vinyl job item with cost_snapshot")
+        print("[PASS] Created cut_vinyl job item with cost_snapshot")
 
     def test_12_create_apparel_job_item_with_cost_snapshot(self):
         """Create job item from apparel calculator with cost_snapshot"""
@@ -585,7 +585,7 @@ class TestPricingExpansion:
         assert item.get("pricing_category") == "apparel"
         assert item.get("cost_snapshot") is not None
         
-        print(f"[PASS] Created apparel job item with cost_snapshot")
+        print("[PASS] Created apparel job item with cost_snapshot")
 
     def test_13_create_services_job_item_with_cost_snapshot(self):
         """Create job item from services calculator with cost_snapshot"""
@@ -641,7 +641,7 @@ class TestPricingExpansion:
         assert item.get("pricing_category") == "services"
         assert item.get("cost_snapshot") is not None
         
-        print(f"[PASS] Created services job item with cost_snapshot")
+        print("[PASS] Created services job item with cost_snapshot")
 
     def test_14_verify_job_items_persisted(self):
         """Verify all job items were persisted with cost_snapshots"""
@@ -660,8 +660,8 @@ class TestPricingExpansion:
             assert item.get("cost_snapshot") is not None, f"Item {item.get('description')} missing cost_snapshot"
             
             snapshot = item.get("cost_snapshot", {})
-            assert "total_cost" in snapshot, f"cost_snapshot missing total_cost"
-            assert "selling_price" in snapshot, f"cost_snapshot missing selling_price"
+            assert "total_cost" in snapshot, "cost_snapshot missing total_cost"
+            assert "selling_price" in snapshot, "cost_snapshot missing selling_price"
         
         print(f"[PASS] All {len(items)} job items have pricing_category and cost_snapshot persisted")
 

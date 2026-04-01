@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { EmployeePortalLayout } from './EmployeePortalDashboard';
 import { toast } from 'sonner';
+import { getEmployeePortalToken } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -29,7 +30,7 @@ export default function EmployeePortalProfile() {
   const fileInputRef = useRef(null);
   
   const employeeName = localStorage.getItem('employee_name') || 'Employee';
-  const token = localStorage.getItem('employee_token');
+  const token = getEmployeePortalToken();
   const portalConfig = (() => {
     try {
       return JSON.parse(localStorage.getItem('employee_portal_config') || '{}');

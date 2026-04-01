@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 import { Progress } from '../components/ui/progress';
 import { ChevronRight, Sparkles, X } from 'lucide-react';
 import axios from 'axios';
+import { getAuthToken } from '../lib/authStorage';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -25,7 +26,7 @@ export default function OnboardingChecklist({ onDismiss }) {
 
   const fetchStatus = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const response = await axios.get(`${API}/api/onboarding/status`, {
         headers: { Authorization: `Bearer ${token}` }
       });

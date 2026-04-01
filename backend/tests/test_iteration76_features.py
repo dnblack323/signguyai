@@ -101,7 +101,7 @@ class TestOrderDraftFeature:
         
         updated = update_resp.json()
         assert updated.get("status") == "new_intake"
-        print(f"Updated draft order to new_intake")
+        print("Updated draft order to new_intake")
         
         # Cleanup
         api_client.delete(f"{BASE_URL}/api/orders/{order_id}")

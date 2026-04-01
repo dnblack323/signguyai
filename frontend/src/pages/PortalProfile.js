@@ -14,6 +14,7 @@ import {
   Camera, FileText, CheckCircle, AlertCircle, Lock
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getPortalToken } from '../lib/authStorage';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -29,7 +30,7 @@ export default function PortalProfile() {
   const customerName = localStorage.getItem('portal_customer_name') || 'Customer';
 
   const fetchProfile = useCallback(async () => {
-    const token = localStorage.getItem('portal_token');
+    const token = getPortalToken();
     if (!token) {
       navigate('/customer-portal/login');
       return;
@@ -71,7 +72,7 @@ export default function PortalProfile() {
   }, [fetchProfile]);
 
   const handleSaveProfile = async () => {
-    const token = localStorage.getItem('portal_token');
+    const token = getPortalToken();
     setSaving(true);
 
     try {
@@ -111,7 +112,7 @@ export default function PortalProfile() {
       return;
     }
 
-    const token = localStorage.getItem('portal_token');
+    const token = getPortalToken();
     setChangingPassword(true);
 
     try {

@@ -371,7 +371,7 @@ class TestPricingFoundation:
         assert item.get("profit_amount", 0) >= 0, "profit_amount not in GET response"
         assert "profit_margin_percent" in item, "profit_margin_percent not in GET response"
         
-        print(f"[PASS] GET job item confirms cost_snapshot persisted correctly")
+        print("[PASS] GET job item confirms cost_snapshot persisted correctly")
     
     # ===================== CLEANUP =====================
     

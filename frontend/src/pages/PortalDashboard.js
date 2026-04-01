@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../co
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
+import { getPortalToken, clearPortalToken } from '../lib/authStorage';
 import { 
   Loader2, LogOut, FileText, Briefcase, Receipt, MessageSquare, 
   Image, Bell, Calendar, User, ChevronRight, Home, Settings,
@@ -17,7 +18,7 @@ function PortalLayout({ children, activeNav, customerName }) {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem('portal_token');
+    clearPortalToken();
     localStorage.removeItem('portal_customer_id');
     localStorage.removeItem('portal_customer_name');
     navigate('/customer-portal/login');
@@ -117,7 +118,7 @@ export default function PortalDashboard() {
   const customerName = localStorage.getItem('portal_customer_name') || 'Customer';
 
   const fetchDashboard = useCallback(async () => {
-    const token = localStorage.getItem('portal_token');
+    const token = getPortalToken();
     if (!token) {
       navigate('/customer-portal/login');
       return;
