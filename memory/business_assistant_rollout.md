@@ -2,6 +2,14 @@
 
 Last updated: April 1, 2026
 
+## Detailed Requirements Reference
+
+The full detailed notes for what each rollout step must actually do are stored in:
+
+- `/app/memory/business_assistant_detailed_requirements.md`
+
+Use this file as the detailed execution reference.
+
 ## Rollout Rule
 
 **Hard rule:** Do **not** start the next phase until the current phase is fully working, tested, and approved.
