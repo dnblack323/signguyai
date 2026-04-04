@@ -47,6 +47,13 @@ const getDerivedQuantity = (category, specs, quantity) => {
   return quantity || 1;
 };
 
+const createLocalTicket = (mode = 'quick') => ({
+  local_id: `ticket_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+  item_name: '', item_category: '', quantity: 1, priority: 'normal',
+  production_flow_enabled: false, design_needed: false, proof_required: false,
+  estimated_price: 0, special_instructions: '', entry_mode: mode, specs: {},
+});
+
 export default function NewOrderForm() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -92,15 +99,11 @@ export default function NewOrderForm() {
   }, [customerSearch, customers]);
 
   const updateOrder = (field, value) => setOrder(prev => ({ ...prev, [field]: value }));
-  const updateTicket = (i, field, value) => setTickets(prev => prev.map((t, idx) => idx === i ? { ...t, [field]: value } : t));
+  const updateTicket = (ticketId, field, value) => setTickets(prev => prev.map((ticket) => ticket.local_id === ticketId ? { ...ticket, [field]: value } : ticket));
 
-  const addTicket = (mode = 'quick') => setTickets(prev => [...prev, {
-    item_name: '', item_category: '', quantity: 1, priority: 'normal',
-    production_flow_enabled: false, design_needed: false, proof_required: false,
-    estimated_price: 0, special_instructions: '', entry_mode: mode, specs: {},
-  }]);
-  const removeTicket = (i) => setTickets(prev => prev.filter((_, idx) => idx !== i));
-  const toggleEntryMode = (i) => setTickets(prev => prev.map((t, idx) => idx === i ? { ...t, entry_mode: t.entry_mode === 'quick' ? 'detailed' : 'quick' } : t));
+  const addTicket = (mode = 'quick') => setTickets(prev => [...prev, createLocalTicket(mode)]);
+  const removeTicket = (ticketId) => setTickets(prev => prev.filter((ticket) => ticket.local_id !== ticketId));
+  const toggleEntryMode = (ticketId) => setTickets(prev => prev.map((ticket) => ticket.local_id === ticketId ? { ...ticket, entry_mode: ticket.entry_mode === 'quick' ? 'detailed' : 'quick' } : ticket));
 
   const selectCustomer = (c) => {
     setOrder(prev => ({
@@ -280,32 +283,32 @@ export default function NewOrderForm() {
 
       {/* Ticket Forms */}
       {tickets.map((ticket, i) => (
-        <Card key={i} className="bg-white rounded-xl border border-gray-200 shadow-sm" data-testid={`ticket-form-${i}`}>
+        <Card key={ticket.local_id} className="bg-white rounded-xl border border-gray-200 shadow-sm" data-testid={`ticket-form-${i}`}>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <CardTitle className="text-gray-900 text-base">Ticket {i + 1}</CardTitle>
-                <button onClick={() => toggleEntryMode(i)} className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${ticket.entry_mode === 'detailed' ? 'bg-violet-50 text-violet-600 border-violet-300' : 'bg-gray-100 text-gray-500 border-gray-300'}`}>
+                <button onClick={() => toggleEntryMode(ticket.local_id)} className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${ticket.entry_mode === 'detailed' ? 'bg-violet-50 text-violet-600 border-violet-300' : 'bg-gray-100 text-gray-500 border-gray-300'}`}>
                   {ticket.entry_mode === 'detailed' ? 'Detailed' : 'Quick'}
                 </button>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => removeTicket(i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
+              <Button variant="ghost" size="icon" onClick={() => removeTicket(ticket.local_id)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
             {/* Common fields */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="col-span-2"><Label className="text-gray-700">Item Name *</Label><Input value={ticket.item_name} onChange={e => updateTicket(i, 'item_name', e.target.value)} placeholder="e.g. Race Banner 3x8" className="bg-gray-50 border-gray-300 text-gray-900" /></div>
+              <div className="col-span-2"><Label className="text-gray-700">Item Name *</Label><Input value={ticket.item_name} onChange={e => updateTicket(ticket.local_id, 'item_name', e.target.value)} placeholder="e.g. Race Banner 3x8" className="bg-gray-50 border-gray-300 text-gray-900" /></div>
               <div><Label className="text-gray-700">Category</Label>
-                <Select value={ticket.item_category} onValueChange={v => updateTicket(i, 'item_category', v)}>
+                <Select value={ticket.item_category} onValueChange={v => updateTicket(ticket.local_id, 'item_category', v)}>
                   <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900"><SelectValue placeholder="Select Category..." /></SelectTrigger>
                   <SelectContent>{CATEGORIES.filter(c => c.value).map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                <div><Label className="text-gray-700">Qty</Label><Input type="number" min={1} value={ticket.quantity} onChange={e => updateTicket(i, 'quantity', parseInt(e.target.value) || 1)} className="bg-gray-50 border-gray-300 text-gray-900" /></div>
+                <div><Label className="text-gray-700">Qty</Label><Input type="number" min={1} value={ticket.quantity} onChange={e => updateTicket(ticket.local_id, 'quantity', parseInt(e.target.value) || 1)} className="bg-gray-50 border-gray-300 text-gray-900" /></div>
                 <div><Label className="text-gray-700">Priority</Label>
-                  <Select value={ticket.priority} onValueChange={v => updateTicket(i, 'priority', v)}>
+                  <Select value={ticket.priority} onValueChange={v => updateTicket(ticket.local_id, 'priority', v)}>
                     <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="normal">Normal</SelectItem>
@@ -315,20 +318,20 @@ export default function NewOrderForm() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div><Label className="text-gray-700">Price</Label><Input type="number" min={0} step={0.01} value={ticket.estimated_price > 0 ? ticket.estimated_price : ''} onChange={e => updateTicket(i, 'estimated_price', parseFloat(e.target.value) || 0)} placeholder="0.00" className="bg-gray-50 border-gray-300 text-gray-900" /></div>
+                <div><Label className="text-gray-700">Price</Label><Input type="number" min={0} step={0.01} value={ticket.estimated_price > 0 ? ticket.estimated_price : ''} onChange={e => updateTicket(ticket.local_id, 'estimated_price', parseFloat(e.target.value) || 0)} placeholder="0.00" className="bg-gray-50 border-gray-300 text-gray-900" /></div>
               </div>
             </div>
 
             {/* QUICK MODE */}
             {ticket.entry_mode !== 'detailed' && (
               <div className="space-y-3">
-                <div><Label className="text-gray-700">Description / Notes</Label><Textarea value={ticket.special_instructions} onChange={e => updateTicket(i, 'special_instructions', e.target.value)} placeholder="Describe the item, materials, specs..." className="bg-gray-50 border-gray-300 text-gray-900" rows={3} /></div>
+                <div><Label className="text-gray-700">Description / Notes</Label><Textarea value={ticket.special_instructions} onChange={e => updateTicket(ticket.local_id, 'special_instructions', e.target.value)} placeholder="Describe the item, materials, specs..." className="bg-gray-50 border-gray-300 text-gray-900" rows={3} /></div>
                 <div className="flex items-center gap-6">
-                  <div className="flex items-center gap-2"><Switch checked={ticket.design_needed} onCheckedChange={v => updateTicket(i, 'design_needed', v)} /><Label className="text-gray-700 text-sm">Design Needed</Label></div>
-                  <div className="flex items-center gap-2"><Switch checked={ticket.proof_required} onCheckedChange={v => updateTicket(i, 'proof_required', v)} /><Label className="text-gray-700 text-sm">Proof Required</Label></div>
-                  <div className="flex items-center gap-2"><Switch checked={ticket.production_flow_enabled} onCheckedChange={v => updateTicket(i, 'production_flow_enabled', v)} /><Label className="text-gray-700 text-sm">Workflow</Label></div>
+                  <div className="flex items-center gap-2"><Switch checked={ticket.design_needed} onCheckedChange={v => updateTicket(ticket.local_id, 'design_needed', v)} /><Label className="text-gray-700 text-sm">Design Needed</Label></div>
+                  <div className="flex items-center gap-2"><Switch checked={ticket.proof_required} onCheckedChange={v => updateTicket(ticket.local_id, 'proof_required', v)} /><Label className="text-gray-700 text-sm">Proof Required</Label></div>
+                  <div className="flex items-center gap-2"><Switch checked={ticket.production_flow_enabled} onCheckedChange={v => updateTicket(ticket.local_id, 'production_flow_enabled', v)} /><Label className="text-gray-700 text-sm">Workflow</Label></div>
                 </div>
-                <button onClick={() => toggleEntryMode(i)} className="text-xs text-violet-600 hover:text-violet-700 underline">Switch to Detailed Entry for full specs + calculator</button>
+                <button onClick={() => toggleEntryMode(ticket.local_id)} className="text-xs text-violet-600 hover:text-violet-700 underline">Switch to Detailed Entry for full specs + calculator</button>
               </div>
             )}
 
@@ -341,20 +344,20 @@ export default function NewOrderForm() {
                       <DynamicCategoryFields
                         category={ticket.item_category}
                         specs={ticket.specs}
-                        onChange={(newSpecs) => setTickets(prev => prev.map((currentTicket, idx) => idx === i ? {
+                        onChange={(newSpecs) => setTickets(prev => prev.map((currentTicket) => currentTicket.local_id === ticket.local_id ? {
                           ...currentTicket,
                           specs: newSpecs,
                           quantity: getDerivedQuantity(currentTicket.item_category, newSpecs, currentTicket.quantity),
                         } : currentTicket))}
                         mode="edit"
                       />
-                      <div><Label className="text-gray-700">Special Instructions</Label><Textarea value={ticket.special_instructions} onChange={e => updateTicket(i, 'special_instructions', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" rows={2} /></div>
+                      <div><Label className="text-gray-700">Special Instructions</Label><Textarea value={ticket.special_instructions} onChange={e => updateTicket(ticket.local_id, 'special_instructions', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" rows={2} /></div>
                     </div>
                     <LivePricingPreview
                       category={ticket.item_category}
                       specs={ticket.specs}
                       quantity={ticket.quantity}
-                      onPriceChange={(price) => setTickets(prev => prev.map((currentTicket, idx) => idx === i ? {
+                      onPriceChange={(price) => setTickets(prev => prev.map((currentTicket) => currentTicket.local_id === ticket.local_id ? {
                         ...currentTicket,
                         estimated_price: price,
                         quantity: getDerivedQuantity(currentTicket.item_category, currentTicket.specs, currentTicket.quantity),
@@ -367,9 +370,9 @@ export default function NewOrderForm() {
                   </div>
                 )}
                 <div className="flex items-center gap-6">
-                  <div className="flex items-center gap-2"><Switch checked={ticket.production_flow_enabled} onCheckedChange={v => updateTicket(i, 'production_flow_enabled', v)} /><Label className="text-gray-700 text-sm">Production Workflow</Label></div>
+                  <div className="flex items-center gap-2"><Switch checked={ticket.production_flow_enabled} onCheckedChange={v => updateTicket(ticket.local_id, 'production_flow_enabled', v)} /><Label className="text-gray-700 text-sm">Production Workflow</Label></div>
                 </div>
-                <button onClick={() => toggleEntryMode(i)} className="text-xs text-gray-500 hover:text-gray-700 underline">Switch to Quick Entry</button>
+                <button onClick={() => toggleEntryMode(ticket.local_id)} className="text-xs text-gray-500 hover:text-gray-700 underline">Switch to Quick Entry</button>
               </div>
             )}
           </CardContent>

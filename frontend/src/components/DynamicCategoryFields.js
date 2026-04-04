@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Switch } from './ui/switch';
@@ -152,6 +152,16 @@ const renderStandardField = (field, specs, updateField, sqFootage) => {
 export default function DynamicCategoryFields({ category, subtype, specs, onChange, mode = 'edit' }) {
   const [schema, setSchema] = useState(null);
   const [loading, setLoading] = useState(false);
+  const specsRef = useRef(specs);
+  const onChangeRef = useRef(onChange);
+
+  useEffect(() => {
+    specsRef.current = specs;
+  }, [specs]);
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   useEffect(() => {
     if (!category) return;
@@ -161,12 +171,13 @@ export default function DynamicCategoryFields({ category, subtype, specs, onChan
       axios.get(`${API}/job-tickets/schema/${category}`, { headers: hdr() })
         .then((response) => {
           setSchema(response.data);
-          if (response.data?.fields && onChange) {
+          if (response.data?.fields && onChangeRef.current) {
+            const currentSpecs = specsRef.current || {};
             const defaults = response.data.fields.reduce((acc, field) => {
-              if (field.default !== undefined && (specs[field.key] === undefined || specs[field.key] === '')) acc[field.key] = field.default;
+              if (field.default !== undefined && (currentSpecs[field.key] === undefined || currentSpecs[field.key] === '')) acc[field.key] = field.default;
               return acc;
             }, {});
-            if (Object.keys(defaults).length > 0) onChange({ ...specs, ...defaults });
+            if (Object.keys(defaults).length > 0) onChangeRef.current({ ...currentSpecs, ...defaults });
           }
           setLoading(false);
         })
@@ -181,7 +192,7 @@ export default function DynamicCategoryFields({ category, subtype, specs, onChan
         });
     };
     fetchSchema();
-  }, [category, onChange, specs]);
+  }, [category]);
 
   const sqFootage = useMemo(() => {
     const width = parseFloat(specs.width) || 0;
