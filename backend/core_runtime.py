@@ -1,0 +1,103 @@
+"""Shared runtime/auth dependencies for backend modules.
+
+This module prevents route modules from importing `server.py` directly for core
+objects like `db`, `logger`, and auth helpers.
+"""
+
+from datetime import datetime, timedelta, timezone
+import logging
+import os
+from pathlib import Path
+from typing import Optional
+
+import bcrypt
+import jwt
+import secrets
+from dotenv import load_dotenv
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from motor.motor_asyncio import AsyncIOMotorClient
+
+from models import Permission, ROLE_PERMISSIONS, TokenData, UserInDB
+
+ROOT_DIR = Path(__file__).parent
+load_dotenv(ROOT_DIR / '.env')
+
+mongo_url = os.environ['MONGO_URL']
+client = AsyncIOMotorClient(mongo_url)
+db = client[os.environ['DB_NAME']]
+
+SECRET_KEY = os.environ.get('JWT_SECRET_KEY', secrets.token_urlsafe(32))
+ALGORITHM = 'HS256'
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
+security = HTTPBearer(auto_error=False)
+pwd_context = None
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    try:
+        return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+    except (ValueError, TypeError):
+        return False
+
+
+def get_password_hash(password: str) -> str:
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({'exp': expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> UserInDB:
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail='Could not validate credentials',
+        headers={'WWW-Authenticate': 'Bearer'},
+    )
+    if credentials is None:
+        raise credentials_exception
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get('sub')
+        if user_id is None:
+            raise credentials_exception
+        token_data = TokenData(user_id=user_id)
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail='Token has expired')
+    except jwt.PyJWTError:
+        raise credentials_exception
+
+    user = await db.users.find_one({'id': token_data.user_id}, {'_id': 0})
+    if user is None:
+        raise credentials_exception
+    return UserInDB(**user)
+
+
+async def get_current_active_user(current_user: UserInDB = Depends(get_current_user)) -> UserInDB:
+    if not current_user.is_active:
+        raise HTTPException(status_code=400, detail='Inactive user')
+    return current_user
+
+
+def has_permission(user: UserInDB, permission: Permission) -> bool:
+    if user.role.value == 'owner':
+        return True
+    user_permissions = ROLE_PERMISSIONS.get(user.role, [])
+    return permission in user_permissions
+
+
+def generate_tenant_slug(name: str) -> str:
+    import re
+    import uuid
+
+    base = re.sub(r'[^a-zA-Z0-9\s-]', '', name.lower())
+    base = re.sub(r'[-\s]+', '-', base).strip('-')
+    return f"{base}-{str(uuid.uuid4())[:8]}"

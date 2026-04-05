@@ -7,42 +7,31 @@ All models are in /models and all routes are in /routes.
 
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File
 import base64
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
 import os
-import logging
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timezone, timedelta
-import jwt
-import bcrypt
-import secrets
 import re
 from services.storage_config import init_storage
-
-# Load environment variables
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
-
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
-
-# Auth configuration
-SECRET_KEY = os.environ.get('JWT_SECRET_KEY', secrets.token_urlsafe(32))
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
-security = HTTPBearer(auto_error=False)
-
-# Backwards-compatible reference for imports
-pwd_context = None
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+from core_runtime import (
+    client,
+    db,
+    logger,
+    security,
+    SECRET_KEY,
+    ALGORITHM,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    pwd_context,
+    verify_password,
+    get_password_hash,
+    create_access_token,
+    get_current_user,
+    get_current_active_user,
+    has_permission,
+    generate_tenant_slug,
+)
+import bcrypt
 
 # Create the main app
 app = FastAPI(title="SignGuy AI API")
@@ -93,72 +82,6 @@ from models import (
 )
 
 
-# ============== AUTH HELPER FUNCTIONS ==============
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    try:
-        return bcrypt.checkpw(
-            plain_password.encode('utf-8'),
-            hashed_password.encode('utf-8')
-        )
-    except (ValueError, TypeError):
-        # Handle corrupted or incompatible hash formats
-        return False
-
-
-def get_password_hash(password: str) -> str:
-    return bcrypt.hashpw(
-        password.encode('utf-8'),
-        bcrypt.gensalt()
-    ).decode('utf-8')
-
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> UserInDB:
-    credentials_exception = HTTPException(
-        status_code=401,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    
-    if credentials is None:
-        raise credentials_exception
-    
-    try:
-        token = credentials.credentials
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
-        token_data = TokenData(user_id=user_id)
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token has expired")
-    except jwt.PyJWTError:
-        raise credentials_exception
-    
-    user = await db.users.find_one({"id": token_data.user_id}, {"_id": 0})
-    if user is None:
-        raise credentials_exception
-    
-    return UserInDB(**user)
-
-
-async def get_current_active_user(current_user: UserInDB = Depends(get_current_user)) -> UserInDB:
-    if not current_user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
-    return current_user
-
-
 async def require_write_access(current_user: UserInDB = Depends(get_current_active_user)) -> UserInDB:
     """Block write operations if the tenant is in grace period (read-only mode).
     Use this dependency on POST/PUT/DELETE routes that create or modify business data."""
@@ -188,11 +111,6 @@ async def require_write_access(current_user: UserInDB = Depends(get_current_acti
 
 # ============== PERMISSION HELPER ==============
 
-def has_permission(user: UserInDB, permission: Permission) -> bool:
-    """Check if a user has a specific permission based on their role"""
-    return user_has_permission(user.role, permission)
-
-
 def require_permission(permission: Permission):
     """Dependency to require a specific permission"""
     async def permission_checker(current_user: UserInDB = Depends(get_current_active_user)):
@@ -219,15 +137,6 @@ def require_any_permission(*permissions: Permission):
 
 
 # ============== TENANT HELPER FUNCTIONS ==============
-
-def generate_tenant_slug(name: str) -> str:
-    """Generate a URL-friendly slug from tenant name"""
-    slug = name.lower()
-    slug = re.sub(r'[^a-z0-9\s-]', '', slug)
-    slug = re.sub(r'[\s-]+', '-', slug)
-    slug = slug.strip('-')
-    return slug[:50]
-
 
 async def get_current_tenant(current_user: UserInDB = Depends(get_current_active_user)) -> Tenant:
     """Get the tenant for the current user"""

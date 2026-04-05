@@ -24,7 +24,7 @@ from models import (
 router = APIRouter(prefix="/admin-portal", tags=["Admin Portal"])
 
 # Import db and auth after router definition to avoid circular imports
-from server import db, get_current_active_user, logger
+from core_runtime import db, get_current_active_user, logger
 
 
 # ============== MODELS ==============
