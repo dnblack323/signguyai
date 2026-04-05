@@ -28,7 +28,7 @@ import requests
 import os
 import uuid
 from datetime import datetime
-from backend.tests.test_credentials_helper import COMMON_TEST_PASSWORD, WRONG_PASSWORD
+from backend.tests.test_credentials_helper import COMMON_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, WRONG_PASSWORD
 
 # Get base URL from environment
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
@@ -115,7 +115,7 @@ class TestAuthRoutes:
         """Test POST /api/auth/login with valid credentials"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "email": registered_user["email"],
-            "password": registered_user[FALLBACK_TEST_PASSWORD]
+            "password": registered_user["password"]
         })
         assert response.status_code == 200
         data = response.json()
@@ -136,7 +136,7 @@ class TestAuthRoutes:
         """Test login with remember_me flag"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "email": registered_user["email"],
-            "password": registered_user[FALLBACK_TEST_PASSWORD],
+            "password": registered_user["password"],
             "remember_me": True
         })
         assert response.status_code == 200
@@ -759,7 +759,7 @@ class TestPortalRoutes:
         """Test POST /api/portal/auth/register enables portal access"""
         response = requests.post(f"{BASE_URL}/api/portal/auth/register", json={
             "email": portal_customer["email"],
-            "password": portal_customer[FALLBACK_TEST_PASSWORD]
+            "password": portal_customer["password"]
         })
         # May fail if customer doesn't exist or already registered
         if response.status_code == 200:
