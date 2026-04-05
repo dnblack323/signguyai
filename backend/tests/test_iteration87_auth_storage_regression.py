@@ -11,8 +11,10 @@ import os
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test credentials from test_credentials.md
-ADMIN_EMAIL = "signguypa@gmail.com"
-ADMIN_PASSWORD = "Billnel323"
+from backend.tests.test_credentials_helper import PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, WRONG_PASSWORD
+
+ADMIN_EMAIL = PRODUCTION_OWNER_EMAIL
+ADMIN_PASSWORD = PRODUCTION_OWNER_PASSWORD
 
 
 class TestAdminAuth:
@@ -135,7 +137,7 @@ class TestCustomerPortalAuth:
         """Test portal login endpoint exists (even if no valid customer)"""
         response = requests.post(f"{BASE_URL}/api/portal/auth/login", json={
             "email": "nonexistent@test.com",
-            "password": "wrongpassword"
+            "password": WRONG_PASSWORD
         })
         # Should return 401 or 404, not 500
         assert response.status_code in [401, 404, 403], f"Unexpected status: {response.status_code}"

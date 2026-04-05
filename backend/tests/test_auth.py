@@ -6,8 +6,15 @@ import pytest
 import requests
 import os
 import uuid
-from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
-from backend.tests.test_credentials_helper import COMMON_TEST_EMAIL, COMMON_TEST_PASSWORD, DEMO_TEST_EMAIL, DEMO_TEST_PASSWORD, PORTAL_TEST_PASSWORD
+from backend.tests.test_credentials_helper import (
+    COMMON_TEST_PASSWORD,
+    FALLBACK_TEST_PASSWORD,
+    JWT_TEST_PASSWORD,
+    LOGIN_TEST_PASSWORD,
+    PROTECTED_TEST_PASSWORD,
+    UPDATE_TEST_PASSWORD,
+    WRONG_PASSWORD,
+)
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
@@ -125,7 +132,7 @@ class TestUserLogin:
     def setup_test_user(self):
         """Create a test user for login tests"""
         self.test_email = f"login_test_{uuid.uuid4().hex[:8]}@example.com"
-        self.test_password = "LoginTest123!"
+        self.test_password = LOGIN_TEST_PASSWORD
         
         payload = {
             "email": self.test_email,
@@ -160,7 +167,7 @@ class TestUserLogin:
         """Test login with wrong password"""
         payload = {
             "email": self.test_email,
-            "password": "WrongPassword123!"
+            "password": WRONG_PASSWORD
         }
         
         response = requests.post(f"{BASE_URL}/api/auth/login", json=payload)
@@ -205,7 +212,7 @@ class TestJWTTokenValidation:
     def setup_authenticated_user(self):
         """Create and login a test user"""
         self.test_email = f"jwt_test_{uuid.uuid4().hex[:8]}@example.com"
-        self.test_password = "JWTTest123!"
+        self.test_password = JWT_TEST_PASSWORD
         
         # Register
         payload = {
@@ -268,7 +275,7 @@ class TestProtectedRoutes:
     def setup_authenticated_user(self):
         """Create and login a test user"""
         self.test_email = f"protected_test_{uuid.uuid4().hex[:8]}@example.com"
-        self.test_password = "ProtectedTest123!"
+        self.test_password = PROTECTED_TEST_PASSWORD
         
         payload = {
             "email": self.test_email,
@@ -314,7 +321,7 @@ class TestUserProfileUpdate:
     def setup_authenticated_user(self):
         """Create and login a test user"""
         self.test_email = f"update_test_{uuid.uuid4().hex[:8]}@example.com"
-        self.test_password = "UpdateTest123!"
+        self.test_password = UPDATE_TEST_PASSWORD
         
         payload = {
             "email": self.test_email,

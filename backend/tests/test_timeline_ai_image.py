@@ -13,8 +13,7 @@ import pytest
 import requests
 import os
 import base64
-from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
-from backend.tests.test_credentials_helper import COMMON_TEST_EMAIL, COMMON_TEST_PASSWORD, DEMO_TEST_EMAIL, DEMO_TEST_PASSWORD, PORTAL_TEST_PASSWORD
+from backend.tests.test_credentials_helper import COMMON_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, WRONG_PASSWORD
 
 # Get base URL from environment
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
@@ -49,7 +48,7 @@ class TestAuthentication:
         """Test login with invalid credentials"""
         response = requests.post(
             f"{BASE_URL}/api/auth/login",
-            json={"email": "wrong@email.com", "password": "wrongpassword"}
+            json={"email": "wrong@email.com", "password": WRONG_PASSWORD}
         )
         print(f"Invalid login response status: {response.status_code}")
         

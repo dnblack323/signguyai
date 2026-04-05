@@ -8,7 +8,16 @@ import os
 import uuid
 import jwt
 from datetime import datetime, timezone
-from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
+from backend.tests.test_credentials_helper import (
+    ADMIN_TEST_PASSWORD,
+    MAGIC_TEST_PASSWORD,
+    PORTAL_CUSTOMER_EMAIL,
+    PORTAL_TEST_USER_PASSWORD,
+    REMEMBER_TEST_PASSWORD,
+    TARGET_TEST_PASSWORD,
+    TEST_CUSTOMER_EMAIL,
+    UPDATED_TEST_PASSWORD,
+)
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
@@ -20,7 +29,7 @@ class TestRememberMe:
     def setup_test_user(self):
         """Create a test user for login tests"""
         self.test_email = f"remember_test_{uuid.uuid4().hex[:8]}@example.com"
-        self.test_password = "RememberTest123!"
+        self.test_password = REMEMBER_TEST_PASSWORD
         
         payload = {
             "email": self.test_email,
@@ -79,7 +88,7 @@ class TestAdminUserManagement:
         """Create admin user and target user for tests"""
         # Create admin user
         self.admin_email = f"admin_{uuid.uuid4().hex[:8]}@example.com"
-        self.admin_password = "AdminTest123!"
+        self.admin_password = ADMIN_TEST_PASSWORD
         
         admin_payload = {
             "email": self.admin_email,
@@ -100,7 +109,7 @@ class TestAdminUserManagement:
         
         # Create target user
         self.target_email = f"target_{uuid.uuid4().hex[:8]}@example.com"
-        self.target_password = "TargetTest123!"
+        self.target_password = TARGET_TEST_PASSWORD
         
         target_payload = {
             "email": self.target_email,
@@ -149,7 +158,7 @@ class TestAdminUserManagement:
         """Test admin can reset another user's password"""
         headers = {"Authorization": f"Bearer {self.admin_token}"}
         
-        new_password = "NewPassword456!"
+        new_password = UPDATED_TEST_PASSWORD
         payload = {"new_password": new_password}
         
         response = requests.post(
@@ -190,7 +199,7 @@ class TestAdminUserManagement:
         """Test reset password for non-existent user fails"""
         headers = {"Authorization": f"Bearer {self.admin_token}"}
         
-        payload = {"new_password": "NewPassword456!"}
+        payload = {"new_password": UPDATED_TEST_PASSWORD}
         
         response = requests.post(
             f"{BASE_URL}/api/admin/users/nonexistent-user-id/reset-password",
@@ -278,7 +287,7 @@ class TestMagicLinks:
         """Create user, customer, and quote for magic link tests"""
         # Create user
         self.user_email = f"magic_test_{uuid.uuid4().hex[:8]}@example.com"
-        self.user_password = "MagicTest123!"
+        self.user_password = MAGIC_TEST_PASSWORD
         
         user_payload = {
             "email": self.user_email,
@@ -295,7 +304,7 @@ class TestMagicLinks:
         # Create customer
         customer_payload = {
             "name": "Test Customer",
-            "email": "customer@example.com",
+            "email": TEST_CUSTOMER_EMAIL,
             "phone": "555-1234",
             "company": "Test Company"
         }
@@ -325,7 +334,7 @@ class TestMagicLinks:
         payload = {
             "resource_type": "quote",
             "resource_id": self.quote_id,
-            "customer_email": "customer@example.com",
+            "customer_email": TEST_CUSTOMER_EMAIL,
             "expires_in_days": 7
         }
         
@@ -494,7 +503,7 @@ class TestCustomerPortal:
         """Create user, customer, quote, job, and invoice for portal tests"""
         # Create user
         self.user_email = f"portal_test_{uuid.uuid4().hex[:8]}@example.com"
-        self.user_password = "PortalTest123!"
+        self.user_password = PORTAL_TEST_USER_PASSWORD
         
         user_payload = {
             "email": self.user_email,
@@ -511,7 +520,7 @@ class TestCustomerPortal:
         # Create customer
         customer_payload = {
             "name": "Portal Customer",
-            "email": "portal_customer@example.com",
+            "email": PORTAL_CUSTOMER_EMAIL,
             "phone": "555-5678",
             "company": "Portal Company"
         }

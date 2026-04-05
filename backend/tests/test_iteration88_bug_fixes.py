@@ -24,8 +24,10 @@ from datetime import datetime, timedelta
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://multi-tenant-orders-7.preview.emergentagent.com')
 
 # Test credentials
-TEST_EMAIL = "signguypa@gmail.com"
-TEST_PASSWORD = "Billnel323"
+from backend.tests.test_credentials_helper import PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD
+
+TEST_EMAIL = PRODUCTION_OWNER_EMAIL
+TEST_PASSWORD = PRODUCTION_OWNER_PASSWORD
 
 
 @pytest.fixture(scope="module")

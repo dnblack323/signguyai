@@ -28,8 +28,7 @@ import requests
 import os
 import uuid
 from datetime import datetime
-from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
-from backend.tests.test_credentials_helper import COMMON_TEST_EMAIL, COMMON_TEST_PASSWORD, DEMO_TEST_EMAIL, DEMO_TEST_PASSWORD, PORTAL_TEST_PASSWORD
+from backend.tests.test_credentials_helper import COMMON_TEST_PASSWORD, WRONG_PASSWORD
 
 # Get base URL from environment
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
@@ -128,7 +127,7 @@ class TestAuthRoutes:
         """Test login with invalid credentials fails"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "email": "nonexistent@test.com",
-            "password": "wrongpassword"
+            "password": WRONG_PASSWORD
         })
         assert response.status_code == 401
         print("✅ Invalid login correctly rejected")
@@ -778,7 +777,7 @@ class TestPortalRoutes:
         """Test portal login with invalid credentials fails"""
         response = requests.post(f"{BASE_URL}/api/portal/auth/login", json={
             "email": "nonexistent@portal.com",
-            "password": "wrongpassword"
+            "password": WRONG_PASSWORD
         })
         assert response.status_code in [401, 403]
         print("✅ Portal login correctly rejects invalid credentials")

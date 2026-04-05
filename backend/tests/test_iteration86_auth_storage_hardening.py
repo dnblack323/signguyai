@@ -25,8 +25,7 @@ try:
         PRODUCTION_OWNER_PASSWORD,
     )
 except ImportError:
-    PRODUCTION_OWNER_EMAIL = "signguypa@gmail.com"
-    PRODUCTION_OWNER_PASSWORD = "Billnel323"
+    from backend.tests.test_credentials_helper import PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD
 
 
 class TestAdminAuth:
@@ -38,8 +37,8 @@ class TestAdminAuth:
         response = requests.post(
             f"{BASE_URL}/api/auth/login",
             json={
-                "email": PRODUCTION_OWNER_EMAIL or "signguypa@gmail.com",
-                "password": PRODUCTION_OWNER_PASSWORD or "Billnel323"
+                "email": PRODUCTION_OWNER_EMAIL,
+                "password": PRODUCTION_OWNER_PASSWORD
             }
         )
         assert response.status_code == 200, f"Login failed: {response.text}"
@@ -52,8 +51,8 @@ class TestAdminAuth:
         response = requests.post(
             f"{BASE_URL}/api/auth/login",
             json={
-                "email": "signguypa@gmail.com",
-                "password": "Billnel323"
+                "email": PRODUCTION_OWNER_EMAIL,
+                "password": PRODUCTION_OWNER_PASSWORD
             }
         )
         assert response.status_code == 200
@@ -86,8 +85,8 @@ class TestTierEndpoints:
         response = requests.post(
             f"{BASE_URL}/api/auth/login",
             json={
-                "email": "signguypa@gmail.com",
-                "password": "Billnel323"
+                "email": PRODUCTION_OWNER_EMAIL,
+                "password": PRODUCTION_OWNER_PASSWORD
             }
         )
         assert response.status_code == 200
@@ -133,8 +132,8 @@ class TestBillingEndpoints:
         response = requests.post(
             f"{BASE_URL}/api/auth/login",
             json={
-                "email": "signguypa@gmail.com",
-                "password": "Billnel323"
+                "email": PRODUCTION_OWNER_EMAIL,
+                "password": PRODUCTION_OWNER_PASSWORD
             }
         )
         assert response.status_code == 200
@@ -180,8 +179,8 @@ class TestPromoCodesEndpoint:
         response = requests.post(
             f"{BASE_URL}/api/auth/login",
             json={
-                "email": "signguypa@gmail.com",
-                "password": "Billnel323"
+                "email": PRODUCTION_OWNER_EMAIL,
+                "password": PRODUCTION_OWNER_PASSWORD
             }
         )
         assert response.status_code == 200
@@ -213,8 +212,8 @@ class TestPricingSetupEndpoint:
         response = requests.post(
             f"{BASE_URL}/api/auth/login",
             json={
-                "email": "signguypa@gmail.com",
-                "password": "Billnel323"
+                "email": PRODUCTION_OWNER_EMAIL,
+                "password": PRODUCTION_OWNER_PASSWORD
             }
         )
         assert response.status_code == 200
@@ -244,8 +243,8 @@ class TestProductionSettingsEndpoint:
         response = requests.post(
             f"{BASE_URL}/api/auth/login",
             json={
-                "email": "signguypa@gmail.com",
-                "password": "Billnel323"
+                "email": PRODUCTION_OWNER_EMAIL,
+                "password": PRODUCTION_OWNER_PASSWORD
             }
         )
         assert response.status_code == 200
@@ -281,8 +280,8 @@ class TestDashboardEndpoint:
         response = requests.post(
             f"{BASE_URL}/api/auth/login",
             json={
-                "email": "signguypa@gmail.com",
-                "password": "Billnel323"
+                "email": PRODUCTION_OWNER_EMAIL,
+                "password": PRODUCTION_OWNER_PASSWORD
             }
         )
         assert response.status_code == 200
@@ -308,8 +307,8 @@ class TestTimeClockEndpoint:
         response = requests.post(
             f"{BASE_URL}/api/auth/login",
             json={
-                "email": "signguypa@gmail.com",
-                "password": "Billnel323"
+                "email": PRODUCTION_OWNER_EMAIL,
+                "password": PRODUCTION_OWNER_PASSWORD
             }
         )
         assert response.status_code == 200
@@ -335,8 +334,8 @@ class TestJobTicketsEndpoint:
         response = requests.post(
             f"{BASE_URL}/api/auth/login",
             json={
-                "email": "signguypa@gmail.com",
-                "password": "Billnel323"
+                "email": PRODUCTION_OWNER_EMAIL,
+                "password": PRODUCTION_OWNER_PASSWORD
             }
         )
         assert response.status_code == 200
@@ -377,7 +376,7 @@ class TestCredentialsHelper:
                 PRODUCTION_OWNER_PASSWORD,
             )
             # Should match the known test credentials
-            assert PRODUCTION_OWNER_EMAIL == "signguypa@gmail.com" or PRODUCTION_OWNER_EMAIL is not None
+            assert PRODUCTION_OWNER_EMAIL is not None
             assert PRODUCTION_OWNER_PASSWORD is not None
             print(f"PASS: Credentials helper values are valid")
         except ImportError as e:

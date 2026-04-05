@@ -6,8 +6,7 @@ messages, proofs, appointments, and profile management.
 import pytest
 import requests
 import os
-from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
-from backend.tests.test_credentials_helper import COMMON_TEST_EMAIL, COMMON_TEST_PASSWORD, DEMO_TEST_EMAIL, DEMO_TEST_PASSWORD, PORTAL_TEST_PASSWORD
+from backend.tests.test_credentials_helper import SYNTHETIC_OWNER_EMAIL, COMMON_TEST_PASSWORD, PORTAL_TEST_PASSWORD, WRONG_PASSWORD, ANY_TEST_PASSWORD, FALLBACK_TEST_PASSWORD
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
@@ -47,7 +46,7 @@ class TestPortalAuth:
         """Test portal login with wrong password"""
         response = requests.post(f"{BASE_URL}/api/portal/auth/login", json={
             "email": TEST_PORTAL_CUSTOMER["email"],
-            "password": "wrongpassword"
+            "password": WRONG_PASSWORD
         })
         assert response.status_code == 401
         print("✅ Portal login correctly rejects invalid password")
@@ -56,7 +55,7 @@ class TestPortalAuth:
         """Test portal login with non-existent email"""
         response = requests.post(f"{BASE_URL}/api/portal/auth/login", json={
             "email": "nonexistent@example.com",
-            "password": "anypassword"
+            "password": ANY_TEST_PASSWORD
         })
         assert response.status_code == 401
         print("✅ Portal login correctly rejects non-existent email")
@@ -517,7 +516,7 @@ class TestPortalPasswordChange:
             f"{BASE_URL}/api/portal/change-password",
             headers={"Authorization": f"Bearer {portal_token}"},
             params={
-                "current_password": "wrongpassword",
+                "current_password": WRONG_PASSWORD,
                 "new_password": COMMON_TEST_PASSWORD
             }
         )

@@ -18,8 +18,10 @@ import json
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test credentials from test_credentials.md
-TEST_EMAIL = "signguypa@gmail.com"
-TEST_PASSWORD = "Billnel323"
+from backend.tests.test_credentials_helper import PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD
+
+TEST_EMAIL = PRODUCTION_OWNER_EMAIL
+TEST_PASSWORD = PRODUCTION_OWNER_PASSWORD
 
 
 class TestBusinessAssistantPhase0:

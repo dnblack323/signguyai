@@ -51,3 +51,24 @@ COMMON_TEST_PASSWORD = os.environ.get("TEST_COMMON_PASSWORD", "synthetic-test-pa
 DEMO_TEST_EMAIL = os.environ.get("TEST_DEMO_EMAIL", "synthetic-demo@example.com")
 DEMO_TEST_PASSWORD = os.environ.get("TEST_DEMO_PASSWORD", "synthetic-demo-password")
 PORTAL_TEST_PASSWORD = os.environ.get("TEST_PORTAL_PASSWORD", "synthetic-portal-password")
+
+STAFF_TEST_EMAIL = os.environ.get("TEST_STAFF_EMAIL", "synthetic-staff@example.com")
+STAFF_TEST_PASSWORD = os.environ.get("TEST_STAFF_PASSWORD", "synthetic-staff-password")
+
+WRONG_PASSWORD = os.environ.get("TEST_WRONG_PASSWORD", "synthetic-wrong-password")
+ANY_TEST_PASSWORD = os.environ.get("TEST_ANY_PASSWORD", "synthetic-any-password")
+UPDATED_TEST_PASSWORD = os.environ.get("TEST_UPDATED_PASSWORD", "synthetic-updated-password")
+
+LOGIN_TEST_PASSWORD = os.environ.get("TEST_LOGIN_PASSWORD", "synthetic-login-password")
+JWT_TEST_PASSWORD = os.environ.get("TEST_JWT_PASSWORD", "synthetic-jwt-password")
+PROTECTED_TEST_PASSWORD = os.environ.get("TEST_PROTECTED_PASSWORD", "synthetic-protected-password")
+UPDATE_TEST_PASSWORD = os.environ.get("TEST_PROFILE_UPDATE_PASSWORD", "synthetic-profile-update-password")
+
+REMEMBER_TEST_PASSWORD = os.environ.get("TEST_REMEMBER_PASSWORD", "synthetic-remember-password")
+ADMIN_TEST_PASSWORD = os.environ.get("TEST_ADMIN_PASSWORD", "synthetic-admin-password")
+TARGET_TEST_PASSWORD = os.environ.get("TEST_TARGET_PASSWORD", "synthetic-target-password")
+MAGIC_TEST_PASSWORD = os.environ.get("TEST_MAGIC_PASSWORD", "synthetic-magic-password")
+PORTAL_TEST_USER_PASSWORD = os.environ.get("TEST_PORTAL_USER_PASSWORD", "synthetic-portal-user-password")
+
+TEST_CUSTOMER_EMAIL = os.environ.get("TEST_CUSTOMER_EMAIL", "synthetic-customer@example.com")
+PORTAL_CUSTOMER_EMAIL = os.environ.get("TEST_PORTAL_CUSTOMER_EMAIL", "synthetic-portal-customer@example.com")
