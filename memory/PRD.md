@@ -19,6 +19,17 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
+### Session: April 5, 2026 (Hook Dependency / Stale Closure Fixes)
+- Fixed the targeted stale-closure / dependency issues in:
+  - `src/pages/settings/ProductionSettings.js`
+  - `src/pages/Webstores.js`
+  - `src/pages/TimeClock.js`
+- Approach used:
+  - `ProductionSettings`: stabilized template selection with `useCallback` and used a ref for the current selected template during async template loading
+  - `Webstores`: moved unstable app-context fetchers into a ref so `loadData` and `checkStripeStatus` no longer depend on changing callback identities
+  - `TimeClock`: moved timeclock app-context fetchers/actions into a ref and changed employee data loading to accept explicit employee IDs instead of relying on a captured stale closure
+- Verified affected screens still load and operate without runtime regressions
+
 ### Session: April 5, 2026 (Object Storage Circular Import Fix)
 - Fixed the circular dependency between `server.py` and `services/object_storage.py`
 - Added shared module: `/app/backend/services/storage_config.py`

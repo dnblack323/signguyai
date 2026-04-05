@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -52,6 +52,17 @@ export default function ProductionSettings() {
   // Analytics
   const [analytics, setAnalytics] = useState(null);
   const [stageReport, setStageReport] = useState([]);
+  const selectedTemplateRef = useRef(null);
+
+  useEffect(() => {
+    selectedTemplateRef.current = selectedTemplate;
+  }, [selectedTemplate]);
+
+  const selectTemplate = useCallback((template) => {
+    setSelectedTemplate(template);
+    setEditingName(template.name);
+    setEditingStages([...template.stages]);
+  }, []);
 
   const loadWorkflowSettings = useCallback(async () => {
     try {
@@ -73,7 +84,7 @@ export default function ProductionSettings() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setTemplates(res.data);
-      if (res.data.length > 0 && !selectedTemplate) {
+      if (res.data.length > 0 && !selectedTemplateRef.current) {
         selectTemplate(res.data[0]);
       }
     } catch (err) {
@@ -81,7 +92,7 @@ export default function ProductionSettings() {
     } finally {
       setLoading(false);
     }
-  }, [selectedTemplate]);
+  }, [selectTemplate]);
 
   const loadAnalytics = useCallback(async () => {
     try {
@@ -106,12 +117,6 @@ export default function ProductionSettings() {
     loadTemplates();
     loadAnalytics();
   }, [loadWorkflowSettings, loadTemplates, loadAnalytics]);
-
-  const selectTemplate = (template) => {
-    setSelectedTemplate(template);
-    setEditingName(template.name);
-    setEditingStages([...template.stages]);
-  };
 
   const handleStageChange = (index, field, value) => {
     const updated = [...editingStages];

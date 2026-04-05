@@ -82,6 +82,8 @@ const getStatusBadge = (status) => {
   return colors[status] || colors.pending;
 };
 
+const DEV_BYPASS_STRIPE = true;
+
 export default function Webstores() {
   const { 
     getWebstores, createWebstore, updateWebstore, deleteWebstore,
@@ -158,14 +160,31 @@ export default function Webstores() {
     creator_commission_type: 'percentage',
     creator_commission_value: 20,
   });
+  const apiRef = useRef({
+    getWebstores,
+    getWebstoreOrdersV2,
+    getProducts,
+    getStripeConnectStatus,
+    createStripeConnectAccount,
+  });
+
+  useEffect(() => {
+    apiRef.current = {
+      getWebstores,
+      getWebstoreOrdersV2,
+      getProducts,
+      getStripeConnectStatus,
+      createStripeConnectAccount,
+    };
+  }, [getWebstores, getWebstoreOrdersV2, getProducts, getStripeConnectStatus, createStripeConnectAccount]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [storesData, ordersData, productsData] = await Promise.all([
-        getWebstores(),
-        getWebstoreOrdersV2(),
-        getProducts()
+        apiRef.current.getWebstores(),
+        apiRef.current.getWebstoreOrdersV2(),
+        apiRef.current.getProducts()
       ]);
       setWebstores(storesData);
       setOrders(ordersData);
@@ -174,11 +193,7 @@ export default function Webstores() {
       console.error('Error loading data:', err);
     }
     setLoading(false);
-  }, [getWebstores, getWebstoreOrdersV2, getProducts]);
-
-  // Check Stripe Connect status first
-  // DEV MODE: Set to true to bypass Stripe requirement for testing
-  const DEV_BYPASS_STRIPE = true;
+  }, []);
   
   const checkStripeStatus = useCallback(async () => {
     // Bypass Stripe check in dev/test mode
@@ -189,18 +204,18 @@ export default function Webstores() {
     }
     
     try {
-      const status = await getStripeConnectStatus();
+      const status = await apiRef.current.getStripeConnectStatus();
       setStripeConnected(status.connected && status.charges_enabled);
     } catch (err) {
       console.error('Error checking Stripe status:', err);
       setStripeConnected(false);
     }
-  }, [getStripeConnectStatus]);
+  }, []);
 
   const handleConnectStripe = async () => {
     setConnectingStripe(true);
     try {
-      const result = await createStripeConnectAccount();
+      const result = await apiRef.current.createStripeConnectAccount();
       if (result.url) {
         window.location.href = result.url;
       }

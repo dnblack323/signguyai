@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -52,20 +52,25 @@ export default function TimeClock() {
   const [pinResetEmployee, setPinResetEmployee] = useState(null);
   const [newPin, setNewPin] = useState('');
   const [invitingEmployeeId, setInvitingEmployeeId] = useState('');
+  const timeApiRef = useRef({ fetchEmployees, getClockStatus, getTodayLogs, getShiftSummary, clockAction });
+
+  useEffect(() => {
+    timeApiRef.current = { fetchEmployees, getClockStatus, getTodayLogs, getShiftSummary, clockAction };
+  }, [fetchEmployees, getClockStatus, getTodayLogs, getShiftSummary, clockAction]);
 
   const loadEmployees = useCallback(async () => {
     setLoading(true);
-    await fetchEmployees();
+    await timeApiRef.current.fetchEmployees();
     setLoading(false);
-  }, [fetchEmployees]);
+  }, []);
 
-  const loadEmployeeData = useCallback(async () => {
-    if (!selectedEmployee) return;
+  const loadEmployeeData = useCallback(async (employeeId) => {
+    if (!employeeId) return;
     try {
       const [status, logs, summary] = await Promise.all([
-        getClockStatus(selectedEmployee),
-        getTodayLogs(selectedEmployee),
-        getShiftSummary(selectedEmployee)
+        timeApiRef.current.getClockStatus(employeeId),
+        timeApiRef.current.getTodayLogs(employeeId),
+        timeApiRef.current.getShiftSummary(employeeId)
       ]);
       setClockStatus(status);
       setTodayLogs(logs);
@@ -73,7 +78,7 @@ export default function TimeClock() {
     } catch (err) {
       console.error('Error loading employee data:', err);
     }
-  }, [getClockStatus, getTodayLogs, getShiftSummary, selectedEmployee]);
+  }, []);
 
   useEffect(() => {
     loadEmployees();
@@ -81,7 +86,7 @@ export default function TimeClock() {
 
   useEffect(() => {
     if (selectedEmployee) {
-      loadEmployeeData();
+      loadEmployeeData(selectedEmployee);
     }
   }, [selectedEmployee, loadEmployeeData]);
 
@@ -91,9 +96,9 @@ export default function TimeClock() {
       return;
     }
     try {
-      await clockAction(selectedEmployee, action);
+      await timeApiRef.current.clockAction(selectedEmployee, action);
       toast.success(`${action.replace('_', ' ')} recorded`);
-      await loadEmployeeData();
+      await loadEmployeeData(selectedEmployee);
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to record action');
     }
