@@ -89,15 +89,18 @@ const allShortcuts = shortcutCategories.flatMap(cat => cat.shortcuts);
 const defaultShortcuts = ['dashboard', 'customers', 'jobs', 'invoices', '|', 'ai-tools', 'ai-assistant'];
 
 const STORAGE_KEY = 'toolbar_shortcuts_v2';
+const createSeparatorEntry = () => ({ type: 'separator', id: `toolbar-separator-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` });
+const normalizeShortcuts = (entries = []) => entries.map((entry) => entry === '|' ? createSeparatorEntry() : entry);
+const serializeShortcuts = (entries = []) => entries.map((entry) => (typeof entry === 'string' ? entry : { type: 'separator', id: entry.id }));
 
 export default function QuickToolbar() {
   const location = useLocation();
   const [shortcuts, setShortcuts] = useState(() => {
     try {
       const saved = getPersistentPreference(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : defaultShortcuts;
+      return saved ? normalizeShortcuts(JSON.parse(saved)) : normalizeShortcuts(defaultShortcuts);
     } catch {
-      return defaultShortcuts;
+      return normalizeShortcuts(defaultShortcuts);
     }
   });
   const [isCustomizing, setIsCustomizing] = useState(false);
@@ -105,7 +108,7 @@ export default function QuickToolbar() {
 
   // Low-risk UI preference: keep toolbar shortcut layout across browser restarts.
   useEffect(() => {
-    setPersistentPreference(STORAGE_KEY, JSON.stringify(shortcuts));
+    setPersistentPreference(STORAGE_KEY, JSON.stringify(serializeShortcuts(shortcuts)));
   }, [shortcuts]);
 
   const openCustomize = () => {
@@ -128,7 +131,7 @@ export default function QuickToolbar() {
   };
 
   const addSeparator = () => {
-    setTempShortcuts([...tempShortcuts, '|']);
+    setTempShortcuts([...tempShortcuts, createSeparatorEntry()]);
   };
 
   const removeSeparator = (index) => {
@@ -148,10 +151,10 @@ export default function QuickToolbar() {
         <div className="flex items-center gap-1 overflow-x-auto">
           {shortcuts.map((item, index) => {
             // Render separator
-            if (item === '|') {
+            if (typeof item !== 'string' && item?.type === 'separator') {
               return (
                 <div 
-                  key={`sep-${index}`}
+                  key={item.id}
                   className="h-6 w-px bg-[var(--border-dark)] mx-2 flex-shrink-0"
                 />
               );
@@ -227,9 +230,9 @@ export default function QuickToolbar() {
                   <span className="text-sm text-[var(--text-muted-on-dark)] italic">No shortcuts selected</span>
                 ) : (
                   tempShortcuts.map((item, index) => {
-                    if (item === '|') {
+                    if (typeof item !== 'string' && item?.type === 'separator') {
                       return (
-                        <div key={`sep-${index}`} className="flex items-center gap-1 group">
+                        <div key={item.id} className="flex items-center gap-1 group">
                           <div className="h-8 w-1 bg-[var(--border-dark)] rounded" />
                           <button
                             onClick={() => removeSeparator(index)}
@@ -312,7 +315,7 @@ export default function QuickToolbar() {
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={() => setTempShortcuts(defaultShortcuts)}
+              onClick={() => setTempShortcuts(normalizeShortcuts(defaultShortcuts))}
             >
               Reset to default
             </Button>

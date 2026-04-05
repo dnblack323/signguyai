@@ -79,7 +79,7 @@ export default function DocsWebstores() {
             'Enable Stripe checkout (if connected)',
             'Publish the store'
           ].map((step, index) => (
-            <li key={index} className="flex items-start gap-3 text-gray-300">
+            <li key={step} className="flex items-start gap-3 text-gray-300">
               <span className="flex-shrink-0 w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 text-sm flex items-center justify-center">{index + 1}</span>
               {step}
             </li>

@@ -62,7 +62,7 @@ export default function DocsFAQ() {
         <div key={category.category}>
           <h2 className="text-xl font-semibold text-white mb-4">{category.category}</h2>
           <div className="space-y-2">
-            {category.questions.map((faq, index) => <FAQItem key={index} question={faq.q} answer={faq.a} />)}
+            {category.questions.map((faq) => <FAQItem key={faq.q} question={faq.q} answer={faq.a} />)}
           </div>
         </div>
       ))}

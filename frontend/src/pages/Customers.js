@@ -56,6 +56,8 @@ const formatPhoneInput = (value) => {
 };
 
 const statusOptions = ['lead', 'active', 'inactive'];
+const buildCsvHeader = (label, index) => ({ id: `csv-header-${index}-${label}`, index, label });
+const buildCsvPreviewRow = (values, rowNumber) => ({ id: `csv-row-${rowNumber}-${values.join('|')}`, values });
 
 export default function Customers() {
   const navigate = useNavigate();
@@ -269,25 +271,25 @@ export default function Customers() {
       }
       
       // Parse headers (first row)
-      const headers = parseCSVLine(lines[0]);
+      const headers = parseCSVLine(lines[0]).map((header, index) => buildCsvHeader(header, index));
       setCsvHeaders(headers);
       
       // Auto-map columns based on header names
       const autoMapping = {};
-      headers.forEach((header, index) => {
-        const normalizedHeader = header.toLowerCase().trim();
+      headers.forEach((header) => {
+        const normalizedHeader = header.label.toLowerCase().trim();
         if (normalizedHeader.includes('name') && !normalizedHeader.includes('company')) {
-          autoMapping[index] = 'name';
+          autoMapping[header.id] = 'name';
         } else if (normalizedHeader.includes('company') || normalizedHeader.includes('business')) {
-          autoMapping[index] = 'company';
+          autoMapping[header.id] = 'company';
         } else if (normalizedHeader.includes('email')) {
-          autoMapping[index] = 'email';
+          autoMapping[header.id] = 'email';
         } else if (normalizedHeader.includes('phone') || normalizedHeader.includes('tel')) {
-          autoMapping[index] = 'phone';
+          autoMapping[header.id] = 'phone';
         } else if (normalizedHeader.includes('status')) {
-          autoMapping[index] = 'status';
+          autoMapping[header.id] = 'status';
         } else if (normalizedHeader.includes('note')) {
-          autoMapping[index] = 'notes';
+          autoMapping[header.id] = 'notes';
         }
       });
       setColumnMapping(autoMapping);
@@ -296,7 +298,7 @@ export default function Customers() {
       const preview = [];
       for (let i = 1; i < Math.min(lines.length, 6); i++) {
         const values = parseCSVLine(lines[i]);
-        preview.push(values);
+        preview.push(buildCsvPreviewRow(values, i));
       }
       setCsvPreview(preview);
       setImportStep('map');
@@ -344,9 +346,10 @@ export default function Customers() {
           const values = parseCSVLine(lines[i]);
           const customer = { status: 'lead' }; // Default status
           
-          Object.entries(columnMapping).forEach(([colIndex, field]) => {
-            if (field && values[parseInt(colIndex)]) {
-              let value = values[parseInt(colIndex)].replace(/^["']|["']$/g, '').trim();
+          csvHeaders.forEach((header) => {
+            const field = columnMapping[header.id];
+            if (field && values[header.index]) {
+              let value = values[header.index].replace(/^["']|["']$/g, '').trim();
               // Normalize status values
               if (field === 'status') {
                 value = value.toLowerCase();
@@ -477,13 +480,13 @@ export default function Customers() {
                     <Badge variant="outline">{csvFile?.name}</Badge>
                   </div>
                   <div className="space-y-3 max-h-[300px] overflow-y-auto">
-                    {csvHeaders.map((header, index) => (
-                      <div key={index} className="flex items-center gap-3 p-2 rounded bg-gray-50/50">
-                        <div className="w-1/3 font-medium truncate text-sm">{header}</div>
+                    {csvHeaders.map((header) => (
+                      <div key={header.id} className="flex items-center gap-3 p-2 rounded bg-gray-50/50">
+                        <div className="w-1/3 font-medium truncate text-sm">{header.label}</div>
                         <span className="text-gray-500">→</span>
                         <Select
-                          value={columnMapping[index] || ''}
-                          onValueChange={(val) => setColumnMapping({ ...columnMapping, [index]: val })}
+                          value={columnMapping[header.id] || ''}
+                          onValueChange={(val) => setColumnMapping({ ...columnMapping, [header.id]: val })}
                         >
                           <SelectTrigger className="w-1/2">
                             <SelectValue placeholder="Select field" />
@@ -507,10 +510,10 @@ export default function Customers() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            {csvHeaders.map((header, index) => (
-                              <TableHead key={index} className="text-xs">
-                                {columnMapping[index] ? (
-                                  <Badge variant="default" className="text-xs">{columnMapping[index]}</Badge>
+                            {csvHeaders.map((header) => (
+                              <TableHead key={header.id} className="text-xs">
+                                {columnMapping[header.id] ? (
+                                  <Badge variant="default" className="text-xs">{columnMapping[header.id]}</Badge>
                                 ) : (
                                   <span className="text-gray-500">-</span>
                                 )}
@@ -519,10 +522,10 @@ export default function Customers() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {csvPreview.map((row, rowIndex) => (
-                            <TableRow key={rowIndex}>
-                              {row.map((cell, cellIndex) => (
-                                <TableCell key={cellIndex} className="text-xs py-1 truncate max-w-[100px]">
+                          {csvPreview.map((row) => (
+                            <TableRow key={row.id}>
+                              {row.values.map((cell, cellIndex) => (
+                                <TableCell key={`${row.id}-${csvHeaders[cellIndex]?.id || cellIndex}-${cell}`} className="text-xs py-1 truncate max-w-[100px]">
                                   {cell || '-'}
                                 </TableCell>
                               ))}
@@ -567,8 +570,8 @@ export default function Customers() {
                     <div className="mt-4 p-3 rounded bg-red-50 border border-red-200">
                       <p className="text-sm font-medium text-red-700 mb-2">Errors:</p>
                       <ul className="text-xs text-red-600 space-y-1">
-                        {importResult.errors.slice(0, 5).map((err, i) => (
-                          <li key={i} className="flex items-start gap-2">
+                        {importResult.errors.slice(0, 5).map((err) => (
+                          <li key={err} className="flex items-start gap-2">
                             <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
                             {err}
                           </li>

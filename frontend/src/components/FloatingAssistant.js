@@ -17,13 +17,16 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 // Quick action suggestions based on context
 const quickActions = [
-  { icon: Briefcase, text: "Create a new job", action: "create_job" },
-  { icon: Calendar, text: "Schedule appointment", action: "create_calendar_event" },
-  { icon: FileText, text: "Create invoice", action: "create_invoice" },
-  { icon: Users, text: "Look up customer info", action: "query" },
-  { icon: DollarSign, text: "Check revenue today", action: "query" },
-  { icon: Clock, text: "Log time entry", action: "log_time" },
+  { id: 'qa-create-job', icon: Briefcase, text: "Create a new job", action: "create_job" },
+  { id: 'qa-create-event', icon: Calendar, text: "Schedule appointment", action: "create_calendar_event" },
+  { id: 'qa-create-invoice', icon: FileText, text: "Create invoice", action: "create_invoice" },
+  { id: 'qa-query-customer', icon: Users, text: "Look up customer info", action: "query" },
+  { id: 'qa-query-revenue', icon: DollarSign, text: "Check revenue today", action: "query" },
+  { id: 'qa-log-time', icon: Clock, text: "Log time entry", action: "log_time" },
 ];
+
+let assistantMessageCounter = 0;
+const createAssistantMessage = (message) => ({ id: `assistant-message-${assistantMessageCounter += 1}`, ...message });
 
 export default function FloatingAssistant() {
   const { token, user } = useAuth();
@@ -31,7 +34,7 @@ export default function FloatingAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState([
-    {
+    createAssistantMessage({
       role: 'assistant',
       content: `Hi${user?.full_name ? ` ${user.full_name.split(' ')[0]}` : ''}! I'm your AI assistant. I can help you:
 
@@ -41,7 +44,7 @@ export default function FloatingAssistant() {
 
 What would you like to do?`,
       actions: null
-    }
+    })
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -142,15 +145,15 @@ What would you like to do?`,
           });
           if (response.data.text) {
             setPendingTranscript(response.data.text);
-            setMessages(prev => [...prev, {
+            setMessages(prev => [...prev, createAssistantMessage({
               role: 'assistant',
               content: `I heard: **${response.data.text}**\n\nWould you like me to use this exactly, let you edit it first, or discard it?`,
               actions: [
-                { label: 'Send Now', action: 'send_transcript', variant: 'default' },
-                { label: 'Edit First', action: 'edit_transcript', variant: 'outline' },
-                { label: 'Discard', action: 'discard_transcript', variant: 'outline' }
+                { id: 'assistant-send-transcript', label: 'Send Now', action: 'send_transcript', variant: 'default' },
+                { id: 'assistant-edit-transcript', label: 'Edit First', action: 'edit_transcript', variant: 'outline' },
+                { id: 'assistant-discard-transcript', label: 'Discard', action: 'discard_transcript', variant: 'outline' }
               ]
-            }]);
+            })]);
             toast.success('Voice captured');
           }
         } finally {
@@ -217,7 +220,7 @@ What would you like to do?`,
   const handleSend = async (messageText = input) => {
     if (!messageText.trim() || loading) return;
 
-    const userMessage = { role: 'user', content: messageText.trim() };
+    const userMessage = createAssistantMessage({ role: 'user', content: messageText.trim() });
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setLoading(true);
@@ -249,7 +252,7 @@ What would you like to do?`,
               }
             );
 
-            const assistantMessage = { role: 'assistant', content: response.data.response };
+            const assistantMessage = createAssistantMessage({ role: 'assistant', content: response.data.response });
             setMessages(prev => [...prev, assistantMessage]);
             return response.data;
           }
@@ -258,7 +261,7 @@ What would you like to do?`,
     } catch (error) {
       console.error('Error:', error);
       const errorMsg = error.response?.data?.detail || 'Something went wrong. Please try again.';
-      setMessages(prev => [...prev, { role: 'assistant', content: `Sorry, ${errorMsg}`, isError: true }]);
+      setMessages(prev => [...prev, createAssistantMessage({ role: 'assistant', content: `Sorry, ${errorMsg}`, isError: true })]);
     } finally {
       setLoading(false);
     }
@@ -332,14 +335,14 @@ What would you like to do?`,
         description: `Create job "${parsed.parameters.name}" for ${parsed.parameters.customer_name || 'customer'}`
       });
       
-      return {
+      return createAssistantMessage({
         role: 'assistant',
         content: `I'll create this job for you:\n\n**Job:** ${parsed.parameters.name}\n**Customer:** ${parsed.parameters.customer_name || 'TBD'}\n**Description:** ${parsed.parameters.description || 'N/A'}\n\nShould I create this job?`,
         actions: [
-          { label: 'Yes, create it', action: 'confirm', variant: 'default' },
-          { label: 'No, cancel', action: 'cancel', variant: 'outline' }
+          { id: 'assistant-confirm-create-job', label: 'Yes, create it', action: 'confirm', variant: 'default' },
+          { id: 'assistant-cancel-create-job', label: 'No, cancel', action: 'cancel', variant: 'outline' }
         ]
-      };
+      });
     } catch (err) {
       console.error('Error parsing job:', err);
       return {
@@ -367,14 +370,14 @@ What would you like to do?`,
         description: `Create order for ${parsed.parameters.customer_name}`
       });
 
-      return {
+      return createAssistantMessage({
         role: 'assistant',
         content: `I'll create this order for you:\n\n**Customer:** ${parsed.parameters.customer_name}\n**Due Date:** ${parsed.parameters.requested_due_date || 'Not set'}\n**Notes:** ${parsed.parameters.description || 'None'}\n\nShould I create this order?`,
         actions: [
-          { label: 'Yes, create it', action: 'confirm', variant: 'default' },
-          { label: 'No, cancel', action: 'cancel', variant: 'outline' }
+          { id: 'assistant-confirm-create-order', label: 'Yes, create it', action: 'confirm', variant: 'default' },
+          { id: 'assistant-cancel-create-order', label: 'No, cancel', action: 'cancel', variant: 'outline' }
         ]
-      };
+      });
     } catch (err) {
       console.error('Error parsing order:', err);
       return {
@@ -402,14 +405,14 @@ What would you like to do?`,
         description: `Schedule "${parsed.parameters.title}" on ${parsed.parameters.date}`
       });
       
-      return {
+      return createAssistantMessage({
         role: 'assistant',
         content: `I'll schedule this appointment:\n\n**Title:** ${parsed.parameters.title}\n**Date:** ${parsed.parameters.date}\n**Time:** ${parsed.parameters.time || 'TBD'}\n\nShould I create this appointment?`,
         actions: [
-          { label: 'Yes, schedule it', action: 'confirm', variant: 'default' },
-          { label: 'No, cancel', action: 'cancel', variant: 'outline' }
+          { id: 'assistant-confirm-create-event', label: 'Yes, schedule it', action: 'confirm', variant: 'default' },
+          { id: 'assistant-cancel-create-event', label: 'No, cancel', action: 'cancel', variant: 'outline' }
         ]
-      };
+      });
     } catch (err) {
       console.error('Error parsing appointment:', err);
       return {
@@ -444,14 +447,14 @@ What would you like to do?`,
         description: `Log ${parsed.parameters.hours} hours for ${parsed.parameters.job_name || 'job'}`
       });
       
-      return {
+      return createAssistantMessage({
         role: 'assistant',
         content: `I'll log this time entry:\n\n**Hours:** ${parsed.parameters.hours}\n**Job:** ${parsed.parameters.job_name || 'TBD'}\n**Task:** ${parsed.parameters.task || 'General work'}\n\nShould I log this?`,
         actions: [
-          { label: 'Yes, log it', action: 'confirm', variant: 'default' },
-          { label: 'No, cancel', action: 'cancel', variant: 'outline' }
+          { id: 'assistant-confirm-log-time', label: 'Yes, log it', action: 'confirm', variant: 'default' },
+          { id: 'assistant-cancel-log-time', label: 'No, cancel', action: 'cancel', variant: 'outline' }
         ]
-      };
+      });
     } catch (err) {
       console.error('Error parsing time entry:', err);
       return {
@@ -494,22 +497,22 @@ What would you like to do?`,
         const result = response.data;
         
         if (result.status === 'executed') {
-          setMessages(prev => [...prev, {
+          setMessages(prev => [...prev, createAssistantMessage({
             role: 'assistant',
             content: `Done! ${pendingAction.description}.\n\n${result.result?.message || 'Action completed successfully.'}`,
             isSuccess: true
-          }]);
+          })]);
           toast.success('Action completed');
         } else {
           throw new Error(result.error || 'Action failed');
         }
       } catch (err) {
         console.error('Action error:', err);
-        setMessages(prev => [...prev, {
+        setMessages(prev => [...prev, createAssistantMessage({
           role: 'assistant',
           content: `Sorry, I couldn't complete that action. ${err.response?.data?.detail || err.message}`,
           isError: true
-        }]);
+        })]);
         toast.error('Action failed');
       } finally {
         setPendingAction(null);
@@ -517,10 +520,10 @@ What would you like to do?`,
       }
     } else if (action === 'cancel') {
       setPendingAction(null);
-      setMessages(prev => [...prev, {
+      setMessages(prev => [...prev, createAssistantMessage({
         role: 'assistant',
         content: "No problem, I've cancelled that. What else can I help with?"
-      }]);
+      })]);
     }
   };
 
@@ -611,9 +614,9 @@ What would you like to do?`,
           {/* Messages Area */}
           <ScrollArea className="flex-1 p-3">
             <div className="space-y-3">
-              {messages.map((message, index) => (
+              {messages.map((message) => (
                 <div
-                  key={index}
+                  key={message.id}
                   className={`flex gap-2 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   {message.role === 'assistant' && (
@@ -645,12 +648,12 @@ What would you like to do?`,
                         {message.content.split('\n').map((line, i) => {
                           const parts = line.split(/(\*\*.*?\*\*)/g);
                           return (
-                            <p key={i} className={i > 0 ? 'mt-1.5' : ''}>
+                            <p key={`${message.id}-line-${i}-${line}`} className={i > 0 ? 'mt-1.5' : ''}>
                               {parts.map((part, j) => {
                                 if (part.startsWith('**') && part.endsWith('**')) {
-                                  return <strong key={j}>{part.slice(2, -2)}</strong>;
+                                  return <strong key={`${message.id}-bold-${i}-${j}-${part}`}>{part.slice(2, -2)}</strong>;
                                 }
-                                return part;
+                                return <React.Fragment key={`${message.id}-text-${i}-${j}-${part}`}>{part}</React.Fragment>;
                               })}
                             </p>
                           );
@@ -660,9 +663,9 @@ What would you like to do?`,
                     {/* Action buttons */}
                     {message.actions && (
                       <div className="flex gap-2">
-                        {message.actions.map((action, idx) => (
+                        {message.actions.map((action) => (
                           <Button
-                            key={idx}
+                            key={action.id || action.action || action.label}
                             size="sm"
                             variant={action.variant || 'default'}
                             onClick={() => handleActionButton(action.action)}
@@ -703,9 +706,9 @@ What would you like to do?`,
             <div className="px-3 py-2 border-t bg-slate-50/80">
               <p className="text-xs text-slate-500 mb-2">Quick actions:</p>
               <div className="flex flex-wrap gap-1.5">
-                {quickActions.slice(0, 4).map((qa, idx) => (
+                {quickActions.slice(0, 4).map((qa) => (
                   <button
-                    key={idx}
+                    key={qa.id}
                     onClick={() => handleQuickAction(qa)}
                     className="flex items-center gap-1 px-2 py-1 rounded-full bg-white border text-xs text-slate-600 hover:bg-slate-100 hover:border-slate-300 transition-colors"
                   >

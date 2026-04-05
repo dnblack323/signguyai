@@ -41,8 +41,8 @@ export default function AIMaxPage() {
           <div className="bg-white/5 border border-white/10 rounded-xl p-8">
             <h2 className="text-xl font-bold mb-6">What's Included</h2>
             <ul className="space-y-4">
-              {features.map((feature, idx) => (
-                <li key={idx} className="flex items-center gap-3">
+              {features.map((feature) => (
+                <li key={feature} className="flex items-center gap-3">
                   <CheckCircle2 className="w-5 h-5 text-purple-400 flex-shrink-0" />
                   <span>{feature}</span>
                 </li>

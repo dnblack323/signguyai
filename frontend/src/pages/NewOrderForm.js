@@ -53,6 +53,17 @@ const createLocalTicket = (mode = 'quick') => ({
   production_flow_enabled: false, design_needed: false, proof_required: false,
   estimated_price: 0, special_instructions: '', entry_mode: mode, specs: {},
 });
+const createOrderSketch = (imageData, label, type) => ({
+  local_id: `sketch_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+  image_data: imageData,
+  label,
+  type,
+});
+
+const createOrderFile = (file) => ({
+  local_id: `file_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+  file,
+});
 
 export default function NewOrderForm() {
   const navigate = useNavigate();
@@ -160,8 +171,8 @@ export default function NewOrderForm() {
       // Upload files
       for (const f of orderFiles) {
         const formData = new FormData();
-        formData.append('file', f);
-        formData.append('label', f.name);
+        formData.append('file', f.file);
+        formData.append('label', f.file.name);
         await axios.post(`${API}/orders/${orderId}/upload`, formData, {
           headers: { Authorization: `Bearer ${token()}` },
         });
@@ -405,14 +416,14 @@ export default function NewOrderForm() {
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {orderSketches.map((s, i) => (
-                <div key={i} className="border border-gray-200 rounded-lg overflow-hidden group relative">
+              {orderSketches.map((s) => (
+                <div key={s.local_id} className="border border-gray-200 rounded-lg overflow-hidden group relative">
                   <div className="aspect-[4/3] bg-gray-50">
                     <img src={s.image_data} alt={s.label} className="w-full h-full object-contain" />
                   </div>
                   <div className="p-2 flex items-center justify-between">
                     <span className="text-xs text-gray-700 truncate">{s.label || 'Sketch'}</span>
-                    <button onClick={() => setOrderSketches(prev => prev.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-600"><Trash2 className="w-3 h-3" /></button>
+                    <button onClick={() => setOrderSketches(prev => prev.filter((sketch) => sketch.local_id !== s.local_id))} className="text-red-400 hover:text-red-600"><Trash2 className="w-3 h-3" /></button>
                   </div>
                 </div>
               ))}
@@ -450,7 +461,7 @@ export default function NewOrderForm() {
             type="file"
             multiple
             onChange={(e) => {
-              const newFiles = Array.from(e.target.files || []);
+              const newFiles = Array.from(e.target.files || []).map(createOrderFile);
               setOrderFiles(prev => [...prev, ...newFiles]);
               e.target.value = '';
             }}
@@ -464,14 +475,14 @@ export default function NewOrderForm() {
           </label>
           {orderFiles.length > 0 && (
             <div className="mt-2 space-y-1">
-              {orderFiles.map((f, i) => (
-                <div key={i} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded px-3 py-1.5 text-sm">
+              {orderFiles.map((f) => (
+                <div key={f.local_id} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded px-3 py-1.5 text-sm">
                   <div className="flex items-center gap-2 min-w-0">
                     <FileUp className="w-4 h-4 text-violet-500 flex-shrink-0" />
-                    <span className="text-gray-700 truncate">{f.name}</span>
-                    <span className="text-gray-400 text-xs flex-shrink-0">({(f.size / 1024).toFixed(0)} KB)</span>
+                    <span className="text-gray-700 truncate">{f.file.name}</span>
+                    <span className="text-gray-400 text-xs flex-shrink-0">({(f.file.size / 1024).toFixed(0)} KB)</span>
                   </div>
-                  <button onClick={() => setOrderFiles(prev => prev.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-600 ml-2"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => setOrderFiles(prev => prev.filter((file) => file.local_id !== f.local_id))} className="text-red-400 hover:text-red-600 ml-2"><Trash2 className="w-3.5 h-3.5" /></button>
                 </div>
               ))}
             </div>
@@ -498,7 +509,7 @@ export default function NewOrderForm() {
             // For new order, we capture the sketch locally until order is saved
           }}
           onLocalSave={(imageData, label, type) => {
-            setOrderSketches(prev => [...prev, { image_data: imageData, label, type }]);
+            setOrderSketches(prev => [...prev, createOrderSketch(imageData, label, type)]);
             setShowSketchModal(false);
           }}
         />

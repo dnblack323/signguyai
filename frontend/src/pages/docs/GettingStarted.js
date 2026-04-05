@@ -129,8 +129,8 @@ export default function GettingStarted() {
               <div className="space-y-3">
                 <h3 className="text-lg font-semibold text-white">{step.title}</h3>
                 <ul className="space-y-2">
-                  {step.bullets.map((bullet, bulletIndex) => (
-                    <li key={bulletIndex} className="flex items-start gap-3 text-gray-300">
+                  {step.bullets.map((bullet) => (
+                    <li key={bullet} className="flex items-start gap-3 text-gray-300">
                       <CheckCircle className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
                       <span>{bullet}</span>
                     </li>
@@ -147,7 +147,7 @@ export default function GettingStarted() {
           <h2 className="text-xl font-semibold text-white mb-4">Standard Setup (Recommended)</h2>
           <div className="space-y-3">
             {standardSetup.map((item, index) => (
-              <div key={index} className="flex items-start gap-3 text-gray-300">
+              <div key={item} className="flex items-start gap-3 text-gray-300">
                 <div className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 text-sm flex items-center justify-center flex-shrink-0">{index + 1}</div>
                 <p>{item}</p>
               </div>
@@ -159,7 +159,7 @@ export default function GettingStarted() {
           <h2 className="text-xl font-semibold text-white mb-4">Full Optimization</h2>
           <div className="space-y-3">
             {fullOptimization.map((item, index) => (
-              <div key={index} className="flex items-start gap-3 text-gray-300">
+              <div key={item} className="flex items-start gap-3 text-gray-300">
                 <div className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 text-sm flex items-center justify-center flex-shrink-0">{index + 1}</div>
                 <p>{item}</p>
               </div>
