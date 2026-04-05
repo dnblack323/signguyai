@@ -19,6 +19,16 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
+### Session: April 5, 2026 (Stable React Keys Pass)
+- Replaced index-based keys in the priority dynamic and flagged user-facing React lists
+- Interactive lists hardened:
+  - Customers CSV header/preview mapping rows now use normalized stable ids
+  - QuickToolbar separators now use stored separator objects with stable ids
+  - FloatingAssistant messages/actions/quick actions now use stable ids
+  - NewOrderForm local sketches/files now use stored stable ids
+- Docs/marketing lists updated to use durable content-based keys rather than array indexes in the flagged pages
+- Verified touched dynamic screens still load and interactive list behavior remains stable
+
 ### Session: April 5, 2026 (Hook Dependency / Stale Closure Fixes)
 - Fixed the targeted stale-closure / dependency issues in:
   - `src/pages/settings/ProductionSettings.js`
