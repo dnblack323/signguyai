@@ -142,6 +142,33 @@ const PRINT_LOCATIONS = [
   { id: 'right_chest', name: 'Right Chest' },
 ];
 
+const renderSuggestionText = (text) => {
+  const lines = String(text || '').split('\n');
+  const renderInline = (line) => {
+    const parts = line.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={`bold-${index}`}>{part.slice(2, -2)}</strong>;
+      }
+      return <span key={`text-${index}`}>{part}</span>;
+    });
+  };
+
+  return lines.map((line, index) => {
+    const trimmed = line.trim();
+    if (!trimmed) return <div key={`line-${index}`} className="h-2" />;
+    if (trimmed.startsWith('- ')) {
+      return (
+        <div key={`line-${index}`} className="flex items-start gap-2">
+          <span className="mt-1 text-slate-400">•</span>
+          <p>{renderInline(trimmed.slice(2))}</p>
+        </div>
+      );
+    }
+    return <p key={`line-${index}`}>{renderInline(line)}</p>;
+  });
+};
+
 export default function PricingCalculator({ 
   onCalculationComplete, 
   initialCategory = null,
@@ -1261,14 +1288,10 @@ export default function PricingCalculator({
                           <span className="text-sm font-medium text-purple-800">AI Recommendations</span>
                         </div>
                         <div className="prose prose-sm prose-purple max-w-none">
-                          <div 
-                            className="text-sm text-slate-700 whitespace-pre-wrap"
-                            dangerouslySetInnerHTML={{ 
-                              __html: aiSuggestions
-                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                .replace(/\n/g, '<br/>') 
-                            }}
-                          />
+                          <div className="text-sm text-slate-700 space-y-2">
+                            {/* Render AI suggestions as safe JSX instead of raw HTML to prevent XSS. */}
+                            {renderSuggestionText(aiSuggestions)}
+                          </div>
                         </div>
                         <button
                           onClick={() => setShowAiSuggestions(false)}
