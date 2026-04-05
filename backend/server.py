@@ -20,6 +20,7 @@ import jwt
 import bcrypt
 import secrets
 import re
+from services.storage_config import init_storage
 
 # Load environment variables
 ROOT_DIR = Path(__file__).parent
@@ -1296,7 +1297,6 @@ async def startup_migrations():
 
     # Initialize object storage
     try:
-        from services.object_storage import init_storage
         init_storage()
     except Exception as e:
         logger.warning(f"Object storage init deferred: {e}")

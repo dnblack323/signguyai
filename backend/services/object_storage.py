@@ -7,34 +7,12 @@ Initializes once at startup and reuses the storage key.
 
 import os
 import requests
-from server import logger
-
-STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
-EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
-APP_NAME = "signguy-ai"
-
-storage_key = None
-
-
-def init_storage():
-    """Initialize storage once at startup. Returns reusable storage_key."""
-    global storage_key
-    if storage_key:
-        return storage_key
-    resp = requests.post(
-        f"{STORAGE_URL}/init",
-        json={"emergent_key": EMERGENT_KEY},
-        timeout=30
-    )
-    resp.raise_for_status()
-    storage_key = resp.json()["storage_key"]
-    logger.info("Object storage initialized successfully")
-    return storage_key
+from services.storage_config import STORAGE_URL, get_storage_key, init_storage
 
 
 def put_object(path: str, data: bytes, content_type: str) -> dict:
     """Upload file. Returns {"path": "...", "size": 123, "etag": "..."}"""
-    key = init_storage()
+    key = get_storage_key()
     resp = requests.put(
         f"{STORAGE_URL}/objects/{path}",
         headers={"X-Storage-Key": key, "Content-Type": content_type},
@@ -47,7 +25,7 @@ def put_object(path: str, data: bytes, content_type: str) -> dict:
 
 def get_object(path: str) -> tuple:
     """Download file. Returns (content_bytes, content_type)."""
-    key = init_storage()
+    key = get_storage_key()
     resp = requests.get(
         f"{STORAGE_URL}/objects/{path}",
         headers={"X-Storage-Key": key},

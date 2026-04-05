@@ -19,6 +19,15 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
+### Session: April 5, 2026 (Object Storage Circular Import Fix)
+- Fixed the circular dependency between `server.py` and `services/object_storage.py`
+- Added shared module: `/app/backend/services/storage_config.py`
+- Moved object storage configuration and initialization there so:
+  - `server.py` no longer needs to import storage service logic for configuration
+  - `object_storage.py` no longer imports `logger` from `server.py`
+- Also fixed environment-loading timing so object storage reads `EMERGENT_LLM_KEY` after `.env` loading
+- Verified storage flow end-to-end by creating and fetching an order drawing through the live API
+
 ### Session: April 1, 2026 (Business Assistant Rollout Planning)
 - Added phased rollout plan for Business Assistant enhancements
 - Saved to memory with strict release-gate rule:
