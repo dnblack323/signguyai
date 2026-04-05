@@ -19,6 +19,18 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
+### Session: April 5, 2026 (Focused ProductionSettings Hook Cleanup)
+- Completed targeted stale-closure / dependency cleanup for `src/pages/settings/ProductionSettings.js`
+- Refactored the flagged hooks by:
+  - using a ref for the imperatively-read selected template during async template loading
+  - stabilizing template selection via `useCallback`
+  - ensuring the page bootstrapping effect depends only on stable callbacks
+- Verified:
+  - loading settings
+  - switching tabs/sections
+  - saving workflow mode
+  - template screen still rendering correctly after the cleanup
+
 ### Session: April 5, 2026 (Stable React Keys Pass)
 - Replaced index-based keys in the priority dynamic and flagged user-facing React lists
 - Interactive lists hardened:
