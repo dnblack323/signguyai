@@ -371,7 +371,7 @@ export default function Customers() {
         }
         
         // Send to backend
-        const token = localStorage.getItem('token');
+        const token = getAuthToken();
         const response = await axios.post(
           `${API_URL}/api/customers/import`,
           { customers },

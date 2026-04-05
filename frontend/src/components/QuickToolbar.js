@@ -16,6 +16,7 @@ import {
   DialogDescription,
 } from './ui/dialog';
 import { toast } from 'sonner';
+import { getPersistentPreference, setPersistentPreference } from '../lib/authStorage';
 
 // All available shortcuts organized by category
 const shortcutCategories = [
@@ -92,15 +93,19 @@ const STORAGE_KEY = 'toolbar_shortcuts_v2';
 export default function QuickToolbar() {
   const location = useLocation();
   const [shortcuts, setShortcuts] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : defaultShortcuts;
+    try {
+      const saved = getPersistentPreference(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : defaultShortcuts;
+    } catch {
+      return defaultShortcuts;
+    }
   });
   const [isCustomizing, setIsCustomizing] = useState(false);
   const [tempShortcuts, setTempShortcuts] = useState([]);
 
-  // Save to localStorage when shortcuts change
+  // Low-risk UI preference: keep toolbar shortcut layout across browser restarts.
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(shortcuts));
+    setPersistentPreference(STORAGE_KEY, JSON.stringify(shortcuts));
   }, [shortcuts]);
 
   const openCustomize = () => {
