@@ -19,6 +19,11 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
+### Session: April 5, 2026 (Team / Workforce Ribbon Spec Saved)
+- Saved the detailed Team / Workforce ribbon rebuild specification to memory for later implementation
+- Added dedicated memory file: `/app/memory/team_workforce_ribbon_spec.md`
+- This spec is saved only and is **not started yet**
+
 ### Session: April 5, 2026 (Focused ProductionSettings Hook Cleanup)
 - Completed targeted stale-closure / dependency cleanup for `src/pages/settings/ProductionSettings.js`
 - Refactored the flagged hooks by:
