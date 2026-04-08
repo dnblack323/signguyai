@@ -9,7 +9,7 @@ This module contains all routes related to:
 
 from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from typing import List, Optional
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date as date_type
 from pydantic import BaseModel, Field
 import uuid
 import random
@@ -240,6 +240,46 @@ async def _get_employee_compensation_snapshot(tenant_id: str, employee: dict, st
         "clock_hours": round(clock_hours, 2),
         "total_hours": total_hours,
     }
+
+
+def _get_period_bounds(period_type: str, reference_date: Optional[str] = None) -> tuple[str, str]:
+    ref = date_type.fromisoformat(reference_date) if reference_date else datetime.now(timezone.utc).date()
+    period_start = ref - timedelta(days=ref.weekday())
+    if period_type == "biweekly":
+        period_start = period_start - timedelta(days=7)
+        period_end = period_start + timedelta(days=13)
+    else:
+        period_end = period_start + timedelta(days=6)
+    return period_start.isoformat(), period_end.isoformat()
+
+
+def _resolve_report_date_range(
+    start_date: Optional[str],
+    end_date: Optional[str],
+    period_type: str,
+    reference_date: Optional[str],
+) -> tuple[str, str]:
+    if period_type in {"weekly", "biweekly"}:
+        return _get_period_bounds(period_type, reference_date)
+
+    if not start_date or not end_date:
+        raise HTTPException(status_code=400, detail="start_date and end_date are required for custom reports")
+    if end_date < start_date:
+        raise HTTPException(status_code=400, detail="end_date cannot be before start_date")
+    return start_date, end_date
+
+
+def _get_overtime_threshold(start_date: str, end_date: str, period_type: str = "custom") -> int:
+    if period_type == "weekly":
+        return 40
+    if period_type == "biweekly":
+        return 80
+
+    start = date_type.fromisoformat(start_date)
+    end = date_type.fromisoformat(end_date)
+    total_days = max((end - start).days + 1, 1)
+    total_weeks = max((total_days + 6) // 7, 1)
+    return total_weeks * 40
 
 
 # ============== EMPLOYEE ROUTES ==============
@@ -621,39 +661,62 @@ async def get_payroll_balance(
 
 @payroll_router.get("/report")
 async def get_payroll_report(
-    start_date: str, 
-    end_date: str,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    employee_id: Optional[str] = None,
+    period_type: str = Query("custom", pattern="^(custom|weekly|biweekly)$"),
+    reference_date: Optional[str] = None,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Get payroll report for all employees in a date range (tenant-scoped)"""
-    employees = await db.employees.find({
-        "tenant_id": current_user.tenant_id
-    }, {"_id": 0}).to_list(1000)
+    start_date, end_date = _resolve_report_date_range(start_date, end_date, period_type, reference_date)
+
+    employee_query = {"tenant_id": current_user.tenant_id}
+    if employee_id:
+        employee_query["id"] = employee_id
+
+    employees = await db.employees.find(employee_query, {"_id": 0}).to_list(1000)
     report = []
+    overtime_threshold = _get_overtime_threshold(start_date, end_date, period_type)
     
     for emp in employees:
+        hourly_rate = emp.get("hourly_rate", 0)
         snapshot = await _get_employee_compensation_snapshot(current_user.tenant_id, emp, start_date, end_date)
-        earnings = round(emp.get("hourly_rate", 0) * snapshot["total_hours"], 2)
+        total_hours = snapshot["total_hours"]
+        regular_hours = min(total_hours, overtime_threshold)
+        overtime_hours = max(total_hours - overtime_threshold, 0)
+        regular_pay = round(regular_hours * hourly_rate, 2)
+        overtime_pay = round(overtime_hours * hourly_rate * 1.5, 2)
+        gross_pay = round(regular_pay + overtime_pay, 2)
         transactions = await db.payroll_transactions.find({"employee_id": emp["id"], "date": {"$gte": start_date, "$lte": end_date}}, {"_id": 0}).to_list(1000)
         advances = sum(t["amount"] for t in transactions if t["type"] == "advance")
         payments = sum(t["amount"] for t in transactions if t["type"] == "payment")
+        balance = round(gross_pay - advances - payments, 2)
         
         report.append({
             "employee_id": emp["id"],
             "employee_name": emp["name"],
-            "hourly_rate": emp.get("hourly_rate", 0),
-            "hours": snapshot["total_hours"],
-            "earnings": earnings,
+            "hourly_rate": hourly_rate,
+            "hours": total_hours,
+            "regular_hours": round(regular_hours, 2),
+            "overtime_hours": round(overtime_hours, 2),
+            "earnings": gross_pay,
+            "gross_pay": gross_pay,
             "advances": advances,
             "payments": payments,
-            "balance": earnings - advances - payments
+            "balance": balance
         })
     
     return {
+        "period_type": period_type,
         "start_date": start_date,
         "end_date": end_date,
+        "employee_count": len(report),
         "employees": report,
         "totals": {
+            "hours": round(sum(r["hours"] for r in report), 2),
+            "regular_hours": round(sum(r["regular_hours"] for r in report), 2),
+            "overtime_hours": round(sum(r["overtime_hours"] for r in report), 2),
             "earnings": sum(r["earnings"] for r in report),
             "advances": sum(r["advances"] for r in report),
             "payments": sum(r["payments"] for r in report),
@@ -842,13 +905,13 @@ async def get_timesheet(
     employees = await db.employees.find(emp_query, {"_id": 0}).to_list(1000)
     
     timesheet = []
+    overtime_threshold = _get_overtime_threshold(start_date, end_date)
     for emp in employees:
         hourly_rate = emp.get("hourly_rate", 0)
         snapshot = await _get_employee_compensation_snapshot(current_user.tenant_id, emp, start_date, end_date)
         total_hours = snapshot["total_hours"]
-        # Overtime calc: anything over 40 hours/week is 1.5x
-        regular_hours = min(total_hours, 40)
-        overtime_hours = max(total_hours - 40, 0)
+        regular_hours = min(total_hours, overtime_threshold)
+        overtime_hours = max(total_hours - overtime_threshold, 0)
         overtime_pay = round(overtime_hours * hourly_rate * 0.5, 2)  # Extra 0.5x on top of regular
         
         timesheet.append({
@@ -884,27 +947,7 @@ async def get_pay_period_summary(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Get pay period summary with overtime calculations"""
-    from datetime import date as date_type
-    
-    if reference_date:
-        ref = date_type.fromisoformat(reference_date)
-    else:
-        ref = datetime.now(timezone.utc).date()
-    
-    # Calculate period start/end
-    # Weekly: Monday to Sunday
-    days_since_monday = ref.weekday()
-    period_start = ref - timedelta(days=days_since_monday)
-    
-    if period_type == "biweekly":
-        # Go back an extra week
-        period_start = period_start - timedelta(days=7)
-        period_end = period_start + timedelta(days=13)
-    else:
-        period_end = period_start + timedelta(days=6)
-    
-    start_str = period_start.isoformat()
-    end_str = period_end.isoformat()
+    start_str, end_str = _get_period_bounds(period_type, reference_date)
     
     employees = await db.employees.find({
         "tenant_id": current_user.tenant_id

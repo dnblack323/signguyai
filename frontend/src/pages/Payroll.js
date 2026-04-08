@@ -19,8 +19,16 @@ import {
 } from '../components/ui/table';
 import { formatCurrency, formatDate } from '../lib/utils';
 import {
+  buildPayrollCsv,
+  buildPayrollPrintHtml,
+  downloadTextFile,
+  formatPayrollRangeLabel,
+  getPresetDateRange,
+} from '../lib/payrollExport';
+import {
   DollarSign, Plus, TrendingUp, TrendingDown, Minus, AlertTriangle,
-  Clock, Users, CalendarDays, Edit2, Trash2, Briefcase, Timer, Loader2
+  Clock, Users, CalendarDays, Edit2, Trash2, Briefcase, Timer, Loader2,
+  Download, Printer, RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -74,6 +82,8 @@ export default function Payroll() {
     end: getWeekEnd()
   });
   const [selectedEmployee, setSelectedEmployee] = useState('all');
+  const [timesheetPreset, setTimesheetPreset] = useState('weekly');
+  const [exporting, setExporting] = useState('');
   
   // Manual hours state
   const [manualHours, setManualHours] = useState([]);
@@ -181,15 +191,13 @@ export default function Payroll() {
   useEffect(() => { if (canViewPayroll) loadTimeclockShifts(); }, [canViewPayroll, loadTimeclockShifts]);
   useEffect(() => { if (canViewPayroll) loadTransactions(); }, [canViewPayroll, loadTransactions]);
 
-  if (!canViewPayroll) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 text-center">
-        <AlertTriangle className="h-12 w-12 mb-4 text-amber-500" />
-        <h2 className="text-xl font-semibold mb-2 text-white">Access Denied</h2>
-        <p className="text-gray-500">You don't have permission to view payroll.</p>
-      </div>
-    );
-  }
+  const refreshPayrollViews = useCallback(() => {
+    loadPayPeriod();
+    loadTimesheet();
+    loadManualHours();
+    loadTimeclockShifts();
+    loadTransactions();
+  }, [loadManualHours, loadPayPeriod, loadTimeclockShifts, loadTimesheet, loadTransactions]);
 
   // Manual hours handlers
   const handleAddHours = async (e) => {
@@ -346,6 +354,12 @@ export default function Payroll() {
   };
 
   const totals = payPeriod?.totals || {};
+  const selectedEmployeeLabel = selectedEmployee === 'all'
+    ? 'All employees'
+    : employees.find((emp) => emp.id === selectedEmployee)?.name || 'Selected employee';
+  const timesheetRangeLabel = formatPayrollRangeLabel(timesheetRange);
+  const timesheetEmployeeCount = timesheet?.employees?.length || 0;
+  const timesheetEntryCount = timesheet?.employees?.reduce((sum, emp) => sum + (emp.entries?.length || 0), 0) || 0;
   const combinedEntries = [
     ...timeclockShifts.map((entry) => ({
       ...entry,
@@ -359,17 +373,112 @@ export default function Payroll() {
     ...manualHours.map((entry) => ({ ...entry, source: 'manual', employee_name: employees.find((emp) => emp.id === entry.employee_id)?.name || entry.employee_id })),
   ].sort((a, b) => `${b.date}${b.clock_in || ''}`.localeCompare(`${a.date}${a.clock_in || ''}`));
 
+  const applyTimesheetPreset = (preset) => {
+    setTimesheetPreset(preset);
+    if (preset === 'custom') return;
+    setTimesheetRange(getPresetDateRange(preset));
+  };
+
+  const updateTimesheetBoundary = (field, value) => {
+    setTimesheetPreset('custom');
+    setTimesheetRange((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const fetchExportPayload = useCallback(async () => {
+    const params = {
+      start_date: timesheetRange.start,
+      end_date: timesheetRange.end,
+    };
+
+    if (selectedEmployee !== 'all') {
+      params.employee_id = selectedEmployee;
+    }
+
+    const [reportRes, timesheetRes] = await Promise.all([
+      api.get('/payroll/report', { params }),
+      api.get('/payroll/timesheet', { params }),
+    ]);
+
+    return {
+      report: reportRes.data,
+      timesheet: timesheetRes.data,
+    };
+  }, [api, selectedEmployee, timesheetRange.end, timesheetRange.start]);
+
+  const handleExportCsv = async () => {
+    setExporting('csv');
+    try {
+      const payload = await fetchExportPayload();
+      const csv = buildPayrollCsv({
+        ...payload,
+        selectedEmployeeLabel,
+        rangeLabel: timesheetRangeLabel,
+      });
+      const employeeSlug = selectedEmployee === 'all' ? 'all-employees' : selectedEmployee;
+      downloadTextFile(`payroll-report-${employeeSlug}-${timesheetRange.start}-to-${timesheetRange.end}.csv`, csv, 'text/csv;charset=utf-8');
+      toast.success('Payroll CSV exported');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to export payroll CSV');
+    } finally {
+      setExporting('');
+    }
+  };
+
+  const handlePrintReport = async () => {
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=1200,height=900');
+    if (!printWindow) {
+      toast.error('Please allow pop-ups to print the payroll report');
+      return;
+    }
+
+    setExporting('print');
+    try {
+      const payload = await fetchExportPayload();
+      const html = buildPayrollPrintHtml({
+        ...payload,
+        selectedEmployeeLabel,
+        rangeLabel: timesheetRangeLabel,
+      });
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+      printWindow.focus();
+      window.setTimeout(() => printWindow.print(), 300);
+      toast.success('Printable payroll report opened');
+    } catch (err) {
+      printWindow.close();
+      toast.error(err.response?.data?.detail || 'Failed to prepare printable report');
+    } finally {
+      setExporting('');
+    }
+  };
+
+  if (!canViewPayroll) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center">
+        <AlertTriangle className="h-12 w-12 mb-4 text-amber-500" />
+        <h2 className="text-xl font-semibold mb-2 text-gray-900" data-testid="payroll-access-denied-title">Access Denied</h2>
+        <p className="text-gray-500">You don't have permission to view payroll.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6 animate-fade-in" data-testid="payroll-page">
+    <div className="space-y-5 animate-fade-in" data-testid="payroll-page">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Admin Payroll</h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-600" data-testid="payroll-page-kicker">Payroll workspace</p>
+          <h1 className="text-4xl font-bold tracking-tight text-gray-900" data-testid="payroll-page-title">Admin Payroll</h1>
+          <p className="mt-2 text-sm text-gray-600" data-testid="payroll-page-subtitle">
             {payPeriod ? `Pay Period: ${payPeriod.period_start} to ${payPeriod.period_end}` : 'Manage employee hours, pay & transactions'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-gray-200 bg-white px-3 py-3 shadow-sm" data-testid="payroll-period-toolbar">
+          <div className="min-w-[140px]">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Payroll period</p>
+            <p className="text-sm font-medium text-gray-900">Overview cards</p>
+          </div>
           <Select value={periodType} onValueChange={setPeriodType}>
             <SelectTrigger className="w-[140px]" data-testid="period-type-select">
               <SelectValue />
@@ -383,7 +492,7 @@ export default function Payroll() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">
         <StatCard label="Total Hours" value={totals.total_hours || 0} icon={Clock} color="text-blue-600" bgColor="bg-blue-500/10" />
         <StatCard label="Regular Hours" value={totals.regular_hours || 0} icon={Timer} color="text-green-600" bgColor="bg-green-500/10" />
         <StatCard label="Overtime Hours" value={totals.overtime_hours || 0} icon={AlertTriangle} color="text-amber-600" bgColor="bg-amber-500/10" />
@@ -393,20 +502,20 @@ export default function Payroll() {
 
       {/* Tabbed Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-slate-800/50 border border-gray-200">
-          <TabsTrigger value="overview" data-testid="tab-overview">
+        <TabsList className="h-auto flex flex-wrap gap-2 bg-transparent p-0" data-testid="payroll-tabs-list">
+          <TabsTrigger value="overview" className="border border-gray-200 bg-white text-gray-700 shadow-sm data-[state=active]:border-blue-200 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700" data-testid="tab-overview">
             <Users className="h-4 w-4 mr-1.5" /> Overview
           </TabsTrigger>
-          <TabsTrigger value="timesheet" data-testid="tab-timesheet">
+          <TabsTrigger value="timesheet" className="border border-gray-200 bg-white text-gray-700 shadow-sm data-[state=active]:border-blue-200 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700" data-testid="tab-timesheet">
             <CalendarDays className="h-4 w-4 mr-1.5" /> Time Sheets
           </TabsTrigger>
-          <TabsTrigger value="hours" data-testid="tab-hours">
+          <TabsTrigger value="hours" className="border border-gray-200 bg-white text-gray-700 shadow-sm data-[state=active]:border-blue-200 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700" data-testid="tab-hours">
             <Clock className="h-4 w-4 mr-1.5" /> Time Entries
           </TabsTrigger>
-          <TabsTrigger value="transactions" data-testid="tab-transactions">
+          <TabsTrigger value="transactions" className="border border-gray-200 bg-white text-gray-700 shadow-sm data-[state=active]:border-blue-200 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700" data-testid="tab-transactions">
             <DollarSign className="h-4 w-4 mr-1.5" /> Transactions
           </TabsTrigger>
-          <TabsTrigger value="schedule" data-testid="tab-schedule">
+          <TabsTrigger value="schedule" className="border border-gray-200 bg-white text-gray-700 shadow-sm data-[state=active]:border-blue-200 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700" data-testid="tab-schedule">
             <CalendarDays className="h-4 w-4 mr-1.5" /> Schedule
           </TabsTrigger>
         </TabsList>
@@ -462,13 +571,48 @@ export default function Payroll() {
 
         {/* TIMESHEET TAB */}
         <TabsContent value="timesheet">
-          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <Card className="bg-white rounded-2xl border border-gray-200 shadow-sm">
             <CardHeader>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <CardTitle className="text-lg">Consolidated Time Sheet</CardTitle>
-                <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                  <div>
+                    <CardTitle className="text-xl text-gray-900" data-testid="timesheet-card-title">Consolidated Time Sheet</CardTitle>
+                    <p className="mt-1 text-sm text-gray-600" data-testid="timesheet-card-subtitle">Clean payroll exports for one employee or the whole team.</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2" data-testid="timesheet-export-actions">
+                    <Button variant="outline" onClick={refreshPayrollViews} className="border-gray-200 bg-white" data-testid="payroll-refresh-button">
+                      <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+                    </Button>
+                    <Button variant="outline" onClick={handleExportCsv} disabled={exporting !== ''} data-testid="payroll-export-csv-button">
+                      {exporting === 'csv' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                      Export CSV
+                    </Button>
+                    <Button onClick={handlePrintReport} disabled={exporting !== ''} data-testid="payroll-print-report-button">
+                      {exporting === 'print' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
+                      Printable View
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 rounded-2xl border border-gray-200 bg-slate-50/80 p-4 lg:grid-cols-[160px_180px_1fr_auto_auto] lg:items-end" data-testid="timesheet-controls-panel">
+                  <div className="space-y-2">
+                    <Label htmlFor="timesheet-period-select">Report Range</Label>
+                    <Select value={timesheetPreset} onValueChange={applyTimesheetPreset}>
+                      <SelectTrigger id="timesheet-period-select" data-testid="timesheet-period-select">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="biweekly">Biweekly</SelectItem>
+                        <SelectItem value="custom">Custom</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="timesheet-employee-filter-trigger">Employee</Label>
                   <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                    <SelectTrigger className="w-[180px]" data-testid="timesheet-employee-filter">
+                    <SelectTrigger id="timesheet-employee-filter-trigger" className="w-full" data-testid="timesheet-employee-filter">
                       <SelectValue placeholder="All Employees" />
                     </SelectTrigger>
                     <SelectContent>
@@ -478,13 +622,42 @@ export default function Payroll() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Input type="date" value={timesheetRange.start}
-                    onChange={(e) => setTimesheetRange(prev => ({ ...prev, start: e.target.value }))}
-                    className="w-[145px]" data-testid="timesheet-start-date" />
-                  <span className="text-gray-500 text-sm">to</span>
-                  <Input type="date" value={timesheetRange.end}
-                    onChange={(e) => setTimesheetRange(prev => ({ ...prev, end: e.target.value }))}
-                    className="w-[145px]" data-testid="timesheet-end-date" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Start Date</Label>
+                    <Input type="date" value={timesheetRange.start}
+                      onChange={(e) => updateTimesheetBoundary('start', e.target.value)}
+                      className="w-full" data-testid="timesheet-start-date" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>End Date</Label>
+                    <Input type="date" value={timesheetRange.end}
+                      onChange={(e) => updateTimesheetBoundary('end', e.target.value)}
+                      className="w-full" data-testid="timesheet-end-date" />
+                  </div>
+
+                  <div className="rounded-xl border border-blue-100 bg-white px-4 py-3" data-testid="timesheet-active-scope-card">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Active export</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900" data-testid="timesheet-range-label">{timesheetRangeLabel}</p>
+                    <p className="mt-1 text-xs text-gray-600" data-testid="timesheet-employee-label">{selectedEmployeeLabel}</p>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3" data-testid="timesheet-summary-strip">
+                  <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Employees</p>
+                    <p className="mt-1 text-2xl font-bold text-gray-900" data-testid="timesheet-employee-count">{timesheetEmployeeCount}</p>
+                  </div>
+                  <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Entries</p>
+                    <p className="mt-1 text-2xl font-bold text-gray-900" data-testid="timesheet-entry-count">{timesheetEntryCount}</p>
+                  </div>
+                  <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Total Pay</p>
+                    <p className="mt-1 text-2xl font-bold text-emerald-600" data-testid="timesheet-total-pay">{formatCurrency(timesheet?.totals?.total_pay || 0)}</p>
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -494,26 +667,26 @@ export default function Payroll() {
               ) : (
                 <div className="space-y-6">
                   {timesheet.employees.map((emp) => (
-                    <div key={emp.employee_id} className="border border-gray-200 rounded-lg overflow-hidden" data-testid={`timesheet-${emp.employee_id}`}>
-                      <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                    <div key={emp.employee_id} className="overflow-hidden rounded-2xl border border-gray-200 bg-slate-50/70" data-testid={`timesheet-${emp.employee_id}`}>
+                      <div className="flex flex-col gap-4 border-b border-gray-200 bg-white px-5 py-4 lg:flex-row lg:items-end lg:justify-between">
                         <div>
-                          <h3 className="font-semibold text-gray-900">{emp.employee_name}</h3>
+                          <h3 className="text-lg font-semibold text-gray-900" data-testid={`timesheet-name-${emp.employee_id}`}>{emp.employee_name}</h3>
                           <p className="text-sm text-gray-500">{formatCurrency(emp.hourly_rate)}/hr</p>
                         </div>
-                        <div className="flex items-center gap-4 text-sm">
-                          <div className="text-center">
-                            <p className="text-gray-500">Regular</p>
-                            <p className="font-bold text-green-600">{emp.regular_hours} hrs</p>
+                        <div className="grid grid-cols-2 gap-3 text-sm sm:flex sm:flex-wrap sm:justify-end">
+                          <div className="rounded-xl border border-gray-200 bg-slate-50 px-4 py-3 text-center">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Regular</p>
+                            <p className="mt-1 text-lg font-bold text-green-600" data-testid={`timesheet-regular-hours-${emp.employee_id}`}>{emp.regular_hours} hrs</p>
                           </div>
                           {emp.overtime_hours > 0 && (
-                            <div className="text-center">
-                              <p className="text-gray-500">Overtime</p>
-                              <p className="font-bold text-amber-600">{emp.overtime_hours} hrs</p>
+                            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Overtime</p>
+                              <p className="mt-1 text-lg font-bold text-amber-600" data-testid={`timesheet-overtime-hours-${emp.employee_id}`}>{emp.overtime_hours} hrs</p>
                             </div>
                           )}
-                          <div className="text-center">
-                            <p className="text-gray-500">Total Pay</p>
-                            <p className="font-bold text-emerald-600">{formatCurrency(emp.total_pay)}</p>
+                          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Total Pay</p>
+                            <p className="mt-1 text-lg font-bold text-emerald-600" data-testid={`timesheet-total-pay-${emp.employee_id}`}>{formatCurrency(emp.total_pay)}</p>
                           </div>
                         </div>
                       </div>
@@ -532,7 +705,7 @@ export default function Payroll() {
                           </TableHeader>
                           <TableBody>
                             {emp.entries.map((entry, idx) => (
-                              <TableRow key={entry.id || idx}>
+                              <TableRow key={entry.id || `${emp.employee_id}-${entry.date}-${entry.source}-${idx}`}>
                                 <TableCell className="text-sm">{entry.date}</TableCell>
                                 <TableCell>
                                   <Badge variant="outline" className={entry.source === 'job_timer' ? 'text-blue-600 border-blue-400/30' : entry.source === 'time_clock' ? 'text-emerald-600 border-emerald-400/30' : 'text-purple-600 border-purple-400/30'}>
@@ -547,7 +720,7 @@ export default function Payroll() {
                                   {canEditPayroll && (
                                     <div className="flex justify-end gap-1">
                                       <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => entry.source === 'time_clock' ? handleEditShift(entry) : handleEditHours(entry, emp.employee_id)} data-testid={`edit-timesheet-${entry.id}`}>
-                                        <Edit2 className="h-3.5 w-3.5 text-gray-400 hover:text-violet-600" />
+                                        <Edit2 className="h-3.5 w-3.5 text-gray-400 hover:text-blue-600" />
                                       </Button>
                                       {entry.source === 'time_clock' ? (
                                         <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleDeleteShift(entry.id)} data-testid={`delete-timesheet-${entry.id}`}>

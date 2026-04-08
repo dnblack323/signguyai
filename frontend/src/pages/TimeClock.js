@@ -255,8 +255,9 @@ export default function TimeClock() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-gray-900">Time Clock</h1>
-          <p className="text-slate-300 mt-1">Track employee work hours</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-600" data-testid="timeclock-page-kicker">Time tracking</p>
+          <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-gray-900" data-testid="timeclock-page-title">Time Clock</h1>
+          <p className="mt-2 text-sm text-gray-600" data-testid="timeclock-page-subtitle">Track employee work hours and today’s status at a glance.</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -302,8 +303,8 @@ export default function TimeClock() {
       </div>
 
       {/* Employee Selector */}
-      <Card className="bg-white border-gray-200">
-        <CardContent className="p-6">
+      <Card className="bg-white border-gray-200 rounded-2xl shadow-sm">
+        <CardContent className="p-5">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div className="flex items-center gap-2">
               <User className="h-5 w-5 text-gray-500" />
@@ -321,7 +322,7 @@ export default function TimeClock() {
                 ))}
               </SelectContent>
             </Select>
-            {selectedEmployee && getStatusBadge()}
+            {selectedEmployee && <div data-testid="timeclock-selected-status">{getStatusBadge()}</div>}
           </div>
         </CardContent>
       </Card>
@@ -359,9 +360,9 @@ export default function TimeClock() {
           </Card>
 
           {/* Daily Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             {/* Shift Summary */}
-            <Card className="bg-white border-gray-200">
+            <Card className="bg-white border-gray-200 rounded-2xl shadow-sm">
               <CardHeader>
                 <CardTitle className="font-heading uppercase flex items-center gap-2">
                   <Clock className="h-5 w-5 text-primary" />
@@ -371,21 +372,21 @@ export default function TimeClock() {
               <CardContent>
                 {shiftSummary ? (
                   <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-gray-500">Work Time</p>
-                      <p className="text-2xl font-bold text-green-400">
+                    <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-200" data-testid="timeclock-work-minutes-card">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Work Time</p>
+                      <p className="mt-2 text-3xl font-bold text-green-600" data-testid="timeclock-work-minutes-value">
                         {Math.round(shiftSummary.work_minutes)} min
                       </p>
                     </div>
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-gray-500">Break Time</p>
-                      <p className="text-2xl font-bold text-yellow-400">
+                    <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-200" data-testid="timeclock-break-minutes-card">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Break Time</p>
+                      <p className="mt-2 text-3xl font-bold text-amber-600" data-testid="timeclock-break-minutes-value">
                         {Math.round(shiftSummary.break_minutes)} min
                       </p>
                     </div>
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-gray-500">Net Hours</p>
-                      <p className="text-2xl font-bold text-primary">
+                    <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-200" data-testid="timeclock-net-hours-card">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Net Hours</p>
+                      <p className="mt-2 text-3xl font-bold text-blue-600" data-testid="timeclock-net-hours-value">
                         {shiftSummary.net_hours.toFixed(2)} hrs
                       </p>
                     </div>
@@ -397,7 +398,7 @@ export default function TimeClock() {
             </Card>
 
             {/* Today's Log */}
-            <Card className="bg-white border-gray-200">
+            <Card className="bg-white border-gray-200 rounded-2xl shadow-sm">
               <CardHeader>
                 <CardTitle className="font-heading uppercase">Today's Activity</CardTitle>
               </CardHeader>
@@ -409,13 +410,13 @@ export default function TimeClock() {
                     {todayLogs.map((log) => (
                       <div 
                         key={log.id} 
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-4 py-3"
                         data-testid={`log-${log.id}`}
                       >
-                        <span className="font-medium capitalize">
+                        <span className="text-sm font-semibold capitalize text-gray-900">
                           {log.action.replace('_', ' ')}
                         </span>
-                        <span className="text-gray-500">
+                        <span className="text-sm text-gray-600">
                           {formatTime(log.timestamp)}
                         </span>
                       </div>
@@ -442,21 +443,21 @@ export default function TimeClock() {
       )}
 
       {isAdminOrOwner() && employees.length > 0 && (
-        <Card className="bg-white border-gray-200" data-testid="employee-directory-card">
+        <Card className="bg-white border-gray-200 rounded-2xl shadow-sm" data-testid="employee-directory-card">
           <CardHeader>
             <CardTitle className="font-heading uppercase">Employee Directory</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {employees.map((employee) => (
-              <div key={employee.id} className="rounded-lg border border-gray-200 p-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between" data-testid={`employee-directory-row-${employee.id}`}>
+              <div key={employee.id} className="rounded-2xl border border-gray-200 bg-slate-50/70 p-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between" data-testid={`employee-directory-row-${employee.id}`}>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-medium text-gray-900">{employee.name}</p>
+                    <p className="text-base font-semibold text-gray-900" data-testid={`employee-directory-name-${employee.id}`}>{employee.name}</p>
                     <Badge variant="outline">{employee.role}</Badge>
                     {!employee.is_active && <Badge className="bg-red-100 text-red-700 border-red-200">Inactive</Badge>}
                   </div>
                   <p className="text-sm text-gray-500 mt-1">{employee.email || 'No email'}{employee.phone ? ` · ${employee.phone}` : ''}</p>
-                  <p className="text-sm text-gray-500">Rate: {employee.hourly_rate ? `$${Number(employee.hourly_rate).toFixed(2)}/hr` : 'Not set'}</p>
+                  <p className="text-sm font-medium text-gray-700" data-testid={`employee-directory-rate-${employee.id}`}>Rate: {employee.hourly_rate ? `$${Number(employee.hourly_rate).toFixed(2)}/hr` : 'Not set'}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 justify-end">
                   <Button variant="outline" size="sm" onClick={() => openEditEmployee(employee)} data-testid={`edit-employee-${employee.id}`}><Edit2 className="h-4 w-4 mr-1" /> Edit</Button>
