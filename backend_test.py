@@ -1,762 +1,349 @@
 #!/usr/bin/env python3
+"""
+Backend API Testing for Payroll Export Feature
+Tests authentication and payroll endpoints for regression and new functionality.
+"""
 
 import requests
-import sys
 import json
-from datetime import datetime, date, timedelta
+from datetime import datetime, timedelta
+import sys
 
-class SignGuyAPITester:
-    def __init__(self, base_url="https://workforce-hub-389.preview.emergentagent.com/api"):
-        self.base_url = base_url
-        self.tests_run = 0
-        self.tests_passed = 0
-        self.test_data = {}  # Store created entities for cleanup and reference
-        self.job_line_items_results = []  # Store job line items test results
+# Configuration
+BASE_URL = "https://workforce-hub-389.preview.emergentagent.com"
+API_BASE = f"{BASE_URL}/api"
 
-    def run_test(self, name, method, endpoint, expected_status, data=None, params=None):
-        """Run a single API test"""
-        url = f"{self.base_url}/{endpoint}"
-        headers = {'Content-Type': 'application/json'}
+# Test credentials from review request
+TEST_EMAIL = "signguypa@gmail.com"
+TEST_PASSWORD = "Billnel323"
 
-        self.tests_run += 1
-        print(f"\n🔍 Testing {name}...")
+class PayrollAPITester:
+    def __init__(self):
+        self.session = requests.Session()
+        self.auth_token = None
+        self.test_results = []
         
+    def log_result(self, test_name, success, details="", response_data=None):
+        """Log test result"""
+        status = "✅ PASS" if success else "❌ FAIL"
+        self.test_results.append({
+            "test": test_name,
+            "status": status,
+            "success": success,
+            "details": details,
+            "response_data": response_data
+        })
+        print(f"{status} {test_name}")
+        if details:
+            print(f"    {details}")
+        if not success and response_data:
+            print(f"    Response: {response_data}")
+        print()
+
+    def test_auth_login(self):
+        """Test POST /api/auth/login"""
         try:
-            if method == 'GET':
-                response = requests.get(url, headers=headers, params=params)
-            elif method == 'POST':
-                response = requests.post(url, json=data, headers=headers)
-            elif method == 'PUT':
-                response = requests.put(url, json=data, headers=headers)
-            elif method == 'DELETE':
-                response = requests.delete(url, headers=headers)
-
-            success = response.status_code == expected_status
-            if success:
-                self.tests_passed += 1
-                print(f"✅ Passed - Status: {response.status_code}")
-                try:
-                    return True, response.json() if response.text else {}
-                except:
-                    return True, {}
+            response = self.session.post(
+                f"{API_BASE}/auth/login",
+                json={
+                    "email": TEST_EMAIL,
+                    "password": TEST_PASSWORD
+                },
+                headers={"Content-Type": "application/json"}
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "access_token" in data:
+                    self.auth_token = data["access_token"]
+                    self.session.headers.update({
+                        "Authorization": f"Bearer {self.auth_token}"
+                    })
+                    self.log_result(
+                        "POST /api/auth/login", 
+                        True, 
+                        f"Successfully authenticated. Token type: {data.get('token_type', 'bearer')}"
+                    )
+                    return True
+                else:
+                    self.log_result(
+                        "POST /api/auth/login", 
+                        False, 
+                        "No access_token in response", 
+                        data
+                    )
             else:
-                print(f"❌ Failed - Expected {expected_status}, got {response.status_code}")
-                if response.text:
-                    print(f"   Response: {response.text[:200]}")
-                return False, {}
-
+                self.log_result(
+                    "POST /api/auth/login", 
+                    False, 
+                    f"HTTP {response.status_code}", 
+                    response.text
+                )
         except Exception as e:
-            print(f"❌ Failed - Error: {str(e)}")
-            return False, {}
-
-    def test_health_check(self):
-        """Test basic health endpoints"""
-        print("\n" + "="*50)
-        print("TESTING HEALTH & BASIC ENDPOINTS")
-        print("="*50)
-        
-        self.run_test("Root endpoint", "GET", "", 200)
-        self.run_test("Health check", "GET", "health", 200)
-
-    def test_customers_crud(self):
-        """Test customer CRUD operations"""
-        print("\n" + "="*50)
-        print("TESTING CUSTOMERS CRUD")
-        print("="*50)
-        
-        # Create customer
-        customer_data = {
-            "name": "Test Customer",
-            "company": "Test Company Inc",
-            "email": "test@example.com",
-            "phone": "555-0123",
-            "status": "active",
-            "notes": "Test customer for API testing"
-        }
-        success, customer = self.run_test("Create customer", "POST", "customers", 200, customer_data)
-        if success and customer:
-            self.test_data['customer_id'] = customer['id']
-            
-            # Get all customers
-            self.run_test("Get all customers", "GET", "customers", 200)
-            
-            # Get specific customer
-            self.run_test("Get customer by ID", "GET", f"customers/{customer['id']}", 200)
-            
-            # Update customer
-            update_data = {"status": "inactive", "notes": "Updated notes"}
-            self.run_test("Update customer", "PUT", f"customers/{customer['id']}", 200, update_data)
-            
-            # Search customers
-            self.run_test("Search customers", "GET", "customers", 200, params={"search": "Test"})
-            
-            return True
+            self.log_result("POST /api/auth/login", False, f"Exception: {str(e)}")
         return False
 
-    def test_quotes_crud(self):
-        """Test quotes CRUD operations"""
-        print("\n" + "="*50)
-        print("TESTING QUOTES CRUD")
-        print("="*50)
-        
-        if 'customer_id' not in self.test_data:
-            print("❌ Skipping quotes test - no customer available")
-            return False
-            
-        # Create quote
-        quote_data = {
-            "customer_id": self.test_data['customer_id'],
-            "line_items": [
-                {"description": "Banner 4x8", "quantity": 1, "unit_price": 150.00},
-                {"description": "Installation", "quantity": 1, "unit_price": 75.00}
-            ],
-            "notes": "Test quote",
-            "status": "draft"
-        }
-        success, quote = self.run_test("Create quote", "POST", "quotes", 200, quote_data)
-        if success and quote:
-            self.test_data['quote_id'] = quote['id']
-            
-            # Get all quotes
-            self.run_test("Get all quotes", "GET", "quotes", 200)
-            
-            # Get specific quote
-            self.run_test("Get quote by ID", "GET", f"quotes/{quote['id']}", 200)
-            
-            # Update quote status
-            update_data = {"status": "approved"}
-            self.run_test("Update quote", "PUT", f"quotes/{quote['id']}", 200, update_data)
-            
-            # Convert quote to job
-            success, job = self.run_test("Convert quote to job", "POST", f"quotes/{quote['id']}/convert-to-job", 200)
-            if success and job:
-                self.test_data['job_id'] = job['id']
-            
-            return True
-        return False
+    def test_payroll_report(self):
+        """Test GET /api/payroll/report with various parameters"""
+        if not self.auth_token:
+            self.log_result("GET /api/payroll/report", False, "No auth token available")
+            return
 
-    def test_jobs_crud(self):
-        """Test jobs CRUD operations"""
-        print("\n" + "="*50)
-        print("TESTING JOBS CRUD")
-        print("="*50)
-        
-        if 'customer_id' not in self.test_data:
-            print("❌ Skipping jobs test - no customer available")
-            return False
-            
-        # Create job
-        job_data = {
-            "customer_id": self.test_data['customer_id'],
-            "name": "Test Sign Installation",
-            "description": "Install banner at storefront",
-            "status": "approved",
-            "due_date": (date.today() + timedelta(days=7)).isoformat()
-        }
-        success, job = self.run_test("Create job", "POST", "jobs", 200, job_data)
-        if success and job:
-            if 'job_id' not in self.test_data:
-                self.test_data['job_id'] = job['id']
-            
-            # Get all jobs
-            self.run_test("Get all jobs", "GET", "jobs", 200)
-            
-            # Get specific job
-            self.run_test("Get job by ID", "GET", f"jobs/{job['id']}", 200)
-            
-            # Update job status
-            update_data = {"status": "in_production"}
-            self.run_test("Update job", "PUT", f"jobs/{job['id']}", 200, update_data)
-            
-            return True
-        return False
-
-    def test_invoices_crud(self):
-        """Test invoices CRUD operations"""
-        print("\n" + "="*50)
-        print("TESTING INVOICES CRUD")
-        print("="*50)
-        
-        if 'customer_id' not in self.test_data:
-            print("❌ Skipping invoices test - no customer available")
-            return False
-            
-        # Create invoice
-        invoice_data = {
-            "customer_id": self.test_data['customer_id'],
-            "job_id": self.test_data.get('job_id'),
-            "total": 225.00,
-            "status": "draft",
-            "due_date": (date.today() + timedelta(days=30)).isoformat(),
-            "notes": "Test invoice"
-        }
-        success, invoice = self.run_test("Create invoice", "POST", "invoices", 200, invoice_data)
-        if success and invoice:
-            self.test_data['invoice_id'] = invoice['id']
-            
-            # Get all invoices
-            self.run_test("Get all invoices", "GET", "invoices", 200)
-            
-            # Get specific invoice
-            self.run_test("Get invoice by ID", "GET", f"invoices/{invoice['id']}", 200)
-            
-            # Update invoice status
-            update_data = {"status": "paid"}
-            self.run_test("Update invoice", "PUT", f"invoices/{invoice['id']}", 200, update_data)
-            
-            # Create invoice from job
-            if 'job_id' in self.test_data:
-                self.run_test("Create invoice from job", "POST", f"invoices/from-job/{self.test_data['job_id']}", 200)
-            
-            return True
-        return False
-
-    def test_employees_and_timeclock(self):
-        """Test employee and time clock operations"""
-        print("\n" + "="*50)
-        print("TESTING EMPLOYEES & TIME CLOCK")
-        print("="*50)
-        
-        # Create employee
-        employee_data = {
-            "name": "Test Employee",
-            "hourly_rate": 20.00,
-            "is_active": True
-        }
-        success, employee = self.run_test("Create employee", "POST", "employees", 200, employee_data)
-        if success and employee:
-            self.test_data['employee_id'] = employee['id']
-            
-            # Get all employees
-            self.run_test("Get all employees", "GET", "employees", 200)
-            
-            # Get specific employee
-            self.run_test("Get employee by ID", "GET", f"employees/{employee['id']}", 200)
-            
-            # Test time clock sequence
-            employee_id = employee['id']
-            
-            # Start work
-            self.run_test("Clock in - start work", "POST", "timeclock", 200, 
-                         {"employee_id": employee_id, "action": "start_work"})
-            
-            # Get clock status
-            self.run_test("Get clock status", "GET", f"timeclock/{employee_id}/status", 200)
-            
-            # Start break
-            self.run_test("Clock - start break", "POST", "timeclock", 200, 
-                         {"employee_id": employee_id, "action": "break_start"})
-            
-            # End break
-            self.run_test("Clock - end break", "POST", "timeclock", 200, 
-                         {"employee_id": employee_id, "action": "break_end"})
-            
-            # End work
-            self.run_test("Clock out - end work", "POST", "timeclock", 200, 
-                         {"employee_id": employee_id, "action": "end_work"})
-            
-            # Get today's logs
-            self.run_test("Get today's logs", "GET", f"timeclock/{employee_id}/today", 200)
-            
-            # Get shift summary
-            self.run_test("Get shift summary", "GET", f"timeclock/{employee_id}/summary", 200)
-            
-            return True
-        return False
-
-    def test_payroll(self):
-        """Test payroll operations"""
-        print("\n" + "="*50)
-        print("TESTING PAYROLL")
-        print("="*50)
-        
-        if 'employee_id' not in self.test_data:
-            print("❌ Skipping payroll test - no employee available")
-            return False
-            
-        employee_id = self.test_data['employee_id']
-        
-        # Create earnings transaction
-        earnings_data = {
-            "employee_id": employee_id,
-            "type": "earnings",
-            "amount": 160.00,
-            "description": "8 hours @ $20/hr",
-            "date": date.today().isoformat()
-        }
-        self.run_test("Create earnings transaction", "POST", "payroll/transactions", 200, earnings_data)
-        
-        # Create advance transaction
-        advance_data = {
-            "employee_id": employee_id,
-            "type": "advance",
-            "amount": 50.00,
-            "description": "Cash advance",
-            "date": date.today().isoformat()
-        }
-        self.run_test("Create advance transaction", "POST", "payroll/transactions", 200, advance_data)
-        
-        # Get payroll balance
-        self.run_test("Get payroll balance", "GET", f"payroll/balance/{employee_id}", 200)
-        
-        # Get payroll transactions
-        self.run_test("Get payroll transactions", "GET", "payroll/transactions", 200)
-        
-        # Get payroll report
-        start_date = (date.today() - timedelta(days=30)).isoformat()
-        end_date = date.today().isoformat()
-        self.run_test("Get payroll report", "GET", "payroll/report", 200, 
-                     params={"start_date": start_date, "end_date": end_date})
-        
-        return True
-
-    def test_financials(self):
-        """Test financial operations"""
-        print("\n" + "="*50)
-        print("TESTING FINANCIALS")
-        print("="*50)
-        
-        # Create sales entry
-        sales_data = {
-            "date": date.today().isoformat(),
-            "amount": 500.00,
-            "tax_amount": 40.00,
-            "description": "Sign installation payment"
-        }
-        self.run_test("Create sales entry", "POST", "financials/sales", 200, sales_data)
-        
-        # Create expense entry
-        expense_data = {
-            "date": date.today().isoformat(),
-            "amount": 150.00,
-            "category": "materials",
-            "description": "Vinyl and hardware"
-        }
-        self.run_test("Create expense entry", "POST", "financials/expenses", 200, expense_data)
-        
-        # Get sales entries
-        self.run_test("Get sales entries", "GET", "financials/sales", 200)
-        
-        # Get expense entries
-        self.run_test("Get expense entries", "GET", "financials/expenses", 200)
-        
-        # Get financial summary
-        start_date = (date.today() - timedelta(days=30)).isoformat()
-        end_date = date.today().isoformat()
-        self.run_test("Get financial summary", "GET", "financials/summary", 200, 
-                     params={"start_date": start_date, "end_date": end_date})
-        
-        return True
-
-    def test_tasks(self):
-        """Test task operations"""
-        print("\n" + "="*50)
-        print("TESTING TASKS")
-        print("="*50)
-        
-        # Create task
-        task_data = {
-            "title": "Design banner layout",
-            "description": "Create 3 layout options for client review",
-            "job_id": self.test_data.get('job_id'),
-            "due_date": (date.today() + timedelta(days=3)).isoformat(),
-            "is_complete": False
-        }
-        success, task = self.run_test("Create task", "POST", "tasks", 200, task_data)
-        if success and task:
-            self.test_data['task_id'] = task['id']
-            
-            # Get all tasks
-            self.run_test("Get all tasks", "GET", "tasks", 200)
-            
-            # Update task
-            update_data = {"is_complete": True}
-            self.run_test("Update task", "PUT", f"tasks/{task['id']}", 200, update_data)
-            
-            return True
-        return False
-
-    def test_ai_tools(self):
-        """Test AI tools functionality"""
-        print("\n" + "="*50)
-        print("TESTING AI TOOLS")
-        print("="*50)
-        
-        # Test layout generator
-        ai_request = {
-            "tool": "layout_generator",
-            "input_data": {
-                "product_type": "Banner",
-                "size": "4ft x 8ft",
-                "text_content": "GRAND OPENING - 50% OFF",
-                "colors": "Red, White, Blue",
-                "style": "Bold and Eye-catching"
-            }
-        }
-        success, response = self.run_test("AI Layout Generator", "POST", "ai/generate", 200, ai_request)
-        if success:
-            # Get AI history
-            self.run_test("Get AI history", "GET", "ai/history", 200, params={"tool": "layout_generator"})
-            return True
-        return False
-
-    def test_webstores(self):
-        """Test webstore operations"""
-        print("\n" + "="*50)
-        print("TESTING WEBSTORES")
-        print("="*50)
-        
-        # Create fundraiser campaign
-        fundraiser_data = {
-            "name": "School Band Fundraiser",
-            "goal": 5000.00,
-            "start_date": date.today().isoformat(),
-            "end_date": (date.today() + timedelta(days=30)).isoformat(),
-            "organizer": "Lincoln High School",
-            "products": ["T-Shirts", "Banners", "Stickers"]
-        }
-        success, fundraiser = self.run_test("Create fundraiser", "POST", "webstores/fundraiser", 200, fundraiser_data)
-        if success and fundraiser:
-            self.test_data['fundraiser_id'] = fundraiser['id']
-            
-            # Get fundraisers
-            self.run_test("Get fundraisers", "GET", "webstores/fundraiser", 200)
-            
-            # Get specific fundraiser
-            self.run_test("Get fundraiser by ID", "GET", f"webstores/fundraiser/{fundraiser['id']}", 200)
-        
-        # Create B2B store
-        b2b_data = {
-            "company_name": "ABC Corporation",
-            "contact_email": "orders@abc.com",
-            "login_password": "secure123",
-            "allowed_products": ["Business Cards", "Letterhead", "Banners"],
-            "discount_percent": 15.0
-        }
-        success, b2b_store = self.run_test("Create B2B store", "POST", "webstores/b2b", 200, b2b_data)
-        if success and b2b_store:
-            self.test_data['b2b_store_id'] = b2b_store['id']
-            
-            # Get B2B stores
-            self.run_test("Get B2B stores", "GET", "webstores/b2b", 200)
-            
-            # Test B2B login
-            self.run_test("B2B store login", "POST", f"webstores/b2b/{b2b_store['id']}/login", 200, 
-                         params={"password": "secure123"})
-        
-        # Create webstore order
-        if 'fundraiser_id' in self.test_data:
-            order_data = {
-                "store_type": "fundraiser",
-                "store_id": self.test_data['fundraiser_id'],
-                "items": [{"product": "T-Shirt", "quantity": 10, "price": 15.00}],
-                "total": 150.00
-            }
-            self.run_test("Create webstore order", "POST", "webstores/orders", 200, order_data)
-            
-            # Get webstore orders
-            self.run_test("Get webstore orders", "GET", "webstores/orders", 200)
-        
-        return True
-
-    def test_job_line_items(self):
-        """Test Job Line Items functionality comprehensively"""
-        print("\n" + "="*50)
-        print("TESTING JOB LINE ITEMS")
-        print("="*50)
-        
-        # Ensure we have a customer and job
-        if 'customer_id' not in self.test_data or 'job_id' not in self.test_data:
-            print("❌ Missing customer or job for line items testing")
-            return False
-        
-        job_id = self.test_data['job_id']
-        job_item_ids = []
-        
-        # Test 1: Create multiple line items with different types, quantities, prices
-        print("\n🔍 Test 1: Creating multiple line items...")
-        line_items = [
+        # Test cases for payroll report
+        test_cases = [
             {
-                "item_type": "banner",
-                "description": "4x8 Vinyl Banner with grommets",
-                "quantity": 2,
-                "unit_price": 150.00,
-                "status": "pending",
-                "notes": "Full color print"
+                "name": "Custom date range",
+                "params": {
+                    "start_date": "2024-01-01",
+                    "end_date": "2024-01-31",
+                    "period_type": "custom"
+                }
             },
             {
-                "item_type": "yard_sign", 
-                "description": "18x24 Corrugated Yard Signs",
-                "quantity": 10,
-                "unit_price": 25.00,
-                "status": "pending",
-                "notes": "Double sided"
+                "name": "Weekly period",
+                "params": {
+                    "period_type": "weekly"
+                }
             },
             {
-                "item_type": "install",
-                "description": "Installation service",
-                "quantity": 1,
-                "unit_price": 200.00,
-                "status": "pending",
-                "notes": "On-site installation"
+                "name": "Biweekly period", 
+                "params": {
+                    "period_type": "biweekly"
+                }
+            },
+            {
+                "name": "With employee filter",
+                "params": {
+                    "start_date": "2024-01-01",
+                    "end_date": "2024-01-31",
+                    "employee_id": "test-employee-id",
+                    "period_type": "custom"
+                }
             }
         ]
-        
-        for i, item in enumerate(line_items):
-            success, item_data = self.run_test(
-                f"Create line item {i+1} ({item['item_type']})",
-                "POST", f"jobs/{job_id}/items", 200, item
-            )
-            if success and item_data:
-                job_item_ids.append(item_data['id'])
-                # Verify line_total calculation
-                expected_total = item['quantity'] * item['unit_price']
-                actual_total = item_data.get('line_total', 0)
-                if abs(expected_total - actual_total) < 0.01:
-                    print(f"   ✅ Line total calculated correctly: {actual_total}")
-                    self.job_line_items_results.append(f"Line total calculation: PASS")
-                else:
-                    print(f"   ❌ Line total incorrect: expected {expected_total}, got {actual_total}")
-                    self.job_line_items_results.append(f"Line total calculation: FAIL")
-        
-        self.test_data['job_item_ids'] = job_item_ids
-        
-        # Test 2: Verify job subtotal is calculated correctly
-        print("\n🔍 Test 2: Verifying job subtotal calculation...")
-        success, job_data = self.run_test("Get job with subtotal", "GET", f"jobs/{job_id}", 200)
-        if success:
-            # Expected: (2*150) + (10*25) + (1*200) = 300 + 250 + 200 = 750
-            expected_subtotal = 750.00
-            actual_subtotal = job_data.get('subtotal', 0)
-            if abs(expected_subtotal - actual_subtotal) < 0.01:
-                print(f"   ✅ Job subtotal correct: {actual_subtotal}")
-                self.job_line_items_results.append(f"Job subtotal calculation: PASS")
-            else:
-                print(f"   ❌ Job subtotal incorrect: expected {expected_subtotal}, got {actual_subtotal}")
-                self.job_line_items_results.append(f"Job subtotal calculation: FAIL")
-        
-        # Test 3: Get job items and verify structure
-        print("\n🔍 Test 3: Getting and verifying job items...")
-        success, items_data = self.run_test("Get job items", "GET", f"jobs/{job_id}/items", 200)
-        if success:
-            if len(items_data) == 3:
-                print(f"   ✅ Correct number of items: {len(items_data)}")
-                self.job_line_items_results.append(f"Job items count: PASS")
+
+        for test_case in test_cases:
+            try:
+                response = self.session.get(
+                    f"{API_BASE}/payroll/report",
+                    params=test_case["params"]
+                )
                 
-                # Verify required fields
-                required_fields = ['id', 'job_id', 'item_type', 'description', 'quantity', 'unit_price', 'line_total', 'status']
-                all_fields_ok = True
-                for item in items_data:
-                    for field in required_fields:
-                        if field not in item:
-                            print(f"   ❌ Missing field '{field}' in item")
-                            all_fields_ok = False
-                
-                if all_fields_ok:
-                    print("   ✅ All required fields present")
-                    self.job_line_items_results.append(f"Required fields: PASS")
-                else:
-                    self.job_line_items_results.append(f"Required fields: FAIL")
-            else:
-                print(f"   ❌ Expected 3 items, got {len(items_data)}")
-                self.job_line_items_results.append(f"Job items count: FAIL")
-        
-        # Test 4: Update item quantity/price and verify totals recalculate
-        if job_item_ids:
-            print("\n🔍 Test 4: Updating item quantity and price...")
-            item_id = job_item_ids[0]
-            success, updated_item = self.run_test(
-                "Update item quantity and price",
-                "PUT", f"job-items/{item_id}", 200,
-                {"quantity": 3, "unit_price": 175.00}
-            )
-            if success:
-                # Verify line_total: 3 * 175 = 525
-                expected_line_total = 525.00
-                actual_line_total = updated_item.get('line_total', 0)
-                if abs(expected_line_total - actual_line_total) < 0.01:
-                    print(f"   ✅ Line total recalculated: {actual_line_total}")
-                    self.job_line_items_results.append(f"Line total recalculation: PASS")
-                else:
-                    print(f"   ❌ Line total not recalculated correctly")
-                    self.job_line_items_results.append(f"Line total recalculation: FAIL")
-                
-                # Verify job subtotal updated: (3*175) + (10*25) + (1*200) = 975
-                success, job_data = self.run_test("Get updated job subtotal", "GET", f"jobs/{job_id}", 200)
-                if success:
-                    expected_subtotal = 975.00
-                    actual_subtotal = job_data.get('subtotal', 0)
-                    if abs(expected_subtotal - actual_subtotal) < 0.01:
-                        print(f"   ✅ Job subtotal updated: {actual_subtotal}")
-                        self.job_line_items_results.append(f"Job subtotal update: PASS")
+                if response.status_code == 200:
+                    data = response.json()
+                    # Validate response structure
+                    required_fields = ["period_type", "start_date", "end_date", "employee_count", "employees", "totals"]
+                    missing_fields = [field for field in required_fields if field not in data]
+                    
+                    if not missing_fields:
+                        self.log_result(
+                            f"GET /api/payroll/report ({test_case['name']})",
+                            True,
+                            f"Employee count: {data['employee_count']}, Period: {data['start_date']} to {data['end_date']}"
+                        )
                     else:
-                        print(f"   ❌ Job subtotal not updated correctly")
-                        self.job_line_items_results.append(f"Job subtotal update: FAIL")
-        
-        # Test 5: Update job item status
-        if len(job_item_ids) > 1:
-            print("\n🔍 Test 5: Updating job item status...")
-            item_id = job_item_ids[1]
-            success, updated_item = self.run_test(
-                "Update item status",
-                "PUT", f"job-items/{item_id}", 200,
-                {"status": "in_production"}
-            )
-            if success:
-                actual_status = updated_item.get('status')
-                if actual_status == "in_production":
-                    print(f"   ✅ Item status updated: {actual_status}")
-                    self.job_line_items_results.append(f"Item status update: PASS")
+                        self.log_result(
+                            f"GET /api/payroll/report ({test_case['name']})",
+                            False,
+                            f"Missing fields: {missing_fields}",
+                            data
+                        )
                 else:
-                    print(f"   ❌ Item status not updated correctly")
-                    self.job_line_items_results.append(f"Item status update: FAIL")
-        
-        # Test 6: Delete job item and verify subtotal updates
-        if len(job_item_ids) > 2:
-            print("\n🔍 Test 6: Deleting job item and verifying subtotal...")
-            item_id = job_item_ids[2]  # Delete install service (1 * 200 = 200)
-            success, _ = self.run_test("Delete job item", "DELETE", f"job-items/{item_id}", 200)
-            if success:
-                # Verify job subtotal: (3*175) + (10*25) = 775
-                success, job_data = self.run_test("Get job subtotal after delete", "GET", f"jobs/{job_id}", 200)
-                if success:
-                    expected_subtotal = 775.00
-                    actual_subtotal = job_data.get('subtotal', 0)
-                    if abs(expected_subtotal - actual_subtotal) < 0.01:
-                        print(f"   ✅ Job subtotal updated after delete: {actual_subtotal}")
-                        self.job_line_items_results.append(f"Subtotal after delete: PASS")
-                    else:
-                        print(f"   ❌ Job subtotal not updated after delete")
-                        self.job_line_items_results.append(f"Subtotal after delete: FAIL")
-        
-        # Test 7: Quote to Job conversion with line items
-        print("\n🔍 Test 7: Testing Quote to Job conversion...")
-        quote_data = {
-            "customer_id": self.test_data['customer_id'],
-            "line_items": [
-                {"description": "Quote Item 1", "quantity": 2, "unit_price": 100.00},
-                {"description": "Quote Item 2", "quantity": 5, "unit_price": 50.00}
-            ],
-            "notes": "Test quote for conversion"
-        }
-        success, quote_result = self.run_test("Create quote with line items", "POST", "quotes", 200, quote_data)
-        if success:
-            quote_id = quote_result.get('id')
-            success, job_result = self.run_test("Convert quote to job", "POST", f"quotes/{quote_id}/convert-to-job", 200)
-            if success:
-                converted_job_id = job_result.get('id')
-                success, job_items = self.run_test("Get converted job items", "GET", f"jobs/{converted_job_id}/items", 200)
-                if success and len(job_items) == 2:
-                    print(f"   ✅ Quote converted with {len(job_items)} job items")
-                    self.job_line_items_results.append(f"Quote to Job conversion: PASS")
-                else:
-                    print(f"   ❌ Quote conversion failed or incorrect items")
-                    self.job_line_items_results.append(f"Quote to Job conversion: FAIL")
-        
-        # Test 8: Create Invoice from Job with line items
-        print("\n🔍 Test 8: Creating Invoice from Job...")
-        success, invoice_result = self.run_test("Create invoice from job", "POST", f"invoices/from-job/{job_id}", 200)
-        if success:
-            invoice_line_items = invoice_result.get('line_items', [])
-            if len(invoice_line_items) >= 2:  # Should have remaining items
-                print(f"   ✅ Invoice created with {len(invoice_line_items)} line items")
+                    self.log_result(
+                        f"GET /api/payroll/report ({test_case['name']})",
+                        False,
+                        f"HTTP {response.status_code}",
+                        response.text
+                    )
+            except Exception as e:
+                self.log_result(
+                    f"GET /api/payroll/report ({test_case['name']})",
+                    False,
+                    f"Exception: {str(e)}"
+                )
+
+    def test_existing_payroll_endpoints(self):
+        """Test existing payroll endpoints for regression"""
+        if not self.auth_token:
+            self.log_result("Existing payroll endpoints", False, "No auth token available")
+            return
+
+        # Define endpoints to test
+        endpoints = [
+            {
+                "method": "GET",
+                "path": "/payroll/timesheet",
+                "params": {
+                    "start_date": "2024-01-01",
+                    "end_date": "2024-01-31"
+                },
+                "required_fields": ["start_date", "end_date", "employees", "totals"]
+            },
+            {
+                "method": "GET", 
+                "path": "/payroll/pay-period",
+                "params": {
+                    "period_type": "weekly"
+                },
+                "required_fields": ["period_type", "period_start", "period_end", "employees", "totals"]
+            },
+            {
+                "method": "GET",
+                "path": "/payroll/transactions",
+                "params": {},
+                "required_fields": None  # Returns array
+            },
+            {
+                "method": "GET",
+                "path": "/payroll/hours", 
+                "params": {},
+                "required_fields": None  # Returns array
+            },
+            {
+                "method": "GET",
+                "path": "/payroll/timeclock-shifts",
+                "params": {},
+                "required_fields": None  # Returns array
+            },
+            {
+                "method": "GET",
+                "path": "/payroll/schedule",
+                "params": {},
+                "required_fields": ["week_start", "schedules"]
+            }
+        ]
+
+        for endpoint in endpoints:
+            try:
+                url = f"{API_BASE}{endpoint['path']}"
+                response = self.session.get(url, params=endpoint['params'])
                 
-                # Check if line items have job_item_id references
-                has_job_refs = any(item.get('job_item_id') for item in invoice_line_items)
-                if has_job_refs:
-                    print("   ✅ Invoice line items reference job items")
-                    self.job_line_items_results.append(f"Job to Invoice conversion: PASS")
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    # Validate structure if required fields specified
+                    if endpoint['required_fields']:
+                        missing_fields = [field for field in endpoint['required_fields'] if field not in data]
+                        if not missing_fields:
+                            self.log_result(
+                                f"GET {endpoint['path']}",
+                                True,
+                                "Response structure valid"
+                            )
+                        else:
+                            self.log_result(
+                                f"GET {endpoint['path']}",
+                                False,
+                                f"Missing fields: {missing_fields}",
+                                data
+                            )
+                    else:
+                        # For array responses, just check it's a list
+                        if isinstance(data, list):
+                            self.log_result(
+                                f"GET {endpoint['path']}",
+                                True,
+                                f"Returned {len(data)} items"
+                            )
+                        else:
+                            self.log_result(
+                                f"GET {endpoint['path']}",
+                                False,
+                                "Expected array response",
+                                data
+                            )
                 else:
-                    print("   ❌ Invoice line items missing job references")
-                    self.job_line_items_results.append(f"Job to Invoice conversion: FAIL")
-            else:
-                print(f"   ❌ Invoice has insufficient line items")
-                self.job_line_items_results.append(f"Job to Invoice conversion: FAIL")
-        
-        # Test 9: Error handling
-        print("\n🔍 Test 9: Testing error handling...")
-        # Test creating item for non-existent job
-        success, _ = self.run_test("Create item for non-existent job", "POST", "jobs/fake-id/items", 404, 
-                                 {"item_type": "banner", "description": "Test", "quantity": 1, "unit_price": 100})
-        if success:
-            self.job_line_items_results.append(f"Error handling (404): PASS")
-        
-        # Test updating non-existent item
-        success, _ = self.run_test("Update non-existent item", "PUT", "job-items/fake-id", 404, {"quantity": 2})
-        if success:
-            self.job_line_items_results.append(f"Error handling (update): PASS")
-        
-        print(f"\n📊 Job Line Items Test Results:")
-        for result in self.job_line_items_results:
-            print(f"   {result}")
-        
-        return True
+                    self.log_result(
+                        f"GET {endpoint['path']}",
+                        False,
+                        f"HTTP {response.status_code}",
+                        response.text
+                    )
+            except Exception as e:
+                self.log_result(
+                    f"GET {endpoint['path']}",
+                    False,
+                    f"Exception: {str(e)}"
+                )
 
-    def test_dashboard_stats(self):
-        """Test dashboard statistics"""
-        print("\n" + "="*50)
-        print("TESTING DASHBOARD STATS")
-        print("="*50)
+    def test_auth_protection(self):
+        """Test that payroll endpoints require authentication"""
+        # Create session without auth token
+        unauth_session = requests.Session()
         
-        self.run_test("Get dashboard stats", "GET", "dashboard/stats", 200)
-        return True
+        test_endpoints = [
+            "/payroll/report",
+            "/payroll/timesheet?start_date=2024-01-01&end_date=2024-01-31",
+            "/payroll/transactions"
+        ]
+        
+        for endpoint in test_endpoints:
+            try:
+                response = unauth_session.get(f"{API_BASE}{endpoint}")
+                
+                if response.status_code == 401:
+                    self.log_result(
+                        f"Auth protection {endpoint}",
+                        True,
+                        "Correctly rejected unauthenticated request"
+                    )
+                else:
+                    self.log_result(
+                        f"Auth protection {endpoint}",
+                        False,
+                        f"Expected 401, got {response.status_code}",
+                        response.text
+                    )
+            except Exception as e:
+                self.log_result(
+                    f"Auth protection {endpoint}",
+                    False,
+                    f"Exception: {str(e)}"
+                )
 
-    def cleanup_test_data(self):
-        """Clean up created test data"""
-        print("\n" + "="*50)
-        print("CLEANING UP TEST DATA")
-        print("="*50)
+    def run_all_tests(self):
+        """Run all tests in sequence"""
+        print("🚀 Starting Payroll Export Backend API Tests")
+        print("=" * 60)
+        print()
         
-        # Delete in reverse order of dependencies
-        if 'task_id' in self.test_data:
-            self.run_test("Delete task", "DELETE", f"tasks/{self.test_data['task_id']}", 200)
+        # Test authentication first
+        if self.test_auth_login():
+            # Test new payroll report endpoint
+            self.test_payroll_report()
+            
+            # Test existing endpoints for regression
+            self.test_existing_payroll_endpoints()
         
-        if 'job_id' in self.test_data:
-            self.run_test("Delete job", "DELETE", f"jobs/{self.test_data['job_id']}", 200)
+        # Test auth protection (doesn't need login)
+        self.test_auth_protection()
         
-        if 'customer_id' in self.test_data:
-            self.run_test("Delete customer", "DELETE", f"customers/{self.test_data['customer_id']}", 200)
-
-def main():
-    print("🚀 Starting Sign Guy AI API Tests")
-    print("=" * 60)
-    
-    tester = SignGuyAPITester()
-    
-    # Run all tests
-    try:
-        tester.test_health_check()
-        tester.test_customers_crud()
-        tester.test_quotes_crud()
-        tester.test_jobs_crud()
-        tester.test_job_line_items()  # Add comprehensive job line items testing
-        tester.test_invoices_crud()
-        tester.test_employees_and_timeclock()
-        tester.test_payroll()
-        tester.test_financials()
-        tester.test_tasks()
-        tester.test_ai_tools()
-        tester.test_webstores()
-        tester.test_dashboard_stats()
+        # Print summary
+        print("=" * 60)
+        print("📊 TEST SUMMARY")
+        print("=" * 60)
         
-        # Cleanup
-        tester.cleanup_test_data()
+        passed = sum(1 for result in self.test_results if result["success"])
+        total = len(self.test_results)
         
-    except KeyboardInterrupt:
-        print("\n\n⚠️ Tests interrupted by user")
-    except Exception as e:
-        print(f"\n\n💥 Unexpected error: {str(e)}")
-    
-    # Print results
-    print("\n" + "="*60)
-    print("📊 TEST RESULTS")
-    print("="*60)
-    print(f"Tests run: {tester.tests_run}")
-    print(f"Tests passed: {tester.tests_passed}")
-    print(f"Tests failed: {tester.tests_run - tester.tests_passed}")
-    print(f"Success rate: {(tester.tests_passed / tester.tests_run * 100):.1f}%" if tester.tests_run > 0 else "0%")
-    
-    return 0 if tester.tests_passed == tester.tests_run else 1
+        print(f"Total Tests: {total}")
+        print(f"Passed: {passed}")
+        print(f"Failed: {total - passed}")
+        print()
+        
+        # Show failed tests
+        failed_tests = [result for result in self.test_results if not result["success"]]
+        if failed_tests:
+            print("❌ FAILED TESTS:")
+            for test in failed_tests:
+                print(f"  - {test['test']}: {test['details']}")
+        else:
+            print("✅ ALL TESTS PASSED!")
+        
+        print()
+        return len(failed_tests) == 0
 
 if __name__ == "__main__":
-    sys.exit(main())
+    tester = PayrollAPITester()
+    success = tester.run_all_tests()
+    sys.exit(0 if success else 1)
