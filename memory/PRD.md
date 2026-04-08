@@ -1,7 +1,7 @@
 # SignGuy AI - Product Requirements Document
 
-> **Last Updated:** March 31, 2026
-> **Version:** 6.1
+> **Last Updated:** April 8, 2026
+> **Version:** 6.2
 
 ---
 
@@ -18,6 +18,27 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ---
 
 ## What's Been Implemented
+
+### Session: April 8, 2026 (Payroll Cleanup + Payroll Export Reports)
+- Completed a focused cleanup pass on the existing Payroll workspace without changing the overall navigation structure
+- Added a new export workflow inside `src/pages/Payroll.js`:
+  - Weekly / biweekly / custom report range selector
+  - One employee or all employees export scope
+  - Refresh control
+  - CSV export
+  - Printable payroll report view
+- Added frontend export helper module: `/app/frontend/src/lib/payrollExport.js`
+- Enhanced backend payroll reporting in `/app/backend/routes/employees.py`:
+  - `GET /api/payroll/report` now supports optional `employee_id`
+  - supports `period_type=weekly|biweekly|custom`
+  - keeps custom `start_date` / `end_date` support
+  - returns richer summary totals for export/report use
+- Applied a light readability pass to `src/pages/TimeClock.js` so the header, selector, summary cards, and employee directory are clearer and more consistent with Payroll
+- Testing:
+  - smoke-tested live preview login + payroll load
+  - testing agent iteration_91 passed backend 16/16 and frontend 100%
+  - follow-up frontend specialist check passed
+  - follow-up backend deep verification passed
 
 ### Session: April 5, 2026 (Team / Workforce Ribbon Spec Saved)
 - Saved the detailed Team / Workforce ribbon rebuild specification to memory for later implementation
@@ -586,36 +607,34 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ## Prioritized Backlog
 
 ### P0 - Critical
-- ~~AI Tools rate limiter parameter fix~~ DONE
-- ~~Promo code apply-promo endpoint~~ DONE
-- ~~free_days promo type~~ DONE
+- Deployment readiness blockers
+  - app still needs the deferred supervisor/deployment readiness cleanup from the previous fork
+  - review `.gitignore` / deployment health-check requirements before deployment work
+- Remaining high-complexity code review cleanup
+  - `src/components/FloatingAssistant.js`
+  - `src/components/PricingCalculator.js`
+  - `backend/routes/ai.py`
 
-### P1 - High Priority (from user notes)
-- Update documentation pages to Founders-only model
-- Update Feature Catalog (remove tier references)
-- "New Job" button in customer info popup
-- UI Overhaul ("Dark Shell / Light Workspace")
+### P1 - High Priority
+- Business Assistant Phase 1
+  - action-oriented response layer
+  - quick action buttons
+  - smart navigation links
+  - visual response blocks
 
-### P2 - Medium Priority (from user notes)
-- Reinstate: Materials & Inventory system
-- Reinstate: Bulk actions on Orders page
-- Reinstate: Search on Orders/Invoices/Webstores pages
-- Reinstate: Database indexes migration
-- Reinstate: Code cleanup (console.log removal, print→logger)
-- Reinstate: Navigation updates (ActionToolbar, Settings links)
+### P2 - Medium Priority
+- Business Assistant Phases 2-5
+  - context awareness
+  - cross-system commands
+  - personalization
+  - bulk workflows
 
 ### P3 - Future/Backlog
-- Rate limiting (slowapi)
-- Cookie consent banner
-- Error boundary implementation
-- GDPR data export/deletion tools
-- Mobile responsiveness pass
-- Learning Calculator
-- Vehicle Wrap AI Tool (Full Spec)
-- Master Product List
-- Custom Domain Support for webstores
-- SMS Notifications (Twilio)
-- QuickBooks Integration
+- Team / Workforce Ribbon rebuild from `/app/memory/team_workforce_ribbon_spec.md` (**paused by user — do not start until explicitly requested**)
+- Broader mobile responsiveness pass
+- Inventory / materials system return pass
+- QuickBooks integration
+- SMS notifications (Twilio)
 
 ---
 
@@ -632,5 +651,4 @@ Total: ~80,000 lines of code
 ---
 
 ## Credentials
-- Admin: thesigntistslab@gmail.com / password123
-- Test: test@test.com / password
+- Current active test credentials are maintained in `/app/memory/test_credentials.md`
