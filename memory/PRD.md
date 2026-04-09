@@ -19,6 +19,17 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
+### Session: April 9, 2026 (Production Login 500 Root Cause)
+- Reproduced the production-only login failure on `https://signguy-ai.com/login`
+- Browser console root cause:
+  - production frontend was trying to call an old backend URL
+  - `https://quote-to-invoice-3-r-1773003818.emergent.host/api/auth/login`
+  - request failed with CORS, which surfaced as a generic frontend “Network error” on login
+- Added `frontend/.env.production` with:
+  - `REACT_APP_BACKEND_URL=https://signguy-ai.com`
+- Verified the frontend still builds successfully for production after adding the production env file
+- Preview auth remains healthy; both known shop accounts still log in successfully there
+
 ### Session: April 9, 2026 (Auth Verification Note)
 - Verified browser login works for both known shop accounts:
   - `signguypa@gmail.com` / `Billnel323`
