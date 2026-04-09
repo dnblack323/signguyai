@@ -4,11 +4,10 @@ Orders API Routes
 CRUD for the master Order record (Layer 1).
 """
 
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, Response
 from typing import Optional, List
 from datetime import datetime, timezone
 import uuid
-import base64
 
 from server import db, get_current_active_user
 from models import UserInDB
@@ -16,6 +15,7 @@ from models.orders import (
     Order, OrderCreate, OrderUpdate, OrderStatus, PaymentStatus
 )
 from services.workflow_engine import update_order_progress, log_activity
+from services.storage import storage_service
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
@@ -246,7 +246,7 @@ async def start_production(order_id: str, current_user: UserInDB = Depends(get_c
                        "production_started", f"Production started: {tasks_created} tasks created for {len(tickets)} ticket(s)",
                        user_id=current_user.id, user_name=current_user.full_name or "")
 
-    return {"message": f"Production started", "tickets_activated": len(tickets), "tasks_created": tasks_created}
+    return {"message": "Production started", "tickets_activated": len(tickets), "tasks_created": tasks_created}
 
 
 @router.get("/{order_id}/activity")
@@ -463,6 +463,19 @@ async def upload_order_file(
     if len(contents) > 15 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large (max 15MB)")
 
+    # Upload to cloud storage
+    try:
+        storage_result = storage_service.upload_file(
+            tenant_id=current_user.tenant_id,
+            category="orders",
+            filename=file.filename or "unknown",
+            data=contents,
+            content_type=file.content_type or "application/octet-stream",
+            subfolder=order_id
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload file: {str(e)}")
+
     file_id = str(uuid.uuid4())
     file_doc = {
         "id": file_id,
@@ -472,9 +485,10 @@ async def upload_order_file(
         "label": label or file.filename or "Attachment",
         "content_type": file.content_type,
         "file_size": len(contents),
-        "file_data": base64.b64encode(contents).decode("utf-8"),
+        "storage_path": storage_result["storage_path"],  # Cloud storage path
         "uploaded_by": current_user.id,
         "created_at": datetime.now(timezone.utc).isoformat(),
+        "is_deleted": False,
     }
     await db.order_files.insert_one(file_doc)
 
@@ -489,15 +503,62 @@ async def upload_order_file(
 async def list_order_files(order_id: str, current_user: UserInDB = Depends(get_current_active_user)):
     """List all file attachments for an order."""
     files = await db.order_files.find(
-        {"order_id": order_id, "tenant_id": current_user.tenant_id},
-        {"_id": 0, "file_data": 0}
+        {"order_id": order_id, "tenant_id": current_user.tenant_id, "is_deleted": {"$ne": True}},
+        {"_id": 0, "file_data": 0}  # Exclude legacy file_data field if present
     ).sort("created_at", -1).to_list(50)
     return files
 
 
+@router.get("/{order_id}/files/{file_id}/download")
+async def download_order_file(
+    order_id: str,
+    file_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Download a file attachment from an order."""
+    file_doc = await db.order_files.find_one(
+        {"id": file_id, "order_id": order_id, "tenant_id": current_user.tenant_id, "is_deleted": {"$ne": True}},
+        {"_id": 0}
+    )
+    if not file_doc:
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    # Check if file is in cloud storage or legacy base64
+    if "storage_path" in file_doc:
+        # Download from cloud storage
+        try:
+            data, content_type = storage_service.download_file(file_doc["storage_path"])
+            return Response(
+                content=data,
+                media_type=file_doc.get("content_type", content_type),
+                headers={
+                    "Content-Disposition": f'attachment; filename="{file_doc.get("filename", "download")}"'
+                }
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to download file: {str(e)}")
+    elif "file_data" in file_doc:
+        # Legacy base64 data (for backwards compatibility)
+        import base64
+        data = base64.b64decode(file_doc["file_data"])
+        return Response(
+            content=data,
+            media_type=file_doc.get("content_type", "application/octet-stream"),
+            headers={
+                "Content-Disposition": f'attachment; filename="{file_doc.get("filename", "download")}"'
+            }
+        )
+    else:
+        raise HTTPException(status_code=404, detail="File data not found")
+
+
 @router.delete("/{order_id}/files/{file_id}")
 async def delete_order_file(order_id: str, file_id: str, current_user: UserInDB = Depends(get_current_active_user)):
-    result = await db.order_files.delete_one({"id": file_id, "order_id": order_id, "tenant_id": current_user.tenant_id})
-    if result.deleted_count == 0:
+    # Soft delete (storage service has no delete API)
+    result = await db.order_files.update_one(
+        {"id": file_id, "order_id": order_id, "tenant_id": current_user.tenant_id},
+        {"$set": {"is_deleted": True, "deleted_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="File not found")
     return {"message": "File deleted"}

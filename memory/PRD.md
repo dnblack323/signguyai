@@ -1,7 +1,7 @@
 # SignGuy AI - Product Requirements Document
 
 > **Last Updated:** April 9, 2026
-> **Version:** 6.1
+> **Version:** 6.2
 
 ---
 
@@ -14,12 +14,23 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 - AI-powered tools for design, business, and marketing
 - Stripe billing integration
 - Customer and Employee portals
+- **Cloud storage for file uploads** (Emergent Object Storage)
 
 ---
 
 ## What's Been Implemented
 
-### Session: April 9, 2026 (Dashboard & Navigation Updates)
+### Session: April 9, 2026 (Cloud Storage & Dashboard Updates)
+- **Cloud Storage Integration (DONE):**
+  - Migrated file uploads from MongoDB base64 storage to Emergent Cloud Object Storage
+  - Created `/app/backend/services/storage.py` with `StorageService` class
+  - Storage auto-initializes at app startup using `EMERGENT_LLM_KEY`
+  - Path convention: `signguy-ai/{tenant_id}/{category}/{subfolder?}/{uuid}.{ext}`
+  - Updated Order file uploads (`/api/orders/{id}/upload`)
+  - Updated Document Library uploads (`/api/documents`)
+  - Added download endpoint for order files (`/api/orders/{id}/files/{file_id}/download`)
+  - Soft-delete for files (storage has no delete API)
+  - Backwards compatible with legacy base64 files in database
 - **Dashboard Today's Staff Widget (DONE):**
   - New widget showing employees scheduled to work today
   - Displays clock-in/out status for each scheduled employee
@@ -31,11 +42,6 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
   - Added "Employee Schedule" link under Team tab in primary navigation
   - Links directly to `/payroll?tab=schedule`
   - Payroll page now reads `tab` URL parameter to auto-select the correct tab
-- **Files Updated:**
-  - `/app/backend/routes/dashboard.py` - Added `TodaysStaffMember` model and `/todays-staff` endpoint
-  - `/app/frontend/src/pages/Dashboard.js` - Added `TodaysStaffWidget` component, fetches staff data
-  - `/app/frontend/src/components/ribbon/PrimaryNav.js` - Added Employee Schedule to team sub-items
-  - `/app/frontend/src/pages/Payroll.js` - Added URL parameter handling for `tab` query param
 
 ### Session: March 27, 2026 (Bug Fixes & UI Improvements)
 - **Task List Display Bug (FIXED):**

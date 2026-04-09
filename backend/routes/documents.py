@@ -8,7 +8,7 @@ This module handles document management including:
 - Document templates
 """
 
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, Response
 from typing import List, Optional
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field, ConfigDict
@@ -18,6 +18,7 @@ from enum import Enum
 
 from server import db, logger, get_current_active_user
 from models import UserInDB
+from services.storage import storage_service
 
 
 class DocumentCategory(str, Enum):
@@ -49,7 +50,8 @@ class Document(BaseModel):
     category: DocumentCategory = DocumentCategory.OTHER
     file_type: str  # e.g., "application/pdf", "image/png"
     file_size: int  # in bytes
-    file_data: str  # base64 encoded file
+    storage_path: Optional[str] = None  # Cloud storage path
+    file_data: Optional[str] = None  # Legacy base64 encoded file (deprecated)
     original_filename: str
     is_template: bool = False  # Can be used as a template for jobs
     tags: List[str] = []
@@ -134,8 +136,19 @@ async def upload_document(
             detail="File too large. Maximum size is 10MB"
         )
     
-    # Convert to base64
-    file_data = base64.b64encode(contents).decode('utf-8')
+    # Upload to cloud storage
+    try:
+        storage_result = storage_service.upload_file(
+            tenant_id=current_user.tenant_id,
+            category="documents",
+            filename=file.filename or "unknown",
+            data=contents,
+            content_type=file.content_type or "application/octet-stream",
+            subfolder=category
+        )
+    except Exception as e:
+        logger.error(f"Failed to upload document to cloud storage: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to upload file: {str(e)}")
     
     # Parse tags
     tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else []
@@ -148,7 +161,7 @@ async def upload_document(
         category=DocumentCategory(category) if category in [e.value for e in DocumentCategory] else DocumentCategory.OTHER,
         file_type=file.content_type,
         file_size=len(contents),
-        file_data=file_data,
+        storage_path=storage_result["storage_path"],  # Cloud storage path
         original_filename=file.filename or "unknown",
         is_template=is_template,
         tags=tag_list,
@@ -156,11 +169,11 @@ async def upload_document(
     )
     
     await db.documents.insert_one(doc.model_dump())
-    logger.info(f"Document '{name}' uploaded by user {current_user.id}")
+    logger.info(f"Document '{name}' uploaded to cloud storage by user {current_user.id}")
     
-    # Return without the full file_data to save bandwidth
+    # Return without sensitive paths
     response = doc.model_dump()
-    response["file_data"] = "[BASE64_DATA]"  # Placeholder
+    response["storage_path"] = "[CLOUD_STORAGE]"  # Don't expose internal path
     return response
 
 
@@ -276,13 +289,33 @@ async def download_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    return {
-        "id": doc["id"],
-        "name": doc["name"],
-        "file_type": doc["file_type"],
-        "original_filename": doc["original_filename"],
-        "file_data": doc["file_data"]
-    }
+    # Check if file is in cloud storage or legacy base64
+    if "storage_path" in doc and doc["storage_path"]:
+        # Download from cloud storage
+        try:
+            data, content_type = storage_service.download_file(doc["storage_path"])
+            file_data = base64.b64encode(data).decode('utf-8')
+            return {
+                "id": doc["id"],
+                "name": doc["name"],
+                "file_type": doc["file_type"],
+                "original_filename": doc["original_filename"],
+                "file_data": file_data
+            }
+        except Exception as e:
+            logger.error(f"Failed to download from cloud storage: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to download file: {str(e)}")
+    elif "file_data" in doc and doc["file_data"]:
+        # Legacy base64 data
+        return {
+            "id": doc["id"],
+            "name": doc["name"],
+            "file_type": doc["file_type"],
+            "original_filename": doc["original_filename"],
+            "file_data": doc["file_data"]
+        }
+    else:
+        raise HTTPException(status_code=404, detail="File data not found")
 
 
 @router.put("/{document_id}")

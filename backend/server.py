@@ -1271,6 +1271,16 @@ async def startup_migrations():
                 logger.warning(f"User {user.get('email')} has an incompatible password hash. They should use forgot-password to reset.")
     except Exception as e:
         logger.error(f"Startup migration error: {e}")
+    
+    # Initialize cloud storage service
+    try:
+        from services.storage import storage_service
+        if storage_service.init():
+            logger.info("Cloud storage service initialized successfully")
+        else:
+            logger.warning("Cloud storage service failed to initialize - file uploads will fail")
+    except Exception as e:
+        logger.error(f"Cloud storage initialization error: {e}")
 
 
 @app.on_event("shutdown")
