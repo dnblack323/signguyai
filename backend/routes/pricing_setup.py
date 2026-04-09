@@ -1,5 +1,6 @@
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
+import io
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import json
@@ -16,13 +17,12 @@ from pypdf import PdfReader
 from core.auth_deps import get_current_active_user
 from models import UserInDB
 from services.credit_service import preview_credit_usage, deduct_credits_after_success, log_failed_ai_usage
+from services.object_storage import get_object, put_object
+from services.storage_config import APP_NAME
 
 load_dotenv()
 
 router = APIRouter(prefix="/pricing-setup", tags=["Pricing Setup"])
-
-UPLOAD_ROOT = Path("/app/backend/uploads/historical_invoices")
-UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
 
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
 
@@ -376,32 +376,56 @@ Text:
     return parsed.get("rows", [])
 
 
-async def save_upload_file(import_dir: Path, upload_file: UploadFile) -> Dict[str, Any]:
+def _build_import_storage_path(tenant_id: str, import_id: str, file_id: str, extension: str) -> str:
+    return f"{APP_NAME}/pricing-imports/{tenant_id}/{import_id}/{file_id}{extension}"
+
+
+def _read_import_file_bytes(file_record: Dict[str, Any]) -> bytes:
+    storage_path = file_record.get("storage_path")
+    if storage_path:
+        data, _content_type = get_object(storage_path)
+        return data
+
+    local_path = file_record.get("stored_path")
+    if local_path and Path(local_path).exists():
+        return Path(local_path).read_bytes()
+
+    raise HTTPException(status_code=404, detail=f"Source file not found for {file_record.get('filename', 'uploaded file')}")
+
+
+def _upload_import_bytes(tenant_id: str, import_id: str, file_record: Dict[str, Any], file_bytes: bytes) -> str:
+    storage_path = _build_import_storage_path(tenant_id, import_id, file_record["id"], file_record["extension"])
+    result = put_object(storage_path, file_bytes, file_record.get("content_type") or "application/octet-stream")
+    return result.get("path", storage_path)
+
+
+async def save_upload_file(tenant_id: str, import_id: str, upload_file: UploadFile) -> Dict[str, Any]:
     extension = Path(upload_file.filename).suffix.lower()
     if extension not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail=f"Unsupported file type: {upload_file.filename}")
 
     file_id = str(uuid.uuid4())
-    file_path = import_dir / f"{file_id}{extension}"
     contents = await upload_file.read()
-    file_path.write_bytes(contents)
+    storage_path = _build_import_storage_path(tenant_id, import_id, file_id, extension)
+    result = put_object(storage_path, contents, upload_file.content_type or "application/octet-stream")
     return {
         "id": file_id,
         "filename": upload_file.filename,
         "extension": extension,
-        "stored_path": str(file_path),
+        "storage_path": result.get("path", storage_path),
+        "storage_backend": "emergent_object_storage",
         "size_bytes": len(contents),
         "content_type": upload_file.content_type,
     }
 
 
 def parse_structured_preview(file_record: Dict[str, Any]) -> Dict[str, Any]:
-    file_path = file_record["stored_path"]
     extension = file_record["extension"]
+    file_bytes = _read_import_file_bytes(file_record)
     if extension == ".csv":
-        dataframe = pd.read_csv(file_path)
+        dataframe = pd.read_csv(io.BytesIO(file_bytes))
     else:
-        dataframe = pd.read_excel(file_path)
+        dataframe = pd.read_excel(io.BytesIO(file_bytes))
 
     dataframe = dataframe.fillna("")
     columns = [str(column) for column in dataframe.columns]
@@ -415,7 +439,7 @@ def parse_structured_preview(file_record: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def extract_pdf_preview(file_record: Dict[str, Any]) -> Dict[str, Any]:
-    reader = PdfReader(file_record["stored_path"])
+    reader = PdfReader(io.BytesIO(_read_import_file_bytes(file_record)))
     text_chunks = []
     for page in reader.pages[:8]:
         text_chunks.append(page.extract_text() or "")
@@ -427,7 +451,8 @@ def extract_pdf_preview(file_record: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def normalize_structured_rows(file_record: Dict[str, Any], mapping: Dict[str, Any]) -> List[Dict[str, Any]]:
-    dataframe = pd.read_csv(file_record["stored_path"]).fillna("") if file_record["extension"] == ".csv" else pd.read_excel(file_record["stored_path"]).fillna("")
+    file_bytes = _read_import_file_bytes(file_record)
+    dataframe = pd.read_csv(io.BytesIO(file_bytes)).fillna("") if file_record["extension"] == ".csv" else pd.read_excel(io.BytesIO(file_bytes)).fillna("")
 
     rows = []
     for _, row in dataframe.iterrows():
@@ -468,7 +493,7 @@ async def build_normalized_rows(import_doc: Dict[str, Any]) -> List[Dict[str, An
         if extension in [".csv", ".xlsx", ".xls"]:
             normalized_rows.extend(normalize_structured_rows(file_record, mapping))
         elif extension == ".pdf":
-            reader = PdfReader(file_record["stored_path"])
+            reader = PdfReader(io.BytesIO(_read_import_file_bytes(file_record)))
             full_text = "\n".join((page.extract_text() or "") for page in reader.pages[:20])
             ai_rows = await ai_extract_pdf_rows(full_text, import_doc["id"], file_record["filename"])
             for extracted in ai_rows:
@@ -525,15 +550,13 @@ async def create_import(
         raise HTTPException(status_code=400, detail="At least one file is required")
 
     import_id = str(uuid.uuid4())
-    import_dir = UPLOAD_ROOT / current_user.tenant_id / import_id
-    import_dir.mkdir(parents=True, exist_ok=True)
 
     saved_files = []
     mapping_preview_columns = set()
     structured_file_present = False
 
     for upload_file in files:
-        file_record = await save_upload_file(import_dir, upload_file)
+        file_record = await save_upload_file(current_user.tenant_id, import_id, upload_file)
         if file_record["extension"] in [".csv", ".xlsx", ".xls"]:
             file_record["preview"] = parse_structured_preview(file_record)
             mapping_preview_columns.update(file_record["preview"]["columns"])
@@ -576,6 +599,57 @@ async def create_import(
             print(f"Auto-extraction failed for import {import_id}: {e}")
     
     return await get_import_or_404(import_id, current_user.tenant_id)
+
+
+@router.post("/imports/migrate-storage")
+async def migrate_import_storage(current_user: UserInDB = Depends(get_current_active_user)):
+    ensure_admin_access(current_user)
+
+    imports = await db.pricing_imports.find({"tenant_id": current_user.tenant_id}, {"_id": 0}).to_list(200)
+    migrated_files = 0
+    skipped_files = 0
+    updated_imports = 0
+
+    for import_doc in imports:
+        next_files = []
+        import_changed = False
+        for file_record in import_doc.get("files", []):
+            if file_record.get("storage_path"):
+                next_files.append(file_record)
+                skipped_files += 1
+                continue
+
+            local_path = file_record.get("stored_path")
+            if not local_path or not Path(local_path).exists():
+                next_files.append(file_record)
+                skipped_files += 1
+                continue
+
+            file_bytes = Path(local_path).read_bytes()
+            stored_path = _upload_import_bytes(current_user.tenant_id, import_doc["id"], file_record, file_bytes)
+            next_files.append({
+                **file_record,
+                "storage_path": stored_path,
+                "storage_backend": "emergent_object_storage",
+                "migrated_from_local_path": local_path,
+            })
+            migrated_files += 1
+            import_changed = True
+
+        if import_changed:
+            updated_imports += 1
+            await db.pricing_imports.update_one(
+                {"id": import_doc["id"], "tenant_id": current_user.tenant_id},
+                {"$set": {"files": next_files, "updated_at": datetime.now(timezone.utc).isoformat()}},
+            )
+
+    return {
+        "imports_checked": len(imports),
+        "imports_updated": updated_imports,
+        "files_migrated": migrated_files,
+        "files_skipped": skipped_files,
+        "storage_backend": "emergent_object_storage",
+    }
 
 
 @router.get("/imports/{import_id}")

@@ -15,9 +15,12 @@ from pydantic import BaseModel, Field, ConfigDict
 import uuid
 import base64
 from enum import Enum
+from pathlib import Path
 
 from server import db, logger, get_current_active_user
 from models import UserInDB
+from services.object_storage import get_object, put_object
+from services.storage_config import APP_NAME
 
 
 class DocumentCategory(str, Enum):
@@ -49,7 +52,10 @@ class Document(BaseModel):
     category: DocumentCategory = DocumentCategory.OTHER
     file_type: str  # e.g., "application/pdf", "image/png"
     file_size: int  # in bytes
-    file_data: str  # base64 encoded file
+    file_data: Optional[str] = None  # legacy base64 fallback
+    storage_path: Optional[str] = None
+    storage_backend: Optional[str] = None
+    file_url: Optional[str] = None
     original_filename: str
     is_template: bool = False  # Can be used as a template for jobs
     tags: List[str] = []
@@ -106,6 +112,52 @@ ALLOWED_FILE_TYPES = [
 MAX_FILE_SIZE = 10 * 1024 * 1024
 
 
+def _build_document_storage_path(tenant_id: str, document_id: str, filename: str) -> str:
+    extension = Path(filename or "document.bin").suffix or ".bin"
+    return f"{APP_NAME}/documents/{tenant_id}/{document_id}/{uuid.uuid4()}{extension}"
+
+
+async def _migrate_document_to_storage(doc: dict) -> Optional[str]:
+    if doc.get("storage_path") or not doc.get("file_data"):
+        return doc.get("storage_path")
+
+    file_bytes = base64.b64decode(doc["file_data"])
+    storage_path = _build_document_storage_path(doc["tenant_id"], doc["id"], doc.get("original_filename") or doc.get("name") or "document.bin")
+    result = put_object(storage_path, file_bytes, doc.get("file_type") or "application/octet-stream")
+    stored_path = result.get("path", storage_path)
+    await db.documents.update_one(
+        {"id": doc["id"], "tenant_id": doc["tenant_id"]},
+        {"$set": {
+            "storage_path": stored_path,
+            "storage_backend": "emergent_object_storage",
+            "file_url": f"/api/documents/{doc['id']}/download",
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }},
+    )
+    return stored_path
+
+
+async def _get_document_bytes(doc: dict) -> tuple[bytes, str]:
+    storage_path = doc.get("storage_path") or await _migrate_document_to_storage(doc)
+    if storage_path:
+        data, content_type = get_object(storage_path)
+        return data, content_type or doc.get("file_type") or "application/octet-stream"
+
+    if doc.get("file_data"):
+        return base64.b64decode(doc["file_data"]), doc.get("file_type") or "application/octet-stream"
+
+    raise HTTPException(status_code=404, detail="Document file contents are unavailable")
+
+
+async def _get_document_base64(doc: dict) -> str:
+    if doc.get("file_data"):
+        await _migrate_document_to_storage(doc)
+        return doc["file_data"]
+
+    data, _content_type = await _get_document_bytes(doc)
+    return base64.b64encode(data).decode('utf-8')
+
+
 @router.post("", response_model=Document)
 async def upload_document(
     file: UploadFile = File(...),
@@ -134,21 +186,24 @@ async def upload_document(
             detail="File too large. Maximum size is 10MB"
         )
     
-    # Convert to base64
-    file_data = base64.b64encode(contents).decode('utf-8')
-    
     # Parse tags
     tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else []
+    document_id = str(uuid.uuid4())
+    storage_path = _build_document_storage_path(current_user.tenant_id, document_id, file.filename or "document.bin")
+    result = put_object(storage_path, contents, file.content_type or "application/octet-stream")
     
     # Create document
     doc = Document(
+        id=document_id,
         tenant_id=current_user.tenant_id,
         name=name,
         description=description,
         category=DocumentCategory(category) if category in [e.value for e in DocumentCategory] else DocumentCategory.OTHER,
         file_type=file.content_type,
         file_size=len(contents),
-        file_data=file_data,
+        storage_path=result.get("path", storage_path),
+        storage_backend="emergent_object_storage",
+        file_url=f"/api/documents/{document_id}/download",
         original_filename=file.filename or "unknown",
         is_template=is_template,
         tags=tag_list,
@@ -281,7 +336,7 @@ async def download_document(
         "name": doc["name"],
         "file_type": doc["file_type"],
         "original_filename": doc["original_filename"],
-        "file_data": doc["file_data"]
+        "file_data": await _get_document_base64(doc)
     }
 
 
@@ -467,10 +522,10 @@ async def send_document_via_email(
     
     # Prepare attachment if requested
     attachment = None
-    if input.include_attachment and doc.get("file_data"):
+    if input.include_attachment:
         attachment = {
             "filename": doc.get("original_filename", f"{doc['name']}.pdf"),
-            "content": doc["file_data"],
+            "content": await _get_document_base64(doc),
             "type": doc.get("file_type", "application/octet-stream")
         }
     
@@ -671,17 +726,23 @@ async def create_document_from_ai(
     
     # Create a simple text file from the content
     content_bytes = input.content.encode('utf-8')
-    file_data = base64.b64encode(content_bytes).decode('utf-8')
+    document_id = str(uuid.uuid4())
+    original_filename = f"{input.name.replace(' ', '_')}.txt"
+    storage_path = _build_document_storage_path(current_user.tenant_id, document_id, original_filename)
+    result = put_object(storage_path, content_bytes, "text/plain")
     
     doc = Document(
+        id=document_id,
         tenant_id=current_user.tenant_id,
         name=input.name,
         description=f"Generated by AI tool: {input.tool_id or 'unknown'}",
         category=DocumentCategory(input.category) if input.category in [e.value for e in DocumentCategory] else DocumentCategory.OTHER,
         file_type="text/plain",
         file_size=len(content_bytes),
-        file_data=file_data,
-        original_filename=f"{input.name.replace(' ', '_')}.txt",
+        storage_path=result.get("path", storage_path),
+        storage_backend="emergent_object_storage",
+        file_url=f"/api/documents/{document_id}/download",
+        original_filename=original_filename,
         uploaded_by=current_user.id,
         tags=["ai-generated", input.tool_id] if input.tool_id else ["ai-generated"]
     )
@@ -690,7 +751,8 @@ async def create_document_from_ai(
     
     # Return document without file_data for efficiency
     result = doc.model_dump()
-    del result['file_data']
+    if 'file_data' in result:
+        del result['file_data']
     
     return result
 

@@ -17,8 +17,41 @@ from models.orders import (
     Order, OrderCreate, OrderUpdate, OrderStatus, PaymentStatus
 )
 from services.workflow_engine import update_order_progress, log_activity
+from services.object_storage import get_object, put_object
+from services.storage_config import APP_NAME
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
+
+
+def _build_order_file_storage_path(tenant_id: str, order_id: str, file_id: str, filename: str) -> str:
+    guessed_extension = mimetypes.guess_extension(mimetypes.guess_type(filename or "")[0] or "") or ""
+    if not guessed_extension and filename and "." in filename:
+        guessed_extension = f".{filename.rsplit('.', 1)[-1]}"
+    return f"{APP_NAME}/orders/{tenant_id}/{order_id}/files/{file_id}{guessed_extension or '.bin'}"
+
+
+async def _migrate_order_file_to_storage(file_doc: dict) -> str | None:
+    if file_doc.get("storage_path") or not file_doc.get("file_data"):
+        return file_doc.get("storage_path")
+
+    content = base64.b64decode(file_doc["file_data"])
+    storage_path = _build_order_file_storage_path(
+        file_doc["tenant_id"],
+        file_doc["order_id"],
+        file_doc["id"],
+        file_doc.get("filename") or "attachment.bin",
+    )
+    result = put_object(storage_path, content, file_doc.get("content_type") or "application/octet-stream")
+    stored_path = result.get("path", storage_path)
+    await db.order_files.update_one(
+        {"id": file_doc["id"], "order_id": file_doc["order_id"], "tenant_id": file_doc["tenant_id"]},
+        {"$set": {
+            "storage_path": stored_path,
+            "storage_backend": "emergent_object_storage",
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }},
+    )
+    return stored_path
 
 
 async def _next_order_number(tenant_id: str) -> str:
@@ -474,6 +507,8 @@ async def upload_order_file(
         raise HTTPException(status_code=400, detail="File too large (max 15MB)")
 
     file_id = str(uuid.uuid4())
+    storage_path = _build_order_file_storage_path(current_user.tenant_id, order_id, file_id, file.filename or "attachment.bin")
+    result = put_object(storage_path, contents, file.content_type or "application/octet-stream")
     file_doc = {
         "id": file_id,
         "order_id": order_id,
@@ -482,7 +517,8 @@ async def upload_order_file(
         "label": label or file.filename or "Attachment",
         "content_type": file.content_type,
         "file_size": len(contents),
-        "file_data": base64.b64encode(contents).decode("utf-8"),
+        "storage_path": result.get("path", storage_path),
+        "storage_backend": "emergent_object_storage",
         "uploaded_by": current_user.id,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -524,7 +560,12 @@ async def get_order_file_content(order_id: str, file_id: str, current_user: User
 
     media_type = file_doc.get("content_type") or mimetypes.guess_type(file_doc.get("filename", ""))[0] or "application/octet-stream"
     try:
-        content = base64.b64decode(file_doc.get("file_data", ""))
+        storage_path = file_doc.get("storage_path") or await _migrate_order_file_to_storage(file_doc)
+        if storage_path:
+            content, content_type = get_object(storage_path)
+            media_type = content_type or media_type
+        else:
+            content = base64.b64decode(file_doc.get("file_data", ""))
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=500, detail="Failed to decode file") from exc
+        raise HTTPException(status_code=500, detail="Failed to load file") from exc
     return Response(content=content, media_type=media_type)
