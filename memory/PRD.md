@@ -1,7 +1,7 @@
 # SignGuy AI - Product Requirements Document
 
-> **Last Updated:** April 8, 2026
-> **Version:** 6.2
+> **Last Updated:** April 9, 2026
+> **Version:** 6.3
 
 ---
 
@@ -18,6 +18,27 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ---
 
 ## What's Been Implemented
+
+### Session: April 9, 2026 (Cloud Storage Migration for Uploads)
+- Confirmed storage direction with user: Emergent Object Storage, migrate existing files where applicable, preserve current access behavior
+- Migrated upload persistence away from local filesystem / inline-only storage for these active flows:
+  - Historical invoice imports (`/api/pricing-setup/imports`)
+  - Document uploads (`/api/documents`)
+  - Order attachments (`/api/orders/{order_id}/upload`)
+- Added pricing import migration endpoint: `POST /api/pricing-setup/imports/migrate-storage`
+- Kept backward compatibility intact:
+  - document download still returns `file_data` for the current frontend
+  - order attachment content endpoint still returns raw bytes
+  - pricing import preview / analysis still works after moving files to object storage
+- Object storage path conventions now in active use:
+  - `signguy-ai/pricing-imports/{tenant_id}/{import_id}/{file_id}{extension}`
+  - `signguy-ai/documents/{tenant_id}/{document_id}/{uuid}{extension}`
+  - `signguy-ai/orders/{tenant_id}/{order_id}/files/{file_id}{extension}`
+- Testing:
+  - self-tested document upload/download, pricing import upload/migration, and order attachment upload/content
+  - testing agent iteration_92 passed backend 19/19
+  - frontend sanity check passed for Pricing Setup and Documents pages
+  - final backend spot-check passed
 
 ### Session: April 8, 2026 (Payroll Cleanup + Payroll Export Reports)
 - Completed a focused cleanup pass on the existing Payroll workspace without changing the overall navigation structure
