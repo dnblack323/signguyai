@@ -19,6 +19,12 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
+### Session: April 9, 2026 (Auth Verification Note)
+- Verified browser login works for both known shop accounts:
+  - `signguypa@gmail.com` / `Billnel323`
+  - `thesigntistslab@gmail.com` / `password123`
+- Updated `/app/memory/test_credentials.md` to add the missing legacy admin password so future auth debugging/tests use the correct saved credential
+
 ### Session: April 9, 2026 (Cloud Storage Migration for Uploads)
 - Confirmed storage direction with user: Emergent Object Storage, migrate existing files where applicable, preserve current access behavior
 - Migrated upload persistence away from local filesystem / inline-only storage for these active flows:

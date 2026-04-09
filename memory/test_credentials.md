@@ -9,6 +9,7 @@
 
 ## Legacy Admin Account  
 - Email: thesigntistslab@gmail.com
+- Password: password123
 - Tenant: The Signtists Lab (same tenant, signguy_ai database)
 
 ## Test Order for Drawing Pad
