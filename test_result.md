@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Focused backend verification for the latest payroll export feature. Validate authentication, new payroll report endpoint with various parameters, existing payroll endpoints for regression, and tenant/auth protection."
+user_problem_statement: "Final backend spot-check for storage migration pass. Validate 5 production-facing flows: document upload/download, pricing import storage, storage migration endpoint, and order file upload/download."
 
 backend:
   - task: "Authentication - POST /api/auth/login"
@@ -212,6 +212,66 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ VERIFIED - All payroll endpoints properly protected with authentication. Unauthenticated requests correctly return HTTP 401. Tenant isolation confirmed through successful authenticated access."
+
+  - task: "Document Upload - POST /api/documents"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/documents.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - Document upload endpoint working correctly with object storage. Successfully uploaded test document with storage_path: signguy-ai/documents/.../...txt and storage_backend: emergent_object_storage. File stored in cloud storage successfully."
+
+  - task: "Document Download - GET /api/documents/{id}/download"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/documents.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - Document download endpoint returns proper file_data for frontend compatibility. Response includes required fields: id, file_data (valid base64), file_type, original_filename. Downloaded 42 bytes successfully."
+
+  - task: "Pricing Import Storage - POST /api/pricing-setup/imports"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/pricing_setup.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - Pricing import endpoint stores files successfully in object storage. CSV file uploaded with storage_path: signguy-ai/pricing-imports/.../...csv and storage_backend: emergent_object_storage. Import created successfully."
+
+  - task: "Storage Migration - POST /api/pricing-setup/imports/migrate-storage"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/pricing_setup.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - Storage migration endpoint returns valid migration stats. Response includes: imports_checked: 3, imports_updated: 0, files_migrated: 0, files_skipped: 3, storage_backend: emergent_object_storage. Migration endpoint functioning correctly."
+
+  - task: "Order File Upload/Download - POST /api/orders/{id}/upload and GET /api/orders/{id}/files/{file_id}/content"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/orders.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - Order file upload and download endpoints working correctly. Successfully created test order, uploaded file (31 bytes), and downloaded file content with proper content-type: text/plain. File storage and retrieval functioning properly."
 
 frontend:
   - task: "Landing Page - Unified Productivity and Shop Management Content"
@@ -331,7 +391,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Payroll export backend verification complete"
+    - "Final storage migration spot-check complete"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -347,3 +407,5 @@ agent_communication:
     message: "BACKEND VERIFICATION COMPLETE - Comprehensive testing of payroll export feature completed successfully. All 14 tests passed: authentication working, new payroll report endpoint supports all parameter combinations (custom dates, weekly/biweekly periods, employee filtering), all existing payroll endpoints functioning without regression, and proper authentication/tenant protection verified. Empty employee/time data responses are valid as expected. No critical issues found."
   - agent: "testing"
     message: "STORAGE INTEGRATION SANITY CHECK COMPLETE - Lightweight frontend sanity check for backend storage migration completed successfully. All three checks passed: (1) Login flow works correctly with credentials signguypa@gmail.com, (2) Pricing Setup page loads successfully at /settings/pricing-setup with all UI elements present (tabs, upload section, import history, field mapping), (3) Documents page loads successfully with stats cards and document table showing 'Cloud Storage Smoke Test' document. No critical console errors or network errors detected. No blank-page or runtime regressions observed. Backend storage change did not break existing UI functionality."
+  - agent: "testing"
+    message: "FINAL STORAGE MIGRATION SPOT-CHECK COMPLETE - All 5 production-facing storage flows verified successfully: (1) POST /api/documents upload working with object storage, (2) GET /api/documents/{id}/download returns proper file_data for frontend compatibility, (3) POST /api/pricing-setup/imports stores files in object storage correctly, (4) POST /api/pricing-setup/imports/migrate-storage returns valid migration stats, (5) POST /api/orders/{id}/upload and GET /api/orders/{id}/files/{file_id}/content working properly. All endpoints using emergent_object_storage backend. No critical issues found. Storage migration is production-ready."
