@@ -245,6 +245,102 @@ const ClockedInWidget = ({ employees }) => {
   );
 };
 
+// Today's Staff Widget - Shows scheduled employees with clock status
+const TodaysStaffWidget = ({ staff }) => {
+  const getStaffStatusStyles = (status) => {
+    switch (status) {
+      case 'working': return { backgroundColor: '#22C55E', color: '#FFFFFF' };
+      case 'on_break': return { backgroundColor: '#F59E0B', color: '#000000' };
+      case 'clocked_out': return { backgroundColor: '#6B7280', color: '#FFFFFF' };
+      default: return { backgroundColor: '#94A3B8', color: '#000000' }; // not_started
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'working': return 'Working';
+      case 'on_break': return 'On Break';
+      case 'clocked_out': return 'Done';
+      default: return 'Not In';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'working': return <UserCheck className="h-4 w-4 text-emerald-500" />;
+      case 'on_break': return <Coffee className="h-4 w-4 text-amber-500" />;
+      case 'clocked_out': return <CheckCircle className="h-4 w-4 text-gray-400" />;
+      default: return <Clock className="h-4 w-4 text-slate-400" />;
+    }
+  };
+
+  return (
+    <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+      <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
+        <div className="flex items-center gap-2">
+          <Calendar className="h-5 w-5 text-violet-500" />
+          <h2 className="font-heading text-base font-semibold" style={{ color: 'var(--text)' }}>
+            Today's Staff
+          </h2>
+        </div>
+        <Link to="/payroll?tab=schedule" data-testid="todays-staff-schedule-link">
+          <span className="text-xs text-violet-500 hover:underline">Schedule</span>
+        </Link>
+      </div>
+      <div className="p-4">
+        {(!staff || staff.length === 0) ? (
+          <div className="text-center py-4">
+            <Calendar className="h-8 w-8 mx-auto mb-2 text-violet-500/30" />
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No one scheduled today</p>
+            <Link to="/payroll?tab=schedule" data-testid="todays-staff-setup-schedule-link">
+              <button className="mt-2 text-xs text-violet-500 hover:underline">
+                Set up schedule →
+              </button>
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {staff.map(emp => (
+              <div 
+                key={emp.employee_id}
+                className="flex items-center justify-between p-3 rounded-lg"
+                style={{ backgroundColor: 'var(--surface-2)' }}
+                data-testid={`staff-${emp.employee_id}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="w-8 h-8 rounded-full flex items-center justify-center"
+                    style={{ 
+                      backgroundColor: emp.status === 'working' ? 'rgba(34,197,94,0.2)' : 
+                                      emp.status === 'on_break' ? 'rgba(245,158,11,0.2)' :
+                                      emp.status === 'clocked_out' ? 'rgba(107,114,128,0.2)' :
+                                      'rgba(148,163,184,0.2)'
+                    }}
+                  >
+                    {getStatusIcon(emp.status)}
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>{emp.employee_name}</p>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {emp.scheduled_start}{emp.scheduled_end ? ` - ${emp.scheduled_end}` : ''}
+                    </p>
+                  </div>
+                </div>
+                <span 
+                  className="px-2 py-0.5 rounded-full text-xs font-medium"
+                  style={getStaffStatusStyles(emp.status)}
+                >
+                  {getStatusLabel(emp.status)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Today's Schedule Widget
 const ScheduleWidget = ({ schedule }) => {
   return (
@@ -504,6 +600,7 @@ export default function Dashboard() {
   const [unreadMessages, setUnreadMessages] = useState([]);
   const [clockedInEmployees, setClockedInEmployees] = useState([]);
   const [todaysSchedule, setTodaysSchedule] = useState([]);
+  const [todaysStaff, setTodaysStaff] = useState([]);
   const [recentAIDocs, setRecentAIDocs] = useState([]);
   
   // Invoice preview modal state
@@ -536,6 +633,7 @@ export default function Dashboard() {
           axios.get(`${API}/dashboard/unread-messages`, { headers }).then(res => setUnreadMessages(res.data)).catch(() => {}),
           axios.get(`${API}/dashboard/clocked-in`, { headers }).then(res => setClockedInEmployees(res.data)).catch(() => {}),
           axios.get(`${API}/dashboard/todays-schedule`, { headers }).then(res => setTodaysSchedule(res.data)).catch(() => {}),
+          axios.get(`${API}/dashboard/todays-staff`, { headers }).then(res => setTodaysStaff(res.data)).catch(() => {}),
           axios.get(`${API}/dashboard/recent-ai-documents`, { headers }).then(res => setRecentAIDocs(res.data)).catch(() => {}),
         ]);
       } catch (err) {
@@ -650,9 +748,10 @@ export default function Dashboard() {
           <PendingApprovalsWidget approvals={pendingApprovals} />
         </div>
         
-        {/* Middle Column - Messages & Clocked In */}
+        {/* Middle Column - Messages & Today's Staff */}
         <div className="space-y-4 sm:space-y-6">
           <MessagesWidget messages={unreadMessages} />
+          <TodaysStaffWidget staff={todaysStaff} />
           <ClockedInWidget employees={clockedInEmployees} />
         </div>
         

@@ -1,7 +1,7 @@
 # SignGuy AI - Product Requirements Document
 
-> **Last Updated:** March 27, 2026
-> **Version:** 6.0
+> **Last Updated:** April 9, 2026
+> **Version:** 6.1
 
 ---
 
@@ -18,6 +18,24 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ---
 
 ## What's Been Implemented
+
+### Session: April 9, 2026 (Dashboard & Navigation Updates)
+- **Dashboard Today's Staff Widget (DONE):**
+  - New widget showing employees scheduled to work today
+  - Displays clock-in/out status for each scheduled employee
+  - Status indicators: Not In (gray), Working (green), On Break (amber), Done (gray)
+  - Shows scheduled shift times for each employee
+  - Link to Employee Schedule page
+  - Backend endpoint: `GET /api/dashboard/todays-staff`
+- **Team Navigation - Employee Schedule Link (DONE):**
+  - Added "Employee Schedule" link under Team tab in primary navigation
+  - Links directly to `/payroll?tab=schedule`
+  - Payroll page now reads `tab` URL parameter to auto-select the correct tab
+- **Files Updated:**
+  - `/app/backend/routes/dashboard.py` - Added `TodaysStaffMember` model and `/todays-staff` endpoint
+  - `/app/frontend/src/pages/Dashboard.js` - Added `TodaysStaffWidget` component, fetches staff data
+  - `/app/frontend/src/components/ribbon/PrimaryNav.js` - Added Employee Schedule to team sub-items
+  - `/app/frontend/src/pages/Payroll.js` - Added URL parameter handling for `tab` query param
 
 ### Session: March 27, 2026 (Bug Fixes & UI Improvements)
 - **Task List Display Bug (FIXED):**

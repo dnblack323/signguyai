@@ -5,7 +5,7 @@ import {
   Store, Sparkles, BarChart3, Settings, MessageCircle,
   Clock, DollarSign, FileCheck, Package, Tag,
   ClipboardList, BookOpen, HelpCircle, UserCog, Wallet,
-  Shield, Wrench, Mail, FolderOpen, Send, Clipboard
+  Shield, Wrench, Mail, FolderOpen, Send, Clipboard, Calendar
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -53,6 +53,7 @@ export const tabSubItems = {
   ],
   team: [
     { label: 'Payroll', icon: DollarSign, path: '/payroll' },
+    { label: 'Employee Schedule', icon: Calendar, path: '/payroll?tab=schedule' },
     { label: 'Time Clock', icon: Clock, path: '/timeclock' },
     { label: 'Users', icon: Users, path: '/users' },
   ],

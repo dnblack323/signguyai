@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useAuth, Permission } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -57,9 +58,24 @@ export default function Payroll() {
   const canEditPayroll = hasPermission(Permission.PAYROLL_EDIT);
   
   const { employees, fetchEmployees, api } = useApp();
+  const [searchParams] = useSearchParams();
   
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(() => {
+    // Initialize from URL param if present
+    const tabParam = searchParams.get('tab');
+    return tabParam && ['overview', 'timesheet', 'hours', 'transactions', 'schedule'].includes(tabParam) 
+      ? tabParam 
+      : 'overview';
+  });
+  
+  // Sync tab with URL param on mount and when URL changes
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['overview', 'timesheet', 'hours', 'transactions', 'schedule'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
   
   // Overview state
   const [payPeriod, setPayPeriod] = useState(null);

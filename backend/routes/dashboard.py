@@ -64,6 +64,17 @@ class ScheduleItem(BaseModel):
     priority: str = "normal"
 
 
+class TodaysStaffMember(BaseModel):
+    """Employee scheduled to work today with their clock status"""
+    employee_id: str
+    employee_name: str
+    scheduled_start: str = ""
+    scheduled_end: str = ""
+    is_clocked_in: bool = False
+    clock_in_time: str = ""
+    status: str = "not_started"  # not_started, working, on_break, clocked_out
+
+
 class OnboardingStatus(BaseModel):
     """Status of onboarding checklist items"""
     has_company_info: bool = False
@@ -296,6 +307,106 @@ async def get_todays_schedule(current_user: UserInDB = Depends(get_current_activ
         ))
     
     return schedule
+
+
+@router.get("/todays-staff", response_model=List[TodaysStaffMember])
+async def get_todays_staff(current_user: UserInDB = Depends(get_current_active_user)):
+    """Get employees scheduled to work today along with their clock-in status"""
+    tenant_id = current_user.tenant_id
+    today = datetime.now(timezone.utc).date()
+    today_str = today.isoformat()
+    
+    # Get day of week (Monday=0 to Sunday=6)
+    day_names = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+    today_day = day_names[today.weekday()]
+    
+    # Calculate week start (Monday)
+    week_start = (today - timedelta(days=today.weekday())).isoformat()
+    
+    # Get all active employees for this tenant
+    employees = await db.employees.find({
+        "tenant_id": tenant_id,
+        "is_active": True
+    }, {"_id": 0}).to_list(100)
+    
+    # Get schedules for this week
+    schedules = await db.employee_schedules.find({
+        "tenant_id": tenant_id,
+        "week_start": week_start
+    }, {"_id": 0}).to_list(100)
+    
+    # Build a map of employee_id -> shifts
+    schedule_map = {}
+    for sched in schedules:
+        emp_id = sched.get("employee_id")
+        shifts = sched.get("shifts", {})
+        if emp_id:
+            schedule_map[emp_id] = shifts
+    
+    staff_list = []
+    for emp in employees:
+        emp_id = emp.get("id", "")
+        emp_name = emp.get("name", "Unknown")
+        
+        # Get today's shift for this employee
+        shifts = schedule_map.get(emp_id, {})
+        today_shift = shifts.get(today_day, "")
+        
+        # Skip employees not scheduled today
+        if not today_shift:
+            continue
+        
+        # Parse shift time (e.g., "9:00 AM - 5:00 PM")
+        scheduled_start = ""
+        scheduled_end = ""
+        if " - " in today_shift:
+            parts = today_shift.split(" - ")
+            scheduled_start = parts[0].strip()
+            scheduled_end = parts[1].strip() if len(parts) > 1 else ""
+        else:
+            scheduled_start = today_shift
+        
+        # Check clock status for today
+        logs = await db.timelogs.find({
+            "employee_id": emp_id,
+            "timestamp": {"$regex": f"^{today_str}"}
+        }, {"_id": 0}).sort("timestamp", -1).to_list(10)
+        
+        is_clocked_in = False
+        clock_in_time = ""
+        status = "not_started"
+        
+        if logs:
+            last_log = logs[0]
+            action = last_log.get("action", "")
+            
+            # Find first clock in
+            for log in reversed(logs):
+                if log.get("action") == "start_work":
+                    clock_in_time = log.get("timestamp", "")
+                    break
+            
+            if action in ["start_work", "break_end"]:
+                is_clocked_in = True
+                status = "working"
+            elif action == "break_start":
+                is_clocked_in = True
+                status = "on_break"
+            elif action == "end_work":
+                is_clocked_in = False
+                status = "clocked_out"
+        
+        staff_list.append(TodaysStaffMember(
+            employee_id=emp_id,
+            employee_name=emp_name,
+            scheduled_start=scheduled_start,
+            scheduled_end=scheduled_end,
+            is_clocked_in=is_clocked_in,
+            clock_in_time=clock_in_time,
+            status=status
+        ))
+    
+    return staff_list
 
 
 @router.get("/onboarding-status", response_model=OnboardingStatus)
