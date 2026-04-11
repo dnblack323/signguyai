@@ -21,7 +21,7 @@ const primaryNavItems = [
   { id: 'ai-tools', label: 'AI Tools', icon: Sparkles, path: '/ai-tools' },
   { id: 'financials', label: 'Financials', icon: DollarSign, path: '/financials' },
   { id: 'productivity', label: 'Productivity', icon: BarChart3, path: '/productivity' },
-  { id: 'reports', label: 'Reports', icon: BarChart3, path: '/reports' },
+  { id: 'reports', label: 'Reports', icon: BarChart3, path: '/financials' },
   { id: 'community', label: 'Community', icon: MessageCircle, path: '/community' },
   { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
 ];

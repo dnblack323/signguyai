@@ -21,14 +21,29 @@ from models.production_timeline import (
 router = APIRouter(prefix="/production-timeline", tags=["Production Timeline"])
 
 DEFAULT_WORKFLOW_SETTINGS = {
-    "workflow_mode": "detailed",
+    "workflow_mode": "simple",
     "category_template_map": {},
 }
 
 
 async def get_workflow_settings(tenant_id: str) -> dict:
     settings = await db.production_workflow_settings.find_one({"tenant_id": tenant_id}, {"_id": 0})
-    return {**DEFAULT_WORKFLOW_SETTINGS, **(settings or {})}
+    merged = {**DEFAULT_WORKFLOW_SETTINGS, **(settings or {})}
+
+    if merged.get("workflow_mode") == "detailed" and not merged.get("workflow_preferences_locked"):
+        merged["workflow_mode"] = "simple"
+        await db.production_workflow_settings.update_one(
+            {"tenant_id": tenant_id},
+            {"$set": {
+                "tenant_id": tenant_id,
+                "workflow_mode": "simple",
+                "category_template_map": merged.get("category_template_map", {}),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }},
+            upsert=True,
+        )
+
+    return merged
 
 
 def get_default_template_collection(workflow_mode: str):
@@ -49,8 +64,9 @@ async def update_production_workflow_settings(
 ):
     payload = {
         "tenant_id": current_user.tenant_id,
-        "workflow_mode": settings.get("workflow_mode", "detailed"),
+        "workflow_mode": settings.get("workflow_mode", "simple"),
         "category_template_map": settings.get("category_template_map", {}),
+        "workflow_preferences_locked": True,
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.production_workflow_settings.update_one(
@@ -74,6 +90,8 @@ async def get_workflow_templates(
     """
     tenant_id = current_user.tenant_id
     query = {"tenant_id": tenant_id}
+    workflow_settings = await get_workflow_settings(tenant_id)
+    default_templates = get_default_template_collection(workflow_settings.get("workflow_mode", "simple"))
     
     if category:
         query["category"] = category
@@ -86,7 +104,7 @@ async def get_workflow_templates(
     # If no custom templates, return defaults
     if not custom_templates:
         defaults = []
-        for cat, template in DEFAULT_WORKFLOW_TEMPLATES.items():
+        for cat, template in default_templates.items():
             if category and cat != category:
                 continue
             defaults.append({
@@ -108,11 +126,14 @@ async def get_workflow_template(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Get a specific workflow template"""
+    workflow_settings = await get_workflow_settings(current_user.tenant_id)
+    default_templates = get_default_template_collection(workflow_settings.get("workflow_mode", "simple"))
+
     # Check for default templates
     if template_id.startswith("default_"):
         category = template_id.replace("default_", "")
-        if category in DEFAULT_WORKFLOW_TEMPLATES:
-            template = DEFAULT_WORKFLOW_TEMPLATES[category]
+        if category in default_templates:
+            template = default_templates[category]
             return {
                 "id": template_id,
                 "tenant_id": current_user.tenant_id,

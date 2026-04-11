@@ -25,7 +25,9 @@ export const MainLayout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { api } = useApp();
+  const { api, tenant } = useApp();
+  const activeLogoUrl = tenant?.logo_url || 'https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/k3asaz65_sgai%20long.png';
+  const activeLogoAlt = tenant?.name || 'SignGuy AI';
 
   // Check backup status for owner
   const checkBackup = useCallback(async () => {
@@ -91,9 +93,10 @@ export const MainLayout = ({ children }) => {
           </button>
           
           <img 
-            src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/k3asaz65_sgai%20long.png" 
-            alt="SignGuy AI" 
+            src={activeLogoUrl}
+            alt={activeLogoAlt}
             className="h-7 w-auto"
+            data-testid="mobile-header-logo"
           />
           
           <div className="w-9" /> {/* Spacer for balance */}

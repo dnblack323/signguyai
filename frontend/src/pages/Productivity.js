@@ -44,7 +44,7 @@ export default function Productivity() {
     assignedUserId: '',
     status: '',
     includeCompleted: false,
-    itemTypes: ['task', 'job', 'production_task', 'schedule_shift', 'appointment'],
+    itemTypes: ['job'],
   });
   const [items, setItems] = useState([]);
   const [summary, setSummary] = useState(null);

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Bell, HelpCircle, LogOut, Settings, User, ChevronDown } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
@@ -12,31 +12,11 @@ const DEFAULT_LOGO = "https://customer-assets.emergentagent.com/job_10abf0c0-fdc
 export const TopAppBar = ({ onMobileMenuClick }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { tenant, fetchTenant, api } = useApp();
+  const { tenant } = useApp();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [profileOpen, setProfileOpen] = useState(false);
-  const [logoUrl, setLogoUrl] = useState(DEFAULT_LOGO);
-
-  // Fetch tenant on mount (lightweight, no logo data)
-  useEffect(() => {
-    if (!tenant) {
-      fetchTenant();
-    }
-  }, [tenant, fetchTenant]);
-
-  // Fetch logo separately only if tenant has one
-  useEffect(() => {
-    if (tenant?.has_logo) {
-      api.get('/tenant/logo').then(res => {
-        if (res.data?.logo_url) {
-          setLogoUrl(res.data.logo_url);
-        }
-      }).catch(() => {});
-    } else {
-      setLogoUrl(DEFAULT_LOGO);
-    }
-  }, [tenant?.has_logo, api]);
+  const logoUrl = tenant?.logo_url || DEFAULT_LOGO;
   const logoAlt = tenant?.name || 'SignGuy AI';
 
   const handleSearch = (e) => {

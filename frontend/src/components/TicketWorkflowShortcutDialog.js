@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { CalendarDays } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -38,6 +39,7 @@ export const TicketWorkflowShortcutDialog = ({
   onCompleted,
 }) => {
   const [submitting, setSubmitting] = useState(false);
+  const scheduleDateInputRef = useRef(null);
   const employeeOptions = useMemo(() => (employees || []).filter((employee) => employee.is_active !== false), [employees]);
   const defaultDate = order?.requested_due_date || new Date().toISOString().split('T')[0];
 
@@ -219,7 +221,30 @@ export const TicketWorkflowShortcutDialog = ({
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2 col-span-3 sm:col-span-1">
                 <Label htmlFor="ticket-schedule-date">Date</Label>
-                <Input id="ticket-schedule-date" type="date" value={scheduleForm.date} onChange={(event) => setScheduleForm((current) => ({ ...current, date: event.target.value }))} data-testid="ticket-schedule-date-input" />
+                <div className="flex items-center gap-2">
+                  <Input
+                    ref={scheduleDateInputRef}
+                    id="ticket-schedule-date"
+                    type="date"
+                    value={scheduleForm.date}
+                    onClick={(event) => event.currentTarget.showPicker?.()}
+                    onFocus={(event) => event.currentTarget.showPicker?.()}
+                    onChange={(event) => setScheduleForm((current) => ({ ...current, date: event.target.value }))}
+                    data-testid="ticket-schedule-date-input"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      scheduleDateInputRef.current?.showPicker?.();
+                      scheduleDateInputRef.current?.focus();
+                    }}
+                    data-testid="ticket-schedule-date-picker-button"
+                  >
+                    <CalendarDays className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2 col-span-3 sm:col-span-1">
                 <Label htmlFor="ticket-schedule-start">Start</Label>

@@ -5,7 +5,7 @@ import {
   Trash2, Loader2, Receipt, Wrench, MessageSquare, DollarSign, Pause, ChevronRight,
   Copy, Calculator, Edit3, MoreHorizontal, Upload, FileUp, Paperclip, Send, Mail, ExternalLink,
   UserPlus, CalendarPlus, ListTodo,
-  Pen, Image as ImageIcon
+  Pen, Image as ImageIcon, Eye
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -57,6 +57,7 @@ export default function OrderDetail() {
   const [taskLoading, setTaskLoading] = useState('');
   const [orderFiles, setOrderFiles] = useState([]);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [orderFileThumbs, setOrderFileThumbs] = useState({});
   const [drawings, setDrawings] = useState([]);
   const [showDrawingModal, setShowDrawingModal] = useState(false);
   const [drawingMarkupImage, setDrawingMarkupImage] = useState(null);
@@ -83,7 +84,9 @@ export default function OrderDetail() {
       setActivities(actRes.data);
       setFinancials(finRes.data);
       setProdSummary(prodRes.data);
-      setOrderFiles(filesRes.data || []);
+      const nextOrderFiles = filesRes.data || [];
+      setOrderFiles(nextOrderFiles);
+      loadOrderFileThumbs(nextOrderFiles);
       setEmployees(employeesRes.data || []);
       const drawingsList = drawingsRes.data || [];
       setDrawings(drawingsList);
@@ -91,6 +94,33 @@ export default function OrderDetail() {
       loadDrawingThumbs(drawingsList);
     } catch { toast.error('Failed to load order'); }
     finally { setLoading(false); }
+  };
+
+  const replaceOrderFileThumbs = (nextThumbs) => {
+    setOrderFileThumbs((previousThumbs) => {
+      Object.values(previousThumbs || {}).forEach((thumbUrl) => {
+        if (thumbUrl) URL.revokeObjectURL(thumbUrl);
+      });
+      return nextThumbs;
+    });
+  };
+
+  const loadOrderFileThumbs = async (filesList) => {
+    const imageFiles = (filesList || []).filter((file) => file.content_type?.startsWith('image/'));
+    if (imageFiles.length === 0) {
+      replaceOrderFileThumbs({});
+      return;
+    }
+
+    const thumbEntries = await Promise.all(imageFiles.map(async (file) => {
+      try {
+        const contentUrl = await getFileContentUrl(file);
+        return [file.id, contentUrl];
+      } catch {
+        return [file.id, null];
+      }
+    }));
+    replaceOrderFileThumbs(Object.fromEntries(thumbEntries.filter(([, value]) => value)));
   };
 
   const loadDrawingThumbs = async (drawingsList) => {
@@ -110,6 +140,11 @@ export default function OrderDetail() {
   };
 
   useEffect(() => { load(); }, [id]);
+  useEffect(() => () => {
+    Object.values(orderFileThumbs || {}).forEach((thumbUrl) => {
+      if (thumbUrl) URL.revokeObjectURL(thumbUrl);
+    });
+  }, [orderFileThumbs]);
 
   const startProduction = async () => {
     setActionLoading('production');
@@ -752,8 +787,12 @@ export default function OrderDetail() {
                 <Card key={f.id} className="bg-white rounded-xl border border-gray-200 shadow-sm">
                   <CardContent className="p-3 flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0">
-                        <FileUp className="w-5 h-5 text-violet-600" />
+                      <div className="w-14 h-14 rounded-xl bg-violet-50 flex items-center justify-center flex-shrink-0 overflow-hidden border border-violet-100" data-testid={`order-file-thumbnail-${f.id}`}>
+                        {f.content_type?.startsWith('image/') && orderFileThumbs[f.id] ? (
+                          <img src={orderFileThumbs[f.id]} alt={f.label || f.filename} className="w-full h-full object-cover" />
+                        ) : (
+                          <FileUp className="w-5 h-5 text-violet-600" />
+                        )}
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">{f.label || f.filename}</p>

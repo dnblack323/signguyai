@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { getAuthToken } from '../lib/authStorage';
+import { useAuth } from './AuthContext';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -32,6 +33,7 @@ export const useApp = () => {
 };
 
 export const AppProvider = ({ children }) => {
+  const { user, isAuthenticated } = useAuth();
   const [customers, setCustomers] = useState([]);
   const [quotes, setQuotes] = useState([]);
   const [jobs, setJobs] = useState([]);
@@ -41,6 +43,25 @@ export const AppProvider = ({ children }) => {
   const [dashboardStats, setDashboardStats] = useState(null);
   const [tenant, setTenant] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const fetchTenantLogo = useCallback(async () => {
+    try {
+      const res = await api.get('/tenant/logo');
+      return res.data?.logo_url || null;
+    } catch (err) {
+      console.error('Error fetching tenant logo:', err);
+      return null;
+    }
+  }, []);
+
+  const hydrateTenantBranding = useCallback(async (tenantData) => {
+    if (!tenantData) return null;
+    if (!tenantData.has_logo) {
+      return { ...tenantData, logo_url: null };
+    }
+    const logoUrl = await fetchTenantLogo();
+    return { ...tenantData, logo_url: logoUrl };
+  }, [fetchTenantLogo]);
 
   // Customers
   const fetchCustomers = async (params = {}) => {
@@ -606,28 +627,39 @@ export const AppProvider = ({ children }) => {
   };
 
   // Tenant / Company Settings
-  const fetchTenant = async () => {
+  const fetchTenant = useCallback(async () => {
     try {
       const res = await api.get(`/tenant`);
-      setTenant(res.data);
-      return res.data;
+      const hydratedTenant = await hydrateTenantBranding(res.data);
+      setTenant(hydratedTenant);
+      return hydratedTenant;
     } catch (err) {
       console.error('Error fetching tenant:', err);
       return null;
     }
-  };
+  }, [hydrateTenantBranding]);
 
-  const getTenant = async () => {
+  const getTenant = useCallback(async () => {
     const res = await api.get(`/tenant`);
-    setTenant(res.data);
-    return res.data;
-  };
+    const hydratedTenant = await hydrateTenantBranding(res.data);
+    setTenant(hydratedTenant);
+    return hydratedTenant;
+  }, [hydrateTenantBranding]);
 
-  const updateTenant = async (data) => {
+  const updateTenant = useCallback(async (data) => {
     const res = await api.put(`/tenant`, data);
-    setTenant(res.data);
-    return res.data;
-  };
+    const hydratedTenant = await hydrateTenantBranding(res.data);
+    setTenant(hydratedTenant);
+    return hydratedTenant;
+  }, [hydrateTenantBranding]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user?.tenant_id) {
+      setTenant(null);
+      return;
+    }
+    fetchTenant();
+  }, [fetchTenant, isAuthenticated, user?.tenant_id]);
 
   // Stripe Connect
   const getStripeConnectStatus = async () => {

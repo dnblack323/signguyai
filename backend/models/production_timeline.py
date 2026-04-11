@@ -103,7 +103,9 @@ SIMPLE_WORKFLOW_TEMPLATES = {
         "stages": [
             {"name": "Design", "order": 1},
             {"name": "Production", "order": 2},
-            {"name": "Installation / Completion", "order": 3, "is_final": True},
+            {"name": "Waiting on Customer Input", "order": 3},
+            {"name": "On Hold", "order": 4},
+            {"name": "Ready", "order": 5, "is_final": True},
         ],
     },
     ProductionCategory.PRINTED_SIGNS.value: {
@@ -111,7 +113,9 @@ SIMPLE_WORKFLOW_TEMPLATES = {
         "stages": [
             {"name": "Design", "order": 1},
             {"name": "Production", "order": 2},
-            {"name": "Installation / Completion", "order": 3, "is_final": True},
+            {"name": "Waiting on Customer Input", "order": 3},
+            {"name": "On Hold", "order": 4},
+            {"name": "Ready", "order": 5, "is_final": True},
         ],
     },
     ProductionCategory.CUT_VINYL.value: {
@@ -119,7 +123,9 @@ SIMPLE_WORKFLOW_TEMPLATES = {
         "stages": [
             {"name": "Design", "order": 1},
             {"name": "Production", "order": 2},
-            {"name": "Installation / Completion", "order": 3, "is_final": True},
+            {"name": "Waiting on Customer Input", "order": 3},
+            {"name": "On Hold", "order": 4},
+            {"name": "Ready", "order": 5, "is_final": True},
         ],
     },
     ProductionCategory.BANNERS.value: {
@@ -127,7 +133,9 @@ SIMPLE_WORKFLOW_TEMPLATES = {
         "stages": [
             {"name": "Design", "order": 1},
             {"name": "Production", "order": 2},
-            {"name": "Installation / Completion", "order": 3, "is_final": True},
+            {"name": "Waiting on Customer Input", "order": 3},
+            {"name": "On Hold", "order": 4},
+            {"name": "Ready", "order": 5, "is_final": True},
         ],
     },
     ProductionCategory.APPAREL.value: {
@@ -135,7 +143,9 @@ SIMPLE_WORKFLOW_TEMPLATES = {
         "stages": [
             {"name": "Design", "order": 1},
             {"name": "Production", "order": 2},
-            {"name": "Installation / Completion", "order": 3, "is_final": True},
+            {"name": "Waiting on Customer Input", "order": 3},
+            {"name": "On Hold", "order": 4},
+            {"name": "Ready", "order": 5, "is_final": True},
         ],
     },
     ProductionCategory.CUSTOM.value: {
@@ -143,7 +153,9 @@ SIMPLE_WORKFLOW_TEMPLATES = {
         "stages": [
             {"name": "Design", "order": 1},
             {"name": "Production", "order": 2},
-            {"name": "Installation / Completion", "order": 3, "is_final": True},
+            {"name": "Waiting on Customer Input", "order": 3},
+            {"name": "On Hold", "order": 4},
+            {"name": "Ready", "order": 5, "is_final": True},
         ],
     },
 }

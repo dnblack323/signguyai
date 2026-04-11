@@ -185,6 +185,7 @@ function ProtectedRoutes() {
           <Route path="/payroll" element={<Payroll />} />
           <Route path="/productivity" element={<Productivity />} />
           <Route path="/financials" element={<Financials />} />
+          <Route path="/reports" element={<Navigate to="/financials" replace />} />
           <Route path="/reports/profit-margin" element={<ProfitMarginAnalytics />} />
           <Route path="/ai-tools" element={<AITools />} />
           <Route path="/ai-assistant" element={<AIAssistant />} />

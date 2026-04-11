@@ -35,7 +35,7 @@ export default function ProductionSettings() {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [workflowMode, setWorkflowMode] = useState('detailed');
+  const [workflowMode, setWorkflowMode] = useState('simple');
   const [savingWorkflowMode, setSavingWorkflowMode] = useState(false);
   const [categoryTemplateMap, setCategoryTemplateMap] = useState({});
   
@@ -223,9 +223,11 @@ export default function ProductionSettings() {
       if (stages.length === 0) {
         // Default stages
         stages = [
-          { name: 'Job Created', order: 1, auto_trigger: 'job_created' },
-          { name: 'In Progress', order: 2 },
-          { name: 'Completed', order: 3, is_final: true }
+          { name: 'Design', order: 1 },
+          { name: 'Production', order: 2 },
+          { name: 'Waiting on Customer Input', order: 3 },
+          { name: 'On Hold', order: 4 },
+          { name: 'Ready', order: 5, is_final: true }
         ];
       }
       
