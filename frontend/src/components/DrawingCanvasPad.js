@@ -122,13 +122,12 @@ export const DrawingCanvasPad = ({
       }
     }
 
-    configureContext(context, strokeColor, penSize);
     const snapshot = getCanvasSnapshot(canvas);
     historyRef.current = initialImageUrl ? [baseSnapshot, snapshot] : [snapshot];
     setHasChanges(false);
     onChange?.({ hasChanges: false, imageData: snapshot });
     setLoadingBase(false);
-  }, [backgroundImageUrl, initialImageUrl, onChange, penSize, strokeColor]);
+  }, [backgroundImageUrl, initialImageUrl, onChange]);
 
   useEffect(() => {
     buildBaseCanvas();
@@ -136,6 +135,13 @@ export const DrawingCanvasPad = ({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [buildBaseCanvas]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const context = canvas.getContext('2d');
+    configureContext(context, strokeColor, penSize);
+  }, [penSize, strokeColor]);
 
   const scheduleAutosave = useCallback(() => {
     if (!autosaveEnabled || !onAutosave) return;

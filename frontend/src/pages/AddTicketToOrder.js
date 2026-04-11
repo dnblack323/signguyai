@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Loader2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Loader2, Trash2, Calculator, BarChart3, Save } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -71,8 +71,18 @@ export default function AddTicketToOrder() {
   }, [orderId, navigate]);
 
   const updateTicket = (field, value) => setTicket(prev => ({ ...prev, [field]: value }));
+  const estimatedTicketValue = Number(ticket.estimated_price || 0);
 
-  const handleSave = async () => {
+  const resetTicketForm = () => {
+    setTicket({
+      item_name: '', item_category: '', quantity: 1, priority: 'normal',
+      production_flow_enabled: false, design_needed: false, proof_required: false,
+      estimated_price: 0, special_instructions: '', specs: {},
+    });
+    setEntryMode('quick');
+  };
+
+  const handleSave = async (mode = 'return') => {
     if (!ticket.item_name.trim()) { 
       toast.error('Item name is required'); 
       return; 
@@ -99,8 +109,14 @@ export default function AddTicketToOrder() {
         await axios.post(`${API}/orders/${orderId}/start-production`, {}, { headers: hdrs() });
       }
 
-      toast.success('Job ticket added!');
-      navigate(`/orders/${orderId}`);
+      if (mode === 'return') {
+        toast.success('Job ticket added and order updated');
+        navigate(`/orders/${orderId}`);
+        return;
+      }
+
+      toast.success(mode === 'another' ? 'Ticket added — ready for the next one' : 'Ticket added to the order');
+      resetTicketForm();
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Failed to create ticket');
     } finally { 
@@ -159,6 +175,7 @@ export default function AddTicketToOrder() {
         </Card>
       )}
 
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
       {/* Ticket Form */}
       <Card className="bg-white rounded-xl border border-gray-200 shadow-sm" data-testid="ticket-form">
         <CardHeader className="pb-2">
@@ -300,16 +317,26 @@ export default function AddTicketToOrder() {
                       />
                     </div>
                   </div>
-                  <LivePricingPreview 
-                    category={ticket.item_category} 
-                    specs={ticket.specs} 
-                    quantity={ticket.quantity}
-                    onPriceChange={(price) => setTicket((current) => ({
-                      ...current,
-                      estimated_price: price,
-                      quantity: getDerivedQuantity(current.item_category, current.specs, current.quantity),
-                    }))}
-                  />
+                  <div className="space-y-3 lg:sticky lg:top-24" data-testid="add-ticket-live-estimate-panel">
+                    <LivePricingPreview 
+                      category={ticket.item_category} 
+                      specs={ticket.specs} 
+                      quantity={ticket.quantity}
+                      onPriceChange={(price) => setTicket((current) => ({
+                        ...current,
+                        estimated_price: price,
+                        quantity: getDerivedQuantity(current.item_category, current.specs, current.quantity),
+                      }))}
+                    />
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <Button type="button" variant="outline" className="justify-start" onClick={() => navigate('/pricing-setup')} data-testid="add-ticket-pricing-analysis-link">
+                        <BarChart3 className="mr-2 h-4 w-4" /> Pricing Analysis
+                      </Button>
+                      <Button type="button" variant="outline" className="justify-start" onClick={() => navigate('/pricing-calculator')} data-testid="add-ticket-pricing-calculator-link">
+                        <Calculator className="mr-2 h-4 w-4" /> Calculator
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="py-6 text-center text-gray-400 bg-gray-50 rounded-lg border border-dashed border-gray-300">
@@ -333,24 +360,34 @@ export default function AddTicketToOrder() {
         </CardContent>
       </Card>
 
-      {/* Save Buttons */}
-      <div className="flex gap-3 pt-2">
-        <Button 
-          variant="outline" 
-          onClick={() => navigate(`/orders/${orderId}`)} 
-          className="flex-1 py-6"
-        >
-          Cancel
-        </Button>
-        <Button 
-          onClick={handleSave} 
-          disabled={saving} 
-          className="bg-violet-600 hover:bg-violet-700 text-white flex-1 py-6 text-lg" 
-          data-testid="save-ticket-btn"
-        >
-          {saving ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Plus className="w-5 h-5 mr-2" />} 
-          Add Ticket
-        </Button>
+      <aside className="space-y-4 xl:sticky xl:top-24" data-testid="add-ticket-summary-sidebar">
+        <Card className="bg-white rounded-2xl border border-gray-200 shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-gray-900 text-lg">Live Estimate</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-2xl border border-violet-100 bg-violet-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">Current ticket</p>
+              <p className="mt-2 text-3xl font-bold text-violet-700" data-testid="add-ticket-live-estimate-value">${estimatedTicketValue.toFixed(2)}</p>
+              <p className="mt-2 text-sm text-gray-600">{ticket.item_name || 'Unnamed item'} · Qty {ticket.quantity || 1}</p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+              <Button type="button" onClick={() => handleSave('stay')} disabled={saving} className="bg-violet-600 hover:bg-violet-700 text-white" data-testid="add-ticket-to-order-button">
+                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />} Add to Order
+              </Button>
+              <Button type="button" variant="outline" onClick={() => handleSave('another')} disabled={saving} data-testid="add-another-ticket-button">
+                <Plus className="mr-2 h-4 w-4" /> Add Another Ticket
+              </Button>
+              <Button type="button" variant="outline" onClick={() => handleSave('return')} disabled={saving} data-testid="save-order-from-add-ticket-button">
+                <Save className="mr-2 h-4 w-4" /> Save Order
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => navigate(`/orders/${orderId}`)} data-testid="cancel-add-ticket-button">
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </aside>
       </div>
     </div>
   );

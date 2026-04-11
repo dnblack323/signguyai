@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Loader2, Trash2, Search, UserPlus, Upload, FileUp, Pen, Truck } from 'lucide-react';
+import { ArrowLeft, Plus, Loader2, Trash2, Search, UserPlus, Upload, FileUp, Pen, Truck, Calculator, BarChart3, Save } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -108,6 +108,8 @@ export default function NewOrderForm() {
       (c.phone || '').includes(q)
     ).slice(0, 8);
   }, [customerSearch, customers]);
+  const totalEstimate = useMemo(() => tickets.reduce((sum, ticket) => sum + Number(ticket.estimated_price || 0), 0), [tickets]);
+  const detailedTicketCount = useMemo(() => tickets.filter((ticket) => ticket.entry_mode === 'detailed').length, [tickets]);
 
   const updateOrder = (field, value) => setOrder(prev => ({ ...prev, [field]: value }));
   const updateTicket = (ticketId, field, value) => setTickets(prev => prev.map((ticket) => ticket.local_id === ticketId ? { ...ticket, [field]: value } : ticket));
@@ -203,6 +205,9 @@ export default function NewOrderForm() {
         <Button variant="ghost" size="icon" onClick={() => navigate('/orders')}><ArrowLeft className="w-5 h-5 text-gray-400" /></Button>
         <h1 className="text-2xl font-bold text-white font-heading">New Order</h1>
       </div>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
+      <div className="space-y-6">
 
       {/* Customer Info */}
       <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
@@ -364,16 +369,26 @@ export default function NewOrderForm() {
                       />
                       <div><Label className="text-gray-700">Special Instructions</Label><Textarea value={ticket.special_instructions} onChange={e => updateTicket(ticket.local_id, 'special_instructions', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" rows={2} /></div>
                     </div>
-                    <LivePricingPreview
-                      category={ticket.item_category}
-                      specs={ticket.specs}
-                      quantity={ticket.quantity}
-                      onPriceChange={(price) => setTickets(prev => prev.map((currentTicket) => currentTicket.local_id === ticket.local_id ? {
-                        ...currentTicket,
-                        estimated_price: price,
-                        quantity: getDerivedQuantity(currentTicket.item_category, currentTicket.specs, currentTicket.quantity),
-                      } : currentTicket))}
-                    />
+                    <div className="space-y-3 lg:sticky lg:top-24" data-testid={`ticket-live-estimate-panel-${ticket.local_id}`}>
+                      <LivePricingPreview
+                        category={ticket.item_category}
+                        specs={ticket.specs}
+                        quantity={ticket.quantity}
+                        onPriceChange={(price) => setTickets(prev => prev.map((currentTicket) => currentTicket.local_id === ticket.local_id ? {
+                          ...currentTicket,
+                          estimated_price: price,
+                          quantity: getDerivedQuantity(currentTicket.item_category, currentTicket.specs, currentTicket.quantity),
+                        } : currentTicket))}
+                      />
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <Button type="button" variant="outline" className="justify-start" onClick={() => navigate('/pricing-setup')} data-testid={`ticket-pricing-analysis-link-${ticket.local_id}`}>
+                          <BarChart3 className="mr-2 h-4 w-4" /> Pricing Analysis
+                        </Button>
+                        <Button type="button" variant="outline" className="justify-start" onClick={() => navigate('/pricing-calculator')} data-testid={`ticket-pricing-calculator-link-${ticket.local_id}`}>
+                          <Calculator className="mr-2 h-4 w-4" /> Calculator
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="py-6 text-center text-gray-400 bg-gray-50 rounded-lg border border-dashed border-gray-300">
@@ -491,13 +506,56 @@ export default function NewOrderForm() {
       </Card>
 
       {/* Save Buttons */}
-      <div className="flex gap-3 pt-2">
+      <div className="grid gap-3 pt-2 md:grid-cols-3" data-testid="new-order-bottom-actions">
+        <Button variant="outline" onClick={() => addTicket('detailed')} disabled={saving} className="py-6 text-base bg-white text-gray-700 hover:bg-gray-50" data-testid="bottom-add-another-ticket-btn">
+          <Plus className="w-4 h-4 mr-2" /> Add Another Ticket
+        </Button>
         <Button variant="outline" onClick={() => handleSave(true)} disabled={saving} className="flex-1 py-6 text-lg bg-white text-gray-700 hover:bg-gray-50" data-testid="save-draft-btn">
           Save as Draft
         </Button>
         <Button onClick={() => handleSave(false)} disabled={saving} className="bg-violet-600 hover:bg-violet-700 text-white flex-1 py-6 text-lg" data-testid="save-order-btn">
-          {saving ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null} Save Order
+          {saving ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Save className="w-5 h-5 mr-2" />} Save Order
         </Button>
+      </div>
+
+      </div>
+
+      <aside className="space-y-4 xl:sticky xl:top-24" data-testid="new-order-summary-sidebar">
+        <Card className="bg-white rounded-2xl border border-gray-200 shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-gray-900 text-lg">Live Estimate</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-2xl border border-violet-100 bg-violet-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">Order total</p>
+              <p className="mt-2 text-3xl font-bold text-violet-700" data-testid="new-order-live-estimate-value">${totalEstimate.toFixed(2)}</p>
+              <p className="mt-2 text-sm text-gray-600">{tickets.length} ticket{tickets.length !== 1 ? 's' : ''} · {detailedTicketCount} detailed</p>
+            </div>
+            <div className="rounded-xl border border-gray-200 bg-slate-50 p-4 text-sm text-gray-700">
+              <p className="font-semibold text-gray-900">Quick links</p>
+              <div className="mt-3 grid gap-2">
+                <Button type="button" variant="outline" className="justify-start" onClick={() => navigate('/pricing-setup')} data-testid="new-order-pricing-analysis-link">
+                  <BarChart3 className="mr-2 h-4 w-4" /> Pricing Analysis
+                </Button>
+                <Button type="button" variant="outline" className="justify-start" onClick={() => navigate('/pricing-calculator')} data-testid="new-order-pricing-calculator-link">
+                  <Calculator className="mr-2 h-4 w-4" /> Pricing Calculator
+                </Button>
+              </div>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+              <Button type="button" onClick={() => addTicket('detailed')} className="bg-violet-600 hover:bg-violet-700 text-white" data-testid="new-order-add-ticket-sidebar-button">
+                <Plus className="mr-2 h-4 w-4" /> Add Another Ticket
+              </Button>
+              <Button type="button" variant="outline" onClick={() => handleSave(true)} disabled={saving} data-testid="new-order-save-draft-sidebar-button">
+                Save Draft
+              </Button>
+              <Button type="button" variant="outline" onClick={() => handleSave(false)} disabled={saving} data-testid="new-order-save-order-sidebar-button">
+                <Save className="mr-2 h-4 w-4" /> Save Order
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </aside>
       </div>
 
       {/* Sketch Drawing Modal */}

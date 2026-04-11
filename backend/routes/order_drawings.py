@@ -132,7 +132,7 @@ async def create_drawing(input: DrawingCreate, current_user: UserInDB = Depends(
 
     await _validate_context(input, tenant_id)
     img_bytes = _decode_image(input.image_data)
-    if len(img_bytes) < 1000:
+    if len(img_bytes) < 150:
         raise HTTPException(status_code=400, detail="Drawing appears to be blank. Please draw something before saving.")
     if len(img_bytes) > 5 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="Drawing is too large. Please simplify and try again.")
