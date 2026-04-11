@@ -15,11 +15,15 @@ from pydantic import BaseModel, Field, ConfigDict
 import uuid
 import base64
 from enum import Enum
+import os
+import stripe
 
 # Import from server module
 from server import db, logger, get_current_active_user
 
 from models import UserInDB, JobStatus, JobItemType, JobItemStatus
+
+stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 
 
 # ============== LOCAL MODELS (to be moved to models/webstore.py) ==============
@@ -281,8 +285,30 @@ async def get_public_store(webstore_id: str):
     if webstore.get("status") != "active":
         raise HTTPException(status_code=404, detail="Store is not currently available")
     
-    # Return sanitized response
-    return sanitize_webstore_for_public(webstore)
+    public_webstore = sanitize_webstore_for_public(webstore)
+    tenant = await db.tenants.find_one({"id": webstore.get("tenant_id")}, {"_id": 0})
+    checkout_enabled = False
+    checkout_status = "inactive"
+    checkout_message = "Checkout is inactive until this shop connects Stripe through SignGuy AI."
+
+    if tenant and tenant.get("stripe_connect_account_id"):
+        try:
+            account = stripe.Account.retrieve(tenant["stripe_connect_account_id"])
+            if account.charges_enabled:
+                checkout_enabled = True
+                checkout_status = "active"
+                checkout_message = "Checkout is active"
+            else:
+                checkout_status = "setup_incomplete"
+                checkout_message = "Checkout is inactive until Stripe Connect onboarding is fully completed."
+        except stripe.error.StripeError:
+            checkout_status = "unavailable"
+            checkout_message = "Checkout is temporarily unavailable while payment setup is being verified."
+
+    public_webstore["checkout_enabled"] = checkout_enabled
+    public_webstore["checkout_status"] = checkout_status
+    public_webstore["checkout_message"] = checkout_message
+    return public_webstore
 
 
 @storefront_router.get("/{webstore_id}/products")

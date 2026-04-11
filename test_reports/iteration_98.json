@@ -1,0 +1,66 @@
+{
+  "summary": "Iteration 98 - Webstore Checkout Gating (Rule C). All features verified working: (1) Stripe Connect status for signguypa@gmail.com returns connected=false, stripe_mode=live, (2) Public storefront API exposes checkout_enabled, checkout_status, checkout_message fields, (3) Storefront allows browsing and add-to-cart when checkout is inactive, (4) Cart drawer works correctly when checkout is inactive, (5) Checkout dialog opens but final place-order button is disabled with clear message, (6) No storefront regression for product display/cart behavior.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration98_checkout_gating.py",
+    "/app/test_reports/pytest/iteration98_checkout_gating_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Public storefront API correctly sanitizes webstore data - does not expose tenant_id, payout_owed, payout_paid, total_profit",
+    "Checkout gating logic in webstores.py correctly checks tenant's stripe_connect_account_id and account.charges_enabled",
+    "Frontend Storefront.js correctly reads checkout_enabled from API and disables place-order button accordingly",
+    "checkout_message provides clear user-facing explanation of why checkout is inactive",
+    "Product data correctly hides base_cost from public API to protect profit margin info"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration98_checkout_gating.py"
+  ],
+  "success_rate": {
+    "backend": "100% (11/11 tests passed)",
+    "frontend": "100% (all UI verifications passed)"
+  },
+  "test_credentials": "signguypa@gmail.com / Billnel323",
+  "seed_data_creation": "Used main agent's seeded data: store_id=fc0bad7e-9040-477e-93b9-a3f0b1a2df90 (Preview Storefront QA), product_id=b3c51047-4bc9-4d6e-b3cb-9023bb6a2ee6 (Preview Tee)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Checkout gating feature (Rule C) fully implemented and tested. Webstores are usable for browsing/cart but checkout is blocked until tenant completes Stripe Connect onboarding. Public storefront API exposes checkout_enabled, checkout_status, checkout_message fields for frontend gating.",
+  "features_verified": {
+    "stripe_connect_status_api": "PASS - Returns connected=false, stripe_mode=live for signguypa@gmail.com tenant",
+    "storefront_checkout_gating_fields": "PASS - API returns checkout_enabled, checkout_status, checkout_message",
+    "storefront_checkout_disabled": "PASS - checkout_enabled=false, checkout_status=inactive when Stripe not connected",
+    "storefront_sensitive_fields_hidden": "PASS - tenant_id, payout_owed, payout_paid, total_profit not exposed",
+    "storefront_products_api": "PASS - Returns product list with expected fields",
+    "storefront_products_base_cost_hidden": "PASS - base_cost not exposed in public product data",
+    "checkout_blocked_when_stripe_not_connected": "PASS - Returns 400 'Store cannot accept payments at this time'",
+    "storefront_404_nonexistent": "PASS - Returns 404 for non-existent store",
+    "ui_checkout_inactive_banner": "PASS - Yellow banner shows 'Checkout inactive' message",
+    "ui_add_to_cart_works": "PASS - Add to Cart button functional when checkout inactive",
+    "ui_cart_drawer_works": "PASS - Cart drawer opens and shows items correctly",
+    "ui_checkout_dialog_opens": "PASS - Checkout dialog opens with disabled message",
+    "ui_place_order_disabled": "PASS - Place Order button disabled with text 'Checkout Inactive'"
+  },
+  "api_endpoints_tested": [
+    "POST /api/auth/login - 200 OK",
+    "GET /api/stripe-connect/status - 200 OK (connected=false, stripe_mode=live)",
+    "GET /api/storefront/{store_id} - 200 OK (with checkout_enabled, checkout_status, checkout_message)",
+    "GET /api/storefront/{store_id}/products - 200 OK (product list without base_cost)",
+    "POST /api/stripe-connect/webstore/{store_id}/checkout - 400 (Store cannot accept payments)"
+  ],
+  "checkout_gating_rule_c_verified": {
+    "browsing_allowed": true,
+    "add_to_cart_allowed": true,
+    "cart_view_allowed": true,
+    "checkout_dialog_opens": true,
+    "final_place_order_disabled": true,
+    "clear_message_shown": true
+  }
+}

@@ -128,6 +128,7 @@ export default function Storefront() {
 
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const checkoutEnabled = store?.checkout_enabled !== false;
 
   const handleCheckout = async (e) => {
     e.preventDefault();
@@ -178,9 +179,9 @@ export default function Storefront() {
 
       // Show specific error message based on response
       if (paymentData.detail === "Store cannot accept payments at this time") {
-        throw new Error("This store is not yet set up to accept payments. Please contact the store owner.");
+        throw new Error(store?.checkout_message || "This store is not yet set up to accept payments. Please contact the store owner.");
       } else if (paymentData.detail === "Store payment setup incomplete") {
-        throw new Error("The store's payment system is still being configured. Please try again later.");
+        throw new Error(store?.checkout_message || "The store's payment system is still being configured. Please try again later.");
       }
       throw new Error(paymentData.detail || 'Unable to process payment');
     } catch (err) {
@@ -348,6 +349,15 @@ export default function Storefront() {
         </div>
       )}
 
+      {!checkoutEnabled && (
+        <div className="border-b border-border bg-amber-50" data-testid="store-checkout-inactive-banner">
+          <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col gap-1 text-sm text-amber-900">
+            <p className="font-semibold">Checkout inactive</p>
+            <p>{store.checkout_message || 'Checkout is inactive until this shop connects Stripe through SignGuy AI.'}</p>
+          </div>
+        </div>
+      )}
+
       {/* Products Grid */}
       <main className="max-w-6xl mx-auto px-4 py-8">
         {products.length === 0 ? (
@@ -454,6 +464,11 @@ export default function Storefront() {
             <DialogTitle>Checkout</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCheckout} className="space-y-4">
+            {!checkoutEnabled && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" data-testid="checkout-disabled-message">
+                {store.checkout_message || 'Checkout is inactive until this shop connects Stripe through SignGuy AI.'}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2 col-span-2">
                 <Label>Full Name *</Label>
@@ -532,9 +547,10 @@ export default function Storefront() {
                 type="submit" 
                 className="flex-1"
                 style={{ backgroundColor: primaryColor }}
+                disabled={!checkoutEnabled}
                 data-testid="place-order-button"
               >
-                Place Order
+                {checkoutEnabled ? 'Place Order' : 'Checkout Inactive'}
               </Button>
             </div>
           </form>
