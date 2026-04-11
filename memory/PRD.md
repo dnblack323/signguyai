@@ -1,7 +1,7 @@
 # SignGuy AI - Product Requirements Document
 
 > **Last Updated:** April 11, 2026
-> **Version:** 6.7
+> **Version:** 6.8
 
 ---
 
@@ -18,6 +18,29 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ---
 
 ## What's Been Implemented
+
+### Session: April 11, 2026 (Signguypa Stripe Validation + Webstore Checkout Gating)
+- Validated the tenant the user called out specifically:
+  - `signguypa@gmail.com / Billnel323`
+  - current Stripe Connect status in preview: `connected=false`, `stripe_mode=live`
+- Implemented requested Webstore behavior:
+  - browsing remains active
+  - add-to-cart remains active
+  - cart drawer remains active
+  - checkout dialog can still open
+  - final place-order button is disabled unless the tenant is connected/onboarded through Stripe Connect on the platform
+- Public storefront API now exposes safe checkout gating fields:
+  - `checkout_enabled`
+  - `checkout_status`
+  - `checkout_message`
+- Storefront UI now shows a clear checkout-inactive banner and a disabled final checkout action with explanation instead of failing silently
+- Maintained public-data safety:
+  - public store/product APIs still avoid exposing tenant-sensitive payout/profit fields
+- Preview webstore QA seed created for validation:
+  - store_id: `fc0bad7e-9040-477e-93b9-a3f0b1a2df90`
+  - product_id: `b3c51047-4bc9-4d6e-b3cb-9023bb6a2ee6`
+- Testing:
+  - testing agent iteration_98 passed backend 11/11 and frontend 100%
 
 ### Session: April 11, 2026 (Order Command Bar + Payroll Export/Carryover Overhaul)
 - Added a reusable `OrderCommandBar` component and wired it into:
