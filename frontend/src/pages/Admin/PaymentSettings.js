@@ -142,6 +142,16 @@ export default function PaymentSettings() {
         </AlertDescription>
       </Alert>
 
+      <Alert className={connectStatus?.stripe_mode === 'live' ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'} data-testid="stripe-mode-alert">
+        <AlertCircle className={`h-4 w-4 ${connectStatus?.stripe_mode === 'live' ? 'text-green-600' : 'text-amber-600'}`} />
+        <AlertDescription className={connectStatus?.stripe_mode === 'live' ? 'text-green-800' : 'text-amber-800'}>
+          <strong>Platform Stripe mode:</strong> {connectStatus?.stripe_mode === 'live' ? 'Live payments' : 'Test payments'}.
+          {connectStatus?.stripe_mode === 'test'
+            ? ' Test mode means Stripe uses test cards and test data only — no real money moves until live mode is enabled.'
+            : ' Live mode means real customer charges and payouts can be processed once onboarding is complete.'}
+        </AlertDescription>
+      </Alert>
+
       {/* Connection Status Card */}
       <Card>
         <CardHeader>
@@ -204,8 +214,36 @@ export default function PaymentSettings() {
                 </Alert>
               )}
 
+              {connectStatus.mode_mismatch && (
+                <Alert className="border-amber-200 bg-amber-50" data-testid="stripe-mode-mismatch-alert">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="text-amber-800">
+                    This connected Stripe account is in <strong>{connectStatus.account_mode}</strong> mode while the platform is using <strong>{connectStatus.stripe_mode}</strong> mode.
+                    Reconnect Stripe to create the correct onboarding session for this tenant.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50" data-testid="stripe-platform-mode-card">
+                  <span className="text-sm text-gray-600">Platform Mode</span>
+                  <Badge variant="outline">{connectStatus.stripe_mode}</Badge>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50" data-testid="stripe-account-mode-card">
+                  <span className="text-sm text-gray-600">Connected Account</span>
+                  <Badge variant="outline">{connectStatus.account_mode || 'unknown'}</Badge>
+                </div>
+              </div>
+
               {/* Actions */}
               <div className="flex gap-3 pt-2">
+                {connectStatus.mode_mismatch && (
+                  <Button onClick={handleConnectStripe} disabled={connecting} data-testid="reconnect-stripe-live-button">
+                    {connecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Reconnect Stripe
+                  </Button>
+                )}
                 {!connectStatus.onboarding_complete && (
                   <Button onClick={handleRefreshOnboarding} disabled={connecting}>
                     {connecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

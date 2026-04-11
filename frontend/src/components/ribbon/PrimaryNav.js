@@ -83,7 +83,6 @@ export const tabSubItems = {
   settings: [
     { label: 'Company', icon: Settings, path: '/settings' },
     { label: 'Materials & Pricing', icon: DollarSign, path: '/materials' },
-    { label: 'Workflow Templates', icon: Wrench, path: '/workflow-templates' },
     { label: 'Pricing Setup', icon: ClipboardList, path: '/settings/pricing-setup' },
     { label: 'Pricing & Costs', icon: DollarSign, path: '/pricing-calculator/settings' },
     { label: 'Email Templates', icon: Mail, path: '/settings/email-templates' },

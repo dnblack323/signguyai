@@ -172,7 +172,7 @@ function ProtectedRoutes() {
           <Route path="/orders/:id/add-ticket" element={<AddTicketToOrder />} />
           <Route path="/job-tickets/:ticketId" element={<JobTicketDetail />} />
           <Route path="/production-board" element={<ProductionBoard />} />
-          <Route path="/workflow-templates" element={<WorkflowTemplateManager />} />
+          <Route path="/workflow-templates" element={<Navigate to="/settings/production" replace />} />
           <Route path="/materials" element={<MaterialsAdmin />} />
           {/* Legacy redirects — Jobs/Quotes now go to Orders */}
           <Route path="/quotes" element={<Quotes />} />

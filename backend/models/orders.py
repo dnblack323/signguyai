@@ -222,8 +222,8 @@ class OrderUpdate(BaseModel):
 # ============== LAYER 2: JOB TICKET ==============
 
 class JobTicketSpecs(BaseModel):
-    width: str = ""
-    height: str = ""
+    width: str | int | float = ""
+    height: str | int | float = ""
     size_description: str = ""
     material: str = ""
     substrate: str = ""

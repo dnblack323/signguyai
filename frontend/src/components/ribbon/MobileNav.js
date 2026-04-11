@@ -98,7 +98,6 @@ const mobileNavItems = [
     children: [
       { label: 'Company Settings', path: '/settings' },
       { label: 'Materials & Pricing', path: '/materials' },
-      { label: 'Workflow Templates', path: '/workflow-templates' },
       { label: 'Daily Digest', path: '/settings/digest' },
       { label: 'Billing & Plan', path: '/billing' },
       { label: 'Production Workflow', path: '/settings/production' },

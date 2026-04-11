@@ -50,6 +50,9 @@ class ConnectAccountResponse(BaseModel):
     payouts_enabled: bool = False
     onboarding_complete: bool = False
     platform_fee_percent: float = 3.0
+    stripe_mode: str = "test"
+    account_mode: Optional[str] = None
+    mode_mismatch: bool = False
 
 
 class OnboardingLinkRequest(BaseModel):
@@ -106,6 +109,11 @@ def get_platform_fee_percent(tier: str) -> float:
     return PLATFORM_FEES.get(tier, 0.022)  # Default to 2.2% (Founders)
 
 
+def get_stripe_mode() -> str:
+    api_key = stripe.api_key or ""
+    return "live" if api_key.startswith("sk_live_") else "test"
+
+
 async def get_tenant_tier(tenant_id: str) -> str:
     """Get tenant's subscription tier from the plan system"""
     tenant = await db.tenants.find_one(
@@ -150,7 +158,8 @@ async def get_connect_status(current_user: UserInDB = Depends(get_current_active
         tier = await get_tenant_tier(current_user.tenant_id)
         return ConnectAccountResponse(
             connected=False,
-            platform_fee_percent=get_platform_fee_percent(tier) * 100
+            platform_fee_percent=get_platform_fee_percent(tier) * 100,
+            stripe_mode=get_stripe_mode(),
         )
     
     account_id = tenant["stripe_connect_account_id"]
@@ -158,6 +167,8 @@ async def get_connect_status(current_user: UserInDB = Depends(get_current_active
     try:
         account = stripe.Account.retrieve(account_id)
         tier = await get_tenant_tier(current_user.tenant_id)
+        stripe_mode = get_stripe_mode()
+        account_mode = "live" if getattr(account, "livemode", False) else "test"
         
         return ConnectAccountResponse(
             connected=True,
@@ -165,7 +176,10 @@ async def get_connect_status(current_user: UserInDB = Depends(get_current_active
             charges_enabled=account.charges_enabled,
             payouts_enabled=account.payouts_enabled,
             onboarding_complete=account.details_submitted,
-            platform_fee_percent=get_platform_fee_percent(tier) * 100
+            platform_fee_percent=get_platform_fee_percent(tier) * 100,
+            stripe_mode=stripe_mode,
+            account_mode=account_mode,
+            mode_mismatch=stripe_mode != account_mode,
         )
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -193,7 +207,9 @@ async def create_connect_account(
             # Check if account exists and is valid
             try:
                 account = stripe.Account.retrieve(existing_account_id)
-                account_id = existing_account_id
+                stripe_mode = get_stripe_mode()
+                account_mode = "live" if getattr(account, "livemode", False) else "test"
+                account_id = existing_account_id if stripe_mode == account_mode else None
             except stripe.error.InvalidRequestError:
                 # Account doesn't exist, create new one
                 account_id = None

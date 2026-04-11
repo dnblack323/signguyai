@@ -32,6 +32,7 @@ def _normalize_pricing_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     normalized = dict(payload or {})
     substrate = normalized.get("substrate_type")
     thickness = normalized.get("thickness")
+    print_material = normalized.get("print_material")
     substrate_map = {
         ("coroplast", "4mm"): "coroplast_4mm",
         ("coroplast", "10mm"): "coroplast_10mm",
@@ -43,7 +44,27 @@ def _normalize_pricing_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     }
     if substrate and thickness:
         normalized["substrate_type"] = substrate_map.get((str(substrate).lower(), str(thickness).lower()), substrate)
+    print_material_map = {
+        "13oz_vinyl": "banner_13oz",
+        "18oz_vinyl": "banner_18oz",
+        "adhesive_vinyl": "vinyl_adhesive",
+        "mesh_banner": "banner_13oz",
+    }
+    if print_material:
+        normalized["print_material"] = print_material_map.get(str(print_material).lower(), print_material)
     return normalized
+
+
+def _normalize_pricing_category(category: Any) -> PricingCategory:
+    raw = str(category or "custom").lower()
+    alias_map = {
+        "banners": PricingCategory.DIGITAL_PRINT,
+        "promo_misc": PricingCategory.PROMOTIONAL,
+        "vehicle_wrap": PricingCategory.VEHICLE_GRAPHICS,
+    }
+    if raw in alias_map:
+        return alias_map[raw]
+    return PricingCategory(raw)
 
 
 # ============== PRICING CALCULATION ==============
@@ -68,7 +89,7 @@ async def calculate_price(
 ):
     """Calculate pricing for an item (real-time preview)"""
     try:
-        category = PricingCategory(request.get("category", "custom"))
+        category = _normalize_pricing_category(request.get("category", "custom"))
         pricing_data = JobItemPricingData(**_normalize_pricing_payload(request.get("pricing_data", {})))
         quantity = request.get("quantity", 1)
         

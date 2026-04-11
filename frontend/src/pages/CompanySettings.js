@@ -951,29 +951,6 @@ export default function CompanySettings() {
         </CardContent>
       </Card>
 
-      {/* Data Management Card */}
-      <Card className="border" style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }}>
-        <CardHeader>
-          <CardTitle className="text-gray-900">Data Management</CardTitle>
-          <CardDescription className="text-gray-500">
-            Backup and restore your business data
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <button
-            onClick={() => navigate('/settings/backup')}
-            className="w-full p-4 rounded-lg text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
-            style={{ background: '#F5F7FA' }}
-            data-testid="settings-backup-link"
-          >
-            <div>
-              <p className="font-medium text-gray-900">Backup & Restore</p>
-              <p className="text-sm mt-1 text-gray-500">Download your data or restore from a previous backup</p>
-            </div>
-            <span className="text-gray-500">&rarr;</span>
-          </button>
-        </CardContent>
-      </Card>
     </div>
   );
 }
