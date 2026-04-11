@@ -1,7 +1,7 @@
 # SignGuy AI - Product Requirements Document
 
 > **Last Updated:** April 11, 2026
-> **Version:** 6.5
+> **Version:** 6.6
 
 ---
 
@@ -18,6 +18,39 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ---
 
 ## What's Been Implemented
+
+### Session: April 11, 2026 (Batch C — Stripe Mode Clarity + Settings Cleanup)
+- Investigated the tenant Stripe Connect confusion and added explicit live/test mode visibility
+- Stripe Connect backend now returns:
+  - `stripe_mode`
+  - `account_mode`
+  - `mode_mismatch`
+- Stripe Connect account creation now detects an old connected account whose mode does not match the current platform key mode and will create the correct onboarding flow instead of blindly reusing the mismatched account
+- Payment Settings UI now explains what Stripe test mode means in plain language and surfaces live/test mode clearly
+- Added reconnect guidance for mode mismatches so a tenant can reconnect into the correct environment
+- Settings cleanup:
+  - `/workflow-templates` now redirects into `/settings/production`
+  - duplicate Workflow Templates settings entry removed from desktop/mobile settings navigation
+  - duplicate Backup card removed from Company Settings so Backup only lives in its own settings tab
+- Testing:
+  - testing agent iteration_96 passed backend 8/8 and frontend 100%
+
+### Session: April 11, 2026 (Batch B — Drawing + Order Entry UX)
+- Fixed drawing persistence/save behavior:
+  - drawing canvas no longer rebuilds and wipes strokes when pen settings change
+  - backend blank-drawing threshold relaxed so normal small sketches are no longer falsely rejected
+- New Order UX improvements:
+  - added sticky live estimate sidebar
+  - added pricing analysis + pricing calculator quick links near the estimate
+  - added bottom actions so staff can add another ticket or save without scrolling back to the top
+- Add Ticket to Order UX improvements:
+  - added sticky live estimate summary
+  - added `Add to Order`, `Add Another Ticket`, and `Save Order` actions in the lower summary area
+- Compatibility follow-up:
+  - pricing calculator now accepts `banners` as a category alias and common banner material labels like `13oz_vinyl`
+  - job ticket specs now accept numeric width/height values directly
+- Testing:
+  - testing agent iteration_95 passed backend 10/10 and frontend 100%
 
 ### Session: April 11, 2026 (Pricing + Billing Visibility Pass)
 - Completed the first approved `A` batch from the user's next priority list: pricing + billing
@@ -695,18 +728,10 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ## Prioritized Backlog
 
 ### P0 - Critical
-- Order / drawing stability
-  - drawing feature content is not staying visible or saving reliably
-  - add pricing analysis + calculator quick links near live estimate
-  - add bottom order actions for `Add to Order`, `Add Another Ticket`, `Save Order`
-  - condense order layout and keep live estimate visible while entering order info
 - Remaining pricing-engine gaps
   - audit additional pricing-affecting options beyond the newly-fixed thickness / rush / rigid-sign modifiers to ensure all intended selections affect live estimates
-- Tenant / settings cleanup
-  - remove duplicate Backup placement so backup only lives in its own Settings tab
-  - combine duplicated workflow settings areas (`Settings > Production` and `Settings > Workflow Templates`)
-- Stripe Connect tenant flow
-  - investigate why tenant Stripe Connect setup is staying in test mode / test data
+- Stripe Connect follow-up
+  - validate reconnect flow against a real tenant account that previously saw Stripe test-data messaging and confirm the mismatch path behaves correctly end-to-end
 - Deployment readiness blockers
   - app still needs the deferred supervisor/deployment readiness cleanup from the previous fork
 
