@@ -64,7 +64,7 @@ export const AppProvider = ({ children }) => {
   }, [fetchTenantLogo]);
 
   // Customers
-  const fetchCustomers = async (params = {}) => {
+  const fetchCustomers = useCallback(async (params = {}) => {
     try {
       const res = await api.get(`/customers`, { params });
       setCustomers(res.data);
@@ -73,7 +73,7 @@ export const AppProvider = ({ children }) => {
       console.error('Error fetching customers:', err);
       return [];
     }
-  };
+  }, []);
 
   const createCustomer = async (data) => {
     const res = await api.post(`/customers`, data);
@@ -93,7 +93,7 @@ export const AppProvider = ({ children }) => {
   };
 
   // Quotes
-  const fetchQuotes = async (params = {}) => {
+  const fetchQuotes = useCallback(async (params = {}) => {
     try {
       const res = await api.get(`/quotes`, { params });
       setQuotes(res.data);
@@ -102,7 +102,7 @@ export const AppProvider = ({ children }) => {
       console.error('Error fetching quotes:', err);
       return [];
     }
-  };
+  }, []);
 
   const createQuote = async (data) => {
     const res = await api.post(`/quotes`, data);
@@ -230,7 +230,7 @@ export const AppProvider = ({ children }) => {
   };
 
   // Invoices
-  const fetchInvoices = async (params = {}) => {
+  const fetchInvoices = useCallback(async (params = {}) => {
     try {
       const res = await api.get(`/invoices`, { params });
       setInvoices(res.data);
@@ -239,7 +239,7 @@ export const AppProvider = ({ children }) => {
       console.error('Error fetching invoices:', err);
       return [];
     }
-  };
+  }, []);
 
   const createInvoice = async (data) => {
     const res = await api.post(`/invoices`, data);

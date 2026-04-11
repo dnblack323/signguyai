@@ -385,13 +385,13 @@ frontend:
 metadata:
   created_by: "testing_agent"
   version: "1.0"
-  test_sequence: 3
+  test_sequence: 4
   run_ui: false
-  last_test_date: "2026-04-08"
+  last_test_date: "2026-04-11"
 
 test_plan:
   current_focus:
-    - "Final storage migration spot-check complete"
+    - "Pricing + billing frontend verification complete"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -409,3 +409,31 @@ agent_communication:
     message: "STORAGE INTEGRATION SANITY CHECK COMPLETE - Lightweight frontend sanity check for backend storage migration completed successfully. All three checks passed: (1) Login flow works correctly with credentials signguypa@gmail.com, (2) Pricing Setup page loads successfully at /settings/pricing-setup with all UI elements present (tabs, upload section, import history, field mapping), (3) Documents page loads successfully with stats cards and document table showing 'Cloud Storage Smoke Test' document. No critical console errors or network errors detected. No blank-page or runtime regressions observed. Backend storage change did not break existing UI functionality."
   - agent: "testing"
     message: "FINAL STORAGE MIGRATION SPOT-CHECK COMPLETE - All 5 production-facing storage flows verified successfully: (1) POST /api/documents upload working with object storage, (2) GET /api/documents/{id}/download returns proper file_data for frontend compatibility, (3) POST /api/pricing-setup/imports stores files in object storage correctly, (4) POST /api/pricing-setup/imports/migrate-storage returns valid migration stats, (5) POST /api/orders/{id}/upload and GET /api/orders/{id}/files/{file_id}/content working properly. All endpoints using emergent_object_storage backend. No critical issues found. Storage migration is production-ready."
+
+
+  - task: "Quotes Page - /quotes Route and UI Display"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Quotes.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - Quotes page (/quotes) loads successfully and displays quote records. Found 19 quote records in table with proper UI elements: page title 'QUOTES', data-testid='quotes-page', quotes table with columns (Quote #, Customer, Items, Total, Status, Created, Actions), 'New Quote' button (data-testid='add-quote-btn'), and status filter control (data-testid='quote-filter-status'). No error messages or runtime issues detected. Page is functioning as a real route (not a redirect)."
+
+  - task: "Invoices Page - /invoices Route and UI Display"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Invoices.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - Invoices page (/invoices) loads successfully and displays invoice records. Found 16 invoice records in table with proper UI elements: page title 'INVOICES', data-testid='invoices-page', 4 summary cards (Total: $4,539.28, Paid: $0.00, Pending: $0.00, Overdue: $0.00), invoices table with columns (Invoice #, Customer, Job, Total, Status, Due Date, Actions), 'New Invoice' button (data-testid='add-invoice-btn'), search input (data-testid='invoices-search-input'), and status filter control (data-testid='invoice-filter-status'). No error messages or runtime issues detected. Order-generated invoices are visible in the normal invoice UI flow."
+
+  - agent: "testing"
+    message: "PRICING + BILLING FRONTEND VERIFICATION COMPLETE - Focused frontend verification for latest pricing + billing pass completed successfully. All verification points passed: (1) Login works correctly with credentials signguypa@gmail.com / Billnel323, successfully authenticated and redirected to dashboard, (2) /quotes page loads and shows 19 quote records in table with all UI controls functional, (3) /invoices page loads and shows 16 invoice records in table with summary cards and all UI controls functional, (4) No obvious frontend runtime issues detected - no critical console errors, only minor Cloudflare CDN RUM errors which are non-functional. Both /quotes and /invoices are real pages (not redirects) and order-generated quotes/invoices are visible in the normal UI flows. Backend testing already passed for pricing/calculate, generate-quote, generate-invoice, /api/quotes, /api/invoices, and order financials."
