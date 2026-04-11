@@ -1,7 +1,7 @@
 # SignGuy AI - Product Requirements Document
 
 > **Last Updated:** April 11, 2026
-> **Version:** 6.6
+> **Version:** 6.7
 
 ---
 
@@ -18,6 +18,45 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ---
 
 ## What's Been Implemented
+
+### Session: April 11, 2026 (Order Command Bar + Payroll Export/Carryover Overhaul)
+- Added a reusable `OrderCommandBar` component and wired it into:
+  - New Order
+  - Add Ticket to Order
+- Command bar now keeps key actions visible while building orders:
+  - Pricing Analysis
+  - Pricing Calculator
+  - Sketch (New Order)
+  - Add Ticket
+  - Save Order
+- Payroll/timesheet backend overhaul:
+  - transactions now affect payroll balances correctly instead of being ignored in export/summary math
+  - carryover rule implemented using prior unpaid payroll balance before the selected start date
+  - `final_owed = carryover_balance + gross_pay + adjustments_total`
+  - adjustments now treat:
+    - earnings = positive
+    - advances = negative
+    - payments = negative
+  - added daily payroll breakdown with:
+    - day name
+    - date
+    - worked time as hours/minutes
+    - break time label
+    - daily pay
+    - daily adjustments
+    - daily final
+  - added hours/minutes labels across payroll report, timesheet, and pay-period summary responses
+  - entry details now include punch/break labels where available
+- Payroll export/print overhaul:
+  - CSV/printable exports now include carryover, daily breakdowns, transaction lines, totals by type, and final owed values
+  - export formats now use hours/minutes labels instead of only decimal-hour values
+- Payroll UI updates:
+  - Timesheet summary strip now surfaces carryover and final owed
+- Preview verification data created for testing:
+  - employee `Preview Payroll QA`
+  - seeded prior/current manual hours + transactions to verify carryover math end-to-end in preview
+- Testing:
+  - testing agent iteration_97 passed backend 17/17 and frontend 100%
 
 ### Session: April 11, 2026 (Batch C — Stripe Mode Clarity + Settings Cleanup)
 - Investigated the tenant Stripe Connect confusion and added explicit live/test mode visibility
