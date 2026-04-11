@@ -1,7 +1,7 @@
 # SignGuy AI - Product Requirements Document
 
-> **Last Updated:** April 9, 2026
-> **Version:** 6.3
+> **Last Updated:** April 11, 2026
+> **Version:** 6.4
 
 ---
 
@@ -18,6 +18,35 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ---
 
 ## What's Been Implemented
+
+### Session: April 11, 2026 (P0 Workflow / Order / Nav Stabilization)
+- Applied the first approved P0 batch from the user's latest shop-ops notes
+- Production workflow defaults:
+  - changed default workflow mode to `simple`
+  - updated default simple stages to only:
+    - `Design`
+    - `Production`
+    - `Waiting on Customer Input`
+    - `On Hold`
+    - `Ready`
+  - added auto-migration behavior so legacy default detailed workflow settings fall back to simple unless a customer explicitly re-saves workflow preferences
+- Productivity main calendar cleanup:
+  - default calendar filters now load with jobs only
+  - removed production sub-step / schedule sub-step filters from the main productivity filter bar so detailed shop-floor steps stay inside production workflows instead of the main shop calendar
+- Reports tab fix:
+  - changed the ribbon Reports nav to point to Financials
+  - added `/reports -> /financials` redirect so the tab no longer feels like a logout or broken route
+- Order file upload / review fixes:
+  - fixed the order detail files-tab render crash after uploads
+  - added visible image thumbnails for uploaded order files in order review
+- Tenant branding isolation hardening:
+  - AppContext now clears tenant state on logout and refreshes tenant branding on login/account change
+  - shared tenant logo state is now used consistently in top/mobile navigation so stale branding is less likely between account switches
+- Ticket scheduling UX:
+  - improved the ticket schedule date field with explicit picker support and a calendar button
+- Testing:
+  - self-tested live preview for order files and reports routing
+  - testing agent iteration_93 passed backend 13/13 and frontend 100%
 
 ### Session: April 9, 2026 (Production Login 500 Root Cause)
 - Reproduced the production-only login failure on `https://signguy-ai.com/login`
@@ -645,22 +674,42 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ## Prioritized Backlog
 
 ### P0 - Critical
+- Pricing engine gaps
+  - fix material thickness and other pricing inputs that still do not affect live estimates correctly
+- Billing / quotes visibility
+  - quotes and invoices created from order flows need to appear in the expected billing views
+- Order / drawing stability
+  - drawing feature content is not staying visible or saving reliably
+  - add pricing analysis + calculator quick links near live estimate
+  - add bottom order actions for `Add to Order`, `Add Another Ticket`, `Save Order`
+  - condense order layout and keep live estimate visible while entering order info
+- Tenant / settings cleanup
+  - remove duplicate Backup placement so backup only lives in its own Settings tab
+  - combine duplicated workflow settings areas (`Settings > Production` and `Settings > Workflow Templates`)
+- Stripe Connect tenant flow
+  - investigate why tenant Stripe Connect setup is staying in test mode / test data
 - Deployment readiness blockers
   - app still needs the deferred supervisor/deployment readiness cleanup from the previous fork
-  - review `.gitignore` / deployment health-check requirements before deployment work
+
+### P1 - High Priority
+- Productivity cleanup
+  - condense duplicate menus/actions in the productivity module into one reliable working menu
+- Camera / intake workflow
+  - quick photo capture from camera during order creation
+  - markup-ready intake photo flow for customer vehicles / site conditions
+- Customer communication
+  - easier send-artwork-to-customer-portal flow
 - Remaining high-complexity code review cleanup
   - `src/components/FloatingAssistant.js`
   - `src/components/PricingCalculator.js`
   - `backend/routes/ai.py`
 
-### P1 - High Priority
-- Business Assistant Phase 1
+### P2 - Medium Priority
+- Business Assistant Phase 1+
   - action-oriented response layer
   - quick action buttons
   - smart navigation links
   - visual response blocks
-
-### P2 - Medium Priority
 - Business Assistant Phases 2-5
   - context awareness
   - cross-system commands
