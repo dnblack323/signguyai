@@ -13,6 +13,7 @@ import axios from 'axios';
 import DynamicCategoryFields from '../components/DynamicCategoryFields';
 import LivePricingPreview from '../components/LivePricingPreview';
 import DrawingModal from './DrawingModal';
+import { OrderCommandBar } from '../components/orders/OrderCommandBar';
 import { getAuthToken } from '../lib/authStorage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -205,6 +206,15 @@ export default function NewOrderForm() {
         <Button variant="ghost" size="icon" onClick={() => navigate('/orders')}><ArrowLeft className="w-5 h-5 text-gray-400" /></Button>
         <h1 className="text-2xl font-bold text-white font-heading">New Order</h1>
       </div>
+
+      <OrderCommandBar
+        onOpenPricingAnalysis={() => navigate('/pricing-setup')}
+        onOpenPricingCalculator={() => navigate('/pricing-calculator')}
+        onOpenSketch={() => setShowSketchModal(true)}
+        onAddTicket={() => addTicket('detailed')}
+        onSave={() => handleSave(false)}
+        testId="new-order-command-bar"
+      />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
       <div className="space-y-6">

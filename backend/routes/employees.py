@@ -9,6 +9,7 @@ This module contains all routes related to:
 
 from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from typing import List, Optional
+from collections import defaultdict
 from datetime import datetime, timezone, timedelta, date as date_type
 from pydantic import BaseModel, Field
 import uuid
@@ -194,6 +195,7 @@ async def _get_employee_compensation_snapshot(tenant_id: str, employee: dict, st
         "task_type": entry.get("task_type", "production"),
         "date": entry.get("start_time", "")[:10],
         "hours": round((entry.get("duration_minutes", 0) / 60), 2),
+        "minutes": int(round(entry.get("duration_minutes", 0) or 0)),
         "pay": round(entry.get("labor_cost", 0), 2),
         "source": "job_timer"
     } for entry in job_entries]
@@ -206,6 +208,7 @@ async def _get_employee_compensation_snapshot(tenant_id: str, employee: dict, st
         "task_type": entry.get("task_type", "general"),
         "date": entry.get("date"),
         "hours": entry.get("hours", 0),
+        "minutes": int(round((entry.get("hours", 0) or 0) * 60)),
         "pay": entry.get("gross_pay", 0),
         "description": entry.get("description", ""),
         "source": "manual"
@@ -219,6 +222,7 @@ async def _get_employee_compensation_snapshot(tenant_id: str, employee: dict, st
         "task_type": "time_clock",
         "date": shift.get("date"),
         "hours": shift.get("net_hours", 0),
+        "minutes": int(round((shift.get("net_hours", 0) or 0) * 60)),
         "pay": round((shift.get("net_hours", 0) * hourly_rate), 2),
         "description": shift.get("notes", ""),
         "clock_in": shift.get("clock_in"),
@@ -280,6 +284,187 @@ def _get_overtime_threshold(start_date: str, end_date: str, period_type: str = "
     total_days = max((end - start).days + 1, 1)
     total_weeks = max((total_days + 6) // 7, 1)
     return total_weeks * 40
+
+
+def _format_minutes_label(total_minutes: int) -> str:
+    hours = total_minutes // 60
+    minutes = total_minutes % 60
+    return f"{hours}h {minutes}m"
+
+
+def _format_break_label(total_minutes: int) -> str:
+    return _format_minutes_label(int(round(total_minutes or 0))) if total_minutes else "0h 0m"
+
+
+def _entry_minutes(entry: dict) -> int:
+    if entry.get("minutes") is not None:
+        return int(round(entry.get("minutes") or 0))
+    return int(round((entry.get("hours") or 0) * 60))
+
+
+def _transaction_signed_amount(transaction: dict) -> float:
+    txn_type = transaction.get("type")
+    amount = float(transaction.get("amount") or 0)
+    if txn_type == "earnings":
+        return amount
+    if txn_type in {"advance", "payment"}:
+        return -amount
+    return amount
+
+
+async def _get_employee_transactions(employee_id: str, start_date: Optional[str] = None, end_date: Optional[str] = None) -> list[dict]:
+    query = {"employee_id": employee_id}
+    if start_date and end_date:
+        query["date"] = {"$gte": start_date, "$lte": end_date}
+    elif start_date:
+        query["date"] = {"$gte": start_date}
+    elif end_date:
+        query["date"] = {"$lte": end_date}
+
+    transactions = await db.payroll_transactions.find(query, {"_id": 0}).sort("date", 1).to_list(5000)
+    return transactions
+
+
+def _summarize_transactions(transactions: list[dict]) -> dict:
+    totals_by_type: dict[str, float] = defaultdict(float)
+    serialized = []
+    for transaction in transactions:
+        amount = round(float(transaction.get("amount") or 0), 2)
+        txn_type = transaction.get("type") or "other"
+        totals_by_type[txn_type] += amount
+        serialized.append({
+            **transaction,
+            "signed_amount": round(_transaction_signed_amount(transaction), 2),
+        })
+
+    earnings = round(totals_by_type.get("earnings", 0), 2)
+    advances = round(totals_by_type.get("advance", 0), 2)
+    payments = round(totals_by_type.get("payment", 0), 2)
+    adjustments_total = round(earnings - advances - payments, 2)
+    return {
+        "transactions": serialized,
+        "totals_by_type": {key: round(value, 2) for key, value in totals_by_type.items()},
+        "earnings": earnings,
+        "advances": advances,
+        "payments": payments,
+        "adjustments_total": adjustments_total,
+    }
+
+
+def _summarize_entry_pay(entries: list[dict], hourly_rate: float) -> dict:
+    weekly_minutes: dict[str, int] = defaultdict(int)
+    total_minutes = 0
+    base_pay = 0.0
+    for entry in entries:
+        minutes = _entry_minutes(entry)
+        total_minutes += minutes
+        base_pay += float(entry.get("pay") or 0)
+        entry_date = entry.get("date")
+        if entry_date:
+            date_value = date_type.fromisoformat(entry_date)
+            week_start = (date_value - timedelta(days=date_value.weekday())).isoformat()
+            weekly_minutes[week_start] += minutes
+
+    overtime_minutes = 0
+    for minutes in weekly_minutes.values():
+        overtime_minutes += max(minutes - (40 * 60), 0)
+
+    regular_minutes = max(total_minutes - overtime_minutes, 0)
+    overtime_premium = round((overtime_minutes / 60) * hourly_rate * 0.5, 2)
+    gross_pay = round(base_pay + overtime_premium, 2)
+    return {
+        "total_minutes": total_minutes,
+        "regular_minutes": regular_minutes,
+        "overtime_minutes": overtime_minutes,
+        "base_pay": round(base_pay, 2),
+        "overtime_premium": overtime_premium,
+        "gross_pay": gross_pay,
+    }
+
+
+def _build_daily_breakdown(entries: list[dict], transactions: list[dict]) -> list[dict]:
+    grouped_entries: dict[str, list[dict]] = defaultdict(list)
+    grouped_transactions: dict[str, list[dict]] = defaultdict(list)
+
+    for entry in entries:
+        grouped_entries[entry.get("date") or "unknown"].append(entry)
+    for transaction in transactions:
+        grouped_transactions[transaction.get("date") or "unknown"].append({
+            **transaction,
+            "signed_amount": round(_transaction_signed_amount(transaction), 2),
+        })
+
+    breakdown = []
+    for date_key in sorted(set(grouped_entries.keys()) | set(grouped_transactions.keys())):
+        day_entries = sorted(grouped_entries.get(date_key, []), key=lambda entry: entry.get("clock_in") or entry.get("date") or "")
+        day_transactions = grouped_transactions.get(date_key, [])
+        total_minutes = sum(_entry_minutes(entry) for entry in day_entries)
+        break_minutes = sum(int(round(entry.get("break_minutes") or 0)) for entry in day_entries if entry.get("source") == "time_clock")
+        base_pay = round(sum(float(entry.get("pay") or 0) for entry in day_entries), 2)
+        day_adjustments = round(sum(transaction["signed_amount"] for transaction in day_transactions), 2)
+        day_name = "—"
+        if date_key and date_key != "unknown":
+            day_name = date_type.fromisoformat(date_key).strftime("%A")
+
+        breakdown.append({
+            "date": date_key,
+            "day_name": day_name,
+            "total_minutes": total_minutes,
+            "total_hours_label": _format_minutes_label(total_minutes),
+            "break_minutes": break_minutes,
+            "break_label": _format_break_label(break_minutes),
+            "daily_pay": base_pay,
+            "daily_adjustments": day_adjustments,
+            "daily_final": round(base_pay + day_adjustments, 2),
+            "entries": [
+                {
+                    **entry,
+                    "hours_minutes_label": _format_minutes_label(_entry_minutes(entry)),
+                    "break_label": _format_break_label(int(round(entry.get("break_minutes") or 0))),
+                }
+                for entry in day_entries
+            ],
+            "transactions": day_transactions,
+        })
+
+    return breakdown
+
+
+async def _build_employee_payroll_snapshot(tenant_id: str, employee: dict, start_date: str, end_date: str) -> dict:
+    hourly_rate = float(employee.get("hourly_rate") or 0)
+    current_snapshot = await _get_employee_compensation_snapshot(tenant_id, employee, start_date, end_date)
+    current_entries = sorted(
+        current_snapshot["job_details"] + current_snapshot["manual_details"] + current_snapshot["shift_details"],
+        key=lambda entry: (entry.get("date") or "", entry.get("clock_in") or ""),
+    )
+    current_pay = _summarize_entry_pay(current_entries, hourly_rate)
+    current_transactions = await _get_employee_transactions(employee["id"], start_date, end_date)
+    current_transaction_summary = _summarize_transactions(current_transactions)
+
+    previous_end_date = date_type.fromisoformat(start_date) - timedelta(days=1)
+    carryover_balance = 0.0
+    previous_transaction_summary = _summarize_transactions([])
+    if previous_end_date.isoformat() >= "2000-01-01":
+        previous_snapshot = await _get_employee_compensation_snapshot(tenant_id, employee, "2000-01-01", previous_end_date.isoformat())
+        previous_entries = previous_snapshot["job_details"] + previous_snapshot["manual_details"] + previous_snapshot["shift_details"]
+        previous_pay = _summarize_entry_pay(previous_entries, hourly_rate)
+        previous_transactions = await _get_employee_transactions(employee["id"], end_date=previous_end_date.isoformat())
+        previous_transaction_summary = _summarize_transactions(previous_transactions)
+        carryover_balance = round(previous_pay["gross_pay"] + previous_transaction_summary["adjustments_total"], 2)
+
+    final_owed = round(carryover_balance + current_pay["gross_pay"] + current_transaction_summary["adjustments_total"], 2)
+    daily_breakdown = _build_daily_breakdown(current_entries, current_transaction_summary["transactions"])
+
+    return {
+        "entries": current_entries,
+        "current_snapshot": current_snapshot,
+        "current_pay": current_pay,
+        "current_transaction_summary": current_transaction_summary,
+        "previous_transaction_summary": previous_transaction_summary,
+        "carryover_balance": carryover_balance,
+        "daily_breakdown": daily_breakdown,
+        "final_owed": final_owed,
+    }
 
 
 # ============== EMPLOYEE ROUTES ==============
@@ -641,13 +826,13 @@ async def get_payroll_balance(
         raise HTTPException(status_code=404, detail="Employee not found")
     
     snapshot = await _get_employee_compensation_snapshot(current_user.tenant_id, employee)
-    total_earnings = round(employee.get("hourly_rate", 0) * snapshot["total_hours"], 2)
-    transactions = await db.payroll_transactions.find({"employee_id": employee_id}, {"_id": 0}).to_list(1000)
-    total_advances = sum(t["amount"] for t in transactions if t["type"] == "advance")
-    total_payments = sum(t["amount"] for t in transactions if t["type"] == "payment")
-    
-    # Balance = Earnings - Advances - Payments
-    balance = total_earnings - total_advances - total_payments
+    entries = snapshot["job_details"] + snapshot["manual_details"] + snapshot["shift_details"]
+    pay_summary = _summarize_entry_pay(entries, float(employee.get("hourly_rate") or 0))
+    transaction_summary = _summarize_transactions(await _get_employee_transactions(employee_id))
+    total_earnings = round(pay_summary["gross_pay"] + transaction_summary["earnings"], 2)
+    total_advances = transaction_summary["advances"]
+    total_payments = transaction_summary["payments"]
+    balance = round(pay_summary["gross_pay"] + transaction_summary["adjustments_total"], 2)
     
     return PayrollBalance(
         employee_id=employee_id,
@@ -677,34 +862,40 @@ async def get_payroll_report(
 
     employees = await db.employees.find(employee_query, {"_id": 0}).to_list(1000)
     report = []
-    overtime_threshold = _get_overtime_threshold(start_date, end_date, period_type)
     
     for emp in employees:
-        hourly_rate = emp.get("hourly_rate", 0)
-        snapshot = await _get_employee_compensation_snapshot(current_user.tenant_id, emp, start_date, end_date)
-        total_hours = snapshot["total_hours"]
-        regular_hours = min(total_hours, overtime_threshold)
-        overtime_hours = max(total_hours - overtime_threshold, 0)
-        regular_pay = round(regular_hours * hourly_rate, 2)
-        overtime_pay = round(overtime_hours * hourly_rate * 1.5, 2)
-        gross_pay = round(regular_pay + overtime_pay, 2)
-        transactions = await db.payroll_transactions.find({"employee_id": emp["id"], "date": {"$gte": start_date, "$lte": end_date}}, {"_id": 0}).to_list(1000)
-        advances = sum(t["amount"] for t in transactions if t["type"] == "advance")
-        payments = sum(t["amount"] for t in transactions if t["type"] == "payment")
-        balance = round(gross_pay - advances - payments, 2)
+        hourly_rate = float(emp.get("hourly_rate") or 0)
+        payroll_snapshot = await _build_employee_payroll_snapshot(current_user.tenant_id, emp, start_date, end_date)
+        pay_summary = payroll_snapshot["current_pay"]
+        transaction_summary = payroll_snapshot["current_transaction_summary"]
         
         report.append({
             "employee_id": emp["id"],
             "employee_name": emp["name"],
             "hourly_rate": hourly_rate,
-            "hours": total_hours,
-            "regular_hours": round(regular_hours, 2),
-            "overtime_hours": round(overtime_hours, 2),
-            "earnings": gross_pay,
-            "gross_pay": gross_pay,
-            "advances": advances,
-            "payments": payments,
-            "balance": balance
+            "hours": round(pay_summary["total_minutes"] / 60, 2),
+            "total_minutes": pay_summary["total_minutes"],
+            "total_hours_label": _format_minutes_label(pay_summary["total_minutes"]),
+            "regular_hours": round(pay_summary["regular_minutes"] / 60, 2),
+            "regular_minutes": pay_summary["regular_minutes"],
+            "regular_hours_label": _format_minutes_label(pay_summary["regular_minutes"]),
+            "overtime_hours": round(pay_summary["overtime_minutes"] / 60, 2),
+            "overtime_minutes": pay_summary["overtime_minutes"],
+            "overtime_hours_label": _format_minutes_label(pay_summary["overtime_minutes"]),
+            "earnings": pay_summary["gross_pay"],
+            "gross_pay": pay_summary["gross_pay"],
+            "base_pay": pay_summary["base_pay"],
+            "overtime_premium": pay_summary["overtime_premium"],
+            "carryover_balance": payroll_snapshot["carryover_balance"],
+            "earnings_adjustments": transaction_summary["earnings"],
+            "advances": transaction_summary["advances"],
+            "payments": transaction_summary["payments"],
+            "adjustments_total": transaction_summary["adjustments_total"],
+            "final_owed": payroll_snapshot["final_owed"],
+            "balance": payroll_snapshot["final_owed"],
+            "transactions": transaction_summary["transactions"],
+            "transaction_totals": transaction_summary["totals_by_type"],
+            "daily_breakdown": payroll_snapshot["daily_breakdown"],
         })
     
     return {
@@ -715,12 +906,22 @@ async def get_payroll_report(
         "employees": report,
         "totals": {
             "hours": round(sum(r["hours"] for r in report), 2),
+            "total_minutes": sum(r["total_minutes"] for r in report),
+            "total_hours_label": _format_minutes_label(sum(r["total_minutes"] for r in report)),
             "regular_hours": round(sum(r["regular_hours"] for r in report), 2),
+            "regular_minutes": sum(r["regular_minutes"] for r in report),
+            "regular_hours_label": _format_minutes_label(sum(r["regular_minutes"] for r in report)),
             "overtime_hours": round(sum(r["overtime_hours"] for r in report), 2),
+            "overtime_minutes": sum(r["overtime_minutes"] for r in report),
+            "overtime_hours_label": _format_minutes_label(sum(r["overtime_minutes"] for r in report)),
             "earnings": sum(r["earnings"] for r in report),
+            "carryover_balance": sum(r["carryover_balance"] for r in report),
+            "earnings_adjustments": sum(r["earnings_adjustments"] for r in report),
             "advances": sum(r["advances"] for r in report),
             "payments": sum(r["payments"] for r in report),
-            "balance": sum(r["balance"] for r in report)
+            "adjustments_total": sum(r["adjustments_total"] for r in report),
+            "balance": sum(r["balance"] for r in report),
+            "final_owed": sum(r["final_owed"] for r in report),
         }
     }
 
@@ -905,26 +1106,39 @@ async def get_timesheet(
     employees = await db.employees.find(emp_query, {"_id": 0}).to_list(1000)
     
     timesheet = []
-    overtime_threshold = _get_overtime_threshold(start_date, end_date)
     for emp in employees:
-        hourly_rate = emp.get("hourly_rate", 0)
-        snapshot = await _get_employee_compensation_snapshot(current_user.tenant_id, emp, start_date, end_date)
-        total_hours = snapshot["total_hours"]
-        regular_hours = min(total_hours, overtime_threshold)
-        overtime_hours = max(total_hours - overtime_threshold, 0)
-        overtime_pay = round(overtime_hours * hourly_rate * 0.5, 2)  # Extra 0.5x on top of regular
+        hourly_rate = float(emp.get("hourly_rate") or 0)
+        payroll_snapshot = await _build_employee_payroll_snapshot(current_user.tenant_id, emp, start_date, end_date)
+        pay_summary = payroll_snapshot["current_pay"]
         
         timesheet.append({
             "employee_id": emp["id"],
             "employee_name": emp.get("name"),
             "hourly_rate": hourly_rate,
-            "total_hours": total_hours,
-            "regular_hours": round(regular_hours, 2),
-            "overtime_hours": round(overtime_hours, 2),
-            "regular_pay": round(regular_hours * hourly_rate, 2),
-            "overtime_pay": overtime_pay,
-            "total_pay": round((total_hours * hourly_rate) + overtime_pay, 2),
-            "entries": sorted(snapshot["job_details"] + snapshot["manual_details"] + snapshot["shift_details"], key=lambda x: (x.get("date", ""), x.get("clock_in", "")), reverse=True)
+            "total_hours": round(pay_summary["total_minutes"] / 60, 2),
+            "total_minutes": pay_summary["total_minutes"],
+            "total_hours_label": _format_minutes_label(pay_summary["total_minutes"]),
+            "regular_hours": round(pay_summary["regular_minutes"] / 60, 2),
+            "regular_minutes": pay_summary["regular_minutes"],
+            "regular_hours_label": _format_minutes_label(pay_summary["regular_minutes"]),
+            "overtime_hours": round(pay_summary["overtime_minutes"] / 60, 2),
+            "overtime_minutes": pay_summary["overtime_minutes"],
+            "overtime_hours_label": _format_minutes_label(pay_summary["overtime_minutes"]),
+            "regular_pay": pay_summary["base_pay"],
+            "overtime_pay": pay_summary["overtime_premium"],
+            "total_pay": pay_summary["gross_pay"],
+            "carryover_balance": payroll_snapshot["carryover_balance"],
+            "transaction_summary": payroll_snapshot["current_transaction_summary"],
+            "final_owed": payroll_snapshot["final_owed"],
+            "daily_breakdown": payroll_snapshot["daily_breakdown"],
+            "entries": list(reversed([
+                {
+                    **entry,
+                    "hours_minutes_label": _format_minutes_label(_entry_minutes(entry)),
+                    "break_label": _format_break_label(int(round(entry.get("break_minutes") or 0))),
+                }
+                for entry in payroll_snapshot["entries"]
+            ]))
         })
     
     return {
@@ -933,9 +1147,18 @@ async def get_timesheet(
         "employees": timesheet,
         "totals": {
             "total_hours": round(sum(e["total_hours"] for e in timesheet), 2),
+            "total_minutes": sum(e["total_minutes"] for e in timesheet),
+            "total_hours_label": _format_minutes_label(sum(e["total_minutes"] for e in timesheet)),
             "regular_hours": round(sum(e["regular_hours"] for e in timesheet), 2),
+            "regular_minutes": sum(e["regular_minutes"] for e in timesheet),
+            "regular_hours_label": _format_minutes_label(sum(e["regular_minutes"] for e in timesheet)),
             "overtime_hours": round(sum(e["overtime_hours"] for e in timesheet), 2),
+            "overtime_minutes": sum(e["overtime_minutes"] for e in timesheet),
+            "overtime_hours_label": _format_minutes_label(sum(e["overtime_minutes"] for e in timesheet)),
             "total_pay": round(sum(e["total_pay"] for e in timesheet), 2),
+            "carryover_balance": round(sum(e["carryover_balance"] for e in timesheet), 2),
+            "adjustments_total": round(sum(e["transaction_summary"]["adjustments_total"] for e in timesheet), 2),
+            "final_owed": round(sum(e["final_owed"] for e in timesheet), 2),
         }
     }
 
@@ -955,49 +1178,40 @@ async def get_pay_period_summary(
     
     summary = []
     for emp in employees:
-        hourly_rate = emp.get("hourly_rate", 0)
-        snapshot = await _get_employee_compensation_snapshot(current_user.tenant_id, emp, start_str, end_str)
-        total_hours = snapshot["total_hours"]
-        
-        # Overtime threshold depends on period type
-        ot_threshold = 80 if period_type == "biweekly" else 40
-        regular_hours = min(total_hours, ot_threshold)
-        overtime_hours = max(total_hours - ot_threshold, 0)
-        
-        regular_pay = round(regular_hours * hourly_rate, 2)
-        overtime_pay = round(overtime_hours * hourly_rate * 1.5, 2)
-        
-        # Get transactions in this period
-        transactions = await db.payroll_transactions.find({"employee_id": emp["id"], "date": {"$gte": start_str, "$lte": end_str}}, {"_id": 0}).to_list(1000)
-        
-        advances = sum(t["amount"] for t in transactions if t["type"] == "advance")
-        payments = sum(t["amount"] for t in transactions if t["type"] == "payment")
-        
-        gross_pay = regular_pay + overtime_pay
-        net_owed = gross_pay - advances - payments
-        
-        daily = {}
-        for entry in snapshot["job_details"] + snapshot["manual_details"] + snapshot["shift_details"]:
-            day = entry.get("date", "")
-            if not day:
-                continue
-            daily.setdefault(day, 0)
-            daily[day] += float(entry.get("hours", 0) or 0)
+        payroll_snapshot = await _build_employee_payroll_snapshot(current_user.tenant_id, emp, start_str, end_str)
+        pay_summary = payroll_snapshot["current_pay"]
+        transaction_summary = payroll_snapshot["current_transaction_summary"]
+        daily = {
+            day["date"]: {
+                "hours": round(day["total_minutes"] / 60, 2),
+                "hours_label": day["total_hours_label"],
+                "pay": day["daily_pay"],
+                "day_name": day["day_name"],
+            }
+            for day in payroll_snapshot["daily_breakdown"]
+        }
         
         summary.append({
             "employee_id": emp["id"],
             "employee_name": emp.get("name"),
-            "hourly_rate": hourly_rate,
-            "total_hours": total_hours,
-            "regular_hours": round(regular_hours, 2),
-            "overtime_hours": round(overtime_hours, 2),
-            "regular_pay": regular_pay,
-            "overtime_pay": overtime_pay,
-            "gross_pay": gross_pay,
-            "advances": advances,
-            "payments_made": payments,
-            "net_owed": round(net_owed, 2),
-            "daily_hours": {k: round(v, 2) for k, v in sorted(daily.items())}
+            "hourly_rate": emp.get("hourly_rate", 0),
+            "total_hours": round(pay_summary["total_minutes"] / 60, 2),
+            "total_minutes": pay_summary["total_minutes"],
+            "total_hours_label": _format_minutes_label(pay_summary["total_minutes"]),
+            "regular_hours": round(pay_summary["regular_minutes"] / 60, 2),
+            "overtime_hours": round(pay_summary["overtime_minutes"] / 60, 2),
+            "regular_pay": pay_summary["base_pay"],
+            "overtime_pay": pay_summary["overtime_premium"],
+            "gross_pay": pay_summary["gross_pay"],
+            "carryover_balance": payroll_snapshot["carryover_balance"],
+            "advances": transaction_summary["advances"],
+            "payments_made": transaction_summary["payments"],
+            "earnings_adjustments": transaction_summary["earnings"],
+            "adjustments_total": transaction_summary["adjustments_total"],
+            "net_owed": round(payroll_snapshot["final_owed"], 2),
+            "daily_breakdown": payroll_snapshot["daily_breakdown"],
+            "daily_hours": {key: value["hours"] for key, value in sorted(daily.items())},
+            "daily": daily,
         })
     
     return {
@@ -1010,6 +1224,8 @@ async def get_pay_period_summary(
             "regular_hours": round(sum(e["regular_hours"] for e in summary), 2),
             "overtime_hours": round(sum(e["overtime_hours"] for e in summary), 2),
             "gross_pay": round(sum(e["gross_pay"] for e in summary), 2),
+            "carryover_balance": round(sum(e["carryover_balance"] for e in summary), 2),
+            "earnings_adjustments": round(sum(e["earnings_adjustments"] for e in summary), 2),
             "net_owed": round(sum(e["net_owed"] for e in summary), 2)
         }
     }

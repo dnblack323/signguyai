@@ -13,6 +13,7 @@ import axios from 'axios';
 import DynamicCategoryFields from '../components/DynamicCategoryFields';
 import LivePricingPreview from '../components/LivePricingPreview';
 import { getAuthToken } from '../lib/authStorage';
+import { OrderCommandBar } from '../components/orders/OrderCommandBar';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const token = () => getAuthToken();
@@ -174,6 +175,14 @@ export default function AddTicketToOrder() {
           </CardContent>
         </Card>
       )}
+
+      <OrderCommandBar
+        onOpenPricingAnalysis={() => navigate('/pricing-setup')}
+        onOpenPricingCalculator={() => navigate('/pricing-calculator')}
+        onAddTicket={() => resetTicketForm()}
+        onSave={() => handleSave('return')}
+        testId="add-ticket-command-bar"
+      />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
       {/* Ticket Form */}

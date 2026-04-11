@@ -645,7 +645,7 @@ export default function Payroll() {
                   </div>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-3" data-testid="timesheet-summary-strip">
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" data-testid="timesheet-summary-strip">
                   <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
                     <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Employees</p>
                     <p className="mt-1 text-2xl font-bold text-gray-900" data-testid="timesheet-employee-count">{timesheetEmployeeCount}</p>
@@ -655,8 +655,12 @@ export default function Payroll() {
                     <p className="mt-1 text-2xl font-bold text-gray-900" data-testid="timesheet-entry-count">{timesheetEntryCount}</p>
                   </div>
                   <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Total Pay</p>
-                    <p className="mt-1 text-2xl font-bold text-emerald-600" data-testid="timesheet-total-pay">{formatCurrency(timesheet?.totals?.total_pay || 0)}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Carryover</p>
+                    <p className="mt-1 text-2xl font-bold text-amber-600" data-testid="timesheet-carryover-total">{formatCurrency(timesheet?.totals?.carryover_balance || 0)}</p>
+                  </div>
+                  <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Final Owed</p>
+                    <p className="mt-1 text-2xl font-bold text-emerald-600" data-testid="timesheet-total-pay">{formatCurrency(timesheet?.totals?.final_owed || 0)}</p>
                   </div>
                 </div>
               </div>

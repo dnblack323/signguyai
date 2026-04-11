@@ -33,7 +33,22 @@ const getWeekStartDate = (reference) => {
 
 const formatCurrency = (value) => currencyFormatter.format(Number(value || 0));
 
+const formatSignedCurrency = (value) => {
+  const amount = Number(value || 0);
+  return `${amount >= 0 ? '+' : '-'}${currencyFormatter.format(Math.abs(amount))}`;
+};
+
 const formatHours = (value) => Number(value || 0).toFixed(2);
+
+const formatHoursLabel = (minutes, fallback) => {
+  if (typeof minutes === 'number') {
+    const wholeMinutes = Math.round(minutes);
+    const hours = Math.floor(wholeMinutes / 60);
+    const remainingMinutes = wholeMinutes % 60;
+    return `${hours}h ${remainingMinutes}m`;
+  }
+  return fallback || '0h 0m';
+};
 
 const formatDateTime = (value) => {
   if (!value) return '—';
@@ -62,6 +77,16 @@ const getSourceLabel = (source) => {
   if (source === 'time_clock') return 'Time Clock';
   if (source === 'manual') return 'Manual';
   return source || '—';
+};
+
+const formatTimeOnly = (value) => {
+  if (!value) return '—';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(parsed);
 };
 
 export const getPresetDateRange = (preset, reference = new Date()) => {
@@ -110,26 +135,48 @@ export const buildPayrollCsv = ({ report, timesheet, selectedEmployeeLabel, rang
     ['Employee Scope', selectedEmployeeLabel, 'Date Range', rangeLabel],
     [],
     ['Summary'],
-    ['Employee', 'Hourly Rate', 'Total Hours', 'Regular Hours', 'Overtime Hours', 'Gross Pay', 'Advances', 'Payments', 'Balance'],
+    ['Employee', 'Hourly Rate', 'Total Time', 'Regular Time', 'Overtime Time', 'Carryover', 'Gross Pay', 'Earnings Adj.', 'Advances', 'Payments', 'Adjustments', 'Final Owed'],
   ];
 
   (report?.employees || []).forEach((employee) => {
     rows.push([
       employee.employee_name,
       formatCurrency(employee.hourly_rate),
-      formatHours(employee.hours),
-      formatHours(employee.regular_hours),
-      formatHours(employee.overtime_hours),
+      employee.total_hours_label || formatHoursLabel(employee.total_minutes, employee.total_hours_label),
+      employee.regular_hours_label || formatHoursLabel(employee.regular_minutes, employee.regular_hours_label),
+      employee.overtime_hours_label || formatHoursLabel(employee.overtime_minutes, employee.overtime_hours_label),
+      formatCurrency(employee.carryover_balance),
       formatCurrency(employee.gross_pay ?? employee.earnings),
+      formatCurrency(employee.earnings_adjustments),
       formatCurrency(employee.advances),
       formatCurrency(employee.payments),
-      formatCurrency(employee.balance),
+      formatSignedCurrency(employee.adjustments_total),
+      formatCurrency(employee.final_owed ?? employee.balance),
     ]);
   });
 
   rows.push([]);
+  rows.push(['Daily Breakdown']);
+  rows.push(['Employee', 'Day', 'Date', 'Worked Time', 'Break Time', 'Daily Pay', 'Daily Adjustments', 'Daily Final']);
+
+  (timesheet?.employees || []).forEach((employee) => {
+    (employee.daily_breakdown || []).forEach((day) => {
+      rows.push([
+        employee.employee_name,
+        day.day_name,
+        day.date,
+        day.total_hours_label || formatHoursLabel(day.total_minutes, day.total_hours_label),
+        day.break_label || formatHoursLabel(day.break_minutes, day.break_label),
+        formatCurrency(day.daily_pay),
+        formatSignedCurrency(day.daily_adjustments),
+        formatCurrency(day.daily_final),
+      ]);
+    });
+  });
+
+  rows.push([]);
   rows.push(['Entry Details']);
-  rows.push(['Employee', 'Date', 'Source', 'Task', 'Job', 'Description', 'Hours', 'Pay', 'Clock In', 'Clock Out', 'Break Minutes']);
+  rows.push(['Employee', 'Day', 'Date', 'Source', 'Task', 'Job', 'Description', 'Worked Time', 'Clock In', 'Clock Out', 'Break Time', 'Pay']);
 
   let hasEntries = false;
   (timesheet?.employees || []).forEach((employee) => {
@@ -137,16 +184,17 @@ export const buildPayrollCsv = ({ report, timesheet, selectedEmployeeLabel, rang
       hasEntries = true;
       rows.push([
         employee.employee_name,
+        entry.date ? new Date(`${entry.date}T00:00:00`).toLocaleDateString('en-US', { weekday: 'long' }) : '',
         entry.date || '',
         getSourceLabel(entry.source),
         entry.task_type || '',
         entry.job_name || '',
         entry.description || '',
-        formatHours(entry.hours),
+        entry.hours_minutes_label || formatHoursLabel(entry.minutes, entry.hours_minutes_label),
+        formatTimeOnly(entry.clock_in),
+        formatTimeOnly(entry.clock_out),
+        entry.break_label || formatHoursLabel(entry.break_minutes, entry.break_label),
         formatCurrency(entry.pay),
-        formatDateTime(entry.clock_in),
-        formatDateTime(entry.clock_out),
-        entry.break_minutes || 0,
       ]);
     });
   });
@@ -154,6 +202,23 @@ export const buildPayrollCsv = ({ report, timesheet, selectedEmployeeLabel, rang
   if (!hasEntries) {
     rows.push(['No entries found for the selected range']);
   }
+
+  rows.push([]);
+  rows.push(['Transactions']);
+  rows.push(['Employee', 'Date', 'Type', 'Description', 'Amount', 'Signed Impact']);
+
+  (report?.employees || []).forEach((employee) => {
+    (employee.transactions || []).forEach((transaction) => {
+      rows.push([
+        employee.employee_name,
+        transaction.date || '',
+        transaction.type || '',
+        transaction.description || '',
+        formatCurrency(transaction.amount),
+        formatSignedCurrency(transaction.signed_amount),
+      ]);
+    });
+  });
 
   return rows.map((row) => row.map(toCsvValue).join(',')).join('\n');
 };
@@ -163,13 +228,16 @@ export const buildPayrollPrintHtml = ({ report, timesheet, selectedEmployeeLabel
     <tr>
       <td>${escapeHtml(employee.employee_name)}</td>
       <td>${escapeHtml(formatCurrency(employee.hourly_rate))}</td>
-      <td>${escapeHtml(formatHours(employee.hours))}</td>
-      <td>${escapeHtml(formatHours(employee.regular_hours))}</td>
-      <td>${escapeHtml(formatHours(employee.overtime_hours))}</td>
+      <td>${escapeHtml(employee.total_hours_label || formatHoursLabel(employee.total_minutes, employee.total_hours_label))}</td>
+      <td>${escapeHtml(employee.regular_hours_label || formatHoursLabel(employee.regular_minutes, employee.regular_hours_label))}</td>
+      <td>${escapeHtml(employee.overtime_hours_label || formatHoursLabel(employee.overtime_minutes, employee.overtime_hours_label))}</td>
+      <td>${escapeHtml(formatCurrency(employee.carryover_balance))}</td>
       <td>${escapeHtml(formatCurrency(employee.gross_pay ?? employee.earnings))}</td>
+      <td>${escapeHtml(formatCurrency(employee.earnings_adjustments))}</td>
       <td>${escapeHtml(formatCurrency(employee.advances))}</td>
       <td>${escapeHtml(formatCurrency(employee.payments))}</td>
-      <td>${escapeHtml(formatCurrency(employee.balance))}</td>
+      <td>${escapeHtml(formatSignedCurrency(employee.adjustments_total))}</td>
+      <td>${escapeHtml(formatCurrency(employee.final_owed ?? employee.balance))}</td>
     </tr>
   `).join('');
 
@@ -181,8 +249,33 @@ export const buildPayrollPrintHtml = ({ report, timesheet, selectedEmployeeLabel
         <td>${escapeHtml(entry.task_type || '—')}</td>
         <td>${escapeHtml(entry.job_name || '—')}</td>
         <td>${escapeHtml(entry.description || '—')}</td>
-        <td>${escapeHtml(formatHours(entry.hours))}</td>
+        <td>${escapeHtml(entry.hours_minutes_label || formatHoursLabel(entry.minutes, entry.hours_minutes_label))}</td>
+        <td>${escapeHtml(formatTimeOnly(entry.clock_in))}</td>
+        <td>${escapeHtml(formatTimeOnly(entry.clock_out))}</td>
+        <td>${escapeHtml(entry.break_label || formatHoursLabel(entry.break_minutes, entry.break_label))}</td>
         <td>${escapeHtml(formatCurrency(entry.pay))}</td>
+      </tr>
+    `).join('');
+
+    const dailyRows = (employee.daily_breakdown || []).map((day) => `
+      <tr>
+        <td>${escapeHtml(day.day_name)}</td>
+        <td>${escapeHtml(day.date || '—')}</td>
+        <td>${escapeHtml(day.total_hours_label || formatHoursLabel(day.total_minutes, day.total_hours_label))}</td>
+        <td>${escapeHtml(day.break_label || formatHoursLabel(day.break_minutes, day.break_label))}</td>
+        <td>${escapeHtml(formatCurrency(day.daily_pay))}</td>
+        <td>${escapeHtml(formatSignedCurrency(day.daily_adjustments))}</td>
+        <td>${escapeHtml(formatCurrency(day.daily_final))}</td>
+      </tr>
+    `).join('');
+
+    const transactionRows = ((employee.transaction_summary?.transactions) || []).map((transaction) => `
+      <tr>
+        <td>${escapeHtml(transaction.date || '—')}</td>
+        <td>${escapeHtml(transaction.type || '—')}</td>
+        <td>${escapeHtml(transaction.description || '—')}</td>
+        <td>${escapeHtml(formatCurrency(transaction.amount))}</td>
+        <td>${escapeHtml(formatSignedCurrency(transaction.signed_amount))}</td>
       </tr>
     `).join('');
 
@@ -194,10 +287,27 @@ export const buildPayrollPrintHtml = ({ report, timesheet, selectedEmployeeLabel
             <p>${escapeHtml(formatCurrency(employee.hourly_rate))}/hr</p>
           </div>
           <div class="employee-totals">
-            <span><strong>${escapeHtml(formatHours(employee.total_hours))}</strong> hrs</span>
-            <span><strong>${escapeHtml(formatCurrency(employee.total_pay))}</strong> pay</span>
+            <span><strong>${escapeHtml(employee.total_hours_label || formatHoursLabel(employee.total_minutes, employee.total_hours_label))}</strong></span>
+            <span><strong>${escapeHtml(formatCurrency(employee.total_pay))}</strong> gross</span>
+            <span><strong>${escapeHtml(formatCurrency(employee.final_owed))}</strong> owed</span>
           </div>
         </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Day</th>
+              <th>Date</th>
+              <th>Worked</th>
+              <th>Break</th>
+              <th>Daily Pay</th>
+              <th>Daily Adj.</th>
+              <th>Daily Final</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${dailyRows || '<tr><td colspan="7">No daily breakdown found.</td></tr>'}
+          </tbody>
+        </table>
         <table>
           <thead>
             <tr>
@@ -206,12 +316,29 @@ export const buildPayrollPrintHtml = ({ report, timesheet, selectedEmployeeLabel
               <th>Task</th>
               <th>Job</th>
               <th>Description</th>
-              <th>Hours</th>
+              <th>Worked</th>
+              <th>In</th>
+              <th>Out</th>
+              <th>Break</th>
               <th>Pay</th>
             </tr>
           </thead>
           <tbody>
-            ${entryRows || '<tr><td colspan="7">No entries found for this employee.</td></tr>'}
+            ${entryRows || '<tr><td colspan="10">No entries found for this employee.</td></tr>'}
+          </tbody>
+        </table>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Description</th>
+              <th>Amount</th>
+              <th>Impact</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${transactionRows || '<tr><td colspan="5">No transactions found for this employee.</td></tr>'}
           </tbody>
         </table>
       </section>
@@ -228,7 +355,7 @@ export const buildPayrollPrintHtml = ({ report, timesheet, selectedEmployeeLabel
         h1, h2, h3, p { margin: 0; }
         .page-header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-end; margin-bottom: 24px; }
         .meta { color: #475569; font-size: 13px; display: grid; gap: 6px; }
-        .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 24px; }
+        .summary-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 24px; }
         .summary-card { border: 1px solid #cbd5e1; border-radius: 14px; padding: 14px 16px; background: #f8fafc; }
         .summary-card span { display: block; color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
         .summary-card strong { font-size: 20px; }
@@ -241,7 +368,7 @@ export const buildPayrollPrintHtml = ({ report, timesheet, selectedEmployeeLabel
         .employee-totals { display: flex; gap: 16px; color: #0f172a; font-size: 13px; }
         @media print {
           body { margin: 20px; }
-          .summary-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+          .summary-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
         }
       </style>
     </head>
@@ -259,10 +386,11 @@ export const buildPayrollPrintHtml = ({ report, timesheet, selectedEmployeeLabel
       </header>
 
       <section class="summary-grid">
-        <div class="summary-card"><span>Total Hours</span><strong>${escapeHtml(formatHours(report?.totals?.hours))}</strong></div>
+        <div class="summary-card"><span>Total Time</span><strong>${escapeHtml(report?.totals?.total_hours_label || formatHoursLabel(report?.totals?.total_minutes, report?.totals?.total_hours_label))}</strong></div>
         <div class="summary-card"><span>Gross Pay</span><strong>${escapeHtml(formatCurrency(report?.totals?.earnings))}</strong></div>
-        <div class="summary-card"><span>Advances</span><strong>${escapeHtml(formatCurrency(report?.totals?.advances))}</strong></div>
-        <div class="summary-card"><span>Balance</span><strong>${escapeHtml(formatCurrency(report?.totals?.balance))}</strong></div>
+        <div class="summary-card"><span>Carryover</span><strong>${escapeHtml(formatCurrency(report?.totals?.carryover_balance))}</strong></div>
+        <div class="summary-card"><span>Adjustments</span><strong>${escapeHtml(formatSignedCurrency(report?.totals?.adjustments_total))}</strong></div>
+        <div class="summary-card"><span>Final Owed</span><strong>${escapeHtml(formatCurrency(report?.totals?.final_owed ?? report?.totals?.balance))}</strong></div>
       </section>
 
       <section>
@@ -272,17 +400,20 @@ export const buildPayrollPrintHtml = ({ report, timesheet, selectedEmployeeLabel
             <tr>
               <th>Employee</th>
               <th>Rate</th>
-              <th>Total Hours</th>
+              <th>Total Time</th>
               <th>Regular</th>
               <th>OT</th>
+              <th>Carryover</th>
               <th>Gross Pay</th>
+              <th>Earnings Adj.</th>
               <th>Advances</th>
               <th>Payments</th>
-              <th>Balance</th>
+              <th>Adjustments</th>
+              <th>Final Owed</th>
             </tr>
           </thead>
           <tbody>
-            ${summaryRows || '<tr><td colspan="9">No payroll data found for the selected range.</td></tr>'}
+            ${summaryRows || '<tr><td colspan="11">No payroll data found for the selected range.</td></tr>'}
           </tbody>
         </table>
       </section>
