@@ -1,7 +1,7 @@
 # SignGuy AI - Product Requirements Document
 
 > **Last Updated:** April 11, 2026
-> **Version:** 6.4
+> **Version:** 6.5
 
 ---
 
@@ -18,6 +18,27 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ---
 
 ## What's Been Implemented
+
+### Session: April 11, 2026 (Pricing + Billing Visibility Pass)
+- Completed the first approved `A` batch from the user's next priority list: pricing + billing
+- Pricing fixes:
+  - rigid-sign thickness now changes pricing correctly (for example 4mm vs 10mm)
+  - rush order now increases pricing across pricing categories
+  - job-ticket / live preview payloads now forward more real pricing-affecting fields into the pricing engine
+  - added compatibility normalization so generic substrate + thickness selections map correctly into backend pricing enums
+- Billing / quote visibility fixes:
+  - order-generated quotes now save into the standard `quotes` collection
+  - order-generated invoices now save into the standard `invoices` collection
+  - `/api/orders/{order_id}/financials` now merges standard quote/invoice docs with legacy `order_quotes` work-order records
+  - legacy order-generated quotes/invoices stored in `order_quotes` are now also surfaced through the normal `/api/quotes` and `/api/invoices` flows
+- Frontend billing visibility:
+  - restored `/quotes` as a real page instead of redirecting away
+  - rewired quote navigation so users can actually reach the dedicated Quotes screen again
+  - stabilized the Quotes page fetch cycle to avoid repeated re-fetching loops
+- Testing:
+  - self-tested thickness/rush pricing behavior and order-generated quote/invoice visibility
+  - testing agent iteration_94 passed backend 12/12 and frontend 100%
+  - follow-up frontend verification passed for `/quotes` and `/invoices`
 
 ### Session: April 11, 2026 (P0 Workflow / Order / Nav Stabilization)
 - Applied the first approved P0 batch from the user's latest shop-ops notes
@@ -674,15 +695,13 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ## Prioritized Backlog
 
 ### P0 - Critical
-- Pricing engine gaps
-  - fix material thickness and other pricing inputs that still do not affect live estimates correctly
-- Billing / quotes visibility
-  - quotes and invoices created from order flows need to appear in the expected billing views
 - Order / drawing stability
   - drawing feature content is not staying visible or saving reliably
   - add pricing analysis + calculator quick links near live estimate
   - add bottom order actions for `Add to Order`, `Add Another Ticket`, `Save Order`
   - condense order layout and keep live estimate visible while entering order info
+- Remaining pricing-engine gaps
+  - audit additional pricing-affecting options beyond the newly-fixed thickness / rush / rigid-sign modifiers to ensure all intended selections affect live estimates
 - Tenant / settings cleanup
   - remove duplicate Backup placement so backup only lives in its own Settings tab
   - combine duplicated workflow settings areas (`Settings > Production` and `Settings > Workflow Templates`)
