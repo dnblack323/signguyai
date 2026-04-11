@@ -21,6 +21,7 @@ import TimeClock from "./pages/TimeClock";
 import Payroll from "./pages/Payroll";
 import Productivity from "./pages/Productivity";
 import Financials from "./pages/Financials";
+import Quotes from "./pages/Quotes";
 import ProfitMarginAnalytics from "./pages/ProfitMarginAnalytics";
 import AITools from "./pages/AITools";
 import AIAssistant from "./pages/AIAssistant";
@@ -174,7 +175,7 @@ function ProtectedRoutes() {
           <Route path="/workflow-templates" element={<WorkflowTemplateManager />} />
           <Route path="/materials" element={<MaterialsAdmin />} />
           {/* Legacy redirects — Jobs/Quotes now go to Orders */}
-          <Route path="/quotes" element={<Navigate to="/orders" replace />} />
+          <Route path="/quotes" element={<Quotes />} />
           <Route path="/jobs" element={<Navigate to="/orders" replace />} />
           <Route path="/jobs/:id" element={<Navigate to="/orders" replace />} />
           <Route path="/invoices" element={<Invoices />} />

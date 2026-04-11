@@ -42,6 +42,9 @@ class Quote(QuoteBase):
     tenant_id: Optional[str] = None
     total: float = 0
     job_id: Optional[str] = None
+    order_id: Optional[str] = None  # Link to order if generated from order
+    source: Optional[str] = None  # "order" if generated from order
+    customer_name: Optional[str] = None  # Denormalized for display
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
@@ -262,5 +265,8 @@ class Invoice(InvoiceBase):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: Optional[str] = None
+    order_id: Optional[str] = None  # Link to order if generated from order
+    source: Optional[str] = None  # "order" if generated from order
+    customer_name: Optional[str] = None  # Denormalized for display
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())

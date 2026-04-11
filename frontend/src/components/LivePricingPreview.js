@@ -70,6 +70,7 @@ export default function LivePricingPreview({ category, specs, quantity, onPriceC
       laminate_type: specs?.lamination,
       vinyl_type: isVinylCategory ? (specs?.vinyl_type || null) : null,
       substrate_type: specs?.substrate,
+      thickness: specs?.thickness,
       print_material: specs?.material,
       apparel_type: specs?.garment_type,
       transfer_type: specs?.decoration_method,
@@ -83,10 +84,17 @@ export default function LivePricingPreview({ category, specs, quantity, onPriceC
       hemming: specs?.hemming === true || (specs?.hems && specs.hems !== 'none'),
       include_setup_fee: specs?.design_needed || specs?.setup_required || false,
       // Rigid sign options
+      rounded_corners: specs?.rounded_corners || false,
+      drill_holes: specs?.drill_holes || 'none',
+      num_holes: parseInt(specs?.num_holes) || 4,
+      cut_shape: specs?.cut_shape || 'square',
       stakes_included: specs?.stakes_included || false,
+      num_stakes: parseInt(specs?.num_stakes) || 0,
+      mounting_hardware: specs?.mounting_hardware || 'none',
       install_required: specs?.install_required || false,
       // Cut vinyl
       num_colors: parseInt(specs?.num_colors) || 1,
+      rush_order: specs?.rush_order || false,
       complexity: 1,
     };
   }, [category, JSON.stringify(specs)]);

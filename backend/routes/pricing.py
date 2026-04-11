@@ -28,6 +28,24 @@ from server import (
 router = APIRouter(prefix="/pricing", tags=["Pricing"])
 
 
+def _normalize_pricing_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+    normalized = dict(payload or {})
+    substrate = normalized.get("substrate_type")
+    thickness = normalized.get("thickness")
+    substrate_map = {
+        ("coroplast", "4mm"): "coroplast_4mm",
+        ("coroplast", "10mm"): "coroplast_10mm",
+        ("aluminum", "0.040"): "aluminum_040",
+        ("aluminum", "0.063"): "aluminum_063",
+        ("aluminum", "0.080"): "aluminum_080",
+        ("pvc", "3mm_pvc"): "pvc_3mm",
+        ("pvc", "6mm_pvc"): "pvc_6mm",
+    }
+    if substrate and thickness:
+        normalized["substrate_type"] = substrate_map.get((str(substrate).lower(), str(thickness).lower()), substrate)
+    return normalized
+
+
 # ============== PRICING CALCULATION ==============
 
 class PriceCalculateRequest:
@@ -51,7 +69,7 @@ async def calculate_price(
     """Calculate pricing for an item (real-time preview)"""
     try:
         category = PricingCategory(request.get("category", "custom"))
-        pricing_data = JobItemPricingData(**request.get("pricing_data", {}))
+        pricing_data = JobItemPricingData(**_normalize_pricing_payload(request.get("pricing_data", {})))
         quantity = request.get("quantity", 1)
         
         calculation = await calculate_pricing(

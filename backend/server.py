@@ -288,6 +288,12 @@ def get_quantity_discount(quantity: float, quantity_breaks: dict) -> float:
     return 0
 
 
+def apply_rush_order_multiplier(suggested_price: float, rush_order: bool, multiplier: float = 1.15) -> float:
+    if not rush_order:
+        return suggested_price
+    return suggested_price * multiplier
+
+
 def create_pricing_result(
     material_cost: float,
     labor_cost: float,
@@ -358,6 +364,7 @@ async def calculate_promotional(data: JobItemPricingData, quantity: float, defau
     discount = get_quantity_discount(quantity, defaults.get("quantity_breaks", {}))
     if discount > 0:
         suggested_price *= (1 - discount)
+    suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order)
     
     return create_pricing_result(
         material_cost=material_cost,
@@ -424,6 +431,7 @@ async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, default
         suggested_price,
         float(category_config.get("minimum_charge", defaults.get("minimum_vinyl_charge", 5.0)) or 5.0),
     )
+    suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order)
 
     return create_pricing_result(
         material_cost=material_cost,
@@ -485,6 +493,7 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
         suggested_price,
         float(category_config.get("minimum_charge", defaults.get("minimum_service_charge", 0)) or 0),
     )
+    suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order)
 
     return create_pricing_result(
         material_cost=material_cost,
@@ -573,6 +582,7 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
     # Setup fee added FLAT — not marked up
     suggested_price += setup_fee
     suggested_price = max(suggested_price, float(category_config.get("minimum_charge", 15.0) or 15.0))
+    suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order)
 
     return create_pricing_result(
         material_cost=material_cost + finishing_cost,
@@ -630,6 +640,17 @@ async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defau
     }
     material_key = substrate_key_map.get(substrate, "coroplast")
     substrate_cost_per_sqft = material_cost_map.get(material_key, 2.0)
+    thickness_multiplier = {
+        "4mm": 1.0,
+        "6mm": 1.18,
+        "10mm": 1.45,
+        "0.040": 1.0,
+        "0.063": 1.2,
+        "0.080": 1.42,
+        "3mm_pvc": 1.0,
+        "6mm_pvc": 1.32,
+    }.get(str(data.thickness or "").lower(), 1.0)
+    substrate_cost_per_sqft *= thickness_multiplier
     ink_cost_per_sqft = material_cost_map.get("ink", 0)
     laminate_cost_per_sqft = material_cost_map.get("laminate", 0) if data.laminate else 0
 
@@ -637,18 +658,42 @@ async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defau
 
     # Finishing costs
     finishing_cost = 0
-    if getattr(data, 'rounded_corners', False):
+    if data.rounded_corners:
         finishing_cost += 1.00 * quantity
-    if getattr(data, 'drill_holes', False):
-        finishing_cost += (getattr(data, 'num_holes', 4) or 4) * 0.25 * quantity
-    if getattr(data, 'stand', False) or getattr(data, 'stake', False):
-        finishing_cost += 3.00 * quantity
+    drill_hole_mode = str(data.drill_holes or "none")
+    drill_hole_count = 0
+    if drill_hole_mode != "none":
+        drill_hole_count = 4 if drill_hole_mode == "corners" else max(int(data.num_holes or 4), 4)
+        finishing_cost += drill_hole_count * 0.35 * quantity
+    contour_cut_cost = 0
+    if data.cut_shape == "contour":
+        contour_cut_cost = 6.0 * quantity
+    elif data.cut_shape == "custom":
+        contour_cut_cost = 10.0 * quantity
+    finishing_cost += contour_cut_cost
+
+    stake_count = max(int(data.num_stakes or 0), 0)
+    if data.stakes_included:
+        stake_count = stake_count or 2
+        finishing_cost += stake_count * 1.5
+
+    mounting_hardware_cost = {
+        "screws": 0.35,
+        "brackets": 2.5,
+        "posts": 18.0,
+        "standoffs": 6.0,
+    }.get(str(data.mounting_hardware or "none"), 0)
+    finishing_cost += mounting_hardware_cost * quantity
 
     if data.double_sided:
         material_cost *= 1.75
 
     labor_hours = sqft * quantity * float(category_config.get("default_labor_hours_per_sqft", 0.08) or 0)
     production_rate = float(defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75)) or 0)
+    install_hours = 0
+    if data.install_required:
+        install_hours = max(0.25 * quantity, sqft * quantity * 0.02)
+    labor_hours += install_hours
     labor_cost = labor_hours * production_rate
 
     # Setup fee is OPTIONAL
@@ -670,6 +715,7 @@ async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defau
         suggested_price,
         float(category_config.get("minimum_charge", defaults.get("minimum_sign_charge", 15.0)) or 15.0),
     )
+    suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order)
 
     return create_pricing_result(
         material_cost=material_cost + finishing_cost,
@@ -683,10 +729,20 @@ async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defau
             "dimensions": f"{width}\" x {height}\"",
             "square_feet": round(sqft, 2),
             "substrate": substrate,
+            "thickness": data.thickness,
+            "thickness_multiplier": thickness_multiplier,
             "substrate_cost_per_sqft": substrate_cost_per_sqft,
             "ink_cost_per_sqft": ink_cost_per_sqft,
             "laminate_cost_per_sqft": laminate_cost_per_sqft,
             "finishing_cost": round(finishing_cost, 2),
+            "drill_hole_mode": drill_hole_mode,
+            "drill_hole_count": drill_hole_count,
+            "stake_count": stake_count,
+            "mounting_hardware": data.mounting_hardware,
+            "mounting_hardware_cost": mounting_hardware_cost,
+            "install_required": data.install_required,
+            "install_hours": round(install_hours, 2),
+            "rush_order": data.rush_order,
             "labor_hours": round(labor_hours, 2),
             "production_rate": production_rate,
             "overhead_cost": round(overhead_cost, 2),
@@ -749,6 +805,7 @@ async def calculate_apparel(data: JobItemPricingData, quantity: float, defaults:
         suggested_price,
         float(category_config.get("minimum_charge", defaults.get("minimum_order", 0)) or 0),
     )
+    suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order)
 
     return create_pricing_result(
         material_cost=material_cost,
@@ -842,6 +899,7 @@ async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, 
         suggested_price,
         float(category_config.get("minimum_charge", defaults.get("minimum_wrap_charge", 500.0)) or 500.0),
     )
+    suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order)
 
     return create_pricing_result(
         material_cost=material_cost,
@@ -899,6 +957,7 @@ async def calculate_custom(data: JobItemPricingData, quantity: float, defaults: 
         suggested_price,
         float(category_config.get("minimum_charge", defaults.get("minimum_order", 0)) or 0),
     )
+    suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order)
 
     return create_pricing_result(
         material_cost=material_cost,

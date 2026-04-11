@@ -216,18 +216,15 @@ async def generate_quote_from_order(order_id: str, current_user: UserInDB = Depe
         "order_id": order_id,
         "customer_id": order.get("customer_id", ""),
         "customer_name": order.get("customer_name", ""),
-        "type": "quote",
         "status": "draft",
         "line_items": line_items,
-        "subtotal": subtotal,
-        "tax": 0,
-        "discount": 0,
         "total": subtotal,
         "notes": "",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat(),
+        "source": "order",
     }
-    await db.order_quotes.insert_one(quote_doc)
+    await db.quotes.insert_one(quote_doc)
 
     # Link to order
     await db.orders.update_one(
@@ -332,19 +329,26 @@ async def generate_invoice_from_order(order_id: str, current_user: UserInDB = De
         "order_id": order_id,
         "customer_id": order.get("customer_id", ""),
         "customer_name": order.get("customer_name", ""),
-        "type": "invoice",
         "status": "draft",
-        "line_items": line_items,
-        "subtotal": subtotal,
-        "tax": 0,
-        "discount": 0,
         "total": subtotal,
+        "line_items": [
+            {
+                **item,
+                "job_item_id": item.get("job_ticket_id"),
+            }
+            for item in line_items
+        ],
+        "tax_amount": 0,
+        "discount_amount": 0,
+        "grand_total": subtotal,
+        "amount_paid": 0,
         "notes": "",
         "due_date": order.get("requested_due_date"),
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat(),
+        "source": "order",
     }
-    await db.order_quotes.insert_one(invoice_doc)
+    await db.invoices.insert_one(invoice_doc)
 
     await db.orders.update_one(
         {"id": order_id},
@@ -429,14 +433,27 @@ async def get_order_financials(order_id: str, current_user: UserInDB = Depends(g
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
-    docs = await db.order_quotes.find(
+    legacy_docs = await db.order_quotes.find(
         {"order_id": order_id, "tenant_id": current_user.tenant_id},
         {"_id": 0}
     ).sort("created_at", -1).to_list(50)
+    quotes = await db.quotes.find(
+        {"order_id": order_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    invoices = await db.invoices.find(
+        {"order_id": order_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    work_orders = [d for d in legacy_docs if d.get("type") == "work_order"]
 
-    quotes = [d for d in docs if d.get("type") == "quote"]
-    invoices = [d for d in docs if d.get("type") == "invoice"]
-    work_orders = [d for d in docs if d.get("type") == "work_order"]
+    legacy_quotes = [d for d in legacy_docs if d.get("type") == "quote"]
+    legacy_invoices = [d for d in legacy_docs if d.get("type") == "invoice"]
+    quote_ids = {doc["id"] for doc in quotes}
+    invoice_ids = {doc["id"] for doc in invoices}
+    quotes.extend(doc for doc in legacy_quotes if doc["id"] not in quote_ids)
+    invoices.extend(doc for doc in legacy_invoices if doc["id"] not in invoice_ids)
+    docs = quotes + invoices + work_orders
 
     return {
         "quotes": quotes,

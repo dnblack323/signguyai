@@ -74,7 +74,7 @@ export const Ribbon = () => {
     const routes = {
       home: '/dashboard',
       jobs: '/jobs',
-      quotes: '/jobs?filter=quotes',
+      quotes: '/quotes',
       invoices: '/invoices',
       customers: '/customers',
       webstores: '/webstores',

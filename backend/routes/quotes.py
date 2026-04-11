@@ -26,6 +26,19 @@ from server import (
 router = APIRouter(prefix="/quotes", tags=["Quotes"])
 
 
+async def _find_quote_document(quote_id: str, tenant_id: str):
+    quote = await db.quotes.find_one({"id": quote_id, "tenant_id": tenant_id}, {"_id": 0})
+    if quote:
+        return quote, db.quotes
+    legacy_quote = await db.order_quotes.find_one(
+        {"id": quote_id, "tenant_id": tenant_id, "type": "quote"},
+        {"_id": 0},
+    )
+    if legacy_quote:
+        return legacy_quote, db.order_quotes
+    return None, None
+
+
 @router.post("", response_model=Quote)
 async def create_quote(
     input: QuoteCreate,
@@ -74,7 +87,11 @@ async def get_quotes(
     if status:
         query["status"] = status.value
     quotes = await db.quotes.find(query, {"_id": 0}).to_list(1000)
-    return quotes
+    legacy_query = {**query, "type": "quote"}
+    legacy_quotes = await db.order_quotes.find(legacy_query, {"_id": 0}).to_list(1000)
+    seen_ids = {quote["id"] for quote in quotes}
+    quotes.extend(quote for quote in legacy_quotes if quote["id"] not in seen_ids)
+    return sorted(quotes, key=lambda quote: quote.get("created_at", ""), reverse=True)
 
 
 @router.get("/{quote_id}", response_model=Quote)
@@ -83,10 +100,7 @@ async def get_quote(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Get a specific quote by ID"""
-    quote = await db.quotes.find_one(
-        {"id": quote_id, "tenant_id": current_user.tenant_id}, 
-        {"_id": 0}
-    )
+    quote, _collection = await _find_quote_document(quote_id, current_user.tenant_id)
     if not quote:
         raise HTTPException(status_code=404, detail="Quote not found")
     return quote
@@ -99,10 +113,7 @@ async def update_quote(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Update a quote"""
-    quote = await db.quotes.find_one(
-        {"id": quote_id, "tenant_id": current_user.tenant_id}, 
-        {"_id": 0}
-    )
+    quote, collection = await _find_quote_document(quote_id, current_user.tenant_id)
     if not quote:
         raise HTTPException(status_code=404, detail="Quote not found")
     if quote.get("job_id"):
@@ -124,8 +135,8 @@ async def update_quote(
         update_data["total"] = total
     
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
-    await db.quotes.update_one({"id": quote_id}, {"$set": update_data})
-    updated_quote = await db.quotes.find_one({"id": quote_id}, {"_id": 0})
+    await collection.update_one({"id": quote_id}, {"$set": update_data})
+    updated_quote, _collection = await _find_quote_document(quote_id, current_user.tenant_id)
     return updated_quote
 
 
@@ -135,16 +146,13 @@ async def delete_quote(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Delete a quote"""
-    quote = await db.quotes.find_one(
-        {"id": quote_id, "tenant_id": current_user.tenant_id},
-        {"_id": 0}
-    )
+    quote, collection = await _find_quote_document(quote_id, current_user.tenant_id)
     if not quote:
         raise HTTPException(status_code=404, detail="Quote not found")
     if quote.get("job_id"):
         raise HTTPException(status_code=400, detail="Cannot delete quote that has been converted to job")
     
-    await db.quotes.delete_one({"id": quote_id})
+    await collection.delete_one({"id": quote_id})
     return {"message": "Quote deleted"}
 
 
@@ -154,10 +162,7 @@ async def convert_quote_to_job(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Convert a quote to a job"""
-    quote = await db.quotes.find_one(
-        {"id": quote_id, "tenant_id": current_user.tenant_id}, 
-        {"_id": 0}
-    )
+    quote, collection = await _find_quote_document(quote_id, current_user.tenant_id)
     if not quote:
         raise HTTPException(status_code=404, detail="Quote not found")
     if quote.get("job_id"):
@@ -196,7 +201,7 @@ async def convert_quote_to_job(
         await db.job_items.insert_one(job_item.model_dump())
     
     # Update quote with job_id
-    await db.quotes.update_one(
+    await collection.update_one(
         {"id": quote_id},
         {"$set": {"job_id": job.id, "status": QuoteStatus.APPROVED.value}}
     )
@@ -219,14 +224,11 @@ async def send_quote(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Mark quote as sent"""
-    quote = await db.quotes.find_one(
-        {"id": quote_id, "tenant_id": current_user.tenant_id},
-        {"_id": 0}
-    )
+    quote, collection = await _find_quote_document(quote_id, current_user.tenant_id)
     if not quote:
         raise HTTPException(status_code=404, detail="Quote not found")
     
-    await db.quotes.update_one(
+    await collection.update_one(
         {"id": quote_id},
         {"$set": {
             "status": QuoteStatus.SENT.value,

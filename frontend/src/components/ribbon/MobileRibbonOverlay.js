@@ -42,7 +42,7 @@ const mobileRibbonConfig = [
     icon: FileText,
     actions: [
       { icon: Plus, label: 'New Quote', route: '/jobs?new=true&type=quote' },
-      { icon: List, label: 'All Quotes', route: '/jobs?filter=quotes' },
+      { icon: List, label: 'All Quotes', route: '/quotes' },
       { icon: CheckCircle, label: 'Approve', action: 'approve' },
       { icon: Send, label: 'Send Quote', action: 'send' },
     ]

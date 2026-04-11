@@ -148,6 +148,21 @@ def _normalize_vehicle_coverage(coverage_type: Optional[str], coverage_percent: 
     return raw or None
 
 
+def _normalize_substrate_type(substrate: Optional[str], thickness: Optional[str]) -> Optional[str]:
+    substrate_map = {
+        ("coroplast", "4mm"): "coroplast_4mm",
+        ("coroplast", "10mm"): "coroplast_10mm",
+        ("aluminum", "0.040"): "aluminum_040",
+        ("aluminum", "0.063"): "aluminum_063",
+        ("aluminum", "0.080"): "aluminum_080",
+        ("pvc", "3mm_pvc"): "pvc_3mm",
+        ("pvc", "6mm_pvc"): "pvc_6mm",
+    }
+    if not substrate:
+        return None
+    return substrate_map.get((str(substrate).lower(), str(thickness or "").lower()), substrate)
+
+
 def _infer_material_bucket(material: dict) -> Optional[str]:
     category = str(material.get("category") or "").lower()
     key = str(material.get("key") or material.get("id") or "").lower()
@@ -251,8 +266,17 @@ def _build_ticket_pricing_payload(ticket: dict, pricing_input: Optional[dict] = 
         "include_setup_fee": bool(specs.get("setup_required") or ticket.get("design_needed") or incoming.get("include_setup_fee")),
         "vinyl_type": (specs.get("vinyl_type") or specs.get("material")) if is_vinyl_category else None,
         "print_material": specs.get("media_type") or specs.get("material"),
-        "substrate_type": specs.get("substrate"),
+        "substrate_type": _normalize_substrate_type(specs.get("substrate"), specs.get("thickness")),
+        "thickness": specs.get("thickness"),
         "num_colors": int(specs.get("num_colors", 1) or 1),
+        "rounded_corners": bool(specs.get("rounded_corners")),
+        "drill_holes": specs.get("drill_holes"),
+        "num_holes": int(specs.get("num_holes", 4) or 4),
+        "cut_shape": specs.get("cut_shape"),
+        "stakes_included": bool(specs.get("stakes_included")),
+        "num_stakes": int(specs.get("num_stakes", 0) or 0),
+        "mounting_hardware": specs.get("mounting_hardware"),
+        "install_required": bool(specs.get("install_required")),
         "apparel_type": specs.get("garment_type") or specs.get("subtype"),
         "transfer_type": specs.get("decoration_method") or specs.get("print_method"),
         "num_print_locations": len(specs.get("print_locations", [])) or 1,
@@ -262,6 +286,7 @@ def _build_ticket_pricing_payload(ticket: dict, pricing_input: Optional[dict] = 
         "coverage_type": coverage_type,
         "estimated_vehicle_sqft": float(specs.get("estimated_vehicle_sqft", 0) or 0) or None,
         "estimated_hours": float(specs.get("estimated_hours", 0) or specs.get("estimated_install_hours", 0) or 0) or None,
+        "rush_order": bool(specs.get("rush_order")),
         **{k: v for k, v in incoming.items() if v is not None and k not in {"complexity"}},
     }
     sanitized = {}

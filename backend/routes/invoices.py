@@ -27,6 +27,19 @@ from routes.jobs import sync_job_items_from_embedded_line_items
 router = APIRouter(prefix="/invoices", tags=["Invoices"])
 
 
+async def _find_invoice_document(invoice_id: str, tenant_id: str):
+    invoice = await db.invoices.find_one({"id": invoice_id, "tenant_id": tenant_id}, {"_id": 0})
+    if invoice:
+        return invoice, db.invoices
+    legacy_invoice = await db.order_quotes.find_one(
+        {"id": invoice_id, "tenant_id": tenant_id, "type": "invoice"},
+        {"_id": 0},
+    )
+    if legacy_invoice:
+        return legacy_invoice, db.order_quotes
+    return None, None
+
+
 @router.post("", response_model=Invoice)
 async def create_invoice(
     input: InvoiceCreate,
@@ -58,7 +71,11 @@ async def get_invoices(
     if status:
         query["status"] = status.value
     invoices = await db.invoices.find(query, {"_id": 0}).to_list(1000)
-    return invoices
+    legacy_query = {**query, "type": "invoice"}
+    legacy_invoices = await db.order_quotes.find(legacy_query, {"_id": 0}).to_list(1000)
+    seen_ids = {invoice["id"] for invoice in invoices}
+    invoices.extend(invoice for invoice in legacy_invoices if invoice["id"] not in seen_ids)
+    return sorted(invoices, key=lambda invoice: invoice.get("created_at", ""), reverse=True)
 
 
 @router.get("/{invoice_id}", response_model=Invoice)
@@ -67,10 +84,7 @@ async def get_invoice(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Get a specific invoice by ID"""
-    invoice = await db.invoices.find_one(
-        {"id": invoice_id, "tenant_id": current_user.tenant_id}, 
-        {"_id": 0}
-    )
+    invoice, _collection = await _find_invoice_document(invoice_id, current_user.tenant_id)
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     return invoice
@@ -103,16 +117,16 @@ async def update_invoice(
     if input.status == InvoiceStatus.PAID:
         update_data["paid_date"] = datetime.now(timezone.utc).isoformat()
     
-    result = await db.invoices.update_one(
+    _invoice, collection = await _find_invoice_document(invoice_id, current_user.tenant_id)
+    if not _invoice or collection is None:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    result = await collection.update_one(
         {"id": invoice_id, "tenant_id": current_user.tenant_id}, 
         {"$set": update_data}
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Invoice not found")
-    invoice = await db.invoices.find_one(
-        {"id": invoice_id, "tenant_id": current_user.tenant_id}, 
-        {"_id": 0}
-    )
+    invoice, _collection = await _find_invoice_document(invoice_id, current_user.tenant_id)
     return invoice
 
 
@@ -122,10 +136,7 @@ async def delete_invoice(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Delete an invoice"""
-    invoice = await db.invoices.find_one(
-        {"id": invoice_id, "tenant_id": current_user.tenant_id},
-        {"_id": 0}
-    )
+    invoice, collection = await _find_invoice_document(invoice_id, current_user.tenant_id)
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     
@@ -136,7 +147,7 @@ async def delete_invoice(
             {"$unset": {"invoice_id": ""}}
         )
     
-    await db.invoices.delete_one({"id": invoice_id})
+    await collection.delete_one({"id": invoice_id})
     return {"message": "Invoice deleted"}
 
 
@@ -207,14 +218,11 @@ async def send_invoice(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Mark invoice as sent"""
-    invoice = await db.invoices.find_one(
-        {"id": invoice_id, "tenant_id": current_user.tenant_id},
-        {"_id": 0}
-    )
+    invoice, collection = await _find_invoice_document(invoice_id, current_user.tenant_id)
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     
-    await db.invoices.update_one(
+    await collection.update_one(
         {"id": invoice_id},
         {"$set": {
             "status": InvoiceStatus.SENT.value,
@@ -237,10 +245,7 @@ async def send_invoice_to_portal(
     """
     from models import CustomerNotification
     
-    invoice = await db.invoices.find_one(
-        {"id": invoice_id, "tenant_id": current_user.tenant_id},
-        {"_id": 0}
-    )
+    invoice, _collection = await _find_invoice_document(invoice_id, current_user.tenant_id)
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     

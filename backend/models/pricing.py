@@ -232,7 +232,16 @@ class JobItemPricingData(BaseModel):
     
     # Rigid Signs
     substrate_type: Optional[SubstrateType] = None
+    thickness: Optional[str] = None
     double_sided: bool = False
+    rounded_corners: bool = False
+    drill_holes: Optional[str] = None
+    num_holes: int = 4
+    cut_shape: Optional[str] = None
+    stakes_included: bool = False
+    num_stakes: int = 0
+    mounting_hardware: Optional[str] = None
+    install_required: bool = False
     
     # Services
     service_type: Optional[ServiceType] = None
@@ -260,6 +269,8 @@ class JobItemPricingData(BaseModel):
     coverage_type: Optional[CoverageType] = None
     estimated_vehicle_sqft: Optional[float] = None
     install_difficulty: int = 5
+    include_design: bool = False
+    rush_order: bool = False
     
     # Price override
     price_override: Optional[float] = None
