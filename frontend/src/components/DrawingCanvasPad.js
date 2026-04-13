@@ -65,13 +65,23 @@ export const DrawingCanvasPad = ({
   const drawIdleTimeoutRef = useRef(null);
   const autosaveIntervalRef = useRef(null);
   const lastPointRef = useRef(null);
+  const isDrawingRef = useRef(false);
+  const onChangeRef = useRef(onChange);
+  const onAutosaveRef = useRef(onAutosave);
 
   const [loadingBase, setLoadingBase] = useState(true);
-  const [isDrawing, setIsDrawing] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [strokeColor, setStrokeColor] = useState('#0F172A');
   const [penSize, setPenSize] = useState('4');
   const [autosaveState, setAutosaveState] = useState('');
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  useEffect(() => {
+    onAutosaveRef.current = onAutosave;
+  }, [onAutosave]);
 
   const applySnapshot = useCallback((snapshot) => {
     const canvas = canvasRef.current;
@@ -125,9 +135,9 @@ export const DrawingCanvasPad = ({
     const snapshot = getCanvasSnapshot(canvas);
     historyRef.current = initialImageUrl ? [baseSnapshot, snapshot] : [snapshot];
     setHasChanges(false);
-    onChange?.({ hasChanges: false, imageData: snapshot });
+    onChangeRef.current?.({ hasChanges: false, imageData: snapshot });
     setLoadingBase(false);
-  }, [backgroundImageUrl, initialImageUrl, onChange]);
+  }, [backgroundImageUrl, initialImageUrl]);
 
   useEffect(() => {
     buildBaseCanvas();
@@ -144,32 +154,32 @@ export const DrawingCanvasPad = ({
   }, [penSize, strokeColor]);
 
   const scheduleAutosave = useCallback(() => {
-    if (!autosaveEnabled || !onAutosave) return;
+    if (!autosaveEnabled || !onAutosaveRef.current) return;
     if (drawIdleTimeoutRef.current) clearTimeout(drawIdleTimeoutRef.current);
     drawIdleTimeoutRef.current = setTimeout(async () => {
       setAutosaveState('Saving...');
-      await onAutosave(getCanvasSnapshot(canvasRef.current));
+      await onAutosaveRef.current?.(getCanvasSnapshot(canvasRef.current));
       setAutosaveState('Draft autosaved');
     }, 1800);
-  }, [autosaveEnabled, onAutosave]);
+  }, [autosaveEnabled]);
 
   useEffect(() => {
-    if (!autosaveEnabled || !onAutosave) return undefined;
+    if (!autosaveEnabled || !onAutosaveRef.current) return undefined;
     autosaveIntervalRef.current = setInterval(async () => {
       if (!hasChanges) return;
       setAutosaveState('Saving...');
-      await onAutosave(getCanvasSnapshot(canvasRef.current));
+      await onAutosaveRef.current?.(getCanvasSnapshot(canvasRef.current));
       setAutosaveState('All changes saved');
     }, 45000);
     return () => {
       if (autosaveIntervalRef.current) clearInterval(autosaveIntervalRef.current);
       if (drawIdleTimeoutRef.current) clearTimeout(drawIdleTimeoutRef.current);
     };
-  }, [autosaveEnabled, hasChanges, onAutosave]);
+  }, [autosaveEnabled, hasChanges]);
 
   const startDraw = (event) => {
     event.preventDefault();
-    setIsDrawing(true);
+    isDrawingRef.current = true;
     const context = canvasRef.current.getContext('2d');
     context.strokeStyle = strokeColor;
     context.lineWidth = Number(penSize);
@@ -180,7 +190,7 @@ export const DrawingCanvasPad = ({
   };
 
   const draw = (event) => {
-    if (!isDrawing) return;
+    if (!isDrawingRef.current) return;
     event.preventDefault();
     const context = canvasRef.current.getContext('2d');
     const position = getCanvasPosition(canvasRef.current, event);
@@ -198,14 +208,14 @@ export const DrawingCanvasPad = ({
   };
 
   const endDraw = (event) => {
-    if (!isDrawing) return;
+    if (!isDrawingRef.current) return;
     event.preventDefault();
-    setIsDrawing(false);
+    isDrawingRef.current = false;
     lastPointRef.current = null;
     const snapshot = getCanvasSnapshot(canvasRef.current);
     historyRef.current = [...historyRef.current, snapshot];
     setHasChanges(true);
-    onChange?.({ hasChanges: true, imageData: snapshot });
+    onChangeRef.current?.({ hasChanges: true, imageData: snapshot });
     scheduleAutosave();
   };
 
@@ -214,7 +224,7 @@ export const DrawingCanvasPad = ({
     historyRef.current = historyRef.current.slice(0, -1);
     applySnapshot(historyRef.current[historyRef.current.length - 1]);
     setHasChanges(historyRef.current.length > 1);
-    onChange?.({ hasChanges: historyRef.current.length > 1, imageData: historyRef.current[historyRef.current.length - 1] });
+    onChangeRef.current?.({ hasChanges: historyRef.current.length > 1, imageData: historyRef.current[historyRef.current.length - 1] });
   };
 
   const handleClear = () => {
@@ -222,7 +232,7 @@ export const DrawingCanvasPad = ({
     historyRef.current = [baseSnapshotRef.current];
     applySnapshot(baseSnapshotRef.current);
     setHasChanges(false);
-    onChange?.({ hasChanges: false, imageData: baseSnapshotRef.current });
+    onChangeRef.current?.({ hasChanges: false, imageData: baseSnapshotRef.current });
   };
 
   return (

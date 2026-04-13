@@ -25,6 +25,15 @@ import {
   formatPayrollRangeLabel,
   getPresetDateRange,
 } from '../lib/payrollExport';
+
+// Helper function to format time of day (HH:MM) to localized string
+const formatTimeOfDay = (value) => {
+  if (!value) return '--:--';
+  const [hours, minutes] = value.split(':').map(Number);
+  const date = new Date();
+  date.setHours(hours || 0, minutes || 0, 0, 0);
+  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+};
 import {
   DollarSign, Plus, TrendingUp, TrendingDown, Minus, AlertTriangle,
   Clock, Users, CalendarDays, Edit2, Trash2, Briefcase, Timer, Loader2,
@@ -124,14 +133,6 @@ export default function Payroll() {
     const diff = d.getDate() - day + (day === 0 ? 0 : 7);
     return new Date(d.setDate(diff)).toISOString().split('T')[0];
   }
-
-  const formatTimeOfDay = (value) => {
-    if (!value) return '--:--';
-    const [hours, minutes] = value.split(':').map(Number);
-    const date = new Date();
-    date.setHours(hours || 0, minutes || 0, 0, 0);
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-  };
 
   const loadPayPeriod = useCallback(async () => {
     try {

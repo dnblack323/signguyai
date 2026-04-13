@@ -383,6 +383,12 @@ async def update_productivity_source(db, tenant_id: str, item_uid: str, updates:
     source_type, source_id = item_uid.split(":", 1)
     now = datetime.now(timezone.utc).isoformat()
 
+    if source_type == "schedule_shift" and ":" in source_id:
+        schedule_source_id, day_key = source_id.rsplit(":", 1)
+        source_id = schedule_source_id
+        updates = {**updates}
+        updates.setdefault("schedule_day_key", day_key)
+
     if source_type == "task":
         task_updates: Dict[str, Any] = {"updated_at": now}
         if "status" in updates:
