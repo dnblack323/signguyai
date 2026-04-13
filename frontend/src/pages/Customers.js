@@ -186,7 +186,7 @@ export default function Customers() {
         
         // If "Save & Add Job" was clicked, navigate to jobs page with customer pre-selected
         if (addJobAfter && newCustomer) {
-          navigate(`/jobs?new=true&customer_id=${newCustomer.id}&customer_name=${encodeURIComponent(newCustomer.name || newCustomer.company)}`);
+          navigate(`/orders/new?customer_id=${newCustomer.id}&customer_name=${encodeURIComponent(newCustomer.name || newCustomer.company)}`);
         }
       }
     } catch (err) {
@@ -1059,7 +1059,7 @@ export default function Customers() {
                         </h4>
                         <div className="space-y-2">
                           {stats.activeJobs.slice(0, 3).map(job => (
-                            <Link key={job.id} to={`/jobs/${job.id}`} onClick={() => setIsDetailOpen(false)}>
+                            <Link key={job.id} to={`/productivity/legacy-jobs/${job.id}`} onClick={() => setIsDetailOpen(false)}>
                               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-50/50 transition-colors">
                                 <div>
                                   <p className="font-medium">{job.name}</p>
@@ -1084,7 +1084,7 @@ export default function Customers() {
                     ) : (
                       <div className="space-y-2 max-h-[300px] overflow-y-auto">
                         {stats.customerJobs.map(job => (
-                          <Link key={job.id} to={`/jobs/${job.id}`} onClick={() => setIsDetailOpen(false)}>
+                          <Link key={job.id} to={`/productivity/legacy-jobs/${job.id}`} onClick={() => setIsDetailOpen(false)}>
                             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-50/50 transition-colors">
                               <div className="flex-1">
                                 <p className="font-medium">{job.name}</p>
@@ -1174,7 +1174,7 @@ export default function Customers() {
                     <Button className="bg-violet-600 hover:bg-violet-700 text-white" onClick={() => { setIsDetailOpen(false); navigate(`/orders/new?customer_id=${selectedCustomer.id}&customer_name=${encodeURIComponent(selectedCustomer.name || '')}&company=${encodeURIComponent(selectedCustomer.company || '')}&email=${encodeURIComponent(selectedCustomer.email || '')}&phone=${encodeURIComponent(selectedCustomer.phone || '')}`); }} data-testid="customer-popup-new-order-btn">
                       <Package className="h-4 w-4 mr-2" /> New Order
                     </Button>
-                    <Button variant="outline" onClick={() => { setIsDetailOpen(false); navigate(`/jobs?new=true&customer_id=${selectedCustomer.id}&customer_name=${encodeURIComponent(selectedCustomer.name || selectedCustomer.company || 'Customer')}`); }} data-testid="customer-popup-new-job-btn">
+                    <Button variant="outline" onClick={() => { setIsDetailOpen(false); navigate(`/orders/new?customer_id=${selectedCustomer.id}&customer_name=${encodeURIComponent(selectedCustomer.name || selectedCustomer.company || 'Customer')}`); }} data-testid="customer-popup-new-job-btn">
                       <Briefcase className="h-4 w-4 mr-2" /> New Job
                     </Button>
                     <Button variant="outline" onClick={() => setIsDetailOpen(false)}>

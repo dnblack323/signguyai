@@ -138,9 +138,9 @@ export const PrimaryNav = ({ activeTab, onTabChange }) => {
   useEffect(() => {
     const currentPath = location.pathname;
     const searchParams = new URLSearchParams(location.search);
-    
-    if (currentPath === '/jobs' && searchParams.get('filter') === 'quotes') {
-      onTabChange?.('jobs');
+
+    if (currentPath === '/productivity' && searchParams.get('view') === 'dashboard') {
+      onTabChange?.('dashboard');
       return;
     }
     

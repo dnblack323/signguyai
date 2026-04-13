@@ -139,6 +139,13 @@ export const MobileNav = ({ isOpen, onClose }) => {
   };
 
   const isActive = (itemPath) => {
+    const searchParams = new URLSearchParams(location.search);
+    if (itemPath === '/dashboard') {
+      return location.pathname === '/productivity' && searchParams.get('view') === 'dashboard';
+    }
+    if (itemPath === '/productivity') {
+      return location.pathname === '/productivity' && searchParams.get('view') !== 'dashboard';
+    }
     const basePath = itemPath.split('?')[0];
     return location.pathname === basePath || location.pathname.startsWith(basePath + '/');
   };

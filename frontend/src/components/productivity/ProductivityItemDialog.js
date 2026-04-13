@@ -6,7 +6,17 @@ import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { getItemBadgeClass, PRODUCTIVITY_TYPE_LABELS } from '../../lib/productivity';
 
-const WRITABLE_TYPES = new Set(['task', 'job', 'production_task']);
+const WRITABLE_TYPES = new Set(['task', 'job', 'production_task', 'appointment', 'schedule_shift']);
+
+const toDateTimeInputValue = (value) => {
+  if (!value) return '';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value.slice(0, 16);
+  }
+  const pad = (entry) => String(entry).padStart(2, '0');
+  return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}T${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`;
+};
 
 export const ProductivityItemDialog = ({ item, open, onClose, employees = [], onUpdateItem }) => {
   if (!item) return null;
@@ -14,11 +24,19 @@ export const ProductivityItemDialog = ({ item, open, onClose, employees = [], on
   const isWritable = WRITABLE_TYPES.has(item.type);
   const canAssign = ['task', 'production_task'].includes(item.type);
   const canEditPriority = ['task', 'production_task'].includes(item.type);
-  const statusOptions = Array.from(new Set([item.status, 'to_do', 'open', 'pending', 'approved', 'in_progress', 'waiting', 'complete', 'completed', 'done'].filter(Boolean)));
+  const canEditStatus = ['task', 'job', 'production_task', 'appointment'].includes(item.type);
+  const canEditDueDate = ['task', 'job', 'production_task'].includes(item.type);
+  const canEditAppointmentStart = item.type === 'appointment';
+  const canEditScheduleWindow = item.type === 'schedule_shift';
+  const statusOptions = Array.from(new Set([item.status, 'to_do', 'open', 'pending', 'approved', 'scheduled', 'confirmed', 'in_progress', 'waiting', 'complete', 'completed', 'done', 'cancelled'].filter(Boolean)));
 
   const handleUpdate = (field, value) => {
     if (!onUpdateItem) return;
-    onUpdateItem(item, { [field]: value });
+    const payload = { [field]: value };
+    if (item.type === 'schedule_shift' && item.meta?.day_key) {
+      payload.schedule_day_key = item.meta.day_key;
+    }
+    onUpdateItem(item, payload);
   };
 
   return (
@@ -41,21 +59,43 @@ export const ProductivityItemDialog = ({ item, open, onClose, employees = [], on
           {item.source_reference && <p><span className="font-medium text-gray-900">Reference:</span> {item.source_reference}</p>}
           {isWritable && (
             <div className="grid gap-4 rounded-xl border border-gray-200 p-4 md:grid-cols-2" data-testid="productivity-item-edit-panel">
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select value={item.status} onValueChange={(value) => handleUpdate('status', value)}>
-                  <SelectTrigger data-testid="productivity-item-status-select"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {statusOptions.map((status) => (
-                      <SelectItem key={status} value={status}>{status.replace(/_/g, ' ')}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Due Date</Label>
-                <Input type="date" value={item.due_datetime ? item.due_datetime.slice(0, 10) : ''} onChange={(event) => handleUpdate('due_datetime', event.target.value)} data-testid="productivity-item-due-input" />
-              </div>
+              {canEditStatus && (
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select value={item.status} onValueChange={(value) => handleUpdate('status', value)}>
+                    <SelectTrigger data-testid="productivity-item-status-select"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {statusOptions.map((status) => (
+                        <SelectItem key={status} value={status}>{status.replace(/_/g, ' ')}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {canEditDueDate && (
+                <div className="space-y-2">
+                  <Label>Due Date</Label>
+                  <Input type="date" value={item.due_datetime ? item.due_datetime.slice(0, 10) : ''} onChange={(event) => handleUpdate('due_datetime', event.target.value)} data-testid="productivity-item-due-input" />
+                </div>
+              )}
+              {canEditAppointmentStart && (
+                <div className="space-y-2">
+                  <Label>Scheduled Start</Label>
+                  <Input type="datetime-local" value={toDateTimeInputValue(item.start_datetime)} onChange={(event) => handleUpdate('start_datetime', event.target.value)} data-testid="productivity-item-appointment-start-input" />
+                </div>
+              )}
+              {canEditScheduleWindow && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Shift Start</Label>
+                    <Input type="datetime-local" value={toDateTimeInputValue(item.start_datetime)} onChange={(event) => handleUpdate('start_datetime', event.target.value)} data-testid="productivity-item-shift-start-input" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Shift End</Label>
+                    <Input type="datetime-local" value={toDateTimeInputValue(item.due_datetime)} onChange={(event) => handleUpdate('due_datetime', event.target.value)} data-testid="productivity-item-shift-end-input" />
+                  </div>
+                </>
+              )}
               {canEditPriority && (
                 <div className="space-y-2">
                   <Label>Priority</Label>

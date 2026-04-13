@@ -26,7 +26,7 @@ const shortcutCategories = [
     shortcuts: [
       { id: 'dashboard', name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
       { id: 'customers', name: 'Customers', href: '/customers', icon: Users },
-      { id: 'jobs', name: 'Jobs', href: '/jobs', icon: Briefcase },
+      { id: 'orders', name: 'Orders', href: '/orders', icon: Briefcase },
       { id: 'invoices', name: 'Invoices', href: '/invoices', icon: Receipt },
     ]
   },
@@ -85,12 +85,14 @@ const shortcutCategories = [
 // Flatten all shortcuts for lookup
 const allShortcuts = shortcutCategories.flatMap(cat => cat.shortcuts);
 
-// Default shortcuts with separators - removed quotes, jobs handles both now
-const defaultShortcuts = ['dashboard', 'customers', 'jobs', 'invoices', '|', 'ai-tools', 'ai-assistant'];
+const normalizeShortcutId = (entry) => entry === 'jobs' ? 'orders' : entry;
+
+// Default shortcuts with separators - orders is the active operational surface now
+const defaultShortcuts = ['dashboard', 'customers', 'orders', 'invoices', '|', 'ai-tools', 'ai-assistant'];
 
 const STORAGE_KEY = 'toolbar_shortcuts_v2';
 const createSeparatorEntry = () => ({ type: 'separator', id: `toolbar-separator-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` });
-const normalizeShortcuts = (entries = []) => entries.map((entry) => entry === '|' ? createSeparatorEntry() : entry);
+const normalizeShortcuts = (entries = []) => entries.map((entry) => entry === '|' ? createSeparatorEntry() : normalizeShortcutId(entry));
 const serializeShortcuts = (entries = []) => entries.map((entry) => (typeof entry === 'string' ? entry : { type: 'separator', id: entry.id }));
 
 export default function QuickToolbar() {
@@ -165,7 +167,8 @@ export default function QuickToolbar() {
             if (!shortcut) return null;
             
             const Icon = shortcut.icon;
-            const isActive = location.pathname === shortcut.href;
+            const isDashboardRedirect = shortcut.id === 'dashboard' && location.pathname === '/productivity' && new URLSearchParams(location.search).get('view') === 'dashboard';
+            const isActive = isDashboardRedirect || location.pathname === shortcut.href;
             
             return (
               <Link

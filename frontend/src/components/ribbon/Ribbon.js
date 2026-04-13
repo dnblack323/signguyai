@@ -23,7 +23,8 @@ const ribbonTabs = [
 // Map routes to their corresponding ribbon tabs
 const routeToTab = {
   '/dashboard': 'home',
-  '/jobs': 'jobs',
+  '/orders': 'orders',
+  '/jobs': 'orders',
   '/quotes': 'quotes',
   '/invoices': 'invoices',
   '/customers': 'customers',
@@ -73,7 +74,7 @@ export const Ribbon = () => {
   const navigateToSection = (tabId) => {
     const routes = {
       home: '/dashboard',
-      jobs: '/jobs',
+      orders: '/orders',
       quotes: '/quotes',
       invoices: '/invoices',
       customers: '/customers',

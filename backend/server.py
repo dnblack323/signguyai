@@ -1182,6 +1182,7 @@ from routes.digest import router as digest_router
 from routes.order_drawings import router as order_drawings_router
 from routes.signatures import router as signatures_router
 from routes.productivity import router as productivity_router
+from routes.appointments import router as appointments_router
 
 # Include all routers in the api_router
 api_router.include_router(auth_router)
@@ -1232,6 +1233,7 @@ api_router.include_router(digest_router)  # Daily Digest Email
 api_router.include_router(order_drawings_router)  # Order Drawings/Signatures
 api_router.include_router(signatures_router)  # Structured Signature Requests
 api_router.include_router(productivity_router)  # Unified Productivity Layer
+api_router.include_router(appointments_router)  # Appointment detail routes
 
 # Backup & Restore
 from routes.backup import setup_backup_routes

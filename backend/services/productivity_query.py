@@ -165,7 +165,7 @@ def _map_legacy_job(job: dict, maps: Dict[str, Dict[str, Any]]) -> ProductivityI
         notes=job.get("notes") or job.get("description") or "",
         category="legacy_job",
         color=_status_color(status, "job", is_completed),
-        source_route=None,
+        source_route=f"/productivity/legacy-jobs/{job['id']}",
         source_reference=job.get("name"),
         source_label="Legacy Job",
         meta={"archived": job.get("is_archived", False)},
@@ -242,7 +242,7 @@ def _expand_schedule_shift(schedule_doc: dict, day_key: str, shift: dict, day_da
         source_route="/payroll?tab=schedule",
         source_reference=day_date.isoformat(),
         source_label="Employee Schedule",
-        meta={"shift_start": shift.get("start"), "shift_end": shift.get("end")},
+        meta={"shift_start": shift.get("start"), "shift_end": shift.get("end"), "day_key": day_key},
     )
 
 
@@ -272,7 +272,7 @@ def _map_appointment(appointment: dict, maps: Dict[str, Dict[str, Any]]) -> Prod
         notes=appointment.get("description") or appointment.get("notes") or "",
         category=appointment.get("appointment_type") or "appointment",
         color="teal",
-        source_route=None,
+        source_route=f"/productivity/appointments/{appointment['id']}",
         source_reference=appointment.get("title"),
         source_label="Appointment",
         meta={"location": appointment.get("location")},

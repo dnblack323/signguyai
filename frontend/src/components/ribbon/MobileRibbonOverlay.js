@@ -17,12 +17,12 @@ const mobileRibbonConfig = [
     label: 'Home', 
     icon: Home,
     actions: [
-      { icon: Plus, label: 'New Order', route: '/jobs?new=true' },
-      { icon: FileText, label: 'New Quote', route: '/jobs?new=true&type=quote' },
+      { icon: Plus, label: 'New Order', route: '/orders/new' },
+      { icon: FileText, label: 'New Quote', route: '/orders/new' },
       { icon: Receipt, label: 'New Invoice', route: '/invoices?new=true' },
       { separator: true },
-      { icon: List, label: 'View List', route: '/dashboard' },
-      { icon: Calendar, label: 'Calendar', route: '/dashboard' },
+      { icon: List, label: 'Dashboard', route: '/dashboard' },
+      { icon: Calendar, label: 'Calendar', route: '/productivity?view=calendar' },
     ]
   },
   { 
@@ -30,8 +30,8 @@ const mobileRibbonConfig = [
     label: 'Orders', 
     icon: Briefcase,
     actions: [
-      { icon: Plus, label: 'New Order', route: '/jobs?new=true' },
-      { icon: List, label: 'All Jobs', route: '/jobs' },
+      { icon: Plus, label: 'New Order', route: '/orders/new' },
+      { icon: List, label: 'All Orders', route: '/orders' },
       { icon: CheckCircle, label: 'Change Status', action: 'status' },
       { icon: UserCheck, label: 'Assign Tech', action: 'assign' },
     ]
@@ -41,7 +41,7 @@ const mobileRibbonConfig = [
     label: 'Quotes', 
     icon: FileText,
     actions: [
-      { icon: Plus, label: 'New Quote', route: '/jobs?new=true&type=quote' },
+      { icon: Plus, label: 'New Quote', route: '/orders/new' },
       { icon: List, label: 'All Quotes', route: '/quotes' },
       { icon: CheckCircle, label: 'Approve', action: 'approve' },
       { icon: Send, label: 'Send Quote', action: 'send' },

@@ -56,10 +56,10 @@ const HomeToolbar = ({ navigate }) => (
       <SplitButton
         label="New"
         icon={Plus}
-        onClick={() => navigate('/jobs?new=true')}
+        onClick={() => navigate('/orders/new')}
         dropdownItems={[
-          { icon: Briefcase, label: 'New Order', onClick: () => navigate('/jobs?new=true') },
-          { icon: FileText, label: 'New Quote', onClick: () => navigate('/jobs?new=true&type=quote') },
+          { icon: Briefcase, label: 'New Order', onClick: () => navigate('/orders/new') },
+          { icon: FileText, label: 'New Quote', onClick: () => navigate('/orders/new') },
           { icon: Receipt, label: 'New Invoice', onClick: () => navigate('/invoices?new=true') },
         ]}
       />
@@ -98,7 +98,7 @@ const HomeToolbar = ({ navigate }) => (
 const JobsToolbar = ({ navigate }) => (
   <div className="flex items-stretch h-full">
     <RibbonGroup title="New">
-      <RibbonButton icon={Plus} label="New Order" onClick={() => navigate('/jobs?new=true')} />
+      <RibbonButton icon={Plus} label="New Order" onClick={() => navigate('/orders/new')} />
     </RibbonGroup>
 
     <GroupSeparator />
@@ -140,7 +140,7 @@ const JobsToolbar = ({ navigate }) => (
 const QuotesToolbar = ({ navigate }) => (
   <div className="flex items-stretch h-full">
     <RibbonGroup title="New">
-      <RibbonButton icon={Plus} label="New Quote" onClick={() => navigate('/jobs?new=true&type=quote')} />
+      <RibbonButton icon={Plus} label="New Quote" onClick={() => navigate('/orders/new')} />
     </RibbonGroup>
 
     <GroupSeparator />
@@ -333,7 +333,7 @@ export const RibbonToolbar = ({ activeTab }) => {
 
   const toolbars = {
     home: <HomeToolbar navigate={navigate} />,
-    jobs: <JobsToolbar navigate={navigate} />,
+    orders: <JobsToolbar navigate={navigate} />,
     quotes: <QuotesToolbar navigate={navigate} />,
     invoices: <InvoicesToolbar navigate={navigate} />,
     customers: <CustomersToolbar navigate={navigate} />,

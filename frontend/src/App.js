@@ -12,14 +12,15 @@ import { Toaster } from "./components/ui/sonner";
 import { Loader2 } from "lucide-react";
 
 // Pages
-import Dashboard from "./pages/Dashboard";
 import Customers from "./pages/Customers";
-// Quotes page deprecated - quotes are now jobs with status=quote
-import Jobs, { JobDetails } from "./pages/Jobs";
 import Invoices from "./pages/Invoices";
 import TimeClock from "./pages/TimeClock";
 import Payroll from "./pages/Payroll";
 import Productivity from "./pages/Productivity";
+import LegacyJobsRedirect from "./pages/LegacyJobsRedirect";
+import LegacyJobRedirect from "./pages/LegacyJobRedirect";
+import LegacyJobDetailPage from "./pages/LegacyJobDetailPage";
+import AppointmentDetailPage from "./pages/AppointmentDetailPage";
 import Financials from "./pages/Financials";
 import Quotes from "./pages/Quotes";
 import ProfitMarginAnalytics from "./pages/ProfitMarginAnalytics";
@@ -163,7 +164,7 @@ function ProtectedRoutes() {
     <TrialLockout>
       <MainLayout>
         <Routes>
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Navigate to="/productivity?view=dashboard" replace />} />
           <Route path="/customers" element={<Customers />} />
           {/* Orders - New 4-layer system */}
           <Route path="/orders" element={<OrdersPage />} />
@@ -176,8 +177,8 @@ function ProtectedRoutes() {
           <Route path="/materials" element={<MaterialsAdmin />} />
           {/* Legacy redirects — Jobs/Quotes now go to Orders */}
           <Route path="/quotes" element={<Quotes />} />
-          <Route path="/jobs" element={<Navigate to="/orders" replace />} />
-          <Route path="/jobs/:id" element={<Navigate to="/orders" replace />} />
+          <Route path="/jobs" element={<LegacyJobsRedirect />} />
+          <Route path="/jobs/:id" element={<LegacyJobRedirect />} />
           <Route path="/invoices" element={<Invoices />} />
           <Route path="/approvals" element={<Approvals />} />
           <Route path="/admin-portal" element={<AdminPortal />} />
@@ -185,6 +186,8 @@ function ProtectedRoutes() {
           <Route path="/timeclock" element={<TimeClock />} />
           <Route path="/payroll" element={<Payroll />} />
           <Route path="/productivity" element={<Productivity />} />
+          <Route path="/productivity/legacy-jobs/:jobId" element={<LegacyJobDetailPage />} />
+          <Route path="/productivity/appointments/:appointmentId" element={<AppointmentDetailPage />} />
           <Route path="/financials" element={<Financials />} />
           <Route path="/reports" element={<Navigate to="/financials" replace />} />
           <Route path="/reports/profit-margin" element={<ProfitMarginAnalytics />} />
