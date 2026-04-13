@@ -273,6 +273,101 @@ backend:
         agent: "testing"
         comment: "✅ VERIFIED - Order file upload and download endpoints working correctly. Successfully created test order, uploaded file (31 bytes), and downloaded file content with proper content-type: text/plain. File storage and retrieval functioning properly."
 
+  - task: "Consolidation Pass - Auth Login API"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/auth.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - POST /api/auth/login works correctly and returns usable token. Authentication successful with credentials signguypa@gmail.com / Billnel323. Returns bearer token with 165 character length."
+
+  - task: "Consolidation Pass - Productivity Items API"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/productivity.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - GET /api/productivity/items works correctly for tenant. Returns proper response structure with 6 items, total count, and applied filters. Response includes all required fields: uid, id, title, type, source_type, status, priority, etc."
+
+  - task: "Consolidation Pass - Productivity Summary API"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/productivity.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - GET /api/productivity/summary works correctly. Returns proper aggregation stats: due_today: 0, overdue: 0, waiting_on_approval: 2, scheduled_this_week: 0, my_assigned: 0, open_items: 6, completed_items: 0, plus by_type and by_board_column breakdowns."
+
+  - task: "Consolidation Pass - Productivity Items PATCH API"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/productivity.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - PATCH /api/productivity/items/{uid} works correctly for editable items. Successfully updated order status from 'new_intake' to 'in_progress' for item uid 'order:1efe0ae8-473d-4d5f-bde7-dbfde8180cda'. Returns updated item data."
+
+  - task: "Consolidation Pass - Appointment Detail API"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/appointments.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - GET /api/appointments/{appointment_id} route exists and is properly configured. Route returns 'Appointment not found' for non-existent IDs (not 'Not Found'), confirming route is registered and working. Coverage gap: no appointment test data exists."
+
+  - task: "Consolidation Pass - Legacy Job Detail API"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/jobs.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - Legacy job detail route support confirmed. GET /api/jobs/{job_id}/details route exists and is accessible. Coverage gap: no job test data exists to test with real IDs, but route structure is properly configured."
+
+  - task: "Consolidation Pass - Productivity Aggregation Regression Check"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/productivity.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - No backend errors/regressions detected from new source routes/day_key additions in productivity aggregation. All tested endpoints (/api/productivity/items, /api/productivity/summary, /api/dashboard/stats) return proper responses with no 500 errors."
+
+  - task: "Consolidation Pass - 500 Error Check on Consolidation Endpoints"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - No 500 errors detected on consolidation endpoints. All key endpoints tested: /api/productivity/items, /api/productivity/summary, /api/appointments, /api/jobs, /api/dashboard/stats, /api/orders, /api/tasks. All return appropriate status codes (200, 404) with no server errors."
 frontend:
   - task: "Landing Page - Unified Productivity and Shop Management Content"
     implemented: true
@@ -391,7 +486,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Consolidation pass testing complete - all flows verified"
+    - "Consolidation pass backend regression testing complete - all 8 tests verified"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -547,3 +642,5 @@ agent_communication:
 
   - agent: "testing"
     message: "PRICING + BILLING FRONTEND VERIFICATION COMPLETE - Focused frontend verification for latest pricing + billing pass completed successfully. All verification points passed: (1) Login works correctly with credentials signguypa@gmail.com / Billnel323, successfully authenticated and redirected to dashboard, (2) /quotes page loads and shows 19 quote records in table with all UI controls functional, (3) /invoices page loads and shows 16 invoice records in table with summary cards and all UI controls functional, (4) No obvious frontend runtime issues detected - no critical console errors, only minor Cloudflare CDN RUM errors which are non-functional. Both /quotes and /invoices are real pages (not redirects) and order-generated quotes/invoices are visible in the normal UI flows. Backend testing already passed for pricing/calculate, generate-quote, generate-invoice, /api/quotes, /api/invoices, and order financials."
+  - agent: "testing"
+    message: "CONSOLIDATION PASS BACKEND REGRESSION TESTING COMPLETE - All 8 requested backend/API regression tests for consolidation pass completed successfully. PASSED: (1) Auth login works and returns usable token, (2) GET /api/productivity/items works correctly (returns 6 items with proper structure), (3) GET /api/productivity/summary works (returns proper aggregation stats), (4) PATCH /api/productivity/items/{uid} works for editable items (successfully updated order status from 'new_intake' to 'in_progress'), (5) GET /api/appointments/{appointment_id} route exists and is properly configured, (6) Legacy job detail route support confirmed, (7) No backend errors/regressions in productivity aggregation (all endpoints return proper responses, no 500s), (8) No 500 errors on consolidation endpoints. COVERAGE GAPS: Some tests noted coverage gaps where test data doesn't exist (no appointments, no jobs) but routes are properly configured. All critical consolidation backend functionality is working correctly."
