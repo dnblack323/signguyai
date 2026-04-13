@@ -1,7 +1,7 @@
 # SignGuy AI - Product Requirements Document
 
-> **Last Updated:** April 11, 2026
-> **Version:** 6.8
+> **Last Updated:** April 13, 2026
+> **Version:** 6.9
 
 ---
 
@@ -18,6 +18,35 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ---
 
 ## What's Been Implemented
+
+### Session: April 13, 2026 (Consolidation Pass — Legacy Jobs Cleanup + Unified Dashboard Finalization)
+- Completed the post-audit consolidation pass across routing, navigation, productivity, and source-detail flows.
+- Legacy `/jobs` flow cleanup:
+  - `/jobs` now redirects through `LegacyJobsRedirect` to the current surfaces:
+    - `/jobs` → `/orders`
+    - `/jobs?new=true` → `/orders/new`
+    - `/jobs?filter=quotes` → `/quotes`
+  - `/jobs/:id` now redirects to the dedicated legacy record route:
+    - `/productivity/legacy-jobs/:jobId`
+  - updated active navigation/actions so current UI no longer sends users into outdated job flows
+  - updated customer detail modal links/actions to use `/orders/new` and `/productivity/legacy-jobs/:id`
+- Dashboard consolidation:
+  - retired the old active `/dashboard` page route and redirected `/dashboard` to `/productivity?view=dashboard`
+  - unified dashboard is now the single primary dashboard experience after login and on direct `/dashboard` visits
+- Direct source routing completion:
+  - `legacy_job` productivity items now open `/productivity/legacy-jobs/{id}`
+  - `appointment` productivity items now open `/productivity/appointments/{id}`
+  - added backend appointment detail route `GET /api/appointments/{appointment_id}`
+  - added dedicated frontend detail pages for legacy jobs and appointments
+- Shared productivity dialog coverage completed:
+  - appointments now expose editable status + scheduled start controls
+  - schedule shifts now expose editable shift start + shift end controls
+  - schedule shift updates carry the required `schedule_day_key` through the unified PATCH flow
+- Regression verification completed:
+  - smoke-tested login + `/dashboard` redirect into unified productivity dashboard
+  - frontend testing agent passed consolidation verification
+  - backend testing agent passed consolidation verification
+  - testing agent iteration_99 passed with 100% backend and frontend success, no action items
 
 ### Session: April 11, 2026 (Signguypa Stripe Validation + Webstore Checkout Gating)
 - Validated the tenant the user called out specifically:
@@ -798,8 +827,6 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
   - app still needs the deferred supervisor/deployment readiness cleanup from the previous fork
 
 ### P1 - High Priority
-- Productivity cleanup
-  - condense duplicate menus/actions in the productivity module into one reliable working menu
 - Camera / intake workflow
   - quick photo capture from camera during order creation
   - markup-ready intake photo flow for customer vehicles / site conditions
