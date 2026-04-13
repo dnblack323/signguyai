@@ -48,6 +48,24 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
   - backend testing agent passed consolidation verification
   - testing agent iteration_99 passed with 100% backend and frontend success, no action items
 
+### Session: April 13, 2026 (Post-Consolidation Verification Fixes — Signature + Schedule + Drawing)
+- Fixed the order signature capture runtime regression:
+  - root cause was unstable `onChange` / `onAutosave` callback identities in `DrawingCanvasPad` causing callback-driven state updates to loop when signature capture opened inside the order detail dialog flow
+  - stabilized canvas callbacks using refs instead of effect dependencies so the signature modal opens without `Maximum update depth exceeded`
+- Fixed unified schedule shift persistence:
+  - `schedule_shift` productivity item UIDs use the compound format `schedule_shift:{schedule_id}:{day_key}`
+  - backend PATCH parsing now correctly extracts the schedule document id and day key before updating stored shift times
+- Verified drawing persistence end-to-end from the order detail screen:
+  - created and saved a real order drawing (`QA Persisted Drawing 2309`)
+  - confirmed saved thumbnail + preview modal + backend record persistence
+- Verified signature persistence end-to-end from the order detail screen:
+  - captured and saved a real signature (`QA Signature Final Test`)
+  - confirmed preview/summary + backend record persistence
+- Focused testing completed:
+  - live browser verification for signature modal open/save, schedule shift save/reopen, and drawing save/reopen
+  - testing agent iteration_100 passed all scoped checks
+  - testing agent also fixed a small unrelated regression in `Payroll.js` by moving `formatTimeOfDay` to module scope for ScheduleTab runtime safety
+
 ### Session: April 11, 2026 (Signguypa Stripe Validation + Webstore Checkout Gating)
 - Validated the tenant the user called out specifically:
   - `signguypa@gmail.com / Billnel323`
