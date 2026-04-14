@@ -1,0 +1,23 @@
+Payroll Report
+Employee Scope,QA Test Employee Updated,Date Range,2026-04-13 — 2026-04-19
+
+Summary
+Employee,Hourly Rate,Total Time,Regular Time,Overtime Time,Carryover,Gross Pay,Earnings Adj.,Advances,Payments,Adjustments,Final Owed
+QA Test Employee Updated,$22.00,25h 0m,25h 0m,0h 0m,$390.00,$550.00,$120.50,$0.00,$0.00,+$120.50,"$1,060.50"
+
+Daily Breakdown
+Employee,Day,Date,Worked Time,Break Time,Daily Pay,Daily Adjustments,Daily Final
+QA Test Employee Updated,Monday,2026-04-13,9h 0m,0h 30m,$198.00,+$120.50,$318.50
+QA Test Employee Updated,Tuesday,2026-04-14,8h 0m,0h 0m,$176.00,+$0.00,$176.00
+QA Test Employee Updated,Wednesday,2026-04-15,8h 0m,0h 0m,$176.00,+$0.00,$176.00
+
+Entry Details
+Employee,Day,Date,Source,Task,Job,Description,Worked Time,Clock In,Clock Out,Break Time,Pay
+QA Test Employee Updated,Wednesday,2026-04-15,Time Clock,time_clock,,,8h 0m,10:00 AM,6:00 PM,0h 0m,$176.00
+QA Test Employee Updated,Tuesday,2026-04-14,Time Clock,time_clock,,,8h 0m,9:00 AM,5:00 PM,0h 0m,$176.00
+QA Test Employee Updated,Monday,2026-04-13,Time Clock,time_clock,,,9h 0m,8:00 AM,5:30 PM,0h 30m,$198.00
+
+Transactions
+Employee,Date,Type,Description,Amount,Signed Impact
+QA Test Employee Updated,2026-04-13,earnings,Worksheet bonus,$45.00,+$45.00
+QA Test Employee Updated,2026-04-13,earnings,Browser Test Bonus,$75.50,+$75.50
