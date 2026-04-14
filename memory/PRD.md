@@ -179,6 +179,27 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
   - manual UI check confirmed final worksheet total now matches backend (`$1,103.50` in current-cycle test)
   - testing agent iteration_104 passed all requested features; only low-priority note was API naming inconsistency on `/api/payroll/pay-period` response fields
 
+### Session: April 14, 2026 (Markup Notes Applied — Save Prompt + Expandable Adjustments)
+- Reviewed uploaded `MARKUP.pdf` notes and implemented the relevant compact worksheet updates without expanding payroll into a new subsystem.
+- Added explicit unsaved-change handling:
+  - dirty-state detection for worksheet edits
+  - visible `Unsaved changes` badge in the worksheet header strip
+  - save-before-export prompt
+  - save-before-print prompt
+  - browser/tab close warning via `beforeunload`
+- Added expandable adjustments handling:
+  - new `Add Adjustment Row` button in the left adjustments panel
+  - users are no longer limited to the initial fixed row count
+- Preserved markup-intended layout behavior:
+  - save / export / print buttons remain at the top
+  - review/sign-off remains at the end of the worksheet
+  - no extra modals or second workflow introduced
+- Fixed the remaining total-math mismatch:
+  - worksheet summary now includes legacy manual pay/hours in displayed totals so the on-screen final total matches backend payroll report math
+- Verification completed:
+  - manual live browser checks passed for save prompt, print prompt, add-row behavior, and final-total math
+  - testing agent iteration_105 passed with backend 100% (17/17) and frontend 100%
+
 ### Session: April 11, 2026 (Signguypa Stripe Validation + Webstore Checkout Gating)
 - Validated the tenant the user called out specifically:
   - `signguypa@gmail.com / Billnel323`
