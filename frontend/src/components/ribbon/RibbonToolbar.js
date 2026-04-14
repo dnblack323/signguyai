@@ -306,7 +306,7 @@ const SettingsToolbar = ({ navigate }) => (
     <RibbonGroup title="Company">
       <RibbonButton icon={Building} label="Business" onClick={() => navigate('/settings')} />
       <RibbonButton icon={ClipboardList} label="Setup" onClick={() => navigate('/settings/pricing-setup')} />
-      <RibbonButton icon={DollarSign} label="Pricing" onClick={() => navigate('/pricing-calculator/settings')} />
+      <RibbonButton icon={DollarSign} label="Pricing" onClick={() => navigate('/pricing-foundation')} />
       <RibbonButton icon={DollarSign} label="Taxes" onClick={() => navigate('/settings')} />
     </RibbonGroup>
 

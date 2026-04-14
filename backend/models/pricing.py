@@ -21,9 +21,22 @@ class MaterialConfig(BaseModel):
     key: str
     name: str
     category: str
+    subtype: str = ""
+    brand: str = ""
+    thickness: str = ""
+    width_inches: float = 0
+    length_inches: float = 0
+    roll_sheet_size: str = ""
+    purchase_unit: str = ""
+    purchase_cost: float = 0
     cost_per_unit: float = 0
     unit_type: str = "sqft"
+    cost_per_sqft: float = 0
+    sell_rate_per_sqft: float = 0
+    waste_factor: float = 0
+    compatible_categories: List[str] = Field(default_factory=list)
     is_active: bool = True
+    notes: str = ""
 
 
 # ============== PRICING DEFAULTS ==============
@@ -128,13 +141,19 @@ class PricingDefaults(BaseModel):
     hourly_rate: float = 75.0
     design_hourly_rate: float = 85.0
     install_hourly_rate: float = 95.0
+    admin_hourly_rate: float = 35.0
     
     # Default markups
     default_markup_percent: float = 100.0
     material_markup_percent: float = 50.0
     
+    # Waste and overhead
+    waste_percentage: float = 10.0
+    
     # Minimum charges
     minimum_order: float = 50.0
+    minimum_design_charge: float = 75.0
+    minimum_install_charge: float = 150.0
     minimum_vinyl_charge: float = 25.0
     minimum_print_charge: float = 35.0
     minimum_sign_charge: float = 50.0
@@ -142,6 +161,14 @@ class PricingDefaults(BaseModel):
     minimum_wrap_charge: float = 500.0
     banner_grommet_price_each: float = 1.0
     banner_hemming_tape_price_per_linear_inch: float = 0.03
+    
+    # Rush and fees
+    rush_fee_percentage: float = 25.0
+    setup_fee_default: float = 20.0
+    
+    # Rounding and display
+    rounding_rule: str = "nearest_dollar"
+    deposit_percentage: float = 50.0
     
     # Complexity multipliers
     complexity_multiplier_base: float = 1.0

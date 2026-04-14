@@ -36,6 +36,7 @@ import UserManagement from "./pages/UserManagement";
 import Pricing from "./pages/Pricing";
 import PricingSettings from "./pages/PricingSettings";
 import PricingSetup from "./pages/PricingSetup";
+import PricingFoundation from "./pages/PricingFoundation";
 import OnboardingHub from "./pages/OnboardingHub";
 import OrdersPage from "./pages/OrdersPage";
 import OrderDetail from "./pages/OrderDetail";
@@ -174,7 +175,6 @@ function ProtectedRoutes() {
           <Route path="/job-tickets/:ticketId" element={<JobTicketDetail />} />
           <Route path="/production-board" element={<ProductionBoard />} />
           <Route path="/workflow-templates" element={<Navigate to="/settings/production" replace />} />
-          <Route path="/materials" element={<MaterialsAdmin />} />
           {/* Legacy redirects — Jobs/Quotes now go to Orders */}
           <Route path="/quotes" element={<Quotes />} />
           <Route path="/jobs" element={<LegacyJobsRedirect />} />
@@ -207,7 +207,9 @@ function ProtectedRoutes() {
           <Route path="/admin/payments" element={<PaymentSettings />} />
           <Route path="/promo-codes" element={<PromoCodes />} />
           <Route path="/pricing-calculator" element={<Pricing />} />
-          <Route path="/pricing-calculator/settings" element={<PricingSettings />} />
+          <Route path="/pricing-calculator/settings" element={<Navigate to="/pricing-foundation" replace />} />
+          <Route path="/pricing-foundation" element={<PricingFoundation />} />
+          <Route path="/materials" element={<Navigate to="/pricing-foundation" replace />} />
           <Route path="/billing" element={<BillingManagement />} />
           <Route path="/questionnaires" element={<Questionnaires />} />
           <Route path="*" element={<Navigate to="/" replace />} />

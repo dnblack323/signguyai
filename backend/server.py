@@ -288,10 +288,26 @@ def get_quantity_discount(quantity: float, quantity_breaks: dict) -> float:
     return 0
 
 
-def apply_rush_order_multiplier(suggested_price: float, rush_order: bool, multiplier: float = 1.15) -> float:
+def apply_rush_order_multiplier(suggested_price: float, rush_order: bool, multiplier: float = 1.25) -> float:
     if not rush_order:
         return suggested_price
     return suggested_price * multiplier
+
+
+def apply_rounding(price: float, rounding_rule: str = "nearest_dollar") -> float:
+    """Apply rounding rule from pricing defaults"""
+    if rounding_rule == "nearest_dollar":
+        return round(price)
+    if rounding_rule == "nearest_5":
+        return round(price / 5) * 5
+    if rounding_rule == "nearest_10":
+        return round(price / 10) * 10
+    if rounding_rule == "ceiling":
+        import math
+        return math.ceil(price)
+    if rounding_rule == "nearest_cent":
+        return round(price, 2)
+    return round(price, 2)
 
 
 def create_pricing_result(

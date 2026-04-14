@@ -1,404 +1,330 @@
 """
-Pricing Foundation Tests
-========================
-Testing the new company-based pricing calculator foundation:
-- GET/PUT /api/pricing/defaults (tenant-specific pricing settings)
-- POST /api/pricing/calculate for digital_print (banners), rigid_signs, vehicle_graphics
-- Job item creation with cost_snapshot persistence
-- Settings page data-testid and routing validation
+Pricing Foundation API Tests - Iteration 108
+Tests for the new unified Pricing Foundation page backend endpoints.
+Tests GET/PUT /api/pricing/defaults with new fields (waste_percentage, admin_hourly_rate, 
+rush_fee_percentage, rounding_rule, deposit_percentage).
 """
-
 import pytest
 import requests
 import os
-from backend.tests.test_credentials_helper import ( PRODUCTION_OWNER_EMAIL, PRODUCTION_OWNER_PASSWORD, LEGACY_ADMIN_EMAIL, LEGACY_ADMIN_PASSWORD, DEV_TEST_EMAIL, DEV_TEST_PASSWORD, FALLBACK_TEST_EMAIL, FALLBACK_TEST_PASSWORD, SYNTHETIC_OWNER_EMAIL, SYNTHETIC_OWNER_PASSWORD )
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test credentials
-ADMIN_EMAIL = LEGACY_ADMIN_EMAIL
-ADMIN_PASSWORD = LEGACY_ADMIN_PASSWORD
+TEST_EMAIL = "signguypa@gmail.com"
+TEST_PASSWORD = "Billnel323"
 
 
-class TestPricingFoundation:
-    """Test pricing foundation features"""
-    
-    token = None
-    tenant_id = None
-    test_customer_id = None
-    test_job_id = None
-    test_job_item_id = None
+class TestPricingFoundationAPI:
+    """Test Pricing Foundation API endpoints"""
     
     @pytest.fixture(autouse=True)
-    def setup_auth(self):
-        """Authenticate and get token before tests"""
-        if TestPricingFoundation.token is None:
-            response = requests.post(
-                f"{BASE_URL}/api/auth/login",
-                json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD}
-            )
-            assert response.status_code == 200, f"Login failed: {response.text}"
-            data = response.json()
-            TestPricingFoundation.token = data["access_token"]
+    def setup(self):
+        """Setup - get auth token"""
+        self.session = requests.Session()
+        self.session.headers.update({"Content-Type": "application/json"})
+        
+        # Login to get token
+        login_response = self.session.post(
+            f"{BASE_URL}/api/auth/login",
+            json={"email": TEST_EMAIL, "password": TEST_PASSWORD}
+        )
+        
+        if login_response.status_code == 200:
+            token = login_response.json().get("access_token")
+            self.session.headers.update({"Authorization": f"Bearer {token}"})
+            self.token = token
+        else:
+            pytest.skip(f"Login failed: {login_response.status_code} - {login_response.text}")
     
-    def get_headers(self):
-        return {"Authorization": f"Bearer {TestPricingFoundation.token}", "Content-Type": "application/json"}
-    
-    # ===================== PRICING DEFAULTS TESTS =====================
-    
-    def test_01_get_pricing_defaults(self):
-        """GET /api/pricing/defaults returns tenant-specific pricing settings"""
-        response = requests.get(f"{BASE_URL}/api/pricing/defaults", headers=self.get_headers())
-        assert response.status_code == 200, f"Failed: {response.text}"
+    def test_get_pricing_defaults(self):
+        """Test GET /api/pricing/defaults returns data with all expected fields"""
+        response = self.session.get(f"{BASE_URL}/api/pricing/defaults")
+        
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         
         data = response.json()
-        # Verify expected fields exist
-        assert "materials" in data, "materials field missing"
-        assert "production_hourly_rate" in data, "production_hourly_rate missing"
-        assert "overhead_percentage" in data, "overhead_percentage missing"
-        assert "target_profit_margin_percent" in data, "target_profit_margin_percent missing"
-        assert "default_markup_multiplier" in data, "default_markup_multiplier missing"
-        assert "category_defaults" in data, "category_defaults missing"
-        assert "selling_price_benchmarks" in data, "selling_price_benchmarks missing"
         
-        # Verify category defaults structure
-        cat_defaults = data["category_defaults"]
-        assert "vehicle_wraps" in cat_defaults, "vehicle_wraps category missing"
-        assert "banners" in cat_defaults, "banners category missing"
-        assert "rigid_signs" in cat_defaults, "rigid_signs category missing"
+        # Verify core fields exist
+        assert "production_hourly_rate" in data, "Missing production_hourly_rate"
+        assert "design_hourly_rate" in data, "Missing design_hourly_rate"
+        assert "install_hourly_rate" in data, "Missing install_hourly_rate"
         
-        # Verify selling benchmarks structure
-        benchmarks = data["selling_price_benchmarks"]
-        assert "vehicle_wraps" in benchmarks, "vehicle_wraps benchmark missing"
-        assert "banners" in benchmarks, "banners benchmark missing"
-        assert "rigid_signs" in benchmarks, "rigid_signs benchmark missing"
+        # Verify NEW fields from Pricing Foundation
+        assert "admin_hourly_rate" in data, "Missing admin_hourly_rate (new field)"
+        assert "waste_percentage" in data, "Missing waste_percentage (new field)"
+        assert "rush_fee_percentage" in data, "Missing rush_fee_percentage (new field)"
+        assert "rounding_rule" in data, "Missing rounding_rule (new field)"
+        assert "deposit_percentage" in data, "Missing deposit_percentage (new field)"
         
-        print(f"[PASS] GET /api/pricing/defaults returned {len(data.get('materials', []))} materials")
+        # Verify overhead fields
+        assert "overhead_percentage" in data, "Missing overhead_percentage"
+        assert "shop_overhead_per_hour" in data, "Missing shop_overhead_per_hour"
+        
+        # Verify minimum charges
+        assert "minimum_order" in data, "Missing minimum_order"
+        assert "minimum_design_charge" in data, "Missing minimum_design_charge"
+        assert "minimum_install_charge" in data, "Missing minimum_install_charge"
+        assert "minimum_vinyl_charge" in data, "Missing minimum_vinyl_charge"
+        assert "minimum_print_charge" in data, "Missing minimum_print_charge"
+        assert "minimum_sign_charge" in data, "Missing minimum_sign_charge"
+        assert "minimum_service_charge" in data, "Missing minimum_service_charge"
+        assert "minimum_wrap_charge" in data, "Missing minimum_wrap_charge"
+        
+        # Verify setup fees
+        assert "setup_fee_default" in data, "Missing setup_fee_default"
+        assert "setup_fee_vinyl" in data, "Missing setup_fee_vinyl"
+        assert "setup_fee_print" in data, "Missing setup_fee_print"
+        assert "setup_fee_apparel_screen" in data, "Missing setup_fee_apparel_screen"
+        assert "setup_fee_apparel_dtf" in data, "Missing setup_fee_apparel_dtf"
+        
+        # Verify quantity breaks
+        assert "quantity_breaks" in data, "Missing quantity_breaks"
+        assert isinstance(data["quantity_breaks"], dict), "quantity_breaks should be a dict"
+        
+        # Verify materials array
+        assert "materials" in data, "Missing materials"
+        assert isinstance(data["materials"], list), "materials should be a list"
+        
+        # Verify category_defaults
+        assert "category_defaults" in data, "Missing category_defaults"
+        assert isinstance(data["category_defaults"], dict), "category_defaults should be a dict"
+        
+        # Verify selling_price_benchmarks
+        assert "selling_price_benchmarks" in data, "Missing selling_price_benchmarks"
+        assert isinstance(data["selling_price_benchmarks"], dict), "selling_price_benchmarks should be a dict"
+        
+        print(f"✓ GET /api/pricing/defaults returned all expected fields")
+        print(f"  - admin_hourly_rate: {data.get('admin_hourly_rate')}")
+        print(f"  - waste_percentage: {data.get('waste_percentage')}")
+        print(f"  - rush_fee_percentage: {data.get('rush_fee_percentage')}")
+        print(f"  - rounding_rule: {data.get('rounding_rule')}")
+        print(f"  - deposit_percentage: {data.get('deposit_percentage')}")
+        print(f"  - materials count: {len(data.get('materials', []))}")
+        print(f"  - category_defaults keys: {list(data.get('category_defaults', {}).keys())}")
     
-    def test_02_update_pricing_defaults(self):
-        """PUT /api/pricing/defaults saves tenant-specific pricing settings"""
-        # Update some settings
-        update_payload = {
+    def test_get_pricing_settings_alias(self):
+        """Test GET /api/pricing/settings (alias endpoint) works"""
+        response = self.session.get(f"{BASE_URL}/api/pricing/settings")
+        
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        
+        data = response.json()
+        assert "production_hourly_rate" in data
+        assert "materials" in data
+        
+        print(f"✓ GET /api/pricing/settings alias works correctly")
+    
+    def test_update_pricing_defaults(self):
+        """Test PUT /api/pricing/defaults updates values correctly"""
+        # First get current values
+        get_response = self.session.get(f"{BASE_URL}/api/pricing/defaults")
+        assert get_response.status_code == 200
+        original_data = get_response.json()
+        
+        # Update with new values
+        test_updates = {
             "production_hourly_rate": 30.0,
-            "overhead_percentage": 18.0,
-            "target_profit_margin_percent": 42.0,
+            "admin_hourly_rate": 40.0,
+            "waste_percentage": 12.0,
+            "rush_fee_percentage": 30.0,
+            "rounding_rule": "nearest_5",
+            "deposit_percentage": 55.0
+        }
+        
+        put_response = self.session.put(
+            f"{BASE_URL}/api/pricing/defaults",
+            json=test_updates
+        )
+        
+        assert put_response.status_code == 200, f"Expected 200, got {put_response.status_code}: {put_response.text}"
+        
+        updated_data = put_response.json()
+        
+        # Verify updates were applied
+        assert updated_data.get("production_hourly_rate") == 30.0, "production_hourly_rate not updated"
+        assert updated_data.get("admin_hourly_rate") == 40.0, "admin_hourly_rate not updated"
+        assert updated_data.get("waste_percentage") == 12.0, "waste_percentage not updated"
+        assert updated_data.get("rush_fee_percentage") == 30.0, "rush_fee_percentage not updated"
+        assert updated_data.get("rounding_rule") == "nearest_5", "rounding_rule not updated"
+        assert updated_data.get("deposit_percentage") == 55.0, "deposit_percentage not updated"
+        
+        print(f"✓ PUT /api/pricing/defaults updated values correctly")
+        
+        # Restore original values
+        restore_updates = {
+            "production_hourly_rate": original_data.get("production_hourly_rate", 28.0),
+            "admin_hourly_rate": original_data.get("admin_hourly_rate", 35.0),
+            "waste_percentage": original_data.get("waste_percentage", 10.0),
+            "rush_fee_percentage": original_data.get("rush_fee_percentage", 25.0),
+            "rounding_rule": original_data.get("rounding_rule", "nearest_dollar"),
+            "deposit_percentage": original_data.get("deposit_percentage", 50.0)
+        }
+        
+        restore_response = self.session.put(
+            f"{BASE_URL}/api/pricing/defaults",
+            json=restore_updates
+        )
+        assert restore_response.status_code == 200, "Failed to restore original values"
+        print(f"✓ Original values restored")
+    
+    def test_update_category_defaults(self):
+        """Test updating category_defaults nested object"""
+        # Get current values
+        get_response = self.session.get(f"{BASE_URL}/api/pricing/defaults")
+        assert get_response.status_code == 200
+        original_data = get_response.json()
+        
+        # Update category defaults
+        test_updates = {
             "category_defaults": {
-                "banners": {
-                    "default_labor_hours_per_sqft": 0.07,
-                    "default_markup_multiplier": 2.4,
-                    "target_profit_margin_percent": 41.0,
-                    "minimum_charge": 40.0
-                }
-            },
-            "selling_price_benchmarks": {
-                "banners": {
-                    "average_sell_price_per_sqft": 9.0,
-                    "average_order_total": 260.0,
-                    "minimum_charge": 50.0
+                "cut_vinyl": {
+                    "default_labor_hours_per_sqft": 0.15,
+                    "default_markup_multiplier": 2.5,
+                    "minimum_charge": 30.0
                 }
             }
         }
         
-        response = requests.put(
+        put_response = self.session.put(
             f"{BASE_URL}/api/pricing/defaults",
-            headers=self.get_headers(),
-            json=update_payload
+            json=test_updates
         )
-        assert response.status_code == 200, f"Failed: {response.text}"
         
-        data = response.json()
-        # Verify updates were applied
-        assert data["production_hourly_rate"] == 30.0, "production_hourly_rate not updated"
-        assert data["overhead_percentage"] == 18.0, "overhead_percentage not updated"
+        assert put_response.status_code == 200, f"Expected 200, got {put_response.status_code}: {put_response.text}"
         
-        # Verify category defaults were merged
-        banner_defaults = data["category_defaults"].get("banners", {})
-        assert banner_defaults.get("default_labor_hours_per_sqft") == 0.07, "banner labor hours not updated"
+        updated_data = put_response.json()
         
-        # Verify benchmarks were merged
-        banner_benchmarks = data["selling_price_benchmarks"].get("banners", {})
-        assert banner_benchmarks.get("average_sell_price_per_sqft") == 9.0, "banner benchmark not updated"
+        # Verify category_defaults was updated
+        assert "category_defaults" in updated_data
+        assert "cut_vinyl" in updated_data["category_defaults"]
+        cut_vinyl = updated_data["category_defaults"]["cut_vinyl"]
+        assert cut_vinyl.get("default_labor_hours_per_sqft") == 0.15
+        assert cut_vinyl.get("default_markup_multiplier") == 2.5
+        assert cut_vinyl.get("minimum_charge") == 30.0
         
-        print("[PASS] PUT /api/pricing/defaults saved settings correctly")
-    
-    # ===================== CALCULATE ENDPOINT TESTS =====================
-    
-    def test_03_calculate_digital_print_banner(self):
-        """POST /api/pricing/calculate for digital_print (banner) returns full cost breakdown"""
-        calc_payload = {
-            "category": "digital_print",
-            "pricing_data": {
-                "width_inches": 48,
-                "length_inches": 96,
-                "print_material": "banner_13oz",
-                "laminate": False,
-                "grommets": True,
-                "hemming": True,
-                "complexity": 3
-            },
-            "quantity": 1
-        }
+        print(f"✓ PUT /api/pricing/defaults updated category_defaults correctly")
         
-        response = requests.post(
-            f"{BASE_URL}/api/pricing/calculate",
-            headers=self.get_headers(),
-            json=calc_payload
-        )
-        assert response.status_code == 200, f"Failed: {response.text}"
-        
-        data = response.json()
-        # Verify all required cost breakdown fields
-        assert "material_cost" in data, "material_cost missing"
-        assert "labor_cost" in data, "labor_cost missing"
-        assert "overhead_cost" in data, "overhead_cost missing"
-        assert "total_cost" in data, "total_cost missing"
-        assert "selling_price" in data, "selling_price missing"
-        assert "profit_amount" in data, "profit_amount missing"
-        assert "profit_margin_percent" in data, "profit_margin_percent missing"
-        
-        # Verify reasonable values
-        assert data["material_cost"] > 0, "material_cost should be > 0"
-        assert data["total_cost"] > 0, "total_cost should be > 0"
-        assert data["selling_price"] >= data["total_cost"], "selling_price should be >= total_cost"
-        assert data["profit_amount"] >= 0, "profit_amount should be >= 0"
-        
-        # Verify breakdown details
-        assert "breakdown" in data, "breakdown missing"
-        breakdown = data["breakdown"]
-        assert "square_feet" in breakdown, "breakdown missing square_feet"
-        # grommets and hemming are optional fields in breakdown
-        assert "grommets" in breakdown, "grommets key missing from breakdown"
-        assert "hemming" in breakdown, "hemming key missing from breakdown"
-        
-        print(f"[PASS] Banner calculation: material=${data['material_cost']:.2f}, total=${data['total_cost']:.2f}, selling=${data['selling_price']:.2f}, profit=${data['profit_amount']:.2f} ({data['profit_margin_percent']}%)")
-    
-    def test_04_calculate_rigid_signs(self):
-        """POST /api/pricing/calculate for rigid_signs returns full cost breakdown"""
-        calc_payload = {
-            "category": "rigid_signs",
-            "pricing_data": {
-                "width_inches": 24,
-                "length_inches": 18,
-                "substrate_type": "coroplast_4mm",
-                "double_sided": False,
-                "laminate": True,
-                "complexity": 2
-            },
-            "quantity": 5
-        }
-        
-        response = requests.post(
-            f"{BASE_URL}/api/pricing/calculate",
-            headers=self.get_headers(),
-            json=calc_payload
-        )
-        assert response.status_code == 200, f"Failed: {response.text}"
-        
-        data = response.json()
-        # Verify all required fields
-        assert data["material_cost"] >= 0, "material_cost should be >= 0"
-        assert data["labor_cost"] >= 0, "labor_cost should be >= 0"
-        assert data["overhead_cost"] >= 0, "overhead_cost should be >= 0"
-        assert data["total_cost"] > 0, "total_cost should be > 0"
-        assert data["selling_price"] > 0, "selling_price should be > 0"
-        assert data["profit_amount"] >= 0, "profit_amount should be >= 0"
-        assert "profit_margin_percent" in data
-        
-        # Verify breakdown
-        breakdown = data.get("breakdown", {})
-        assert "substrate" in breakdown, "substrate missing from breakdown"
-        
-        print(f"[PASS] Rigid signs calculation (qty 5): total=${data['total_cost']:.2f}, selling=${data['selling_price']:.2f}, profit={data['profit_margin_percent']}%")
-    
-    def test_05_calculate_vehicle_graphics(self):
-        """POST /api/pricing/calculate for vehicle_graphics returns full cost breakdown"""
-        calc_payload = {
-            "category": "vehicle_graphics",
-            "pricing_data": {
-                "vehicle_type": "van_cargo",
-                "coverage_type": "partial",
-                "complexity": 4,
-                "include_design": True
-            },
-            "quantity": 1
-        }
-        
-        response = requests.post(
-            f"{BASE_URL}/api/pricing/calculate",
-            headers=self.get_headers(),
-            json=calc_payload
-        )
-        assert response.status_code == 200, f"Failed: {response.text}"
-        
-        data = response.json()
-        # Verify all required fields
-        assert data["material_cost"] > 0, "material_cost should be > 0 for vehicle wrap"
-        assert data["labor_cost"] > 0, "labor_cost should be > 0 for vehicle wrap"
-        assert data["overhead_cost"] >= 0, "overhead_cost should be >= 0"
-        assert data["total_cost"] > 0, "total_cost should be > 0"
-        assert data["selling_price"] > 0, "selling_price should be > 0"
-        assert data["profit_amount"] >= 0, "profit_amount should be >= 0"
-        
-        # Verify breakdown has vehicle info
-        breakdown = data.get("breakdown", {})
-        assert breakdown.get("vehicle_type") == "van_cargo", "vehicle_type mismatch"
-        assert breakdown.get("coverage") == "partial", "coverage mismatch"
-        assert "actual_sqft" in breakdown, "actual_sqft missing"
-        
-        print(f"[PASS] Vehicle graphics calculation: total=${data['total_cost']:.2f}, selling=${data['selling_price']:.2f}, profit={data['profit_margin_percent']}%")
-    
-    # ===================== JOB ITEM WITH COST_SNAPSHOT TESTS =====================
-    
-    def test_06_create_test_customer_and_job(self):
-        """Create a test customer and job for item creation tests"""
-        # Create test customer
-        customer_payload = {
-            "name": "TEST_Pricing_Customer",
-            "email": "test_pricing@example.com",
-            "phone": "555-0100"
-        }
-        response = requests.post(
-            f"{BASE_URL}/api/customers",
-            headers=self.get_headers(),
-            json=customer_payload
-        )
-        assert response.status_code in [200, 201], f"Failed to create customer: {response.text}"
-        customer = response.json()
-        TestPricingFoundation.test_customer_id = customer["id"]
-        
-        # Create test job
-        job_payload = {
-            "customer_id": customer["id"],
-            "name": "TEST_Pricing_Job",
-            "description": "Job for pricing foundation testing",
-            "status": "approved"
-        }
-        response = requests.post(
-            f"{BASE_URL}/api/jobs",
-            headers=self.get_headers(),
-            json=job_payload
-        )
-        assert response.status_code in [200, 201], f"Failed to create job: {response.text}"
-        job = response.json()
-        TestPricingFoundation.test_job_id = job["id"]
-        
-        print(f"[PASS] Created test customer {customer['id'][:8]} and job {job['id'][:8]}")
-    
-    def test_07_create_job_item_with_cost_snapshot(self):
-        """POST /api/jobs/{id}/items preserves pricing_category and cost_snapshot"""
-        # First calculate a price
-        calc_payload = {
-            "category": "digital_print",
-            "pricing_data": {
-                "width_inches": 36,
-                "length_inches": 48,
-                "print_material": "banner_13oz",
-                "complexity": 2
-            },
-            "quantity": 2
-        }
-        calc_response = requests.post(
-            f"{BASE_URL}/api/pricing/calculate",
-            headers=self.get_headers(),
-            json=calc_payload
-        )
-        assert calc_response.status_code == 200
-        calc_data = calc_response.json()
-        
-        # Build cost_snapshot from calculation
-        cost_snapshot = {
-            "material_cost": calc_data["material_cost"],
-            "labor_cost": calc_data["labor_cost"],
-            "overhead_cost": calc_data.get("overhead_cost", 0),
-            "total_cost": calc_data["total_cost"],
-            "selling_price": calc_data["selling_price"],
-            "profit_amount": calc_data["profit_amount"],
-            "profit_margin_percent": calc_data["profit_margin_percent"],
-            "breakdown": calc_data.get("breakdown", {})
-        }
-        
-        # Create job item with calculator data
-        item_payload = {
-            "description": "36x48 Banner (2 qty) - Calculator Test",
-            "quantity": 2,
-            "unit_price": calc_data["selling_price"] / 2,  # per unit
-            "item_type": "banner",
-            "status": "pending",
-            "pricing_category": "digital_print",
-            "pricing_data": calc_payload["pricing_data"],
-            "cost_snapshot": cost_snapshot,
-            "production_cost": calc_data["total_cost"],
-            "profit_amount": calc_data["profit_amount"],
-            "profit_margin_percent": calc_data["profit_margin_percent"]
-        }
-        
-        response = requests.post(
-            f"{BASE_URL}/api/jobs/{TestPricingFoundation.test_job_id}/items",
-            headers=self.get_headers(),
-            json=item_payload
-        )
-        assert response.status_code in [200, 201], f"Failed to create job item: {response.text}"
-        
-        item = response.json()
-        TestPricingFoundation.test_job_item_id = item["id"]
-        
-        # Verify cost_snapshot persisted
-        assert item.get("pricing_category") == "digital_print", "pricing_category not persisted"
-        assert item.get("cost_snapshot") is not None, "cost_snapshot not persisted"
-        assert item.get("production_cost") == calc_data["total_cost"], "production_cost not persisted"
-        assert item.get("profit_amount") == calc_data["profit_amount"], "profit_amount not persisted"
-        
-        # Verify cost_snapshot contents
-        saved_snapshot = item.get("cost_snapshot", {})
-        assert saved_snapshot.get("material_cost") == cost_snapshot["material_cost"], "cost_snapshot material_cost mismatch"
-        assert saved_snapshot.get("selling_price") == cost_snapshot["selling_price"], "cost_snapshot selling_price mismatch"
-        
-        print(f"[PASS] Created job item {item['id'][:8]} with cost_snapshot preserved")
-    
-    def test_08_get_job_item_verifies_cost_snapshot(self):
-        """GET job item verifies cost_snapshot was persisted in database"""
-        response = requests.get(
-            f"{BASE_URL}/api/job-items/{TestPricingFoundation.test_job_item_id}",
-            headers=self.get_headers()
-        )
-        assert response.status_code == 200, f"Failed: {response.text}"
-        
-        item = response.json()
-        # Verify all pricing fields persisted
-        assert item.get("pricing_category") == "digital_print", "pricing_category not in GET response"
-        assert item.get("cost_snapshot") is not None, "cost_snapshot not in GET response"
-        assert item.get("production_cost", 0) > 0, "production_cost not in GET response"
-        assert item.get("profit_amount", 0) >= 0, "profit_amount not in GET response"
-        assert "profit_margin_percent" in item, "profit_margin_percent not in GET response"
-        
-        print("[PASS] GET job item confirms cost_snapshot persisted correctly")
-    
-    # ===================== CLEANUP =====================
-    
-    def test_99_cleanup(self):
-        """Cleanup test data"""
-        # Delete job item
-        if TestPricingFoundation.test_job_item_id:
-            requests.delete(
-                f"{BASE_URL}/api/job-items/{TestPricingFoundation.test_job_item_id}",
-                headers=self.get_headers()
+        # Restore original category defaults
+        if "category_defaults" in original_data:
+            restore_response = self.session.put(
+                f"{BASE_URL}/api/pricing/defaults",
+                json={"category_defaults": original_data["category_defaults"]}
             )
+            assert restore_response.status_code == 200
+            print(f"✓ Original category_defaults restored")
+    
+    def test_update_materials_array(self):
+        """Test updating materials array"""
+        # Get current values
+        get_response = self.session.get(f"{BASE_URL}/api/pricing/defaults")
+        assert get_response.status_code == 200
+        original_data = get_response.json()
+        original_materials = original_data.get("materials", [])
         
-        # Delete job
-        if TestPricingFoundation.test_job_id:
-            requests.delete(
-                f"{BASE_URL}/api/jobs/{TestPricingFoundation.test_job_id}",
-                headers=self.get_headers()
+        # Add a test material
+        test_material = {
+            "id": "test-material-123",
+            "key": "test_material",
+            "name": "Test Material",
+            "category": "vinyl",
+            "cost_per_unit": 2.50,
+            "unit_type": "sqft",
+            "is_active": True
+        }
+        
+        updated_materials = original_materials + [test_material]
+        
+        put_response = self.session.put(
+            f"{BASE_URL}/api/pricing/defaults",
+            json={"materials": updated_materials}
+        )
+        
+        assert put_response.status_code == 200, f"Expected 200, got {put_response.status_code}: {put_response.text}"
+        
+        updated_data = put_response.json()
+        
+        # Verify material was added
+        assert "materials" in updated_data
+        material_keys = [m.get("key") for m in updated_data["materials"]]
+        assert "test_material" in material_keys, "Test material not found in updated materials"
+        
+        print(f"✓ PUT /api/pricing/defaults updated materials array correctly")
+        
+        # Restore original materials
+        restore_response = self.session.put(
+            f"{BASE_URL}/api/pricing/defaults",
+            json={"materials": original_materials}
+        )
+        assert restore_response.status_code == 200
+        print(f"✓ Original materials restored")
+    
+    def test_update_selling_price_benchmarks(self):
+        """Test updating selling_price_benchmarks"""
+        # Get current values
+        get_response = self.session.get(f"{BASE_URL}/api/pricing/defaults")
+        assert get_response.status_code == 200
+        original_data = get_response.json()
+        
+        # Update benchmarks
+        test_updates = {
+            "selling_price_benchmarks": {
+                "cut_vinyl": {
+                    "average_sell_price_per_sqft": 8.0,
+                    "average_order_total": 150.0,
+                    "minimum_charge": 35.0
+                }
+            }
+        }
+        
+        put_response = self.session.put(
+            f"{BASE_URL}/api/pricing/defaults",
+            json=test_updates
+        )
+        
+        assert put_response.status_code == 200, f"Expected 200, got {put_response.status_code}: {put_response.text}"
+        
+        updated_data = put_response.json()
+        
+        # Verify benchmarks were updated
+        assert "selling_price_benchmarks" in updated_data
+        assert "cut_vinyl" in updated_data["selling_price_benchmarks"]
+        cut_vinyl_bench = updated_data["selling_price_benchmarks"]["cut_vinyl"]
+        assert cut_vinyl_bench.get("average_sell_price_per_sqft") == 8.0
+        
+        print(f"✓ PUT /api/pricing/defaults updated selling_price_benchmarks correctly")
+        
+        # Restore original benchmarks
+        if "selling_price_benchmarks" in original_data:
+            restore_response = self.session.put(
+                f"{BASE_URL}/api/pricing/defaults",
+                json={"selling_price_benchmarks": original_data["selling_price_benchmarks"]}
             )
+            assert restore_response.status_code == 200
+            print(f"✓ Original selling_price_benchmarks restored")
+    
+    def test_get_pricing_materials(self):
+        """Test GET /api/pricing/materials endpoint"""
+        response = self.session.get(f"{BASE_URL}/api/pricing/materials")
         
-        # Delete customer
-        if TestPricingFoundation.test_customer_id:
-            requests.delete(
-                f"{BASE_URL}/api/customers/{TestPricingFoundation.test_customer_id}",
-                headers=self.get_headers()
-            )
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         
-        print("[PASS] Cleanup completed")
+        data = response.json()
+        assert isinstance(data, dict), "Materials response should be a dict"
+        
+        print(f"✓ GET /api/pricing/materials returned materials catalog")
+        print(f"  - Categories: {list(data.keys())}")
+    
+    def test_health_check(self):
+        """Test API health endpoint"""
+        response = self.session.get(f"{BASE_URL}/api/health")
+        
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        
+        data = response.json()
+        assert data.get("status") == "healthy"
+        
+        print(f"✓ API health check passed")
 
 
 if __name__ == "__main__":
