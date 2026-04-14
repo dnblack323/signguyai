@@ -38,6 +38,9 @@ class EmployeeBase(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     hourly_rate: float = 0
+    overtime_rate: Optional[float] = None
+    title: Optional[str] = None
+    manager_name: Optional[str] = None
     role: str = "staff"
     is_active: bool = True
     tenant_id: Optional[str] = None
@@ -53,6 +56,9 @@ class EmployeeUpdate(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     hourly_rate: Optional[float] = None
+    overtime_rate: Optional[float] = None
+    title: Optional[str] = None
+    manager_name: Optional[str] = None
     role: Optional[str] = None
     is_active: Optional[bool] = None
     pin: Optional[str] = None
@@ -145,6 +151,19 @@ class TimeClockShiftUpdate(BaseModel):
     clock_in: Optional[str] = None
     clock_out: Optional[str] = None
     break_minutes: Optional[float] = None
+    lunch_start: Optional[str] = None
+    lunch_end: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class TimeClockShiftCreate(BaseModel):
+    employee_id: str
+    date: str
+    clock_in: Optional[str] = None
+    clock_out: Optional[str] = None
+    break_minutes: Optional[float] = None
+    lunch_start: Optional[str] = None
+    lunch_end: Optional[str] = None
     notes: Optional[str] = None
 
 
@@ -351,7 +370,7 @@ def _summarize_transactions(transactions: list[dict]) -> dict:
     }
 
 
-def _summarize_entry_pay(entries: list[dict], hourly_rate: float) -> dict:
+def _summarize_entry_pay(entries: list[dict], hourly_rate: float, overtime_rate: Optional[float] = None) -> dict:
     weekly_minutes: dict[str, int] = defaultdict(int)
     total_minutes = 0
     base_pay = 0.0
@@ -370,7 +389,8 @@ def _summarize_entry_pay(entries: list[dict], hourly_rate: float) -> dict:
         overtime_minutes += max(minutes - (40 * 60), 0)
 
     regular_minutes = max(total_minutes - overtime_minutes, 0)
-    overtime_premium = round((overtime_minutes / 60) * hourly_rate * 0.5, 2)
+    effective_overtime_rate = float(overtime_rate) if overtime_rate is not None else round(float(hourly_rate or 0) * 1.5, 2)
+    overtime_premium = round((overtime_minutes / 60) * max(effective_overtime_rate - float(hourly_rate or 0), 0), 2)
     gross_pay = round(base_pay + overtime_premium, 2)
     return {
         "total_minutes": total_minutes,
@@ -378,6 +398,7 @@ def _summarize_entry_pay(entries: list[dict], hourly_rate: float) -> dict:
         "overtime_minutes": overtime_minutes,
         "base_pay": round(base_pay, 2),
         "overtime_premium": overtime_premium,
+        "overtime_rate": effective_overtime_rate,
         "gross_pay": gross_pay,
     }
 
@@ -432,12 +453,13 @@ def _build_daily_breakdown(entries: list[dict], transactions: list[dict]) -> lis
 
 async def _build_employee_payroll_snapshot(tenant_id: str, employee: dict, start_date: str, end_date: str) -> dict:
     hourly_rate = float(employee.get("hourly_rate") or 0)
+    overtime_rate = employee.get("overtime_rate")
     current_snapshot = await _get_employee_compensation_snapshot(tenant_id, employee, start_date, end_date)
     current_entries = sorted(
         current_snapshot["job_details"] + current_snapshot["manual_details"] + current_snapshot["shift_details"],
         key=lambda entry: (entry.get("date") or "", entry.get("clock_in") or ""),
     )
-    current_pay = _summarize_entry_pay(current_entries, hourly_rate)
+    current_pay = _summarize_entry_pay(current_entries, hourly_rate, overtime_rate)
     current_transactions = await _get_employee_transactions(employee["id"], start_date, end_date)
     current_transaction_summary = _summarize_transactions(current_transactions)
 
@@ -447,7 +469,7 @@ async def _build_employee_payroll_snapshot(tenant_id: str, employee: dict, start
     if previous_end_date.isoformat() >= "2000-01-01":
         previous_snapshot = await _get_employee_compensation_snapshot(tenant_id, employee, "2000-01-01", previous_end_date.isoformat())
         previous_entries = previous_snapshot["job_details"] + previous_snapshot["manual_details"] + previous_snapshot["shift_details"]
-        previous_pay = _summarize_entry_pay(previous_entries, hourly_rate)
+        previous_pay = _summarize_entry_pay(previous_entries, hourly_rate, overtime_rate)
         previous_transactions = await _get_employee_transactions(employee["id"], end_date=previous_end_date.isoformat())
         previous_transaction_summary = _summarize_transactions(previous_transactions)
         carryover_balance = round(previous_pay["gross_pay"] + previous_transaction_summary["adjustments_total"], 2)
@@ -750,6 +772,42 @@ async def create_payroll_transaction(input: PayrollTransactionCreate, current_us
     return transaction
 
 
+@payroll_router.post("/timeclock-shifts")
+async def create_timeclock_shift(
+    input: TimeClockShiftCreate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Create a payroll worksheet time clock shift for a specific day."""
+    _require_payroll_edit_access(current_user)
+    employee = await db.employees.find_one({
+        "id": input.employee_id,
+        "tenant_id": current_user.tenant_id,
+    }, {"_id": 0, "id": 1})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    shift = {
+        "id": str(uuid.uuid4()),
+        "tenant_id": current_user.tenant_id,
+        "employee_id": input.employee_id,
+        "date": input.date,
+        "clock_in": input.clock_in,
+        "clock_out": input.clock_out,
+        "break_minutes": float(input.break_minutes or 0),
+        "lunch_start": input.lunch_start,
+        "lunch_end": input.lunch_end,
+        "notes": input.notes or "",
+        "source": "worksheet",
+        "status": "finished" if input.clock_in and input.clock_out else "draft",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    shift.update(calculate_shift_metrics(shift))
+    await db.timeclock_shifts.insert_one(shift)
+    shift.pop("_id", None)
+    return shift
+
+
 @payroll_router.put("/transactions/{transaction_id}", response_model=PayrollTransaction)
 async def update_payroll_transaction(
     transaction_id: str,
@@ -827,7 +885,7 @@ async def get_payroll_balance(
     
     snapshot = await _get_employee_compensation_snapshot(current_user.tenant_id, employee)
     entries = snapshot["job_details"] + snapshot["manual_details"] + snapshot["shift_details"]
-    pay_summary = _summarize_entry_pay(entries, float(employee.get("hourly_rate") or 0))
+    pay_summary = _summarize_entry_pay(entries, float(employee.get("hourly_rate") or 0), employee.get("overtime_rate"))
     transaction_summary = _summarize_transactions(await _get_employee_transactions(employee_id))
     total_earnings = round(pay_summary["gross_pay"] + transaction_summary["earnings"], 2)
     total_advances = transaction_summary["advances"]
@@ -873,6 +931,7 @@ async def get_payroll_report(
             "employee_id": emp["id"],
             "employee_name": emp["name"],
             "hourly_rate": hourly_rate,
+            "overtime_rate": emp.get("overtime_rate") or round(hourly_rate * 1.5, 2),
             "hours": round(pay_summary["total_minutes"] / 60, 2),
             "total_minutes": pay_summary["total_minutes"],
             "total_hours_label": _format_minutes_label(pay_summary["total_minutes"]),
@@ -1115,6 +1174,7 @@ async def get_timesheet(
             "employee_id": emp["id"],
             "employee_name": emp.get("name"),
             "hourly_rate": hourly_rate,
+            "overtime_rate": emp.get("overtime_rate") or round(hourly_rate * 1.5, 2),
             "total_hours": round(pay_summary["total_minutes"] / 60, 2),
             "total_minutes": pay_summary["total_minutes"],
             "total_hours_label": _format_minutes_label(pay_summary["total_minutes"]),
@@ -1195,6 +1255,7 @@ async def get_pay_period_summary(
             "employee_id": emp["id"],
             "employee_name": emp.get("name"),
             "hourly_rate": emp.get("hourly_rate", 0),
+            "overtime_rate": emp.get("overtime_rate") or round(float(emp.get("hourly_rate") or 0) * 1.5, 2),
             "total_hours": round(pay_summary["total_minutes"] / 60, 2),
             "total_minutes": pay_summary["total_minutes"],
             "total_hours_label": _format_minutes_label(pay_summary["total_minutes"]),
