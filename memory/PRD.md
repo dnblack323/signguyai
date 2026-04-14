@@ -33,6 +33,18 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 - Backend routes/collections/field names unchanged (internal compatibility layer)
 - Files changed: OrderDetail.js, NewOrderForm.js, AddTicketToOrder.js, OrdersPage.js, JobTicketDetail.js, Quotes.js, Jobs.js, Customers.js, Invoices.js, Approvals.js, Payroll pages, Productivity, AI Tools, Admin Portal, Webstores, all Docs pages, Marketing pages, Portal pages, Settings pages, components (Ribbon, FloatingAssistant, InvoicePreview, JobHistory, AIEmail, PricingCalculator, UpgradeModal, TrialLockout, DocsLayout, OrderCommandBar, ProductivityFiltersBar), libs (payrollExport, productivity)
 
+### Session: Feb 2026 (Quick Camera Upload & Markup)
+- Added Quick Photo capture/upload + immediate markup flow on Order Detail and Order Item Detail pages
+- Enhanced DrawingCanvasPad with 4 annotation tools: Draw (freehand), Arrow, Circle, Text
+- Order Detail: "Photo" dropdown button with "Take Photo" (camera) and "Choose from Gallery" options; per-item "Quick Photo" in dropdown menu
+- Order Item Detail: "Quick Photo" and "Choose Photo" buttons in shortcut actions row
+- Flow: capture/select image -> auto-upload to order files -> immediately open Drawing Modal with photo as background for markup
+- Original photo saved in Files tab, marked-up version saved in Drawings tab
+- Mobile-first: uses `capture="environment"` for native camera on mobile devices
+- All built on existing infrastructure: order file upload route, order-drawings API, Object Storage, DrawingModal, DrawingCanvasPad
+- Files changed: DrawingCanvasPad.js (enhanced tools), OrderDetail.js (Quick Photo flow), JobTicketDetail.js (Quick Photo flow)
+- Testing: iteration_107 passed 100% (all tools, buttons, flow verified)
+
 ### Session: April 13, 2026 (Consolidation Pass — Legacy Jobs Cleanup + Unified Dashboard Finalization)
 - Completed the post-audit consolidation pass across routing, navigation, productivity, and source-detail flows.
 - Legacy `/jobs` flow cleanup:
