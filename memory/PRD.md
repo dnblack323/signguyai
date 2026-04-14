@@ -45,6 +45,20 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 - Files changed: DrawingCanvasPad.js (enhanced tools), OrderDetail.js (Quick Photo flow), JobTicketDetail.js (Quick Photo flow)
 - Testing: iteration_107 passed 100% (all tools, buttons, flow verified)
 
+### Session: Feb 2026 (Pricing Foundation — Unified Admin Page)
+- Created new `/pricing-foundation` page consolidating PricingSettings, MaterialsAdmin, and general shop defaults into one single source of truth
+- **3 Tabs:**
+  - **Shop Defaults** — Labor rates (production/design/install/admin), overhead %, waste %, markup multiplier, target margin, material markup, all 8 minimum charges, rush fee %, setup fees (6 types), rounding rule, deposit %, quantity break tiers, time estimates, travel rates
+  - **Materials Library** — Enhanced material records with: key, name, category, subtype, brand, thickness, width/length, roll/sheet size, purchase unit/cost, cost per unit, cost per sqft, sell rate per sqft, waste factor, compatible categories, active/inactive, notes. Grouped by 8 categories with expandable cards.
+  - **Category Rules** — 8 category tabs (Cut Vinyl, Banners, Rigid Signs, Vehicle Wraps, Apparel, Services, Custom, Digital Print) each with: labor hours, markup multiplier, target margin %, minimum charge, default materials, selling benchmarks
+- Extended `PricingDefaults` model with: `admin_hourly_rate`, `waste_percentage`, `minimum_design_charge`, `minimum_install_charge`, `rush_fee_percentage`, `setup_fee_default`, `rounding_rule`, `deposit_percentage`
+- Extended `MaterialConfig` model with: `subtype`, `brand`, `thickness`, `width_inches`, `length_inches`, `roll_sheet_size`, `purchase_unit`, `purchase_cost`, `cost_per_sqft`, `sell_rate_per_sqft`, `waste_factor`, `compatible_categories`, `notes`
+- Added `apply_rounding()` utility to server.py
+- Routes: `/pricing-calculator/settings` and `/materials` now redirect to `/pricing-foundation`
+- Navigation updated: Ribbon and PrimaryNav point to Pricing Foundation
+- Reads/writes via existing `GET/PUT /api/pricing/defaults` — no new backend routes
+- Testing: iteration_108 passed 100% (all tabs, fields, save flow, redirects, API verified)
+
 ### Session: April 13, 2026 (Consolidation Pass — Legacy Jobs Cleanup + Unified Dashboard Finalization)
 - Completed the post-audit consolidation pass across routing, navigation, productivity, and source-detail flows.
 - Legacy `/jobs` flow cleanup:
