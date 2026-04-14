@@ -1,702 +1,843 @@
-# Sign Guy AI - Bubble-Ready Database Schema
+# Sign Guy AI - Database Schema (Current)
+
+> Last updated: Feb 2026. Reflects multi-tenant SaaS architecture with Unified Productivity, Payroll Worksheet, Signatures/Drawings, and Object Storage.
+
+## MULTI-TENANCY
+
+Every business-data collection includes a `tenant_id` field for data isolation. All queries MUST filter by `tenant_id`.
+
+---
 
 ## OPTION SETS (ENUMS)
 
----
-
 ### CustomerStatus
-| Display | Value | Order |
-|---------|-------|-------|
-| Lead | lead | 1 |
-| Active | active | 2 |
-| Inactive | inactive | 3 |
-
----
+| Display | Value |
+|---------|-------|
+| Lead | lead |
+| Active | active |
+| Inactive | inactive |
 
 ### QuoteStatus
-| Display | Value | Order |
-|---------|-------|-------|
-| Draft | draft | 1 |
-| Sent | sent | 2 |
-| Approved | approved | 3 |
-| Declined | declined | 4 |
+| Display | Value |
+|---------|-------|
+| Draft | draft |
+| Sent | sent |
+| Approved | approved |
+| Declined | declined |
 
----
+### JobStatus
+| Display | Value |
+|---------|-------|
+| Quote | quote |
+| Approved | approved |
+| In Progress | in_progress |
+| Completed | completed |
+| Invoiced | invoiced |
+| Archived | archived |
 
-### OrderStatus
-| Display | Value | Order |
-|---------|-------|-------|
-| Quoted | quoted | 1 |
-| Approved | approved | 2 |
-| In Production | in_production | 3 |
-| Installed | installed | 4 |
-| Complete | complete | 5 |
-| Archived | archived | 6 |
+### JobActivityType
+| Display | Value |
+|---------|-------|
+| Created | created |
+| Status Changed | status_changed |
+| Quote Converted | quote_converted |
+| Invoice Created | invoice_created |
+| Item Added | item_added |
+| Item Updated | item_updated |
+| Item Deleted | item_deleted |
+| Note Added | note_added |
+| Completed | completed |
+| Archived | archived |
+| Unarchived | unarchived |
 
----
+### JobItemStatus
+| Display | Value |
+|---------|-------|
+| Pending | pending |
+| In Production | in_production |
+| Done | done |
 
-### OrderActivityType
-| Display | Value | Order |
-|---------|-------|-------|
-| Created | created | 1 |
-| Status Changed | status_changed | 2 |
-| Quote Converted | quote_converted | 3 |
-| Invoice Created | invoice_created | 4 |
-| Item Added | item_added | 5 |
-| Item Updated | item_updated | 6 |
-| Item Deleted | item_deleted | 7 |
-| Note Added | note_added | 8 |
-| Completed | completed | 9 |
-| Archived | archived | 10 |
-| Unarchived | unarchived | 11 |
-
----
-
-### JobTicketStatus
-| Display | Value | Order |
-|---------|-------|-------|
-| Pending | pending | 1 |
-| In Production | in_production | 2 |
-| Done | done | 3 |
-
----
-
-### JobTicketCategory
-| Display | Value | Order |
-|---------|-------|-------|
-| Banner | banner | 1 |
-| Yard Sign | yard_sign | 2 |
-| Decal | decal | 3 |
-| Wrap | wrap | 4 |
-| Install | install | 5 |
-| Design | design | 6 |
-| Vehicle Graphics | vehicle_graphics | 7 |
-| Window Graphics | window_graphics | 8 |
-| Dimensional Letters | dimensional_letters | 9 |
-| Monument Sign | monument_sign | 10 |
-| Other | other | 11 |
-
----
+### JobItemType
+| Display | Value |
+|---------|-------|
+| Banner | banner |
+| Yard Sign | yard_sign |
+| Decal | decal |
+| Wrap | wrap |
+| Install | install |
+| Design | design |
+| Vehicle Graphics | vehicle_graphics |
+| Window Graphics | window_graphics |
+| Dimensional Letters | dimensional_letters |
+| Monument Sign | monument_sign |
+| Other | other |
 
 ### InvoiceStatus
-| Display | Value | Order |
-|---------|-------|-------|
-| Draft | draft | 1 |
-| Sent | sent | 2 |
-| Paid | paid | 3 |
-| Overdue | overdue | 4 |
-
----
+| Display | Value |
+|---------|-------|
+| Draft | draft |
+| Sent | sent |
+| Paid | paid |
+| Overdue | overdue |
 
 ### PayrollTransactionType
-| Display | Value | Order |
-|---------|-------|-------|
-| Earnings | earnings | 1 |
-| Advance | advance | 2 |
-| Payment | payment | 3 |
-
----
+| Display | Value |
+|---------|-------|
+| Earnings | earnings |
+| Advance | advance |
+| Payment | payment |
 
 ### ExpenseCategory
-| Display | Value | Order |
-|---------|-------|-------|
-| Materials | materials | 1 |
-| Labor | labor | 2 |
-| Equipment | equipment | 3 |
-| Utilities | utilities | 4 |
-| Rent | rent | 5 |
-| Other | other | 6 |
+| Display | Value |
+|---------|-------|
+| Materials | materials |
+| Labor | labor |
+| Equipment | equipment |
+| Utilities | utilities |
+| Rent | rent |
+| Insurance | insurance |
+| Cell Phone | cell_phone |
+| Garbage | garbage |
+| Printing Supplies | printing_supplies |
+| Meals | meals |
+| Entertainment | entertainment |
+| Donations | donations |
+| Office Supplies | office_supplies |
+| Apparel | apparel |
+| Vehicle | vehicle |
+| Advertising | advertising |
+| Legal | legal |
+| Repairs | repairs |
+| Taxes | taxes |
+| Travel | travel |
+| Other | other |
 
----
+### UserRole
+| Display | Value |
+|---------|-------|
+| Owner | owner |
+| Admin | admin |
+| Staff | staff |
 
-### TimeLogAction
-| Display | Value | Order |
-|---------|-------|-------|
-| Start Work | start_work | 1 |
-| Break Start | break_start | 2 |
-| Break End | break_end | 3 |
-| End Work | end_work | 4 |
+### TenantPlan
+| Display | Value |
+|---------|-------|
+| Starter | starter |
+| Pro | pro |
+| Business | business |
+| Founders Edition | founders_edition |
 
----
+### PaymentMethod
+| Display | Value |
+|---------|-------|
+| Cash | cash |
+| Check | check |
+| Card | card |
+| Bank Transfer | bank_transfer |
+| Other | other |
+
+### MessageType
+| Display | Value |
+|---------|-------|
+| Text | text |
+| Image | image |
+| File | file |
+| System | system |
+
+### ProofStatus
+| Display | Value |
+|---------|-------|
+| Pending | pending |
+| Approved | approved |
+| Revision Requested | revision_requested |
+| Rejected | rejected |
+
+### AppointmentType
+| Display | Value |
+|---------|-------|
+| Consultation | consultation |
+| Installation | installation |
+| Pickup | pickup |
+| Site Survey | site_survey |
+| Other | other |
+
+### AppointmentStatus
+| Display | Value |
+|---------|-------|
+| Scheduled | scheduled |
+| Confirmed | confirmed |
+| In Progress | in_progress |
+| Completed | completed |
+| Cancelled | cancelled |
+| No Show | no_show |
 
 ### WebstoreType
-| Display | Value | Order |
-|---------|-------|-------|
-| Fundraiser | fundraiser | 1 |
-| B2B | b2b | 2 |
+| Display | Value |
+|---------|-------|
+| B2B | b2b |
+| Fundraiser | fundraiser |
+| Creator | creator |
 
----
-
-### FundraiserStatus
-| Display | Value | Order |
-|---------|-------|-------|
-| Active | active | 1 |
-| Paused | paused | 2 |
-| Completed | completed | 3 |
-| Cancelled | cancelled | 4 |
-
----
+### WebstoreStatus
+| Display | Value |
+|---------|-------|
+| Active | active |
+| Paused | paused |
+| Completed | completed |
+| Archived | archived |
 
 ### WebstoreOrderStatus
-| Display | Value | Order |
-|---------|-------|-------|
-| Pending | pending | 1 |
-| Processing | processing | 2 |
-| Completed | completed | 3 |
-| Cancelled | cancelled | 4 |
+| Display | Value |
+|---------|-------|
+| Pending | pending |
+| Processing | processing |
+| Ready | ready |
+| Shipped | shipped |
+| Delivered | delivered |
+| Cancelled | cancelled |
+
+### Pricing Enums
+- **PricingCategory**: promotional, cut_vinyl, services, digital_print, rigid_signs, apparel, vehicle_graphics, custom
+- **ServiceType**: design, installation, removal, site_survey, consultation, travel, other_labor
+- **ApparelType**: tshirt, hoodie, hat, polo, tank, longsleeve, jacket, other
+- **TransferType**: htv, screen_print, dtf, sublimation, embroidery
+- **VinylType**: oracal_651, oracal_751, oracal_951, avery_hp750, reflective, specialty, custom
+- **PrintMaterial**: banner_13oz, banner_18oz, vinyl_adhesive, poster_paper, canvas, backlit, perforated, custom
+- **SubstrateType**: coroplast_4mm, coroplast_10mm, aluminum_040/063/080, pvc_3mm/6mm, acrylic, dibond, mdo, custom
+- **VehicleType**: car_sedan, car_suv, pickup, van_mini, van_cargo, van_sprinter, box_truck_12ft/16ft/24ft, trailer, semi, other
+- **CoverageType**: spot, partial, half, full
+- **PromoProductType**: magnets, yard_signs, license_plates, stickers, branded_items, custom
 
 ---
 
 ## DATA TYPES
 
+### Tenant
+**Collection:** `tenants`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | text | YES | UUID primary key |
+| name | text | YES | Business name |
+| slug | text | YES | URL-safe identifier |
+| owner_email | text | YES | Primary contact |
+| phone, address, city, state, zip_code, country, website | text | NO | Business details |
+| logo_url | text | NO | Uploaded logo |
+| plan | TenantPlan | YES | Subscription tier |
+| product_line | text | YES | "os", "webstores", or "ai_studio" |
+| is_active | bool | YES | Account status |
+| is_founder | bool | NO | Founders Edition flag |
+| founder_number | int | NO | Sequential founder number |
+| time_tracking_settings | object | NO | See sub-schema below |
+| payroll_settings | object | NO | See sub-schema below |
+| employee_portal_settings | object | NO | Portal feature toggles |
+| signature_settings | object | NO | Signature feature config |
+| subscription_status | text | NO | "active", "cancelled", etc. |
+| subscription_ended_at | text | NO | ISO timestamp |
+| created_at | text | YES | ISO 8601 |
+| updated_at | text | YES | ISO 8601 |
+
+**Sub-schema: `time_tracking_settings`**
+```json
+{
+  "track_per_job": true,
+  "track_per_line_item": false,
+  "enable_employee_portal": false,
+  "enable_kiosk_mode": false,
+  "auto_suggest_on_status_change": true
+}
+```
+
+**Sub-schema: `payroll_settings`**
+```json
+{
+  "default_cycle": "weekly",        // "weekly" or "biweekly"
+  "pay_week_start_day": "monday"    // Day name (lowercase)
+}
+```
+
+---
+
+### User
+**Collection:** `users`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | text | YES | UUID primary key |
+| email | text | YES | Login email (unique per tenant) |
+| hashed_password | text | YES | bcrypt hash |
+| full_name | text | YES | Display name |
+| company_name | text | NO | |
+| role | UserRole | YES | owner/admin/staff |
+| tenant_id | text | YES | Tenant isolation |
+| is_active | bool | YES | Can login |
+| is_founder | bool | NO | |
+| created_at | text | YES | ISO 8601 |
+
 ---
 
 ### Customer
+**Collection:** `customers`
 
-| Field Name | Bubble Field Type | Required | List | Default Value | Notes |
-|------------|-------------------|----------|------|---------------|-------|
-| id | text | YES | NO | Auto-generated UUID | Primary key |
-| name | text | YES | NO | - | Customer's full name |
-| company | text | NO | NO | empty | Company/business name |
-| phone | text | NO | NO | empty | Phone number |
-| email | text | NO | NO | empty | Email address |
-| status | CustomerStatus (option set) | YES | NO | lead | Customer lifecycle status |
-| notes | text | NO | NO | empty | Free-form notes |
-| created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
-| updated_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | text | YES | UUID primary key |
+| tenant_id | text | YES | Tenant isolation |
+| name | text | YES | Customer full name |
+| company | text | NO | Company/business name |
+| phone | text | NO | Phone number |
+| email | text | NO | Email address |
+| status | CustomerStatus | YES | Default: "lead" |
+| notes | text | NO | Free-form notes |
+| portal_enabled | bool | NO | Customer portal access |
+| portal_password_hash | text | NO | Portal login hash |
+| created_at | text | YES | ISO 8601 |
+| updated_at | text | YES | ISO 8601 |
 
-**Relationships:**
-- Customer → Quote (1:many) - via Quote.customer_id
-- Customer → Order (1:many) - vian Order.customer_id
-- Customer → Invoice (1:many) - via Invoice.customer_id
+**Relationships:** Customer -> Quote (1:many), Customer -> Order (1:many), Customer -> Invoice (1:many)
 
 ---
 
 ### Quote
+**Collection:** `quotes`
 
-| Field Name | Bubble Field Type | Required | List | Default Value | Notes |
-|------------|-------------------|----------|------|---------------|-------|
-| id | text | YES | NO | Auto-generated UUID | Primary key |
-| customer_id | Customer (thing) | YES | NO | - | Link to Customer |
-| line_items | QuoteLineItem (thing) | NO | YES | empty list | Embedded line items |
-| notes | text | NO | NO | empty | Quote notes/terms |
-| status | QuoteStatus (option set) | YES | NO | draft | Quote lifecycle status |
-| total | number | YES | NO | 0 | **CALCULATED** - see below |
-| order_id | Order (thing) | NO | NO | empty | Link to converted Order (null until converted) |
-| created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
-| updated_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
-
-**Relationships:**
-- Quote → Customer (many:1) - via customer_id
-- Quote → Order (1:1) - via order_id (set when quote converts to job)
-- Quote → QuoteLineItem (1:many) - embedded list
-
-**Calculated Fields:**
-- `total` = SUM of all line_items[].total
-
----
-
-### QuoteLineItem
-
-| Field Name | Bubble Field Type | Required | List | Default Value | Notes |
-|------------|-------------------|----------|------|---------------|-------|
-| description | text | YES | NO | - | Line item description |
-| quantity | number | YES | NO | 1 | Quantity of items |
-| unit_price | number | YES | NO | - | Price per unit |
-| total | number | YES | NO | 0 | **CALCULATED** - see below |
-
-**Calculated Fields:**
-- `total` = quantity × unit_price
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | text | YES | UUID primary key |
+| tenant_id | text | YES | Tenant isolation |
+| customer_id | text | YES | Link to Customer |
+| line_items | array | NO | Embedded QuoteLineItem[] |
+| notes | text | NO | |
+| status | QuoteStatus | YES | Default: "draft" |
+| total | number | YES | CALCULATED from line_items |
+| order_id | text | NO | Set when converted to Order |
+| created_at | text | YES | ISO 8601 |
+| updated_at | text | YES | ISO 8601 |
 
 ---
 
 ### Order
+**Collection:** `orders`
 
-| Field Name | Bubble Field Type | Required | List | Default Value | Notes |
-|------------|-------------------|----------|------|---------------|-------|
-| id | text | YES | NO | Auto-generated UUID | Primary key |
-| customer_id | Customer (thing) | YES | NO | - | Link to Customer |
-| name | text | YES | NO | - | Order/project name |
-| description | text | NO | NO | empty | Order description |
-| status | OrderStatus (option set) | YES | NO | quoted | Order lifecycle status |
-| due_date | date | NO | NO | empty | Expected completion date |
-| quote_id | Quote (thing) | NO | NO | empty | Link to originating Quote |
-| invoice_id | Invoice (thing) | NO | NO | empty | Link to generated Invoice |
-| subtotal | number | YES | NO | 0 | **CALCULATED** - see below |
-| is_archived | yes/no | YES | NO | no | Soft delete/archive flag |
-| created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
-| updated_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
-
-**Relationships:**
-- Order → Customer (many:1) - via customer_id
-- Order → Quote (1:1) - via quote_id
-- Order → Invoice (1:1) - via invoice_id
-- Order → JobTicket (1:many) - vian OrderTicket.order_id
-- Order → OrderNote (1:many) - via OrderNote.order_id
-- Order → OrderActivity (1:many) - via OrderActivity.order_id
-- Order → Task (1:many) - via Task.order_id
-
-**Calculated Fields:**
-- `subtotal` = SUM of all JobTickets where order_id = this Order's id → line_total
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | text | YES | UUID primary key |
+| tenant_id | text | YES | Tenant isolation |
+| customer_id | text | YES | Link to Customer |
+| name | text | YES | Order/project name |
+| description | text | NO | |
+| status | JobStatus | YES | Default: "quote" |
+| due_date | text | NO | ISO date |
+| quote_id | text | NO | Originating Quote |
+| invoice_id | text | NO | Generated Invoice |
+| subtotal | number | YES | CALCULATED from job tickets |
+| is_archived | bool | YES | Soft delete flag |
+| created_at | text | YES | ISO 8601 |
+| updated_at | text | YES | ISO 8601 |
 
 ---
 
 ### JobTicket
+**Collection:** `job_tickets`
 
-| Field Name | Bubble Field Type | Required | List | Default Value | Notes |
-|------------|-------------------|----------|------|---------------|-------|
-| id | text | YES | NO | Auto-generated UUID | Primary key |
-| order_id | Order (thing) | YES | NO | - | Link to parent Order |
-| item_type | JobTicketCategory (option set) | YES | NO | other | Type of sign/product |
-| description | text | YES | NO | - | Item description |
-| quantity | number | YES | NO | 1 | Quantity |
-| unit_price | number | YES | NO | 0 | Price per unit |
-| line_total | number | YES | NO | 0 | **CALCULATED** - see below |
-| status | JobTicketStatus (option set) | YES | NO | pending | Item production status |
-| notes | text | NO | NO | empty | Item-specific notes |
-| created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
-
-**Relationships:**
-- JobTicket → Order (many:1) - via order_id
-- JobTicket → InvoiceLineItem (1:1) - via InvoiceLineItem.job_item_id
-
-**Calculated Fields:**
-- `line_total` = quantity × unit_price
-
----
-
-### OrderNote
-
-| Field Name | Bubble Field Type | Required | List | Default Value | Notes |
-|------------|-------------------|----------|------|---------------|-------|
-| id | text | YES | NO | Auto-generated UUID | Primary key |
-| order_id | Order (thing) | YES | NO | - | Link to parent Order |
-| content | text | YES | NO | - | Note content |
-| author | text | NO | NO | empty | Person who added note |
-| created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
-
-**Relationships:**
-- OrderNote → Order (many:1) - via order_id
-
----
-
-### OrderActivity
-
-| Field Name | Bubble Field Type | Required | List | Default Value | Notes |
-|------------|-------------------|----------|------|---------------|-------|
-| id | text | YES | NO | Auto-generated UUID | Primary key |
-| order_id | Order (thing) | YES | NO | - | Link to parent Order |
-| activity_type | OrderActivityType (option set) | YES | NO | - | Type of activity logged |
-| description | text | YES | NO | - | Human-readable description |
-| old_value | text | NO | NO | empty | Previous value (for changes) |
-| new_value | text | NO | NO | empty | New value (for changes) |
-| created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
-
-**Relationships:**
-- OrderActivity → Order (many:1) - via order_id
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | text | YES | UUID primary key |
+| tenant_id | text | YES | Tenant isolation |
+| order_id | text | YES | Parent Order |
+| ticket_number | text | NO | Human-readable ticket number |
+| item_type | JobItemType | YES | Default: "other" |
+| item_name | text | NO | Display name |
+| description | text | YES | |
+| quantity | number | YES | Default: 1 |
+| unit_price | number | YES | Default: 0 |
+| line_total | number | YES | CALCULATED: qty x unit_price |
+| status | JobItemStatus | YES | Default: "pending" |
+| priority | text | NO | |
+| assigned_user_id | text | NO | Assigned employee |
+| due_date | text | NO | |
+| notes | text | NO | |
+| workflow_template_id | text | NO | Links to workflow template |
+| created_at | text | YES | ISO 8601 |
 
 ---
 
 ### Invoice
+**Collection:** `invoices`
 
-| Field Name | Bubble Field Type | Required | List | Default Value | Notes |
-|------------|-------------------|----------|------|---------------|-------|
-| id | text | YES | NO | Auto-generated UUID | Primary key |
-| customer_id | Customer (thing) | YES | NO | - | Link to Customer |
-| order_id | Order (thing) | NO | NO | empty | Link to source Order |
-| line_items | InvoiceLineItem (thing) | NO | YES | empty list | Embedded line items |
-| total | number | YES | NO | 0 | **CALCULATED** - see below |
-| status | InvoiceStatus (option set) | YES | NO | draft | Invoice lifecycle status |
-| due_date | date | NO | NO | empty | Payment due date |
-| notes | text | NO | NO | empty | Invoice notes/terms |
-| amount_paid | number | YES | NO | 0 | Total amount received |
-| paid_date | date | NO | NO | empty | Date payment was received |
-| created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
-| updated_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
-
-**Relationships:**
-- Invoice → Customer (many:1) - via customer_id
-- Invoice → Order (1:1) - via order_id
-- Invoice → InvoiceLineItem (1:many) - embedded list
-
-**Calculated Fields:**
-- `total` = SUM of all line_items[].total
-- `balance_due` (not stored, calculate on display) = total - amount_paid
-
----
-
-### InvoiceLineItem
-
-| Field Name | Bubble Field Type | Required | List | Default Value | Notes |
-|------------|-------------------|----------|------|---------------|-------|
-| description | text | YES | NO | - | Line item description |
-| quantity | number | YES | NO | 1 | Quantity |
-| unit_price | number | YES | NO | 0 | Price per unit |
-| total | number | YES | NO | 0 | **CALCULATED** - see below |
-| job_item_id | JobTicket (thing) | NO | NO | empty | Link to source JobTicket |
-
-**Relationships:**
-- InvoiceLineItem → JobTicket (many:1) - via job_item_id (tracks origin)
-
-**Calculated Fields:**
-- `total` = quantity × unit_price
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | text | YES | UUID primary key |
+| tenant_id | text | YES | Tenant isolation |
+| customer_id | text | YES | Link to Customer |
+| order_id | text | NO | Source Order |
+| line_items | array | NO | Embedded InvoiceLineItem[] |
+| total | number | YES | CALCULATED |
+| status | InvoiceStatus | YES | Default: "draft" |
+| due_date | text | NO | |
+| notes | text | NO | |
+| amount_paid | number | YES | Default: 0 |
+| paid_date | text | NO | |
+| platform_fee_percent | number | NO | Stripe Connect fee |
+| created_at | text | YES | ISO 8601 |
+| updated_at | text | YES | ISO 8601 |
 
 ---
 
 ### Employee
+**Collection:** `employees`
 
-| Field Name | Bubble Field Type | Required | List | Default Value | Notes |
-|------------|-------------------|----------|------|---------------|-------|
-| id | text | YES | NO | Auto-generated UUID | Primary key |
-| name | text | YES | NO | - | Employee full name |
-| hourly_rate | number | YES | NO | - | Pay rate per hour |
-| is_active | yes/no | YES | NO | yes | Employment status |
-| created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
-
-**Relationships:**
-- Employee → TimeLog (1:many) - via TimeLog.employee_id
-- Employee → PayrollTransaction (1:many) - via PayrollTransaction.employee_id
-
----
-
-### TimeLog
-
-| Field Name | Bubble Field Type | Required | List | Default Value | Notes |
-|------------|-------------------|----------|------|---------------|-------|
-| id | text | YES | NO | Auto-generated UUID | Primary key |
-| employee_id | Employee (thing) | YES | NO | - | Link to Employee |
-| action | TimeLogAction (option set) | YES | NO | - | Clock action type |
-| timestamp | date | YES | NO | Current date/time | When action occurred |
-
-**Relationships:**
-- TimeLog → Employee (many:1) - via employee_id
-
-**Action Sequence Rules:**
-- From `null` (no logs today): Only `start_work` allowed
-- From `start_work`: Only `break_start` or `end_work` allowed
-- From `break_start`: Only `break_end` allowed
-- From `break_end`: Only `break_start` or `end_work` allowed
-- From `end_work`: Only `start_work` allowed
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | text | YES | UUID primary key |
+| tenant_id | text | YES | Tenant isolation |
+| name | text | YES | Full name |
+| email | text | NO | |
+| phone | text | NO | |
+| hourly_rate | number | YES | Default: 0 |
+| overtime_rate | number | NO | Defaults to 1.5x hourly |
+| title | text | NO | Job title |
+| manager_name | text | NO | |
+| role | text | YES | Default: "staff" |
+| is_active | bool | YES | Default: true |
+| pin | text | NO | 4-6 digit portal PIN |
+| profile_image | text | NO | URL |
+| linked_user_id | text | NO | Links to User for portal access |
+| created_at | text | YES | ISO 8601 |
 
 ---
 
-### PayrollTransaction
+### TimeclockShift (Primary time record)
+**Collection:** `timeclock_shifts`
 
-| Field Name | Bubble Field Type | Required | List | Default Value | Notes |
-|------------|-------------------|----------|------|---------------|-------|
-| id | text | YES | NO | Auto-generated UUID | Primary key |
-| employee_id | Employee (thing) | YES | NO | - | Link to Employee |
-| type | PayrollTransactionType (option set) | YES | NO | - | Transaction type |
-| amount | number | YES | NO | - | Dollar amount |
-| description | text | NO | NO | empty | Transaction description |
-| date | date | YES | NO | Current date | Transaction date |
-| created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | text | YES | UUID primary key |
+| tenant_id | text | YES | Tenant isolation |
+| employee_id | text | YES | Link to Employee |
+| date | text | YES | YYYY-MM-DD |
+| clock_in | text | NO | ISO timestamp |
+| clock_out | text | NO | ISO timestamp |
+| lunch_start | text | NO | ISO timestamp |
+| lunch_end | text | NO | ISO timestamp |
+| break_minutes | number | NO | Total break/lunch minutes |
+| total_hours | number | NO | CALCULATED net hours |
+| regular_hours | number | NO | Hours up to 8 (or OT threshold) |
+| overtime_hours | number | NO | Hours beyond threshold |
+| status | text | NO | "working", "on_break", "completed" |
+| current_break_start | text | NO | Active break timestamp |
+| notes | text | NO | |
+| is_manual | bool | NO | Admin-created shift |
+| created_at | text | YES | ISO 8601 |
+| updated_at | text | NO | ISO 8601 |
 
-**Relationships:**
-- PayrollTransaction → Employee (many:1) - via employee_id
-
-**Payroll Balance Calculation (per employee):**
-- `total_earnings` = SUM of amount WHERE type = "earnings"
-- `total_advances` = SUM of amount WHERE type = "advance"
-- `total_payments` = SUM of amount WHERE type = "payment"
-- `balance` = total_earnings - total_advances - total_payments
-  - Positive balance = employer owes employee
-  - Negative balance = employee has received advance
-
----
-
-### SalesEntry
-
-| Field Name | Bubble Field Type | Required | List | Default Value | Notes |
-|------------|-------------------|----------|------|---------------|-------|
-| id | text | YES | NO | Auto-generated UUID | Primary key |
-| date | date | YES | NO | - | Sale date |
-| amount | number | YES | NO | - | Sale amount (pre-tax) |
-| tax_amount | number | YES | NO | 0 | Tax collected |
-| description | text | NO | NO | empty | Sale description |
-| created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
+**Key concept:** `timeclock_shifts` is the primary time record. Raw `timelogs` (start_work/break_start/etc.) are backfilled into shift records for the payroll worksheet.
 
 ---
 
-### ExpenseEntry
+### TimeLog (Raw clock actions)
+**Collection:** `timelogs`
 
-| Field Name | Bubble Field Type | Required | List | Default Value | Notes |
-|------------|-------------------|----------|------|---------------|-------|
-| id | text | YES | NO | Auto-generated UUID | Primary key |
-| date | date | YES | NO | - | Expense date |
-| amount | number | YES | NO | - | Expense amount |
-| category | ExpenseCategory (option set) | YES | NO | other | Expense category |
-| description | text | NO | NO | empty | Expense description |
-| created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
-
-**Financial Summary Calculations (for date range):**
-- `total_sales` = SUM of SalesEntry.amount for date range
-- `total_tax` = SUM of SalesEntry.tax_amount for date range
-- `total_expenses` = SUM of ExpenseEntry.amount for date range
-- `net_income` = total_sales - total_expenses
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | text | YES | UUID primary key |
+| employee_id | text | YES | Link to Employee |
+| action | text | YES | start_work/break_start/break_end/end_work |
+| timestamp | text | YES | ISO 8601 |
 
 ---
 
-### Task
+### PayrollTransaction (Adjustments)
+**Collection:** `payroll_transactions`
 
-| Field Name | Bubble Field Type | Required | List | Default Value | Notes |
-|------------|-------------------|----------|------|---------------|-------|
-| id | text | YES | NO | Auto-generated UUID | Primary key |
-| title | text | YES | NO | - | Task title |
-| description | text | NO | NO | empty | Task details |
-| order_id | Order (thing) | NO | NO | empty | Link to related Order |
-| due_date | date | NO | NO | empty | Task due date |
-| is_complete | yes/no | YES | NO | no | Completion status |
-| created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | text | YES | UUID primary key |
+| tenant_id | text | YES | Tenant isolation |
+| employee_id | text | YES | Link to Employee |
+| type | PayrollTransactionType | YES | earnings/advance/payment |
+| amount | number | YES | Dollar amount |
+| description | text | NO | |
+| date | text | YES | YYYY-MM-DD |
+| created_at | text | YES | ISO 8601 |
 
-**Relationships:**
-- Task → Order (many:1) - via order_id (optional)
+---
+
+### PayrollSignoff
+**Collection:** `payroll_signoffs`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | text | YES | UUID primary key |
+| tenant_id | text | YES | Tenant isolation |
+| employee_id | text | YES | Link to Employee |
+| week_start | text | YES | YYYY-MM-DD |
+| period_end | text | NO | For biweekly periods |
+| reviewed_by | text | NO | Reviewer name |
+| review_date | text | NO | ISO timestamp |
+| approved_by | text | NO | Approver name |
+| approval_date | text | NO | ISO timestamp |
+| payroll_notes | text | NO | |
+| updated_at | text | YES | ISO 8601 |
+
+---
+
+### PayrollHours (Manual/Legacy hours)
+**Collection:** `payroll_hours`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | text | YES | UUID primary key |
+| tenant_id | text | YES | Tenant isolation |
+| employee_id | text | YES | Link to Employee |
+| date | text | YES | YYYY-MM-DD |
+| hours | number | YES | Manual hours logged |
+| description | text | NO | |
+| job_id | text | NO | Optional job link |
+| job_name | text | NO | Cached job name |
+| task_type | text | YES | general/design/production/installation/admin |
+| hourly_rate | number | YES | Rate at time of entry |
+| gross_pay | number | YES | CALCULATED |
+| is_manual | bool | YES | Always true |
+| created_at | text | YES | ISO 8601 |
+
+**Legacy handling:** Older `payroll_hours` entries that fall outside the current pay period are surfaced in the Payroll Worksheet as "legacy manual entries" with resolution options (keep, convert, exclude).
+
+---
+
+### EmployeeSchedule
+**Collection:** `employee_schedules`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | text | YES | UUID primary key |
+| tenant_id | text | YES | |
+| employee_id | text | YES | |
+| day_of_week | text | YES | monday-sunday |
+| date | text | NO | Specific date override |
+| start_time | text | NO | HH:MM |
+| end_time | text | NO | HH:MM |
+| is_off | bool | NO | Day off flag |
+| notes | text | NO | |
+
+---
+
+### OrderDrawing
+**Collection:** `order_drawings`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | text | YES | UUID primary key |
+| tenant_id | text | YES | Tenant isolation |
+| order_id | text | YES | Parent Order |
+| parent_type | text | YES | "order", "job_ticket", "uploaded_image" |
+| parent_id | text | NO | ID of the parent record |
+| job_ticket_id | text | NO | Specific ticket link |
+| uploaded_image_id | text | NO | For image markups |
+| drawing_type | text | YES | sketch/markup/measurement_note/install_note/layout_note/signature/other |
+| label | text | NO | |
+| title | text | NO | |
+| notes | text | NO | |
+| storage_key | text | YES | Object storage key for image data |
+| storage_url | text | NO | Presigned URL (cached) |
+| status | text | YES | draft/saved/finalized |
+| tags | array | NO | String tags |
+| requires_attention | bool | NO | |
+| created_by | text | NO | User ID |
+| created_at | text | YES | ISO 8601 |
+| updated_at | text | NO | ISO 8601 |
+
+**Storage:** Drawing image data (PNG) is stored in Emergent Object Storage. The `storage_key` references the object; a presigned URL is generated on read.
+
+---
+
+### Signature
+**Collection:** `signatures`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | text | YES | UUID primary key |
+| tenant_id | text | YES | Tenant isolation |
+| parent_record_type | text | YES | quote/proof/order/change_order/install_record/pickup_record/delivery_record/invoice/form/document/work_order |
+| parent_record_id | text | YES | ID of signed record |
+| order_id | text | NO | Order context |
+| job_ticket_id | text | NO | Ticket context |
+| signature_type | text | YES | Auto-derived from parent_record_type |
+| document_version | text | NO | |
+| requires_signature | bool | YES | |
+| signer_name | text | NO | |
+| signer_role | text | NO | |
+| printed_name | text | NO | |
+| notes | text | NO | |
+| storage_key | text | NO | Object storage key for signature image |
+| storage_url | text | NO | Presigned URL |
+| status | text | YES | pending/signed/declined/expired |
+| signed_at | text | NO | ISO timestamp |
+| request_token | text | NO | For public email signature links |
+| request_email | text | NO | |
+| request_expires_at | text | NO | |
+| created_by | text | NO | |
+| created_at | text | YES | ISO 8601 |
+| updated_at | text | NO | ISO 8601 |
+
+**Signature types (auto-mapped from parent):**
+- quote -> quote_acceptance
+- proof -> artwork_approval
+- order -> order_authorization
+- change_order -> change_approval
+- install_record -> install_completion
+- pickup_record -> pickup_confirmation
+- delivery_record -> delivery_confirmation
+- invoice -> payment_authorization
+- form/document -> terms_acknowledgment
+
+---
+
+### ProductionTask
+**Collection:** `production_tasks`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | text | YES | UUID primary key |
+| tenant_id | text | YES | |
+| job_ticket_id | text | YES | Parent ticket |
+| order_id | text | NO | |
+| title | text | YES | |
+| status | text | YES | |
+| assigned_to | text | NO | Employee ID |
+| priority | text | NO | |
+| due_date | text | NO | |
+| created_at | text | YES | ISO 8601 |
+
+---
+
+### Task (General)
+**Collection:** `tasks`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | text | YES | UUID primary key |
+| tenant_id | text | YES | |
+| title | text | YES | |
+| description | text | NO | |
+| job_id | text | NO | Legacy job link |
+| order_id | text | NO | Order link |
+| assigned_to | text | NO | Employee ID |
+| due_date | text | NO | |
+| status | text | NO | |
+| priority | text | NO | |
+| is_complete | bool | YES | Default: false |
+| created_at | text | YES | ISO 8601 |
+
+---
+
+### WorkflowTemplate
+**Collection:** `workflow_templates`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | text | YES | UUID |
+| tenant_id | text | YES | |
+| name | text | YES | |
+| steps | array | YES | Ordered step definitions |
+| category | text | NO | |
+| is_active | bool | YES | |
+| created_at | text | YES | ISO 8601 |
+
+---
+
+### SalesEntry & ExpenseEntry
+**Collections:** `sales_entries`, `expense_entries`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | text | YES | UUID |
+| tenant_id | text | YES | |
+| date | text | YES | YYYY-MM-DD |
+| amount | number | YES | |
+| tax_amount (sales only) | number | NO | |
+| category (expense only) | ExpenseCategory | YES | |
+| description | text | NO | |
+| created_at | text | YES | ISO 8601 |
 
 ---
 
 ### AIResponse
+**Collection:** `ai_responses`
 
-| Field Name | Bubble Field Type | Required | List | Default Value | Notes |
-|------------|-------------------|----------|------|---------------|-------|
-| id | text | YES | NO | Auto-generated UUID | Primary key |
-| tool | text | YES | NO | - | AI tool name used |
-| input_data | text | YES | NO | - | JSON string of input parameters |
-| output | text | YES | NO | - | AI-generated response |
-| order_id | Order (thing) | NO | NO | empty | Link to related Order |
-| customer_id | Customer (thing) | NO | NO | empty | Link to related Customer |
-| created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
-
-**AI Tool Types:**
-- layout_generator
-- print_checklist
-- brand_kit
-- document_creator
-- overdue_assistant
-- design_intake
-
-**Relationships:**
-- AIResponse → Order (many:1) - via order_id (optional)
-- AIResponse → Customer (many:1) - via customer_id (optional)
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id | text | YES | UUID |
+| tenant_id | text | YES | |
+| tool | text | YES | AI tool name |
+| input_data | text | YES | JSON string |
+| output | text | YES | AI response |
+| order_id | text | NO | |
+| customer_id | text | NO | |
+| credit_cost | number | NO | AI credits consumed |
+| created_at | text | YES | ISO 8601 |
 
 ---
 
-### FundraiserCampaign
+### Webstore Collections
 
-| Field Name | Bubble Field Type | Required | List | Default Value | Notes |
-|------------|-------------------|----------|------|---------------|-------|
-| id | text | YES | NO | Auto-generated UUID | Primary key |
-| name | text | YES | NO | - | Campaign name |
-| goal | number | YES | NO | - | Fundraising goal amount |
-| start_date | date | YES | NO | - | Campaign start date |
-| end_date | date | YES | NO | - | Campaign end date |
-| organizer | text | YES | NO | - | Organizer name/contact |
-| payout_rules | text | NO | NO | empty | Payout terms/rules |
-| products | text | NO | YES | empty list | List of allowed product IDs |
-| total_raised | number | YES | NO | 0 | **CALCULATED** - see below |
-| status | FundraiserStatus (option set) | YES | NO | active | Campaign status |
-| created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
+**`fundraiser_campaigns`**, **`b2b_stores`**, **`webstore_orders`**, **`webstore_products`**
 
-**Relationships:**
-- FundraiserCampaign → WebstoreOrder (1:many) - via WebstoreOrder.store_id WHERE store_type = "fundraiser"
-
-**Calculated Fields:**
-- `total_raised` = SUM of WebstoreOrder.total WHERE store_id = this campaign's id AND store_type = "fundraiser"
-- (Alternatively: incremented on each order creation)
+These follow the same pattern as before with added `tenant_id` and Object Storage for product images.
 
 ---
 
-### B2BStore
+### Other Collections
 
-| Field Name | Bubble Field Type | Required | List | Default Value | Notes |
-|------------|-------------------|----------|------|---------------|-------|
-| id | text | YES | NO | Auto-generated UUID | Primary key |
-| company_name | text | YES | NO | - | B2B customer company |
-| contact_email | text | YES | NO | - | Login/contact email |
-| login_password | text | YES | NO | - | Store access password |
-| allowed_products | text | NO | YES | empty list | List of allowed product IDs |
-| discount_percent | number | YES | NO | 0 | Percentage discount for this customer |
-| is_active | yes/no | YES | NO | yes | Store active status |
-| created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
-
-**Relationships:**
-- B2BStore → WebstoreOrder (1:many) - via WebstoreOrder.store_id WHERE store_type = "b2b"
-
----
-
-### WebstoreOrder
-
-| Field Name | Bubble Field Type | Required | List | Default Value | Notes |
-|------------|-------------------|----------|------|---------------|-------|
-| id | text | YES | NO | Auto-generated UUID | Primary key |
-| store_type | WebstoreType (option set) | YES | NO | - | "fundraiser" or "b2b" |
-| store_id | text | YES | NO | - | ID of FundraiserCampaign or B2BStore |
-| items | text | YES | YES | empty list | JSON array of order items |
-| total | number | YES | NO | 0 | Order total amount |
-| status | WebstoreOrderStatus (option set) | YES | NO | pending | Order status |
-| order_id | Order (thing) | NO | NO | empty | Auto-created Order for this order |
-| created_at | date | YES | NO | Current date/time | ISO 8601 timestamp |
-
-**Relationships:**
-- WebstoreOrder → Order (1:1) - via order_id (auto-created)
-- WebstoreOrder → FundraiserCampaign (many:1) - via store_id WHERE store_type = "fundraiser"
-- WebstoreOrder → B2BStore (many:1) - via store_id WHERE store_type = "b2b"
-
-**Note:** `items` field contains JSON array with structure:
-```json
-[
-  {
-    "product_id": "string",
-    "product_name": "string",
-    "quantity": number,
-    "unit_price": number,
-    "total": number
-  }
-]
-```
+| Collection | Purpose |
+|-----------|---------|
+| `job_notes` | Notes on orders |
+| `job_activities` | Order activity log |
+| `job_time_entries` | Per-job time tracking entries |
+| `order_files` | Uploaded files/images for orders |
+| `conversations` | Customer portal messaging |
+| `artwork_proofs` | Proof approval workflow |
+| `appointments` | Customer appointments |
+| `questionnaires` | Dynamic form builder |
+| `questionnaire_responses` | Form submissions |
+| `documents` | Document library |
+| `email_templates` | Customizable email templates |
+| `promo_codes` | Discount codes |
+| `backups` | Tenant data backups |
+| `digest_settings` | Daily digest email config |
 
 ---
 
-## CALCULATED TOTALS SUMMARY
+## CALCULATED TOTALS
 
 ### Quote Total
 ```
-Quote.total = SUM(QuoteLineItem.total for all line_items)
-QuoteLineItem.total = QuoteLineItem.quantity × QuoteLineItem.unit_price
+Quote.total = SUM(line_items[].quantity * line_items[].unit_price)
 ```
 
 ### Order Subtotal
 ```
-Order.subtotal = SUM(JobTicket.line_total for all JobTickets where JobTicket.order_id = Order.id)
-JobTicket.line_total = JobTicket.quantity × JobTicket.unit_price
+Order.subtotal = SUM(JobTicket.line_total WHERE order_id = Order.id)
+JobTicket.line_total = quantity * unit_price
 ```
-**Trigger:** Recalculate when JobTicket is added, updated, or deleted.
 
 ### Invoice Total
 ```
-Invoice.total = SUM(InvoiceLineItem.total for all line_items)
-InvoiceLineItem.total = InvoiceLineItem.quantity × InvoiceLineItem.unit_price
-Invoice.balance_due = Invoice.total - Invoice.amount_paid
+Invoice.total = SUM(line_items[].quantity * line_items[].unit_price)
+Invoice.balance_due = total - amount_paid
 ```
 
-### Payroll Balance (per Employee)
+### Payroll Worksheet (Per Employee Per Period)
 ```
-total_earnings = SUM(PayrollTransaction.amount WHERE type = "earnings" AND employee_id = Employee.id)
-total_advances = SUM(PayrollTransaction.amount WHERE type = "advance" AND employee_id = Employee.id)
-total_payments = SUM(PayrollTransaction.amount WHERE type = "payment" AND employee_id = Employee.id)
+For each day in date range:
+  shift = timeclock_shifts WHERE employee_id AND date
+  reg_hours = shift.regular_hours
+  ot_hours = shift.overtime_hours
+  day_pay = (reg_hours * hourly_rate) + (ot_hours * overtime_rate)
+
+period_shift_pay = SUM(day_pay for all days)
+period_adjustments = SUM(payroll_transactions in date range)
+  signed_total = earnings - advances - payments
+period_legacy = SUM(payroll_hours entries if included_in_totals)
+FINAL_PAY = period_shift_pay + signed_total_adjustments + legacy_hours_pay
+```
+
+### Payroll Balance (All-Time Per Employee)
+```
+total_earnings = SUM(PayrollTransaction.amount WHERE type = "earnings")
+total_advances = SUM(PayrollTransaction.amount WHERE type = "advance")
+total_payments = SUM(PayrollTransaction.amount WHERE type = "payment")
 balance = total_earnings - total_advances - total_payments
 ```
-- Positive: Employer owes employee
-- Negative: Employee has advance balance
 
-### Daily Shift Summary (per Employee per Date)
-```
-work_minutes = SUM(time between start_work and end_work pairs)
-break_minutes = SUM(time between break_start and break_end pairs)
-net_minutes = work_minutes - break_minutes
-net_hours = net_minutes / 60
-```
+---
 
-### Financial Summary (for date range)
-```
-total_sales = SUM(SalesEntry.amount for date range)
-total_tax = SUM(SalesEntry.tax_amount for date range)
-total_expenses = SUM(ExpenseEntry.amount for date range)
-net_income = total_sales - total_expenses
-```
+## MONGODB COLLECTIONS MAPPING
 
-### Fundraiser Total Raised
-```
-FundraiserCampaign.total_raised = SUM(WebstoreOrder.total WHERE store_type = "fundraiser" AND store_id = FundraiserCampaign.id)
-```
-**Trigger:** Increment when new order is placed.
+| Data Type | Collection |
+|-----------|-----------|
+| Tenant | tenants |
+| User | users |
+| Customer | customers |
+| Quote | quotes |
+| Order | orders |
+| JobTicket | job_tickets |
+| OrderNote | job_notes |
+| OrderActivity | job_activities |
+| Invoice | invoices |
+| Employee | employees |
+| TimeclockShift | timeclock_shifts |
+| TimeLog | timelogs |
+| PayrollTransaction | payroll_transactions |
+| PayrollSignoff | payroll_signoffs |
+| PayrollHours | payroll_hours |
+| EmployeeSchedule | employee_schedules |
+| OrderDrawing | order_drawings |
+| Signature | signatures |
+| ProductionTask | production_tasks |
+| Task | tasks |
+| WorkflowTemplate | workflow_templates |
+| SalesEntry | sales_entries |
+| ExpenseEntry | expense_entries |
+| AIResponse | ai_responses |
+| FundraiserCampaign | fundraiser_campaigns |
+| B2BStore | b2b_stores |
+| WebstoreOrder | webstore_orders |
+| WebstoreProduct | webstore_products |
+| OrderFile | order_files |
+| JobTimeEntry | job_time_entries |
+| Conversation | conversations |
+| ArtworkProof | artwork_proofs |
+| Appointment | appointments |
+| Questionnaire | questionnaires |
+| Document | documents |
+| EmailTemplate | email_templates |
 
 ---
 
 ## RELATIONSHIP DIAGRAM
 
 ```
-┌─────────────┐
-│  Customer   │
-└─────┬───────┘
-      │ 1:many
-      ├───────────────┐─────────────────┐
-      ▼               ▼                 ▼
-┌─────────────┐ ┌─────────────┐   ┌─────────────┐
-│   Quote     │ │    Order      │   │  Invoice    │
-└─────┬───────┘ └──────┬──────┘   └─────────────┘
-      │                │                 ▲
-      │ 1:1            │ 1:many          │ 1:1
-      │ (converts to)  │                 │
-      └────────────────┼─────────────────┘
-                       │
-      ┌────────────────┼────────────────┬────────────────┐
-      ▼                ▼                ▼                ▼
-┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
-│  JobTicket    │ │  OrderNote    │ │ OrderActivity │ │    Task     │
-└─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘
-
-
-┌─────────────┐
-│  Employee   │
-└─────┬───────┘
-      │ 1:many
-      ├───────────────────────┐
-      ▼                       ▼
-┌─────────────┐       ┌──────────────────┐
-│  TimeLog    │       │PayrollTransaction│
-└─────────────┘       └──────────────────┘
-
-
-┌───────────────────┐     ┌─────────────┐
-│FundraiserCampaign │     │  B2BStore   │
-└─────────┬─────────┘     └──────┬──────┘
-          │ 1:many                │ 1:many
-          └───────────┬──────────┘
-                      ▼
-              ┌───────────────┐
-              │WebstoreOrder  │───1:1───▶ Order (auto-created)
-              └───────────────┘
+                        ┌──────────┐
+                        │  Tenant  │
+                        └────┬─────┘
+                             │ owns all data
+         ┌───────────────────┼───────────────────────────────────┐
+         ▼                   ▼                                   ▼
+   ┌──────────┐        ┌──────────┐                        ┌──────────┐
+   │ Customer │        │   User   │                        │ Employee │
+   └────┬─────┘        └──────────┘                        └────┬─────┘
+        │ 1:many                                                │ 1:many
+   ┌────┼──────┬───────────┐                    ┌───────────────┼────────────────┐
+   ▼    ▼      ▼           ▼                    ▼               ▼                ▼
+┌──────┐┌─────┐┌────────┐┌────────────┐  ┌──────────┐   ┌────────────┐  ┌───────────┐
+│Quote ││Order││Invoice ││Appointments│  │Timeclock │   │  Payroll   │  │ Employee  │
+│      ││     ││        ││            │  │  Shifts  │   │Transactions│  │ Schedules │
+└──┬───┘└──┬──┘└────────┘└────────────┘  └──────────┘   └────────────┘  └───────────┘
+   │       │                                                │
+   │       │ 1:many                                  ┌──────┼──────┐
+   │  ┌────┼─────┬──────────┬──────────┐             ▼      ▼      ▼
+   │  ▼    ▼     ▼          ▼          ▼        ┌────────┐┌──────┐┌───────┐
+   │┌────┐┌────┐┌──────┐┌──────────┐┌────────┐ │Payroll ││Payrl ││Legacy │
+   ││Job ││Note││Activ-││ Order    ││Signa-  │ │Signoff ││Hours ││Resol- │
+   ││Tick││    ││ity   ││Drawings  ││tures   │ │        ││      ││utions │
+   ││ets ││    ││      ││(+ Object ││(+ Obj  │ └────────┘└──────┘└───────┘
+   │└────┘└────┘└──────┘│ Storage) ││Storage)│
+   │                    └──────────┘└────────┘
+   │ converts to
+   └───────────► Order
 ```
 
 ---
 
-## CORE WORKFLOW: Customer → Quote → Order → Invoice
+## OBJECT STORAGE
 
-1. **Customer** is created with status `lead`
-2. **Quote** is created linked to Customer
-   - Add QuoteLineItems with quantity × unit_price
-   - Quote.total is calculated
-   - Status: draft → sent → approved/declined
-3. **Order** is created from Quote (via convert action)
-   - JobTickets are auto-created from QuoteLineItems
-   - Order.subtotal is calculated
-   - Status flows: quoted → approved → in_production → installed → complete → archived
-4. **Invoice** is created from Order
-   - InvoiceLineItems are auto-created from JobTickets
-   - Invoice.total is calculated
-   - Links back to Order (order_id) and Customer (customer_id)
-   - Status: draft → sent → paid/overdue
+Emergent Object Storage is used for:
+- **Order Drawings** (`order_drawings.storage_key`)
+- **Signatures** (`signatures.storage_key`)
+- **Order Files/Uploads** (`order_files.storage_key`)
+- **Tenant Logos** (`tenants.logo_url`)
+- **Employee Profile Images** (`employees.profile_image`)
+- **Webstore Product Images**
 
----
-
-## MONGODB COLLECTIONS MAPPING
-
-| Bubble Data Type | MongoDB Collection |
-|------------------|-------------------|
-| Customer | customers |
-| Quote | quotes |
-| Order | orders |
-| JobTicket | job_items |
-| OrderNote | job_notes |
-| OrderActivity | job_activities |
-| Invoice | invoices |
-| Employee | employees |
-| TimeLog | timelogs |
-| PayrollTransaction | payroll_transactions |
-| SalesEntry | sales_entries |
-| ExpenseEntry | expense_entries |
-| Task | tasks |
-| AIResponse | ai_responses |
-| FundraiserCampaign | fundraiser_campaigns |
-| B2BStore | b2b_stores |
-| WebstoreOrder | webstore_orders |
+All binary image data is stored externally; MongoDB documents only hold the `storage_key` and optionally a cached `storage_url`.

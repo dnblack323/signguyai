@@ -1,1938 +1,430 @@
-# Sign Guy AI - Workflows Documentation
+# Sign Guy AI - Workflows Documentation (Current)
+
+> Last updated: Feb 2026. Reflects Admin Payroll Worksheet, Unified Productivity, Signatures/Drawings, and multi-tenant architecture.
+
+---
 
 ## CUSTOMER WORKFLOWS
 
----
-
 ### WF-CUST-01: Create Customer
-
-**Trigger:** User submits new customer form
-
-**Conditions:** None
-
-**Actions:**
-1. Generate new UUID for `id`
-2. Set `created_at` = current timestamp (ISO 8601)
-3. Set `updated_at` = current timestamp (ISO 8601)
-4. Set `status` = "lead" (if not provided)
-5. Set optional fields to empty/null if not provided: `company`, `phone`, `email`, `notes`
-
-**Data Changes:**
-```
-INSERT INTO customers:
-{
-  id: generated UUID,
-  name: input.name,
-  company: input.company || null,
-  phone: input.phone || null,
-  email: input.email || null,
-  status: input.status || "lead",
-  notes: input.notes || null,
-  created_at: NOW(),
-  updated_at: NOW()
-}
-```
-
-**Returns:** Created Customer object
-
----
+**Trigger:** Submit new customer form
+**Data:** `INSERT INTO customers { id, tenant_id, name, company, phone, email, status: "lead", notes, created_at, updated_at }`
+**Returns:** Customer object
 
 ### WF-CUST-02: Update Customer
-
-**Trigger:** User submits customer edit form
-
-**Conditions:** Customer with `customer_id` must exist
-
-**Actions:**
-1. Find customer by `id`
-2. If not found → ERROR 404 "Customer not found"
-3. Update only fields that are provided (non-null)
-4. Set `updated_at` = current timestamp
-
-**Data Changes:**
-```
-UPDATE customers WHERE id = customer_id:
-SET {
-  ...only_provided_fields,
-  updated_at: NOW()
-}
-```
-
-**Returns:** Updated Customer object
-
----
+**Trigger:** Submit edit form
+**Validation:** Customer must exist in tenant
+**Data:** `UPDATE customers SET { ...provided_fields, updated_at: NOW() }`
 
 ### WF-CUST-03: Delete Customer
-
-**Trigger:** User clicks delete customer
-
-**Conditions:** Customer with `customer_id` must exist
-
-**Actions:**
-1. Delete customer record
-2. If no record deleted → ERROR 404 "Customer not found"
-
-**Data Changes:**
-```
-DELETE FROM customers WHERE id = customer_id
-```
-
-**Returns:** `{ message: "Customer deleted" }`
-
----
+**Trigger:** Confirm delete
+**Data:** `DELETE FROM customers WHERE id AND tenant_id`
 
 ### WF-CUST-04: Search/Filter Customers
-
-**Trigger:** User applies search or filter
-
-**Conditions:** None
-
-**Actions:**
-1. Build query based on filters:
-   - If `status` provided → filter by status
-   - If `search` provided → search in name, company, email (case-insensitive)
-2. Execute query
-
-**Data Changes:** None (read-only)
-
-**Returns:** List of matching Customer objects
+**Trigger:** Search input or status filter
+**Query:** Filter by `status`, search across `name`, `company`, `email` (case-insensitive). Always scoped to `tenant_id`.
 
 ---
 
 ## QUOTE WORKFLOWS
 
----
-
 ### WF-QUOTE-01: Create Quote
-
-**Trigger:** User submits new quote form
-
-**Conditions:** 
-- `customer_id` must be provided
-- Customer must exist
-
+**Trigger:** Submit new quote form
+**Validation:** Customer must exist in tenant
 **Actions:**
-1. Generate new UUID for `id`
-2. Set `created_at` = current timestamp
-3. Set `updated_at` = current timestamp
-4. Set `status` = "draft" (if not provided)
-5. Set `order_id` = null (not yet converted)
-6. **FOR EACH line_item in input.line_items:**
-   - Calculate `item.total` = `item.quantity` × `item.unit_price`
-7. Calculate `total` = SUM of all `line_items[].total`
-
-**Data Changes:**
-```
-INSERT INTO quotes:
-{
-  id: generated UUID,
-  customer_id: input.customer_id,
-  line_items: [
-    {
-      description: item.description,
-      quantity: item.quantity,
-      unit_price: item.unit_price,
-      total: item.quantity × item.unit_price  // CALCULATED
-    },
-    ...
-  ],
-  notes: input.notes || null,
-  status: input.status || "draft",
-  total: SUM(line_items[].total),  // CALCULATED
-  order_id: null,
-  created_at: NOW(),
-  updated_at: NOW()
-}
-```
-
-**Returns:** Created Quote object with calculated totals
-
----
+1. Calculate each `line_item.total = quantity * unit_price`
+2. Calculate `total = SUM(line_items[].total)`
+3. Insert with `status: "draft"`, `order_id: null`
 
 ### WF-QUOTE-02: Update Quote
-
-**Trigger:** User submits quote edit form
-
-**Conditions:**
-- Quote with `quote_id` must exist
-- Quote must NOT have `order_id` set (not yet converted)
-
-**Actions:**
-1. Find quote by `id`
-2. If not found → ERROR 404 "Quote not found"
-3. If `order_id` exists → ERROR 400 "Cannot update quote that has been converted to job"
-4. Update only fields that are provided
-5. **IF `line_items` changed:**
-   - FOR EACH line_item:
-     - Recalculate `item.total` = `item.quantity` × `item.unit_price`
-   - Recalculate `total` = SUM of all `line_items[].total`
-6. Set `updated_at` = current timestamp
-
-**Data Changes:**
-```
-UPDATE quotes WHERE id = quote_id:
-SET {
-  line_items: [recalculated items],  // if provided
-  total: recalculated_total,         // if line_items changed
-  notes: input.notes,                // if provided
-  status: input.status,              // if provided
-  updated_at: NOW()
-}
-```
-
-**Returns:** Updated Quote object
-
----
-
-### WF-QUOTE-03: Quote Status Change
-
-**Trigger:** User changes quote status dropdown
-
-**Conditions:** Quote must exist and not be converted to job
-
-**Actions:**
-1. Validate new status is valid enum value: draft, sent, approved, declined
-2. Update status field
-3. Set `updated_at` = current timestamp
-
-**Data Changes:**
-```
-UPDATE quotes WHERE id = quote_id:
-SET {
-  status: new_status,
-  updated_at: NOW()
-}
-```
-
-**Returns:** Updated Quote object
-
-**Status Flow:**
-```
-draft → sent → approved
-              ↘ declined
-```
-
----
-
-### WF-QUOTE-04: Add Line Item to Quote
-
-**Trigger:** User clicks "Add Line Item" on quote form
-
-**Conditions:** Quote must exist and not be converted
-
-**Actions:**
-1. Create new line item object
-2. Calculate `item.total` = `quantity` × `unit_price`
-3. Append to `line_items` array
-4. Recalculate quote `total`
-5. Set `updated_at` = current timestamp
-
-**Data Changes:**
-```
-UPDATE quotes WHERE id = quote_id:
-PUSH to line_items: {
-  description: input.description,
-  quantity: input.quantity,
-  unit_price: input.unit_price,
-  total: input.quantity × input.unit_price
-}
-SET total = SUM(line_items[].total)
-SET updated_at = NOW()
-```
-
-**Returns:** Updated Quote object
-
----
-
-### WF-QUOTE-05: Edit Line Item on Quote
-
-**Trigger:** User edits existing line item
-
-**Conditions:** Quote must exist and not be converted
-
-**Actions:**
-1. Find line item by index in array
-2. Update line item fields
-3. Recalculate `item.total` = `quantity` × `unit_price`
-4. Recalculate quote `total`
-5. Set `updated_at` = current timestamp
-
-**Data Changes:**
-```
-UPDATE quotes WHERE id = quote_id:
-SET line_items[index] = {
-  description: input.description,
-  quantity: input.quantity,
-  unit_price: input.unit_price,
-  total: input.quantity × input.unit_price
-}
-SET total = SUM(line_items[].total)
-SET updated_at = NOW()
-```
-
-**Returns:** Updated Quote object
-
----
-
-### WF-QUOTE-06: Delete Line Item from Quote
-
-**Trigger:** User clicks delete on line item
-
-**Conditions:** Quote must exist and not be converted
-
-**Actions:**
-1. Remove line item from array by index
-2. Recalculate quote `total`
-3. Set `updated_at` = current timestamp
-
-**Data Changes:**
-```
-UPDATE quotes WHERE id = quote_id:
-PULL from line_items at index
-SET total = SUM(line_items[].total)
-SET updated_at = NOW()
-```
-
-**Returns:** Updated Quote object
-
----
+**Validation:** Quote exists, `order_id` is null (not converted)
+**Actions:** Recalculate totals if line_items changed, update fields
 
 ### WF-QUOTE-07: Convert Quote to Order
-
-**Trigger:** User clicks "Convert to Order" button
-
-**Conditions:**
-- Quote with `quote_id` must exist
-- Quote must NOT have `order_id` set (not already converted)
-
+**Trigger:** Click "Convert to Order"
+**Validation:** Quote not already converted (`order_id` is null)
 **Actions:**
-1. Find quote by `id`
-2. If not found → ERROR 404 "Quote not found"
-3. If `order_id` exists → ERROR 400 "Quote already converted to job"
-4. **CREATE NEW JOB:**
-   - Generate new UUID for job `id`
-   - Set `customer_id` = quote's `customer_id`
-   - Set `name` = "Order from Quote #{quote_id first 8 chars}"
-   - Set `description` = quote's `notes`
-   - Set `status` = "approved"
-   - Set `quote_id` = quote's `id`
-   - Set `subtotal` = quote's `total`
-   - Set `invoice_id` = null
-   - Set `is_archived` = false
-   - Set `created_at` = current timestamp
-   - Set `updated_at` = current timestamp
-5. **FOR EACH line_item in quote.line_items → CREATE JOB ITEM:**
-   - Generate new UUID for job item `id`
-   - Set `order_id` = new job's `id`
-   - Set `item_type` = "other"
-   - Set `description` = line_item's `description`
-   - Set `quantity` = line_item's `quantity`
-   - Set `unit_price` = line_item's `unit_price`
-   - Set `line_total` = line_item's `total`
-   - Set `status` = "pending"
-   - Set `notes` = null
-   - Set `created_at` = current timestamp
-6. **UPDATE QUOTE:**
-   - Set `order_id` = new job's `id`
-   - Set `status` = "approved"
-7. **LOG ACTIVITY:**
-   - Create OrderActivity record for "quote_converted"
-
-**Data Changes:**
-```
-INSERT INTO orders:
-{
-  id: generated UUID,
-  customer_id: quote.customer_id,
-  name: "Order from Quote #" + quote_id.substring(0,8),
-  description: quote.notes,
-  status: "approved",
-  due_date: null,
-  quote_id: quote.id,
-  invoice_id: null,
-  subtotal: quote.total,
-  is_archived: false,
-  created_at: NOW(),
-  updated_at: NOW()
-}
-
-FOR EACH quote.line_items:
-INSERT INTO job_items:
-{
-  id: generated UUID,
-  order_id: new_job.id,
-  item_type: "other",
-  description: line_item.description,
-  quantity: line_item.quantity,
-  unit_price: line_item.unit_price,
-  line_total: line_item.total,
-  status: "pending",
-  notes: null,
-  created_at: NOW()
-}
-
-UPDATE quotes WHERE id = quote_id:
-SET {
-  order_id: new_job.id,
-  status: "approved"
-}
-
-INSERT INTO job_activities:
-{
-  id: generated UUID,
-  order_id: new_job.id,
-  activity_type: "quote_converted",
-  description: "Order created from Quote #" + quote_id.substring(0,8),
-  old_value: null,
-  new_value: quote_id,
-  created_at: NOW()
-}
-```
-
-**Returns:** Created Order object
+1. Create Order linked to customer, set `status: "approved"`
+2. Create JobTicket for each QuoteLineItem
+3. Log "quote_converted" OrderActivity
+4. Update Quote: set `order_id`, `status: "approved"`
+**Circular write-back:** Quote.order_id <-> Order.quote_id
 
 ---
 
 ## ORDER WORKFLOWS
 
----
-
 ### WF-JOB-01: Create Order (Direct)
-
-**Trigger:** User submits new job form (not from quote conversion)
-
-**Conditions:** `customer_id` must be provided
-
-**Actions:**
-1. Generate new UUID for `id`
-2. Set `created_at` = current timestamp
-3. Set `updated_at` = current timestamp
-4. Set `status` = "quoted" (if not provided)
-5. Set `subtotal` = 0 (no items yet)
-6. Set `quote_id` = input.quote_id (if provided, else null)
-7. Set `invoice_id` = null
-8. Set `is_archived` = false
-9. **LOG ACTIVITY:** Create "created" activity record
-
-**Data Changes:**
-```
-INSERT INTO orders:
-{
-  id: generated UUID,
-  customer_id: input.customer_id,
-  name: input.name,
-  description: input.description || null,
-  status: input.status || "quoted",
-  due_date: input.due_date || null,
-  quote_id: input.quote_id || null,
-  invoice_id: null,
-  subtotal: 0,
-  is_archived: false,
-  created_at: NOW(),
-  updated_at: NOW()
-}
-
-INSERT INTO job_activities:
-{
-  id: generated UUID,
-  order_id: new_job.id,
-  activity_type: "created",
-  description: "Order '" + input.name + "' created",
-  old_value: null,
-  new_value: null,
-  created_at: NOW()
-}
-```
-
-**Returns:** Created Order object
-
----
+**Trigger:** Submit new order form or `/orders/new` wizard
+**Data:** Insert order with `status: "quote"`, `subtotal: 0`, `is_archived: false`
+**Side effect:** Log "created" OrderActivity
 
 ### WF-JOB-02: Update Order
-
-**Trigger:** User submits job edit form
-
-**Conditions:** Order with `order_id` must exist
-
-**Actions:**
-1. Find job by `id`
-2. If not found → ERROR 404 "Order not found"
-3. Update only fields that are provided
-4. **IF status changed:**
-   - Log appropriate activity (status_changed, completed, or archived)
-5. Set `updated_at` = current timestamp
-
-**Data Changes:**
-```
-UPDATE orders WHERE id = order_id:
-SET {
-  name: input.name,           // if provided
-  description: input.description,  // if provided
-  status: input.status,       // if provided
-  due_date: input.due_date,   // if provided
-  updated_at: NOW()
-}
-
-IF status changed:
-INSERT INTO job_activities:
-{
-  id: generated UUID,
-  order_id: order_id,
-  activity_type: "status_changed" | "completed" | "archived",
-  description: "Status changed from {old} to {new}",
-  old_value: old_status,
-  new_value: new_status,
-  created_at: NOW()
-}
-```
-
-**Returns:** Updated Order object
-
----
+**Actions:** Update fields, log "status_changed" if status changed
 
 ### WF-JOB-03: Order Status Change
+**Status flow:** `quote -> approved -> in_progress -> completed -> invoiced -> archived`
+**Any active status can skip to `completed`.**
 
-**Trigger:** User changes order status
+### WF-JOB-04: Mark Complete
+Set `status: "completed"`, log activity
 
-**Conditions:** Order must exist
-
-**Actions:**
-1. Find job by `id`
-2. Determine activity type based on new status:
-   - If new status = "complete" → activity_type = "completed"
-   - If new status = "archived" → activity_type = "archived"
-   - Otherwise → activity_type = "status_changed"
-3. Update status
-4. Log activity
-5. Set `updated_at` = current timestamp
-
-**Data Changes:**
-```
-UPDATE orders WHERE id = order_id:
-SET {
-  status: new_status,
-  updated_at: NOW()
-}
-
-INSERT INTO job_activities:
-{
-  id: generated UUID,
-  order_id: order_id,
-  activity_type: determined_type,
-  description: based_on_type,
-  old_value: old_status,
-  new_value: new_status,
-  created_at: NOW()
-}
-```
-
-**Status Flow:**
-```
-quoted → approved → in_production → installed → complete → archived
-                                              ↗
-                            (can skip to complete from any active status)
-```
-
-**Returns:** Updated Order object
-
----
-
-### WF-JOB-04: Mark Order Complete
-
-**Trigger:** User clicks "Mark Complete" button
-
-**Conditions:** Order must exist
-
-**Actions:**
-1. Find job by `id`
-2. If not found → ERROR 404 "Order not found"
-3. Set `status` = "complete"
-4. Log "completed" activity
-5. Set `updated_at` = current timestamp
-
-**Data Changes:**
-```
-UPDATE orders WHERE id = order_id:
-SET {
-  status: "complete",
-  updated_at: NOW()
-}
-
-INSERT INTO job_activities:
-{
-  id: generated UUID,
-  order_id: order_id,
-  activity_type: "completed",
-  description: "Order marked as complete",
-  old_value: previous_status,
-  new_value: "complete",
-  created_at: NOW()
-}
-```
-
-**Returns:** `{ message: "Order marked as complete" }`
-
----
-
-### WF-JOB-05: Archive Order
-
-**Trigger:** User clicks "Archive" button
-
-**Conditions:** Order must exist
-
-**Actions:**
-1. Find job by `id`
-2. If not found → ERROR 404 "Order not found"
-3. Set `status` = "archived"
-4. Set `is_archived` = true
-5. Log "archived" activity
-6. Set `updated_at` = current timestamp
-
-**Data Changes:**
-```
-UPDATE orders WHERE id = order_id:
-SET {
-  status: "archived",
-  is_archived: true,
-  updated_at: NOW()
-}
-
-INSERT INTO job_activities:
-{
-  id: generated UUID,
-  order_id: order_id,
-  activity_type: "archived",
-  description: "Order archived",
-  old_value: previous_status,
-  new_value: "archived",
-  created_at: NOW()
-}
-```
-
-**Returns:** `{ message: "Order archived" }`
-
----
-
-### WF-JOB-06: Unarchive Order
-
-**Trigger:** User clicks "Unarchive" button
-
-**Conditions:** Order must exist
-
-**Actions:**
-1. Find job by `id`
-2. If not found → ERROR 404 "Order not found"
-3. Set `status` = "complete"
-4. Set `is_archived` = false
-5. Log "unarchived" activity
-6. Set `updated_at` = current timestamp
-
-**Data Changes:**
-```
-UPDATE orders WHERE id = order_id:
-SET {
-  status: "complete",
-  is_archived: false,
-  updated_at: NOW()
-}
-
-INSERT INTO job_activities:
-{
-  id: generated UUID,
-  order_id: order_id,
-  activity_type: "unarchived",
-  description: "Order unarchived",
-  old_value: "archived",
-  new_value: "complete",
-  created_at: NOW()
-}
-```
-
-**Returns:** `{ message: "Order unarchived" }`
-
----
+### WF-JOB-05/06: Archive/Unarchive
+Toggle `is_archived` and `status`
 
 ### WF-JOB-07: Delete Order
-
-**Trigger:** User confirms job deletion
-
-**Conditions:** Order must exist
-
-**Actions:**
-1. Delete all related job_items WHERE order_id = order_id
-2. Delete all related job_notes WHERE order_id = order_id
-3. Delete all related job_activities WHERE order_id = order_id
-4. Delete order record
-5. If no record deleted → ERROR 404 "Order not found"
-
-**Data Changes:**
-```
-DELETE FROM job_items WHERE order_id = order_id
-DELETE FROM job_notes WHERE order_id = order_id
-DELETE FROM job_activities WHERE order_id = order_id
-DELETE FROM orders WHERE id = order_id
-```
-
-**Returns:** `{ message: "Order deleted" }`
+Cascade delete: `job_tickets`, `job_notes`, `job_activities`, `order_drawings`, `signatures`, then order
 
 ---
 
-### WF-JOB-08: Filter Orders
+## JOB TICKET WORKFLOWS
 
-**Trigger:** User applies job filter
+### WF-JOBITEM-01: Add Ticket
+**Trigger:** Add item form on Order Detail or "Add Ticket to Order" page
+**Actions:** Calculate `line_total = qty * unit_price`, insert, recalculate Order subtotal, log activity
 
-**Conditions:** None
+### WF-JOBITEM-02: Update Ticket
+Recalculate `line_total`, recalculate Order subtotal, log activity
 
-**Actions:**
-1. Build query based on filter_type:
-   - "active" → status NOT IN ["complete", "archived"] AND is_archived != true
-   - "completed" → status = "complete" AND is_archived != true
-   - "archived" → is_archived = true OR status = "archived"
-   - specific status → status = provided_status
-2. Optionally filter by customer_id
-3. Sort by created_at descending
-
-**Data Changes:** None (read-only)
-
-**Returns:** List of matching Order objects
-
----
-
-## JOB ITEM WORKFLOWS
-
----
-
-### WF-JOBITEM-01: Add Order Item
-
-**Trigger:** User submits "Add Item" form on job
-
-**Conditions:** Order with `order_id` must exist
-
-**Actions:**
-1. Find job by `id`
-2. If not found → ERROR 404 "Order not found"
-3. Generate new UUID for job item `id`
-4. **CALCULATE:** `line_total` = `quantity` × `unit_price`
-5. Insert job item record
-6. **RECALCULATE JOB SUBTOTAL:** (see WF-JOBITEM-RECALC)
-7. **LOG ACTIVITY:** Create "item_added" activity
-8. Set job item `created_at` = current timestamp
-
-**Data Changes:**
-```
-INSERT INTO job_items:
-{
-  id: generated UUID,
-  order_id: order_id,
-  item_type: input.item_type || "other",
-  description: input.description,
-  quantity: input.quantity || 1,
-  unit_price: input.unit_price || 0,
-  line_total: input.quantity × input.unit_price,  // CALCULATED
-  status: input.status || "pending",
-  notes: input.notes || null,
-  created_at: NOW()
-}
-
-// Then recalculate job subtotal (WF-JOBITEM-RECALC)
-
-INSERT INTO job_activities:
-{
-  id: generated UUID,
-  order_id: order_id,
-  activity_type: "item_added",
-  description: "Added item: " + input.description,
-  old_value: null,
-  new_value: null,
-  created_at: NOW()
-}
-```
-
-**Returns:** Created JobTicket object
-
----
-
-### WF-JOBITEM-02: Update Order Item
-
-**Trigger:** User submits job item edit form
-
-**Conditions:** JobTicket with `item_id` must exist
-
-**Actions:**
-1. Find job item by `id`
-2. If not found → ERROR 404 "Order item not found"
-3. Update only fields that are provided
-4. **RECALCULATE:** `line_total` = `quantity` × `unit_price`
-   - Use new values if provided, else existing values
-5. Update job item record
-6. **RECALCULATE JOB SUBTOTAL:** (see WF-JOBITEM-RECALC)
-7. **LOG ACTIVITY:** Create "item_updated" activity
-
-**Data Changes:**
-```
-// Get current values for calculation
-current_quantity = input.quantity ?? job_item.quantity
-current_unit_price = input.unit_price ?? job_item.unit_price
-
-UPDATE job_items WHERE id = item_id:
-SET {
-  item_type: input.item_type,      // if provided
-  description: input.description,  // if provided
-  quantity: input.quantity,        // if provided
-  unit_price: input.unit_price,    // if provided
-  line_total: current_quantity × current_unit_price,  // ALWAYS RECALCULATE
-  status: input.status,            // if provided
-  notes: input.notes               // if provided
-}
-
-// Then recalculate job subtotal (WF-JOBITEM-RECALC)
-
-INSERT INTO job_activities:
-{
-  id: generated UUID,
-  order_id: job_item.order_id,
-  activity_type: "item_updated",
-  description: "Updated item: " + job_item.description,
-  old_value: null,
-  new_value: null,
-  created_at: NOW()
-}
-```
-
-**Returns:** Updated JobTicket object
-
----
-
-### WF-JOBITEM-03: Delete Order Item
-
-**Trigger:** User clicks delete on job item
-
-**Conditions:** JobTicket with `item_id` must exist
-
-**Actions:**
-1. Find job item by `id`
-2. If not found → ERROR 404 "Order item not found"
-3. Store `order_id` for subtotal recalculation
-4. Delete job item record
-5. **RECALCULATE JOB SUBTOTAL:** (see WF-JOBITEM-RECALC)
-6. **LOG ACTIVITY:** Create "item_deleted" activity
-
-**Data Changes:**
-```
-// Store order_id before deletion
-order_id = job_item.order_id
-item_description = job_item.description
-
-DELETE FROM job_items WHERE id = item_id
-
-// Then recalculate job subtotal (WF-JOBITEM-RECALC)
-
-INSERT INTO job_activities:
-{
-  id: generated UUID,
-  order_id: order_id,
-  activity_type: "item_deleted",
-  description: "Deleted item: " + item_description,
-  old_value: null,
-  new_value: null,
-  created_at: NOW()
-}
-```
-
-**Returns:** `{ message: "Order item deleted" }`
-
----
+### WF-JOBITEM-03: Delete Ticket
+Delete ticket, recalculate Order subtotal, log activity
 
 ### WF-JOBITEM-RECALC: Recalculate Order Subtotal
+`Order.subtotal = SUM(all job_tickets[].line_total WHERE order_id)`
 
-**Trigger:** Called after any job item add/update/delete
+---
 
-**Conditions:** Order must exist
+## ORDER DRAWING WORKFLOWS
 
+### WF-DRAW-01: Create Drawing
+**Trigger:** Save from DrawingCanvasPad on Order Detail
+**Validation:** Order exists in tenant. If `parent_type = "job_ticket"`, ticket must exist. If `parent_type = "uploaded_image"`, file must exist.
 **Actions:**
-1. Query all job_items WHERE order_id = order_id
-2. Calculate `subtotal` = SUM of all `job_items[].line_total`
-3. Update job with new subtotal
-4. Set job `updated_at` = current timestamp
+1. Decode base64 image data
+2. Upload PNG to Emergent Object Storage -> get `storage_key`
+3. Insert `order_drawings` record with metadata + `storage_key`
+**Returns:** Drawing record with presigned `storage_url`
 
-**Data Changes:**
-```
-// Calculate
-all_items = SELECT * FROM job_items WHERE order_id = order_id
-subtotal = SUM(item.line_total for item in all_items)
+### WF-DRAW-02: Update Drawing Metadata
+Update `label`, `title`, `notes`, `status`, `tags`, `requires_attention`
 
-UPDATE orders WHERE id = order_id:
-SET {
-  subtotal: calculated_subtotal,
-  updated_at: NOW()
-}
-```
+### WF-DRAW-03: Delete Drawing
+Delete drawing record (Object Storage blob persists for retention)
 
-**Returns:** Calculated subtotal value
+### WF-DRAW-04: Get Drawing Image
+**Trigger:** `GET /api/order-drawings/file/:drawing_id`
+**Actions:** Fetch from Object Storage using `storage_key`, return binary PNG
 
----
-
-## JOB NOTE WORKFLOWS
+### WF-DRAW-05: List Drawings
+**Filters:** By `order_id`, `parent_type`, `drawing_type`, `status`
+All scoped to `tenant_id`
 
 ---
 
-### WF-JOBNOTE-01: Add Note to Order
+## SIGNATURE WORKFLOWS
 
-**Trigger:** User submits note form on order details
+### WF-SIG-01: Create Signature Requirement
+**Trigger:** Admin marks a record as requiring signature
+**Data:** Insert `signatures` record with `status: "pending"`, `requires_signature: true`
+**Auto-mapping:** `parent_record_type` -> `signature_type` (e.g., "quote" -> "quote_acceptance")
 
-**Conditions:** Order with `order_id` must exist
-
+### WF-SIG-02: Request Signature via Email
+**Trigger:** Admin clicks "Request Signature"
 **Actions:**
-1. Find job by `id`
-2. If not found → ERROR 404 "Order not found"
-3. Generate new UUID for note `id`
-4. Insert note record
-5. **LOG ACTIVITY:** Create "note_added" activity
-6. Set `created_at` = current timestamp
+1. Generate unique `request_token` with expiry
+2. Store email, origin URL
+3. Send email with link to `/customer-sign/:token`
+4. Status remains "pending"
 
-**Data Changes:**
-```
-INSERT INTO job_notes:
-{
-  id: generated UUID,
-  order_id: order_id,
-  content: input.content,
-  author: input.author || null,
-  created_at: NOW()
-}
-
-INSERT INTO job_activities:
-{
-  id: generated UUID,
-  order_id: order_id,
-  activity_type: "note_added",
-  description: "Note added" + (input.author ? " by " + input.author : ""),
-  old_value: null,
-  new_value: null,
-  created_at: NOW()
-}
-```
-
-**Returns:** Created OrderNote object
-
----
-
-### WF-JOBNOTE-02: Delete Note
-
-**Trigger:** User clicks delete on note
-
-**Conditions:** Note with `note_id` must exist
-
+### WF-SIG-03: Capture Signature (Authenticated)
+**Trigger:** Admin captures signature in-app via SignatureCaptureModal
 **Actions:**
-1. Delete note record
-2. If no record deleted → ERROR 404 "Note not found"
+1. Decode base64 signature image
+2. Upload to Object Storage -> `storage_key`
+3. Update signature record: `status: "signed"`, `signed_at`, signer details
 
-**Data Changes:**
-```
-DELETE FROM job_notes WHERE id = note_id
-```
+### WF-SIG-04: Public Signature Capture
+**Trigger:** Customer opens email link `/customer-sign/:token`
+**Validation:** Token valid, not expired, signature pending
+**Actions:** Same as WF-SIG-03 but via public page (no auth required)
 
-**Returns:** `{ message: "Note deleted" }`
+### WF-SIG-05: Decline Signature
+**Trigger:** Customer declines via public link
+**Data:** Set `status: "declined"`, record reason
 
----
-
-## INVOICE WORKFLOWS
-
----
-
-### WF-INV-01: Create Invoice (Direct)
-
-**Trigger:** User submits new invoice form
-
-**Conditions:** `customer_id` must be provided
-
-**Actions:**
-1. Generate new UUID for `id`
-2. Set `created_at` = current timestamp
-3. Set `updated_at` = current timestamp
-4. Set `status` = "draft" (if not provided)
-5. Set `amount_paid` = 0
-6. Set `paid_date` = null
-7. Calculate totals (same as quote line items)
-8. If `order_id` provided → update order with `invoice_id`
-
-**Data Changes:**
-```
-// Calculate line item totals
-line_items = []
-total = 0
-FOR EACH input.line_items:
-  item_total = item.quantity × item.unit_price
-  line_items.push({
-    description: item.description,
-    quantity: item.quantity,
-    unit_price: item.unit_price,
-    total: item_total,
-    job_item_id: item.job_item_id || null
-  })
-  total += item_total
-
-INSERT INTO invoices:
-{
-  id: generated UUID,
-  customer_id: input.customer_id,
-  order_id: input.order_id || null,
-  line_items: line_items,
-  total: total,  // CALCULATED
-  status: input.status || "draft",
-  due_date: input.due_date || null,
-  notes: input.notes || null,
-  amount_paid: 0,
-  paid_date: null,
-  created_at: NOW(),
-  updated_at: NOW()
-}
-
-IF input.order_id:
-UPDATE orders WHERE id = input.order_id:
-SET invoice_id = new_invoice.id
-```
-
-**Returns:** Created Invoice object
-
----
-
-### WF-INV-02: Create Invoice from Order
-
-**Trigger:** User clicks "Create Invoice" on order details
-
-**Conditions:** Order with `order_id` must exist
-
-**Actions:**
-1. Find job by `id`
-2. If not found → ERROR 404 "Order not found"
-3. Query all job_items WHERE order_id = order_id
-4. **IF job has items:**
-   - Create invoice line items from job tickets
-   - Calculate total from job tickets
-5. **ELSE (no items):**
-   - Use job.subtotal as total
-   - If subtotal = 0 and job has quote_id → use quote.total
-6. Generate new UUID for invoice
-7. Insert invoice record
-8. Update job with `invoice_id`
-9. **LOG ACTIVITY:** Create "invoice_created" activity
-
-**Data Changes:**
-```
-// Get job tickets
-job_items = SELECT * FROM job_items WHERE order_id = order_id
-
-IF job_items.length > 0:
-  invoice_line_items = []
-  total = 0
-  FOR EACH job_item:
-    invoice_line_items.push({
-      description: job_item.description,
-      quantity: job_item.quantity,
-      unit_price: job_item.unit_price,
-      total: job_item.line_total,
-      job_item_id: job_item.id
-    })
-    total += job_item.line_total
-ELSE:
-  invoice_line_items = []
-  total = job.subtotal
-  IF total == 0 AND job.quote_id:
-    quote = SELECT * FROM quotes WHERE id = job.quote_id
-    total = quote.total
-
-INSERT INTO invoices:
-{
-  id: generated UUID,
-  customer_id: job.customer_id,
-  order_id: order_id,
-  line_items: invoice_line_items,
-  total: total,
-  status: "draft",
-  due_date: null,
-  notes: null,
-  amount_paid: 0,
-  paid_date: null,
-  created_at: NOW(),
-  updated_at: NOW()
-}
-
-UPDATE orders WHERE id = order_id:
-SET invoice_id = new_invoice.id
-
-INSERT INTO job_activities:
-{
-  id: generated UUID,
-  order_id: order_id,
-  activity_type: "invoice_created",
-  description: "Invoice created for " + total,
-  old_value: null,
-  new_value: new_invoice.id,
-  created_at: NOW()
-}
-```
-
-**Returns:** Created Invoice object
-
----
-
-### WF-INV-03: Update Invoice
-
-**Trigger:** User submits invoice edit form
-
-**Conditions:** Invoice with `invoice_id` must exist
-
-**Actions:**
-1. Find invoice by `id`
-2. If not found → ERROR 404 "Invoice not found"
-3. Update only fields that are provided
-4. **IF `line_items` changed:**
-   - Recalculate each item.total = quantity × unit_price
-   - Recalculate invoice total = SUM of all item.total
-5. **IF status changed to "paid":**
-   - Set `paid_date` = current timestamp
-6. Set `updated_at` = current timestamp
-
-**Data Changes:**
-```
-IF input.line_items provided:
-  processed_items = []
-  total = 0
-  FOR EACH input.line_items:
-    item_total = item.quantity × item.unit_price
-    processed_items.push({
-      ...item,
-      total: item_total
-    })
-    total += item_total
-
-UPDATE invoices WHERE id = invoice_id:
-SET {
-  line_items: processed_items,  // if provided
-  total: recalculated_total,    // if line_items changed
-  status: input.status,         // if provided
-  due_date: input.due_date,     // if provided
-  notes: input.notes,           // if provided
-  paid_date: NOW() if status == "paid" else unchanged,
-  updated_at: NOW()
-}
-```
-
-**Returns:** Updated Invoice object
-
----
-
-### WF-INV-04: Invoice Status Changes
-
-**Trigger:** User changes invoice status
-
-**Conditions:** Invoice must exist
-
-**Status Flow:**
-```
-draft → sent → paid
-             ↘ overdue (manual or automatic based on due_date)
-```
-
-**Actions by Status:**
-
-#### Mark as Sent:
-```
-UPDATE invoices WHERE id = invoice_id:
-SET {
-  status: "sent",
-  updated_at: NOW()
-}
-```
-
-#### Mark as Paid:
-```
-UPDATE invoices WHERE id = invoice_id:
-SET {
-  status: "paid",
-  amount_paid: invoice.total,  // Full payment
-  paid_date: NOW(),
-  updated_at: NOW()
-}
-```
-
-#### Mark as Overdue:
-```
-UPDATE invoices WHERE id = invoice_id:
-SET {
-  status: "overdue",
-  updated_at: NOW()
-}
-```
-
-**Balance Due Calculation (on read):**
-```
-balance_due = invoice.total - invoice.amount_paid
-```
-
----
-
-### WF-INV-05: Record Partial Payment
-
-**Trigger:** User records payment amount
-
-**Conditions:** Invoice must exist
-
-**Actions:**
-1. Add payment amount to `amount_paid`
-2. Check if `amount_paid` >= `total`
-   - If yes → set status = "paid", set paid_date = NOW()
-3. Set `updated_at` = current timestamp
-
-**Data Changes:**
-```
-new_amount_paid = invoice.amount_paid + input.payment_amount
-
-UPDATE invoices WHERE id = invoice_id:
-SET {
-  amount_paid: new_amount_paid,
-  status: "paid" if new_amount_paid >= invoice.total else invoice.status,
-  paid_date: NOW() if new_amount_paid >= invoice.total else invoice.paid_date,
-  updated_at: NOW()
-}
-```
+### WF-SIG-06: Get Signature Image
+**Trigger:** `GET /api/signatures/file/:signature_id`
+**Actions:** Fetch from Object Storage, return binary PNG
 
 ---
 
 ## TIME CLOCK WORKFLOWS
 
----
-
-### WF-TIME-01: Clock Action (Start Work / Break Start / Break End / End Work)
-
-**Trigger:** Employee clicks clock button
-
-**Conditions:**
-- `employee_id` must be provided
-- `action` must be valid: "start_work", "break_start", "break_end", "end_work"
-- Action must follow valid sequence (see below)
-
-**Sequence Validation Rules:**
-| Last Action | Valid Next Actions |
-|-------------|-------------------|
-| null (no logs today) | start_work |
+### WF-TIME-01: Clock Action
+**Trigger:** Employee clicks clock button (Start Work / Break Start / Break End / End Work)
+**Sequence validation:**
+| Last Action | Valid Next |
+|-------------|-----------|
+| null | start_work |
 | start_work | break_start, end_work |
 | break_start | break_end |
 | break_end | break_start, end_work |
 | end_work | start_work |
 
 **Actions:**
-1. Validate action is in allowed list
-2. Query today's logs for employee (filter by date prefix in timestamp)
-3. Get last action from today's logs
-4. Check if requested action is valid based on last action
-   - If invalid → ERROR 400 with valid options
-5. Generate new UUID for time log
-6. Insert time log record
+1. Insert raw `timelogs` record
+2. Create or update `timeclock_shifts` record:
+   - `start_work`: Create new shift with `clock_in`, status "working"
+   - `break_start`: Update shift status "on_break", set `current_break_start`
+   - `break_end`: Calculate break_minutes, clear `current_break_start`, status "working"
+   - `end_work`: Set `clock_out`, calculate `total_hours`, `regular_hours`, `overtime_hours`, status "completed"
 
-**Data Changes:**
-```
-// Validation
-today = TODAY() in ISO format (YYYY-MM-DD)
-today_logs = SELECT * FROM timelogs 
-             WHERE employee_id = employee_id 
-             AND timestamp STARTS WITH today
-             ORDER BY timestamp ASC
+### WF-TIME-02: Backfill Shifts
+**Trigger:** Opening payroll report for a date range
+**Purpose:** Convert older raw `timelogs` into `timeclock_shifts` records for employees who clocked before the shift system existed
+**Actions:** Query `timelogs` by date range, group into work sessions, create `timeclock_shifts`
 
-last_action = today_logs.length > 0 ? today_logs[last].action : null
+### WF-TIME-03: Admin Edit Shift (Inline)
+**Trigger:** Edit cells in Payroll Worksheet's day row
+**Actions:** Update `timeclock_shifts` record: `clock_in`, `clock_out`, `lunch_start`, `lunch_end`, `break_minutes`. Recalculate `total_hours`, `regular_hours`, `overtime_hours`.
 
-valid_sequences = {
-  null: ["start_work"],
-  "start_work": ["break_start", "end_work"],
-  "break_start": ["break_end"],
-  "break_end": ["break_start", "end_work"],
-  "end_work": ["start_work"]
-}
-
-IF input.action NOT IN valid_sequences[last_action]:
-  ERROR 400: "Invalid sequence. After '{last_action}', valid actions are: {valid_sequences[last_action]}"
-
-// Insert
-INSERT INTO timelogs:
-{
-  id: generated UUID,
-  employee_id: input.employee_id,
-  action: input.action,
-  timestamp: NOW()
-}
-```
-
-**Returns:** Created TimeLog object
+### WF-TIME-04: Admin Create Manual Shift
+**Trigger:** Admin adds shift via payroll worksheet for a date with no existing shift
+**Actions:** Insert `timeclock_shifts` with `is_manual: true`
 
 ---
 
-### WF-TIME-02: Get Today's Logs
+## PAYROLL WORKSHEET WORKFLOWS
 
-**Trigger:** Load time clock page for employee
+### WF-PAY-WORKSHEET: Load Payroll Worksheet
+**Trigger:** Select employee + date range on Payroll page
+**Steps:**
+1. Read tenant `payroll_settings` for default cycle/start day
+2. Call `GET /api/payroll/report?employee_id=&start_date=&end_date=`
+3. Backend builds compensation snapshot:
+   - Fetch employee details (hourly_rate, overtime_rate)
+   - Backfill `timeclock_shifts` if needed
+   - Fetch `payroll_transactions` in range (adjustments)
+   - Fetch `payroll_hours` (legacy manual entries)
+   - Return: `{ employee, timeclock_shifts[], transactions[], manual_entries[], signoff }`
+4. Frontend `buildWorksheetRows()` creates one row per day with editable fields
+5. Frontend `buildAdjustmentRows()` maps transactions to editable rows
+6. Frontend `summarizeWorksheet()` calculates totals
 
-**Conditions:** `employee_id` must be provided
-
+### WF-PAY-SAVE: Save Worksheet Changes
+**Trigger:** Admin clicks Save (only enabled when "unsaved changes" badge visible)
 **Actions:**
-1. Get today's date in ISO format
-2. Query all time logs for employee where timestamp starts with today
-3. Sort by timestamp ascending
+1. For each modified shift row: `PUT /api/payroll/timeclock-shifts/:id` or `POST /api/payroll/timeclock-shifts` (new)
+2. For each adjustment row: `POST/PUT/DELETE /api/payroll/transactions`
+3. Refresh worksheet from server
+4. Clear "unsaved changes" badge
 
-**Data Changes:** None (read-only)
-
-```
-today = TODAY() in ISO format
-logs = SELECT * FROM timelogs 
-       WHERE employee_id = employee_id 
-       AND timestamp STARTS WITH today
-       ORDER BY timestamp ASC
-```
-
-**Returns:** List of TimeLog objects
-
----
-
-### WF-TIME-03: Get Clock Status
-
-**Trigger:** Check current clock status for employee
-
-**Conditions:** `employee_id` must be provided
-
+### WF-PAY-SIGNOFF: Review & Sign-Off
+**Trigger:** Admin clicks Review/Approve on sign-off strip
 **Actions:**
-1. Get today's date
-2. Query most recent log for employee today
-3. Map last action to status
+1. `PUT /api/payroll/signoff` with `reviewed_by`, `review_date` (or `approved_by`, `approval_date`)
+2. Once approved, worksheet becomes read-only for non-admin users
 
-**Status Mapping:**
-| Last Action | Status |
-|-------------|--------|
-| null | not_started |
-| start_work | working |
-| break_start | on_break |
-| break_end | working |
-| end_work | finished |
+### WF-PAY-LEGACY: Resolve Legacy Manual Entry
+**Trigger:** Admin uses resolution UI on legacy entry
+**Modes:**
+- `keep_legacy`: Keep entry as-is, include in totals
+- `exclude`: Remove from totals (set `included_in_totals: false`)
+- `convert`: Move hours to a specific date as a new shift
+**Data:** `PUT /api/payroll/legacy-manual-entries/:id/resolution`
 
-**Data Changes:** None (read-only)
-
-```
-today = TODAY() in ISO format
-last_log = SELECT * FROM timelogs 
-           WHERE employee_id = employee_id 
-           AND timestamp STARTS WITH today
-           ORDER BY timestamp DESC
-           LIMIT 1
-
-IF last_log is null:
-  RETURN { status: "not_started", last_action: null }
-
-status_map = {
-  "start_work": "working",
-  "break_start": "on_break",
-  "break_end": "working",
-  "end_work": "finished"
-}
-
-RETURN {
-  status: status_map[last_log.action],
-  last_action: last_log.action,
-  last_timestamp: last_log.timestamp
-}
-```
-
-**Returns:** Status object
-
----
-
-### WF-TIME-04: Calculate Shift Summary
-
-**Trigger:** View shift summary for employee on date
-
-**Conditions:** 
-- `employee_id` must be provided
-- `date` optional (defaults to today)
-
+### WF-PAY-EXPORT: Export/Print Worksheet
+**Trigger:** Admin clicks Export CSV or Print
+**Precondition:** No unsaved changes
 **Actions:**
-1. Query all time logs for employee on specified date
-2. Sort by timestamp ascending
-3. Calculate work minutes and break minutes
-4. Calculate net minutes
+1. `buildPayrollCsv()` or `buildPayrollPrintHtml()` from current worksheet state
+2. Download file or open print dialog
 
-**Calculation Algorithm:**
+### WF-PAY-01: Create Payroll Transaction (Adjustment)
+**Trigger:** Add row in Adjustments Panel
+**Types:** `earnings` (bonus/commission), `advance` (pay advance), `payment` (recorded payment)
+**Data:** `INSERT INTO payroll_transactions { id, tenant_id, employee_id, type, amount, description, date }`
+
+### WF-PAY-02: Get Transactions
+**Filters:** `employee_id`, `start_date`, `end_date`
+
+### WF-PAY-03: Calculate Balance (All-Time)
 ```
-work_minutes = 0
-break_minutes = 0
-work_start = null
-break_start = null
-
-FOR EACH log IN logs (sorted by timestamp ASC):
-  timestamp = PARSE(log.timestamp)
-  
-  IF log.action == "start_work":
-    work_start = timestamp
-    
-  ELSE IF log.action == "break_start" AND work_start != null:
-    break_start = timestamp
-    
-  ELSE IF log.action == "break_end" AND break_start != null:
-    break_minutes += (timestamp - break_start) / 60  // in minutes
-    break_start = null
-    
-  ELSE IF log.action == "end_work" AND work_start != null:
-    work_minutes += (timestamp - work_start) / 60  // in minutes
-    work_start = null
-
-net_minutes = work_minutes - break_minutes
-net_hours = net_minutes / 60
-```
-
-**Data Changes:** None (read-only)
-
-**Returns:**
-```
-{
-  employee_id: employee_id,
-  date: date,
-  work_minutes: ROUND(work_minutes, 2),
-  break_minutes: ROUND(break_minutes, 2),
-  net_minutes: ROUND(net_minutes, 2),
-  net_hours: ROUND(net_hours, 2)
-}
+balance = SUM(earnings) - SUM(advances) - SUM(payments)
+Positive = employer owes employee
+Negative = employee has advance balance
 ```
 
 ---
 
-## PAYROLL WORKFLOWS
+## PAYROLL SETTINGS WORKFLOW
 
----
-
-### WF-PAY-01: Create Payroll Transaction
-
-**Trigger:** Admin submits payroll transaction form
-
-**Conditions:**
-- `employee_id` must be provided
-- `type` must be valid: "earnings", "advance", "payment"
-- `amount` must be provided
-
+### WF-PAY-SETTINGS: Configure Pay Period
+**Trigger:** Company Settings -> Payroll Settings panel
 **Actions:**
-1. Generate new UUID for `id`
-2. Set `date` = input.date or current date
-3. Set `created_at` = current timestamp
-4. Insert transaction record
-
-**Data Changes:**
-```
-INSERT INTO payroll_transactions:
-{
-  id: generated UUID,
-  employee_id: input.employee_id,
-  type: input.type,  // "earnings" | "advance" | "payment"
-  amount: input.amount,
-  description: input.description || null,
-  date: input.date || TODAY(),
-  created_at: NOW()
-}
-```
-
-**Returns:** Created PayrollTransaction object
+1. `PATCH /api/auth/tenant` with `payroll_settings: { default_cycle, pay_week_start_day }`
+2. Next time Payroll Worksheet loads, `getCurrentCycleRange()` uses these settings to compute default date range
 
 ---
 
-### WF-PAY-02: Get Payroll Transactions
+## UNIFIED PRODUCTIVITY WORKFLOWS
 
-**Trigger:** View payroll transactions (with filters)
+### WF-PROD-01: Get Unified Items
+**Trigger:** Load Productivity page (any view)
+**Backend aggregation** (`productivity_query.py`):
+1. Load all tasks, orders, job_tickets, production_tasks, employee_schedules, appointments for tenant
+2. Normalize each into `ProductivityItem` with common fields:
+   - `uid` (compound: `{source_type}:{id}` or `{source_type}:{id}:{day}` for schedules)
+   - `type`, `source_type`, `status`, `priority`, `due_datetime`
+   - `board_column` (open/in_progress/blocked/done)
+   - `color` (status-derived)
+3. Apply filters (type, status, priority, assigned user, customer, date range, search)
+4. Return unified list
 
-**Conditions:** None
-
+### WF-PROD-02: Update Productivity Item
+**Trigger:** Toggle complete, change status, drag on Kanban
+**Endpoint:** `PATCH /api/productivity/items/:uid`
 **Actions:**
-1. Build query based on filters:
-   - `employee_id` → filter by employee
-   - `start_date` and/or `end_date` → filter by date range
-2. Execute query
+1. Parse `uid` to determine `source_type` and `source_id`
+2. For `schedule_shift` UIDs, parse compound `schedule_shift:{id}:{day}` format
+3. Route update to the correct collection (`tasks`, `orders`, `job_tickets`, `production_tasks`, `employee_schedules`)
+4. Return updated item
 
-**Data Changes:** None (read-only)
-
-```
-query = {}
-IF employee_id: query.employee_id = employee_id
-IF start_date AND end_date: query.date = { $gte: start_date, $lte: end_date }
-ELSE IF start_date: query.date = { $gte: start_date }
-ELSE IF end_date: query.date = { $lte: end_date }
-
-transactions = SELECT * FROM payroll_transactions WHERE query
-```
-
-**Returns:** List of PayrollTransaction objects
+### WF-PROD-03: Get Summary
+**Trigger:** Dashboard view
+**Returns:** Counts for due_today, overdue, waiting_on_approval, scheduled_this_week, my_assigned, open/completed, by_type, by_board_column
 
 ---
 
-### WF-PAY-03: Calculate Payroll Balance (Per Employee)
+## INVOICE WORKFLOWS
 
-**Trigger:** View employee payroll balance
+### WF-INV-01: Create Invoice (Direct)
+Insert with calculated line item totals, `amount_paid: 0`, `status: "draft"`
 
-**Conditions:** Employee with `employee_id` must exist
+### WF-INV-02: Create Invoice from Order
+Copy JobTickets -> InvoiceLineItems (snapshot), link Order.invoice_id, log activity
 
-**Actions:**
-1. Find employee by `id`
-2. If not found → ERROR 404 "Employee not found"
-3. Query all transactions for employee
-4. Calculate totals by type
-5. Calculate balance
+### WF-INV-03: Update Invoice
+Recalculate totals if line_items changed. If status -> "paid", set `paid_date`.
 
-**Calculation:**
-```
-employee = SELECT * FROM employees WHERE id = employee_id
-IF employee is null: ERROR 404
+### WF-INV-04: Status Changes
+`draft -> sent -> paid/overdue`
+Mark Paid: set `amount_paid = total`, `paid_date = NOW()`
 
-transactions = SELECT * FROM payroll_transactions WHERE employee_id = employee_id
-
-total_earnings = SUM(t.amount for t in transactions WHERE t.type == "earnings")
-total_advances = SUM(t.amount for t in transactions WHERE t.type == "advance")
-total_payments = SUM(t.amount for t in transactions WHERE t.type == "payment")
-
-// Balance formula:
-// Earnings = money owed TO employee
-// Advances = money given to employee early (reduces what's owed)
-// Payments = money paid to employee (reduces what's owed)
-balance = total_earnings - total_advances - total_payments
-
-// Interpretation:
-// Positive balance = employer owes employee this amount
-// Negative balance = employee received advance (employer is ahead)
-```
-
-**Data Changes:** None (read-only)
-
-**Returns:**
-```
-{
-  employee_id: employee_id,
-  employee_name: employee.name,
-  total_earnings: total_earnings,
-  total_advances: total_advances,
-  total_payments: total_payments,
-  balance: balance
-}
-```
-
----
-
-### WF-PAY-04: Generate Payroll Report (Date Range)
-
-**Trigger:** Admin requests payroll report
-
-**Conditions:**
-- `start_date` must be provided
-- `end_date` must be provided
-
-**Actions:**
-1. Query all employees
-2. For each employee, query transactions in date range
-3. Calculate period totals for each employee
-4. Return consolidated report
-
-**Calculation:**
-```
-employees = SELECT * FROM employees
-report = []
-
-FOR EACH employee IN employees:
-  transactions = SELECT * FROM payroll_transactions 
-                 WHERE employee_id = employee.id
-                 AND date >= start_date
-                 AND date <= end_date
-  
-  period_earnings = SUM(t.amount for t in transactions WHERE t.type == "earnings")
-  period_advances = SUM(t.amount for t in transactions WHERE t.type == "advance")
-  period_payments = SUM(t.amount for t in transactions WHERE t.type == "payment")
-  period_balance = period_earnings - period_advances - period_payments
-  
-  report.push({
-    employee_id: employee.id,
-    employee_name: employee.name,
-    period_earnings: period_earnings,
-    period_advances: period_advances,
-    period_payments: period_payments,
-    period_balance: period_balance
-  })
-
-RETURN report
-```
-
-**Data Changes:** None (read-only)
-
-**Returns:** List of employee period summaries
-
----
-
-### WF-PAY-05: Calculate Earnings from Time Logs
-
-**Trigger:** Generate earnings transaction from worked hours
-
-**Conditions:**
-- Employee must exist
-- Employee must have `hourly_rate` set
-
-**Actions:**
-1. Get shift summary for date range (WF-TIME-04)
-2. Calculate earnings = net_hours × employee.hourly_rate
-3. Create earnings transaction (WF-PAY-01)
-
-**Calculation:**
-```
-shift_summary = GET_SHIFT_SUMMARY(employee_id, date)
-employee = SELECT * FROM employees WHERE id = employee_id
-
-earnings_amount = shift_summary.net_hours × employee.hourly_rate
-
-// Then create transaction via WF-PAY-01
-CREATE_PAYROLL_TRANSACTION({
-  employee_id: employee_id,
-  type: "earnings",
-  amount: earnings_amount,
-  description: "Earnings for " + date + " (" + shift_summary.net_hours + " hours)",
-  date: date
-})
-```
+### WF-INV-05: Partial Payment
+Add to `amount_paid`. If `amount_paid >= total`, auto-mark as paid.
 
 ---
 
 ## FINANCIAL WORKFLOWS
 
----
-
 ### WF-FIN-01: Create Sales Entry
-
-**Trigger:** User submits sales entry form
-
-**Conditions:** 
-- `date` must be provided
-- `amount` must be provided
-
-**Actions:**
-1. Generate new UUID for `id`
-2. Set `created_at` = current timestamp
-3. Insert sales entry record
-
-**Data Changes:**
-```
-INSERT INTO sales_entries:
-{
-  id: generated UUID,
-  date: input.date,
-  amount: input.amount,
-  tax_amount: input.tax_amount || 0,
-  description: input.description || null,
-  created_at: NOW()
-}
-```
-
-**Returns:** Created SalesEntry object
-
----
+Insert `{ date, amount, tax_amount, description }`
 
 ### WF-FIN-02: Create Expense Entry
+Insert `{ date, amount, category, description }`
 
-**Trigger:** User submits expense entry form
-
-**Conditions:**
-- `date` must be provided
-- `amount` must be provided
-
-**Actions:**
-1. Generate new UUID for `id`
-2. Set `created_at` = current timestamp
-3. Insert expense entry record
-
-**Data Changes:**
+### WF-FIN-03: Financial Summary
 ```
-INSERT INTO expense_entries:
-{
-  id: generated UUID,
-  date: input.date,
-  amount: input.amount,
-  category: input.category || "other",
-  description: input.description || null,
-  created_at: NOW()
-}
-```
-
-**Returns:** Created ExpenseEntry object
-
----
-
-### WF-FIN-03: Calculate Financial Summary
-
-**Trigger:** View financial summary for date range
-
-**Conditions:**
-- `start_date` must be provided
-- `end_date` must be provided
-
-**Actions:**
-1. Query all sales entries in date range
-2. Query all expense entries in date range
-3. Calculate totals
-
-**Calculation:**
-```
-sales = SELECT * FROM sales_entries 
-        WHERE date >= start_date AND date <= end_date
-
-expenses = SELECT * FROM expense_entries 
-           WHERE date >= start_date AND date <= end_date
-
-total_sales = SUM(s.amount for s in sales)
-total_tax = SUM(s.tax_amount for s in sales)
-total_expenses = SUM(e.amount for e in expenses)
+total_sales = SUM(sales_entries.amount)
+total_tax = SUM(sales_entries.tax_amount)
+total_expenses = SUM(expense_entries.amount)
 net_income = total_sales - total_expenses
-```
-
-**Data Changes:** None (read-only)
-
-**Returns:**
-```
-{
-  total_sales: total_sales,
-  total_tax: total_tax,
-  total_expenses: total_expenses,
-  net_income: net_income
-}
 ```
 
 ---
 
 ## TASK WORKFLOWS
 
----
-
 ### WF-TASK-01: Create Task
-
-**Trigger:** User submits task form
-
-**Conditions:** None
-
-**Actions:**
-1. Generate new UUID for `id`
-2. Set `created_at` = current timestamp
-3. Set `is_complete` = false (default)
-4. Insert task record
-
-**Data Changes:**
-```
-INSERT INTO tasks:
-{
-  id: generated UUID,
-  title: input.title,
-  description: input.description || null,
-  order_id: input.order_id || null,
-  due_date: input.due_date || null,
-  is_complete: false,
-  created_at: NOW()
-}
-```
-
-**Returns:** Created Task object
-
----
+Insert `{ title, description, order_id (opt), assigned_to (opt), due_date, is_complete: false }`
 
 ### WF-TASK-02: Update Task
+Update provided fields
 
-**Trigger:** User submits task edit form
-
-**Conditions:** Task must exist
-
-**Actions:**
-1. Find task by `id`
-2. If not found → ERROR 404 "Task not found"
-3. Update only fields that are provided
-
-**Data Changes:**
-```
-UPDATE tasks WHERE id = task_id:
-SET {
-  title: input.title,           // if provided
-  description: input.description,  // if provided
-  order_id: input.order_id,         // if provided
-  due_date: input.due_date,     // if provided
-  is_complete: input.is_complete  // if provided
-}
-```
-
-**Returns:** Updated Task object
-
----
-
-### WF-TASK-03: Toggle Task Complete
-
-**Trigger:** User clicks task checkbox
-
-**Conditions:** Task must exist
-
-**Actions:**
-1. Find task by `id`
-2. Toggle `is_complete` value
-
-**Data Changes:**
-```
-UPDATE tasks WHERE id = task_id:
-SET is_complete = NOT current_is_complete
-```
-
-**Returns:** Updated Task object
-
----
+### WF-TASK-03: Toggle Complete
+Toggle `is_complete`
 
 ### WF-TASK-04: Delete Task
-
-**Trigger:** User clicks delete task
-
-**Conditions:** Task must exist
-
-**Actions:**
-1. Delete task record
-2. If no record deleted → ERROR 404 "Task not found"
-
-**Data Changes:**
-```
-DELETE FROM tasks WHERE id = task_id
-```
-
-**Returns:** `{ message: "Task deleted" }`
+Delete record
 
 ---
 
 ## WEBSTORE WORKFLOWS
 
----
-
 ### WF-WEB-01: Create Webstore Order
+1. Auto-create Customer if not exists (by webstore type marker)
+2. Auto-create Order linked to customer
+3. Insert WebstoreOrder linked to Order
+4. If fundraiser, increment `total_raised`
 
-**Trigger:** Customer places order on webstore
+---
 
-**Conditions:**
-- `store_type` must be "fundraiser" or "b2b"
-- `store_id` must be provided
-- `items` must be provided
-- `total` must be provided
+## EMPLOYEE PORTAL WORKFLOWS
 
+### WF-EMPPORTAL-01: PIN Login
+**Trigger:** Employee enters PIN on `/employee-portal/login`
+**Validation:** Find employee by PIN in tenant, check `is_active`
+**Returns:** JWT token scoped to employee
+
+### WF-EMPPORTAL-02: View Assigned Tasks
+Query `production_tasks` + `tasks` where `assigned_to = employee_id`
+
+### WF-EMPPORTAL-03: View Pay Stubs
+Query `payroll_transactions` and `timeclock_shifts` for employee
+
+---
+
+## CUSTOMER PORTAL WORKFLOWS
+
+### WF-CUSTPORTAL-01: Customer Login
+Email + password authentication against `customers` collection
+
+### WF-CUSTPORTAL-02: View Orders
+Filtered by `customer_id`, read-only
+
+### WF-CUSTPORTAL-03: Proof Approval
+Customer reviews artwork proof, approves/requests revision/rejects
+
+### WF-CUSTPORTAL-04: Messaging
+Threaded conversations between customer and shop
+
+---
+
+## AI WORKFLOWS
+
+### WF-AI-01: Generate Content
+**Trigger:** Submit AI tool form
 **Actions:**
-1. Generate new UUID for order `id`
-2. Set `status` = "pending"
-3. **AUTO-CREATE CUSTOMER** (if not exists):
-   - Find customer with company = "Webstore {TYPE} Customer"
-   - If not found → create new customer
-4. **AUTO-CREATE JOB:**
-   - Create job linked to customer
-   - Set name = "Webstore Order #{order_id first 8 chars}"
-   - Set status = "approved"
-5. Link order to job
-6. Insert order record
-7. **IF store_type = "fundraiser":**
-   - Increment campaign's `total_raised` by order total
+1. Validate AI credits available
+2. Call OpenAI GPT-5.2 via Emergent LLM Key
+3. Deduct credits
+4. Store `ai_responses` record
+5. Return generated content
 
-**Data Changes:**
-```
-// Find or create customer
-customer_name = "Webstore " + UPPERCASE(store_type) + " Customer"
-customer = SELECT * FROM customers WHERE company = customer_name
-
-IF customer is null:
-  INSERT INTO customers:
-  {
-    id: generated UUID,
-    name: customer_name,
-    company: customer_name,
-    status: "active",
-    created_at: NOW(),
-    updated_at: NOW()
-  }
-  customer_id = new_customer.id
-ELSE:
-  customer_id = customer.id
-
-// Create job
-INSERT INTO orders:
-{
-  id: generated UUID,
-  customer_id: customer_id,
-  name: "Webstore Order #" + order_id.substring(0,8),
-  description: "Order from " + store_type + " store " + store_id,
-  status: "approved",
-  subtotal: 0,
-  is_archived: false,
-  created_at: NOW(),
-  updated_at: NOW()
-}
-
-// Create order
-INSERT INTO webstore_orders:
-{
-  id: generated UUID,
-  store_type: input.store_type,
-  store_id: input.store_id,
-  items: input.items,  // JSON array
-  total: input.total,
-  status: "pending",
-  order_id: new_job.id,
-  created_at: NOW()
-}
-
-// Update fundraiser total if applicable
-IF store_type == "fundraiser":
-  UPDATE fundraiser_campaigns WHERE id = store_id:
-  INCREMENT total_raised BY input.total
-```
-
-**Returns:** Created WebstoreOrder object
+### WF-AI-02: AI Assistant Chat
+Conversational interface with action layer (can create tasks, look up orders, etc.)
 
 ---
 
-## DASHBOARD WORKFLOWS
+## DOCUMENT & EMAIL WORKFLOWS
+
+### WF-DOC-01: Upload Document
+Upload to Object Storage, store metadata in `documents`
+
+### WF-EMAIL-01: Send from Template
+Merge template variables, send via email service
 
 ---
+
+## DASHBOARD WORKFLOW
 
 ### WF-DASH-01: Get Dashboard Stats
-
-**Trigger:** Load dashboard page
-
-**Conditions:** None
-
-**Actions:**
-1. Count total customers
-2. Count active orders (status not in ["complete"])
-3. Count pending invoices (status in ["sent", "overdue"])
-4. Sum today's sales
-5. Sum overdue invoice totals
-
-**Calculation:**
+Now served via Unified Productivity summary endpoint:
 ```
-today = TODAY() in ISO format
-
-total_customers = COUNT(customers)
-active_orders = COUNT(orders WHERE status NOT IN ["complete"])
-pending_invoices = COUNT(invoices WHERE status IN ["sent", "overdue"])
-
-today_sales = SELECT * FROM sales_entries WHERE date = today
-today_revenue = SUM(s.amount for s in today_sales)
-
-overdue_invoices = SELECT * FROM invoices WHERE status = "overdue"
-overdue_total = SUM(i.total for i in overdue_invoices)
-overdue_count = COUNT(overdue_invoices)
-```
-
-**Data Changes:** None (read-only)
-
-**Returns:**
-```
-{
-  total_customers: total_customers,
-  active_orders: active_orders,
-  pending_invoices: pending_invoices,
-  today_revenue: today_revenue,
-  overdue_total: overdue_total,
-  overdue_count: overdue_count
-}
+total_customers, active_orders, pending_invoices,
+today_revenue, overdue_total, overdue_count,
+due_today, my_assigned, open_items
 ```
 
 ---
@@ -1941,15 +433,18 @@ overdue_count = COUNT(overdue_invoices)
 
 | Module | Create | Read | Update | Delete | Special |
 |--------|--------|------|--------|--------|---------|
-| Customer | WF-CUST-01 | WF-CUST-04 | WF-CUST-02 | WF-CUST-03 | - |
-| Quote | WF-QUOTE-01 | - | WF-QUOTE-02,03 | - | WF-QUOTE-04,05,06 (line items), WF-QUOTE-07 (convert) |
-| Order | WF-JOB-01 | WF-JOB-08 | WF-JOB-02,03 | WF-JOB-07 | WF-JOB-04 (complete), WF-JOB-05,06 (archive) |
-| JobTicket | WF-JOBITEM-01 | - | WF-JOBITEM-02 | WF-JOBITEM-03 | WF-JOBITEM-RECALC (subtotal) |
-| OrderNote | WF-JOBNOTE-01 | - | - | WF-JOBNOTE-02 | - |
-| Invoice | WF-INV-01 | - | WF-INV-03 | - | WF-INV-02 (from job), WF-INV-04,05 (status/payment) |
-| TimeClock | WF-TIME-01 | WF-TIME-02,03 | - | - | WF-TIME-04 (summary) |
-| Payroll | WF-PAY-01 | WF-PAY-02 | - | - | WF-PAY-03 (balance), WF-PAY-04 (report), WF-PAY-05 (from hours) |
-| Financial | WF-FIN-01,02 | WF-FIN-03 | - | - | - |
-| Task | WF-TASK-01 | - | WF-TASK-02 | WF-TASK-04 | WF-TASK-03 (toggle) |
-| Webstore | WF-WEB-01 | - | - | - | Auto-creates customer and job |
-| Dashboard | - | WF-DASH-01 | - | - | - |
+| Customer | WF-CUST-01 | WF-CUST-04 | WF-CUST-02 | WF-CUST-03 | Portal toggle |
+| Quote | WF-QUOTE-01 | - | WF-QUOTE-02 | - | WF-QUOTE-07 (convert) |
+| Order | WF-JOB-01 | WF-JOB-08 | WF-JOB-02,03 | WF-JOB-07 | Complete, Archive |
+| JobTicket | WF-JOBITEM-01 | - | WF-JOBITEM-02 | WF-JOBITEM-03 | Subtotal recalc |
+| Drawing | WF-DRAW-01 | WF-DRAW-05 | WF-DRAW-02 | WF-DRAW-03 | Object Storage |
+| Signature | WF-SIG-01 | - | WF-SIG-03 | - | Email request, Public capture |
+| Invoice | WF-INV-01 | - | WF-INV-03 | - | From Order, Payment |
+| TimeClock | WF-TIME-01 | - | WF-TIME-03 | - | Backfill, Manual shift |
+| Payroll Worksheet | WF-PAY-WORKSHEET | - | WF-PAY-SAVE | - | Signoff, Legacy, Export |
+| Payroll Txn | WF-PAY-01 | WF-PAY-02 | - | - | Balance calc |
+| Productivity | WF-PROD-01 | WF-PROD-03 | WF-PROD-02 | - | Unified aggregation |
+| Financial | WF-FIN-01,02 | WF-FIN-03 | - | - | Summary |
+| Task | WF-TASK-01 | - | WF-TASK-02 | WF-TASK-04 | Toggle complete |
+| Webstore | WF-WEB-01 | - | - | - | Auto-create |
+| AI | WF-AI-01 | - | - | - | Credits, Assistant |

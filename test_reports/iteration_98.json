@@ -29,7 +29,7 @@
     "frontend": "100% (all UI verifications passed)"
   },
   "test_credentials": "signguypa@gmail.com / Billnel323",
-  "seed_data_creation": "Used main agent's seeded data: store_id=fc0bad7e-9040-477e-93b9-a3f0b1a2df90 (Preview Storefront QA), product_id=b3c51047-4bc9-4d6e-b3cb-9023bb6a2ee6 (Preview Tee)",
+  "seed_data_creation": "Used main agent's seeded data: store_id=admin-timeclock (Preview Storefront QA), product_id=admin-timeclock (Preview Tee)",
   "retest_needed": false,
   "should_main_agent_self_test": false,
   "context_for_next_testing_agent": "Checkout gating feature (Rule C) fully implemented and tested. Webstores are usable for browsing/cart but checkout is blocked until tenant completes Stripe Connect onboarding. Public storefront API exposes checkout_enabled, checkout_status, checkout_message fields for frontend gating.",

@@ -19,6 +19,13 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
+### Session: Feb 2026 (BUBBLE Documentation Update)
+- Updated all four `BUBBLE_*.md` documentation files to reflect the current codebase state:
+  - `BUBBLE_DATABASE_SCHEMA.md` (843 lines) — All collections including timeclock_shifts, payroll_signoffs, order_drawings, signatures, tenants with payroll_settings, Object Storage mapping
+  - `BUBBLE_PAGE_MAP.md` (337 lines) — All current routes, Payroll Worksheet components, Unified Productivity views, Customer/Employee Portals, public pages
+  - `BUBBLE_WORKFLOWS.md` (450 lines) — All workflows including Payroll Worksheet load/save/signoff/legacy, Drawing/Signature capture, Unified Productivity aggregation, Time Clock shifts
+  - `BUBBLE_DEPENDENCY_MAP.md` (337 lines) — Updated dependency graph with Object Storage, Payroll Worksheet state, Productivity compound UIDs, external service dependencies
+
 ### Session: April 13, 2026 (Consolidation Pass — Legacy Jobs Cleanup + Unified Dashboard Finalization)
 - Completed the post-audit consolidation pass across routing, navigation, productivity, and source-detail flows.
 - Legacy `/jobs` flow cleanup:

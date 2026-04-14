@@ -31,7 +31,7 @@
     "frontend": "100% (all UI verifications passed)"
   },
   "test_credentials": "signguypa@gmail.com / Billnel323",
-  "seed_data_creation": "Used main agent's seeded data: employee_id=18eed187-1a90-4bf8-b233-dc47b44c9579 (Preview Payroll QA) with entries 2026-04-03 8h, 2026-04-08 7.5h, 2026-04-09 6.25h and transactions 2026-04-04 advance 40, 2026-04-08 earnings 25, 2026-04-09 payment 30",
+  "seed_data_creation": "Used main agent's seeded data: employee_id=admin-timeclock (Preview Payroll QA) with entries 2026-04-03 8h, 2026-04-08 7.5h, 2026-04-09 6.25h and transactions 2026-04-04 advance 40, 2026-04-08 earnings 25, 2026-04-09 payment 30",
   "retest_needed": false,
   "should_main_agent_self_test": false,
   "context_for_next_testing_agent": "Payroll overhaul complete with carryover balance, transaction totals, and final owed calculations. Order Command Bar added to New Order and Add Ticket pages. All payroll endpoints (/api/payroll/report, /api/payroll/timesheet, /api/payroll/pay-period) return consistent data shapes for export functionality.",
