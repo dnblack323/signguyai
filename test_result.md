@@ -480,13 +480,13 @@ frontend:
 metadata:
   created_by: "testing_agent"
   version: "1.0"
-  test_sequence: 5
+  test_sequence: 6
   run_ui: false
-  last_test_date: "2026-04-13"
+  last_test_date: "2026-04-14"
 
 test_plan:
   current_focus:
-    - "Consolidation pass backend regression testing complete - all 8 tests verified"
+    - "Payroll sign-off strip testing complete - all 8 verification points passed"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -723,6 +723,106 @@ agent_communication:
       - working: true
         agent: "testing"
         comment: "✅ VERIFIED - Report/backend-connected values display correctly at footer summary (payroll-footer-summary). Report gross for selected week displays as $374.00 (payroll-report-gross-value). Current final owed from backend displays as $809.00 (payroll-report-final-owed-value). Footer summary section is present and shows backend-calculated values correctly."
+
+
+  - task: "Payroll Sign-off Strip - Compact Inline Layout"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/payroll/PayrollSignoffStrip.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - Compact sign-off strip is present inline within the worksheet (data-testid='payroll-signoff-strip'), NOT in a modal or separate page. DOM inspection confirmed the strip is not nested inside any dialog/modal elements. Strip contains heading 'Payroll review sign-off' and description 'Compact review fields that stay inside the worksheet instead of opening a second workflow.' Layout remains compact with no extra cards/panels/clutter introduced."
+
+  - task: "Payroll Sign-off Strip - All 5 Fields Present and Editable"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/payroll/PayrollSignoffStrip.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - All 5 sign-off fields are present and editable: (1) Reviewed By (payroll-signoff-reviewed-by-input), (2) Review Date (payroll-signoff-review-date-input), (3) Approved By (payroll-signoff-approved-by-input), (4) Approval Date (payroll-signoff-approval-date-input), (5) Payroll Notes (payroll-signoff-notes-input). All fields accept input and are not disabled when user has edit permissions."
+
+  - task: "Payroll Sign-off Strip - Save and Persistence"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Payroll.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - Sign-off fields save and persist correctly after page reload. Test sequence: (1) Filled all 5 fields with test data: reviewed_by='QA Reviewer Test', review_date='2026-04-15', approved_by='QA Approver Test', approval_date='2026-04-16', payroll_notes='QA Test Sign-off Notes', (2) Clicked Save Worksheet button (payroll-worksheet-save-button), (3) Reloaded page, (4) All sign-off values persisted exactly as entered. Backend API PUT /api/payroll/signoff working correctly with employee_id and week_start parameters."
+
+  - task: "Payroll Legacy Review - Week 2026-04-13 Clean State"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Payroll.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - For week 2026-04-13, clean-state message displays correctly when no off-grid legacy entries exist. Message shown (data-testid='payroll-legacy-review-clean'): 'Current payroll records for this employee/week map cleanly into the worksheet rows.' Green emerald-colored info box with Info icon displayed as expected."
+
+  - task: "Payroll Legacy Review - Week 2026-04-06 Warning with Counts"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Payroll.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - For week 2026-04-06, legacy review warning displays correctly with off-grid/manual entry counts. Warning shown (data-testid='payroll-legacy-entry-warning'): '2 manual or timer entries, 0 extra same-day shift rows, 13.75 off-grid hours. Exports and totals still include them, but they may need migration for a perfectly clean row-by-row worksheet history.' Amber-colored warning box with Info icon displayed. Counts extracted correctly: Manual entries=2, Extra same-day shifts=0, Off-grid hours=13.75."
+
+  - task: "Payroll Worksheet - Save Flow After Sign-off Addition"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Payroll.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - Existing worksheet save flow still works correctly after adding sign-off feature. Test sequence: (1) Updated Employee Name to 'QA Test Employee Updated - Save Test', (2) Clicked Save Worksheet button, (3) Reloaded page, (4) Employee name persisted correctly. No regression detected in existing save functionality. Save button (payroll-worksheet-save-button) remains enabled and functional."
+
+  - task: "Payroll Worksheet - Export and Print Buttons Availability"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/payroll/PayrollWorksheetToolbar.js"
+    stuck_count: 0
+    priority: "high"
+  - agent: "testing"
+    message: "PAYROLL SIGN-OFF STRIP TESTING COMPLETE - Comprehensive verification of updated payroll worksheet with new sign-off features completed successfully at https://workforce-hub-389.preview.emergentagent.com/payroll. ALL 8 VERIFICATION POINTS PASSED: (1) Compact payroll worksheet layout intact - verified narrow left Adjustments panel + wide right worksheet section, no extra cards/panels/clutter introduced, no old payroll UI elements found, (2) New compact sign-off strip is present inline within worksheet (data-testid='payroll-signoff-strip'), NOT in a modal or separate page - DOM inspection confirmed, (3) All 5 sign-off fields present and editable: reviewed_by, review_date, approved_by, approval_date, payroll_notes, (4) Sign-off fields save and persist after reload - tested with values 'QA Reviewer Test', '2026-04-15', 'QA Approver Test', '2026-04-16', 'QA Test Sign-off Notes' - all persisted correctly, (5) Legacy review for week 2026-04-13 shows clean-state message correctly: 'Current payroll records for this employee/week map cleanly into the worksheet rows', (6) Legacy review for week 2026-04-06 shows warning with counts correctly: '2 manual or timer entries, 0 extra same-day shift rows, 13.75 off-grid hours', (7) Existing worksheet save flow still works after adding sign-off - Employee name persisted correctly, (8) Export CSV and Print buttons remain available and enabled. COVERAGE GAP: Read-only lock state cannot be tested with provided credentials (signguypa@gmail.com is admin/owner with edit permissions) - code review confirms implementation is correct with disabled={readOnlyLocked} on all sign-off fields. No critical issues found. No UI clutter regressions. No sign-off persistence bugs. No legacy review bugs. No save regressions. Payroll sign-off feature is fully functional and production-ready."
+
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - Export CSV button (payroll-worksheet-export-csv-button) and Print button (payroll-worksheet-print-button) remain available and enabled after sign-off feature addition. Both buttons are present in the toolbar and not disabled. No regression detected in export/print functionality."
+
+  - task: "Payroll Worksheet - Read-only Lock State"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/Payroll.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "⚠️ COVERAGE GAP - Cannot test read-only lock state with provided credentials (signguypa@gmail.com is admin/owner with edit permissions). Status badge shows 'Inline editing enabled' confirming current user has PAYROLL_EDIT permission. Code review confirms read-only logic is implemented: readOnlyLocked = !canEditPayroll (line 138), and all sign-off input fields have disabled={readOnlyLocked} prop (PayrollSignoffStrip.js lines 17, 21, 25, 29, 33). To fully test read-only state, need credentials for a non-edit payroll user (staff role without PAYROLL_EDIT permission)."
 
   - agent: "testing"
     message: "PRICING + BILLING FRONTEND VERIFICATION COMPLETE - Focused frontend verification for latest pricing + billing pass completed successfully. All verification points passed: (1) Login works correctly with credentials signguypa@gmail.com / Billnel323, successfully authenticated and redirected to dashboard, (2) /quotes page loads and shows 19 quote records in table with all UI controls functional, (3) /invoices page loads and shows 16 invoice records in table with summary cards and all UI controls functional, (4) No obvious frontend runtime issues detected - no critical console errors, only minor Cloudflare CDN RUM errors which are non-functional. Both /quotes and /invoices are real pages (not redirects) and order-generated quotes/invoices are visible in the normal UI flows. Backend testing already passed for pricing/calculate, generate-quote, generate-invoice, /api/quotes, /api/invoices, and order financials."

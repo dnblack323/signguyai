@@ -25,6 +25,7 @@ import { PayrollWorksheetToolbar } from '../components/payroll/PayrollWorksheetT
 import { PayrollAdjustmentsPanel } from '../components/payroll/PayrollAdjustmentsPanel';
 import { PayrollWeekTable } from '../components/payroll/PayrollWeekTable';
 import { PayrollWorksheetSummary } from '../components/payroll/PayrollWorksheetSummary';
+import { PayrollSignoffStrip } from '../components/payroll/PayrollSignoffStrip';
 
 const normalizeEmployeeDraft = (employee) => ({
   id: employee?.id || '',
@@ -54,6 +55,7 @@ export default function Payroll() {
   const [adjustmentRows, setAdjustmentRows] = useState(buildAdjustmentRows([]));
   const [report, setReport] = useState(null);
   const [timesheet, setTimesheet] = useState(null);
+  const [signoff, setSignoff] = useState({ reviewed_by: '', review_date: '', approved_by: '', approval_date: '', payroll_notes: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState('');
@@ -75,18 +77,26 @@ export default function Payroll() {
     if (!selectedEmployeeId || !canViewPayroll) return;
     setLoading(true);
     try {
-      const [employeeRes, shiftsRes, transactionsRes, reportRes, timesheetRes] = await Promise.all([
+      const [employeeRes, shiftsRes, transactionsRes, reportRes, timesheetRes, signoffRes] = await Promise.all([
         api.get(`/employees/${selectedEmployeeId}`),
         api.get('/payroll/timeclock-shifts', { params: { employee_id: selectedEmployeeId, start_date: weekStart, end_date: weekEnd } }),
         api.get('/payroll/transactions', { params: { employee_id: selectedEmployeeId, start_date: weekStart, end_date: weekEnd } }),
         api.get('/payroll/report', { params: { employee_id: selectedEmployeeId, start_date: weekStart, end_date: weekEnd } }),
         api.get('/payroll/timesheet', { params: { employee_id: selectedEmployeeId, start_date: weekStart, end_date: weekEnd } }),
+        api.get('/payroll/signoff', { params: { employee_id: selectedEmployeeId, week_start: weekStart } }),
       ]);
       setEmployeeDraft(normalizeEmployeeDraft(employeeRes.data));
       setWorksheetRows(buildWorksheetRows(weekStart, shiftsRes.data || []));
       setAdjustmentRows(buildAdjustmentRows(transactionsRes.data || []));
       setReport(reportRes.data);
       setTimesheet(timesheetRes.data);
+      setSignoff({
+        reviewed_by: signoffRes.data.reviewed_by || '',
+        review_date: signoffRes.data.review_date || '',
+        approved_by: signoffRes.data.approved_by || '',
+        approval_date: signoffRes.data.approval_date || '',
+        payroll_notes: signoffRes.data.payroll_notes || '',
+      });
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to load payroll worksheet');
     } finally {
@@ -106,10 +116,26 @@ export default function Payroll() {
   const adjustmentTotal = useMemo(() => getSignedAdjustmentTotal(adjustmentRows), [adjustmentRows]);
   const selectedTimesheetEmployee = timesheet?.employees?.[0];
   const carryoverBalance = selectedTimesheetEmployee?.carryover_balance || report?.employees?.[0]?.carryover_balance || 0;
-  const hiddenLegacyEntryCount = useMemo(
-    () => (selectedTimesheetEmployee?.entries || []).filter((entry) => entry.source !== 'time_clock').length,
-    [selectedTimesheetEmployee],
-  );
+  const legacyReview = useMemo(() => {
+    const entries = selectedTimesheetEmployee?.entries || [];
+    const manualEntries = entries.filter((entry) => entry.source !== 'time_clock');
+    const timeClockByDate = entries
+      .filter((entry) => entry.source === 'time_clock')
+      .reduce((accumulator, entry) => {
+        const dateKey = entry.date || entry.clock_in?.slice(0, 10) || 'unknown';
+        accumulator[dateKey] = (accumulator[dateKey] || 0) + 1;
+        return accumulator;
+      }, {});
+    const extraSameDayShiftCount = Object.values(timeClockByDate).reduce((sum, count) => sum + Math.max(count - 1, 0), 0);
+    const unmappedHours = manualEntries.reduce((sum, entry) => sum + Number(entry.hours || entry.total_hours || 0), 0);
+    return {
+      manualCount: manualEntries.length,
+      extraSameDayShiftCount,
+      unmappedHours: Number(unmappedHours.toFixed(2)),
+      needsMigration: manualEntries.length > 0 || extraSameDayShiftCount > 0,
+    };
+  }, [selectedTimesheetEmployee]);
+  const readOnlyLocked = !canEditPayroll;
 
   const handleRowChange = (index, field, value) => {
     setWorksheetRows((currentRows) => currentRows.map((row, rowIndex) => {
@@ -199,6 +225,10 @@ export default function Payroll() {
   };
 
   const handleSaveWorksheet = async () => {
+    if (!canEditPayroll) {
+      toast.error('You do not have permission to edit payroll');
+      return;
+    }
     const validationError = validateRows();
     if (validationError) {
       toast.error(validationError);
@@ -266,6 +296,16 @@ export default function Payroll() {
         }
       }
 
+      await api.put('/payroll/signoff', {
+        employee_id: selectedEmployeeId,
+        week_start: weekStart,
+        reviewed_by: signoff.reviewed_by,
+        review_date: signoff.review_date || null,
+        approved_by: signoff.approved_by,
+        approval_date: signoff.approval_date || null,
+        payroll_notes: signoff.payroll_notes,
+      });
+
       await fetchEmployees();
       await loadWorksheet();
       toast.success('Payroll worksheet saved');
@@ -327,51 +367,63 @@ export default function Payroll() {
         />
 
         <div className="grid min-h-[880px] lg:grid-cols-[320px_1fr]">
-          <PayrollAdjustmentsPanel rows={adjustmentRows} onChange={handleAdjustmentChange} total={adjustmentTotal} />
+          <PayrollAdjustmentsPanel rows={adjustmentRows} onChange={handleAdjustmentChange} readOnlyLocked={readOnlyLocked} total={adjustmentTotal} />
+
 
           <section className="bg-[#f8fbfb] p-5 lg:p-7" data-testid="payroll-worksheet-main">
             <div className="space-y-5 rounded-[30px] border border-slate-300 bg-white p-5 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.16)] lg:p-7">
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" data-testid="payroll-meta-grid">
                 <div className="space-y-2">
                   <Label htmlFor="payroll-meta-employee-name">Employee Name</Label>
-                  <Input id="payroll-meta-employee-name" value={employeeDraft.name} onChange={(event) => setEmployeeDraft((current) => ({ ...current, name: event.target.value }))} data-testid="payroll-meta-employee-name-input" />
+                  <Input disabled={readOnlyLocked} id="payroll-meta-employee-name" value={employeeDraft.name} onChange={(event) => setEmployeeDraft((current) => ({ ...current, name: event.target.value }))} className="disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500" data-testid="payroll-meta-employee-name-input" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="payroll-meta-title">Title</Label>
-                  <Input id="payroll-meta-title" value={employeeDraft.title} onChange={(event) => setEmployeeDraft((current) => ({ ...current, title: event.target.value }))} data-testid="payroll-meta-title-input" />
+                  <Input disabled={readOnlyLocked} id="payroll-meta-title" value={employeeDraft.title} onChange={(event) => setEmployeeDraft((current) => ({ ...current, title: event.target.value }))} className="disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500" data-testid="payroll-meta-title-input" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="payroll-meta-manager-name">Manager Name</Label>
-                  <Input id="payroll-meta-manager-name" value={employeeDraft.manager_name} onChange={(event) => setEmployeeDraft((current) => ({ ...current, manager_name: event.target.value }))} data-testid="payroll-meta-manager-name-input" />
+                  <Input disabled={readOnlyLocked} id="payroll-meta-manager-name" value={employeeDraft.manager_name} onChange={(event) => setEmployeeDraft((current) => ({ ...current, manager_name: event.target.value }))} className="disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500" data-testid="payroll-meta-manager-name-input" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="payroll-meta-week">Week Of</Label>
-                  <Input id="payroll-meta-week" type="date" value={weekStart} onChange={(event) => setWeekStart(event.target.value)} data-testid="payroll-meta-week-input" />
+                  <Input disabled={readOnlyLocked} id="payroll-meta-week" type="date" value={weekStart} onChange={(event) => setWeekStart(event.target.value)} className="disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500" data-testid="payroll-meta-week-input" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="payroll-meta-hourly-rate">Hourly Rate</Label>
-                  <Input id="payroll-meta-hourly-rate" type="number" step="0.01" value={employeeDraft.hourly_rate} onChange={(event) => setEmployeeDraft((current) => ({ ...current, hourly_rate: event.target.value }))} data-testid="payroll-meta-hourly-rate-input" />
+                  <Input disabled={readOnlyLocked} id="payroll-meta-hourly-rate" type="number" step="0.01" value={employeeDraft.hourly_rate} onChange={(event) => setEmployeeDraft((current) => ({ ...current, hourly_rate: event.target.value }))} className="disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500" data-testid="payroll-meta-hourly-rate-input" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="payroll-meta-overtime-rate">Overtime Rate</Label>
-                  <Input id="payroll-meta-overtime-rate" type="number" step="0.01" value={employeeDraft.overtime_rate} onChange={(event) => setEmployeeDraft((current) => ({ ...current, overtime_rate: event.target.value }))} data-testid="payroll-meta-overtime-rate-input" />
+                  <Input disabled={readOnlyLocked} id="payroll-meta-overtime-rate" type="number" step="0.01" value={employeeDraft.overtime_rate} onChange={(event) => setEmployeeDraft((current) => ({ ...current, overtime_rate: event.target.value }))} className="disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500" data-testid="payroll-meta-overtime-rate-input" />
                 </div>
               </div>
 
-              {hiddenLegacyEntryCount > 0 && (
+              {legacyReview.needsMigration ? (
                 <div className="flex flex-wrap items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3" data-testid="payroll-legacy-entry-warning">
                   <Info className="mt-0.5 h-4 w-4 text-amber-600" />
                   <div className="space-y-1">
-                    <p className="text-sm font-semibold text-amber-900">Legacy off-grid entries are still included in exports and payroll totals.</p>
-                    <p className="text-sm text-amber-800">{hiddenLegacyEntryCount} manual or timer entry{hiddenLegacyEntryCount === 1 ? '' : 'ies'} exist in this week and are preserved even though the worksheet grid focuses on time-clock rows.</p>
+                    <p className="text-sm font-semibold text-amber-900">Legacy review: some payroll data still sits outside the worksheet grid.</p>
+                    <p className="text-sm text-amber-800" data-testid="payroll-legacy-review-summary">{legacyReview.manualCount} manual or timer entr{legacyReview.manualCount === 1 ? 'y' : 'ies'}, {legacyReview.extraSameDayShiftCount} extra same-day shift row{legacyReview.extraSameDayShiftCount === 1 ? '' : 's'}, {legacyReview.unmappedHours.toFixed(2)} off-grid hours. Exports and totals still include them, but they may need migration for a perfectly clean row-by-row worksheet history.</p>
                   </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3" data-testid="payroll-legacy-review-clean">
+                  <Info className="h-4 w-4 text-emerald-600" />
+                  <p className="text-sm text-emerald-800">Current payroll records for this employee/week map cleanly into the worksheet rows.</p>
                 </div>
               )}
 
-              <PayrollWeekTable rows={worksheetSummary.rows} onRowChange={handleRowChange} />
+              <PayrollWeekTable rows={worksheetSummary.rows} onRowChange={handleRowChange} readOnlyLocked={readOnlyLocked} />
+
+              <PayrollSignoffStrip
+                readOnlyLocked={readOnlyLocked}
+                signoff={signoff}
+                onChange={(field, value) => setSignoff((current) => ({ ...current, [field]: value }))}
+              />
 
               <div className="flex flex-wrap items-center gap-3" data-testid="payroll-worksheet-status-strip">
-                <Badge variant="outline" className="border-slate-300 bg-slate-50 text-slate-700" data-testid="payroll-status-badge">{canEditPayroll ? 'Inline editing enabled' : 'Read only'}</Badge>
+                <Badge variant="outline" className="border-slate-300 bg-slate-50 text-slate-700" data-testid="payroll-status-badge">{canEditPayroll ? 'Inline editing enabled' : 'Read only — worksheet locked'}</Badge>
                 <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700" data-testid="payroll-export-ready-badge">Export + print wired to current payroll endpoints</Badge>
                 <p className="text-sm text-slate-500" data-testid="payroll-week-range-label">{weekStart} — {weekEnd}</p>
               </div>

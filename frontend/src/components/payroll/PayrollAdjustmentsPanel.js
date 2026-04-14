@@ -1,7 +1,9 @@
 import { formatCurrency } from '../../lib/utils';
 import { Input } from '../ui/input';
 
-export const PayrollAdjustmentsPanel = ({ rows, onChange, total }) => (
+const inputClassName = 'h-12 rounded-none border-0 bg-transparent px-3 text-sm shadow-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500';
+
+export const PayrollAdjustmentsPanel = ({ rows, onChange, readOnlyLocked, total }) => (
   <aside className="border-r border-slate-200 bg-[#fbfbf7]" data-testid="payroll-adjustments-panel">
     <div className="border-b border-slate-200 px-5 py-5">
       <p className="font-mono text-[2rem] uppercase tracking-tight text-slate-900">Adjustments</p>
@@ -15,9 +17,9 @@ export const PayrollAdjustmentsPanel = ({ rows, onChange, total }) => (
     <div className="divide-y divide-slate-200">
       {rows.map((row, index) => (
         <div key={row.id || `adjustment-row-${index}`} className="grid grid-cols-[112px_1fr_110px]" data-testid={`payroll-adjustment-row-${index}`}>
-          <Input type="date" value={row.date} onChange={(event) => onChange(index, 'date', event.target.value)} className="h-12 rounded-none border-0 border-r border-slate-200 bg-transparent px-3 text-sm shadow-none focus-visible:ring-0" data-testid={`payroll-adjustment-date-${index}`} />
-          <Input value={row.notes} onChange={(event) => onChange(index, 'notes', event.target.value)} className="h-12 rounded-none border-0 border-r border-slate-200 bg-transparent px-3 text-sm shadow-none focus-visible:ring-0" data-testid={`payroll-adjustment-notes-${index}`} />
-          <Input type="number" step="0.01" value={row.amount} onChange={(event) => onChange(index, 'amount', event.target.value)} className="h-12 rounded-none border-0 bg-transparent px-3 text-right text-sm shadow-none focus-visible:ring-0" data-testid={`payroll-adjustment-amount-${index}`} />
+          <Input disabled={readOnlyLocked} type="date" value={row.date} onChange={(event) => onChange(index, 'date', event.target.value)} className={`${inputClassName} border-r border-slate-200`} data-testid={`payroll-adjustment-date-${index}`} />
+          <Input disabled={readOnlyLocked} value={row.notes} onChange={(event) => onChange(index, 'notes', event.target.value)} className={`${inputClassName} border-r border-slate-200`} data-testid={`payroll-adjustment-notes-${index}`} />
+          <Input disabled={readOnlyLocked} type="number" step="0.01" value={row.amount} onChange={(event) => onChange(index, 'amount', event.target.value)} className={`${inputClassName} text-right`} data-testid={`payroll-adjustment-amount-${index}`} />
         </div>
       ))}
     </div>

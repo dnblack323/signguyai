@@ -109,6 +109,28 @@ class PayrollTransaction(BaseModel):
     date: str = Field(default_factory=lambda: datetime.now(timezone.utc).date().isoformat())
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
+
+class PayrollSignoff(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    employee_id: str
+    week_start: str
+    reviewed_by: Optional[str] = None
+    review_date: Optional[str] = None
+    approved_by: Optional[str] = None
+    approval_date: Optional[str] = None
+    payroll_notes: Optional[str] = None
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class PayrollSignoffUpdate(BaseModel):
+    employee_id: str
+    week_start: str
+    reviewed_by: Optional[str] = None
+    review_date: Optional[str] = None
+    approved_by: Optional[str] = None
+    approval_date: Optional[str] = None
+    payroll_notes: Optional[str] = None
+
 class PayrollBalance(BaseModel):
     employee_id: str
     employee_name: str
@@ -868,6 +890,58 @@ async def get_payroll_transactions(
     
     transactions = await db.payroll_transactions.find(query, {"_id": 0}).to_list(1000)
     return transactions
+
+
+@payroll_router.get("/signoff", response_model=PayrollSignoff)
+async def get_payroll_signoff(
+    employee_id: str,
+    week_start: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    signoff = await db.payroll_signoffs.find_one(
+        {"tenant_id": current_user.tenant_id, "employee_id": employee_id, "week_start": week_start},
+        {"_id": 0},
+    )
+    if signoff:
+        return PayrollSignoff(**signoff)
+
+    return PayrollSignoff(employee_id=employee_id, week_start=week_start)
+
+
+@payroll_router.put("/signoff", response_model=PayrollSignoff)
+async def upsert_payroll_signoff(
+    payload: PayrollSignoffUpdate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    _require_payroll_edit_access(current_user)
+    now = datetime.now(timezone.utc).isoformat()
+    existing = await db.payroll_signoffs.find_one(
+        {"tenant_id": current_user.tenant_id, "employee_id": payload.employee_id, "week_start": payload.week_start},
+        {"_id": 0, "id": 1, "created_at": 1},
+    )
+    next_doc = {
+        "id": existing.get("id") if existing else str(uuid.uuid4()),
+        "tenant_id": current_user.tenant_id,
+        "employee_id": payload.employee_id,
+        "week_start": payload.week_start,
+        "reviewed_by": payload.reviewed_by or "",
+        "review_date": payload.review_date or None,
+        "approved_by": payload.approved_by or "",
+        "approval_date": payload.approval_date or None,
+        "payroll_notes": payload.payroll_notes or "",
+        "created_at": existing.get("created_at") if existing else now,
+        "updated_at": now,
+    }
+    await db.payroll_signoffs.update_one(
+        {"tenant_id": current_user.tenant_id, "employee_id": payload.employee_id, "week_start": payload.week_start},
+        {"$set": next_doc},
+        upsert=True,
+    )
+    saved = await db.payroll_signoffs.find_one(
+        {"tenant_id": current_user.tenant_id, "employee_id": payload.employee_id, "week_start": payload.week_start},
+        {"_id": 0},
+    )
+    return PayrollSignoff(**saved)
 
 
 @payroll_router.get("/balance/{employee_id}", response_model=PayrollBalance)
