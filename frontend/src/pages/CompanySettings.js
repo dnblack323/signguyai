@@ -8,6 +8,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Switch } from '../components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Building2, Phone, MapPin, Globe, Save, AlertTriangle, Crown, Timer, Clock, Users, Shield, Eye, EyeOff, Upload, X, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -64,6 +65,11 @@ export default function CompanySettings() {
     link_expiry_days: 7,
   });
   const [savingSignatureSettings, setSavingSignatureSettings] = useState(false);
+  const [payrollSettings, setPayrollSettings] = useState({
+    default_cycle: 'weekly',
+    pay_week_start_day: 'monday',
+  });
+  const [savingPayrollSettings, setSavingPayrollSettings] = useState(false);
 
   // Logo upload state
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -129,6 +135,10 @@ export default function CompanySettings() {
       setSignatureSettings({
         enabled: data.signature_settings?.enabled ?? false,
         link_expiry_days: data.signature_settings?.link_expiry_days ?? 7,
+      });
+      setPayrollSettings({
+        default_cycle: data.payroll_settings?.default_cycle ?? 'weekly',
+        pay_week_start_day: data.payroll_settings?.pay_week_start_day ?? 'monday',
       });
     } catch (err) {
       console.error('Error loading tenant:', err);
@@ -212,6 +222,22 @@ export default function CompanySettings() {
       toast.error('Failed to update signature settings');
     }
     setSavingSignatureSettings(false);
+  };
+
+  const handleSavePayrollSettings = async () => {
+    if (!canEditSettings) {
+      toast.error('You do not have permission to edit settings');
+      return;
+    }
+    setSavingPayrollSettings(true);
+    try {
+      await updateTenant({ payroll_settings: payrollSettings });
+      toast.success('Payroll settings updated');
+    } catch (err) {
+      console.error('Error updating payroll settings:', err);
+      toast.error('Failed to update payroll settings');
+    }
+    setSavingPayrollSettings(false);
   };
 
   // Logo upload handler
@@ -587,6 +613,56 @@ export default function CompanySettings() {
               </div>
             )}
           </form>
+        </CardContent>
+      </Card>
+
+      <Card className="border" style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-gray-900">
+            <Clock className="h-5 w-5" style={{ color: '#2F8BFB' }} />
+            Payroll Preferences
+          </CardTitle>
+          <CardDescription className="text-gray-500">
+            Set the default payroll cycle and the day your payroll week begins. The worksheet still allows any custom date range by default.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label className="text-gray-900">Default Payroll Cycle</Label>
+              <Select value={payrollSettings.default_cycle} onValueChange={(value) => setPayrollSettings({ ...payrollSettings, default_cycle: value })} disabled={!canEditSettings}>
+                <SelectTrigger data-testid="company-payroll-default-cycle-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="biweekly">Biweekly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-900">Pay Week Starts On</Label>
+              <Select value={payrollSettings.pay_week_start_day} onValueChange={(value) => setPayrollSettings({ ...payrollSettings, pay_week_start_day: value })} disabled={!canEditSettings}>
+                <SelectTrigger data-testid="company-payroll-week-start-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => (
+                    <SelectItem key={day} value={day}>{day.charAt(0).toUpperCase() + day.slice(1)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {canEditSettings && (
+            <div className="flex justify-end border-t pt-4" style={{ borderColor: '#D7DCE2' }}>
+              <Button onClick={handleSavePayrollSettings} disabled={savingPayrollSettings} data-testid="save-payroll-settings-btn" style={{ background: '#2F8BFB' }} className="text-white hover:opacity-90">
+                <Save className="mr-2 h-4 w-4" />
+                {savingPayrollSettings ? 'Saving...' : 'Save Payroll Preferences'}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 

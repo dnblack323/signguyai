@@ -1,25 +1,58 @@
-const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAY_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
 const pad = (value) => String(value).padStart(2, '0');
 
-export const getWeekStart = (reference = new Date()) => {
-  const date = new Date(reference);
-  const day = date.getDay();
-  const mondayOffset = day === 0 ? -6 : 1 - day;
-  date.setDate(date.getDate() + mondayOffset);
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+const normalizeDate = (value) => {
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
 };
 
-export const getWeekDates = (weekStart) => {
-  const start = new Date(`${weekStart}T00:00:00`);
-  return Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(start);
-    date.setDate(start.getDate() + index);
-    return {
-      date: `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
-      dayLabel: DAY_NAMES[index],
-    };
-  });
+const toDateString = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+export const getTodayDate = () => toDateString(new Date());
+
+export const getPayWeekStartIndex = (dayName = 'monday') => DAY_ORDER.indexOf((dayName || 'monday').toLowerCase());
+
+export const getPayWeekStartForDate = (value, dayName = 'monday') => {
+  const date = typeof value === 'string' ? normalizeDate(value) : new Date(value);
+  if (!date || Number.isNaN(date.getTime())) return getTodayDate();
+  const desired = getPayWeekStartIndex(dayName);
+  const delta = (date.getDay() - desired + 7) % 7;
+  const result = new Date(date);
+  result.setDate(date.getDate() - delta);
+  return toDateString(result);
+};
+
+export const getCurrentCycleRange = ({ cycle = 'weekly', payWeekStartDay = 'monday', referenceDate = getTodayDate() } = {}) => {
+  const cycleStart = getPayWeekStartForDate(referenceDate, payWeekStartDay);
+  const start = normalizeDate(cycleStart);
+  const days = cycle === 'biweekly' ? 13 : 6;
+  const end = new Date(start);
+  end.setDate(start.getDate() + days);
+  return { startDate: cycleStart, endDate: toDateString(end) };
+};
+
+export const getPresetDateRange = (preset, payrollSettings = {}) => {
+  if (preset === 'weekly') return getCurrentCycleRange({ cycle: 'weekly', payWeekStartDay: payrollSettings.payWeekStartDay });
+  if (preset === 'biweekly') return getCurrentCycleRange({ cycle: 'biweekly', payWeekStartDay: payrollSettings.payWeekStartDay });
+  return getCurrentCycleRange({ cycle: payrollSettings.defaultCycle || 'weekly', payWeekStartDay: payrollSettings.payWeekStartDay });
+};
+
+export const getDateRangeDates = (startDate, endDate) => {
+  const start = normalizeDate(startDate);
+  const end = normalizeDate(endDate);
+  if (!start || !end || end < start) return [];
+  const days = [];
+  const cursor = new Date(start);
+  while (cursor <= end) {
+    days.push({
+      date: toDateString(cursor),
+      dayLabel: DAY_NAMES[cursor.getDay()],
+    });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return days;
 };
 
 export const timeToMinutes = (value) => {
@@ -40,11 +73,10 @@ export const calculateRowMinutes = (row) => {
   const start = timeToMinutes(row.startTime);
   const end = timeToMinutes(row.endTime);
   if (start === null || end === null || end <= start) return 0;
-  const breakMinutes = calculateBreakMinutes(row.lunchStart, row.lunchEnd);
-  return Math.max(end - start - breakMinutes, 0);
+  return Math.max(end - start - calculateBreakMinutes(row.lunchStart, row.lunchEnd), 0);
 };
 
-export const buildWorksheetRows = (weekStart, shifts = []) => {
+export const buildWorksheetRows = (startDate, endDate, shifts = []) => {
   const shiftMap = new Map();
   shifts.forEach((shift) => {
     if (!shiftMap.has(shift.date)) {
@@ -52,7 +84,7 @@ export const buildWorksheetRows = (weekStart, shifts = []) => {
     }
   });
 
-  return getWeekDates(weekStart).map(({ date, dayLabel }) => {
+  return getDateRangeDates(startDate, endDate).map(({ date, dayLabel }) => {
     const shift = shiftMap.get(date);
     return {
       id: shift?.id || null,
@@ -68,20 +100,22 @@ export const buildWorksheetRows = (weekStart, shifts = []) => {
   });
 };
 
-export const summarizeWorksheet = (rows, hourlyRate, overtimeRate) => {
+export const summarizeWorksheet = (rows, hourlyRate, overtimeRate, payWeekStartDay = 'monday') => {
   const normalizedHourly = Number(hourlyRate || 0);
   const normalizedOvertime = Number(overtimeRate || 0);
-  let cumulativeMinutes = 0;
+  const weeklyMinutes = new Map();
   let totalMinutes = 0;
   let regularMinutes = 0;
   let overtimeMinutes = 0;
 
   const detailedRows = rows.map((row) => {
     const minutes = calculateRowMinutes(row);
-    const regularAllowance = Math.max((40 * 60) - cumulativeMinutes, 0);
+    const payWeekKey = getPayWeekStartForDate(row.date, payWeekStartDay);
+    const priorWeekMinutes = weeklyMinutes.get(payWeekKey) || 0;
+    const regularAllowance = Math.max((40 * 60) - priorWeekMinutes, 0);
     const rowRegularMinutes = Math.min(minutes, regularAllowance);
     const rowOvertimeMinutes = Math.max(minutes - rowRegularMinutes, 0);
-    cumulativeMinutes += minutes;
+    weeklyMinutes.set(payWeekKey, priorWeekMinutes + minutes);
     totalMinutes += minutes;
     regularMinutes += rowRegularMinutes;
     overtimeMinutes += rowOvertimeMinutes;

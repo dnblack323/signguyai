@@ -7,18 +7,25 @@ const SummaryRow = ({ label, value, testId, strong = false }) => (
   </div>
 );
 
-export const PayrollWorksheetSummary = ({ adjustmentsTotal, carryoverBalance, summary }) => {
-  const finalTotal = summary.grossPay + adjustmentsTotal + carryoverBalance;
+export const PayrollWorksheetSummary = ({ adjustmentsTotal, carryoverBalance, legacyManualHours = 0, legacyManualPay = 0, summary }) => {
+  const totalHours = summary.totalHours + legacyManualHours;
+  const regularHours = summary.regularHours + legacyManualHours;
+  const regularPay = summary.regularPay + legacyManualPay;
+  const grossPay = regularPay + summary.overtimePay;
+  const finalTotal = grossPay + adjustmentsTotal + carryoverBalance;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_280px]" data-testid="payroll-worksheet-summary">
       <div className="rounded-[26px] border border-slate-300 bg-white">
-        <SummaryRow label="Total Time" value={`${summary.totalHours.toFixed(2)} hrs`} testId="payroll-summary-total-time" strong />
-        <SummaryRow label="Total Regular Hours" value={`${summary.regularHours.toFixed(2)} hrs`} testId="payroll-summary-regular-hours" />
+        {legacyManualHours > 0 && (
+          <SummaryRow label="Legacy Manual Included" value={`${legacyManualHours.toFixed(2)} hrs · ${formatCurrency(legacyManualPay)}`} testId="payroll-summary-legacy-manual" />
+        )}
+        <SummaryRow label="Total Time" value={`${totalHours.toFixed(2)} hrs`} testId="payroll-summary-total-time" strong />
+        <SummaryRow label="Total Regular Hours" value={`${regularHours.toFixed(2)} hrs`} testId="payroll-summary-regular-hours" />
         <SummaryRow label="Total Overtime Hours" value={`${summary.overtimeHours.toFixed(2)} hrs`} testId="payroll-summary-overtime-hours" />
-        <SummaryRow label="Regular Pay" value={formatCurrency(summary.regularPay)} testId="payroll-summary-regular-pay" />
+        <SummaryRow label="Regular Pay" value={formatCurrency(regularPay)} testId="payroll-summary-regular-pay" />
         <SummaryRow label="Overtime Pay" value={formatCurrency(summary.overtimePay)} testId="payroll-summary-overtime-pay" />
-        <SummaryRow label="Gross Pay Before Adjustments" value={formatCurrency(summary.grossPay)} testId="payroll-summary-gross-pay" strong />
+        <SummaryRow label="Gross Pay Before Adjustments" value={formatCurrency(grossPay)} testId="payroll-summary-gross-pay" strong />
       </div>
 
       <div className="space-y-4 self-end rounded-[26px] border border-slate-300 bg-[#fffdf6] p-5">

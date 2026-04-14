@@ -114,6 +114,7 @@ class PayrollSignoff(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     employee_id: str
     week_start: str
+    period_end: Optional[str] = None
     reviewed_by: Optional[str] = None
     review_date: Optional[str] = None
     approved_by: Optional[str] = None
@@ -125,6 +126,7 @@ class PayrollSignoff(BaseModel):
 class PayrollSignoffUpdate(BaseModel):
     employee_id: str
     week_start: str
+    period_end: Optional[str] = None
     reviewed_by: Optional[str] = None
     review_date: Optional[str] = None
     approved_by: Optional[str] = None
@@ -137,6 +139,7 @@ class LegacyManualEntryResolution(BaseModel):
     entry_id: str
     employee_id: str
     week_start: str
+    period_end: Optional[str] = None
     handling_mode: str = "keep_legacy"
     target_date: Optional[str] = None
     admin_note: Optional[str] = None
@@ -148,6 +151,7 @@ class LegacyManualEntryResolution(BaseModel):
 class LegacyManualEntryResolutionUpdate(BaseModel):
     employee_id: str
     week_start: str
+    period_end: Optional[str] = None
     handling_mode: str = "keep_legacy"
     target_date: Optional[str] = None
     admin_note: Optional[str] = None
@@ -326,9 +330,9 @@ async def _get_employee_compensation_snapshot(tenant_id: str, employee: dict, st
     }
 
 
-def _get_period_bounds(period_type: str, reference_date: Optional[str] = None) -> tuple[str, str]:
+def _get_period_bounds(period_type: str, reference_date: Optional[str] = None, pay_week_start_day: str = "monday") -> tuple[str, str]:
     ref = date_type.fromisoformat(reference_date) if reference_date else datetime.now(timezone.utc).date()
-    period_start = ref - timedelta(days=ref.weekday())
+    period_start = _get_pay_week_start(ref, pay_week_start_day)
     if period_type == "biweekly":
         period_start = period_start - timedelta(days=7)
         period_end = period_start + timedelta(days=13)
@@ -342,9 +346,10 @@ def _resolve_report_date_range(
     end_date: Optional[str],
     period_type: str,
     reference_date: Optional[str],
+    pay_week_start_day: str = "monday",
 ) -> tuple[str, str]:
     if period_type in {"weekly", "biweekly"}:
-        return _get_period_bounds(period_type, reference_date)
+        return _get_period_bounds(period_type, reference_date, pay_week_start_day)
 
     if not start_date or not end_date:
         raise HTTPException(status_code=400, detail="start_date and end_date are required for custom reports")
@@ -394,6 +399,32 @@ def _transaction_signed_amount(transaction: dict) -> float:
 
 def _get_week_end(week_start: str) -> str:
     return (date_type.fromisoformat(week_start) + timedelta(days=6)).isoformat()
+
+
+DAY_NAME_TO_WEEKDAY = {
+    "monday": 0,
+    "tuesday": 1,
+    "wednesday": 2,
+    "thursday": 3,
+    "friday": 4,
+    "saturday": 5,
+    "sunday": 6,
+}
+
+
+async def _get_tenant_payroll_settings(tenant_id: str) -> dict:
+    tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0, "payroll_settings": 1})
+    settings = (tenant or {}).get("payroll_settings") or {}
+    return {
+        "default_cycle": settings.get("default_cycle") or "weekly",
+        "pay_week_start_day": settings.get("pay_week_start_day") or "monday",
+    }
+
+
+def _get_pay_week_start(date_value: date_type, pay_week_start_day: str) -> date_type:
+    desired_weekday = DAY_NAME_TO_WEEKDAY.get((pay_week_start_day or "monday").lower(), 0)
+    delta = (date_value.weekday() - desired_weekday) % 7
+    return date_value - timedelta(days=delta)
 
 
 def _serialize_legacy_manual_entry(entry: dict, resolution: Optional[dict], hourly_rate: float, week_start: str) -> LegacyManualEntryResponse:
@@ -459,7 +490,7 @@ def _summarize_transactions(transactions: list[dict]) -> dict:
     }
 
 
-def _summarize_entry_pay(entries: list[dict], hourly_rate: float, overtime_rate: Optional[float] = None) -> dict:
+def _summarize_entry_pay(entries: list[dict], hourly_rate: float, overtime_rate: Optional[float] = None, pay_week_start_day: str = "monday") -> dict:
     weekly_minutes: dict[str, int] = defaultdict(int)
     total_minutes = 0
     base_pay = 0.0
@@ -470,7 +501,7 @@ def _summarize_entry_pay(entries: list[dict], hourly_rate: float, overtime_rate:
         entry_date = entry.get("date")
         if entry_date:
             date_value = date_type.fromisoformat(entry_date)
-            week_start = (date_value - timedelta(days=date_value.weekday())).isoformat()
+            week_start = _get_pay_week_start(date_value, pay_week_start_day).isoformat()
             weekly_minutes[week_start] += minutes
 
     overtime_minutes = 0
@@ -540,7 +571,7 @@ def _build_daily_breakdown(entries: list[dict], transactions: list[dict]) -> lis
     return breakdown
 
 
-async def _build_employee_payroll_snapshot(tenant_id: str, employee: dict, start_date: str, end_date: str) -> dict:
+async def _build_employee_payroll_snapshot(tenant_id: str, employee: dict, start_date: str, end_date: str, pay_week_start_day: str = "monday") -> dict:
     hourly_rate = float(employee.get("hourly_rate") or 0)
     overtime_rate = employee.get("overtime_rate")
     current_snapshot = await _get_employee_compensation_snapshot(tenant_id, employee, start_date, end_date)
@@ -548,7 +579,7 @@ async def _build_employee_payroll_snapshot(tenant_id: str, employee: dict, start
         current_snapshot["job_details"] + current_snapshot["manual_details"] + current_snapshot["shift_details"],
         key=lambda entry: (entry.get("date") or "", entry.get("clock_in") or ""),
     )
-    current_pay = _summarize_entry_pay(current_entries, hourly_rate, overtime_rate)
+    current_pay = _summarize_entry_pay(current_entries, hourly_rate, overtime_rate, pay_week_start_day)
     current_transactions = await _get_employee_transactions(employee["id"], start_date, end_date)
     current_transaction_summary = _summarize_transactions(current_transactions)
 
@@ -558,7 +589,7 @@ async def _build_employee_payroll_snapshot(tenant_id: str, employee: dict, start
     if previous_end_date.isoformat() >= "2000-01-01":
         previous_snapshot = await _get_employee_compensation_snapshot(tenant_id, employee, "2000-01-01", previous_end_date.isoformat())
         previous_entries = previous_snapshot["job_details"] + previous_snapshot["manual_details"] + previous_snapshot["shift_details"]
-        previous_pay = _summarize_entry_pay(previous_entries, hourly_rate, overtime_rate)
+        previous_pay = _summarize_entry_pay(previous_entries, hourly_rate, overtime_rate, pay_week_start_day)
         previous_transactions = await _get_employee_transactions(employee["id"], end_date=previous_end_date.isoformat())
         previous_transaction_summary = _summarize_transactions(previous_transactions)
         carryover_balance = round(previous_pay["gross_pay"] + previous_transaction_summary["adjustments_total"], 2)
@@ -963,16 +994,22 @@ async def get_payroll_transactions(
 async def get_payroll_signoff(
     employee_id: str,
     week_start: str,
+    period_end: Optional[str] = None,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     signoff = await db.payroll_signoffs.find_one(
-        {"tenant_id": current_user.tenant_id, "employee_id": employee_id, "week_start": week_start},
+        {"tenant_id": current_user.tenant_id, "employee_id": employee_id, "week_start": week_start, "period_end": period_end},
         {"_id": 0},
     )
+    if not signoff and period_end is None:
+        signoff = await db.payroll_signoffs.find_one(
+            {"tenant_id": current_user.tenant_id, "employee_id": employee_id, "week_start": week_start},
+            {"_id": 0},
+        )
     if signoff:
         return PayrollSignoff(**signoff)
 
-    return PayrollSignoff(employee_id=employee_id, week_start=week_start)
+    return PayrollSignoff(employee_id=employee_id, week_start=week_start, period_end=period_end)
 
 
 @payroll_router.put("/signoff", response_model=PayrollSignoff)
@@ -983,7 +1020,7 @@ async def upsert_payroll_signoff(
     _require_payroll_edit_access(current_user)
     now = datetime.now(timezone.utc).isoformat()
     existing = await db.payroll_signoffs.find_one(
-        {"tenant_id": current_user.tenant_id, "employee_id": payload.employee_id, "week_start": payload.week_start},
+        {"tenant_id": current_user.tenant_id, "employee_id": payload.employee_id, "week_start": payload.week_start, "period_end": payload.period_end},
         {"_id": 0, "id": 1, "created_at": 1},
     )
     next_doc = {
@@ -991,6 +1028,7 @@ async def upsert_payroll_signoff(
         "tenant_id": current_user.tenant_id,
         "employee_id": payload.employee_id,
         "week_start": payload.week_start,
+        "period_end": payload.period_end,
         "reviewed_by": payload.reviewed_by or "",
         "review_date": payload.review_date or None,
         "approved_by": payload.approved_by or "",
@@ -1000,12 +1038,12 @@ async def upsert_payroll_signoff(
         "updated_at": now,
     }
     await db.payroll_signoffs.update_one(
-        {"tenant_id": current_user.tenant_id, "employee_id": payload.employee_id, "week_start": payload.week_start},
+        {"tenant_id": current_user.tenant_id, "employee_id": payload.employee_id, "week_start": payload.week_start, "period_end": payload.period_end},
         {"$set": next_doc},
         upsert=True,
     )
     saved = await db.payroll_signoffs.find_one(
-        {"tenant_id": current_user.tenant_id, "employee_id": payload.employee_id, "week_start": payload.week_start},
+        {"tenant_id": current_user.tenant_id, "employee_id": payload.employee_id, "week_start": payload.week_start, "period_end": payload.period_end},
         {"_id": 0},
     )
     return PayrollSignoff(**saved)
@@ -1014,10 +1052,15 @@ async def upsert_payroll_signoff(
 @payroll_router.get("/legacy-manual-entries", response_model=List[LegacyManualEntryResponse])
 async def get_legacy_manual_entries(
     employee_id: str,
-    week_start: str,
+    week_start: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    week_end = _get_week_end(week_start)
+    period_start = start_date or week_start
+    period_end = end_date or (_get_week_end(week_start) if week_start else None)
+    if not period_start or not period_end:
+        raise HTTPException(status_code=400, detail="start_date and end_date are required")
     employee = await db.employees.find_one(
         {"id": employee_id, "tenant_id": current_user.tenant_id},
         {"_id": 0, "hourly_rate": 1},
@@ -1026,7 +1069,7 @@ async def get_legacy_manual_entries(
         raise HTTPException(status_code=404, detail="Employee not found")
 
     entries = await db.payroll_hours.find(
-        {"tenant_id": current_user.tenant_id, "employee_id": employee_id, "date": {"$gte": week_start, "$lte": week_end}},
+        {"tenant_id": current_user.tenant_id, "employee_id": employee_id, "date": {"$gte": period_start, "$lte": period_end}},
         {"_id": 0},
     ).sort("date", 1).to_list(500)
     if not entries:
@@ -1038,7 +1081,7 @@ async def get_legacy_manual_entries(
     ).to_list(500)
     resolution_map = {resolution["entry_id"]: resolution for resolution in resolutions}
     hourly_rate = float(employee.get("hourly_rate") or 0)
-    return [_serialize_legacy_manual_entry(entry, resolution_map.get(entry["id"]), hourly_rate, week_start) for entry in entries]
+    return [_serialize_legacy_manual_entry(entry, resolution_map.get(entry["id"]), hourly_rate, period_start) for entry in entries]
 
 
 @payroll_router.put("/legacy-manual-entries/{entry_id}/resolution", response_model=LegacyManualEntryResponse)
@@ -1055,10 +1098,10 @@ async def upsert_legacy_manual_entry_resolution(
     if not entry:
         raise HTTPException(status_code=404, detail="Legacy manual entry not found")
 
-    week_end = _get_week_end(payload.week_start)
+    period_end = payload.period_end or _get_week_end(payload.week_start)
     target_date = payload.target_date or entry.get("date")
-    if target_date < payload.week_start or target_date > week_end:
-        raise HTTPException(status_code=400, detail="target_date must stay inside the selected week")
+    if target_date < payload.week_start or target_date > period_end:
+        raise HTTPException(status_code=400, detail="target_date must stay inside the selected range")
 
     if payload.handling_mode not in {"keep_legacy", "worksheet_manual_row", "merge_into_day"}:
         raise HTTPException(status_code=400, detail="Unsupported handling mode")
@@ -1073,6 +1116,7 @@ async def upsert_legacy_manual_entry_resolution(
         entry_id=entry_id,
         employee_id=payload.employee_id,
         week_start=payload.week_start,
+        period_end=payload.period_end,
         handling_mode=payload.handling_mode,
         target_date=target_date,
         admin_note=payload.admin_note or "",
@@ -1110,7 +1154,8 @@ async def get_payroll_balance(
     
     snapshot = await _get_employee_compensation_snapshot(current_user.tenant_id, employee)
     entries = snapshot["job_details"] + snapshot["manual_details"] + snapshot["shift_details"]
-    pay_summary = _summarize_entry_pay(entries, float(employee.get("hourly_rate") or 0), employee.get("overtime_rate"))
+    payroll_settings = await _get_tenant_payroll_settings(current_user.tenant_id)
+    pay_summary = _summarize_entry_pay(entries, float(employee.get("hourly_rate") or 0), employee.get("overtime_rate"), payroll_settings["pay_week_start_day"])
     transaction_summary = _summarize_transactions(await _get_employee_transactions(employee_id))
     total_earnings = round(pay_summary["gross_pay"] + transaction_summary["earnings"], 2)
     total_advances = transaction_summary["advances"]
@@ -1137,7 +1182,8 @@ async def get_payroll_report(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Get payroll report for all employees in a date range (tenant-scoped)"""
-    start_date, end_date = _resolve_report_date_range(start_date, end_date, period_type, reference_date)
+    payroll_settings = await _get_tenant_payroll_settings(current_user.tenant_id)
+    start_date, end_date = _resolve_report_date_range(start_date, end_date, period_type, reference_date, payroll_settings["pay_week_start_day"])
 
     employee_query = {"tenant_id": current_user.tenant_id}
     if employee_id:
@@ -1148,7 +1194,7 @@ async def get_payroll_report(
     
     for emp in employees:
         hourly_rate = float(emp.get("hourly_rate") or 0)
-        payroll_snapshot = await _build_employee_payroll_snapshot(current_user.tenant_id, emp, start_date, end_date)
+        payroll_snapshot = await _build_employee_payroll_snapshot(current_user.tenant_id, emp, start_date, end_date, payroll_settings["pay_week_start_day"])
         pay_summary = payroll_snapshot["current_pay"]
         transaction_summary = payroll_snapshot["current_transaction_summary"]
         
@@ -1384,6 +1430,7 @@ async def get_timesheet(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Get consolidated timesheet - combines job time entries + manual hours"""
+    payroll_settings = await _get_tenant_payroll_settings(current_user.tenant_id)
     emp_query = {"tenant_id": current_user.tenant_id}
     if employee_id:
         emp_query["id"] = employee_id
@@ -1392,7 +1439,7 @@ async def get_timesheet(
     timesheet = []
     for emp in employees:
         hourly_rate = float(emp.get("hourly_rate") or 0)
-        payroll_snapshot = await _build_employee_payroll_snapshot(current_user.tenant_id, emp, start_date, end_date)
+        payroll_snapshot = await _build_employee_payroll_snapshot(current_user.tenant_id, emp, start_date, end_date, payroll_settings["pay_week_start_day"])
         pay_summary = payroll_snapshot["current_pay"]
         
         timesheet.append({
@@ -1455,7 +1502,8 @@ async def get_pay_period_summary(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Get pay period summary with overtime calculations"""
-    start_str, end_str = _get_period_bounds(period_type, reference_date)
+    payroll_settings = await _get_tenant_payroll_settings(current_user.tenant_id)
+    start_str, end_str = _get_period_bounds(period_type, reference_date, payroll_settings["pay_week_start_day"])
     
     employees = await db.employees.find({
         "tenant_id": current_user.tenant_id
@@ -1463,7 +1511,7 @@ async def get_pay_period_summary(
     
     summary = []
     for emp in employees:
-        payroll_snapshot = await _build_employee_payroll_snapshot(current_user.tenant_id, emp, start_str, end_str)
+        payroll_snapshot = await _build_employee_payroll_snapshot(current_user.tenant_id, emp, start_str, end_str, payroll_settings["pay_week_start_day"])
         pay_summary = payroll_snapshot["current_pay"]
         transaction_summary = payroll_snapshot["current_transaction_summary"]
         daily = {

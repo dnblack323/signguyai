@@ -11,9 +11,10 @@ import {
   buildAdjustmentRows,
   buildWorksheetRows,
   calculateBreakMinutes,
+  getCurrentCycleRange,
+  getDateRangeDates,
+  getPresetDateRange,
   getSignedAdjustmentTotal,
-  getWeekDates,
-  getWeekStart,
   hasAdjustmentContent,
   hasShiftContent,
   inferTransactionType,
@@ -38,25 +39,68 @@ const normalizeEmployeeDraft = (employee) => ({
   role: employee?.role || 'staff',
 });
 
-const getDayLabel = (value) => {
-  const parsed = new Date(`${value}T00:00:00`);
-  return Number.isNaN(parsed.getTime()) ? '' : parsed.toLocaleDateString('en-US', { weekday: 'long' });
-};
+const getPayrollSettings = (tenant) => ({
+  defaultCycle: tenant?.payroll_settings?.default_cycle || 'weekly',
+  payWeekStartDay: tenant?.payroll_settings?.pay_week_start_day || 'monday',
+});
+
+const printHtmlDocument = (html) => new Promise((resolve, reject) => {
+  const frame = document.createElement('iframe');
+  frame.style.position = 'fixed';
+  frame.style.right = '0';
+  frame.style.bottom = '0';
+  frame.style.width = '0';
+  frame.style.height = '0';
+  frame.style.border = '0';
+  frame.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(frame);
+
+  const cleanup = () => {
+    window.setTimeout(() => {
+      frame.remove();
+    }, 500);
+  };
+
+  try {
+    const frameDocument = frame.contentWindow?.document;
+    if (!frameDocument || !frame.contentWindow) {
+      cleanup();
+      reject(new Error('Unable to open print frame'));
+      return;
+    }
+
+    frameDocument.open();
+    frameDocument.write(html);
+    frameDocument.close();
+
+    frame.onload = () => {
+      frame.contentWindow.focus();
+      frame.contentWindow.print();
+      cleanup();
+      resolve();
+    };
+  } catch (error) {
+    cleanup();
+    reject(error);
+  }
+});
 
 export default function Payroll() {
   const { hasPermission, isAdminOrOwner } = useAuth();
-  const { api, employees, fetchEmployees } = useApp();
+  const { api, employees, fetchEmployees, tenant } = useApp();
   const canViewPayroll = hasPermission(Permission.PAYROLL_VIEW);
   const canEditPayroll = isAdminOrOwner() || hasPermission(Permission.PAYROLL_EDIT);
+  const payrollSettings = useMemo(() => getPayrollSettings(tenant), [tenant]);
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
-  const [weekStart, setWeekStart] = useState(getWeekStart());
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [employeeDraft, setEmployeeDraft] = useState(normalizeEmployeeDraft(null));
-  const [worksheetRows, setWorksheetRows] = useState(buildWorksheetRows(getWeekStart(), []));
+  const [worksheetRows, setWorksheetRows] = useState([]);
   const [adjustmentRows, setAdjustmentRows] = useState(buildAdjustmentRows([]));
+  const [legacyEntries, setLegacyEntries] = useState([]);
   const [report, setReport] = useState(null);
   const [timesheet, setTimesheet] = useState(null);
-  const [legacyEntries, setLegacyEntries] = useState([]);
   const [signoff, setSignoff] = useState({ reviewed_by: '', review_date: '', approved_by: '', approval_date: '', payroll_notes: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -68,28 +112,37 @@ export default function Payroll() {
   }, [canViewPayroll, fetchEmployees]);
 
   useEffect(() => {
+    if (!startDate || !endDate) {
+      const range = getCurrentCycleRange({ cycle: payrollSettings.defaultCycle, payWeekStartDay: payrollSettings.payWeekStartDay });
+      setStartDate(range.startDate);
+      setEndDate(range.endDate);
+    }
+  }, [endDate, payrollSettings.defaultCycle, payrollSettings.payWeekStartDay, startDate]);
+
+  useEffect(() => {
     if (!employees.length || selectedEmployeeId) return;
     setSelectedEmployeeId(employees[0].id);
   }, [employees, selectedEmployeeId]);
 
-  const weekDates = useMemo(() => getWeekDates(weekStart), [weekStart]);
-  const weekEnd = weekDates[6]?.date || weekStart;
+  const dateRange = useMemo(() => getDateRangeDates(startDate, endDate), [startDate, endDate]);
 
   const loadWorksheet = useCallback(async () => {
-    if (!selectedEmployeeId || !canViewPayroll) return;
+    if (!selectedEmployeeId || !canViewPayroll || !startDate || !endDate) return;
     setLoading(true);
     try {
+      const params = { employee_id: selectedEmployeeId, start_date: startDate, end_date: endDate };
       const [employeeRes, shiftsRes, transactionsRes, reportRes, timesheetRes, signoffRes, legacyRes] = await Promise.all([
         api.get(`/employees/${selectedEmployeeId}`),
-        api.get('/payroll/timeclock-shifts', { params: { employee_id: selectedEmployeeId, start_date: weekStart, end_date: weekEnd } }),
-        api.get('/payroll/transactions', { params: { employee_id: selectedEmployeeId, start_date: weekStart, end_date: weekEnd } }),
-        api.get('/payroll/report', { params: { employee_id: selectedEmployeeId, start_date: weekStart, end_date: weekEnd } }),
-        api.get('/payroll/timesheet', { params: { employee_id: selectedEmployeeId, start_date: weekStart, end_date: weekEnd } }),
-        api.get('/payroll/signoff', { params: { employee_id: selectedEmployeeId, week_start: weekStart } }),
-        api.get('/payroll/legacy-manual-entries', { params: { employee_id: selectedEmployeeId, week_start: weekStart } }),
+        api.get('/payroll/timeclock-shifts', { params }),
+        api.get('/payroll/transactions', { params }),
+        api.get('/payroll/report', { params }),
+        api.get('/payroll/timesheet', { params }),
+        api.get('/payroll/signoff', { params: { employee_id: selectedEmployeeId, week_start: startDate, period_end: endDate } }),
+        api.get('/payroll/legacy-manual-entries', { params }),
       ]);
+
       setEmployeeDraft(normalizeEmployeeDraft(employeeRes.data));
-      setWorksheetRows(buildWorksheetRows(weekStart, shiftsRes.data || []));
+      setWorksheetRows(buildWorksheetRows(startDate, endDate, shiftsRes.data || []));
       setAdjustmentRows(buildAdjustmentRows(transactionsRes.data || []));
       setReport(reportRes.data);
       setTimesheet(timesheetRes.data);
@@ -106,15 +159,15 @@ export default function Payroll() {
     } finally {
       setLoading(false);
     }
-  }, [api, canViewPayroll, selectedEmployeeId, weekEnd, weekStart]);
+  }, [api, canViewPayroll, endDate, selectedEmployeeId, startDate]);
 
   useEffect(() => {
     loadWorksheet();
   }, [loadWorksheet]);
 
   const worksheetSummary = useMemo(
-    () => summarizeWorksheet(worksheetRows, Number(employeeDraft.hourly_rate || 0), Number(employeeDraft.overtime_rate || 0)),
-    [employeeDraft.hourly_rate, employeeDraft.overtime_rate, worksheetRows],
+    () => summarizeWorksheet(worksheetRows, Number(employeeDraft.hourly_rate || 0), Number(employeeDraft.overtime_rate || 0), payrollSettings.payWeekStartDay),
+    [employeeDraft.hourly_rate, employeeDraft.overtime_rate, payrollSettings.payWeekStartDay, worksheetRows],
   );
 
   const adjustmentTotal = useMemo(() => getSignedAdjustmentTotal(adjustmentRows), [adjustmentRows]);
@@ -136,19 +189,29 @@ export default function Payroll() {
     return {
       manualCount: legacyEntries.length,
       extraSameDayShiftCount,
+      unresolvedCount,
       unmappedHours: Number(unmappedHours.toFixed(2)),
       unmappedPay: Number(unmappedPay.toFixed(2)),
-      unresolvedCount,
       needsMigration: legacyEntries.length > 0 || extraSameDayShiftCount > 0,
     };
   }, [legacyEntries, selectedTimesheetEmployee]);
+
   const readOnlyLocked = !canEditPayroll;
+
+  const handlePresetChange = (preset) => {
+    const nextRange = getPresetDateRange(preset, payrollSettings);
+    setStartDate(nextRange.startDate);
+    setEndDate(nextRange.endDate);
+  };
 
   const handleRowChange = (index, field, value) => {
     setWorksheetRows((currentRows) => currentRows.map((row, rowIndex) => {
       if (rowIndex !== index) return row;
       const nextRow = { ...row, [field]: value };
-      if (field === 'date') nextRow.dayLabel = getDayLabel(value);
+      if (field === 'date') {
+        const matched = getDateRangeDates(value, value)[0];
+        nextRow.dayLabel = matched?.dayLabel || row.dayLabel;
+      }
       return nextRow;
     }));
   };
@@ -160,20 +223,19 @@ export default function Payroll() {
   };
 
   const handleLegacyEntryChange = (index, field, value) => {
-    setLegacyEntries((currentEntries) => currentEntries.map((entry, entryIndex) => {
-      if (entryIndex !== index) return entry;
-      return { ...entry, [field]: value };
-    }));
+    setLegacyEntries((currentEntries) => currentEntries.map((entry, entryIndex) => (
+      entryIndex === index ? { ...entry, [field]: value } : entry
+    )));
   };
 
   const fetchExportPayload = useCallback(async () => {
-    const params = { employee_id: selectedEmployeeId, start_date: weekStart, end_date: weekEnd };
+    const params = { employee_id: selectedEmployeeId, start_date: startDate, end_date: endDate };
     const [reportRes, timesheetRes] = await Promise.all([
       api.get('/payroll/report', { params }),
       api.get('/payroll/timesheet', { params }),
     ]);
     return { report: reportRes.data, timesheet: timesheetRes.data };
-  }, [api, selectedEmployeeId, weekEnd, weekStart]);
+  }, [api, endDate, selectedEmployeeId, startDate]);
 
   const handleExportCsv = async () => {
     setExporting('csv');
@@ -182,9 +244,9 @@ export default function Payroll() {
       const csv = buildPayrollCsv({
         ...payload,
         selectedEmployeeLabel: employeeDraft.name || 'Selected employee',
-        rangeLabel: `${weekStart} — ${weekEnd}`,
+        rangeLabel: `${startDate} — ${endDate}`,
       });
-      downloadTextFile(`payroll-worksheet-${selectedEmployeeId}-${weekStart}.csv`, csv, 'text/csv;charset=utf-8');
+      downloadTextFile(`payroll-worksheet-${selectedEmployeeId}-${startDate}-${endDate}.csv`, csv, 'text/csv;charset=utf-8');
       toast.success('Payroll worksheet CSV exported');
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to export worksheet');
@@ -194,34 +256,27 @@ export default function Payroll() {
   };
 
   const handlePrint = async () => {
-    const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=1200,height=900');
-    if (!printWindow) {
-      toast.error('Please allow pop-ups to print the payroll worksheet');
-      return;
-    }
     setExporting('print');
     try {
       const payload = await fetchExportPayload();
       const html = buildPayrollPrintHtml({
         ...payload,
         selectedEmployeeLabel: employeeDraft.name || 'Selected employee',
-        rangeLabel: `${weekStart} — ${weekEnd}`,
+        rangeLabel: `${startDate} — ${endDate}`,
       });
-      printWindow.document.open();
-      printWindow.document.write(html);
-      printWindow.document.close();
-      printWindow.focus();
-      window.setTimeout(() => printWindow.print(), 300);
-      toast.success('Printable worksheet opened');
+      await printHtmlDocument(html);
+      toast.success('Printable payroll worksheet opened');
     } catch (error) {
-      printWindow.close();
-      toast.error(error.response?.data?.detail || 'Failed to print worksheet');
+      toast.error(error.response?.data?.detail || error.message || 'Failed to print worksheet');
     } finally {
       setExporting('');
     }
   };
 
   const validateRows = () => {
+    if (!startDate || !endDate || endDate < startDate) {
+      return 'Choose a valid payroll date range.';
+    }
     for (const row of worksheetRows) {
       const rowHasValues = hasShiftContent(row);
       if (!rowHasValues) continue;
@@ -243,6 +298,7 @@ export default function Payroll() {
       toast.error('You do not have permission to edit payroll');
       return;
     }
+
     const validationError = validateRows();
     if (validationError) {
       toast.error(validationError);
@@ -297,7 +353,7 @@ export default function Payroll() {
         if (!numericAmount) continue;
         const payload = {
           employee_id: selectedEmployeeId,
-          date: row.date || weekStart,
+          date: row.date || startDate,
           description: row.notes,
           amount: Math.abs(numericAmount),
           type: inferTransactionType(numericAmount, row.type),
@@ -313,7 +369,8 @@ export default function Payroll() {
       for (const entry of legacyEntries) {
         await api.put(`/payroll/legacy-manual-entries/${entry.id}/resolution`, {
           employee_id: selectedEmployeeId,
-          week_start: weekStart,
+          week_start: startDate,
+          period_end: endDate,
           handling_mode: entry.handling_mode,
           target_date: entry.target_date,
           admin_note: entry.admin_note,
@@ -322,7 +379,8 @@ export default function Payroll() {
 
       await api.put('/payroll/signoff', {
         employee_id: selectedEmployeeId,
-        week_start: weekStart,
+        week_start: startDate,
+        period_end: endDate,
         reviewed_by: signoff.reviewed_by,
         review_date: signoff.review_date || null,
         approved_by: signoff.approved_by,
@@ -371,28 +429,30 @@ export default function Payroll() {
     <div className="space-y-4 pb-8" data-testid="payroll-page">
       <div className="space-y-2 px-1">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500" data-testid="payroll-page-kicker">Admin Payroll Worksheet</p>
-        <h1 className="text-4xl font-bold tracking-tight text-slate-900" data-testid="payroll-page-title">One practical worksheet screen</h1>
-        <p className="max-w-3xl text-sm text-slate-600" data-testid="payroll-page-subtitle">Inline payroll editing for one employee and one week — no stacked dashboards, duplicate cards, or modal-heavy busywork.</p>
+        <h1 className="text-4xl font-bold tracking-tight text-slate-900" data-testid="payroll-page-title">One practical payroll worksheet</h1>
+        <p className="max-w-3xl text-sm text-slate-600" data-testid="payroll-page-subtitle">Choose any payroll date range, keep everything inline, and use weekly or biweekly presets only when they help.</p>
       </div>
 
       <div className="overflow-hidden rounded-[34px] border border-slate-300 bg-white shadow-[0_22px_55px_rgba(15,23,42,0.08)]" data-testid="payroll-worksheet-layout">
         <PayrollWorksheetToolbar
           employees={employees}
           employeeId={selectedEmployeeId}
+          endDate={endDate}
           exporting={exporting}
           onEmployeeChange={setSelectedEmployeeId}
+          onEndDateChange={setEndDate}
           onExportCsv={handleExportCsv}
+          onPresetChange={handlePresetChange}
           onPrint={handlePrint}
           onSave={handleSaveWorksheet}
-          saveDisabled={!canEditPayroll || saving || loading}
+          onStartDateChange={setStartDate}
+          saveDisabled={!canEditPayroll || saving || loading || !startDate || !endDate}
           saving={saving}
-          weekStart={weekStart}
-          onWeekChange={setWeekStart}
+          startDate={startDate}
         />
 
         <div className="grid min-h-[880px] lg:grid-cols-[320px_1fr]">
           <PayrollAdjustmentsPanel rows={adjustmentRows} onChange={handleAdjustmentChange} readOnlyLocked={readOnlyLocked} total={adjustmentTotal} />
-
 
           <section className="bg-[#f8fbfb] p-5 lg:p-7" data-testid="payroll-worksheet-main">
             <div className="space-y-5 rounded-[30px] border border-slate-300 bg-white p-5 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.16)] lg:p-7">
@@ -410,8 +470,12 @@ export default function Payroll() {
                   <Input disabled={readOnlyLocked} id="payroll-meta-manager-name" value={employeeDraft.manager_name} onChange={(event) => setEmployeeDraft((current) => ({ ...current, manager_name: event.target.value }))} className="disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500" data-testid="payroll-meta-manager-name-input" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="payroll-meta-week">Week Of</Label>
-                  <Input disabled={readOnlyLocked} id="payroll-meta-week" type="date" value={weekStart} onChange={(event) => setWeekStart(event.target.value)} className="disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500" data-testid="payroll-meta-week-input" />
+                  <Label htmlFor="payroll-meta-start-date">Pay Period Start</Label>
+                  <Input id="payroll-meta-start-date" type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} data-testid="payroll-meta-start-date-input" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="payroll-meta-end-date">Pay Period End</Label>
+                  <Input id="payroll-meta-end-date" type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} data-testid="payroll-meta-end-date-input" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="payroll-meta-hourly-rate">Hourly Rate</Label>
@@ -430,13 +494,13 @@ export default function Payroll() {
                   unresolvedCount={legacyReview.unresolvedCount}
                   totalHours={legacyReview.unmappedHours}
                   totalPay={legacyReview.unmappedPay}
-                  weekDates={weekDates}
+                  weekDates={dateRange}
                   onEntryChange={handleLegacyEntryChange}
                 />
               ) : (
                 <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3" data-testid="payroll-legacy-review-clean">
                   <Info className="h-4 w-4 text-emerald-600" />
-                  <p className="text-sm text-emerald-800">Current payroll records for this employee/week map cleanly into the worksheet rows.</p>
+                  <p className="text-sm text-emerald-800">Current payroll records for this employee and selected date range map cleanly into the worksheet rows.</p>
                 </div>
               )}
 
@@ -450,19 +514,20 @@ export default function Payroll() {
 
               <div className="flex flex-wrap items-center gap-3" data-testid="payroll-worksheet-status-strip">
                 <Badge variant="outline" className="border-slate-300 bg-slate-50 text-slate-700" data-testid="payroll-status-badge">{canEditPayroll ? 'Inline editing enabled' : 'Read only — worksheet locked'}</Badge>
-                <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700" data-testid="payroll-export-ready-badge">Export + print wired to current payroll endpoints</Badge>
-                <p className="text-sm text-slate-500" data-testid="payroll-week-range-label">{weekStart} — {weekEnd}</p>
+                <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700" data-testid="payroll-export-ready-badge">Export + print use the selected date range exactly as shown</Badge>
+                <p className="text-sm text-slate-500" data-testid="payroll-week-range-label">{startDate} — {endDate}</p>
               </div>
 
-              <PayrollWorksheetSummary adjustmentsTotal={adjustmentTotal} carryoverBalance={carryoverBalance} summary={worksheetSummary} />
+              <PayrollWorksheetSummary
+                adjustmentsTotal={adjustmentTotal}
+                carryoverBalance={carryoverBalance}
+                legacyManualHours={legacyReview.unmappedHours}
+                legacyManualPay={legacyReview.unmappedPay}
+                summary={worksheetSummary}
+              />
             </div>
           </section>
         </div>
-      </div>
-
-      <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500" data-testid="payroll-footer-summary">
-        <span>Report gross for selected week: <strong className="text-slate-900" data-testid="payroll-report-gross-value">{formatCurrency(report?.employees?.[0]?.gross_pay || 0)}</strong></span>
-        <span>Current final owed from backend: <strong className="text-slate-900" data-testid="payroll-report-final-owed-value">{formatCurrency(report?.employees?.[0]?.final_owed || 0)}</strong></span>
       </div>
     </div>
   );

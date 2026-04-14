@@ -20,6 +20,12 @@ class TimeTrackingSettings(BaseModel):
     auto_suggest_on_status_change: bool = True
 
 
+class PayrollSettings(BaseModel):
+    """Payroll configuration for worksheet defaults and pay-week boundaries"""
+    default_cycle: str = "weekly"
+    pay_week_start_day: str = "monday"
+
+
 class TenantBase(BaseModel):
     name: str
     slug: str
@@ -39,6 +45,7 @@ class TenantBase(BaseModel):
     founder_number: Optional[int] = None
     founder_locked_at: Optional[str] = None
     time_tracking_settings: Optional[TimeTrackingSettings] = None
+    payroll_settings: Optional[PayrollSettings] = None
     employee_portal_settings: Optional[Dict[str, bool]] = None
     signature_settings: Optional[Dict[str, Any]] = None
 
@@ -59,6 +66,7 @@ class TenantUpdate(BaseModel):
     website: Optional[str] = None
     logo_url: Optional[str] = None
     time_tracking_settings: Optional[TimeTrackingSettings] = None
+    payroll_settings: Optional[PayrollSettings] = None
     employee_portal_settings: Optional[Dict[str, bool]] = None
     customer_portal_settings: Optional[Dict[str, bool]] = None
     signature_settings: Optional[Dict[str, Any]] = None

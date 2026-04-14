@@ -12,41 +12,60 @@ import {
 export const PayrollWorksheetToolbar = ({
   employees,
   employeeId,
+  endDate,
   exporting,
   onEmployeeChange,
+  onEndDateChange,
   onExportCsv,
+  onPresetChange,
   onPrint,
   onSave,
+  onStartDateChange,
   saveDisabled,
   saving,
-  weekStart,
-  onWeekChange,
+  startDate,
 }) => (
-  <div className="grid gap-3 border-b border-slate-200 px-6 py-5 lg:grid-cols-[1.2fr_180px_auto] lg:items-end" data-testid="payroll-worksheet-toolbar">
-    <div className="grid gap-3 md:grid-cols-2">
+  <div className="grid gap-4 border-b border-slate-200 px-6 py-5 xl:grid-cols-[1.15fr_1.2fr_auto] xl:items-end" data-testid="payroll-worksheet-toolbar">
+    <div className="space-y-2">
+      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Employee</p>
+      <Select value={employeeId || ''} onValueChange={onEmployeeChange}>
+        <SelectTrigger data-testid="payroll-worksheet-employee-select">
+          <SelectValue placeholder="Select employee" />
+        </SelectTrigger>
+        <SelectContent>
+          {employees.map((employee) => (
+            <SelectItem key={employee.id} value={employee.id}>{employee.name}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+
+    <div className="grid gap-3 md:grid-cols-[170px_170px_1fr]">
       <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Employee</p>
-        <Select value={employeeId || ''} onValueChange={onEmployeeChange}>
-          <SelectTrigger data-testid="payroll-worksheet-employee-select">
-            <SelectValue placeholder="Select employee" />
-          </SelectTrigger>
-          <SelectContent>
-            {employees.map((employee) => (
-              <SelectItem key={employee.id} value={employee.id}>{employee.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Week Of</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Start Date</p>
         <div className="relative">
           <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input className="pl-9" type="date" value={weekStart} onChange={(event) => onWeekChange(event.target.value)} data-testid="payroll-worksheet-week-input" />
+          <Input className="pl-9" type="date" value={startDate} onChange={(event) => onStartDateChange(event.target.value)} data-testid="payroll-worksheet-start-date-input" />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">End Date</p>
+        <div className="relative">
+          <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Input className="pl-9" type="date" value={endDate} onChange={(event) => onEndDateChange(event.target.value)} data-testid="payroll-worksheet-end-date-input" />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Quick Fill</p>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" onClick={() => onPresetChange('weekly')} data-testid="payroll-worksheet-preset-weekly-button">Weekly</Button>
+          <Button type="button" variant="outline" onClick={() => onPresetChange('biweekly')} data-testid="payroll-worksheet-preset-biweekly-button">Biweekly</Button>
+          <Button type="button" variant="outline" onClick={() => onPresetChange('current-cycle')} data-testid="payroll-worksheet-preset-current-cycle-button">Current Cycle</Button>
         </div>
       </div>
     </div>
 
-    <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+    <div className="flex flex-wrap items-center gap-2 xl:justify-end">
       <Button variant="outline" onClick={onExportCsv} disabled={exporting !== ''} data-testid="payroll-worksheet-export-csv-button">
         {exporting === 'csv' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}Export CSV
       </Button>
