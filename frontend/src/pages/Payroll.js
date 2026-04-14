@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Info, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth, Permission } from '../context/AuthContext';
@@ -42,6 +42,18 @@ const normalizeEmployeeDraft = (employee) => ({
 const getPayrollSettings = (tenant) => ({
   defaultCycle: tenant?.payroll_settings?.default_cycle || 'weekly',
   payWeekStartDay: tenant?.payroll_settings?.pay_week_start_day || 'monday',
+});
+
+const createEmptyAdjustmentRow = () => ({ id: null, date: '', notes: '', amount: '', type: 'advance' });
+
+const buildWorksheetSnapshot = ({ adjustmentRows, employeeDraft, endDate, legacyEntries, signoff, startDate, worksheetRows }) => JSON.stringify({
+  adjustmentRows,
+  employeeDraft,
+  endDate,
+  legacyEntries,
+  signoff,
+  startDate,
+  worksheetRows,
 });
 
 const printHtmlDocument = (html) => new Promise((resolve, reject) => {
@@ -105,6 +117,7 @@ export default function Payroll() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState('');
+  const baselineSnapshotRef = useRef('');
 
   useEffect(() => {
     if (!canViewPayroll) return;
@@ -147,12 +160,22 @@ export default function Payroll() {
       setReport(reportRes.data);
       setTimesheet(timesheetRes.data);
       setLegacyEntries(legacyRes.data || []);
-      setSignoff({
+      const nextSignoff = {
         reviewed_by: signoffRes.data.reviewed_by || '',
         review_date: signoffRes.data.review_date || '',
         approved_by: signoffRes.data.approved_by || '',
         approval_date: signoffRes.data.approval_date || '',
         payroll_notes: signoffRes.data.payroll_notes || '',
+      };
+      setSignoff(nextSignoff);
+      baselineSnapshotRef.current = buildWorksheetSnapshot({
+        adjustmentRows: buildAdjustmentRows(transactionsRes.data || []),
+        employeeDraft: normalizeEmployeeDraft(employeeRes.data),
+        endDate,
+        legacyEntries: legacyRes.data || [],
+        signoff: nextSignoff,
+        startDate,
+        worksheetRows: buildWorksheetRows(startDate, endDate, shiftsRes.data || []),
       });
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to load payroll worksheet');
@@ -197,6 +220,25 @@ export default function Payroll() {
   }, [legacyEntries, selectedTimesheetEmployee]);
 
   const readOnlyLocked = !canEditPayroll;
+  const isDirty = baselineSnapshotRef.current && baselineSnapshotRef.current !== buildWorksheetSnapshot({
+    adjustmentRows,
+    employeeDraft,
+    endDate,
+    legacyEntries,
+    signoff,
+    startDate,
+    worksheetRows,
+  });
+
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (!isDirty) return;
+      event.preventDefault();
+      event.returnValue = 'You have unsaved payroll worksheet changes.';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
 
   const handlePresetChange = (preset) => {
     const nextRange = getPresetDateRange(preset, payrollSettings);
@@ -222,6 +264,10 @@ export default function Payroll() {
     )));
   };
 
+  const handleAddAdjustmentRow = () => {
+    setAdjustmentRows((currentRows) => [...currentRows, createEmptyAdjustmentRow()]);
+  };
+
   const handleLegacyEntryChange = (index, field, value) => {
     setLegacyEntries((currentEntries) => currentEntries.map((entry, entryIndex) => (
       entryIndex === index ? { ...entry, [field]: value } : entry
@@ -238,6 +284,12 @@ export default function Payroll() {
   }, [api, endDate, selectedEmployeeId, startDate]);
 
   const handleExportCsv = async () => {
+    if (isDirty) {
+      const shouldSave = window.confirm('This worksheet has unsaved changes. Save before exporting?');
+      if (!shouldSave) return;
+      const saved = await handleSaveWorksheet(true);
+      if (!saved) return;
+    }
     setExporting('csv');
     try {
       const payload = await fetchExportPayload();
@@ -256,6 +308,12 @@ export default function Payroll() {
   };
 
   const handlePrint = async () => {
+    if (isDirty) {
+      const shouldSave = window.confirm('This worksheet has unsaved changes. Save before printing?');
+      if (!shouldSave) return;
+      const saved = await handleSaveWorksheet(true);
+      if (!saved) return;
+    }
     setExporting('print');
     try {
       const payload = await fetchExportPayload();
@@ -293,16 +351,16 @@ export default function Payroll() {
     return null;
   };
 
-  const handleSaveWorksheet = async () => {
+  const handleSaveWorksheet = useCallback(async (skipToast = false) => {
     if (!canEditPayroll) {
       toast.error('You do not have permission to edit payroll');
-      return;
+      return false;
     }
 
     const validationError = validateRows();
     if (validationError) {
       toast.error(validationError);
-      return;
+      return false;
     }
 
     setSaving(true);
@@ -390,13 +448,17 @@ export default function Payroll() {
 
       await fetchEmployees();
       await loadWorksheet();
-      toast.success('Payroll worksheet saved');
+      if (!skipToast) {
+        toast.success('Payroll worksheet saved');
+      }
+      return true;
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to save payroll worksheet');
+      return false;
     } finally {
       setSaving(false);
     }
-  };
+  }, [adjustmentRows, api, canEditPayroll, employeeDraft, endDate, fetchEmployees, legacyEntries, loadWorksheet, selectedEmployeeId, signoff, startDate, worksheetRows]);
 
   if (!canViewPayroll) {
     return (
@@ -452,7 +514,7 @@ export default function Payroll() {
         />
 
         <div className="grid min-h-[880px] lg:grid-cols-[320px_1fr]">
-          <PayrollAdjustmentsPanel rows={adjustmentRows} onChange={handleAdjustmentChange} readOnlyLocked={readOnlyLocked} total={adjustmentTotal} />
+          <PayrollAdjustmentsPanel rows={adjustmentRows} onAddRow={handleAddAdjustmentRow} onChange={handleAdjustmentChange} readOnlyLocked={readOnlyLocked} total={adjustmentTotal} />
 
           <section className="bg-[#f8fbfb] p-5 lg:p-7" data-testid="payroll-worksheet-main">
             <div className="space-y-5 rounded-[30px] border border-slate-300 bg-white p-5 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.16)] lg:p-7">
@@ -515,6 +577,7 @@ export default function Payroll() {
               <div className="flex flex-wrap items-center gap-3" data-testid="payroll-worksheet-status-strip">
                 <Badge variant="outline" className="border-slate-300 bg-slate-50 text-slate-700" data-testid="payroll-status-badge">{canEditPayroll ? 'Inline editing enabled' : 'Read only — worksheet locked'}</Badge>
                 <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700" data-testid="payroll-export-ready-badge">Export + print use the selected date range exactly as shown</Badge>
+                {isDirty && <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800" data-testid="payroll-unsaved-changes-badge">Unsaved changes</Badge>}
                 <p className="text-sm text-slate-500" data-testid="payroll-week-range-label">{startDate} — {endDate}</p>
               </div>
 

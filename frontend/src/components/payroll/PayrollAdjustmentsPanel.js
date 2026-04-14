@@ -1,9 +1,11 @@
 import { formatCurrency } from '../../lib/utils';
 import { Input } from '../ui/input';
+import { Button } from '../ui/button';
+import { Plus } from 'lucide-react';
 
 const inputClassName = 'h-12 rounded-none border-0 bg-transparent px-3 text-sm shadow-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500';
 
-export const PayrollAdjustmentsPanel = ({ rows, onChange, readOnlyLocked, total }) => (
+export const PayrollAdjustmentsPanel = ({ rows, onAddRow, onChange, readOnlyLocked, total }) => (
   <aside className="border-r border-slate-200 bg-[#fbfbf7]" data-testid="payroll-adjustments-panel">
     <div className="border-b border-slate-200 px-5 py-5">
       <p className="font-mono text-[2rem] uppercase tracking-tight text-slate-900">Adjustments</p>
@@ -22,6 +24,11 @@ export const PayrollAdjustmentsPanel = ({ rows, onChange, readOnlyLocked, total 
           <Input disabled={readOnlyLocked} type="number" step="0.01" value={row.amount} onChange={(event) => onChange(index, 'amount', event.target.value)} className={`${inputClassName} text-right`} data-testid={`payroll-adjustment-amount-${index}`} />
         </div>
       ))}
+    </div>
+    <div className="border-t border-slate-200 px-5 py-3">
+      <Button type="button" variant="outline" onClick={onAddRow} disabled={readOnlyLocked} data-testid="payroll-adjustments-add-row-button">
+        <Plus className="mr-2 h-4 w-4" />Add Adjustment Row
+      </Button>
     </div>
     <div className="flex items-center justify-between border-t border-slate-300 bg-white px-5 py-4">
       <p className="font-mono text-[1.7rem] uppercase tracking-tight text-slate-900">Total Adjustments</p>
