@@ -120,6 +120,43 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
   - testing subagent confirmed backend sign-off endpoints and legacy review logic are implemented correctly
   - remaining coverage note: there is currently no payroll-view-without-edit credential in the tenant, so the read-only visual lock path was implemented and code-reviewed but not exercised under a dedicated real user role in this pass
 
+### Session: April 14, 2026 (Legacy Manual Payroll Entry Handling Path)
+- Added a compact inline `Legacy Manual Entries` section inside the payroll worksheet when a selected week contains off-grid/manual payroll hours.
+- Each legacy entry now shows:
+  - date
+  - source/type
+  - hours
+  - notes/reason
+  - explicit current effect on payroll totals/export
+  - inline handling mode
+  - selected worksheet day target
+  - admin note
+  - reviewed/handled status
+- Added backend handling persistence for legacy entries:
+  - `GET /api/payroll/legacy-manual-entries`
+  - `PUT /api/payroll/legacy-manual-entries/{entry_id}/resolution`
+- Supported handling modes (compact, inline, no modals):
+  - keep as manual legacy entry
+  - convert to worksheet manual row
+  - merge into selected day
+  - document admin note for why it remains off-grid
+  - exclude-from-totals intentionally remains unavailable during migration so payroll math/export never changes silently
+- Preserved payroll math during migration:
+  - verified payroll report payloads stay unchanged before/after handling-resolution saves
+  - verified timesheet payloads stay unchanged before/after handling-resolution saves
+  - current exports remain unchanged because export inputs still come from the same backend report/timesheet totals
+- Known legacy entries handled in production-tenant test data:
+  - `2026-04-03` · 8.00h · production · kept as manual legacy entry with note preserving original context
+  - `2026-04-08` · 7.50h · production · converted to worksheet manual row with admin note
+  - `2026-04-09` · 6.25h · design · merged into selected worksheet day with admin note
+- Representation status:
+  - all currently known legacy manual entries can now be represented clearly in the worksheet through the dedicated Legacy Manual Entries section/fallback handling path
+  - they still remain off-grid relative to clock-in/lunch/end rows, but they are no longer hidden or ambiguous
+- Verification completed:
+  - manual UI save/reload check confirmed legacy handling changes persist from the worksheet
+  - API comparison confirmed totals and exports stay unchanged before/after resolution updates
+  - testing agent iteration_103 passed with backend 100% (14/14) and frontend 100%
+
 ### Session: April 11, 2026 (Signguypa Stripe Validation + Webstore Checkout Gating)
 - Validated the tenant the user called out specifically:
   - `signguypa@gmail.com / Billnel323`
