@@ -78,7 +78,7 @@ export default function OrdersPage() {
 
   const handleDeleteOrder = async (e, orderId, orderNumber) => {
     e.stopPropagation();
-    if (!window.confirm(`Delete order ${orderNumber}? This will also delete all related tickets and tasks.`)) return;
+    if (!window.confirm(`Delete order ${orderNumber}? This will also delete all related items and tasks.`)) return;
     try {
       await axios.delete(`${API}/orders/${orderId}`, { headers: { Authorization: `Bearer ${token()}` } });
       toast.success('Order deleted');
@@ -313,7 +313,7 @@ export default function OrdersPage() {
                       <p className="text-lg font-bold text-gray-900">${(order.order_total || 0).toFixed(2)}</p>
                     </div>
                     <div className="text-right hidden sm:block">
-                      <p className="text-xs text-gray-500">Tickets</p>
+                      <p className="text-xs text-gray-500">Items</p>
                       <p className="text-lg font-bold text-gray-900">{order.job_ticket_count || 0}</p>
                     </div>
                     <div className="text-right hidden md:block">
@@ -353,7 +353,7 @@ export default function OrdersPage() {
                             <Eye className="w-4 h-4 mr-2" /> View Details
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/orders/${order.id}/add-ticket`); }}>
-                            <Plus className="w-4 h-4 mr-2" /> Add Ticket
+                            <Plus className="w-4 h-4 mr-2" /> Add Item
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             className="text-red-600"

@@ -116,7 +116,7 @@ export default function AddTicketToOrder() {
         return;
       }
 
-      toast.success(mode === 'another' ? 'Ticket added — ready for the next one' : 'Ticket added to the order');
+      toast.success(mode === 'another' ? 'Item added — ready for the next one' : 'Item added to the order');
       resetTicketForm();
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Failed to create ticket');

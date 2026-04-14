@@ -103,7 +103,7 @@ export default function JobTicketDetail() {
     setSaveLoading(true);
     try {
       await axios.put(`${API}/job-tickets/${ticketId}`, { specs: editSpecs, ...editFields }, { headers: hdr() });
-      toast.success('Ticket updated');
+      toast.success('Order item updated');
       setEditing(false);
       load();
     } catch (e) { toast.error(e.response?.data?.detail || 'Failed to save'); }

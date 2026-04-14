@@ -234,7 +234,7 @@ export default function OrderDetail() {
     if (!window.confirm('Delete this order item and its tasks?')) return;
     try {
       await axios.delete(`${API}/job-tickets/${ticketId}`, { headers: hdr() });
-      toast.success('Ticket deleted');
+      toast.success('Item deleted');
       load();
     } catch { toast.error('Failed to delete'); }
   };
@@ -394,7 +394,7 @@ export default function OrderDetail() {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         {[
-          { label: 'Tickets', value: tickets.length },
+          { label: 'Items', value: tickets.length },
           { label: 'Estimate', value: `$${orderTotal.toFixed(2)}` },
           { label: 'Progress', value: `${Math.round(order.overall_progress || 0)}%` },
           { label: 'Due', value: order.requested_due_date ? new Date(order.requested_due_date).toLocaleDateString() : '-' },

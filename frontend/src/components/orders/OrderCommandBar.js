@@ -26,7 +26,7 @@ export const OrderCommandBar = ({
         )}
         {onAddTicket && (
           <Button type="button" variant="outline" onClick={onAddTicket} data-testid={`${testId}-add-ticket`}>
-            <Plus className="mr-2 h-4 w-4" /> Add Ticket
+            <Plus className="mr-2 h-4 w-4" /> Add Order Item
           </Button>
         )}
         {onSave && (

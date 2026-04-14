@@ -26,6 +26,13 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
   - `BUBBLE_WORKFLOWS.md` (450 lines) — All workflows including Payroll Worksheet load/save/signoff/legacy, Drawing/Signature capture, Unified Productivity aggregation, Time Clock shifts
   - `BUBBLE_DEPENDENCY_MAP.md` (337 lines) — Updated dependency graph with Object Storage, Payroll Worksheet state, Productivity compound UIDs, external service dependencies
 
+### Session: Feb 2026 (Terminology Migration: Job/Job Ticket -> Order/Order Item)
+- Migrated all user-facing terminology from "Job"/"Job Ticket"/"Job Item" to "Order"/"Order Item" across the entire frontend
+- 45+ files updated: pages, components, docs, marketing, portals, libs
+- Zero user-facing instances of "Job Ticket", "Job Item", or standalone "Job" remain
+- Backend routes/collections/field names unchanged (internal compatibility layer)
+- Files changed: OrderDetail.js, NewOrderForm.js, AddTicketToOrder.js, OrdersPage.js, JobTicketDetail.js, Quotes.js, Jobs.js, Customers.js, Invoices.js, Approvals.js, Payroll pages, Productivity, AI Tools, Admin Portal, Webstores, all Docs pages, Marketing pages, Portal pages, Settings pages, components (Ribbon, FloatingAssistant, InvoicePreview, JobHistory, AIEmail, PricingCalculator, UpgradeModal, TrialLockout, DocsLayout, OrderCommandBar, ProductivityFiltersBar), libs (payrollExport, productivity)
+
 ### Session: April 13, 2026 (Consolidation Pass — Legacy Jobs Cleanup + Unified Dashboard Finalization)
 - Completed the post-audit consolidation pass across routing, navigation, productivity, and source-detail flows.
 - Legacy `/jobs` flow cleanup:

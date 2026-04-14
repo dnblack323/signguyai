@@ -313,7 +313,7 @@ export default function NewOrderForm() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <CardTitle className="text-gray-900 text-base">Ticket {i + 1}</CardTitle>
+                <CardTitle className="text-gray-900 text-base">Item {i + 1}</CardTitle>
                 <button onClick={() => toggleEntryMode(ticket.local_id)} className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${ticket.entry_mode === 'detailed' ? 'bg-violet-50 text-violet-600 border-violet-300' : 'bg-gray-100 text-gray-500 border-gray-300'}`}>
                   {ticket.entry_mode === 'detailed' ? 'Detailed' : 'Quick'}
                 </button>
@@ -518,7 +518,7 @@ export default function NewOrderForm() {
       {/* Save Buttons */}
       <div className="grid gap-3 pt-2 md:grid-cols-3" data-testid="new-order-bottom-actions">
         <Button variant="outline" onClick={() => addTicket('detailed')} disabled={saving} className="py-6 text-base bg-white text-gray-700 hover:bg-gray-50" data-testid="bottom-add-another-ticket-btn">
-          <Plus className="w-4 h-4 mr-2" /> Add Another Ticket
+          <Plus className="w-4 h-4 mr-2" /> Add Another Item
         </Button>
         <Button variant="outline" onClick={() => handleSave(true)} disabled={saving} className="flex-1 py-6 text-lg bg-white text-gray-700 hover:bg-gray-50" data-testid="save-draft-btn">
           Save as Draft
@@ -539,7 +539,7 @@ export default function NewOrderForm() {
             <div className="rounded-2xl border border-violet-100 bg-violet-50 p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">Order total</p>
               <p className="mt-2 text-3xl font-bold text-violet-700" data-testid="new-order-live-estimate-value">${totalEstimate.toFixed(2)}</p>
-              <p className="mt-2 text-sm text-gray-600">{tickets.length} ticket{tickets.length !== 1 ? 's' : ''} · {detailedTicketCount} detailed</p>
+              <p className="mt-2 text-sm text-gray-600">{tickets.length} item{tickets.length !== 1 ? 's' : ''} · {detailedTicketCount} detailed</p>
             </div>
             <div className="rounded-xl border border-gray-200 bg-slate-50 p-4 text-sm text-gray-700">
               <p className="font-semibold text-gray-900">Quick links</p>
@@ -554,7 +554,7 @@ export default function NewOrderForm() {
             </div>
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
               <Button type="button" onClick={() => addTicket('detailed')} className="bg-violet-600 hover:bg-violet-700 text-white" data-testid="new-order-add-ticket-sidebar-button">
-                <Plus className="mr-2 h-4 w-4" /> Add Another Ticket
+                <Plus className="mr-2 h-4 w-4" /> Add Another Item
               </Button>
               <Button type="button" variant="outline" onClick={() => handleSave(true)} disabled={saving} data-testid="new-order-save-draft-sidebar-button">
                 Save Draft
