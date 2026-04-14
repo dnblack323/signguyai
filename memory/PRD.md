@@ -66,6 +66,32 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
   - testing agent iteration_100 passed all scoped checks
   - testing agent also fixed a small unrelated regression in `Payroll.js` by moving `formatTimeOfDay` to module scope for ScheduleTab runtime safety
 
+### Session: April 14, 2026 (Admin Payroll Worksheet Replacement)
+- Replaced the old bloated `/payroll` screen with a new desktop-first Admin Payroll Worksheet interface inspired by the uploaded worksheet reference.
+- New worksheet layout:
+  - narrow left Adjustments panel with inline Date / Notes / Amount rows and Total Adjustments footer
+  - wide right payroll worksheet with inline editable Employee Name, Title, Manager Name, Week Of, Hourly Rate, Overtime Rate
+  - 7-row weekly spreadsheet table (Date, Day, Start, Lunch Start, Lunch End, End, Regular Hours, Overtime Hours, Total Hours)
+  - compact summary block showing Total Time, Regular Hours, Overtime Hours, Regular Pay, Overtime Pay, Gross Pay, Carryover Balance, Total Adjustments, and Final Total For Pay Period
+- Preserved current payroll/backend wiring where possible:
+  - still uses existing employee, payroll transaction, payroll report, payroll timesheet, and payroll balance endpoints
+  - kept CSV export and printable report functionality wired through existing export helpers
+  - preserved carryover/final owed backend calculations in footer + summary context
+- Backend payroll enhancements added to support the worksheet cleanly:
+  - employee schema now supports `title`, `manager_name`, and `overtime_rate`
+  - payroll report/timesheet/pay-period style responses now expose overtime rate consistently
+  - added `POST /api/payroll/timeclock-shifts` for creating worksheet time rows
+  - existing timeclock shift update schema now supports `lunch_start` and `lunch_end`
+- Practical worksheet behavior:
+  - inline edits save without modals
+  - hours and pay recalculate instantly on the page
+  - left-side adjustments use signed amounts (positive adds pay, negative deducts)
+  - a subtle warning appears when legacy off-grid/manual entries still affect exports or totals
+- Verification completed:
+  - manual smoke testing for layout, save/reload persistence, and backend payroll report synchronization
+  - `auto_frontend_testing_agent` passed all 9 worksheet UI checks
+  - `testing_agent` iteration_101 passed with backend 100% (19/19) and frontend 100%
+
 ### Session: April 11, 2026 (Signguypa Stripe Validation + Webstore Checkout Gating)
 - Validated the tenant the user called out specifically:
   - `signguypa@gmail.com / Billnel323`
