@@ -58,7 +58,7 @@ export default function PricingPagePublic() {
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-blue-400" />
-                    Orders Orders & Job Tickets Job Tickets
+                    Orders & Order Items
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-blue-400" />

@@ -8,7 +8,7 @@ export default function DocsOrdersTickets() {
         <ArrowLeft className="w-4 h-4" /> Back to Docs
       </Link>
 
-      <h1 className="text-3xl font-bold text-white mb-2">Orders & Job Tickets</h1>
+      <h1 className="text-3xl font-bold text-white mb-2">Orders & Order Items</h1>
       <p className="text-gray-400 mb-8">The 4-layer production workflow system</p>
 
       <div className="space-y-8">
@@ -17,7 +17,7 @@ export default function DocsOrdersTickets() {
           <p className="text-gray-300 mb-3">SignGuy AI uses a 4-layer system that mirrors how a real sign shop operates:</p>
           <div className="bg-gray-800/50 rounded-lg p-4 space-y-2 border border-gray-700">
             <p className="font-medium text-white">Layer 1: Order — The master container for a customer's request</p>
-            <p className="ml-4 text-gray-400">Layer 2: Job Tickets — Individual production items within an order</p>
+            <p className="ml-4 text-gray-400">Layer 2: Order Items — Individual production items within an order</p>
             <p className="ml-8 text-gray-400">Layer 3: Quotes / Invoices — Financial documents generated from tickets</p>
             <p className="ml-8 text-gray-400">Layer 4: Production Tasks — Department-level workflow stages</p>
           </div>
@@ -29,13 +29,13 @@ export default function DocsOrdersTickets() {
             <li>Go to <strong className="text-white">Orders → + New Order</strong></li>
             <li>Search or enter customer information</li>
             <li>Upload any artwork, drawings, or reference files</li>
-            <li>Add job tickets using <strong className="text-white">Quick Entry</strong> (fast, simple) or <strong className="text-white">Detailed Entry</strong> (full specs + calculator)</li>
+            <li>Add order items using <strong className="text-white">Quick Entry</strong> (fast, simple) or <strong className="text-white">Detailed Entry</strong> (full specs + calculator)</li>
             <li>Click <strong className="text-white">Save Order</strong></li>
           </ol>
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-white mb-3">Job Ticket Entry Modes</h2>
+          <h2 className="text-xl font-semibold text-white mb-3">Order Item Entry Modes</h2>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
               <h3 className="font-semibold text-white mb-2">Quick Entry</h3>
@@ -71,8 +71,8 @@ export default function DocsOrdersTickets() {
         <section>
           <h2 className="text-xl font-semibold text-white mb-3 flex items-center gap-2"><FileText className="w-5 h-5 text-cyan-400" /> Order Actions</h2>
           <ul className="list-disc pl-6 space-y-1 text-gray-300">
-            <li><strong className="text-white">Generate Quote</strong> — creates a financial quote from job tickets</li>
-            <li><strong className="text-white">Generate Invoice</strong> — creates an invoice from job tickets</li>
+            <li><strong className="text-white">Generate Quote</strong> — creates a financial quote from order items</li>
+            <li><strong className="text-white">Generate Invoice</strong> — creates an invoice from order items</li>
             <li><strong className="text-white">Generate Work Order</strong> — creates a production document with full specs</li>
             <li><strong className="text-white">Email Quote/Invoice</strong> — sends to customer via email</li>
             <li><strong className="text-white">Start Production</strong> — activates workflow for all enabled tickets</li>
@@ -82,7 +82,7 @@ export default function DocsOrdersTickets() {
 
         <section>
           <h2 className="text-xl font-semibold text-white mb-3 flex items-center gap-2"><Wrench className="w-5 h-5 text-cyan-400" /> Production Workflow</h2>
-          <p className="text-gray-300 mb-3">When a job ticket has workflow enabled, the system auto-generates production tasks based on the category template:</p>
+          <p className="text-gray-300 mb-3">When an order item has workflow enabled, the system auto-generates production tasks based on the category template:</p>
           <ul className="list-disc pl-6 space-y-1 text-gray-300">
             <li>6 default templates (Rigid Signs 11 stages, Banners 12, Cut Vinyl 8, Vehicle Wrap 14, Apparel 11, Promo 5)</li>
             <li>Each task has: department, status, assigned employee, timestamps</li>

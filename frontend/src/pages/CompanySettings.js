@@ -687,7 +687,7 @@ export default function CompanySettings() {
               <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
                 <div>
                   <Label className="font-medium text-gray-900">Track Time Per Job</Label>
-                  <p className="text-sm text-gray-500">Log time at the job level (e.g., "Worked on Banner Job")</p>
+                  <p className="text-sm text-gray-500">Log time at the order level (e.g., "Worked on Banner Order")</p>
                 </div>
                 <Switch
                   checked={timeTrackingSettings.track_per_job}
@@ -870,7 +870,7 @@ export default function CompanySettings() {
             <div className="grid gap-3">
               <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: '#D7DCE2', background: '#FFF9E6' }}>
                 <div>
-                  <Label className="font-medium text-gray-900">Job Details</Label>
+                  <Label className="font-medium text-gray-900">Order Details</Label>
                   <p className="text-sm text-gray-500">See full job specifications and notes</p>
                 </div>
                 <Switch

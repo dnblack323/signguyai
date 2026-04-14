@@ -76,7 +76,7 @@ export default function DocsProductivity() {
         </div>
         <p className="text-gray-300 mb-4">Visual workflow management with persisted status changes:</p>
         <ul className="space-y-2 text-gray-300">
-          <li className="flex items-start gap-2"><CheckSquare className="h-4 w-4 text-green-400 mt-1 flex-shrink-0" /><span><strong className="text-white">Workflow Columns</strong> — Jobs and tasks group by their shared board/status column.</span></li>
+          <li className="flex items-start gap-2"><CheckSquare className="h-4 w-4 text-green-400 mt-1 flex-shrink-0" /><span><strong className="text-white">Workflow Columns</strong> — Orders and tasks group by their shared board/status column.</span></li>
           <li className="flex items-start gap-2"><CheckSquare className="h-4 w-4 text-green-400 mt-1 flex-shrink-0" /><span><strong className="text-white">Drag & Drop</strong> — Move cards between columns and write the change back to the correct source record.</span></li>
           <li className="flex items-start gap-2"><CheckSquare className="h-4 w-4 text-green-400 mt-1 flex-shrink-0" /><span><strong className="text-white">Cross-View Sync</strong> — Column moves update the Task List, Calendar details, and Dashboard widgets automatically.</span></li>
           <li className="flex items-start gap-2"><CheckSquare className="h-4 w-4 text-green-400 mt-1 flex-shrink-0" /><span><strong className="text-white">Card Details</strong> — Cards can show title, customer, due date, priority, and source-aware context.</span></li>

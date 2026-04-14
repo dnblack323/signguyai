@@ -63,11 +63,11 @@ export default function FeaturesPage() {
       tagline: 'From quote to completion, never lose track',
       description: 'Visual job management that shows you exactly where every project stands. Track status, time, materials, and profitability.',
       capabilities: [
-        '4-layer workflow: Order → Job Ticket → Quote/Invoice → Production Tasks',
+        '4-layer workflow: Order → Order Item → Quote/Invoice → Production Tasks',
         'Line items with pricing calculator integration',
         'Item-level and order-level drawings, sketches, and markup',
         'Structured signature capture for orders, quotes, proofs, invoices, and more',
-        'Job notes and activity log',
+        'Order notes and activity log',
         'Due date scheduling',
         'Draft orders, work orders, and production shortcuts',
         'Unified Kanban + Calendar + Task List views',

@@ -176,7 +176,7 @@ export const buildPayrollCsv = ({ report, timesheet, selectedEmployeeLabel, rang
 
   rows.push([]);
   rows.push(['Entry Details']);
-  rows.push(['Employee', 'Day', 'Date', 'Source', 'Task', 'Job', 'Description', 'Worked Time', 'Clock In', 'Clock Out', 'Break Time', 'Pay']);
+  rows.push(['Employee', 'Day', 'Date', 'Source', 'Task', 'Order', 'Description', 'Worked Time', 'Clock In', 'Clock Out', 'Break Time', 'Pay']);
 
   let hasEntries = false;
   (timesheet?.employees || []).forEach((employee) => {
@@ -314,7 +314,7 @@ export const buildPayrollPrintHtml = ({ report, timesheet, selectedEmployeeLabel
               <th>Date</th>
               <th>Source</th>
               <th>Task</th>
-              <th>Job</th>
+              <th>Order</th>
               <th>Description</th>
               <th>Worked</th>
               <th>In</th>

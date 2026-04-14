@@ -27,7 +27,7 @@ const primaryLinks = [
     color: 'bg-teal-500/10 text-teal-400 border-teal-500/20'
   },
   {
-    title: 'Orders, Job Tickets & Production',
+    title: 'Orders, Order Items & Production',
     description: 'Unified quote/job pipeline, job detail tabs, timeline/history, assignments, and production workflow.',
     href: '/docs/quotes-jobs',
     icon: Briefcase,
@@ -57,8 +57,8 @@ const primaryLinks = [
 ];
 
 const systemMap = [
-  'Customers feed Orders, Job Tickets, Invoices, Messages, Forms, and Customer Portal access.',
-  'Orders are the master container. Job Tickets inside each order hold production specs, dynamic category fields, and pricing. Production tasks auto-generate from workflow templates.',
+  'Customers feed Orders, Order Items, Invoices, Messages, Forms, and Customer Portal access.',
+  'Orders are the master container. Order Items inside each order hold production specs, dynamic category fields, and pricing. Production tasks auto-generate from workflow templates.',
   'Pricing settings and historical invoice analysis power calculators, benchmark reporting, and quote quality.',
   'Production workflow and employee stage tracking feed time data, payroll, and future analytics.',
   'AI tools are credit-gated and logged, with monthly credits used before purchased credits.',
@@ -135,7 +135,7 @@ export default function DocsOverview() {
           <Link to="/docs/time-tracking" className="p-4 rounded-lg bg-gray-900/50 border border-gray-800 hover:border-gray-700 transition-colors">
             <Clock className="h-5 w-5 text-gray-400 mb-2" />
             <h3 className="font-medium text-white">Time & Payroll</h3>
-            <p className="text-sm text-gray-500">Job time, employee time, and payroll concepts</p>
+            <p className="text-sm text-gray-500">Order time, employee time, and payroll concepts</p>
           </Link>
           <Link to="/docs/employees" className="p-4 rounded-lg bg-gray-900/50 border border-gray-800 hover:border-gray-700 transition-colors">
             <Users className="h-5 w-5 text-gray-400 mb-2" />

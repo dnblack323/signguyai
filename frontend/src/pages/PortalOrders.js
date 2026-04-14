@@ -281,7 +281,7 @@ export function PortalOrderDetail() {
             )}
             <div className="flex flex-wrap gap-6 text-sm">
               <div>
-                <span className="text-slate-500">Job Number:</span>
+                <span className="text-slate-500">Order Number:</span>
                 <span className="ml-2 font-medium text-slate-900">{order.id.slice(0, 8).toUpperCase()}</span>
               </div>
               {order.due_date && (

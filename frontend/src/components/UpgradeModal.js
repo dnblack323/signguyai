@@ -22,7 +22,7 @@ const featureDisplayNames = {
   // AI Tools
   'ai_tools.image_generation': 'AI Image Generation',
   'ai_tools.monthly_generations': 'AI Generations',
-  'ai_tools.save_to_job': 'Save AI Results to Jobs',
+  'ai_tools.save_to_job': 'Save AI Results to Orders',
   
   // Core Modules
   'core_modules.kanban': 'Kanban Board',
@@ -30,7 +30,7 @@ const featureDisplayNames = {
   'core_modules.payroll': 'Payroll',
   'core_modules.calendar': 'Calendar',
   'core_modules.financial_tracking': 'Financial Tracking',
-  'core_modules.job_log': 'Job Activity Log',
+  'core_modules.job_log': 'Order Activity Log',
   
   // Webstores
   'webstores.num_stores': 'Webstores',

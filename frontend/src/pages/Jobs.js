@@ -86,7 +86,7 @@ const statusColors = {
 
 // Filter options for the job board
 const filterOptions = [
-  { value: 'all', label: 'All Jobs' },
+  { value: 'all', label: 'All Orders' },
   { value: 'quotes', label: 'Quotes (Pipeline)' },
   { value: 'active', label: 'Active (Production)' },
   { value: 'completed', label: 'Completed' },
@@ -317,7 +317,7 @@ export function JobsList() {
         status: createMode === 'job' ? 'approved' : 'quote'
       };
       const newJob = await createJob(jobData);
-      toast.success(createMode === 'job' ? 'Job created' : 'Quote created');
+      toast.success(createMode === 'job' ? 'Order created' : 'Quote created');
       setIsDialogOpen(false);
       resetForm();
       navigate(`/jobs/${newJob.id}`);
@@ -361,7 +361,7 @@ export function JobsList() {
   const handleComplete = async (jobId) => {
     try {
       await completeJob(jobId);
-      toast.success('Job marked as complete');
+      toast.success('Order marked as complete');
     } catch (err) {
       toast.error('Failed to complete job');
     }
@@ -370,7 +370,7 @@ export function JobsList() {
   const handleArchive = async (jobId) => {
     try {
       await archiveJob(jobId);
-      toast.success('Job archived');
+      toast.success('Order archived');
     } catch (err) {
       toast.error('Failed to archive job');
     }
@@ -380,7 +380,7 @@ export function JobsList() {
     if (window.confirm('Are you sure you want to delete this job?')) {
       try {
         await deleteJob(jobId);
-        toast.success('Job deleted');
+        toast.success('Order deleted');
       } catch (err) {
         toast.error('Failed to delete job');
       }
@@ -404,7 +404,7 @@ export function JobsList() {
       <ShellCard padding="default">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold font-heading uppercase tracking-tight text-gray-900">Jobs</h1>
+            <h1 className="text-2xl lg:text-3xl font-bold font-heading uppercase tracking-tight text-gray-900">Orders</h1>
             <p className="text-gray-500 text-sm mt-1">{jobs.length} {getFilterLabel(filterType).toLowerCase()}</p>
           </div>
           <div className="flex gap-2">
@@ -429,7 +429,7 @@ export function JobsList() {
                   data-testid="new-job-option"
                 >
                   <Package className="h-4 w-4 mr-2" />
-                  New Job
+                  New Order
                   <span className="text-xs text-gray-500 ml-2">(Ready for production)</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -496,7 +496,7 @@ export function JobsList() {
               {createMode === 'quote' ? (
                 <><FileText className="h-5 w-5" /> New Quote</>
               ) : (
-                <><Package className="h-5 w-5" /> New Job</>
+                <><Package className="h-5 w-5" /> New Order</>
               )}
             </DialogTitle>
           </DialogHeader>
@@ -509,9 +509,9 @@ export function JobsList() {
                 : "bg-green-50 border-green-200 text-green-800"
             )}>
               {createMode === 'quote' ? (
-                <p><strong>Quote Mode:</strong> This will create a job in the pipeline (quote stage). Approve it later to move to production.</p>
+                <p><strong>Quote Mode:</strong> This will create an order in the pipeline (quote stage). Approve it later to move to production.</p>
               ) : (
-                <p><strong>Job Mode:</strong> This will create a job ready for production (approved status).</p>
+                <p><strong>Order Mode:</strong> This will create an order ready for production (approved status).</p>
               )}
             </div>
 
@@ -549,7 +549,7 @@ export function JobsList() {
             </div>
               
             <div className="space-y-2">
-              <Label>Job Name *</Label>
+              <Label>Order Name *</Label>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -1066,7 +1066,7 @@ export function JobDetails() {
       await loadJobDetails();
       await fetchJobs();
       setIsEditDialogOpen(false);
-      toast.success('Job updated');
+      toast.success('Order updated');
     } catch (err) {
       toast.error('Failed to update job');
     }
@@ -1087,7 +1087,7 @@ export function JobDetails() {
     try {
       await completeJob(id);
       await loadJobDetails();
-      toast.success('Job marked as complete');
+      toast.success('Order marked as complete');
     } catch (err) {
       toast.error('Failed to complete job');
     }
@@ -1097,7 +1097,7 @@ export function JobDetails() {
     try {
       await archiveJob(id);
       await loadJobDetails();
-      toast.success('Job archived');
+      toast.success('Order archived');
     } catch (err) {
       toast.error('Failed to archive job');
     }
@@ -1107,7 +1107,7 @@ export function JobDetails() {
     try {
       await unarchiveJob(id);
       await loadJobDetails();
-      toast.success('Job unarchived');
+      toast.success('Order unarchived');
     } catch (err) {
       toast.error('Failed to unarchive job');
     }
@@ -1298,7 +1298,7 @@ export function JobDetails() {
     <div className="space-y-6 animate-fade-in" data-testid="job-details-page">
       {/* Back Button */}
       <Button variant="ghost" onClick={() => navigate('/jobs')} data-testid="back-to-jobs">
-        <ArrowLeft className="h-4 w-4 mr-2" /> Back to Jobs
+        <ArrowLeft className="h-4 w-4 mr-2" /> Back to Orders
       </Button>
 
       {/* Header Card */}
@@ -1422,7 +1422,7 @@ export function JobDetails() {
         </Card>
         <Card className="bg-white border-gray-200">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 mb-1">Job Subtotal</p>
+            <p className="text-xs text-gray-500 mb-1">Order Subtotal</p>
             <p className="text-xl font-bold text-primary">{formatCurrency(job.subtotal)}</p>
           </CardContent>
         </Card>
@@ -1537,7 +1537,7 @@ export function JobDetails() {
             <Card className="bg-white border-gray-200 lg:col-span-1">
               <CardHeader className="pb-3">
                 <CardTitle className="font-heading uppercase text-sm flex items-center gap-2">
-                  <Timer className="h-4 w-4" /> Job Timer
+                  <Timer className="h-4 w-4" /> Order Timer
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -2020,7 +2020,7 @@ export function JobDetails() {
           <Card className="bg-white border-gray-200">
             <CardHeader>
               <CardTitle className="font-heading uppercase flex items-center gap-2">
-                <GitBranch className="h-5 w-5" /> Job Status Timeline
+                <GitBranch className="h-5 w-5" /> Order Status Timeline
               </CardTitle>
               <CardDescription>Visual progression through production stages</CardDescription>
             </CardHeader>
@@ -2343,15 +2343,15 @@ export function JobDetails() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Job Dialog */}
+      {/* Edit Order Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle className="font-heading uppercase">Edit Job</DialogTitle>
+            <DialogTitle className="font-heading uppercase">Edit Order</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleUpdateJob} className="space-y-4">
             <div className="space-y-2">
-              <Label>Job Name</Label>
+              <Label>Order Name</Label>
               <Input
                 value={editFormData.name}
                 onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
@@ -2410,4 +2410,6 @@ export function JobDetails() {
 // Default export for router
 export default function Jobs() {
   return <JobsList />;
+}
+
 }

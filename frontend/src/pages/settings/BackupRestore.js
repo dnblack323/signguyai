@@ -123,10 +123,10 @@ export default function BackupRestore() {
 
   const collectionLabels = {
     customers: 'Customers',
-    jobs: 'Jobs',
-    job_items: 'Job Line Items',
-    job_activities: 'Job Activities',
-    job_notes: 'Job Notes',
+    jobs: 'Orders',
+    job_items: 'Order Line Items',
+    job_activities: 'Order Activities',
+    job_notes: 'Order Notes',
     invoices: 'Invoices',
     quotes: 'Quotes',
     products: 'Products',

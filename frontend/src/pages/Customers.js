@@ -679,7 +679,7 @@ export default function Customers() {
               
               {/* Action Buttons */}
               <div className="flex justify-between items-center pt-2">
-                {/* Save & Add Job link - only show for new customers */}
+                {/* Save & Add Order link - only show for new customers */}
                 {!editingCustomer && (
                   <button
                     type="button"
@@ -688,7 +688,7 @@ export default function Customers() {
                     data-testid="save-and-add-job-btn"
                   >
                     <Briefcase className="h-3.5 w-3.5" />
-                    Save & Add Job
+                    Save & Add Order
                     <ArrowRight className="h-3.5 w-3.5" />
                   </button>
                 )}
@@ -966,7 +966,7 @@ export default function Customers() {
                 <Tabs value={detailTab} onValueChange={setDetailTab}>
                   <TabsList className="grid grid-cols-4 w-full">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="jobs">Jobs ({stats.customerJobs.length})</TabsTrigger>
+                    <TabsTrigger value="jobs">Orders ({stats.customerJobs.length})</TabsTrigger>
                     <TabsTrigger value="invoices">Invoices ({stats.customerInvoices.length})</TabsTrigger>
                     <TabsTrigger value="quotes">Quotes ({customerQuotes.length})</TabsTrigger>
                   </TabsList>
@@ -1074,7 +1074,7 @@ export default function Customers() {
                     )}
                   </TabsContent>
 
-                  {/* Jobs Tab */}
+                  {/* Orders Tab */}
                   <TabsContent value="jobs" className="mt-4">
                     {stats.customerJobs.length === 0 ? (
                       <div className="text-center py-8 text-gray-500">
@@ -1175,7 +1175,7 @@ export default function Customers() {
                       <Package className="h-4 w-4 mr-2" /> New Order
                     </Button>
                     <Button variant="outline" onClick={() => { setIsDetailOpen(false); navigate(`/orders/new?customer_id=${selectedCustomer.id}&customer_name=${encodeURIComponent(selectedCustomer.name || selectedCustomer.company || 'Customer')}`); }} data-testid="customer-popup-new-job-btn">
-                      <Briefcase className="h-4 w-4 mr-2" /> New Job
+                      <Briefcase className="h-4 w-4 mr-2" /> New Order
                     </Button>
                     <Button variant="outline" onClick={() => setIsDetailOpen(false)}>
                       Close

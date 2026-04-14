@@ -2,7 +2,7 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-f
 
 export const PRODUCTIVITY_TYPE_LABELS = {
   task: 'Task',
-  job: 'Job',
+  job: 'Order',
   production_task: 'Production Task',
   schedule_shift: 'Schedule',
   appointment: 'Appointment',

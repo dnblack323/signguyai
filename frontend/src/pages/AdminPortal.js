@@ -717,7 +717,7 @@ export default function AdminPortal() {
                           )}
                         </div>
                         <div>
-                          <p className="font-medium">{proof.job?.name || 'Unknown Job'}</p>
+                          <p className="font-medium">{proof.job?.name || 'Unknown Order'}</p>
                           <p className="text-sm text-slate-600">{proof.customer?.name}</p>
                           <p className="text-xs text-slate-400">
                             Version {proof.version} • {formatDate(proof.created_at)}
@@ -855,7 +855,7 @@ export default function AdminPortal() {
               </Select>
             </div>
             <div>
-              <Label>Job (optional)</Label>
+              <Label>Order (optional)</Label>
               <Select value={formJobId} onValueChange={setFormJobId}>
                 <SelectTrigger><SelectValue placeholder="Select job" /></SelectTrigger>
                 <SelectContent>{customerJobs.map((j) => <SelectItem key={j.id} value={j.id}>{j.name}</SelectItem>)}</SelectContent>
@@ -975,7 +975,7 @@ export default function AdminPortal() {
               </Select>
             </div>
             <div>
-              <Label>Job</Label>
+              <Label>Order</Label>
               <Select value={artworkJobId} onValueChange={setArtworkJobId} disabled={!artworkCustomerId}>
                 <SelectTrigger>
                   <SelectValue placeholder={artworkCustomerId ? "Select job" : "Select customer first"} />

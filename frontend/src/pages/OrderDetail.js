@@ -231,7 +231,7 @@ export default function OrderDetail() {
 
   const deleteTicket = async (ticketId, e) => {
     e.stopPropagation();
-    if (!window.confirm('Delete this job ticket and its tasks?')) return;
+    if (!window.confirm('Delete this order item and its tasks?')) return;
     try {
       await axios.delete(`${API}/job-tickets/${ticketId}`, { headers: hdr() });
       toast.success('Ticket deleted');
@@ -419,7 +419,7 @@ export default function OrderDetail() {
       <Card className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="flex gap-1 border-b border-gray-200 overflow-x-auto px-4 pt-3">
           {[
-            { id: 'tickets', label: `Job Tickets (${tickets.length})` },
+            { id: 'tickets', label: `Order Items (${tickets.length})` },
             { id: 'production', label: `Production (${allTasks.length})` },
             { id: 'financial', label: `Financial (${(financials.quotes?.length || 0) + (financials.invoices?.length || 0) + (financials.work_orders?.length || 0)})` },
             { id: 'drawings', label: `Drawings (${drawings.length})` },
@@ -438,10 +438,10 @@ export default function OrderDetail() {
       {tab === 'tickets' && (
         <div className="space-y-3">
           <Button variant="outline" size="sm" onClick={() => navigate(`/orders/${id}/add-ticket`)} className="gap-2" data-testid="add-ticket-btn">
-            <Plus className="w-4 h-4" /> Add Job Ticket
+            <Plus className="w-4 h-4" /> Add Order Item
           </Button>
           {tickets.length === 0 ? (
-            <Card className="bg-white rounded-xl border border-gray-200 shadow-sm"><CardContent className="py-12 text-center text-gray-500">No job tickets yet.</CardContent></Card>
+            <Card className="bg-white rounded-xl border border-gray-200 shadow-sm"><CardContent className="py-12 text-center text-gray-500">No order items yet.</CardContent></Card>
           ) : tickets.map(ticket => {
             const snapshot = ticket.pricing_snapshot;
             const pricingMode = snapshot?.pricing_mode || (ticket.estimated_price ? 'estimate' : 'none');
@@ -687,7 +687,7 @@ export default function OrderDetail() {
             </div>
           )}
           {(financials.quotes?.length || 0) === 0 && (financials.invoices?.length || 0) === 0 && (financials.work_orders?.length || 0) === 0 && (
-            <Card className="bg-white rounded-xl border border-gray-200 shadow-sm"><CardContent className="py-12 text-center text-gray-500">No documents yet. Generate a quote, invoice, or work order from the job tickets.</CardContent></Card>
+            <Card className="bg-white rounded-xl border border-gray-200 shadow-sm"><CardContent className="py-12 text-center text-gray-500">No documents yet. Generate a quote, invoice, or work order from the order items.</CardContent></Card>
           )}
         </div>
       )}

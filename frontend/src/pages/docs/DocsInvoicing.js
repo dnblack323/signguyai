@@ -78,7 +78,7 @@ export default function DocsInvoicing() {
       </div>
 
       <div className="flex items-center justify-between pt-8 border-t border-gray-800">
-        <Link to="/docs/quotes-jobs" className="text-gray-400 hover:text-white">← Orders Orders & Job Tickets Job Tickets</Link>
+        <Link to="/docs/quotes-jobs" className="text-gray-400 hover:text-white">← Orders & Order Items</Link>
         <Link to="/docs/pricing-calculator" className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300">Pricing Calculator <ArrowRight className="h-4 w-4" /></Link>
       </div>
     </div>

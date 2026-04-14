@@ -74,7 +74,7 @@ export default function EmployeePortalJob() {
           <Card style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)' }}>
             <CardContent className="p-8 text-center">
               <ArrowLeft className="h-10 w-10 mx-auto mb-3 text-amber-500" />
-              <p className="font-medium" style={{ color: 'var(--text)' }}>Job details are hidden</p>
+              <p className="font-medium" style={{ color: 'var(--text)' }}>Order details are hidden</p>
               <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>Your admin has disabled job-detail access for this portal account.</p>
             </CardContent>
           </Card>

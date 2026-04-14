@@ -21,7 +21,7 @@ export default function LegacyJobDetailPage() {
     <div className="space-y-6" data-testid="legacy-job-detail-page">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm uppercase tracking-[0.22em] text-slate-400">Legacy Job Record</p>
+          <p className="text-sm uppercase tracking-[0.22em] text-slate-400">Legacy Order Record</p>
           <h1 className="text-4xl font-bold text-white">{job?.name || 'Loading legacy job…'}</h1>
         </div>
         <Button asChild variant="outline" data-testid="legacy-job-back-button"><Link to="/productivity?view=dashboard"><ArrowLeft className="mr-2 h-4 w-4" />Back to Productivity</Link></Button>

@@ -234,7 +234,7 @@ export default function DigestSettings() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {[
               { label: 'Employees Scheduled Today', icon: '👥' },
-              { label: 'Jobs Due Today', icon: '📋' },
+              { label: 'Orders Due Today', icon: '📋' },
               { label: 'Overdue Invoices', icon: '⚠️' },
               { label: 'Pending Approvals', icon: '✅' },
               { label: "Yesterday's Revenue", icon: '💰' },

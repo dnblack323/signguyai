@@ -28,7 +28,7 @@ const faqs = [
     ]
   },
   {
-    category: 'Jobs & Production',
+    category: 'Orders & Production',
     questions: [
       { q: 'What is the difference between a quote and a job?', a: 'A quote is a job in the quote stage. The same record can move through approval, production, invoicing, and archive.' },
       { q: 'Where do I see the full job history?', a: 'Open the job and use View Timeline. That panel shows the history feed for proofs, stages, documents, and more.' },

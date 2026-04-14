@@ -26,21 +26,21 @@ export default function DocsTimeTracking() {
         <h2 className="text-lg font-semibold text-white mb-4">Important Distinction</h2>
         <ul className="space-y-2 text-gray-300">
           <li>• <strong className="text-white">Time Clock</strong> = attendance/payroll time</li>
-          <li>• <strong className="text-white">Job Timer</strong> = labor time on a specific job</li>
+          <li>• <strong className="text-white">Order Timer</strong> = labor time on a specific order</li>
           <li>• These should not be treated as the same dataset</li>
         </ul>
       </div>
       <div>
-        <h2 className="text-xl font-semibold text-white mb-4">Job Timer Workflow</h2>
+        <h2 className="text-xl font-semibold text-white mb-4">Order Timer Workflow</h2>
         <ol className="space-y-3">
-          {['Open Job Details', 'Go to the Time tab', 'Choose a task type', 'Start timer', 'Stop timer when finished', 'Review hours and labor cost in the summary'].map((step, index) => (
+          {['Open Order Details', 'Go to the Time tab', 'Choose a task type', 'Start timer', 'Stop timer when finished', 'Review hours and labor cost in the summary'].map((step, index) => (
             <li key={index} className="flex items-start gap-3 text-gray-300"><span className="flex-shrink-0 w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 text-sm flex items-center justify-center">{index + 1}</span>{step}</li>
           ))}
         </ol>
       </div>
       <div className="p-6 rounded-xl bg-gray-900/50 border border-gray-800">
         <div className="flex items-center gap-2 mb-3"><Timer className="h-5 w-5 text-cyan-400" /><h2 className="text-lg font-semibold text-white">Why It Matters</h2></div>
-        <p className="text-gray-300">Job time now feeds labor visibility, payroll review, production history, and future analytics. Even a simple workflow benefits from consistent timer use.</p>
+        <p className="text-gray-300">Order time now feeds labor visibility, payroll review, production history, and future analytics. Even a simple workflow benefits from consistent timer use.</p>
       </div>
       <div className="flex items-center justify-between pt-8 border-t border-gray-800">
         <Link to="/docs/ai-tools" className="text-gray-400 hover:text-white">← AI Tools Suite</Link>

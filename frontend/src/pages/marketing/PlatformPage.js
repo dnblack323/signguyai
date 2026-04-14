@@ -11,7 +11,7 @@ import {
 export default function PlatformPage() {
   const modules = [
     { icon: Users, name: 'Customer Management', desc: 'CRM built for sign shops' },
-    { icon: Briefcase, name: 'Jobs & Quotes', desc: 'Track every project' },
+    { icon: Briefcase, name: 'Orders & Quotes', desc: 'Track every project' },
     { icon: Receipt, name: 'Invoicing', desc: 'Get paid faster' },
     { icon: Clock, name: 'Time & Payroll', desc: 'Manage your team' },
     { icon: Sparkles, name: 'AI Tools', desc: 'Work smarter' },
@@ -26,7 +26,7 @@ export default function PlatformPage() {
       path: '/starter',
       features: [
         'Customer Management',
-        'Orders Orders & Job Tickets Job Tickets',
+        'Orders & Order Items',
         'Basic Invoicing',
         'Basic Time Clock',
         '2 Team Members',

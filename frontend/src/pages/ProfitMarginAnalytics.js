@@ -43,7 +43,7 @@ const WIDGET_LABELS = {
   profit_by_category: 'Profit by Category',
   top_customers: 'Top Customers by Profit',
   low_margin_jobs: 'Low Margin Jobs',
-  average_job_value: 'Average Job Value',
+  average_job_value: 'Average Order Value',
 };
 
 const formatCurrency = (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
@@ -247,7 +247,7 @@ export default function ProfitMarginAnalytics() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card data-testid="profit-analytics-metric-revenue"><CardContent className="p-5"><p className="text-xs uppercase text-slate-400">Revenue This Month</p><p className="text-2xl font-bold text-gray-900 mt-2">{formatCurrency(metrics.revenue_this_month)}</p></CardContent></Card>
         <Card data-testid="profit-analytics-metric-profit"><CardContent className="p-5"><p className="text-xs uppercase text-slate-400">Profit This Month</p><p className="text-2xl font-bold text-emerald-400 mt-2">{formatCurrency(metrics.profit_this_month)}</p></CardContent></Card>
-        <Card data-testid="profit-analytics-metric-average-job-value"><CardContent className="p-5"><p className="text-xs uppercase text-slate-400">Average Job Value</p><p className="text-2xl font-bold text-gray-900 mt-2">{formatCurrency(metrics.average_job_value)}</p></CardContent></Card>
+        <Card data-testid="profit-analytics-metric-average-job-value"><CardContent className="p-5"><p className="text-xs uppercase text-slate-400">Average Order Value</p><p className="text-2xl font-bold text-gray-900 mt-2">{formatCurrency(metrics.average_job_value)}</p></CardContent></Card>
         <Card data-testid="profit-analytics-metric-average-margin"><CardContent className="p-5"><p className="text-xs uppercase text-slate-400">Average Profit Margin</p><p className="text-2xl font-bold text-gray-900 mt-2">{metrics.average_profit_margin || 0}%</p></CardContent></Card>
       </div>
 
@@ -380,7 +380,7 @@ export default function ProfitMarginAnalytics() {
                 <Card key={widgetKey} data-testid="profit-analytics-low-margin-card">
                   <CardHeader>
                     <CardTitle className="text-gray-900">Low Margin / Underpriced Jobs</CardTitle>
-                    <CardDescription>Jobs flagged below benchmark or at unusually low margins.</CardDescription>
+                    <CardDescription>Orders flagged below benchmark or at unusually low margins.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {(lowMarginJobs.length ? lowMarginJobs : sortedJobs.slice(-5)).slice(0, 8).map((row) => (
@@ -401,7 +401,7 @@ export default function ProfitMarginAnalytics() {
               return (
                 <Card key={widgetKey} data-testid="profit-analytics-average-job-value-card">
                   <CardHeader>
-                    <CardTitle className="text-gray-900">Average Job Value</CardTitle>
+                    <CardTitle className="text-gray-900">Average Order Value</CardTitle>
                     <CardDescription>A simple view of average sale size and profitability.</CardDescription>
                   </CardHeader>
                   <CardContent className="grid gap-4 md:grid-cols-2">
@@ -423,7 +423,7 @@ export default function ProfitMarginAnalytics() {
 
           <Card data-testid="profit-analytics-job-table-card">
             <CardHeader>
-              <CardTitle className="text-gray-900">Job Profitability Table</CardTitle>
+              <CardTitle className="text-gray-900">Order Profitability Table</CardTitle>
               <CardDescription>Sort by profit, margin, or revenue and spot underpriced work.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -442,7 +442,7 @@ export default function ProfitMarginAnalytics() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Job Name</TableHead>
+                    <TableHead>Order Name</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead className="text-right">Revenue</TableHead>

@@ -139,7 +139,7 @@ export default function DocsWebstores() {
           <li>• Customers can pay directly at checkout</li>
           <li>• Secure payment processing via Stripe</li>
           <li>• Automatic receipt and confirmation emails</li>
-          <li>• Orders automatically create job tickets</li>
+          <li>• Orders automatically create order items</li>
           <li>• Payment status syncs with invoice records</li>
         </ul>
       </div>

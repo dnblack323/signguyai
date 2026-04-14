@@ -56,7 +56,7 @@ export default function WhyFounderPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="p-4 bg-[#111826] rounded-xl border border-white/10">
               <Briefcase className="w-8 h-8 text-violet-400 mb-3" />
-              <p className="font-semibold text-white">Job Stages</p>
+              <p className="font-semibold text-white">Order Stages</p>
               <p className="text-xs text-gray-500">Visual production tracking</p>
             </div>
             <div className="p-4 bg-[#111826] rounded-xl border border-white/10">
@@ -156,7 +156,7 @@ export default function WhyFounderPage() {
                   {[
                     "Employee portal with job assignments",
                     "Real-time time tracking",
-                    "Job-stage production tracking",
+                    "Order-stage production tracking",
                     "Labor time feeding into AI cost analysis",
                     "Workflow bottleneck detection"
                   ].map((item, idx) => (
@@ -270,7 +270,7 @@ export default function WhyFounderPage() {
             <div className="p-6 bg-[#0B0F17] rounded-xl border border-white/10">
               <div className="flex items-center gap-3 mb-4">
                 <Layers className="w-6 h-6 text-purple-400" />
-                <h4 className="font-bold text-white">Drag-and-Drop Job Board</h4>
+                <h4 className="font-bold text-white">Drag-and-Drop Order Board</h4>
               </div>
               <ul className="space-y-2 text-sm text-gray-400 mb-4">
                 <li>• Visual production tracking</li>
@@ -294,7 +294,7 @@ export default function WhyFounderPage() {
                 <li>• Drag-and-drop to-do system</li>
                 <li>• Task assignment</li>
                 <li>• Internal notes</li>
-                <li>• Job production tracking</li>
+                <li>• Order production tracking</li>
                 <li>• Attach documents directly to jobs</li>
               </ul>
               <p className="text-xs text-green-400">
@@ -485,7 +485,7 @@ export default function WhyFounderPage() {
           <div className="text-center mb-12">
             <Eye className="w-12 h-12 text-blue-400 mx-auto mb-4" />
             <h2 className="text-3xl font-bold mb-4">Production Intelligence</h2>
-            <p className="text-xl text-gray-400">Know Exactly Where Every Job Stands.</p>
+            <p className="text-xl text-gray-400">Know Exactly Where Every Order Stands.</p>
           </div>
 
           <div className="p-8 bg-[#0B0F17] rounded-xl border border-blue-500/30">

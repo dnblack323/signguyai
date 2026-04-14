@@ -285,9 +285,9 @@ export default function NewOrderForm() {
         </CardContent>
       </Card>
 
-      {/* Job Tickets Header */}
+      {/* Order Items Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-white">Job Tickets ({tickets.length})</h2>
+        <h2 className="text-lg font-bold text-white">Order Items ({tickets.length})</h2>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => addTicket('quick')} className="gap-2 bg-white" data-testid="add-quick-ticket"><Plus className="w-4 h-4" /> Quick Entry</Button>
           <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white gap-2" onClick={() => addTicket('detailed')} data-testid="add-detailed-ticket"><Plus className="w-4 h-4" /> Detailed Entry</Button>
@@ -298,7 +298,7 @@ export default function NewOrderForm() {
       {tickets.length === 0 && (
         <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <CardContent className="py-12 text-center">
-            <p className="text-gray-500 mb-4">No job tickets yet. Add your first ticket to get started.</p>
+            <p className="text-gray-500 mb-4">No order items yet. Add your first item to get started.</p>
             <div className="flex gap-3 justify-center">
               <Button variant="outline" onClick={() => addTicket('quick')} className="gap-2"><Plus className="w-4 h-4" /> Quick Entry</Button>
               <Button className="bg-violet-600 hover:bg-violet-700 text-white gap-2" onClick={() => addTicket('detailed')}><Plus className="w-4 h-4" /> Detailed Entry</Button>

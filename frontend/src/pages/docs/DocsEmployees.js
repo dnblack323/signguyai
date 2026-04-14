@@ -28,7 +28,7 @@ export default function DocsEmployees() {
           <ul className="list-disc pl-6 space-y-1 text-gray-300">
             <li><strong className="text-white">Clock In/Out</strong> — employees punch in via portal or kiosk</li>
             <li><strong className="text-white">Break tracking</strong> — start/end breaks during shift</li>
-            <li><strong className="text-white">Job timers</strong> — track time on specific jobs</li>
+            <li><strong className="text-white">Order timers</strong> — track time on specific orders</li>
             <li><strong className="text-white">Manual hours</strong> — admin can add/edit time entries</li>
             <li><strong className="text-white">Timesheet editing</strong> — admin can correct any entry via the edit button</li>
           </ul>
@@ -52,7 +52,7 @@ export default function DocsEmployees() {
           <ul className="list-disc pl-6 space-y-1 text-gray-300">
             <li>Clock in / clock out / breaks</li>
             <li>Personal work summary and hours</li>
-            <li>Assigned job tickets and production tasks</li>
+            <li>Assigned order items and production tasks</li>
             <li>Stage actions: start, pause, complete</li>
             <li>Task list and pay/profile areas</li>
           </ul>

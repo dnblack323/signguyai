@@ -56,8 +56,8 @@ const quickStart = [
   {
     title: 'Create a Test Order',
     bullets: [
-      'Create a customer, then create an Order with Job Tickets.',
-      'Upload artwork, add job tickets (Quick or Detailed entry), enable production workflow, and test the full order lifecycle.',
+      'Create a customer, then create an Order with Order Items.',
+      'Upload artwork, add order items (Quick or Detailed entry), enable production workflow, and test the full order lifecycle.',
       'This is the fastest way to validate the operational loop.'
     ]
   },
@@ -76,7 +76,7 @@ const standardSetup = [
   'Configure deeper material, labor, overhead, and target profit settings.',
   'Review categories, category workflows, document organization, and questionnaire templates.',
   'Review AI tool access, notifications, workflow templates, and customer portal behavior.',
-  'Run a realistic workflow test using orders, job tickets, proofs, forms, messages, and invoices.'
+  'Run a realistic workflow test using orders, order items, proofs, forms, messages, and invoices.'
 ];
 
 const fullOptimization = [
@@ -181,7 +181,7 @@ export default function GettingStarted() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             { title: 'Customers', href: '/docs/customers', icon: Users, description: 'Learn customer records, portal invites, and account history.' },
-            { title: 'Orders Orders Orders & Job Tickets Job Tickets Job Tickets', href: '/docs/quotes-jobs', icon: Briefcase, description: 'Understand the operational pipeline from order intake to production.' },
+            { title: 'Orders & Order Items', href: '/docs/quotes-jobs', icon: Briefcase, description: 'Understand the operational pipeline from order intake to production.' },
             { title: 'Invoicing', href: '/docs/invoicing', icon: FileText, description: 'Review invoices, portal access, and payment flow.' },
           ].map((item) => (
             <Link key={item.href} to={item.href} className="p-5 rounded-xl bg-gray-900/50 border border-gray-800 hover:border-cyan-500/30 transition-all group">

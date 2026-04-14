@@ -58,7 +58,7 @@ export default function FoundersEditionPricing() {
 
   const includedFeatures = [
     'Customer Management',
-    'Orders & Job Tickets',
+    'Orders & Order Items',
     'Unified Productivity Dashboard / Calendar / Kanban / Task List',
     'Invoicing with Online Payments',
     'Customer Portal',

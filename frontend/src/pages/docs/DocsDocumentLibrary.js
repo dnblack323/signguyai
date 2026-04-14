@@ -156,7 +156,7 @@ export default function DocsDocumentLibrary() {
           <Tag className="h-5 w-5 text-cyan-400" /> Linking Documents to Jobs
         </h2>
         <ul className="space-y-2 text-gray-300">
-          <li>• Documents can be linked to specific orders or job tickets</li>
+          <li>• Documents can be linked to specific orders or order items</li>
           <li>• Upload artwork directly from the Order Detail page</li>
           <li>• Linked documents appear in the order's Files tab</li>
           <li>• Questionnaire responses are automatically saved as documents</li>
@@ -183,7 +183,7 @@ export default function DocsDocumentLibrary() {
 
       <div className="flex items-center justify-between pt-8 border-t border-gray-800">
         <Link to="/docs/customers" className="text-gray-400 hover:text-white">← Customers</Link>
-        <Link to="/docs/quotes-jobs" className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300">Orders & Job Tickets <ArrowRight className="h-4 w-4" /></Link>
+        <Link to="/docs/quotes-jobs" className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300">Orders & Order Items <ArrowRight className="h-4 w-4" /></Link>
       </div>
     </div>
   );

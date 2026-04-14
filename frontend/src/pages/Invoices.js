@@ -402,7 +402,7 @@ export default function Invoices() {
                 <TableRow className="hover:bg-transparent">
                   <TableHead>Invoice #</TableHead>
                   <TableHead>Customer</TableHead>
-                  <TableHead>Job</TableHead>
+                  <TableHead>Order</TableHead>
                   <TableHead>Total</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Due Date</TableHead>

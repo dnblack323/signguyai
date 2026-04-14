@@ -147,7 +147,7 @@ const QuotesToolbar = ({ navigate }) => (
 
     <RibbonGroup title="Actions">
       <RibbonButton icon={CheckCircle} label="Approve" onClick={() => {}} />
-      <RibbonButton icon={ArrowRightCircle} label="To Job" onClick={() => {}} />
+      <RibbonButton icon={ArrowRightCircle} label="To Order" onClick={() => {}} />
       <RibbonButton icon={Send} label="Send" onClick={() => {}} />
       <RibbonButton icon={FileText} label="PDF" onClick={() => {}} />
     </RibbonGroup>
@@ -280,7 +280,7 @@ const ReportsToolbar = ({ navigate }) => (
     <GroupSeparator />
 
     <RibbonGroup title="Production">
-      <RibbonButton icon={Timer} label="Time/Job" onClick={() => navigate('/productivity')} />
+      <RibbonButton icon={Timer} label="Time/Order" onClick={() => navigate('/productivity')} />
       <RibbonButton icon={AlertTriangle} label="Bottlenecks" onClick={() => navigate('/productivity')} />
     </RibbonGroup>
 

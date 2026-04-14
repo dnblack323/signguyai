@@ -17,9 +17,9 @@ export default function DocsCustomerPortal() {
       {/* Feature Grid */}
       <div className="grid md:grid-cols-4 gap-4">
         {[
-          { icon: Eye, title: 'Jobs', desc: 'Customer-facing job tracking and simplified status timeline' },
+          { icon: Eye, title: 'Orders', desc: 'Customer-facing order tracking and simplified status timeline' },
           { icon: CheckCircle, title: 'Proofs', desc: 'Approvals, revisions, and version history' },
-          { icon: MessageSquare, title: 'Messages', desc: 'Job-specific and account-level communication' },
+          { icon: MessageSquare, title: 'Messages', desc: 'Order-specific and account-level communication' },
           { icon: CreditCard, title: 'Invoices', desc: 'View, download, and pay when Stripe is enabled' },
         ].map((item) => (
           <div key={item.title} className="p-4 rounded-lg bg-gray-900/50 border border-gray-800 text-center">
@@ -69,7 +69,7 @@ export default function DocsCustomerPortal() {
             </ul>
           </div>
           <div>
-            <h3 className="font-medium text-white mb-2">Job Details</h3>
+            <h3 className="font-medium text-white mb-2">Order Details</h3>
             <ul className="space-y-1 text-sm text-gray-300">
               <li>• Simplified status timeline</li>
               <li>• Proof images with approve/reject</li>
@@ -89,7 +89,7 @@ export default function DocsCustomerPortal() {
         <ul className="space-y-2 text-gray-300">
           <li className="flex items-start gap-2">
             <CheckCircle className="h-4 w-4 text-green-400 mt-1 flex-shrink-0" />
-            <span><strong className="text-white">Upload Proofs</strong> — Send design proofs directly from job ticket detail</span>
+            <span><strong className="text-white">Upload Proofs</strong> — Send design proofs directly from order item detail</span>
           </li>
           <li className="flex items-start gap-2">
             <CheckCircle className="h-4 w-4 text-green-400 mt-1 flex-shrink-0" />

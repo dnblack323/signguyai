@@ -30,7 +30,7 @@ export default function DocsPricingCalculator() {
           <li>• Overhead and markup rules</li>
           <li>• Category-specific defaults</li>
           <li>• Selling benchmarks stored separately from cost settings</li>
-          <li>• Stored cost snapshots on quote/job items for reporting and review</li>
+          <li>• Stored cost snapshots on quote/order items for reporting and review</li>
         </ul>
       </div>
 

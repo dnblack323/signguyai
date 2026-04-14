@@ -28,7 +28,7 @@ const TIERS = [
       { id: 'quick_first_employee', title: 'Add First Employee', type: 'employee', required: false, lesson: 'Create at least one employee. Employees can clock in, see assigned jobs, and start production stages in the employee portal.' },
       { id: 'quick_basic_pricing', title: 'Basic Pricing Setup', type: 'pricing', required: false, lesson: 'Enter a few key material and labor values so pricing calculators can produce realistic estimates right away.' },
       { id: 'quick_customer_portal', title: 'Enable Customer Portal', type: 'portal', required: false, lesson: 'Turn on approvals, messaging, document sharing, and invoice payments. Customers must already exist in your database before they can be invited.' },
-      { id: 'quick_first_job', title: 'Create First Job', type: 'link', route: '/customers', required: false, cta: 'Create Customer / Job', lesson: 'Create a customer first, then build a test job, upload artwork, send a proof, assign workflow stages, and optionally schedule or assign the job.' },
+      { id: 'quick_first_job', title: 'Create First Order', type: 'link', route: '/customers', required: false, cta: 'Create Customer / Order', lesson: 'Create a customer first, then build a test order, upload artwork, send a proof, assign workflow stages, and optionally schedule or assign the order.' },
       { id: 'quick_portal_test', title: 'Quick Test of Customer Portal', type: 'manual', required: false, lesson: 'Send a proof approval request, a message, and a document to confirm customer portal access works end to end.' },
     ]
   },

@@ -461,7 +461,7 @@ const RecentAIDocumentsWidget = ({ documents }) => {
       'business_copywriter': 'Business Copywriter',
       'blog_creator': 'Blog Creator',
       'email_template': 'Email Generator',
-      'job_post_creator': 'Job Post Creator',
+      'job_post_creator': 'Order Post Creator',
       'social_media_creator': 'Social Media Creator'
     };
     return toolNames[toolTag] || 'AI Tool';

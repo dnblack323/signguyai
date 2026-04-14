@@ -565,7 +565,7 @@ export default function Approvals() {
                 <TableRow>
                   <TableHead>Preview</TableHead>
                   <TableHead>Customer</TableHead>
-                  <TableHead>Job</TableHead>
+                  <TableHead>Order</TableHead>
                   <TableHead>Version</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Sent</TableHead>

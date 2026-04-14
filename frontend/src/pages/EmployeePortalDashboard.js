@@ -380,7 +380,7 @@ export default function EmployeePortalDashboard() {
                 <p className="text-2xl font-bold" style={{ color: 'var(--text)' }}>{workSummary?.completed_stages_today || 0}</p>
               </div>
               <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }}>
-                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Assigned Jobs</p>
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Assigned Orders</p>
                 <p className="text-2xl font-bold" style={{ color: 'var(--text)' }}>{workSummary?.assigned_jobs_count || assignedJobs.length}</p>
               </div>
               <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }}>
@@ -398,7 +398,7 @@ export default function EmployeePortalDashboard() {
 
         {canSeeJobDetails && <Card style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)' }} data-testid="employee-assigned-jobs-card">
           <CardHeader>
-            <CardTitle style={{ color: 'var(--text)' }}>My Assigned Jobs</CardTitle>
+            <CardTitle style={{ color: 'var(--text)' }}>My Assigned Orders</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {assignedJobs.length === 0 ? (

@@ -568,7 +568,7 @@ export default function Quotes() {
                             onClick={() => handleConvert(quote.id)}
                             data-testid={`convert-quote-${quote.id}`}
                             className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                            title="Convert to Job"
+                            title="Convert to Order"
                           >
                             <ArrowRightCircle className="h-4 w-4" />
                           </Button>
@@ -693,7 +693,7 @@ export default function Quotes() {
                     </p>
                     {selectedQuote.job_id && (
                       <p className="text-sm text-green-600 mt-1">
-                        Converted to Job
+                        Converted to Order
                       </p>
                     )}
                   </div>
@@ -847,7 +847,7 @@ export default function Quotes() {
                         }}
                         className="bg-green-600 hover:bg-green-700 text-white"
                       >
-                        <ArrowRightCircle className="h-4 w-4 mr-2" /> Convert to Job
+                        <ArrowRightCircle className="h-4 w-4 mr-2" /> Convert to Order
                       </Button>
                     )}
                     {!selectedQuote.job_id && (

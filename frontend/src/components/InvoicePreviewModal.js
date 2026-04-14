@@ -242,11 +242,11 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
               </div>
             </div>
 
-            {/* Job Reference */}
+            {/* Order Reference */}
             {job && (
               <div className="p-3 bg-gray-100 rounded-lg">
                 <p className="text-sm text-gray-800">
-                  <span className="text-gray-600">Reference Job: </span>
+                  <span className="text-gray-600">Reference Order: </span>
                   <span className="font-medium">{job.name}</span>
                 </p>
               </div>

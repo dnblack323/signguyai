@@ -23,7 +23,7 @@ const docsNavigation = [
     items: [
       { title: 'Customers', href: '/docs/customers', icon: Users },
       { title: 'Document Library', href: '/docs/document-library', icon: FolderOpen },
-      { title: 'Orders & Job Tickets', href: '/docs/quotes-jobs', icon: Briefcase },
+      { title: 'Orders & Order Items', href: '/docs/quotes-jobs', icon: Briefcase },
       { title: 'Invoicing', href: '/docs/invoicing', icon: Receipt },
       { title: 'Pricing Calculator', href: '/docs/pricing-calculator', icon: Calculator },
     ]

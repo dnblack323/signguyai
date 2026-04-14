@@ -189,7 +189,7 @@ const LockoutScreen = () => {
             <div className="grid grid-cols-2 gap-3">
               {[
                 'Customer Management',
-                'Orders & Job Tickets',
+                'Orders & Order Items',
                 'Invoicing',
                 'Time Clock',
                 '150 AI Credits/mo',

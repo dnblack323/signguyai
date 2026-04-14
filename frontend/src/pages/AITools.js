@@ -333,15 +333,15 @@ const aiTools = [
   },
   {
     id: 'completed_job_post',
-    name: 'Completed Job Post Creator',
+    name: 'Completed Order Post Creator',
     description: 'Upload a photo of your completed work and get ready-to-post social content.',
     icon: Share2,
     category: 'marketing',
     generatesImages: false,
     fields: [
-      { name: 'image_upload', label: 'Upload Completed Job Photo', type: 'image_upload', required: true },
+      { name: 'image_upload', label: 'Upload Completed Order Photo', type: 'image_upload', required: true },
       { name: 'job_type', label: 'What Did You Create?', type: 'select', options: ['full_vehicle_wrap', 'partial_vehicle_wrap', 'fleet_graphics', 'storefront_sign', 'channel_letters', 'monument_sign', 'wall_mural', 'window_graphics', 'banner', 'trade_show_display', 'dimensional_letters', 'awning', 'a_frame_sign', 'yard_signs', 'interior_signage', 'other'], required: true },
-      { name: 'job_details', label: 'Job Details', type: 'textarea', placeholder: 'Describe the project: colors, materials, challenges overcome, special features, turnaround time' },
+      { name: 'job_details', label: 'Order Details', type: 'textarea', placeholder: 'Describe the project: colors, materials, challenges overcome, special features, turnaround time' },
       { name: 'client_industry', label: 'Client Industry (no names)', type: 'text', placeholder: 'e.g., local plumber, restaurant, real estate agent' },
       { name: 'platforms', label: 'Posting To', type: 'select', options: ['facebook', 'instagram', 'linkedin', 'tiktok', 'all_platforms'] },
       { name: 'post_style', label: 'Post Style', type: 'select', options: ['professional_showcase', 'behind_the_scenes', 'before_after', 'educational', 'casual_fun'] },
@@ -357,7 +357,7 @@ const aiTools = [
     generatesImages: false,
     fields: [
       { name: 'job_description', label: 'Describe the Completed Job', type: 'textarea', placeholder: 'What did you make? Vehicle wrap, storefront sign, banner, etc.' },
-      { name: 'job_type', label: 'Job Type', type: 'select', options: ['vehicle_wrap', 'storefront_sign', 'monument_sign', 'interior_signage', 'banner', 'window_graphics', 'fleet_graphics', 'dimensional_letters'] },
+      { name: 'job_type', label: 'Order Type', type: 'select', options: ['vehicle_wrap', 'storefront_sign', 'monument_sign', 'interior_signage', 'banner', 'window_graphics', 'fleet_graphics', 'dimensional_letters'] },
       { name: 'client_industry', label: 'Client Industry (no names)', type: 'text', placeholder: 'e.g., local restaurant, construction company' },
       { name: 'platforms', label: 'Target Platforms', type: 'select', options: ['facebook', 'instagram', 'linkedin', 'all_platforms'] }
     ]

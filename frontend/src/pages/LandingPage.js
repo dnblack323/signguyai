@@ -15,7 +15,7 @@ export default function LandingPage() {
 
   const featureHighlights = [
     { icon: Users, title: 'Customer Management', desc: 'Full CRM built for sign shops' },
-    { icon: Briefcase, title: 'Orders & Job Tickets', desc: 'Track every project to completion' },
+    { icon: Briefcase, title: 'Orders & Order Items', desc: 'Track every project to completion' },
     { icon: Calendar, title: 'Unified Productivity', desc: 'Calendar, Kanban, Task List, Dashboard' },
     { icon: Receipt, title: 'Invoicing', desc: 'Get paid faster with online payments' },
     { icon: Clock, title: 'Time & Payroll', desc: 'Track time and pay your team' },
@@ -136,7 +136,7 @@ export default function LandingPage() {
                 <ul className="space-y-2 text-sm text-gray-400">
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-green-400" />
-                    Unified orders, job tickets, quotes, invoices, and production workflow
+                    Unified orders, order items, quotes, invoices, and production workflow
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-green-400" />

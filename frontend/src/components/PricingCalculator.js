@@ -989,7 +989,7 @@ export default function PricingCalculator({
               </div>
               <div>
                 <CardTitle>Pricing Calculator</CardTitle>
-                <CardDescription>Calculate pricing for job items</CardDescription>
+                <CardDescription>Calculate pricing for order items</CardDescription>
               </div>
             </div>
             <div className="flex items-center gap-2">

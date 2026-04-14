@@ -111,7 +111,7 @@ export default function AddTicketToOrder() {
       }
 
       if (mode === 'return') {
-        toast.success('Job ticket added and order updated');
+        toast.success('Order item added and order updated');
         navigate(`/orders/${orderId}`);
         return;
       }
@@ -140,7 +140,7 @@ export default function AddTicketToOrder() {
           <ArrowLeft className="w-5 h-5 text-gray-400" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-white font-heading">Add Job Ticket</h1>
+          <h1 className="text-2xl font-bold text-white font-heading">Add Order Item</h1>
           {order && (
             <p className="text-slate-400 text-sm">
               {order.order_number} — {order.customer_name}
@@ -168,7 +168,7 @@ export default function AddTicketToOrder() {
                 <p className="text-gray-900">{order.requested_due_date ? new Date(order.requested_due_date).toLocaleDateString() : '-'}</p>
               </div>
               <div>
-                <p className="text-gray-500 text-xs uppercase">Existing Tickets</p>
+                <p className="text-gray-500 text-xs uppercase">Existing Items</p>
                 <p className="text-gray-900">{order.job_tickets?.length || 0}</p>
               </div>
             </div>
@@ -189,7 +189,7 @@ export default function AddTicketToOrder() {
       <Card className="bg-white rounded-xl border border-gray-200 shadow-sm" data-testid="ticket-form">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-gray-900 text-lg">New Job Ticket</CardTitle>
+            <CardTitle className="text-gray-900 text-lg">New Order Item</CardTitle>
             <button 
               onClick={() => setEntryMode(entryMode === 'quick' ? 'detailed' : 'quick')} 
               className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${entryMode === 'detailed' ? 'bg-violet-50 text-violet-600 border-violet-300' : 'bg-gray-100 text-gray-500 border-gray-300'}`}

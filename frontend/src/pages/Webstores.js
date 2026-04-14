@@ -621,7 +621,7 @@ export default function Webstores() {
   const handleCreateJobFromOrder = async (orderId) => {
     try {
       const result = await createJobFromOrder(orderId);
-      toast.success('Job created from order');
+      toast.success('Order created from webstore order');
       await loadData();
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to create job');
@@ -729,7 +729,7 @@ export default function Webstores() {
               <ul className="text-sm text-gray-500 space-y-1 text-left">
                 <li>• Accept credit card payments from customers</li>
                 <li>• Automatic order processing and confirmation</li>
-                <li>• Orders automatically added to your Jobs list</li>
+                <li>• Orders automatically added to your Orders list</li>
                 <li>• Secure, PCI-compliant payment handling</li>
               </ul>
             </div>
@@ -1196,7 +1196,7 @@ export default function Webstores() {
                       <TableHead className="text-right">Total</TableHead>
                       <TableHead className="text-right">Profit</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Job</TableHead>
+                      <TableHead>Order</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1239,7 +1239,7 @@ export default function Webstores() {
                               size="sm"
                               onClick={() => handleCreateJobFromOrder(order.id)}
                             >
-                              Create Job
+                              Create Order
                             </Button>
                           )}
                         </TableCell>

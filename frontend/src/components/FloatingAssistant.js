@@ -324,7 +324,7 @@ What would you like to do?`,
       if (parsed.needs_more_info) {
         return {
           role: 'assistant',
-          content: parsed.question || "I'd like to create a job for you. Could you tell me:\n• Customer name\n• Job name/description\n• Any specific details?"
+          content: parsed.question || "I'd like to create an order for you. Could you tell me:\n• Customer name\n• Order name/description\n• Any specific details?"
         };
       }
       
@@ -337,7 +337,7 @@ What would you like to do?`,
       
       return createAssistantMessage({
         role: 'assistant',
-        content: `I'll create this job for you:\n\n**Job:** ${parsed.parameters.name}\n**Customer:** ${parsed.parameters.customer_name || 'TBD'}\n**Description:** ${parsed.parameters.description || 'N/A'}\n\nShould I create this job?`,
+        content: `I'll create this order for you:\n\n**Order:** ${parsed.parameters.name}\n**Customer:** ${parsed.parameters.customer_name || 'TBD'}\n**Description:** ${parsed.parameters.description || 'N/A'}\n\nShould I create this order?`,
         actions: [
           { id: 'assistant-confirm-create-job', label: 'Yes, create it', action: 'confirm', variant: 'default' },
           { id: 'assistant-cancel-create-job', label: 'No, cancel', action: 'cancel', variant: 'outline' }
@@ -449,7 +449,7 @@ What would you like to do?`,
       
       return createAssistantMessage({
         role: 'assistant',
-        content: `I'll log this time entry:\n\n**Hours:** ${parsed.parameters.hours}\n**Job:** ${parsed.parameters.job_name || 'TBD'}\n**Task:** ${parsed.parameters.task || 'General work'}\n\nShould I log this?`,
+        content: `I'll log this time entry:\n\n**Hours:** ${parsed.parameters.hours}\n**Order:** ${parsed.parameters.job_name || 'TBD'}\n**Task:** ${parsed.parameters.task || 'General work'}\n\nShould I log this?`,
         actions: [
           { id: 'assistant-confirm-log-time', label: 'Yes, log it', action: 'confirm', variant: 'default' },
           { id: 'assistant-cancel-log-time', label: 'No, cancel', action: 'cancel', variant: 'outline' }

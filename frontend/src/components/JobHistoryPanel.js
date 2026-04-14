@@ -108,9 +108,9 @@ export const JobHistoryPanel = ({ isOpen, onClose, jobId, jobName, onOpenInvoice
       <SheetContent className="w-[520px] sm:max-w-[520px]" data-testid="job-history-panel">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-teal-500" /> Job Timeline / History
+            <Clock className="h-5 w-5 text-teal-500" /> Order Timeline / History
           </SheetTitle>
-          <SheetDescription>{jobName || 'Job history'}</SheetDescription>
+          <SheetDescription>{jobName || 'Order history'}</SheetDescription>
         </SheetHeader>
 
         <div className="mt-5 space-y-4">

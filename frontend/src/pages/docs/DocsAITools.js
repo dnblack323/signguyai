@@ -43,8 +43,8 @@ const categories = [
     icon: Share2, 
     tools: [
       { name: 'Blog Creator', desc: 'Write blog posts about your work' },
-      { name: 'Completed Job Post Creator', desc: 'Share finished projects on social media' },
-      { name: 'Social Job Post Creator', desc: 'Generate social posts for ongoing work' },
+      { name: 'Completed Order Post Creator', desc: 'Share finished projects on social media' },
+      { name: 'Social Order Post Creator', desc: 'Generate social posts for ongoing work' },
       { name: 'Content Calendar', desc: 'Plan your marketing content schedule' },
       { name: 'Showcase Post', desc: 'Create portfolio-style posts' },
     ]

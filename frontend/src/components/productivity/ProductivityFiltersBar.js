@@ -6,7 +6,7 @@ import { Label } from '../ui/label';
 
 const ITEM_TYPE_OPTIONS = [
   { value: 'task', label: 'Tasks' },
-  { value: 'job', label: 'Jobs' },
+  { value: 'job', label: 'Orders' },
   { value: 'appointment', label: 'Appointments' },
 ];
 

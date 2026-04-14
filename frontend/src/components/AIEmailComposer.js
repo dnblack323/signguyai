@@ -51,11 +51,11 @@ const emailTypes = {
     description: 'Request customer approval for artwork or design proof',
   },
   job_update: {
-    label: 'Job Status Update',
+    label: 'Order Status Update',
     description: 'Update customer on their job progress',
   },
   job_complete: {
-    label: 'Job Complete',
+    label: 'Order Complete',
     description: 'Notify customer their job is ready for pickup or installation',
   },
   thank_you: {
