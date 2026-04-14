@@ -1,82 +1,54 @@
 # SignGuy AI - Complete Feature Catalog
-**Updated: April 1, 2026**
+**Updated: February 2026**
 **Version: Current Build**
 
 ---
 
 # A) APP FEATURE CATALOG (IMPLEMENTED)
 
-## RECENT FEATURE ADDITIONS (APRIL 2026)
+## RECENT FEATURE ADDITIONS (FEBRUARY 2026)
 
-These items were added after the earlier March 2026 catalog and are now part of the current build.
+### Terminology Migration: Orders & Order Items
+- All user-facing terminology standardized to **Orders** and **Order Items** (formerly "Jobs" / "Job Tickets")
+- 45+ frontend files updated across pages, components, docs, marketing, portals, and libs
+- Backend routes/collections unchanged (internal compatibility layer)
+- Zero user-facing instances of legacy "Job Ticket" / "Job Item" / standalone "Job" terminology remain
 
-### Unified Productivity System
-- Productivity rebuilt so **Calendar, Kanban Board, Task List, and Productivity Dashboard** use the same underlying productivity data/query layer
-- Unified productivity endpoints:
-  - `/api/productivity/items`
-  - `/api/productivity/summary`
-  - `/api/productivity/calendar-range`
-  - `/api/productivity/board`
-- Calendar upgraded to:
-  - Month default view
-  - Week view
-  - Day view
-  - readable day cells with multiple visible items
-  - click-through day detail modal
-- Kanban drag/drop persistence writes back to source records for supported item types
-- Task List supports inline edits for supported item types (status, due date, assignee, priority, complete/reopen)
-- Dashboard schedule/pending-approval widgets now use unified productivity queries
+### Quick Camera Upload & Markup
+- **Quick Photo** action on Order Detail and Order Item Detail pages
+- Dropdown with **Take Photo** (opens device camera via `capture="environment"`) and **Choose from Gallery**
+- Flow: capture/select image -> auto-upload to order files -> immediately open Drawing Modal for markup
+- Original photo saved in **Files** tab, marked-up version saved in **Drawings** tab
+- Per-item **Quick Photo** shortcut in each Order Item's dropdown menu on Order Detail
+- Order Item Detail page gets **Quick Photo** and **Choose Photo** buttons in shortcut actions row
+- Mobile-first: native camera access on mobile devices
 
-### Signatures, Drawings & Markup
-- Feature-toggle controlled signature system in Company Settings
-- Internal signature capture modal
-- Customer review-and-sign links
-- Record-specific signature tracking for:
-  - orders
-  - quotes
-  - invoices
-  - work orders
-  - proofs
-  - change approvals
-  - pickup / delivery / install confirmation flows
-- Order-level drawings
-- Item-level drawings
-- Uploaded image markup mode
-- Drawing pad upgrades:
-  - undo
-  - pen size selector
-  - color picker
-  - autosave draft behavior
+### Enhanced Drawing Annotation Tools
+- DrawingCanvasPad upgraded from freehand-only to **4 annotation tools**:
+  - **Draw** — freehand pen (existing, now with tool picker)
+  - **Arrow** — click-drag arrow with arrowhead
+  - **Circle** — click-drag ellipse/circle
+  - **Text** — click to place, inline text input, Enter to commit
+- Tool picker UI with active state highlighting
+- Color swatch preview in color picker
+- All tools respect color and pen size settings
 
-### Order Workflow Enhancements
-- Work orders generated from orders and shown in Financial tab
-- Ticket-level workflow shortcuts:
-  - assign employee
-  - add to schedule
-  - create task
-- Live estimate values sync into saved ticket pricing
-- Apparel size breakdown auto-drives ticket quantity
-- Vehicle wrap pricing/category mapping fixes
+### Admin Payroll Worksheet (April 2026 — documented here for completeness)
+- Desktop-first, single-screen Admin Payroll Worksheet replaced legacy multi-modal payroll screen
+- Inline editable 7-day spreadsheet (Start, Lunch Out, Lunch In, End, Reg Hours, OT)
+- Adjustments panel with earnings/advance/payment rows
+- Legacy manual entry resolution UI (keep/exclude/convert)
+- Review & sign-off strip with read-only lock for non-editors
+- Company-level payroll settings (weekly/biweekly cycle, pay week start day)
+- Unsaved changes badge with safe export/print logic
+- CSV export and printable report
 
-### Time Clock / Payroll / Employee Management Enhancements
-- Normalized saved `timeclock_shifts` layer added on top of raw punch logs
-- Historical timeclock backfill from older raw logs
-- Payroll/timesheets now combine:
-  - time clock shifts
-  - manual payroll hours
-  - job timer entries
-  - payroll transactions
-- Admin editing added for:
-  - manual hours
-  - saved timeclock shifts
-  - payroll transactions
-- Employee admin lifecycle improvements:
-  - edit employee
-  - deactivate/reactivate
-  - reset PIN
-  - delete employee
-- Employee Portal invite flow with PIN/login details
-- Employee portal permission gating by tenant settings
+### BUBBLE Documentation Refresh
+- All 4 BUBBLE_*.md files rewritten to reflect current architecture:
+  - DATABASE_SCHEMA (843 lines) — all collections, enums, Object Storage mapping
+  - PAGE_MAP (337 lines) — all routes, components, portal pages
+  - WORKFLOWS (450 lines) — all workflows including payroll, signatures, productivity
+  - DEPENDENCY_MAP (337 lines) — updated dependency graph with external services
 
 ---
 
@@ -157,13 +129,13 @@ These items were added after the earlier March 2026 catalog and are now part of 
 
 ---
 
-## 4. ORDERS & JOB TICKETS
+## 4. ORDERS & ORDER ITEMS
 
-**Where it lives:** `/orders`, `/orders/:id`
+**Where it lives:** `/orders`, `/orders/:id`, `/orders/:id/add-ticket`, `/job-tickets/:ticketId`
 
 **Who can access it:** Permission-based (`orders:view`, `orders:create`, `orders:edit`, `orders:delete`)
 
-**Architecture:** A quote is generated from job tickets. 
+**Architecture:** Orders are the master container. Order Items (internally "job tickets") are individual production items within an order. Quotes and invoices are generated from order items.
 
 **Status Pipeline:**
 ```
@@ -173,24 +145,35 @@ quote -> approved -> in_progress -> completed -> invoiced -> archived
 **Sub-features:**
 - Quick filter badges for each status
 - Create New dropdown: "New Quote (Pipeline)" / "New Order (Ready for production)"
-- Line items: Banner, Yard Sign, Decal, Wrap, Install, Design, Vehicle Graphics, Window Graphics, Dimensional Letters, Monument Sign, Other
+- Order Item categories: Banner, Yard Sign, Decal, Wrap, Install, Design, Vehicle Graphics, Window Graphics, Dimensional Letters, Monument Sign, Other
 - Item status: Pending, In Production, Done
-- Job notes with timestamps
-- Job activity log (all status changes, item additions)
-- Convert quote to job (approve button on quote rows)
-- Job time tracking (start/stop timer per job with task types)
+- Order notes with timestamps
+- Order activity log (all status changes, item additions)
+- Convert quote to order (approve button on quote rows)
+- Order time tracking (start/stop timer per order with task types)
 - Order Status Timeline (visual flow diagram with checkmarks, status history, time-in-status)
-- Unified Job History feed (`/api/orders/{order_id}/history`)
+- Unified Order History feed (`/api/orders/{order_id}/history`)
 - Customer Portal tab on order detail page (proofs, forms, messages, documents, invoices)
-- Whole-job employee assignment
+- Whole-order employee assignment
 - Stage-level assignment support via production timeline editor
 - Fully clickable order list rows
+- **Quick Camera Upload & Markup:**
+  - "Photo" dropdown on Order Detail (Take Photo / Choose from Gallery)
+  - Per-item "Quick Photo" in each Order Item's dropdown menu
+  - "Quick Photo" and "Choose Photo" buttons on Order Item Detail
+  - Auto-upload + immediate markup modal opening
+  - Original photo in Files tab, markup in Drawings tab
+  - Mobile-first camera access via `capture="environment"`
+- **Drawing Annotation Tools:**
+  - 4 tools: Draw (freehand), Arrow, Circle, Text
+  - Color picker with swatch preview
+  - Pen size selector
+  - Undo and Clear
+  - Autosave draft behavior
 
-**Data:** `orders`, `job_items`, `job_notes`, `job_activities`, `job_time_entries`
+**Data:** `orders`, `job_tickets`, `job_notes`, `job_activities`, `job_time_entries`, `order_drawings`, `order_files`, `signatures`
 
-**Status:** PARTIALLY WORKING
-
-**Note:** The newer Profit & Margin Analytics report is the validated financial reporting surface. The legacy `/financials` area still has a pre-existing backend gap for some `/api/financials/*` routes.
+**Status:** WORKING
 
 ---
 
@@ -1367,10 +1350,10 @@ SignGuy AI
 | Every role and permission? | Yes - 3 roles, 23 permissions |
 | Implemented vs not implemented separated? | Yes - Section E |
 | Sub-features for every module? | Yes |
-| New features since Dec 2025 included? | Yes - Community Hub, Backup, Payroll Enhancement, Document Library, Credit System, Ribbon Nav, Racing Tools, Questionnaires, Voice I/O, Floating Assistant, Password Recovery, Production Workflow, Employee Portal, Customer Portal, Onboarding System |
+| New features since Dec 2025 included? | Yes - Community Hub, Backup, Payroll Enhancement, Document Library, Credit System, Ribbon Nav, Racing Tools, Questionnaires, Voice I/O, Floating Assistant, Password Recovery, Production Workflow, Employee Portal, Customer Portal, Onboarding System, Admin Payroll Worksheet, Quick Camera Upload & Markup, Enhanced Drawing Tools, Terminology Migration |
 | All AI tools listed? | Yes - 28+ tools across 5 categories |
-| All integrations documented? | Yes - Stripe, OpenAI (GPT-5.2, GPT Image 1, Whisper STT, TTS), SendGrid, reportlab, qrcode.react |
+| All integrations documented? | Yes - Stripe, OpenAI (GPT-5.2, GPT Image 1, Whisper STT, TTS), SendGrid, reportlab, qrcode.react, Emergent Object Storage |
 
 ---
 
-*Document generated from comprehensive codebase audit. Last updated: March 18, 2026.*
+*Document generated from comprehensive codebase audit. Last updated: February 2026.*
