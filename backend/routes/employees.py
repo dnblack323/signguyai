@@ -131,6 +131,45 @@ class PayrollSignoffUpdate(BaseModel):
     approval_date: Optional[str] = None
     payroll_notes: Optional[str] = None
 
+
+class LegacyManualEntryResolution(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    entry_id: str
+    employee_id: str
+    week_start: str
+    handling_mode: str = "keep_legacy"
+    target_date: Optional[str] = None
+    admin_note: Optional[str] = None
+    included_in_totals: bool = True
+    reviewed_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class LegacyManualEntryResolutionUpdate(BaseModel):
+    employee_id: str
+    week_start: str
+    handling_mode: str = "keep_legacy"
+    target_date: Optional[str] = None
+    admin_note: Optional[str] = None
+
+
+class LegacyManualEntryResponse(BaseModel):
+    id: str
+    date: str
+    source_type: str
+    hours: float
+    notes: Optional[str] = None
+    current_effect_hours: float
+    current_effect_pay: float
+    current_effect_label: str
+    included_in_totals: bool
+    included_in_exports: bool
+    handling_mode: str
+    target_date: Optional[str] = None
+    admin_note: Optional[str] = None
+    resolution_saved: bool = False
+    can_exclude: bool = False
+
 class PayrollBalance(BaseModel):
     employee_id: str
     employee_name: str
@@ -351,6 +390,34 @@ def _transaction_signed_amount(transaction: dict) -> float:
     if txn_type in {"advance", "payment"}:
         return -amount
     return amount
+
+
+def _get_week_end(week_start: str) -> str:
+    return (date_type.fromisoformat(week_start) + timedelta(days=6)).isoformat()
+
+
+def _serialize_legacy_manual_entry(entry: dict, resolution: Optional[dict], hourly_rate: float, week_start: str) -> LegacyManualEntryResponse:
+    hours = float(entry.get("hours") or 0)
+    pay = round(float(entry.get("gross_pay") or (hours * hourly_rate)), 2)
+    handling_mode = (resolution or {}).get("handling_mode") or "keep_legacy"
+    target_date = (resolution or {}).get("target_date") or entry.get("date")
+    return LegacyManualEntryResponse(
+        id=entry["id"],
+        date=entry.get("date"),
+        source_type=entry.get("task_type") or "manual legacy",
+        hours=hours,
+        notes=entry.get("description") or "",
+        current_effect_hours=round(hours, 2),
+        current_effect_pay=pay,
+        current_effect_label=f"Included in current totals/export · {hours:.2f} hrs · ${pay:.2f}",
+        included_in_totals=True,
+        included_in_exports=True,
+        handling_mode=handling_mode,
+        target_date=target_date,
+        admin_note=(resolution or {}).get("admin_note") or "",
+        resolution_saved=bool(resolution),
+        can_exclude=False,
+    )
 
 
 async def _get_employee_transactions(employee_id: str, start_date: Optional[str] = None, end_date: Optional[str] = None) -> list[dict]:
@@ -942,6 +1009,90 @@ async def upsert_payroll_signoff(
         {"_id": 0},
     )
     return PayrollSignoff(**saved)
+
+
+@payroll_router.get("/legacy-manual-entries", response_model=List[LegacyManualEntryResponse])
+async def get_legacy_manual_entries(
+    employee_id: str,
+    week_start: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    week_end = _get_week_end(week_start)
+    employee = await db.employees.find_one(
+        {"id": employee_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0, "hourly_rate": 1},
+    )
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    entries = await db.payroll_hours.find(
+        {"tenant_id": current_user.tenant_id, "employee_id": employee_id, "date": {"$gte": week_start, "$lte": week_end}},
+        {"_id": 0},
+    ).sort("date", 1).to_list(500)
+    if not entries:
+        return []
+
+    resolutions = await db.payroll_manual_entry_resolutions.find(
+        {"tenant_id": current_user.tenant_id, "entry_id": {"$in": [entry["id"] for entry in entries]}},
+        {"_id": 0},
+    ).to_list(500)
+    resolution_map = {resolution["entry_id"]: resolution for resolution in resolutions}
+    hourly_rate = float(employee.get("hourly_rate") or 0)
+    return [_serialize_legacy_manual_entry(entry, resolution_map.get(entry["id"]), hourly_rate, week_start) for entry in entries]
+
+
+@payroll_router.put("/legacy-manual-entries/{entry_id}/resolution", response_model=LegacyManualEntryResponse)
+async def upsert_legacy_manual_entry_resolution(
+    entry_id: str,
+    payload: LegacyManualEntryResolutionUpdate,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    _require_payroll_edit_access(current_user)
+    entry = await db.payroll_hours.find_one(
+        {"id": entry_id, "tenant_id": current_user.tenant_id, "employee_id": payload.employee_id},
+        {"_id": 0},
+    )
+    if not entry:
+        raise HTTPException(status_code=404, detail="Legacy manual entry not found")
+
+    week_end = _get_week_end(payload.week_start)
+    target_date = payload.target_date or entry.get("date")
+    if target_date < payload.week_start or target_date > week_end:
+        raise HTTPException(status_code=400, detail="target_date must stay inside the selected week")
+
+    if payload.handling_mode not in {"keep_legacy", "worksheet_manual_row", "merge_into_day"}:
+        raise HTTPException(status_code=400, detail="Unsupported handling mode")
+
+    existing = await db.payroll_manual_entry_resolutions.find_one(
+        {"tenant_id": current_user.tenant_id, "entry_id": entry_id},
+        {"_id": 0, "id": 1},
+    )
+    now = datetime.now(timezone.utc).isoformat()
+    next_doc = LegacyManualEntryResolution(
+        id=existing.get("id") if existing else str(uuid.uuid4()),
+        entry_id=entry_id,
+        employee_id=payload.employee_id,
+        week_start=payload.week_start,
+        handling_mode=payload.handling_mode,
+        target_date=target_date,
+        admin_note=payload.admin_note or "",
+        included_in_totals=True,
+        reviewed_at=existing.get("reviewed_at") if existing and existing.get("reviewed_at") else now,
+        updated_at=now,
+    ).model_dump()
+    next_doc["tenant_id"] = current_user.tenant_id
+
+    await db.payroll_manual_entry_resolutions.update_one(
+        {"tenant_id": current_user.tenant_id, "entry_id": entry_id},
+        {"$set": next_doc},
+        upsert=True,
+    )
+
+    employee = await db.employees.find_one(
+        {"id": payload.employee_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0, "hourly_rate": 1},
+    )
+    return _serialize_legacy_manual_entry(entry, next_doc, float(employee.get("hourly_rate") or 0), payload.week_start)
 
 
 @payroll_router.get("/balance/{employee_id}", response_model=PayrollBalance)

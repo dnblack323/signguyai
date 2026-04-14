@@ -23,6 +23,7 @@ import {
 import { formatCurrency } from '../lib/utils';
 import { PayrollWorksheetToolbar } from '../components/payroll/PayrollWorksheetToolbar';
 import { PayrollAdjustmentsPanel } from '../components/payroll/PayrollAdjustmentsPanel';
+import { PayrollLegacyEntriesSection } from '../components/payroll/PayrollLegacyEntriesSection';
 import { PayrollWeekTable } from '../components/payroll/PayrollWeekTable';
 import { PayrollWorksheetSummary } from '../components/payroll/PayrollWorksheetSummary';
 import { PayrollSignoffStrip } from '../components/payroll/PayrollSignoffStrip';
@@ -55,6 +56,7 @@ export default function Payroll() {
   const [adjustmentRows, setAdjustmentRows] = useState(buildAdjustmentRows([]));
   const [report, setReport] = useState(null);
   const [timesheet, setTimesheet] = useState(null);
+  const [legacyEntries, setLegacyEntries] = useState([]);
   const [signoff, setSignoff] = useState({ reviewed_by: '', review_date: '', approved_by: '', approval_date: '', payroll_notes: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -77,19 +79,21 @@ export default function Payroll() {
     if (!selectedEmployeeId || !canViewPayroll) return;
     setLoading(true);
     try {
-      const [employeeRes, shiftsRes, transactionsRes, reportRes, timesheetRes, signoffRes] = await Promise.all([
+      const [employeeRes, shiftsRes, transactionsRes, reportRes, timesheetRes, signoffRes, legacyRes] = await Promise.all([
         api.get(`/employees/${selectedEmployeeId}`),
         api.get('/payroll/timeclock-shifts', { params: { employee_id: selectedEmployeeId, start_date: weekStart, end_date: weekEnd } }),
         api.get('/payroll/transactions', { params: { employee_id: selectedEmployeeId, start_date: weekStart, end_date: weekEnd } }),
         api.get('/payroll/report', { params: { employee_id: selectedEmployeeId, start_date: weekStart, end_date: weekEnd } }),
         api.get('/payroll/timesheet', { params: { employee_id: selectedEmployeeId, start_date: weekStart, end_date: weekEnd } }),
         api.get('/payroll/signoff', { params: { employee_id: selectedEmployeeId, week_start: weekStart } }),
+        api.get('/payroll/legacy-manual-entries', { params: { employee_id: selectedEmployeeId, week_start: weekStart } }),
       ]);
       setEmployeeDraft(normalizeEmployeeDraft(employeeRes.data));
       setWorksheetRows(buildWorksheetRows(weekStart, shiftsRes.data || []));
       setAdjustmentRows(buildAdjustmentRows(transactionsRes.data || []));
       setReport(reportRes.data);
       setTimesheet(timesheetRes.data);
+      setLegacyEntries(legacyRes.data || []);
       setSignoff({
         reviewed_by: signoffRes.data.reviewed_by || '',
         review_date: signoffRes.data.review_date || '',
@@ -118,7 +122,6 @@ export default function Payroll() {
   const carryoverBalance = selectedTimesheetEmployee?.carryover_balance || report?.employees?.[0]?.carryover_balance || 0;
   const legacyReview = useMemo(() => {
     const entries = selectedTimesheetEmployee?.entries || [];
-    const manualEntries = entries.filter((entry) => entry.source !== 'time_clock');
     const timeClockByDate = entries
       .filter((entry) => entry.source === 'time_clock')
       .reduce((accumulator, entry) => {
@@ -127,14 +130,18 @@ export default function Payroll() {
         return accumulator;
       }, {});
     const extraSameDayShiftCount = Object.values(timeClockByDate).reduce((sum, count) => sum + Math.max(count - 1, 0), 0);
-    const unmappedHours = manualEntries.reduce((sum, entry) => sum + Number(entry.hours || entry.total_hours || 0), 0);
+    const unresolvedCount = legacyEntries.filter((entry) => !entry.resolution_saved).length;
+    const unmappedHours = legacyEntries.reduce((sum, entry) => sum + Number(entry.current_effect_hours || 0), 0);
+    const unmappedPay = legacyEntries.reduce((sum, entry) => sum + Number(entry.current_effect_pay || 0), 0);
     return {
-      manualCount: manualEntries.length,
+      manualCount: legacyEntries.length,
       extraSameDayShiftCount,
       unmappedHours: Number(unmappedHours.toFixed(2)),
-      needsMigration: manualEntries.length > 0 || extraSameDayShiftCount > 0,
+      unmappedPay: Number(unmappedPay.toFixed(2)),
+      unresolvedCount,
+      needsMigration: legacyEntries.length > 0 || extraSameDayShiftCount > 0,
     };
-  }, [selectedTimesheetEmployee]);
+  }, [legacyEntries, selectedTimesheetEmployee]);
   const readOnlyLocked = !canEditPayroll;
 
   const handleRowChange = (index, field, value) => {
@@ -150,6 +157,13 @@ export default function Payroll() {
     setAdjustmentRows((currentRows) => currentRows.map((row, rowIndex) => (
       rowIndex === index ? { ...row, [field]: value } : row
     )));
+  };
+
+  const handleLegacyEntryChange = (index, field, value) => {
+    setLegacyEntries((currentEntries) => currentEntries.map((entry, entryIndex) => {
+      if (entryIndex !== index) return entry;
+      return { ...entry, [field]: value };
+    }));
   };
 
   const fetchExportPayload = useCallback(async () => {
@@ -296,6 +310,16 @@ export default function Payroll() {
         }
       }
 
+      for (const entry of legacyEntries) {
+        await api.put(`/payroll/legacy-manual-entries/${entry.id}/resolution`, {
+          employee_id: selectedEmployeeId,
+          week_start: weekStart,
+          handling_mode: entry.handling_mode,
+          target_date: entry.target_date,
+          admin_note: entry.admin_note,
+        });
+      }
+
       await api.put('/payroll/signoff', {
         employee_id: selectedEmployeeId,
         week_start: weekStart,
@@ -400,13 +424,15 @@ export default function Payroll() {
               </div>
 
               {legacyReview.needsMigration ? (
-                <div className="flex flex-wrap items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3" data-testid="payroll-legacy-entry-warning">
-                  <Info className="mt-0.5 h-4 w-4 text-amber-600" />
-                  <div className="space-y-1">
-                    <p className="text-sm font-semibold text-amber-900">Legacy review: some payroll data still sits outside the worksheet grid.</p>
-                    <p className="text-sm text-amber-800" data-testid="payroll-legacy-review-summary">{legacyReview.manualCount} manual or timer entr{legacyReview.manualCount === 1 ? 'y' : 'ies'}, {legacyReview.extraSameDayShiftCount} extra same-day shift row{legacyReview.extraSameDayShiftCount === 1 ? '' : 's'}, {legacyReview.unmappedHours.toFixed(2)} off-grid hours. Exports and totals still include them, but they may need migration for a perfectly clean row-by-row worksheet history.</p>
-                  </div>
-                </div>
+                <PayrollLegacyEntriesSection
+                  entries={legacyEntries}
+                  readOnlyLocked={readOnlyLocked}
+                  unresolvedCount={legacyReview.unresolvedCount}
+                  totalHours={legacyReview.unmappedHours}
+                  totalPay={legacyReview.unmappedPay}
+                  weekDates={weekDates}
+                  onEntryChange={handleLegacyEntryChange}
+                />
               ) : (
                 <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3" data-testid="payroll-legacy-review-clean">
                   <Info className="h-4 w-4 text-emerald-600" />
