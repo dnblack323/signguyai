@@ -157,6 +157,28 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
   - API comparison confirmed totals and exports stay unchanged before/after resolution updates
   - testing agent iteration_103 passed with backend 100% (14/14) and frontend 100%
 
+### Session: April 14, 2026 (Payroll Worksheet Bug Fix + Flexible Date Ranges)
+- Fixed reported payroll worksheet issues from user feedback:
+  - save flow confirmed working end-to-end again
+  - print flow rewritten to use an iframe print path instead of popup/new-window dependency
+  - final total math now includes legacy manual pay in the worksheet summary so UI totals match backend payroll report values
+- Expanded the worksheet from fixed weekly mode to flexible custom date ranges:
+  - start date + end date are now first-class controls on `/payroll`
+  - Weekly / Biweekly / Current Cycle are now convenience presets only
+  - custom range remains the default interaction model
+  - biweekly preset now expands the worksheet to 14 rows automatically
+- Added company payroll preferences in main company settings:
+  - default cycle (`weekly` / `biweekly`)
+  - pay-week start day (`monday` ... `sunday`)
+- Updated payroll math/settings behavior:
+  - frontend worksheet summary groups overtime by configured pay-week start day
+  - backend payroll report/timesheet/pay-period calculations now respect tenant `pay_week_start_day`
+  - sign-off and legacy-manual-entry handling now support flexible date ranges (`period_end` / `start_date` / `end_date` support)
+- Verified results:
+  - live browser verification confirmed save works, print works, custom range works, biweekly 14-row worksheet works, and company payroll preferences persist
+  - manual UI check confirmed final worksheet total now matches backend (`$1,103.50` in current-cycle test)
+  - testing agent iteration_104 passed all requested features; only low-priority note was API naming inconsistency on `/api/payroll/pay-period` response fields
+
 ### Session: April 11, 2026 (Signguypa Stripe Validation + Webstore Checkout Gating)
 - Validated the tenant the user called out specifically:
   - `signguypa@gmail.com / Billnel323`
