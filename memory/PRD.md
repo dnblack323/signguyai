@@ -92,6 +92,34 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
   - `auto_frontend_testing_agent` passed all 9 worksheet UI checks
   - `testing_agent` iteration_101 passed with backend 100% (19/19) and frontend 100%
 
+### Session: April 14, 2026 (Payroll Worksheet Follow-up — Legacy Review + Read-only Locking + Sign-off)
+- Added a compact worksheet-friendly payroll sign-off strip directly into `/payroll`:
+  - reviewed by
+  - review date
+  - approved by
+  - approval date
+  - payroll notes
+- Added backend sign-off persistence keyed per employee + week:
+  - `GET /api/payroll/signoff`
+  - `PUT /api/payroll/signoff`
+- Strengthened visible read-only locking across the worksheet UI:
+  - meta fields, time grid inputs, adjustment rows, and sign-off fields now show disabled visual state when payroll edit permission is absent
+  - export/print remain available; worksheet save remains disabled
+- Added compact legacy/manual entry review inside the worksheet:
+  - clean-state message when the selected employee/week maps cleanly to worksheet rows
+  - warning summary when off-grid manual/timer entries or extra same-day shifts still affect exports/totals
+- Current real-data review results:
+  - found legacy manual payroll hours on 2026-04-03, 2026-04-08, and 2026-04-09 for the production tenant test employee
+  - week `2026-04-06` shows 2 off-grid manual entries totaling 13.75 hours
+  - no extra same-day timeclock shift collisions were found in the current tenant data sample
+- Verification completed:
+  - live browser save/reload confirmed sign-off persistence works
+  - live browser check confirmed clean-state review for week `2026-04-13`
+  - live browser check confirmed migration-warning review for week `2026-04-06`
+  - `auto_frontend_testing_agent` passed sign-off, legacy review, and no-clutter checks
+  - testing subagent confirmed backend sign-off endpoints and legacy review logic are implemented correctly
+  - remaining coverage note: there is currently no payroll-view-without-edit credential in the tenant, so the read-only visual lock path was implemented and code-reviewed but not exercised under a dedicated real user role in this pass
+
 ### Session: April 11, 2026 (Signguypa Stripe Validation + Webstore Checkout Gating)
 - Validated the tenant the user called out specifically:
   - `signguypa@gmail.com / Billnel323`
