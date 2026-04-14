@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Loader2, Palette, Trash2 } from 'lucide-react';
+import { ArrowLeft, Circle, Loader2, MousePointer2, MoveRight, Palette, Pen, Trash2, Type } from 'lucide-react';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -13,6 +13,13 @@ const COLORS = [
 ];
 
 const SIZES = ['2', '4', '6', '8', '12'];
+
+const TOOLS = [
+  { id: 'pen', label: 'Draw', icon: Pen },
+  { id: 'arrow', label: 'Arrow', icon: MoveRight },
+  { id: 'circle', label: 'Circle', icon: Circle },
+  { id: 'text', label: 'Text', icon: Type },
+];
 
 const waitForImage = (src) => new Promise((resolve) => {
   const image = new Image();
@@ -49,6 +56,32 @@ const getCanvasPosition = (canvas, event) => {
 
 const getCanvasSnapshot = (canvas) => canvas.toDataURL('image/png');
 
+const drawArrow = (ctx, fromX, fromY, toX, toY) => {
+  const headLen = Math.max(12, Number(ctx.lineWidth) * 3);
+  const angle = Math.atan2(toY - fromY, toX - fromX);
+  ctx.beginPath();
+  ctx.moveTo(fromX, fromY);
+  ctx.lineTo(toX, toY);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(toX, toY);
+  ctx.lineTo(toX - headLen * Math.cos(angle - Math.PI / 6), toY - headLen * Math.sin(angle - Math.PI / 6));
+  ctx.moveTo(toX, toY);
+  ctx.lineTo(toX - headLen * Math.cos(angle + Math.PI / 6), toY - headLen * Math.sin(angle + Math.PI / 6));
+  ctx.stroke();
+};
+
+const drawEllipse = (ctx, fromX, fromY, toX, toY) => {
+  const cx = (fromX + toX) / 2;
+  const cy = (fromY + toY) / 2;
+  const rx = Math.abs(toX - fromX) / 2;
+  const ry = Math.abs(toY - fromY) / 2;
+  if (rx < 2 && ry < 2) return;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+  ctx.stroke();
+};
+
 export const DrawingCanvasPad = ({
   backgroundImageUrl,
   initialImageUrl,
@@ -65,23 +98,23 @@ export const DrawingCanvasPad = ({
   const drawIdleTimeoutRef = useRef(null);
   const autosaveIntervalRef = useRef(null);
   const lastPointRef = useRef(null);
+  const shapeStartRef = useRef(null);
   const isDrawingRef = useRef(false);
   const onChangeRef = useRef(onChange);
   const onAutosaveRef = useRef(onAutosave);
+  const preShapeSnapshotRef = useRef(null);
 
   const [loadingBase, setLoadingBase] = useState(true);
   const [hasChanges, setHasChanges] = useState(false);
-  const [strokeColor, setStrokeColor] = useState('#0F172A');
+  const [strokeColor, setStrokeColor] = useState('#DC2626');
   const [penSize, setPenSize] = useState('4');
   const [autosaveState, setAutosaveState] = useState('');
+  const [activeTool, setActiveTool] = useState('pen');
+  const [textPlacement, setTextPlacement] = useState(null);
+  const [textInputValue, setTextInputValue] = useState('');
 
-  useEffect(() => {
-    onChangeRef.current = onChange;
-  }, [onChange]);
-
-  useEffect(() => {
-    onAutosaveRef.current = onAutosave;
-  }, [onAutosave]);
+  useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
+  useEffect(() => { onAutosaveRef.current = onAutosave; }, [onAutosave]);
 
   const applySnapshot = useCallback((snapshot) => {
     const canvas = canvasRef.current;
@@ -177,46 +210,111 @@ export const DrawingCanvasPad = ({
     };
   }, [autosaveEnabled, hasChanges]);
 
+  const commitSnapshot = () => {
+    const snapshot = getCanvasSnapshot(canvasRef.current);
+    historyRef.current = [...historyRef.current, snapshot];
+    setHasChanges(true);
+    onChangeRef.current?.({ hasChanges: true, imageData: snapshot });
+    scheduleAutosave();
+  };
+
+  // --- Text tool: place text on click ---
+  const commitText = () => {
+    if (!textPlacement || !textInputValue.trim()) {
+      setTextPlacement(null);
+      setTextInputValue('');
+      return;
+    }
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const fontSize = Math.max(14, Number(penSize) * 4);
+    ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
+    ctx.fillStyle = strokeColor;
+    ctx.fillText(textInputValue.trim(), textPlacement.x, textPlacement.y);
+    setTextPlacement(null);
+    setTextInputValue('');
+    commitSnapshot();
+  };
+
+  // --- Freehand pen ---
   const startDraw = (event) => {
     event.preventDefault();
+    if (activeTool === 'text') {
+      // place text cursor
+      commitText(); // commit any pending
+      const pos = getCanvasPosition(canvasRef.current, event);
+      setTextPlacement(pos);
+      return;
+    }
     isDrawingRef.current = true;
+    const pos = getCanvasPosition(canvasRef.current, event);
+
+    if (activeTool === 'arrow' || activeTool === 'circle') {
+      shapeStartRef.current = pos;
+      preShapeSnapshotRef.current = getCanvasSnapshot(canvasRef.current);
+      return;
+    }
+
+    // pen mode
     const context = canvasRef.current.getContext('2d');
     context.strokeStyle = strokeColor;
     context.lineWidth = Number(penSize);
-    const position = getCanvasPosition(canvasRef.current, event);
-    lastPointRef.current = position;
+    lastPointRef.current = pos;
     context.beginPath();
-    context.moveTo(position.x, position.y);
+    context.moveTo(pos.x, pos.y);
   };
 
   const draw = (event) => {
     if (!isDrawingRef.current) return;
     event.preventDefault();
+    const pos = getCanvasPosition(canvasRef.current, event);
+
+    if ((activeTool === 'arrow' || activeTool === 'circle') && shapeStartRef.current && preShapeSnapshotRef.current) {
+      // live preview: restore pre-shape snapshot then draw shape
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      img.onload = () => {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        ctx.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
+        configureContext(ctx, strokeColor, penSize);
+        if (activeTool === 'arrow') drawArrow(ctx, shapeStartRef.current.x, shapeStartRef.current.y, pos.x, pos.y);
+        else drawEllipse(ctx, shapeStartRef.current.x, shapeStartRef.current.y, pos.x, pos.y);
+      };
+      img.src = preShapeSnapshotRef.current;
+      return;
+    }
+
+    // pen mode
     const context = canvasRef.current.getContext('2d');
-    const position = getCanvasPosition(canvasRef.current, event);
     if (lastPointRef.current) {
       const midpoint = {
-        x: (lastPointRef.current.x + position.x) / 2,
-        y: (lastPointRef.current.y + position.y) / 2,
+        x: (lastPointRef.current.x + pos.x) / 2,
+        y: (lastPointRef.current.y + pos.y) / 2,
       };
       context.quadraticCurveTo(lastPointRef.current.x, lastPointRef.current.y, midpoint.x, midpoint.y);
       context.stroke();
       context.beginPath();
       context.moveTo(midpoint.x, midpoint.y);
     }
-    lastPointRef.current = position;
+    lastPointRef.current = pos;
   };
 
   const endDraw = (event) => {
     if (!isDrawingRef.current) return;
     event.preventDefault();
     isDrawingRef.current = false;
+
+    if ((activeTool === 'arrow' || activeTool === 'circle') && shapeStartRef.current) {
+      // finalize shape — the live preview already drew it, just commit
+      shapeStartRef.current = null;
+      preShapeSnapshotRef.current = null;
+    }
+
     lastPointRef.current = null;
-    const snapshot = getCanvasSnapshot(canvasRef.current);
-    historyRef.current = [...historyRef.current, snapshot];
-    setHasChanges(true);
-    onChangeRef.current?.({ hasChanges: true, imageData: snapshot });
-    scheduleAutosave();
+    commitSnapshot();
   };
 
   const handleUndo = () => {
@@ -238,36 +336,61 @@ export const DrawingCanvasPad = ({
   return (
     <div className="space-y-3" data-testid="drawing-canvas-pad">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Tool selector */}
+          <div className="flex items-center gap-0.5 rounded-lg border border-gray-200 bg-white p-0.5" data-testid="drawing-tool-picker">
+            {TOOLS.map((tool) => {
+              const Icon = tool.icon;
+              return (
+                <button
+                  key={tool.id}
+                  type="button"
+                  onClick={() => { setActiveTool(tool.id); if (tool.id !== 'text') commitText(); }}
+                  className={`flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                    activeTool === tool.id
+                      ? 'bg-violet-600 text-white'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                  data-testid={`drawing-tool-${tool.id}`}
+                  title={tool.label}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{tool.label}</span>
+                </button>
+              );
+            })}
+          </div>
           {allowColor && (
-            <div className="flex items-center gap-2">
-              <Palette className="w-4 h-4 text-gray-500" />
-              <Select value={strokeColor} onValueChange={setStrokeColor}>
-                <SelectTrigger className="w-[130px] bg-white" data-testid="drawing-color-select">
+            <Select value={strokeColor} onValueChange={setStrokeColor}>
+              <SelectTrigger className="w-[100px] h-8 text-xs bg-white" data-testid="drawing-color-select">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full border border-gray-300" style={{ backgroundColor: strokeColor }} />
                   <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {COLORS.map((color) => (
-                    <SelectItem key={color.value} value={color.value}>{color.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                {COLORS.map((color) => (
+                  <SelectItem key={color.value} value={color.value}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color.value }} />
+                      {color.label}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
           {allowPenSize && (
-            <div className="flex items-center gap-2">
-              <Label className="text-xs text-gray-600">Pen</Label>
-              <Select value={penSize} onValueChange={setPenSize}>
-                <SelectTrigger className="w-[88px] bg-white" data-testid="drawing-pen-size-select">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SIZES.map((size) => (
-                    <SelectItem key={size} value={size}>{size}px</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Select value={penSize} onValueChange={setPenSize}>
+              <SelectTrigger className="w-[72px] h-8 text-xs bg-white" data-testid="drawing-pen-size-select">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SIZES.map((size) => (
+                  <SelectItem key={size} value={size}>{size}px</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -285,7 +408,9 @@ export const DrawingCanvasPad = ({
         <div className="relative min-h-[320px]">
           <canvas
             ref={canvasRef}
-            className="w-full touch-none rounded-xl border border-dashed border-gray-300 bg-white"
+            className={`w-full touch-none rounded-xl border border-dashed border-gray-300 bg-white ${
+              activeTool === 'text' ? 'cursor-text' : activeTool === 'arrow' || activeTool === 'circle' ? 'cursor-crosshair' : 'cursor-default'
+            }`}
             onMouseDown={startDraw}
             onMouseMove={draw}
             onMouseUp={endDraw}
@@ -297,6 +422,26 @@ export const DrawingCanvasPad = ({
             data-testid="drawing-canvas"
           />
           {loadingBase && <div className="absolute inset-0 flex items-center justify-center bg-white/75 rounded-xl"><Loader2 className="w-6 h-6 animate-spin text-violet-500" /></div>}
+          {/* Text input overlay */}
+          {textPlacement && (
+            <div
+              className="absolute z-10"
+              style={{ left: textPlacement.x, top: textPlacement.y - 32 }}
+            >
+              <input
+                autoFocus
+                type="text"
+                placeholder="Type note..."
+                value={textInputValue}
+                onChange={(e) => setTextInputValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') commitText(); if (e.key === 'Escape') { setTextPlacement(null); setTextInputValue(''); } }}
+                onBlur={commitText}
+                className="px-2 py-1 text-sm border-2 border-violet-500 rounded-md shadow-lg bg-white text-gray-900 min-w-[120px] focus:outline-none"
+                style={{ color: strokeColor }}
+                data-testid="drawing-text-input"
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

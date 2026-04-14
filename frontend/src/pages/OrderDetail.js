@@ -1,11 +1,11 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Package, FileText, Play, Clock, CheckCircle, AlertTriangle,
   Trash2, Loader2, Receipt, Wrench, MessageSquare, DollarSign, Pause, ChevronRight,
   Copy, Calculator, Edit3, MoreHorizontal, Upload, FileUp, Paperclip, Send, Mail, ExternalLink,
   UserPlus, CalendarPlus, ListTodo,
-  Pen, Image as ImageIcon, Eye
+  Pen, Image as ImageIcon, Eye, Camera
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -68,6 +68,55 @@ export default function OrderDetail() {
   const [shortcutTicket, setShortcutTicket] = useState(null);
   const [drawingFilter, setDrawingFilter] = useState('all');
   const [previewFile, setPreviewFile] = useState(null);
+  const [quickPhotoUploading, setQuickPhotoUploading] = useState(false);
+  const quickPhotoCameraRef = useRef(null);
+  const quickPhotoGalleryRef = useRef(null);
+  const quickPhotoTicketRef = useRef(null);
+
+  const handleQuickPhoto = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setQuickPhotoUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('label', `Photo — ${file.name}`);
+      const res = await axios.post(`${API}/orders/${id}/upload`, formData, {
+        headers: { Authorization: `Bearer ${getAuthToken()}` },
+      });
+      const uploadedFile = res.data;
+      toast.success('Photo uploaded — opening markup');
+      await load();
+      // Immediately open markup with the uploaded photo
+      const contentRes = await axios.get(`${API}/orders/${id}/files/${uploadedFile.id}/content`, {
+        headers: hdr(),
+        responseType: 'blob',
+      });
+      const contentUrl = URL.createObjectURL(contentRes.data);
+      const ticketId = quickPhotoTicketRef.current || null;
+      setDrawingMarkupImage({
+        id: uploadedFile.id,
+        label: uploadedFile.label || uploadedFile.filename || file.name,
+        contentUrl,
+      });
+      setShowDrawingModal(true);
+      quickPhotoTicketRef.current = null;
+    } catch {
+      toast.error('Photo upload failed');
+    } finally {
+      setQuickPhotoUploading(false);
+    }
+  };
+
+  const triggerQuickPhoto = (source = 'camera', ticketId = null) => {
+    quickPhotoTicketRef.current = ticketId;
+    if (source === 'camera' && quickPhotoCameraRef.current) {
+      quickPhotoCameraRef.current.click();
+    } else if (quickPhotoGalleryRef.current) {
+      quickPhotoGalleryRef.current.click();
+    }
+  };
 
   const load = async () => {
     try {
@@ -385,6 +434,26 @@ export default function OrderDetail() {
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Quick Photo — hidden inputs for camera and gallery */}
+          <input ref={quickPhotoCameraRef} type="file" accept="image/*" capture="environment" onChange={handleQuickPhoto} className="hidden" data-testid="quick-photo-camera-input" />
+          <input ref={quickPhotoGalleryRef} type="file" accept="image/*" onChange={handleQuickPhoto} className="hidden" data-testid="quick-photo-gallery-input" />
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1" disabled={quickPhotoUploading} data-testid="quick-photo-btn">
+                {quickPhotoUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />} Photo
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => triggerQuickPhoto('camera')} data-testid="quick-photo-camera">
+                <Camera className="w-4 h-4 mr-2" /> Take Photo
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => triggerQuickPhoto('gallery')} data-testid="quick-photo-gallery">
+                <ImageIcon className="w-4 h-4 mr-2" /> Choose from Gallery
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white" onClick={startProduction} disabled={!!actionLoading || workflowTickets.length === 0} data-testid="start-production-btn">
             {actionLoading === 'production' ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Play className="w-4 h-4 mr-1" />} Start Production
           </Button>
@@ -504,13 +573,16 @@ export default function OrderDetail() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/job-tickets/${ticket.id}`); }}>
-                            <Package className="w-4 h-4 mr-2" /> Open Ticket
+                            <Package className="w-4 h-4 mr-2" /> Open Item
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); duplicateTicket(ticket.id); }}>
                             <Copy className="w-4 h-4 mr-2" /> Duplicate
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/job-tickets/${ticket.id}?tab=drawings`); }} data-testid={`ticket-drawings-shortcut-${ticket.id}`}>
                             <Pen className="w-4 h-4 mr-2" /> Open Drawings
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); triggerQuickPhoto('camera', ticket.id); }} data-testid={`ticket-quick-photo-${ticket.id}`}>
+                            <Camera className="w-4 h-4 mr-2" /> Quick Photo
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setShortcutTicket(ticket); setShortcutMode('assign'); }} data-testid={`ticket-assign-shortcut-${ticket.id}`}>
                             <UserPlus className="w-4 h-4 mr-2" /> Assign Employee

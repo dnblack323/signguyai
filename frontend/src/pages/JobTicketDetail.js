@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, Package, Wrench, FileImage, MessageSquare, Clock, CheckCircle, AlertTriangle,
   Play, Pause, RotateCcw, Eye, Upload, Loader2, ChevronDown, ChevronRight, Edit3,
-  UserPlus, CalendarPlus, ListTodo, Pen, Image as ImageIcon
+  UserPlus, CalendarPlus, ListTodo, Pen, Image as ImageIcon, Camera
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -57,6 +57,42 @@ export default function JobTicketDetail() {
   const [previewDrawing, setPreviewDrawing] = useState(null);
   const [drawingsEnabled, setDrawingsEnabled] = useState(false);
   const [previewFile, setPreviewFile] = useState(null);
+  const [quickPhotoUploading, setQuickPhotoUploading] = useState(false);
+  const quickPhotoCameraRef = useRef(null);
+  const quickPhotoGalleryRef = useRef(null);
+
+  const handleQuickPhoto = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !ticket?.order_id) return;
+    e.target.value = '';
+    setQuickPhotoUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('label', `Photo — ${file.name}`);
+      const res = await axios.post(`${API}/orders/${ticket.order_id}/upload`, formData, {
+        headers: { Authorization: `Bearer ${getAuthToken()}` },
+      });
+      const uploadedFile = res.data;
+      toast.success('Photo uploaded — opening markup');
+      await load();
+      const contentRes = await axios.get(`${API}/orders/${ticket.order_id}/files/${uploadedFile.id}/content`, {
+        headers: hdr(),
+        responseType: 'blob',
+      });
+      const contentUrl = URL.createObjectURL(contentRes.data);
+      setMarkupImage({
+        id: uploadedFile.id,
+        label: uploadedFile.label || uploadedFile.filename || file.name,
+        contentUrl,
+      });
+      setShowDrawingModal(true);
+    } catch {
+      toast.error('Photo upload failed');
+    } finally {
+      setQuickPhotoUploading(false);
+    }
+  };
 
   const load = async () => {
     try {
@@ -159,6 +195,15 @@ export default function JobTicketDetail() {
       </div>
 
       <div className="flex flex-wrap gap-2" data-testid="job-ticket-shortcut-actions">
+        {/* Quick Photo — hidden inputs */}
+        <input ref={quickPhotoCameraRef} type="file" accept="image/*" capture="environment" onChange={handleQuickPhoto} className="hidden" data-testid="item-quick-photo-camera" />
+        <input ref={quickPhotoGalleryRef} type="file" accept="image/*" onChange={handleQuickPhoto} className="hidden" data-testid="item-quick-photo-gallery" />
+        <Button variant="outline" size="sm" onClick={() => quickPhotoCameraRef.current?.click()} disabled={quickPhotoUploading} data-testid="item-quick-photo-btn">
+          {quickPhotoUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Camera className="w-4 h-4 mr-2" />} Quick Photo
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => quickPhotoGalleryRef.current?.click()} disabled={quickPhotoUploading} data-testid="item-choose-photo-btn">
+          <ImageIcon className="w-4 h-4 mr-2" /> Choose Photo
+        </Button>
         <Button variant="outline" size="sm" onClick={() => setShortcutMode('assign')} data-testid="job-ticket-assign-shortcut-button">
           <UserPlus className="w-4 h-4 mr-2" /> Assign Employee
         </Button>
