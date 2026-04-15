@@ -69,8 +69,14 @@ export default function PayrollDashboard() {
   }, []);
 
   useEffect(() => {
-    if (canView) { fetchStats(); fetchEmployees(); }
-  }, [canView, fetchStats, fetchEmployees]);
+    if (canView) fetchStats();
+  }, [canView, fetchStats]);
+
+  // Fetch employees once on mount — separate effect to avoid re-render loop
+  useEffect(() => {
+    if (canView) fetchEmployees();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canView]);
 
   if (!canView) {
     return (

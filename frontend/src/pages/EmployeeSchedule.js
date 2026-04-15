@@ -58,7 +58,7 @@ export default function EmployeeSchedule() {
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
-  useEffect(() => { if (canView) fetchEmployees(); }, [canView, fetchEmployees]);
+  useEffect(() => { if (canView) fetchEmployees(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [canView]);
   useEffect(() => { if (employees.length && !selectedEmployeeId) setSelectedEmployeeId(employees[0]?.id || ''); }, [employees, selectedEmployeeId]);
 
   const weekDates = getWeekDates(weekStart);
