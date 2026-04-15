@@ -59,6 +59,12 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 - Reads/writes via existing `GET/PUT /api/pricing/defaults` — no new backend routes
 - Testing: iteration_108 passed 100% (all tabs, fields, save flow, redirects, API verified)
 
+### Session: Apr 2026 (Timeclock Timezone Bug Fix)
+- **Root cause**: `get_timeclock_status` and `record_timeclock_action` used `datetime.now(timezone.utc).date()` (UTC date regex) to find timelogs/shifts. After UTC midnight (8pm ET), clock-in from the same local day became invisible because the UTC date rolled over.
+- **Fix**: Status now checks for ANY open shift record (`status in ["working","on_break"]`) across all dates — no date filter. Action sequence validation also uses open shift state. `get_today_logs` uses a 36h window instead of UTC date regex. Frontend `getShiftSummary` now passes local date.
+- Files changed: `timeclock_service.py`, `routes/employees.py`, `context/AppContext.js`
+- Testing: iteration_109 passed 100% (16/16 backend, full frontend flow verified)
+
 ### Session: April 13, 2026 (Consolidation Pass — Legacy Jobs Cleanup + Unified Dashboard Finalization)
 - Completed the post-audit consolidation pass across routing, navigation, productivity, and source-detail flows.
 - Legacy `/jobs` flow cleanup:
