@@ -65,6 +65,12 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 - Files changed: `timeclock_service.py`, `routes/employees.py`, `context/AppContext.js`
 - Testing: iteration_109 passed 100% (16/16 backend, full frontend flow verified)
 
+### Session: Apr 2026 (Payroll Worksheet Save Fix)
+- **Root cause**: When an employee is clocked in (active shift with no end time), the payroll worksheet validation blocked ALL saves with "Add both start and end time for {day}" — even if the user only wanted to save OTHER days or adjustments.
+- **Fix**: Validation now detects active shifts (`shiftStatus === 'working'` or `'on_break'`) and skips them during validation. Save loop also skips actively-working rows that have no end time. `buildWorksheetRows` now passes `shiftStatus` from the shift record.
+- Files changed: `Payroll.js` (validation + save loop), `payrollWorksheet.js` (shiftStatus in row data)
+- Testing: verified via API + UI — saves work correctly while employee is actively clocked in
+
 ### Session: April 13, 2026 (Consolidation Pass — Legacy Jobs Cleanup + Unified Dashboard Finalization)
 - Completed the post-audit consolidation pass across routing, navigation, productivity, and source-detail flows.
 - Legacy `/jobs` flow cleanup:

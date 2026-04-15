@@ -96,6 +96,7 @@ export const buildWorksheetRows = (startDate, endDate, shifts = []) => {
       endTime: shift?.clock_out?.slice(11, 16) || '',
       notes: shift?.notes || '',
       source: shift?.source || 'worksheet',
+      shiftStatus: shift?.status || null,
     };
   });
 };

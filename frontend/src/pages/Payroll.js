@@ -338,6 +338,9 @@ export default function Payroll() {
     for (const row of worksheetRows) {
       const rowHasValues = hasShiftContent(row);
       if (!rowHasValues) continue;
+      // Skip validation for actively-working shifts (clocked in, no end time yet)
+      const isActiveShift = row.shiftStatus === 'working' || row.shiftStatus === 'on_break';
+      if (isActiveShift && row.startTime && !row.endTime) continue;
       if (!row.startTime || !row.endTime) {
         return `Add both start and end time for ${row.dayLabel}.`;
       }
@@ -380,6 +383,10 @@ export default function Payroll() {
           continue;
         }
         if (!rowHasValues) continue;
+
+        // Skip actively-working shifts that haven't been given an end time
+        const isActiveShift = row.shiftStatus === 'working' || row.shiftStatus === 'on_break';
+        if (isActiveShift && row.startTime && !row.endTime) continue;
 
         const payload = {
           employee_id: selectedEmployeeId,
