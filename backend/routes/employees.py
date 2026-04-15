@@ -846,15 +846,16 @@ async def clock_action(input: TimeLogCreate, current_user: UserInDB = Depends(ge
 
 @timeclock_router.get("/{employee_id}/today")
 async def get_today_logs(employee_id: str, current_user: UserInDB = Depends(get_current_active_user)):
-    """Get today's time logs for an employee"""
+    """Get today's time logs for an employee (covers last 24h for timezone safety)"""
     employee = await db.employees.find_one({"id": employee_id, "tenant_id": current_user.tenant_id}, {"_id": 0, "id": 1})
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
-    today = datetime.now(timezone.utc).date().isoformat()
+    # Use a 36h window to cover all timezone offsets from UTC
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=36)).isoformat()
     logs = await db.timelogs.find({
         "employee_id": employee_id,
-        "timestamp": {"$regex": f"^{today}"}
-    }, {"_id": 0}).sort("timestamp", 1).to_list(100)
+        "timestamp": {"$gte": cutoff}
+    }, {"_id": 0}).sort("timestamp", 1).to_list(200)
     return logs
 
 

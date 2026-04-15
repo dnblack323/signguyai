@@ -366,8 +366,8 @@ export const AppProvider = ({ children }) => {
   };
 
   const getShiftSummary = async (employeeId, date) => {
-    const params = date ? { date } : {};
-    const res = await api.get(`/timeclock/${employeeId}/summary`, { params });
+    const localDate = date || new Date().toISOString().slice(0, 10);
+    const res = await api.get(`/timeclock/${employeeId}/summary`, { params: { date: localDate } });
     return res.data;
   };
 

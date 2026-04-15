@@ -138,12 +138,28 @@ async def record_timeclock_action(db, tenant_id: str, employee_id: str, action: 
     if action not in valid_actions:
         raise ValueError(f"Invalid action: {action}")
 
-    today = datetime.now(timezone.utc).date().isoformat()
-    today_logs = await db.timelogs.find(
-        {"employee_id": employee_id, "timestamp": {"$regex": f"^{today}"}},
-        {"_id": 0}
-    ).sort("timestamp", 1).to_list(100)
-    last_action = today_logs[-1]["action"] if today_logs else None
+    # Find any open shift for this employee (regardless of date) to handle timezone boundary
+    open_shift = await db.timeclock_shifts.find_one(
+        {"tenant_id": tenant_id, "employee_id": employee_id, "status": {"$in": ["working", "on_break"]}},
+        {"_id": 0},
+        sort=[("clock_in", -1)]
+    )
+
+    # Determine current effective status from the open shift
+    current_status = None
+    if open_shift:
+        current_status = "start_work" if open_shift["status"] == "working" else "break_start"
+    else:
+        # Fallback: check recent timelogs (last 48h window) for sequence validation
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat()
+        recent_logs = await db.timelogs.find(
+            {"employee_id": employee_id, "timestamp": {"$gte": cutoff}},
+            {"_id": 0}
+        ).sort("timestamp", -1).to_list(1)
+        if recent_logs:
+            last = recent_logs[0]["action"]
+            current_status = last if last == "end_work" else None
+
     valid_sequences = {
         None: ["start_work"],
         "start_work": ["break_start", "end_work"],
@@ -151,10 +167,11 @@ async def record_timeclock_action(db, tenant_id: str, employee_id: str, action: 
         "break_end": ["break_start", "end_work"],
         "end_work": ["start_work"],
     }
-    if action not in valid_sequences.get(last_action, []):
-        raise ValueError(f"Invalid sequence. After '{last_action}', valid actions are: {valid_sequences.get(last_action, [])}")
+    if action not in valid_sequences.get(current_status, []):
+        raise ValueError(f"Invalid sequence. After '{current_status}', valid actions are: {valid_sequences.get(current_status, [])}")
 
     timestamp = _now_iso()
+    today = timestamp[:10]
     log = {
         "id": str(uuid.uuid4()),
         "tenant_id": tenant_id,
@@ -164,13 +181,12 @@ async def record_timeclock_action(db, tenant_id: str, employee_id: str, action: 
     }
     await db.timelogs.insert_one(log)
 
-    open_shift = await db.timeclock_shifts.find_one(
-        {"tenant_id": tenant_id, "employee_id": employee_id, "date": today, "status": {"$in": ["working", "on_break"]}},
-        {"_id": 0},
-        sort=[("clock_in", -1)]
-    )
-
     if action == "start_work":
+        # Close any stale open shift first
+        if open_shift:
+            stale_update = {**open_shift, "clock_out": timestamp, "status": "finished", "updated_at": timestamp, "current_break_start": None}
+            stale_update.update(calculate_shift_metrics(stale_update))
+            await db.timeclock_shifts.update_one({"id": open_shift["id"]}, {"$set": stale_update})
         shift = {
             "id": str(uuid.uuid4()),
             "tenant_id": tenant_id,
@@ -205,9 +221,24 @@ async def record_timeclock_action(db, tenant_id: str, employee_id: str, action: 
 
 
 async def get_timeclock_status(db, tenant_id: str, employee_id: str) -> dict:
-    today = datetime.now(timezone.utc).date().isoformat()
+    # Primary: check for any open shift (survives timezone boundary)
+    open_shift = await db.timeclock_shifts.find_one(
+        {"tenant_id": tenant_id, "employee_id": employee_id, "status": {"$in": ["working", "on_break"]}},
+        {"_id": 0},
+        sort=[("clock_in", -1)]
+    )
+    if open_shift:
+        status = "working" if open_shift["status"] == "working" else "on_break"
+        return {
+            "status": status,
+            "last_action": "start_work" if status == "working" else "break_start",
+            "last_timestamp": open_shift.get("updated_at") or open_shift.get("clock_in"),
+        }
+
+    # Fallback: check recent timelogs (48h window covers timezone edge cases)
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat()
     logs = await db.timelogs.find(
-        {"employee_id": employee_id, "timestamp": {"$regex": f"^{today}"}},
+        {"employee_id": employee_id, "timestamp": {"$gte": cutoff}},
         {"_id": 0}
     ).sort("timestamp", -1).to_list(1)
     if not logs:
