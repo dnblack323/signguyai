@@ -1101,8 +1101,11 @@ async def upsert_legacy_manual_entry_resolution(
 
     period_end = payload.period_end or _get_week_end(payload.week_start)
     target_date = payload.target_date or entry.get("date")
-    if target_date < payload.week_start or target_date > period_end:
-        raise HTTPException(status_code=400, detail="target_date must stay inside the selected range")
+    # Clamp target_date to the selected range (legacy entries may predate the period)
+    if target_date < payload.week_start:
+        target_date = payload.week_start
+    if target_date > period_end:
+        target_date = period_end
 
     if payload.handling_mode not in {"keep_legacy", "worksheet_manual_row", "merge_into_day"}:
         raise HTTPException(status_code=400, detail="Unsupported handling mode")

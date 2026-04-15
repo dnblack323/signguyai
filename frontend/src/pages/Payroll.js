@@ -432,12 +432,15 @@ export default function Payroll() {
       }
 
       for (const entry of legacyEntries) {
+        // Only save legacy entries whose target_date falls within the current range
+        const targetDate = entry.target_date || entry.date;
+        if (targetDate && (targetDate < startDate || targetDate > endDate)) continue;
         await api.put(`/payroll/legacy-manual-entries/${entry.id}/resolution`, {
           employee_id: selectedEmployeeId,
           week_start: startDate,
           period_end: endDate,
           handling_mode: entry.handling_mode,
-          target_date: entry.target_date,
+          target_date: targetDate,
           admin_note: entry.admin_note,
         });
       }

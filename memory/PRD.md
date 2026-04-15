@@ -66,10 +66,12 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 - Testing: iteration_109 passed 100% (16/16 backend, full frontend flow verified)
 
 ### Session: Apr 2026 (Payroll Worksheet Save Fix)
-- **Root cause**: When an employee is clocked in (active shift with no end time), the payroll worksheet validation blocked ALL saves with "Add both start and end time for {day}" — even if the user only wanted to save OTHER days or adjustments.
-- **Fix**: Validation now detects active shifts (`shiftStatus === 'working'` or `'on_break'`) and skips them during validation. Save loop also skips actively-working rows that have no end time. `buildWorksheetRows` now passes `shiftStatus` from the shift record.
-- Files changed: `Payroll.js` (validation + save loop), `payrollWorksheet.js` (shiftStatus in row data)
-- Testing: verified via API + UI — saves work correctly while employee is actively clocked in
+- **Root cause 1**: When an employee is clocked in (active shift with no end time), the payroll worksheet validation blocked ALL saves with "Add both start and end time for {day}" — even if the user only wanted to save OTHER days or adjustments.
+- **Root cause 2**: Legacy manual entries with dates outside the current pay period caused 400 errors on every save. The save loop re-submitted ALL legacy entries, and the backend rejected entries whose `target_date` fell outside `week_start..period_end` range. This was the primary "Failed to save payroll worksheet" error.
+- **Fix 1**: Validation now detects active shifts (`shiftStatus === 'working'` or `'on_break'`) and skips them. Save loop also skips actively-working rows.
+- **Fix 2**: Frontend now skips legacy entries whose target_date is outside the current pay period. Backend now clamps target_date to the range instead of rejecting with 400.
+- Files changed: `Payroll.js` (validation + save loop + legacy entry filter), `payrollWorksheet.js` (shiftStatus), `routes/employees.py` (clamp instead of reject)
+- Testing: verified via UI — saves work correctly, zero failed requests
 
 ### Session: April 13, 2026 (Consolidation Pass — Legacy Jobs Cleanup + Unified Dashboard Finalization)
 - Completed the post-audit consolidation pass across routing, navigation, productivity, and source-detail flows.
