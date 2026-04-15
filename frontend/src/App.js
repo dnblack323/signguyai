@@ -16,6 +16,8 @@ import Customers from "./pages/Customers";
 import Invoices from "./pages/Invoices";
 import TimeClock from "./pages/TimeClock";
 import Payroll from "./pages/Payroll";
+import PayrollDashboard from "./pages/PayrollDashboard";
+import EmployeeSchedule from "./pages/EmployeeSchedule";
 import Productivity from "./pages/Productivity";
 import LegacyJobsRedirect from "./pages/LegacyJobsRedirect";
 import LegacyJobRedirect from "./pages/LegacyJobRedirect";
@@ -184,7 +186,9 @@ function ProtectedRoutes() {
           <Route path="/admin-portal" element={<AdminPortal />} />
           <Route path="/documents" element={<Documents />} />
           <Route path="/timeclock" element={<TimeClock />} />
-          <Route path="/payroll" element={<Payroll />} />
+          <Route path="/payroll" element={<PayrollDashboard />} />
+          <Route path="/timesheets" element={<Payroll />} />
+          <Route path="/employee-schedule" element={<EmployeeSchedule />} />
           <Route path="/productivity" element={<Productivity />} />
           <Route path="/productivity/legacy-jobs/:jobId" element={<LegacyJobDetailPage />} />
           <Route path="/productivity/appointments/:appointmentId" element={<AppointmentDetailPage />} />

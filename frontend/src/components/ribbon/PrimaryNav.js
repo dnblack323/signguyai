@@ -53,7 +53,8 @@ export const tabSubItems = {
   ],
   team: [
     { label: 'Payroll', icon: DollarSign, path: '/payroll' },
-    { label: 'Employee Schedule', icon: Calendar, path: '/payroll?tab=schedule' },
+    { label: 'Timesheets', icon: ClipboardList, path: '/timesheets' },
+    { label: 'Employee Schedule', icon: Calendar, path: '/employee-schedule' },
     { label: 'Time Clock', icon: Clock, path: '/timeclock' },
     { label: 'Users', icon: Users, path: '/users' },
   ],
@@ -116,6 +117,8 @@ const routeToNavItem = {
   '/documents': 'documents',
   '/questionnaires': 'documents',
   '/payroll': 'team',
+  '/timesheets': 'team',
+  '/employee-schedule': 'team',
   '/timeclock': 'team',
   '/users': 'team',
   '/ai-tools': 'ai-tools',
