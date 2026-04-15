@@ -141,6 +141,7 @@ export default function Payroll() {
 
   const loadWorksheet = useCallback(async () => {
     if (!selectedEmployeeId || !canViewPayroll || !startDate || !endDate) return;
+    if (endDate < startDate) return; // Silently skip load while user is editing dates
     setLoading(true);
     try {
       const params = { employee_id: selectedEmployeeId, start_date: startDate, end_date: endDate };
@@ -185,7 +186,9 @@ export default function Payroll() {
   }, [api, canViewPayroll, endDate, selectedEmployeeId, startDate]);
 
   useEffect(() => {
-    loadWorksheet();
+    // Debounce worksheet load so date changes don't fire mid-edit
+    const timer = setTimeout(() => loadWorksheet(), 400);
+    return () => clearTimeout(timer);
   }, [loadWorksheet]);
 
   const worksheetSummary = useMemo(
@@ -332,8 +335,11 @@ export default function Payroll() {
   };
 
   const validateRows = () => {
-    if (!startDate || !endDate || endDate < startDate) {
-      return 'Choose a valid payroll date range.';
+    if (!startDate || !endDate) {
+      return 'Choose both a start and end date.';
+    }
+    if (endDate < startDate) {
+      return 'End date must be on or after start date.';
     }
     for (const row of worksheetRows) {
       const rowHasValues = hasShiftContent(row);
