@@ -118,11 +118,16 @@ export default function Payroll() {
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState('');
   const baselineSnapshotRef = useRef('');
+  const baselineLegacyRef = useRef('');
+  const loadVersionRef = useRef(0);
+  const apiRef = useRef(api);
+  apiRef.current = api;
 
+  // Stable employee fetch — run once on mount
   useEffect(() => {
-    if (!canViewPayroll) return;
-    fetchEmployees();
-  }, [canViewPayroll, fetchEmployees]);
+    if (canViewPayroll) fetchEmployees();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canViewPayroll]);
 
   useEffect(() => {
     if (!startDate || !endDate) {
@@ -139,24 +144,28 @@ export default function Payroll() {
 
   const dateRange = useMemo(() => getDateRangeDates(startDate, endDate), [startDate, endDate]);
 
-  const loadWorksheet = useCallback(async () => {
-    if (!selectedEmployeeId || !canViewPayroll || !startDate || !endDate) return;
-    if (endDate < startDate) return; // Silently skip load while user is editing dates
+  // Stable worksheet loader — does NOT go into useCallback deps
+  const doLoadWorksheet = async (empId, sd, ed) => {
+    if (!empId || !canViewPayroll || !sd || !ed || ed < sd) return;
+    const version = ++loadVersionRef.current;
     setLoading(true);
     try {
-      const params = { employee_id: selectedEmployeeId, start_date: startDate, end_date: endDate };
+      const currentApi = apiRef.current;
+      const params = { employee_id: empId, start_date: sd, end_date: ed };
       const [employeeRes, shiftsRes, transactionsRes, reportRes, timesheetRes, signoffRes, legacyRes] = await Promise.all([
-        api.get(`/employees/${selectedEmployeeId}`),
-        api.get('/payroll/timeclock-shifts', { params }),
-        api.get('/payroll/transactions', { params }),
-        api.get('/payroll/report', { params }),
-        api.get('/payroll/timesheet', { params }),
-        api.get('/payroll/signoff', { params: { employee_id: selectedEmployeeId, week_start: startDate, period_end: endDate } }),
-        api.get('/payroll/legacy-manual-entries', { params }),
+        currentApi.get(`/employees/${empId}`),
+        currentApi.get('/payroll/timeclock-shifts', { params }),
+        currentApi.get('/payroll/transactions', { params }),
+        currentApi.get('/payroll/report', { params }),
+        currentApi.get('/payroll/timesheet', { params }),
+        currentApi.get('/payroll/signoff', { params: { employee_id: empId, week_start: sd, period_end: ed } }),
+        currentApi.get('/payroll/legacy-manual-entries', { params }),
       ]);
+      // Discard stale responses
+      if (version !== loadVersionRef.current) return;
 
       setEmployeeDraft(normalizeEmployeeDraft(employeeRes.data));
-      setWorksheetRows(buildWorksheetRows(startDate, endDate, shiftsRes.data || []));
+      setWorksheetRows(buildWorksheetRows(sd, ed, shiftsRes.data || []));
       setAdjustmentRows(buildAdjustmentRows(transactionsRes.data || []));
       setReport(reportRes.data);
       setTimesheet(timesheetRes.data);
@@ -169,27 +178,34 @@ export default function Payroll() {
         payroll_notes: signoffRes.data.payroll_notes || '',
       };
       setSignoff(nextSignoff);
-      baselineSnapshotRef.current = buildWorksheetSnapshot({
+      const snap = buildWorksheetSnapshot({
         adjustmentRows: buildAdjustmentRows(transactionsRes.data || []),
         employeeDraft: normalizeEmployeeDraft(employeeRes.data),
-        endDate,
+        endDate: ed,
         legacyEntries: legacyRes.data || [],
         signoff: nextSignoff,
-        startDate,
-        worksheetRows: buildWorksheetRows(startDate, endDate, shiftsRes.data || []),
+        startDate: sd,
+        worksheetRows: buildWorksheetRows(sd, ed, shiftsRes.data || []),
       });
+      baselineSnapshotRef.current = snap;
+      baselineLegacyRef.current = JSON.stringify(legacyRes.data || []);
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to load payroll worksheet');
+      if (version === loadVersionRef.current) {
+        toast.error(error.response?.data?.detail || 'Failed to load payroll worksheet');
+      }
     } finally {
-      setLoading(false);
+      if (version === loadVersionRef.current) setLoading(false);
     }
-  }, [api, canViewPayroll, endDate, selectedEmployeeId, startDate]);
+  };
 
+  // Trigger load when inputs change — debounced, no dependency on the function itself
   useEffect(() => {
-    // Debounce worksheet load so date changes don't fire mid-edit
-    const timer = setTimeout(() => loadWorksheet(), 400);
+    const timer = setTimeout(() => {
+      doLoadWorksheet(selectedEmployeeId, startDate, endDate);
+    }, 400);
     return () => clearTimeout(timer);
-  }, [loadWorksheet]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedEmployeeId, startDate, endDate, canViewPayroll]);
 
   const worksheetSummary = useMemo(
     () => summarizeWorksheet(worksheetRows, Number(employeeDraft.hourly_rate || 0), Number(employeeDraft.overtime_rate || 0), payrollSettings.payWeekStartDay),
@@ -335,146 +351,116 @@ export default function Payroll() {
   };
 
   const validateRows = () => {
-    if (!startDate || !endDate) {
-      return 'Choose both a start and end date.';
-    }
-    if (endDate < startDate) {
-      return 'End date must be on or after start date.';
-    }
+    if (!startDate || !endDate) return 'Choose both a start and end date.';
+    if (endDate < startDate) return 'End date must be on or after start date.';
     for (const row of worksheetRows) {
-      const rowHasValues = hasShiftContent(row);
-      if (!rowHasValues) continue;
-      // Skip validation for actively-working shifts (clocked in, no end time yet)
+      // Only time fields count as shift content — notes alone are fine
+      const hasTimeFields = [row.startTime, row.lunchStart, row.lunchEnd, row.endTime].some(Boolean);
+      if (!hasTimeFields) continue;
       const isActiveShift = row.shiftStatus === 'working' || row.shiftStatus === 'on_break';
       if (isActiveShift && row.startTime && !row.endTime) continue;
-      if (!row.startTime || !row.endTime) {
-        return `Add both start and end time for ${row.dayLabel}.`;
-      }
-      if ((row.lunchStart && !row.lunchEnd) || (!row.lunchStart && row.lunchEnd)) {
-        return `Complete both lunch fields for ${row.dayLabel}.`;
-      }
-      if (row.lunchStart && row.lunchEnd && calculateBreakMinutes(row.lunchStart, row.lunchEnd) <= 0) {
-        return `Lunch end must be after lunch start for ${row.dayLabel}.`;
-      }
+      if (!row.startTime || !row.endTime) return `Add both start and end time for ${row.dayLabel}.`;
+      if ((row.lunchStart && !row.lunchEnd) || (!row.lunchStart && row.lunchEnd)) return `Complete both lunch fields for ${row.dayLabel}.`;
+      if (row.lunchStart && row.lunchEnd && calculateBreakMinutes(row.lunchStart, row.lunchEnd) <= 0) return `Lunch end must be after lunch start for ${row.dayLabel}.`;
     }
     return null;
   };
 
   const handleSaveWorksheet = useCallback(async (skipToast = false) => {
-    if (!canEditPayroll) {
-      toast.error('You do not have permission to edit payroll');
-      return false;
-    }
-
+    if (!canEditPayroll) { toast.error('You do not have permission to edit payroll'); return false; }
     const validationError = validateRows();
-    if (validationError) {
-      toast.error(validationError);
-      return false;
-    }
+    if (validationError) { toast.error(validationError); return false; }
 
     setSaving(true);
+    const errors = [];
+    const currentApi = apiRef.current;
+
+    // Section 1: Employee info
     try {
-      await api.put(`/employees/${selectedEmployeeId}`, {
-        name: employeeDraft.name,
-        title: employeeDraft.title,
+      await currentApi.put(`/employees/${selectedEmployeeId}`, {
+        name: employeeDraft.name, title: employeeDraft.title,
         manager_name: employeeDraft.manager_name,
         hourly_rate: Number(employeeDraft.hourly_rate || 0),
         overtime_rate: Number(employeeDraft.overtime_rate || 0),
       });
+    } catch (e) { errors.push(`Employee info: ${e.response?.data?.detail || e.message}`); }
 
-      for (const row of worksheetRows) {
-        const rowHasValues = hasShiftContent(row);
-        if (!rowHasValues && row.id) {
-          await api.delete(`/payroll/timeclock-shifts/${row.id}`);
-          continue;
-        }
-        if (!rowHasValues) continue;
-
-        // Skip actively-working shifts that haven't been given an end time
+    // Section 2: Shift rows
+    for (const row of worksheetRows) {
+      try {
+        const hasTimeFields = [row.startTime, row.lunchStart, row.lunchEnd, row.endTime].some(Boolean);
+        if (!hasTimeFields && row.id) { await currentApi.delete(`/payroll/timeclock-shifts/${row.id}`); continue; }
+        if (!hasTimeFields) continue;
         const isActiveShift = row.shiftStatus === 'working' || row.shiftStatus === 'on_break';
         if (isActiveShift && row.startTime && !row.endTime) continue;
-
         const payload = {
-          employee_id: selectedEmployeeId,
-          date: row.date,
-          clock_in: toIsoDateTime(row.date, row.startTime),
-          clock_out: toIsoDateTime(row.date, row.endTime),
-          lunch_start: toIsoDateTime(row.date, row.lunchStart),
-          lunch_end: toIsoDateTime(row.date, row.lunchEnd),
-          break_minutes: calculateBreakMinutes(row.lunchStart, row.lunchEnd),
-          notes: row.notes,
+          employee_id: selectedEmployeeId, date: row.date,
+          clock_in: toIsoDateTime(row.date, row.startTime), clock_out: toIsoDateTime(row.date, row.endTime),
+          lunch_start: toIsoDateTime(row.date, row.lunchStart), lunch_end: toIsoDateTime(row.date, row.lunchEnd),
+          break_minutes: calculateBreakMinutes(row.lunchStart, row.lunchEnd), notes: row.notes,
         };
+        if (row.id) { await currentApi.put(`/payroll/timeclock-shifts/${row.id}`, payload); }
+        else { await currentApi.post('/payroll/timeclock-shifts', payload); }
+      } catch (e) { errors.push(`Shift ${row.dayLabel}: ${e.response?.data?.detail || e.message}`); }
+    }
 
-        if (row.id) {
-          await api.put(`/payroll/timeclock-shifts/${row.id}`, payload);
-        } else {
-          await api.post('/payroll/timeclock-shifts', payload);
-        }
-      }
-
-      for (const row of adjustmentRows) {
+    // Section 3: Adjustments
+    for (const row of adjustmentRows) {
+      try {
         const rowHasValues = hasAdjustmentContent(row);
-        if (!rowHasValues && row.id) {
-          await api.delete(`/payroll/transactions/${row.id}`);
-          continue;
-        }
+        if (!rowHasValues && row.id) { await currentApi.delete(`/payroll/transactions/${row.id}`); continue; }
         if (!rowHasValues) continue;
-
         const numericAmount = Number(row.amount || 0);
         if (!numericAmount) continue;
         const payload = {
           employee_id: selectedEmployeeId,
-          date: row.date || startDate,
-          description: row.notes,
-          amount: Math.abs(numericAmount),
-          type: inferTransactionType(numericAmount, row.type),
+          date: row.date || startDate, description: row.notes,
+          amount: Math.abs(numericAmount), type: inferTransactionType(numericAmount, row.type),
         };
+        if (row.id) { await currentApi.put(`/payroll/transactions/${row.id}`, payload); }
+        else { await currentApi.post('/payroll/transactions', payload); }
+      } catch (e) { errors.push(`Adjustment "${row.notes || row.date}": ${e.response?.data?.detail || e.message}`); }
+    }
 
-        if (row.id) {
-          await api.put(`/payroll/transactions/${row.id}`, payload);
-        } else {
-          await api.post('/payroll/transactions', payload);
-        }
-      }
-
-      for (const entry of legacyEntries) {
-        // Only save legacy entries whose target_date falls within the current range
+    // Section 4: Legacy entries — only save entries that changed since load
+    const baselineLegacy = (() => { try { return JSON.parse(baselineLegacyRef.current || '[]'); } catch { return []; } })();
+    for (const entry of legacyEntries) {
+      try {
         const targetDate = entry.target_date || entry.date;
         if (targetDate && (targetDate < startDate || targetDate > endDate)) continue;
-        await api.put(`/payroll/legacy-manual-entries/${entry.id}/resolution`, {
-          employee_id: selectedEmployeeId,
-          week_start: startDate,
-          period_end: endDate,
-          handling_mode: entry.handling_mode,
-          target_date: targetDate,
-          admin_note: entry.admin_note,
+        const baseline = baselineLegacy.find((b) => b.id === entry.id);
+        const entryJson = JSON.stringify({ handling_mode: entry.handling_mode, target_date: targetDate, admin_note: entry.admin_note });
+        const baseJson = baseline ? JSON.stringify({ handling_mode: baseline.handling_mode, target_date: baseline.target_date || baseline.date, admin_note: baseline.admin_note }) : null;
+        if (entryJson === baseJson) continue; // Skip unchanged
+        await currentApi.put(`/payroll/legacy-manual-entries/${entry.id}/resolution`, {
+          employee_id: selectedEmployeeId, week_start: startDate, period_end: endDate,
+          handling_mode: entry.handling_mode, target_date: targetDate, admin_note: entry.admin_note,
         });
-      }
+      } catch (e) { errors.push(`Legacy entry ${entry.date}: ${e.response?.data?.detail || e.message}`); }
+    }
 
-      await api.put('/payroll/signoff', {
-        employee_id: selectedEmployeeId,
-        week_start: startDate,
-        period_end: endDate,
-        reviewed_by: signoff.reviewed_by,
-        review_date: signoff.review_date || null,
-        approved_by: signoff.approved_by,
-        approval_date: signoff.approval_date || null,
+    // Section 5: Signoff
+    try {
+      await currentApi.put('/payroll/signoff', {
+        employee_id: selectedEmployeeId, week_start: startDate, period_end: endDate,
+        reviewed_by: signoff.reviewed_by, review_date: signoff.review_date || null,
+        approved_by: signoff.approved_by, approval_date: signoff.approval_date || null,
         payroll_notes: signoff.payroll_notes,
       });
+    } catch (e) { errors.push(`Sign-off: ${e.response?.data?.detail || e.message}`); }
 
-      await fetchEmployees();
-      await loadWorksheet();
-      if (!skipToast) {
-        toast.success('Payroll worksheet saved');
-      }
-      return true;
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to save payroll worksheet');
+    // Reload worksheet data after save
+    await doLoadWorksheet(selectedEmployeeId, startDate, endDate);
+
+    setSaving(false);
+    if (errors.length > 0) {
+      toast.error(`Save completed with ${errors.length} error(s): ${errors[0]}`);
       return false;
-    } finally {
-      setSaving(false);
     }
-  }, [adjustmentRows, api, canEditPayroll, employeeDraft, endDate, fetchEmployees, legacyEntries, loadWorksheet, selectedEmployeeId, signoff, startDate, worksheetRows]);
+    if (!skipToast) toast.success('Payroll worksheet saved');
+    return true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adjustmentRows, canEditPayroll, employeeDraft, endDate, legacyEntries, selectedEmployeeId, signoff, startDate, worksheetRows]);
 
   if (!canViewPayroll) {
     return (

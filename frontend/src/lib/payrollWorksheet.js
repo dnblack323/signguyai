@@ -171,7 +171,7 @@ export const inferTransactionType = (amountValue, fallbackType = 'advance') => {
   return fallbackType;
 };
 
-export const hasShiftContent = (row) => [row.startTime, row.lunchStart, row.lunchEnd, row.endTime, row.notes].some(Boolean);
+export const hasShiftContent = (row) => [row.startTime, row.lunchStart, row.lunchEnd, row.endTime].some(Boolean);
 
 export const hasAdjustmentContent = (row) => [row.date, row.notes, row.amount].some((value) => String(value || '').trim() !== '');
 
