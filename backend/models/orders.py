@@ -413,6 +413,7 @@ class ProductionTaskUpdate(BaseModel):
     hold_reason: Optional[str] = None
     rework_flag: Optional[bool] = None
     completion_percent: Optional[float] = None
+    production_stage: Optional[str] = None
 
 
 # ============== WORKFLOW TEMPLATE ==============

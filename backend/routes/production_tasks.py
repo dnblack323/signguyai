@@ -44,21 +44,48 @@ async def list_production_tasks(
     return {"tasks": tasks, "total": total}
 
 
+DEFAULT_PRODUCTION_STAGES = [
+    {"key": "intake", "label": "Intake", "color": "#6366F1"},
+    {"key": "design", "label": "Design", "color": "#8B5CF6"},
+    {"key": "production", "label": "Production", "color": "#2563EB"},
+    {"key": "finishing", "label": "Finishing / QC", "color": "#059669"},
+    {"key": "ready", "label": "Ready / Delivery", "color": "#16A34A"},
+]
+
+
+@router.get("/stages/config")
+async def get_production_stages(current_user: UserInDB = Depends(get_current_active_user)):
+    """Get the production stage configuration for the tenant."""
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0, "production_stages": 1})
+    return {"stages": (tenant or {}).get("production_stages") or DEFAULT_PRODUCTION_STAGES}
+
+
+@router.put("/stages/config")
+async def update_production_stages(data: dict, current_user: UserInDB = Depends(get_current_active_user)):
+    """Update production stage configuration."""
+    stages = data.get("stages", DEFAULT_PRODUCTION_STAGES)
+    await db.tenants.update_one(
+        {"id": current_user.tenant_id},
+        {"$set": {"production_stages": stages, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    return {"stages": stages}
+
+
 @router.get("/board")
 async def production_board(
-    view: str = "department",
+    view: str = "stage",
     current_user: UserInDB = Depends(get_current_active_user),
 ):
-    """Get production board data grouped by department, ticket, or due date."""
+    """Get production board data grouped by stage, department, or status."""
     pipeline = [
-        {"$match": {"tenant_id": current_user.tenant_id, "status": {"$ne": TaskStatus.COMPLETE.value}}},
+        {"$match": {"tenant_id": current_user.tenant_id}},
         {"$project": {"_id": 0}},
     ]
 
     tasks = await db.production_tasks.aggregate(pipeline).to_list(500)
 
     # Enrich with ticket info
-    ticket_ids = list({t["job_ticket_id"] for t in tasks})
+    ticket_ids = list({t["job_ticket_id"] for t in tasks if t.get("job_ticket_id")})
     tickets_map = {}
     if ticket_ids:
         tickets = await db.job_tickets.find(
@@ -75,6 +102,18 @@ async def production_board(
         task["ticket_priority"] = ticket.get("priority", "normal")
         task["ticket_due_date"] = ticket.get("due_date")
 
+    if view == "stage":
+        tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0, "production_stages": 1})
+        stages = (tenant or {}).get("production_stages") or DEFAULT_PRODUCTION_STAGES
+        stage_keys = [s["key"] for s in stages]
+        grouped = {s["key"]: [] for s in stages}
+        for task in tasks:
+            stage = task.get("production_stage") or task.get("department") or "intake"
+            if stage not in grouped:
+                stage = stage_keys[0] if stage_keys else "intake"
+            grouped.setdefault(stage, []).append(task)
+        return {"view": "stage", "stages": stages, "groups": grouped}
+
     if view == "department":
         grouped = {}
         for task in tasks:
@@ -82,7 +121,7 @@ async def production_board(
             grouped.setdefault(dept, []).append(task)
         return {"view": "department", "groups": grouped}
 
-    elif view == "status":
+    if view == "status":
         grouped = {}
         for task in tasks:
             st = task.get("status", "not_started")

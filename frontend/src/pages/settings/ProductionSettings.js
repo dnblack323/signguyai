@@ -13,7 +13,7 @@ import {
 } from '../../components/ui/select';
 import {
   Timer, Plus, Trash2, GripVertical, Save, ArrowUp, ArrowDown,
-  Edit2, Copy, BarChart3, Clock, CheckCircle2, AlertTriangle
+  Edit2, Copy, BarChart3, Clock, CheckCircle2, AlertTriangle, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -29,6 +29,89 @@ const CATEGORIES = [
   { value: 'apparel', label: 'Apparel' },
   { value: 'custom', label: 'Custom' }
 ];
+
+const STAGE_COLORS = ['#6366F1', '#8B5CF6', '#2563EB', '#059669', '#16A34A', '#D97706', '#DC2626', '#0891B2'];
+
+function ProductionStagesEditor() {
+  const [stages, setStages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await axios.get(`${API}/api/production-tasks/stages/config`, { headers: { Authorization: `Bearer ${getAuthToken()}` } });
+        setStages(res.data.stages || []);
+      } catch { /* will use defaults */ }
+      finally { setLoading(false); }
+    })();
+  }, []);
+
+  const addStage = () => {
+    setStages(prev => [...prev, { key: `stage_${Date.now()}`, label: '', color: STAGE_COLORS[prev.length % STAGE_COLORS.length] }]);
+  };
+
+  const removeStage = (idx) => setStages(prev => prev.filter((_, i) => i !== idx));
+
+  const updateStage = (idx, field, value) => {
+    setStages(prev => prev.map((s, i) => i === idx ? { ...s, [field]: value, ...(field === 'label' && !s.key.startsWith('stage_') ? {} : { key: value.toLowerCase().replace(/[^a-z0-9]/g, '_') }) } : s));
+  };
+
+  const moveStage = (idx, dir) => {
+    setStages(prev => {
+      const next = [...prev];
+      const swap = idx + dir;
+      if (swap < 0 || swap >= next.length) return next;
+      [next[idx], next[swap]] = [next[swap], next[idx]];
+      return next;
+    });
+  };
+
+  const handleSave = async () => {
+    if (stages.some(s => !s.label?.trim())) { toast.error('All stages need a name'); return; }
+    setSaving(true);
+    try {
+      const cleaned = stages.map((s, i) => ({ key: s.key || `stage_${i}`, label: s.label.trim(), color: s.color || STAGE_COLORS[i % STAGE_COLORS.length] }));
+      await axios.put(`${API}/api/production-tasks/stages/config`, { stages: cleaned }, { headers: { Authorization: `Bearer ${getAuthToken()}`, 'Content-Type': 'application/json' } });
+      setStages(cleaned);
+      toast.success('Production stages saved');
+    } catch { toast.error('Failed to save stages'); }
+    finally { setSaving(false); }
+  };
+
+  if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-violet-500" /></div>;
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-base">Production Board Stages</CardTitle>
+            <CardDescription>Customize the Kanban columns on your Production Board. Drag tasks between stages.</CardDescription>
+          </div>
+          <Button onClick={handleSave} disabled={saving} className="bg-violet-600 hover:bg-violet-700 text-white gap-1" data-testid="save-stages-btn">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Stages
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {stages.map((stage, idx) => (
+          <div key={idx} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2" data-testid={`stage-row-${idx}`}>
+            <div className="flex flex-col gap-0.5">
+              <button type="button" onClick={() => moveStage(idx, -1)} disabled={idx === 0} className="text-gray-400 hover:text-gray-700 disabled:opacity-30"><ArrowUp className="w-3 h-3" /></button>
+              <button type="button" onClick={() => moveStage(idx, 1)} disabled={idx === stages.length - 1} className="text-gray-400 hover:text-gray-700 disabled:opacity-30"><ArrowDown className="w-3 h-3" /></button>
+            </div>
+            <input type="color" value={stage.color || '#6366F1'} onChange={(e) => updateStage(idx, 'color', e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
+            <Input value={stage.label} onChange={(e) => updateStage(idx, 'label', e.target.value)} placeholder="Stage name..." className="flex-1 h-8 text-sm" data-testid={`stage-name-${idx}`} />
+            <span className="text-[10px] text-gray-400 w-16 truncate">{stage.key}</span>
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-400 hover:text-red-600" onClick={() => removeStage(idx)} data-testid={`stage-remove-${idx}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+          </div>
+        ))}
+        <Button variant="outline" size="sm" className="w-full mt-2 gap-1" onClick={addStage} data-testid="add-stage-btn"><Plus className="w-3.5 h-3.5" /> Add Stage</Button>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function ProductionSettings() {
   const [templates, setTemplates] = useState([]);
@@ -345,8 +428,12 @@ export default function ProductionSettings() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="templates">
+      <Tabs defaultValue="stages">
         <TabsList>
+          <TabsTrigger value="stages" className="flex items-center gap-2">
+            <GripVertical className="h-4 w-4" />
+            Board Stages
+          </TabsTrigger>
           <TabsTrigger value="templates" className="flex items-center gap-2">
             <Timer className="h-4 w-4" />
             Workflow Templates
@@ -356,6 +443,10 @@ export default function ProductionSettings() {
             Analytics
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="stages" className="mt-4">
+          <ProductionStagesEditor />
+        </TabsContent>
 
         <TabsContent value="templates" className="mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
