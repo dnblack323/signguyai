@@ -73,6 +73,27 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 - Files changed: `Payroll.js` (validation + save loop + legacy entry filter), `payrollWorksheet.js` (shiftStatus), `routes/employees.py` (clamp instead of reject)
 - Testing: verified via UI — saves work correctly, zero failed requests
 
+### Session: Apr 2026 (Payroll Worksheet Architecture Rewrite)
+- Replaced `useCallback`/`useEffect` dependency chain with ref-based load (apiRef, loadVersionRef, debounce)
+- `hasShiftContent()` now excludes notes — notes alone don't require start/end times
+- Legacy entries only saved when changed (baselineLegacyRef diff tracking)
+- Save is now section-by-section: employee info, shifts, adjustments, legacy, signoff — each in own try/catch
+- Testing: iteration_110 passed 100%
+
+### Session: Apr 2026 (Bugs + Features Batch)
+**Bugs fixed:**
+- Productivity: removed duplicate in-page view nav (PrimaryNav handles it), fixed stale closure on loadCore/loadCalendar with refs, added toast on task creation from calendar
+- Productivity: default itemTypes now includes `['job', 'task']` so tasks show by default
+- Dashboard restored at `/dashboard` as standalone page (no longer redirects to productivity)
+
+**Features added:**
+- Customer: name OR company required (not both), new `display_name` field auto-generated from company name (no spaces)
+- Order auto-naming: `DISPLAYNAME-MMDDYY` (caps) with letter suffix for same-day dupes
+- Order item auto-naming: `displayname-category-mmddyy` (lowercase)
+- Naming Conventions settings card in CompanySettings
+- Expense receipt photo: "Take Photo" and "Choose File" buttons in expense dialog
+- Testing: iteration_111 passed 100% (13/13 backend, all frontend verified)
+
 ### Session: April 13, 2026 (Consolidation Pass — Legacy Jobs Cleanup + Unified Dashboard Finalization)
 - Completed the post-audit consolidation pass across routing, navigation, productivity, and source-detail flows.
 - Legacy `/jobs` flow cleanup:
