@@ -460,6 +460,57 @@ export default function OrderDetail() {
         </div>
       </div>
 
+      {/* ─── Quick Actions Strip ─── */}
+      <div className="flex flex-wrap gap-1.5 -mt-2" data-testid="order-quick-actions">
+        {/* Photo */}
+        <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => triggerQuickPhoto('camera')} disabled={quickPhotoUploading} data-testid="qa-take-photo">
+          <Camera className="w-3.5 h-3.5" /> Take Photo
+        </Button>
+        <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => triggerQuickPhoto('gallery')} disabled={quickPhotoUploading} data-testid="qa-choose-photo">
+          <ImageIcon className="w-3.5 h-3.5" /> Upload Photo
+        </Button>
+        {/* To-do / Calendar / Assign */}
+        <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => navigate(`/productivity?view=list&order_id=${order.id}`)} data-testid="qa-add-todo">
+          <ListTodo className="w-3.5 h-3.5" /> To-Do List
+        </Button>
+        <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => navigate(`/productivity?view=calendar&order_id=${order.id}`)} data-testid="qa-schedule">
+          <CalendarPlus className="w-3.5 h-3.5" /> Schedule
+        </Button>
+        <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => navigate(`/productivity?view=kanban&order_id=${order.id}`)} data-testid="qa-assign">
+          <UserPlus className="w-3.5 h-3.5" /> Assign
+        </Button>
+        {/* Quote */}
+        {order.quote_id ? (
+          <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => navigate(`/quotes?id=${order.quote_id}`)} data-testid="qa-view-quote">
+            <FileText className="w-3.5 h-3.5" /> View Quote
+          </Button>
+        ) : (
+          <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => generateDoc('quote')} disabled={!!actionLoading || tickets.length === 0} data-testid="qa-create-quote">
+            <FileText className="w-3.5 h-3.5" /> Create Quote
+          </Button>
+        )}
+        {/* Invoice */}
+        {order.invoice_id ? (
+          <>
+            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => navigate(`/invoices?id=${order.invoice_id}`)} data-testid="qa-view-invoice">
+              <Receipt className="w-3.5 h-3.5" /> View Invoice
+            </Button>
+            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => sendEmail('invoice')} disabled={!!actionLoading || !order.email} data-testid="qa-email-invoice">
+              <Mail className="w-3.5 h-3.5" /> Email Invoice
+            </Button>
+            {order.customer_id && (
+              <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => navigate(`/admin-portal?customer_id=${order.customer_id}`)} data-testid="qa-send-portal">
+                <ExternalLink className="w-3.5 h-3.5" /> Send via Portal
+              </Button>
+            )}
+          </>
+        ) : (
+          <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => generateDoc('invoice')} disabled={!!actionLoading || tickets.length === 0} data-testid="qa-create-invoice">
+            <Receipt className="w-3.5 h-3.5" /> Create Invoice
+          </Button>
+        )}
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         {[
