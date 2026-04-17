@@ -122,6 +122,27 @@ async def create_order(data: OrderCreate, current_user: UserInDB = Depends(get_c
     )
     order.order_number = await _next_order_number(current_user.tenant_id)
 
+    # Auto-generate order name if not provided
+    if not order.name or order.name.strip() == '':
+        customer = await db.customers.find_one(
+            {"id": order.customer_id, "tenant_id": current_user.tenant_id},
+            {"_id": 0, "display_name": 1, "company": 1, "name": 1}
+        ) if order.customer_id else None
+        display = (customer or {}).get("display_name") or (customer or {}).get("company") or (customer or {}).get("name") or "ORDER"
+        display_clean = display.replace(" ", "").upper()
+        today = datetime.now(timezone.utc).strftime("%m%d%y")
+        base_name = f"{display_clean}-{today}"
+        # Check for same-day duplicates and add suffix letter
+        existing_count = await db.orders.count_documents({
+            "tenant_id": current_user.tenant_id,
+            "name": {"$regex": f"^{base_name}"}
+        })
+        if existing_count > 0:
+            suffix = chr(ord('a') + existing_count)
+            order.name = f"{base_name}{suffix}"
+        else:
+            order.name = base_name
+
     doc = order.model_dump()
     await db.orders.insert_one(doc)
 

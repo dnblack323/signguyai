@@ -17,6 +17,7 @@ import Invoices from "./pages/Invoices";
 import TimeClock from "./pages/TimeClock";
 import Payroll from "./pages/Payroll";
 import PayrollDashboard from "./pages/PayrollDashboard";
+import Dashboard from "./pages/Dashboard";
 import EmployeeSchedule from "./pages/EmployeeSchedule";
 import Productivity from "./pages/Productivity";
 import LegacyJobsRedirect from "./pages/LegacyJobsRedirect";
@@ -167,7 +168,7 @@ function ProtectedRoutes() {
     <TrialLockout>
       <MainLayout>
         <Routes>
-          <Route path="/dashboard" element={<Navigate to="/productivity?view=dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/customers" element={<Customers />} />
           {/* Orders - New 4-layer system */}
           <Route path="/orders" element={<OrdersPage />} />

@@ -99,7 +99,7 @@ export default function Customers() {
   // Available fields for mapping
   const availableFields = [
     { value: '', label: 'Skip this column' },
-    { value: 'name', label: 'Name *', required: true },
+    { value: 'name', label: 'Name', required: false },
     { value: 'company', label: 'Company' },
     { value: 'email', label: 'Email' },
     { value: 'phone', label: 'Phone' },
@@ -608,7 +608,7 @@ export default function Customers() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Name *</Label>
+                    <Label htmlFor="name">Name</Label>
                     <Input
                       id="name"
                       value={formData.name}

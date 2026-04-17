@@ -666,6 +666,29 @@ export default function CompanySettings() {
         </CardContent>
       </Card>
 
+      {/* Naming Convention Settings Card */}
+      <Card className="border" style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-gray-900">
+            <Shield className="h-5 w-5" style={{ color: '#2F8BFB' }} />
+            Naming Conventions
+          </CardTitle>
+          <CardDescription className="text-gray-500">
+            Configure how orders and order items are automatically named
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
+            <p className="font-medium text-gray-700">Order Name Format</p>
+            <p className="text-gray-500 text-xs">DISPLAYNAME-MMDDYY (all caps). Duplicates get letter suffix: FRANKSMITH-041226a</p>
+            <p className="font-medium text-gray-700 mt-3">Order Item Name Format</p>
+            <p className="text-gray-500 text-xs">displayname-category-mmddyy (lowercase). Example: franksmith-banner-041226</p>
+            <p className="font-medium text-gray-700 mt-3">Display Name</p>
+            <p className="text-gray-500 text-xs">Defaults to company name (no spaces). Editable per customer.</p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Time Tracking Settings Card */}
       <Card className="border" style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }}>
         <CardHeader>

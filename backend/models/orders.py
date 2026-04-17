@@ -151,6 +151,7 @@ class QCStatus(str, Enum):
 class Order(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     order_number: str = ""
+    name: str = ""  # Auto-generated order name (DISPLAYNAME-MMDDYY format)
     tenant_id: str = ""
     customer_id: str = ""
     customer_name: str = ""
@@ -183,6 +184,7 @@ class Order(BaseModel):
 class OrderCreate(BaseModel):
     customer_id: str = ""
     customer_name: str = ""
+    name: str = ""  # Optional - auto-generated if not provided
     contact_name: str = ""
     phone: str = ""
     email: str = ""
@@ -201,6 +203,7 @@ class OrderCreate(BaseModel):
 class OrderUpdate(BaseModel):
     customer_id: Optional[str] = None
     customer_name: Optional[str] = None
+    name: Optional[str] = None
     contact_name: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None

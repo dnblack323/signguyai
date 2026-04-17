@@ -832,6 +832,24 @@ async def create_job_ticket(data: JobTicketCreate, current_user: UserInDB = Depe
     )
     ticket.ticket_number = await _next_ticket_number(data.order_id, current_user.tenant_id)
 
+    # Auto-generate item_name if not provided
+    if not ticket.item_name or ticket.item_name.strip() == '':
+        order_full = await db.orders.find_one(
+            {"id": data.order_id, "tenant_id": current_user.tenant_id},
+            {"_id": 0, "customer_id": 1}
+        )
+        customer = None
+        if order_full and order_full.get("customer_id"):
+            customer = await db.customers.find_one(
+                {"id": order_full["customer_id"], "tenant_id": current_user.tenant_id},
+                {"_id": 0, "display_name": 1, "company": 1, "name": 1}
+            )
+        display = (customer or {}).get("display_name") or (customer or {}).get("company") or (customer or {}).get("name") or "item"
+        display_clean = display.replace(" ", "").lower()
+        cat_label = (ticket.item_category or "item").replace("_", "").lower()
+        today = datetime.now(timezone.utc).strftime("%m%d%y")
+        ticket.item_name = f"{display_clean}-{cat_label}-{today}"
+
     doc = ticket.model_dump()
     if doc.get("estimated_price", 0) <= 0:
         snapshot = await _calculate_ticket_snapshot(doc, current_user.tenant_id)

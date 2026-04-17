@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { BarChart3, CalendarDays, KanbanSquare, ListTodo, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -44,7 +45,7 @@ export default function Productivity() {
     assignedUserId: '',
     status: '',
     includeCompleted: false,
-    itemTypes: ['job'],
+    itemTypes: ['job', 'task'],
   });
   const [items, setItems] = useState([]);
   const [summary, setSummary] = useState(null);
@@ -86,14 +87,18 @@ export default function Productivity() {
     });
   }, [activeView, calendarView, anchorDate, setSearchParams]);
 
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+  const apiRef = useRef(api);
+  apiRef.current = api;
+
   const loadCore = async () => {
     setLoading(true);
     try {
-      await fetchEmployees();
-      const params = buildCommonParams(filters);
+      const params = buildCommonParams(filtersRef.current);
       const [itemsRes, summaryRes] = await Promise.all([
-        api.get('/productivity/items', { params }),
-        api.get('/productivity/summary', { params: { ...params, include_completed: true } }),
+        apiRef.current.get('/productivity/items', { params }),
+        apiRef.current.get('/productivity/summary', { params: { ...params, include_completed: true } }),
       ]);
       setItems(itemsRes.data.items || []);
       setSummary(summaryRes.data || null);
@@ -103,13 +108,16 @@ export default function Productivity() {
   };
 
   const loadCalendar = async () => {
-    const params = { ...buildCommonParams(filters), anchor_date: anchorDate, view: calendarView };
-    const response = await api.get('/productivity/calendar-range', { params });
+    const params = { ...buildCommonParams(filtersRef.current), anchor_date: anchorDate, view: calendarView };
+    const response = await apiRef.current.get('/productivity/calendar-range', { params });
     setCalendarPayload(response.data || { items: [], range: null, summary: null });
   };
 
-  useEffect(() => { loadCore(); }, [filters.search, filters.assignedUserId, filters.status, filters.includeCompleted, filters.itemTypes.join(',')]);
-  useEffect(() => { loadCalendar(); }, [anchorDate, calendarView, filters.search, filters.assignedUserId, filters.status, filters.includeCompleted, filters.itemTypes.join(',')]);
+  // Fetch employees once on mount
+  useEffect(() => { fetchEmployees(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
+  useEffect(() => { loadCore(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [filters.search, filters.assignedUserId, filters.status, filters.includeCompleted, filters.itemTypes.join(',')]);
+  useEffect(() => { loadCalendar(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [anchorDate, calendarView, filters.search, filters.assignedUserId, filters.status, filters.includeCompleted, filters.itemTypes.join(',')]);
 
   const dayItems = useMemo(() => {
     if (!selectedDay) return [];
@@ -123,13 +131,16 @@ export default function Productivity() {
     if (!selectedDay || !dayTaskForm.title.trim()) return;
     setCreatingDayTask(true);
     try {
-      await api.post('/tasks', {
+      await apiRef.current.post('/tasks', {
         title: dayTaskForm.title.trim(),
         assigned_to: dayTaskForm.assigned_to || null,
         due_date: format(selectedDay, 'yyyy-MM-dd'),
       });
+      toast.success('Task created');
       setDayTaskForm({ title: '', assigned_to: '' });
       await refreshAll();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Failed to create task');
     } finally {
       setCreatingDayTask(false);
     }
@@ -148,14 +159,7 @@ export default function Productivity() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2" data-testid="productivity-view-nav">
-        {VIEW_OPTIONS.map((view) => (
-          <Button key={view.id} variant={activeView === view.id ? 'default' : 'outline'} onClick={() => setActiveView(view.id)} data-testid={`productivity-nav-${view.id}`}>
-            <view.icon className="w-4 h-4 mr-2" /> {view.label}
-          </Button>
-        ))}
-      </div>
-
+      {/* Filters */}
       <ProductivityFiltersBar filters={filters} setFilters={setFilters} employees={employees || []} />
 
       {activeView === 'dashboard' && <ProductivityDashboardView items={items} summary={summary || {}} onOpenItem={setSelectedItem} />}

@@ -60,10 +60,15 @@ async def create_customer(
 ):
     """Create a new customer and optionally send welcome email"""
     payload = input.model_dump()
-    resolved_name = (payload.get("name") or "").strip() or (payload.get("company") or "").strip()
-    if not resolved_name:
+    name_val = (payload.get("name") or "").strip()
+    company_val = (payload.get("company") or "").strip()
+    if not name_val and not company_val:
         raise HTTPException(status_code=400, detail="Name or Company is required")
-    payload["name"] = resolved_name
+    # Auto-generate display_name: prefer company, fallback to name (no spaces, CamelCase)
+    if not payload.get("display_name"):
+        raw = company_val or name_val
+        payload["display_name"] = raw.replace(" ", "")
+    payload["name"] = name_val or company_val
 
     customer = Customer(**payload)
     customer.tenant_id = current_user.tenant_id

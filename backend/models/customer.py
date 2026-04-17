@@ -13,6 +13,7 @@ from .enums import CustomerStatus, MessageType, ProofStatus, AppointmentType, Ap
 class CustomerBase(BaseModel):
     name: Optional[str] = None
     company: Optional[str] = None
+    display_name: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
     status: CustomerStatus = CustomerStatus.LEAD
@@ -35,6 +36,7 @@ class CustomerCreate(CustomerBase):
 class CustomerUpdate(BaseModel):
     name: Optional[str] = None
     company: Optional[str] = None
+    display_name: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
     status: Optional[CustomerStatus] = None
