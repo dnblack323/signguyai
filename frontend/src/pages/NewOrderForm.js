@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Loader2, Trash2, Search, UserPlus, Upload, FileUp, Pen, Truck, Calculator, BarChart3, Save } from 'lucide-react';
+import { ArrowLeft, Plus, Loader2, Trash2, Search, UserPlus, Upload, FileUp, Pen, Truck, Calculator, BarChart3, Save, Camera, Image as ImageIcon } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Switch } from '../components/ui/switch';
 import { Textarea } from '../components/ui/textarea';
@@ -92,6 +93,17 @@ export default function NewOrderForm() {
   const [orderFiles, setOrderFiles] = useState([]);
   const [showSketchModal, setShowSketchModal] = useState(false);
   const [orderSketches, setOrderSketches] = useState([]);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const photoCameraRef = useRef(null);
+  const photoGalleryRef = useRef(null);
+
+  const handlePhotoCapture = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setOrderFiles((prev) => [...prev, createOrderFile(file)]);
+    toast.success(`Photo added: ${file.name}`);
+  };
 
   useEffect(() => {
     axios.get(`${API}/customers?limit=200`, { headers: hdrs() })
@@ -284,6 +296,23 @@ export default function NewOrderForm() {
           <div><Label className="text-gray-700">Internal Notes</Label><Textarea value={order.internal_notes} onChange={e => updateOrder('internal_notes', e.target.value)} className="bg-gray-50 border-gray-300 text-gray-900" rows={2} placeholder="Internal notes about this order..." /></div>
         </CardContent>
       </Card>
+
+      {/* Quick Photo Capture */}
+      <div className="flex flex-wrap gap-2" data-testid="new-order-photo-actions">
+        <input ref={photoCameraRef} type="file" accept="image/*" capture="environment" onChange={handlePhotoCapture} className="hidden" data-testid="new-order-camera-input" />
+        <input ref={photoGalleryRef} type="file" accept="image/*" onChange={handlePhotoCapture} className="hidden" data-testid="new-order-gallery-input" />
+        <Button variant="outline" size="sm" className="gap-1.5 bg-white" onClick={() => photoCameraRef.current?.click()} data-testid="new-order-take-photo">
+          <Camera className="w-4 h-4" /> Take Photo
+        </Button>
+        <Button variant="outline" size="sm" className="gap-1.5 bg-white" onClick={() => photoGalleryRef.current?.click()} data-testid="new-order-upload-photo">
+          <ImageIcon className="w-4 h-4" /> Upload Photo
+        </Button>
+        <Button variant="outline" size="sm" className="gap-1.5 bg-white" onClick={() => setShowSketchModal(true)} data-testid="new-order-draw-sketch">
+          <Pen className="w-4 h-4" /> Draw / Markup
+        </Button>
+        {orderFiles.length > 0 && <Badge variant="secondary" className="text-xs">{orderFiles.length} file{orderFiles.length > 1 ? 's' : ''}</Badge>}
+        {orderSketches.length > 0 && <Badge variant="secondary" className="text-xs">{orderSketches.length} sketch{orderSketches.length > 1 ? 'es' : ''}</Badge>}
+      </div>
 
       {/* Order Items Header */}
       <div className="flex items-center justify-between">
