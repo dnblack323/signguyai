@@ -186,7 +186,7 @@ class TestCheckoutGatingBehavior:
             }
         }
         
-        origin_url = "https://admin-timeclock.preview.emergentagent.com"
+        origin_url = "https://pricing-core.preview.emergentagent.com"
         response = requests.post(
             f"{BASE_URL}/api/stripe-connect/webstore/{TEST_STORE_ID}/checkout?origin_url={origin_url}",
             json=checkout_payload
