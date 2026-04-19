@@ -23,6 +23,7 @@ class MaterialConfig(BaseModel):
     category: str
     subtype: str = ""
     brand: str = ""
+    vendor: str = ""
     thickness: str = ""
     width_inches: float = 0
     length_inches: float = 0
@@ -32,11 +33,42 @@ class MaterialConfig(BaseModel):
     cost_per_unit: float = 0
     unit_type: str = "sqft"
     cost_per_sqft: float = 0
+    cost_per_linear_foot: float = 0
     sell_rate_per_sqft: float = 0
     waste_factor: float = 0
+    waste_override: float = 0
     compatible_categories: List[str] = Field(default_factory=list)
     is_active: bool = True
     notes: str = ""
+
+
+class HardwareAccessoryConfig(BaseModel):
+    """Hardware/accessory configuration with default cost + labor"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    category: str = ""
+    subcategory: str = ""
+    unit_type: str = "each"
+    purchase_cost: float = 0
+    default_sell_price: float = 0
+    default_labor_addon_minutes: float = 0
+    compatible_categories: List[str] = Field(default_factory=list)
+    is_active: bool = True
+    notes: str = ""
+
+
+class LaborRateRule(BaseModel):
+    """Labor/service rate defaults for pricing calculations"""
+    model_config = ConfigDict(extra="ignore")
+    hourly_rate: float = 0
+    minimum_charge: float = 0
+    billing_increment_minutes: float = 15
+    default_time_minutes: float = 0
+    helper_addon_rate: float = 0
+    after_hours_multiplier: float = 1.0
+    weekend_multiplier: float = 1.0
+    emergency_multiplier: float = 1.0
 
 
 # ============== PRICING DEFAULTS ==============
@@ -62,6 +94,109 @@ class PricingDefaults(BaseModel):
         {"id": "acrylic-sheet-cost", "key": "acrylic_sheet", "name": "Acrylic Sheet Cost Per Sq Ft", "category": "material", "cost_per_unit": 5.5, "unit_type": "sqft", "is_active": True},
         {"id": "rigid-sign-board-cost", "key": "rigid_sign_board", "name": "Rigid Sign Board Cost Per Sq Ft", "category": "material", "cost_per_unit": 2.85, "unit_type": "sqft", "is_active": True},
     ])
+    hardware_accessories: List[Dict[str, Any]] = Field(default_factory=list)
+    labor_rates: Dict[str, Any] = Field(default_factory=lambda: {
+        "design": {
+            "hourly_rate": 85.0,
+            "minimum_charge": 0,
+            "billing_increment_minutes": 15,
+            "default_time_minutes": 60,
+            "helper_addon_rate": 0,
+            "after_hours_multiplier": 1.0,
+            "weekend_multiplier": 1.0,
+            "emergency_multiplier": 1.0,
+        },
+        "production": {
+            "hourly_rate": 28.0,
+            "minimum_charge": 0,
+            "billing_increment_minutes": 15,
+            "default_time_minutes": 60,
+            "helper_addon_rate": 0,
+            "after_hours_multiplier": 1.0,
+            "weekend_multiplier": 1.0,
+            "emergency_multiplier": 1.0,
+        },
+        "finishing": {
+            "hourly_rate": 28.0,
+            "minimum_charge": 0,
+            "billing_increment_minutes": 15,
+            "default_time_minutes": 30,
+            "helper_addon_rate": 0,
+            "after_hours_multiplier": 1.0,
+            "weekend_multiplier": 1.0,
+            "emergency_multiplier": 1.0,
+        },
+        "installation": {
+            "hourly_rate": 95.0,
+            "minimum_charge": 0,
+            "billing_increment_minutes": 30,
+            "default_time_minutes": 90,
+            "helper_addon_rate": 45.0,
+            "after_hours_multiplier": 1.0,
+            "weekend_multiplier": 1.0,
+            "emergency_multiplier": 1.0,
+        },
+        "removal": {
+            "hourly_rate": 65.0,
+            "minimum_charge": 0,
+            "billing_increment_minutes": 30,
+            "default_time_minutes": 60,
+            "helper_addon_rate": 35.0,
+            "after_hours_multiplier": 1.0,
+            "weekend_multiplier": 1.0,
+            "emergency_multiplier": 1.0,
+        },
+        "travel": {
+            "hourly_rate": 45.0,
+            "minimum_charge": 0,
+            "billing_increment_minutes": 30,
+            "default_time_minutes": 30,
+            "helper_addon_rate": 0,
+            "after_hours_multiplier": 1.0,
+            "weekend_multiplier": 1.0,
+            "emergency_multiplier": 1.0,
+        },
+        "admin_project_handling": {
+            "hourly_rate": 35.0,
+            "minimum_charge": 0,
+            "billing_increment_minutes": 15,
+            "default_time_minutes": 30,
+            "helper_addon_rate": 0,
+            "after_hours_multiplier": 1.0,
+            "weekend_multiplier": 1.0,
+            "emergency_multiplier": 1.0,
+        },
+        "consultation": {
+            "hourly_rate": 110.0,
+            "minimum_charge": 0,
+            "billing_increment_minutes": 30,
+            "default_time_minutes": 60,
+            "helper_addon_rate": 0,
+            "after_hours_multiplier": 1.0,
+            "weekend_multiplier": 1.0,
+            "emergency_multiplier": 1.0,
+        },
+        "site_survey": {
+            "hourly_rate": 95.0,
+            "minimum_charge": 0,
+            "billing_increment_minutes": 30,
+            "default_time_minutes": 60,
+            "helper_addon_rate": 0,
+            "after_hours_multiplier": 1.0,
+            "weekend_multiplier": 1.0,
+            "emergency_multiplier": 1.0,
+        },
+        "other_labor": {
+            "hourly_rate": 65.0,
+            "minimum_charge": 0,
+            "billing_increment_minutes": 15,
+            "default_time_minutes": 30,
+            "helper_addon_rate": 0,
+            "after_hours_multiplier": 1.0,
+            "weekend_multiplier": 1.0,
+            "emergency_multiplier": 1.0,
+        },
+    })
     production_hourly_rate: float = 28.0
     installer_hourly_rate: float = 40.0
     overhead_percentage: float = 15.0
@@ -70,13 +205,29 @@ class PricingDefaults(BaseModel):
     target_profit_margin_percent: float = 40.0
     default_markup_multiplier: float = 2.5
     category_defaults: Dict[str, Any] = Field(default_factory=lambda: {
+        "digital_print": {
+            "label": "Digital Print",
+            "default_labor_hours_per_sqft": 0.05,
+            "default_markup_multiplier": 2.3,
+            "target_profit_margin_percent": 40.0,
+            "minimum_charge": 40.0,
+            "default_material_keys": ["banner_material", "ink"],
+            "default_hardware_keys": [],
+            "default_labor_types": ["production"],
+            "sell_rate_defaults": {},
+            "ai_prefill_overrides": {},
+        },
         "vehicle_wraps": {
-            "label": "Vehicle Wraps",
+            "label": "Vehicle Graphics / Wraps",
             "default_labor_hours_per_sqft": 0.12,
             "default_markup_multiplier": 2.4,
             "target_profit_margin_percent": 42.0,
             "minimum_charge": 850.0,
             "default_material_keys": ["vinyl", "laminate", "ink"],
+            "default_hardware_keys": [],
+            "default_labor_types": ["installation", "design"],
+            "sell_rate_defaults": {},
+            "ai_prefill_overrides": {},
         },
         "banners": {
             "label": "Banners",
@@ -85,6 +236,10 @@ class PricingDefaults(BaseModel):
             "target_profit_margin_percent": 40.0,
             "minimum_charge": 35.0,
             "default_material_keys": ["banner_material", "ink"],
+            "default_hardware_keys": [],
+            "default_labor_types": ["production"],
+            "sell_rate_defaults": {},
+            "ai_prefill_overrides": {},
         },
         "rigid_signs": {
             "label": "Rigid Signs",
@@ -93,6 +248,10 @@ class PricingDefaults(BaseModel):
             "target_profit_margin_percent": 41.0,
             "minimum_charge": 55.0,
             "default_material_keys": ["coroplast", "aluminum_composite", "foam_board", "ink"],
+            "default_hardware_keys": [],
+            "default_labor_types": ["production", "installation"],
+            "sell_rate_defaults": {},
+            "ai_prefill_overrides": {},
         },
         "cut_vinyl": {
             "label": "Cut Vinyl",
@@ -101,6 +260,10 @@ class PricingDefaults(BaseModel):
             "target_profit_margin_percent": 40.0,
             "minimum_charge": 25.0,
             "default_material_keys": ["vinyl", "transfer_tape"],
+            "default_hardware_keys": [],
+            "default_labor_types": ["production"],
+            "sell_rate_defaults": {},
+            "ai_prefill_overrides": {},
         },
         "apparel": {
             "label": "Apparel",
@@ -109,6 +272,10 @@ class PricingDefaults(BaseModel):
             "target_profit_margin_percent": 38.0,
             "minimum_charge": 60.0,
             "default_material_keys": ["apparel_blank", "apparel_decoration"],
+            "default_hardware_keys": [],
+            "default_labor_types": ["production"],
+            "sell_rate_defaults": {},
+            "ai_prefill_overrides": {},
         },
         "services": {
             "label": "Services",
@@ -117,6 +284,10 @@ class PricingDefaults(BaseModel):
             "target_profit_margin_percent": 35.0,
             "minimum_charge": 75.0,
             "default_material_keys": ["misc_material"],
+            "default_hardware_keys": [],
+            "default_labor_types": ["consultation"],
+            "sell_rate_defaults": {},
+            "ai_prefill_overrides": {},
         },
         "custom": {
             "label": "Custom / Miscellaneous",
@@ -125,23 +296,95 @@ class PricingDefaults(BaseModel):
             "target_profit_margin_percent": 38.0,
             "minimum_charge": 50.0,
             "default_material_keys": ["misc_material"],
+            "default_hardware_keys": [],
+            "default_labor_types": ["production"],
+            "sell_rate_defaults": {},
+            "ai_prefill_overrides": {},
         },
     })
     selling_price_benchmarks: Dict[str, Any] = Field(default_factory=lambda: {
-        "vehicle_wraps": {"label": "Vehicle Wraps", "average_sell_price_per_sqft": 18.75, "average_order_total": 2850.0, "minimum_charge": 950.0},
-        "banners": {"label": "Banners", "average_sell_price_per_sqft": 8.25, "average_order_total": 245.0, "minimum_charge": 45.0},
-        "rigid_signs": {"label": "Rigid Signs", "average_sell_price_per_sqft": 12.4, "average_order_total": 310.0, "minimum_charge": 65.0},
-        "cut_vinyl": {"label": "Cut Vinyl", "average_sell_price_per_sqft": 7.5, "average_order_total": 125.0, "minimum_charge": 30.0},
-        "apparel": {"label": "Apparel", "average_sell_price_per_unit": 24.0, "average_order_total": 420.0, "minimum_charge": 75.0},
-        "services": {"label": "Services", "average_sell_price_per_hour": 110.0, "average_order_total": 240.0, "minimum_charge": 85.0},
-        "custom": {"label": "Custom / Miscellaneous", "average_sell_price_per_unit": 75.0, "average_order_total": 280.0, "minimum_charge": 60.0},
+        "digital_print": {
+            "label": "Digital Print",
+            "average_sell_price_per_sqft": 9.5,
+            "average_order_total": 280.0,
+            "minimum_charge": 45.0,
+            "low_price": 7.0,
+            "typical_price": 9.5,
+            "premium_price": 13.0,
+        },
+        "vehicle_wraps": {
+            "label": "Vehicle Wraps",
+            "average_sell_price_per_sqft": 18.75,
+            "average_order_total": 2850.0,
+            "minimum_charge": 950.0,
+            "low_price": 15.0,
+            "typical_price": 18.75,
+            "premium_price": 24.0,
+        },
+        "banners": {
+            "label": "Banners",
+            "average_sell_price_per_sqft": 8.25,
+            "average_order_total": 245.0,
+            "minimum_charge": 45.0,
+            "low_price": 6.5,
+            "typical_price": 8.25,
+            "premium_price": 11.0,
+        },
+        "rigid_signs": {
+            "label": "Rigid Signs",
+            "average_sell_price_per_sqft": 12.4,
+            "average_order_total": 310.0,
+            "minimum_charge": 65.0,
+            "low_price": 9.5,
+            "typical_price": 12.4,
+            "premium_price": 16.0,
+        },
+        "cut_vinyl": {
+            "label": "Cut Vinyl",
+            "average_sell_price_per_sqft": 7.5,
+            "average_order_total": 125.0,
+            "minimum_charge": 30.0,
+            "low_price": 5.5,
+            "typical_price": 7.5,
+            "premium_price": 10.0,
+        },
+        "apparel": {
+            "label": "Apparel",
+            "average_sell_price_per_unit": 24.0,
+            "average_order_total": 420.0,
+            "minimum_charge": 75.0,
+            "low_price": 18.0,
+            "typical_price": 24.0,
+            "premium_price": 32.0,
+        },
+        "services": {
+            "label": "Services",
+            "average_sell_price_per_hour": 110.0,
+            "average_order_total": 240.0,
+            "minimum_charge": 85.0,
+            "low_price": 85.0,
+            "typical_price": 110.0,
+            "premium_price": 145.0,
+        },
+        "custom": {
+            "label": "Custom / Miscellaneous",
+            "average_sell_price_per_unit": 75.0,
+            "average_order_total": 280.0,
+            "minimum_charge": 60.0,
+            "low_price": 55.0,
+            "typical_price": 75.0,
+            "premium_price": 100.0,
+        },
     })
     
     # Labor rates
     hourly_rate: float = 75.0
     design_hourly_rate: float = 85.0
     install_hourly_rate: float = 95.0
+    removal_hourly_rate: float = 65.0
+    travel_hourly_rate: float = 45.0
     admin_hourly_rate: float = 35.0
+    project_handling_hourly_rate: float = 35.0
     
     # Default markups
     default_markup_percent: float = 100.0
@@ -154,6 +397,7 @@ class PricingDefaults(BaseModel):
     minimum_order: float = 50.0
     minimum_design_charge: float = 75.0
     minimum_install_charge: float = 150.0
+    minimum_removal_charge: float = 120.0
     minimum_vinyl_charge: float = 25.0
     minimum_print_charge: float = 35.0
     minimum_sign_charge: float = 50.0
@@ -164,15 +408,21 @@ class PricingDefaults(BaseModel):
     
     # Rush and fees
     rush_fee_percentage: float = 25.0
+    rush_fee_flat: float = 0.0
     setup_fee_default: float = 20.0
+    file_cleanup_fee_default: float = 15.0
     
     # Rounding and display
     rounding_rule: str = "nearest_dollar"
     deposit_percentage: float = 50.0
+    ai_fallback_behavior: str = "warn"
+    ai_fallback_warnings_enabled: bool = True
     
     # Complexity multipliers
     complexity_multiplier_base: float = 1.0
     complexity_multiplier_max: float = 2.0
+    install_complexity_multiplier_base: float = 1.0
+    install_complexity_multiplier_max: float = 2.0
     
     # Setup fees by category
     setup_fee_vinyl: float = 15.0
@@ -197,7 +447,34 @@ class PricingDefaults(BaseModel):
     # Travel
     mileage_rate: float = 0.67
     minimum_travel_charge: float = 50.0
-    
+
+    ai_estimation_rules: Dict[str, Any] = Field(default_factory=lambda: {
+        "fill_missing_only": True,
+        "never_override_user_values": True,
+        "allow_prefill_category_defaults": True,
+        "suggest_material_type": True,
+        "suggest_complexity": True,
+        "suggest_install": True,
+        "suggest_design": True,
+        "value_source_labels_enabled": True,
+    })
+    benchmark_rules: Dict[str, Any] = Field(default_factory=lambda: {
+        "enabled": True,
+        "historical_influence": 0.6,
+        "outlier_handling": "exclude_high_low",
+        "confidence_handling": "warn_low_confidence",
+    })
+    global_calc_rules: Dict[str, Any] = Field(default_factory=lambda: {
+        "pricing_method_hierarchy": "max_of_margin_or_markup",
+        "overhead_application": "material_and_labor",
+        "waste_application": "material_only",
+        "rush_application": "multiply_total",
+        "minimum_billable_area": 1.0,
+        "minimum_price_floor": 0.0,
+        "category_override_rules": "",
+        "fallback_warning_behavior": "warn",
+    })
+
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 

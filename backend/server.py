@@ -204,6 +204,11 @@ async def get_pricing_defaults(tenant_id: str) -> dict:
 
     merged = {**base_defaults, **config}
     merged["materials"] = config.get("materials") or base_defaults.get("materials", [])
+    merged["hardware_accessories"] = config.get("hardware_accessories") or base_defaults.get("hardware_accessories", [])
+    merged["labor_rates"] = {
+        **base_defaults.get("labor_rates", {}),
+        **config.get("labor_rates", {}),
+    }
     merged["category_defaults"] = {
         **base_defaults.get("category_defaults", {}),
         **config.get("category_defaults", {}),
@@ -211,6 +216,18 @@ async def get_pricing_defaults(tenant_id: str) -> dict:
     merged["selling_price_benchmarks"] = {
         **base_defaults.get("selling_price_benchmarks", {}),
         **config.get("selling_price_benchmarks", {}),
+    }
+    merged["ai_estimation_rules"] = {
+        **base_defaults.get("ai_estimation_rules", {}),
+        **config.get("ai_estimation_rules", {}),
+    }
+    merged["benchmark_rules"] = {
+        **base_defaults.get("benchmark_rules", {}),
+        **config.get("benchmark_rules", {}),
+    }
+    merged["global_calc_rules"] = {
+        **base_defaults.get("global_calc_rules", {}),
+        **config.get("global_calc_rules", {}),
     }
     return merged
 

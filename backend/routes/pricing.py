@@ -143,6 +143,26 @@ async def update_pricing_defaults(
             **current_defaults.get("selling_price_benchmarks", {}),
             **updates.get("selling_price_benchmarks", {}),
         }
+    if "labor_rates" in updates:
+        merged["labor_rates"] = {
+            **current_defaults.get("labor_rates", {}),
+            **updates.get("labor_rates", {}),
+        }
+    if "ai_estimation_rules" in updates:
+        merged["ai_estimation_rules"] = {
+            **current_defaults.get("ai_estimation_rules", {}),
+            **updates.get("ai_estimation_rules", {}),
+        }
+    if "benchmark_rules" in updates:
+        merged["benchmark_rules"] = {
+            **current_defaults.get("benchmark_rules", {}),
+            **updates.get("benchmark_rules", {}),
+        }
+    if "global_calc_rules" in updates:
+        merged["global_calc_rules"] = {
+            **current_defaults.get("global_calc_rules", {}),
+            **updates.get("global_calc_rules", {}),
+        }
 
     merged["tenant_id"] = tenant_id
     merged["updated_at"] = datetime.now(timezone.utc).isoformat()

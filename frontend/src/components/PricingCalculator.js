@@ -180,6 +180,7 @@ export default function PricingCalculator({
   const [quantity, setQuantity] = useState(1);
   const [complexity, setComplexity] = useState(1);  // Default to 1 (simple) - was 5
   const [pricingData, setPricingData] = useState(initialData || {});
+  const [foundationDefaults, setFoundationDefaults] = useState(null);
   const [includeSetupFee, setIncludeSetupFee] = useState(false);  // Setup fee is opt-in
   // Initialize calculation with zeros instead of null
   const [calculation, setCalculation] = useState({
@@ -221,6 +222,24 @@ export default function PricingCalculator({
 
   // Get auth token
   const getToken = () => getAuthToken();
+
+  useEffect(() => {
+    const loadDefaults = async () => {
+      const token = getToken();
+      if (!token) return;
+      try {
+        const response = await fetch(`${API_URL}/api/pricing/defaults`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        setFoundationDefaults(data);
+      } catch {
+        // Ignore defaults load failures
+      }
+    };
+    loadDefaults();
+  }, []);
 
   // Fetch AI-powered pricing suggestions
   const fetchAiSuggestions = async () => {
@@ -1049,6 +1068,17 @@ export default function PricingCalculator({
               })}
             </div>
           </div>
+
+          {foundationDefaults && (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600" data-testid="pricing-foundation-defaults-summary">
+              <p className="text-xs font-medium text-slate-700">Pricing Foundation Defaults</p>
+              <div className="flex flex-wrap gap-4 mt-1">
+                <span>Markup: {foundationDefaults.default_markup_multiplier}x</span>
+                <span>Target Margin: {foundationDefaults.target_profit_margin_percent}%</span>
+                <span>Overhead: {foundationDefaults.overhead_percentage}%</span>
+              </div>
+            </div>
+          )}
 
           {category && (
             <>

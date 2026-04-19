@@ -297,9 +297,9 @@ export default function PricingSetup() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-white">Pricing Setup</h1>
+            <h1 className="text-3xl font-bold text-white">Historical Pricing Setup</h1>
             <p className="text-slate-300 mt-1 max-w-4xl">
-              Import historical invoices, review AI-generated selling benchmarks, and keep benchmarks separate from cost settings.
+              Use this page for historical invoice imports and benchmark analysis. All live pricing defaults now live in Pricing Foundation.
             </p>
           </div>
         </div>
@@ -310,7 +310,7 @@ export default function PricingSetup() {
 
       <Tabs defaultValue="historical-import" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2" data-testid="pricing-setup-tabs">
-          <TabsTrigger value="cost-settings" data-testid="pricing-setup-tab-cost-settings">Pricing & Cost Settings</TabsTrigger>
+          <TabsTrigger value="cost-settings" data-testid="pricing-setup-tab-cost-settings">Pricing Foundation (Primary)</TabsTrigger>
           <TabsTrigger value="historical-import" data-testid="pricing-setup-tab-historical-import">Historical Invoice Import</TabsTrigger>
         </TabsList>
 
@@ -318,18 +318,18 @@ export default function PricingSetup() {
           <Card data-testid="pricing-setup-cost-settings-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Settings2 className="h-5 w-5 text-teal-400" /> Source of truth
+                <Settings2 className="h-5 w-5 text-teal-400" /> Pricing Foundation
               </CardTitle>
               <CardDescription>
-                Cost settings remain separate from selling benchmarks. Historical invoice analysis writes only to benchmark settings after human review.
+                Pricing Foundation is the single source of truth for defaults, materials, and pricing rules. This page is for historical imports only.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap items-center gap-3">
-              <Link to="/pricing-calculator/settings">
-                <Button data-testid="pricing-setup-open-cost-settings-button">Open Pricing & Cost Settings</Button>
+              <Link to="/pricing-foundation">
+                <Button data-testid="pricing-setup-open-cost-settings-button">Open Pricing Foundation</Button>
               </Link>
               <Badge variant="outline" data-testid="pricing-setup-benchmark-separation-badge">
-                Benchmarks never auto-apply to cost settings
+                Historical imports only
               </Badge>
             </CardContent>
           </Card>
