@@ -214,6 +214,8 @@ function ProtectedRoutes() {
           <Route path="/pricing-calculator" element={<Pricing />} />
           <Route path="/pricing-calculator/settings" element={<Navigate to="/pricing-foundation" replace />} />
           <Route path="/pricing-foundation" element={<PricingFoundation />} />
+          <Route path="/pricing-settings" element={<PricingSettings />} />
+          <Route path="/materials-admin" element={<MaterialsAdmin />} />
           <Route path="/materials" element={<Navigate to="/pricing-foundation" replace />} />
           <Route path="/billing" element={<BillingManagement />} />
           <Route path="/questionnaires" element={<Questionnaires />} />

@@ -1090,9 +1090,9 @@ function GlobalCalculationRulesTab({ settings, onChange, canEdit }) {
             <Select value={rules.pricing_method_hierarchy || 'max_of_margin_or_markup'} onValueChange={(v) => updateRule('pricing_method_hierarchy', v)} disabled={!canEdit}>
               <SelectTrigger className="h-8 text-sm" data-testid="global-pricing-hierarchy"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="max_of_margin_or_markup">Max of Margin or Markup</SelectItem>
-                <SelectItem value="markup_first">Markup First</SelectItem>
-                <SelectItem value="margin_first">Margin First</SelectItem>
+                <SelectItem value="max_of_margin_or_markup" data-testid="global-pricing-hierarchy-max">Max of Margin or Markup</SelectItem>
+                <SelectItem value="markup_first" data-testid="global-pricing-hierarchy-markup">Markup First</SelectItem>
+                <SelectItem value="margin_first" data-testid="global-pricing-hierarchy-margin">Margin First</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1101,10 +1101,10 @@ function GlobalCalculationRulesTab({ settings, onChange, canEdit }) {
             <Select value={rules.overhead_application || 'material_and_labor'} onValueChange={(v) => updateRule('overhead_application', v)} disabled={!canEdit}>
               <SelectTrigger className="h-8 text-sm" data-testid="global-overhead-application"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="material_and_labor">Material + Labor</SelectItem>
-                <SelectItem value="labor_only">Labor Only</SelectItem>
-                <SelectItem value="material_only">Material Only</SelectItem>
-                <SelectItem value="none">No Overhead</SelectItem>
+                <SelectItem value="material_and_labor" data-testid="global-overhead-material-labor">Material + Labor</SelectItem>
+                <SelectItem value="labor_only" data-testid="global-overhead-labor">Labor Only</SelectItem>
+                <SelectItem value="material_only" data-testid="global-overhead-material">Material Only</SelectItem>
+                <SelectItem value="none" data-testid="global-overhead-none">No Overhead</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1113,9 +1113,9 @@ function GlobalCalculationRulesTab({ settings, onChange, canEdit }) {
             <Select value={rules.waste_application || 'material_only'} onValueChange={(v) => updateRule('waste_application', v)} disabled={!canEdit}>
               <SelectTrigger className="h-8 text-sm" data-testid="global-waste-application"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="material_only">Material Only</SelectItem>
-                <SelectItem value="all_materials">All Material Components</SelectItem>
-                <SelectItem value="none">No Waste</SelectItem>
+                <SelectItem value="material_only" data-testid="global-waste-material">Material Only</SelectItem>
+                <SelectItem value="all_materials" data-testid="global-waste-all">All Material Components</SelectItem>
+                <SelectItem value="none" data-testid="global-waste-none">No Waste</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1124,9 +1124,9 @@ function GlobalCalculationRulesTab({ settings, onChange, canEdit }) {
             <Select value={rules.rush_application || 'multiply_total'} onValueChange={(v) => updateRule('rush_application', v)} disabled={!canEdit}>
               <SelectTrigger className="h-8 text-sm" data-testid="global-rush-application"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="multiply_total">Multiply Total</SelectItem>
-                <SelectItem value="add_flat">Add Flat Fee</SelectItem>
-                <SelectItem value="none">No Rush Adjustment</SelectItem>
+                <SelectItem value="multiply_total" data-testid="global-rush-multiply">Multiply Total</SelectItem>
+                <SelectItem value="add_flat" data-testid="global-rush-flat">Add Flat Fee</SelectItem>
+                <SelectItem value="none" data-testid="global-rush-none">No Rush Adjustment</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1157,9 +1157,9 @@ function GlobalCalculationRulesTab({ settings, onChange, canEdit }) {
             <Select value={rules.fallback_warning_behavior || 'warn'} onValueChange={(v) => updateRule('fallback_warning_behavior', v)} disabled={!canEdit}>
               <SelectTrigger className="h-8 text-sm" data-testid="global-fallback-warning"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="warn">Warn</SelectItem>
-                <SelectItem value="block">Block</SelectItem>
-                <SelectItem value="silent">Silent</SelectItem>
+                <SelectItem value="warn" data-testid="global-fallback-warn">Warn</SelectItem>
+                <SelectItem value="block" data-testid="global-fallback-block">Block</SelectItem>
+                <SelectItem value="silent" data-testid="global-fallback-silent">Silent</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1260,7 +1260,7 @@ function ReviewTestingPanel({ materials, settings }) {
   const margin = manualPrice ? ((profit / manualPrice) * 100) : 0;
 
   return (
-    <div className="space-y-4" data-testid="review-testing-tab">
+    <div className="space-y-4" data-testid="review-tab">
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base text-gray-900">Review / Testing Panel</CardTitle>

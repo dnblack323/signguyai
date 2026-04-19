@@ -1003,6 +1003,14 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
   - Invoice Line Items: Verified fallback chain (job_items → line_items → subtotal → quote.total)
 - **Testing:** 14/14 backend tests passed, 100% frontend verification (iteration_70)
 
+### Session: April 19, 2026
+- **Pricing Foundation Phase:** Extended Pricing Foundation as the single source of truth (general defaults, materials, hardware/accessories, labor rates, category rule containers, AI rules, benchmarks, global calculation rules, review panel)
+- **Compatibility Surfaces:** Pricing Settings + Materials Admin converted to compatibility pages linking to Pricing Foundation; Pricing Setup clarified as historical import/analysis only
+- **Backend Pricing Defaults Expanded:** Added hardware/accessories, labor rates, AI/benchmark/global rule structures, expanded category containers (Digital Print, Cut Vinyl, Rigid Signs, Banners, Vehicle Wraps, Apparel, Services, Custom), and benchmark ranges
+- **Pricing Calculator:** Displays Pricing Foundation default summary
+- **Routing:** Added explicit routes for /pricing-settings and /materials-admin
+- **Testing:** Manual API save/load via curl + UI verification via Playwright screenshots
+
 ### Session: March 18, 2026
 - **Founders Edition Only Billing:** Simplified entire billing system from multi-tier (9 plans, 3 product lines) to Founders-only ($99/mo, $594/yr). All other tiers archived.
 - **Founders Plan Config:** Created `/app/backend/config/founders_plan.py` as single source of truth
