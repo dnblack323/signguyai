@@ -74,6 +74,12 @@ const mobileNavItems = [
     ]
   },
   { 
+    id: 'financials', label: 'Financials', icon: DollarSign, path: '/financials',
+    children: [
+      { label: 'Daily Sales & Expenses', path: '/financials' },
+    ]
+  },
+  { 
     id: 'productivity', label: 'Productivity', icon: BarChart3, path: '/productivity',
     children: [
       { label: 'Dashboard', path: '/productivity?view=dashboard' },
