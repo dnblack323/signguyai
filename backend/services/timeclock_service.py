@@ -24,6 +24,45 @@ def _date_bounds(day_str: str) -> tuple[str, str]:
     return f"{day_str}T00:00:00", f"{day_str}T23:59:59"
 
 
+STALE_SHIFT_HOURS = 18
+
+
+async def _auto_close_stale_shift(db, shift: dict) -> bool:
+    """If a shift has been open longer than STALE_SHIFT_HOURS, auto-close it.
+    Returns True if the shift was closed (i.e., was stale)."""
+    if not shift:
+        return False
+    clock_in = _parse_iso(shift.get("clock_in"))
+    if not clock_in:
+        return False
+    age = datetime.now(timezone.utc) - clock_in
+    if age <= timedelta(hours=STALE_SHIFT_HOURS):
+        return False
+    # Cap clock_out at clock_in + 8h to avoid absurd totals from orphaned shifts
+    synthetic_clock_out = (clock_in + timedelta(hours=8)).isoformat()
+    updated_shift = {
+        **shift,
+        "clock_out": synthetic_clock_out,
+        "status": "finished",
+        "current_break_start": None,
+        "updated_at": _now_iso(),
+        "auto_closed": True,
+    }
+    updated_shift.update(calculate_shift_metrics(updated_shift))
+    await db.timeclock_shifts.update_one({"id": shift["id"]}, {"$set": updated_shift})
+    return True
+
+
+async def _cleanup_stale_open_shifts(db, tenant_id: str, employee_id: str) -> None:
+    """Auto-close all stale open shifts for this employee."""
+    cursor = db.timeclock_shifts.find(
+        {"tenant_id": tenant_id, "employee_id": employee_id, "status": {"$in": ["working", "on_break"]}},
+        {"_id": 0}
+    )
+    async for shift in cursor:
+        await _auto_close_stale_shift(db, shift)
+
+
 def calculate_shift_metrics(shift: dict) -> dict:
     clock_in = _parse_iso(shift.get("clock_in"))
     clock_out = _parse_iso(shift.get("clock_out")) or datetime.now(timezone.utc)
@@ -138,6 +177,9 @@ async def record_timeclock_action(db, tenant_id: str, employee_id: str, action: 
     if action not in valid_actions:
         raise ValueError(f"Invalid action: {action}")
 
+    # Defensive: auto-close any stale open shifts from prior days before evaluating state
+    await _cleanup_stale_open_shifts(db, tenant_id, employee_id)
+
     # Find any open shift for this employee (regardless of date) to handle timezone boundary
     open_shift = await db.timeclock_shifts.find_one(
         {"tenant_id": tenant_id, "employee_id": employee_id, "status": {"$in": ["working", "on_break"]}},
@@ -221,6 +263,9 @@ async def record_timeclock_action(db, tenant_id: str, employee_id: str, action: 
 
 
 async def get_timeclock_status(db, tenant_id: str, employee_id: str) -> dict:
+    # Defensive: auto-close any stale open shifts from prior days
+    await _cleanup_stale_open_shifts(db, tenant_id, employee_id)
+
     # Primary: check for any open shift (survives timezone boundary)
     open_shift = await db.timeclock_shifts.find_one(
         {"tenant_id": tenant_id, "employee_id": employee_id, "status": {"$in": ["working", "on_break"]}},

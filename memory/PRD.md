@@ -1,7 +1,7 @@
 # SignGuy AI - Product Requirements Document
 
-> **Last Updated:** April 13, 2026
-> **Version:** 6.9
+> **Last Updated:** April 19, 2026
+> **Version:** 7.0
 
 ---
 
@@ -18,6 +18,13 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ---
 
 ## What's Been Implemented
+
+### Session: Apr 2026 (TimeClock Stale Shift Auto-Close — P0 Bugfix)
+- Fixed TimeClock incorrectly showing employees as "Working" on selection, caused by orphaned open shifts in the DB
+- Added `STALE_SHIFT_HOURS = 18` threshold in `/app/backend/services/timeclock_service.py`
+- New helpers: `_auto_close_stale_shift()` and `_cleanup_stale_open_shifts()` — any shift open longer than 18h is auto-closed with `clock_out = clock_in + 8h` cap, `status=finished`, `auto_closed=true` flag, and recomputed metrics
+- `get_timeclock_status()` and `record_timeclock_action()` both run the cleanup defensively before evaluating state
+- Verified via `/app/backend/tests/test_timeclock_stale.py`: stale shifts auto-close and return `not_started`; fresh shifts (<18h) remain `working`
 
 ### Session: Feb 2026 (BUBBLE Documentation Update)
 - Updated all four `BUBBLE_*.md` documentation files to reflect the current codebase state:
