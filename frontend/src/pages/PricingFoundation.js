@@ -65,6 +65,49 @@ const AI_FALLBACK_OPTIONS = [
   { value: 'block', label: 'Block fallback' },
 ];
 
+const CUT_VINYL_USE_TYPES = [
+  { value: 'indoor', label: 'Indoor' },
+  { value: 'outdoor', label: 'Outdoor' },
+  { value: 'wall', label: 'Wall' },
+  { value: 'glass_window', label: 'Glass / Window' },
+  { value: 'vehicle', label: 'Vehicle' },
+  { value: 'specialty', label: 'Specialty' },
+];
+
+const CUT_VINYL_WEEDING_LEVELS = [
+  { value: 'simple', label: 'Simple' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'complex', label: 'Complex' },
+  { value: 'extreme', label: 'Extreme' },
+];
+
+const CUT_VINYL_DESIGN_LEVELS = [
+  { value: 'simple', label: 'Simple' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'complex', label: 'Complex' },
+  { value: 'extreme', label: 'Extreme' },
+];
+
+const CUT_VINYL_INSTALL_LEVELS = [
+  { value: 'easy', label: 'Easy' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'difficult', label: 'Difficult' },
+  { value: 'extreme', label: 'Extreme' },
+];
+
+const CUT_VINYL_SURFACE_TYPES = [
+  { value: 'flat_smooth', label: 'Flat Smooth' },
+  { value: 'glass_window', label: 'Glass / Window' },
+  { value: 'vehicle', label: 'Vehicle' },
+  { value: 'textured_rough', label: 'Textured / Rough' },
+  { value: 'curved_awkward', label: 'Curved / Awkward' },
+];
+
+const CUT_VINYL_UNIT_OPTIONS = [
+  { value: 'inches', label: 'Inches' },
+  { value: 'feet', label: 'Feet' },
+];
+
 const CATEGORY_DEFS = [
   { key: 'digital_print', label: 'Digital Print', laborField: 'default_labor_hours_per_sqft', laborLabel: 'Labor Hours / Sq Ft' },
   { key: 'cut_vinyl', label: 'Cut Vinyl', laborField: 'default_labor_hours_per_sqft', laborLabel: 'Labor Hours / Sq Ft' },
@@ -661,6 +704,7 @@ function CategoryRulesTab({ settings, onChange, canEdit, materials }) {
   const dpLaminateOptions = (materials || []).filter((m) => (
     m.category === 'laminate'
   ));
+  const cvVinylOptions = (materials || []).filter((m) => m.category === 'cut_vinyl');
 
   return (
     <div className="space-y-3" data-testid="category-rules-tab">
@@ -684,6 +728,16 @@ function CategoryRulesTab({ settings, onChange, canEdit, materials }) {
         ];
         const updateDpTier = (idx, field, value) => {
           const next = dpTiers.map((tier, i) => (i === idx ? { ...tier, [field]: value } : tier));
+          setCatField(def.key, 'quantity_discounts', next);
+        };
+        const cvTiers = cat.quantity_discounts || [
+          { min_qty: 1, max_qty: 5, discount_percent: 0 },
+          { min_qty: 6, max_qty: 24, discount_percent: 5 },
+          { min_qty: 25, max_qty: 99, discount_percent: 10 },
+          { min_qty: 100, max_qty: null, discount_percent: 15 },
+        ];
+        const updateCvTier = (idx, field, value) => {
+          const next = cvTiers.map((tier, i) => (i === idx ? { ...tier, [field]: value } : tier));
           setCatField(def.key, 'quantity_discounts', next);
         };
         return (
@@ -933,6 +987,180 @@ function CategoryRulesTab({ settings, onChange, canEdit, materials }) {
                         <Input type="number" className="h-7 text-xs" value={tier.min_qty ?? ''} onChange={(e) => updateDpTier(idx, 'min_qty', n(e.target.value))} data-testid={`digital-print-tier-${idx}-min`} disabled={!canEdit} />
                         <Input type="number" className="h-7 text-xs" value={tier.max_qty ?? ''} onChange={(e) => updateDpTier(idx, 'max_qty', e.target.value === '' ? null : n(e.target.value))} data-testid={`digital-print-tier-${idx}-max`} disabled={!canEdit} />
                         <Input type="number" className="h-7 text-xs" value={tier.discount_percent ?? ''} onChange={(e) => updateDpTier(idx, 'discount_percent', n(e.target.value))} data-testid={`digital-print-tier-${idx}-discount`} disabled={!canEdit} />
+                        <div className="text-xs text-gray-400 flex items-center">%</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {def.key === 'cut_vinyl' && (
+                <div className="space-y-4 border rounded-lg p-3 bg-slate-50" data-testid="cut-vinyl-category-defaults">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Vinyl Type</Label>
+                      <Select value={cat.default_vinyl_type_key || ''} onValueChange={(v) => setCatField(def.key, 'default_vinyl_type_key', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="cut-vinyl-default-vinyl">
+                          <SelectValue placeholder="Select vinyl" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {cvVinylOptions.map((m) => (
+                            <SelectItem key={m.key || m.id} value={m.key || m.id}>{m.name || m.key}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Use Type</Label>
+                      <Select value={cat.default_use_type || 'indoor'} onValueChange={(v) => setCatField(def.key, 'default_use_type', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="cut-vinyl-default-use-type">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CUT_VINYL_USE_TYPES.map((t) => (
+                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Unit of Measure</Label>
+                      <Select value={cat.default_unit_of_measure || 'inches'} onValueChange={(v) => setCatField(def.key, 'default_unit_of_measure', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="cut-vinyl-default-unit">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CUT_VINYL_UNIT_OPTIONS.map((t) => (
+                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Weeding</Label>
+                      <Select value={cat.default_weeding_complexity || 'simple'} onValueChange={(v) => setCatField(def.key, 'default_weeding_complexity', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="cut-vinyl-default-weeding">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CUT_VINYL_WEEDING_LEVELS.map((t) => (
+                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Design Complexity</Label>
+                      <Select value={cat.default_design_complexity || 'simple'} onValueChange={(v) => setCatField(def.key, 'default_design_complexity', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="cut-vinyl-default-design">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CUT_VINYL_DESIGN_LEVELS.map((t) => (
+                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Install Complexity</Label>
+                      <Select value={cat.default_install_complexity || 'easy'} onValueChange={(v) => setCatField(def.key, 'default_install_complexity', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="cut-vinyl-default-install">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CUT_VINYL_INSTALL_LEVELS.map((t) => (
+                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Surface Type</Label>
+                      <Select value={cat.default_surface_type || 'flat_smooth'} onValueChange={(v) => setCatField(def.key, 'default_surface_type', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="cut-vinyl-default-surface">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CUT_VINYL_SURFACE_TYPES.map((t) => (
+                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default # Colors</Label>
+                      <Input type="number" className="h-8 text-xs" value={cat.default_number_of_colors ?? ''} onChange={(e) => setCatField(def.key, 'default_number_of_colors', n(e.target.value))} data-testid="cut-vinyl-default-colors" disabled={!canEdit} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <F label="Min Billable Area" value={cat.default_minimum_billable_area} onChg={(v) => setCatField(def.key, 'default_minimum_billable_area', v)} prefix="" suffix="sqft" testId="cut-vinyl-min-billable" />
+                    <F label="Min Sell Price" value={cat.default_minimum_sell_price} onChg={(v) => setCatField(def.key, 'default_minimum_sell_price', v)} testId="cut-vinyl-min-sell" />
+                    <F label="Cleanup Fee" value={cat.default_cleanup_fee} onChg={(v) => setCatField(def.key, 'default_cleanup_fee', v)} testId="cut-vinyl-cleanup-fee" />
+                    <F label="Design Time (hrs)" value={cat.default_design_time_hours} onChg={(v) => setCatField(def.key, 'default_design_time_hours', v)} prefix="" suffix="hrs" testId="cut-vinyl-design-time" />
+                    <F label="Waste %" value={cat.waste_percentage} onChg={(v) => setCatField(def.key, 'waste_percentage', v)} prefix="" suffix="%" testId="cut-vinyl-waste" />
+                    <F label="Prod Labor / Sq Ft" value={cat.production_labor_hours_per_sqft} onChg={(v) => setCatField(def.key, 'production_labor_hours_per_sqft', v)} prefix="" suffix="hrs" testId="cut-vinyl-prod-labor" />
+                    <F label="Min Prod Labor / Item" value={cat.min_production_labor_hours_per_item} onChg={(v) => setCatField(def.key, 'min_production_labor_hours_per_item', v)} prefix="" suffix="hrs" testId="cut-vinyl-min-prod-labor" />
+                    <F label="Install Hours / Sq Ft" value={cat.install_hours_per_sqft} onChg={(v) => setCatField(def.key, 'install_hours_per_sqft', v)} prefix="" suffix="hrs" testId="cut-vinyl-install-hours" />
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="flex items-center gap-2 pt-4">
+                      <Switch checked={cat.default_masking_required ?? true} onCheckedChange={(v) => setCatField(def.key, 'default_masking_required', v)} disabled={!canEdit} data-testid="cut-vinyl-default-masking" />
+                      <Label className="text-xs">Masking Required</Label>
+                    </div>
+                    <div className="flex items-center gap-2 pt-4">
+                      <Switch checked={cat.default_install_included ?? false} onCheckedChange={(v) => setCatField(def.key, 'default_install_included', v)} disabled={!canEdit} data-testid="cut-vinyl-default-install-included" />
+                      <Label className="text-xs">Default Install Included</Label>
+                    </div>
+                    <div className="flex items-center gap-2 pt-4">
+                      <Switch checked={cat.sell_method === 'max_of_rate_or_minimum'} onCheckedChange={(v) => setCatField(def.key, 'sell_method', v ? 'max_of_rate_or_minimum' : 'rate_only')} disabled={!canEdit} data-testid="cut-vinyl-sell-method" />
+                      <Label className="text-xs">Use max of rate/min</Label>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <F label="Color Mult: 1" value={cat.color_multipliers?.["1"]} onChg={(v) => setCatField(def.key, 'color_multipliers', { ...(cat.color_multipliers || {}), "1": v })} prefix="" suffix="x" testId="cut-vinyl-color-1" />
+                    <F label="Color Mult: 2" value={cat.color_multipliers?.["2"]} onChg={(v) => setCatField(def.key, 'color_multipliers', { ...(cat.color_multipliers || {}), "2": v })} prefix="" suffix="x" testId="cut-vinyl-color-2" />
+                    <F label="Color Mult: 3" value={cat.color_multipliers?.["3"]} onChg={(v) => setCatField(def.key, 'color_multipliers', { ...(cat.color_multipliers || {}), "3": v })} prefix="" suffix="x" testId="cut-vinyl-color-3" />
+                    <F label="Color Mult: 4+" value={cat.color_multipliers?.["4_plus"]} onChg={(v) => setCatField(def.key, 'color_multipliers', { ...(cat.color_multipliers || {}), "4_plus": v })} prefix="" suffix="x" testId="cut-vinyl-color-4" />
+                    <F label="Weeding: Simple" value={cat.weeding_multipliers?.simple} onChg={(v) => setCatField(def.key, 'weeding_multipliers', { ...(cat.weeding_multipliers || {}), simple: v })} prefix="" suffix="x" testId="cut-vinyl-weeding-simple" />
+                    <F label="Weeding: Medium" value={cat.weeding_multipliers?.medium} onChg={(v) => setCatField(def.key, 'weeding_multipliers', { ...(cat.weeding_multipliers || {}), medium: v })} prefix="" suffix="x" testId="cut-vinyl-weeding-medium" />
+                    <F label="Weeding: Complex" value={cat.weeding_multipliers?.complex} onChg={(v) => setCatField(def.key, 'weeding_multipliers', { ...(cat.weeding_multipliers || {}), complex: v })} prefix="" suffix="x" testId="cut-vinyl-weeding-complex" />
+                    <F label="Weeding: Extreme" value={cat.weeding_multipliers?.extreme} onChg={(v) => setCatField(def.key, 'weeding_multipliers', { ...(cat.weeding_multipliers || {}), extreme: v })} prefix="" suffix="x" testId="cut-vinyl-weeding-extreme" />
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <F label="Install: Easy" value={cat.install_complexity_multipliers?.easy} onChg={(v) => setCatField(def.key, 'install_complexity_multipliers', { ...(cat.install_complexity_multipliers || {}), easy: v })} prefix="" suffix="x" testId="cut-vinyl-install-easy" />
+                    <F label="Install: Medium" value={cat.install_complexity_multipliers?.medium} onChg={(v) => setCatField(def.key, 'install_complexity_multipliers', { ...(cat.install_complexity_multipliers || {}), medium: v })} prefix="" suffix="x" testId="cut-vinyl-install-medium" />
+                    <F label="Install: Difficult" value={cat.install_complexity_multipliers?.difficult} onChg={(v) => setCatField(def.key, 'install_complexity_multipliers', { ...(cat.install_complexity_multipliers || {}), difficult: v })} prefix="" suffix="x" testId="cut-vinyl-install-difficult" />
+                    <F label="Install: Extreme" value={cat.install_complexity_multipliers?.extreme} onChg={(v) => setCatField(def.key, 'install_complexity_multipliers', { ...(cat.install_complexity_multipliers || {}), extreme: v })} prefix="" suffix="x" testId="cut-vinyl-install-extreme" />
+                    <F label="Surface: Flat" value={cat.surface_multipliers?.flat_smooth} onChg={(v) => setCatField(def.key, 'surface_multipliers', { ...(cat.surface_multipliers || {}), flat_smooth: v })} prefix="" suffix="x" testId="cut-vinyl-surface-flat" />
+                    <F label="Surface: Glass" value={cat.surface_multipliers?.glass_window} onChg={(v) => setCatField(def.key, 'surface_multipliers', { ...(cat.surface_multipliers || {}), glass_window: v })} prefix="" suffix="x" testId="cut-vinyl-surface-glass" />
+                    <F label="Surface: Vehicle" value={cat.surface_multipliers?.vehicle} onChg={(v) => setCatField(def.key, 'surface_multipliers', { ...(cat.surface_multipliers || {}), vehicle: v })} prefix="" suffix="x" testId="cut-vinyl-surface-vehicle" />
+                    <F label="Surface: Textured" value={cat.surface_multipliers?.textured_rough} onChg={(v) => setCatField(def.key, 'surface_multipliers', { ...(cat.surface_multipliers || {}), textured_rough: v })} prefix="" suffix="x" testId="cut-vinyl-surface-textured" />
+                    <F label="Surface: Curved" value={cat.surface_multipliers?.curved_awkward} onChg={(v) => setCatField(def.key, 'surface_multipliers', { ...(cat.surface_multipliers || {}), curved_awkward: v })} prefix="" suffix="x" testId="cut-vinyl-surface-curved" />
+                    <F label="Use Type: Indoor" value={cat.use_type_multipliers?.indoor} onChg={(v) => setCatField(def.key, 'use_type_multipliers', { ...(cat.use_type_multipliers || {}), indoor: v })} prefix="" suffix="x" testId="cut-vinyl-use-indoor" />
+                    <F label="Use Type: Outdoor" value={cat.use_type_multipliers?.outdoor} onChg={(v) => setCatField(def.key, 'use_type_multipliers', { ...(cat.use_type_multipliers || {}), outdoor: v })} prefix="" suffix="x" testId="cut-vinyl-use-outdoor" />
+                    <F label="Use Type: Wall" value={cat.use_type_multipliers?.wall} onChg={(v) => setCatField(def.key, 'use_type_multipliers', { ...(cat.use_type_multipliers || {}), wall: v })} prefix="" suffix="x" testId="cut-vinyl-use-wall" />
+                    <F label="Use Type: Glass" value={cat.use_type_multipliers?.glass_window} onChg={(v) => setCatField(def.key, 'use_type_multipliers', { ...(cat.use_type_multipliers || {}), glass_window: v })} prefix="" suffix="x" testId="cut-vinyl-use-glass" />
+                    <F label="Use Type: Vehicle" value={cat.use_type_multipliers?.vehicle} onChg={(v) => setCatField(def.key, 'use_type_multipliers', { ...(cat.use_type_multipliers || {}), vehicle: v })} prefix="" suffix="x" testId="cut-vinyl-use-vehicle" />
+                    <F label="Use Type: Specialty" value={cat.use_type_multipliers?.specialty} onChg={(v) => setCatField(def.key, 'use_type_multipliers', { ...(cat.use_type_multipliers || {}), specialty: v })} prefix="" suffix="x" testId="cut-vinyl-use-specialty" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs text-gray-500">Quantity Discount Tiers</Label>
+                    <div className="grid grid-cols-4 gap-2 text-[11px] text-gray-500">
+                      <span>Min Qty</span>
+                      <span>Max Qty</span>
+                      <span>Discount %</span>
+                      <span></span>
+                    </div>
+                    {cvTiers.map((tier, idx) => (
+                      <div key={`cv-tier-${idx}`} className="grid grid-cols-4 gap-2">
+                        <Input type="number" className="h-7 text-xs" value={tier.min_qty ?? ''} onChange={(e) => updateCvTier(idx, 'min_qty', n(e.target.value))} data-testid={`cut-vinyl-tier-${idx}-min`} disabled={!canEdit} />
+                        <Input type="number" className="h-7 text-xs" value={tier.max_qty ?? ''} onChange={(e) => updateCvTier(idx, 'max_qty', e.target.value === '' ? null : n(e.target.value))} data-testid={`cut-vinyl-tier-${idx}-max`} disabled={!canEdit} />
+                        <Input type="number" className="h-7 text-xs" value={tier.discount_percent ?? ''} onChange={(e) => updateCvTier(idx, 'discount_percent', n(e.target.value))} data-testid={`cut-vinyl-tier-${idx}-discount`} disabled={!canEdit} />
                         <div className="text-xs text-gray-400 flex items-center">%</div>
                       </div>
                     ))}

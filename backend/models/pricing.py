@@ -87,7 +87,7 @@ class PricingDefaults(BaseModel):
         {"id": "aluminum-composite-cost", "key": "aluminum_composite", "name": "Aluminum Composite Cost Per Sq Ft", "category": "material", "cost_per_unit": 3.75, "unit_type": "sqft", "is_active": True},
         {"id": "foam-board-cost", "key": "foam_board", "name": "Foam Board Cost Per Sq Ft", "category": "material", "cost_per_unit": 2.15, "unit_type": "sqft", "is_active": True},
         {"id": "ink-cost", "key": "ink", "name": "Ink Cost Per Sq Ft", "category": "optional", "cost_per_unit": 0.35, "unit_type": "sqft", "is_active": True},
-        {"id": "transfer-tape-cost", "key": "transfer_tape", "name": "Transfer Tape Cost Per Sq Ft", "category": "optional", "cost_per_unit": 0.2, "unit_type": "sqft", "is_active": True},
+        {"id": "transfer-tape-cost", "key": "transfer_tape", "name": "Transfer Tape Cost Per Sq Ft", "category": "transfer_tape", "cost_per_unit": 0.35, "cost_per_sqft": 0.35, "unit_type": "sqft", "is_active": True},
         {"id": "apparel-blank-cost", "key": "apparel_blank", "name": "Apparel Blank Cost Per Item", "category": "material", "cost_per_unit": 5.0, "unit_type": "each", "is_active": True},
         {"id": "apparel-decoration-cost", "key": "apparel_decoration", "name": "Apparel Decoration Cost Per Print", "category": "material", "cost_per_unit": 2.5, "unit_type": "each", "is_active": True},
         {"id": "misc-material-cost", "key": "misc_material", "name": "Custom / Misc Material Cost Per Item", "category": "material", "cost_per_unit": 10.0, "unit_type": "each", "is_active": True},
@@ -110,6 +110,16 @@ class PricingDefaults(BaseModel):
         {"id": "dp-laminate-floor", "key": "laminate_floor", "name": "Floor Laminate", "category": "laminate", "cost_per_unit": 1.25, "cost_per_sqft": 1.25, "unit_type": "sqft", "compatible_categories": ["digital_print"], "is_active": True},
         {"id": "dp-laminate-uv", "key": "laminate_uv", "name": "UV Laminate", "category": "laminate", "cost_per_unit": 0.85, "cost_per_sqft": 0.85, "unit_type": "sqft", "compatible_categories": ["digital_print"], "is_active": True},
         {"id": "dp-laminate-specialty", "key": "laminate_specialty", "name": "Specialty / Custom Laminate", "category": "laminate", "cost_per_unit": 0.85, "cost_per_sqft": 0.85, "unit_type": "sqft", "compatible_categories": ["digital_print"], "is_active": True},
+        {"id": "cv-oracal-651", "key": "oracal_651", "name": "Oracal 651", "category": "cut_vinyl", "cost_per_unit": 1.25, "cost_per_sqft": 1.25, "sell_rate_per_sqft": 12.0, "unit_type": "sqft", "compatible_categories": ["cut_vinyl"], "is_active": True},
+        {"id": "cv-oracal-751", "key": "oracal_751", "name": "Oracal 751", "category": "cut_vinyl", "cost_per_unit": 2.5, "cost_per_sqft": 2.5, "sell_rate_per_sqft": 15.0, "unit_type": "sqft", "compatible_categories": ["cut_vinyl"], "is_active": True},
+        {"id": "cv-oracal-951", "key": "oracal_951", "name": "Oracal 951", "category": "cut_vinyl", "cost_per_unit": 2.5, "cost_per_sqft": 2.5, "sell_rate_per_sqft": 15.0, "unit_type": "sqft", "compatible_categories": ["cut_vinyl"], "is_active": True},
+        {"id": "cv-avery-hp750", "key": "avery_hp750", "name": "Avery HP750", "category": "cut_vinyl", "cost_per_unit": 2.5, "cost_per_sqft": 2.5, "sell_rate_per_sqft": 15.0, "unit_type": "sqft", "compatible_categories": ["cut_vinyl"], "is_active": True},
+        {"id": "cv-reflective", "key": "reflective_vinyl", "name": "Reflective Vinyl", "category": "cut_vinyl", "cost_per_unit": 4.5, "cost_per_sqft": 4.5, "sell_rate_per_sqft": 22.0, "unit_type": "sqft", "compatible_categories": ["cut_vinyl"], "is_active": True},
+        {"id": "cv-metallic", "key": "metallic_vinyl", "name": "Metallic Vinyl", "category": "cut_vinyl", "cost_per_unit": 4.5, "cost_per_sqft": 4.5, "sell_rate_per_sqft": 22.0, "unit_type": "sqft", "compatible_categories": ["cut_vinyl"], "is_active": True},
+        {"id": "cv-fluorescent", "key": "fluorescent_vinyl", "name": "Fluorescent Vinyl", "category": "cut_vinyl", "cost_per_unit": 4.5, "cost_per_sqft": 4.5, "sell_rate_per_sqft": 22.0, "unit_type": "sqft", "compatible_categories": ["cut_vinyl"], "is_active": True},
+        {"id": "cv-etched", "key": "etched_frost_vinyl", "name": "Etched / Frost Vinyl", "category": "cut_vinyl", "cost_per_unit": 4.5, "cost_per_sqft": 4.5, "sell_rate_per_sqft": 20.0, "unit_type": "sqft", "compatible_categories": ["cut_vinyl"], "is_active": True},
+        {"id": "cv-wall", "key": "wall_vinyl", "name": "Wall Vinyl", "category": "cut_vinyl", "cost_per_unit": 2.5, "cost_per_sqft": 2.5, "sell_rate_per_sqft": 15.0, "unit_type": "sqft", "compatible_categories": ["cut_vinyl"], "is_active": True},
+        {"id": "cv-specialty", "key": "specialty_custom_vinyl", "name": "Specialty / Custom Vinyl", "category": "cut_vinyl", "cost_per_unit": 4.5, "cost_per_sqft": 4.5, "sell_rate_per_sqft": 24.0, "unit_type": "sqft", "compatible_categories": ["cut_vinyl"], "is_active": True},
     ])
     hardware_accessories: List[Dict[str, Any]] = Field(default_factory=list)
     labor_rates: Dict[str, Any] = Field(default_factory=lambda: {
@@ -328,15 +338,86 @@ class PricingDefaults(BaseModel):
         },
         "cut_vinyl": {
             "label": "Cut Vinyl",
-            "default_labor_hours_per_sqft": 0.1,
+            "default_labor_hours_per_sqft": 0.2,
             "default_markup_multiplier": 2.3,
             "target_profit_margin_percent": 40.0,
-            "minimum_charge": 25.0,
-            "default_material_keys": ["vinyl", "transfer_tape"],
+            "minimum_charge": 20.0,
+            "default_material_keys": ["oracal_651", "transfer_tape"],
             "default_hardware_keys": [],
             "default_labor_types": ["production"],
             "sell_rate_defaults": {},
             "ai_prefill_overrides": {},
+            "default_vinyl_type_key": "oracal_651",
+            "available_vinyl_type_keys": [
+                "oracal_651",
+                "oracal_751",
+                "oracal_951",
+                "avery_hp750",
+                "reflective_vinyl",
+                "metallic_vinyl",
+                "fluorescent_vinyl",
+                "etched_frost_vinyl",
+                "wall_vinyl",
+                "specialty_custom_vinyl",
+            ],
+            "sell_method": "max_of_rate_or_minimum",
+            "default_masking_required": True,
+            "default_install_included": False,
+            "default_minimum_billable_area": 0.5,
+            "default_minimum_sell_price": 20.0,
+            "default_cleanup_fee": 20.0,
+            "default_design_time_hours": 0.5,
+            "default_use_type": "indoor",
+            "default_unit_of_measure": "inches",
+            "default_weeding_complexity": "simple",
+            "default_design_complexity": "simple",
+            "default_install_complexity": "easy",
+            "default_surface_type": "flat_smooth",
+            "default_number_of_colors": 1,
+            "waste_percentage": 10.0,
+            "production_labor_hours_per_sqft": 0.2,
+            "min_production_labor_hours_per_item": 0.25,
+            "install_hours_per_sqft": 0.06,
+            "transfer_tape_key": "transfer_tape",
+            "color_multipliers": {
+                "1": 1.0,
+                "2": 1.5,
+                "3": 2.0,
+                "4_plus": 2.5,
+            },
+            "weeding_multipliers": {
+                "simple": 1.0,
+                "medium": 1.25,
+                "complex": 1.5,
+                "extreme": 2.0,
+            },
+            "install_complexity_multipliers": {
+                "easy": 1.0,
+                "medium": 1.25,
+                "difficult": 1.5,
+                "extreme": 2.0,
+            },
+            "surface_multipliers": {
+                "flat_smooth": 1.0,
+                "glass_window": 1.1,
+                "vehicle": 1.25,
+                "textured_rough": 1.5,
+                "curved_awkward": 1.75,
+            },
+            "use_type_multipliers": {
+                "indoor": 1.0,
+                "outdoor": 1.05,
+                "wall": 1.05,
+                "glass_window": 1.1,
+                "vehicle": 1.15,
+                "specialty": 1.1,
+            },
+            "quantity_discounts": [
+                {"min_qty": 1, "max_qty": 5, "discount_percent": 0},
+                {"min_qty": 6, "max_qty": 24, "discount_percent": 5},
+                {"min_qty": 25, "max_qty": 99, "discount_percent": 10},
+                {"min_qty": 100, "max_qty": None, "discount_percent": 15},
+            ],
         },
         "apparel": {
             "label": "Apparel",
@@ -597,8 +678,12 @@ class JobItemPricingData(BaseModel):
     
     # Cut Vinyl
     vinyl_type: Optional[VinylType] = None
+    vinyl_type_key: Optional[str] = None
     vinyl_colors: List[str] = Field(default_factory=list)
     num_colors: int = 1
+    weeding_complexity: Optional[str] = None
+    masking_required: Optional[bool] = None
+    surface_type: Optional[str] = None
     
     # Digital Print
     print_media_key: Optional[str] = None

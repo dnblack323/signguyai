@@ -471,125 +471,168 @@ async def calculate_promotional(data: JobItemPricingData, quantity: float, defau
 
 
 async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate cut vinyl using tenant cost settings."""
+    """Calculate cut vinyl using Pricing Foundation defaults."""
     width = data.width_inches or 12
     height = data.length_inches or 12
-    sqft = (width * height) / 144
+    unit = (data.unit_of_measure or "inches").lower()
+    area_per_piece = (width * height) / 144 if unit != "feet" else (width * height)
 
-    vinyl_type = data.vinyl_type or "oracal_651"
-    material_cost_map = get_material_cost_map(defaults)
     category_config = get_category_pricing_config(defaults, "cut_vinyl")
+    min_billable = float(category_config.get("default_minimum_billable_area", 0.5) or 0.5)
+    billable_area_per_piece = max(area_per_piece, min_billable)
+    total_billable_area = billable_area_per_piece * quantity
 
-    vinyl_cost_per_sqft = material_cost_map.get("vinyl", 1.25)
-    transfer_tape_cost_per_sqft = material_cost_map.get("transfer_tape", 0)
-    color_count = max(data.num_colors or 1, 1)
-    material_cost = sqft * quantity * (vinyl_cost_per_sqft + (transfer_tape_cost_per_sqft * color_count))
+    waste_percent = float(category_config.get("waste_percentage", defaults.get("waste_percentage", 0)) or 0)
+    waste_adjusted_area = total_billable_area * (1 + (waste_percent / 100))
 
-    complexity = data.complexity or 1
-    labor_hours_per_sqft = float(category_config.get("default_labor_hours_per_sqft", 0.1) or 0)
-    complexity_multiplier = 1 + max(complexity - 1, 0) * 0.08
-    labor_hours = sqft * quantity * labor_hours_per_sqft * complexity_multiplier
-    production_rate = float(defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75)) or 0)
-    labor_cost = labor_hours * production_rate
+    default_vinyl_key = category_config.get("default_vinyl_type_key", "oracal_651")
+    vinyl_key = data.vinyl_type_key or (data.vinyl_type.value if data.vinyl_type else None) or default_vinyl_key
+    vinyl_material = find_material(defaults, vinyl_key)
+    vinyl_warning = ""
+    if not vinyl_material:
+        vinyl_warning = f"Missing vinyl type: {vinyl_key}. Using default."
+        vinyl_key = default_vinyl_key
+        vinyl_material = find_material(defaults, vinyl_key)
 
-    include_setup = getattr(data, 'include_setup_fee', False)
-    setup_fee = data.setup_fee or 0
-    if include_setup and setup_fee == 0:
-        setup_fee = defaults.get("setup_fee_vinyl", 15.0)
-    elif not include_setup:
-        setup_fee = 0
+    vinyl_cost_per_sqft = get_material_cost_per_sqft(defaults, vinyl_key)
+    vinyl_sell_rate = get_material_sell_rate(defaults, vinyl_key)
 
-    pre_overhead_total = material_cost + labor_cost  # setup_fee added flat after markup
-    overhead_cost = calculate_overhead_cost(pre_overhead_total, labor_hours, defaults, category_config)
-    suggested_price = resolve_selling_price(
-        pre_overhead_total + overhead_cost,
-        category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5)),
-        category_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40.0)),
+    masking_required = data.masking_required
+    if masking_required is None:
+        masking_required = bool(category_config.get("default_masking_required", True))
+    transfer_tape_key = category_config.get("transfer_tape_key", "transfer_tape")
+    transfer_tape_cost_per_sqft = get_material_cost_per_sqft(defaults, transfer_tape_key)
+    transfer_tape_cost = waste_adjusted_area * transfer_tape_cost_per_sqft if masking_required else 0
+
+    vinyl_cost = waste_adjusted_area * vinyl_cost_per_sqft
+    material_cost = vinyl_cost + transfer_tape_cost
+
+    base_hours_per_sqft = float(category_config.get("production_labor_hours_per_sqft", category_config.get("default_labor_hours_per_sqft", 0.2)) or 0)
+    min_prod_hours = float(category_config.get("min_production_labor_hours_per_item", 0.25) or 0)
+    per_piece_hours = billable_area_per_piece * base_hours_per_sqft
+    per_piece_hours = max(per_piece_hours, min_prod_hours)
+    production_hours = per_piece_hours * quantity
+
+    color_count = max(int(data.num_colors or category_config.get("default_number_of_colors", 1) or 1), 1)
+    color_multipliers = category_config.get("color_multipliers", {})
+    if color_count >= 4:
+        color_mult = float(color_multipliers.get("4_plus", 2.5) or 2.5)
+        manual_review = True
+    else:
+        color_mult = float(color_multipliers.get(str(color_count), 1.0) or 1.0)
+        manual_review = False
+
+    weeding_complexity = data.weeding_complexity or category_config.get("default_weeding_complexity", "simple")
+    weeding_mult = float(category_config.get("weeding_multipliers", {}).get(weeding_complexity, 1.0) or 1.0)
+
+    production_hours *= color_mult * weeding_mult
+
+    design_hours = 0
+    if data.artwork_ready:
+        design_hours = 0
+    elif data.artwork_needed or data.artwork_needed is None:
+        base_design_time = float(category_config.get("default_design_time_hours", 0.5) or 0)
+        design_complexity = data.design_complexity or category_config.get("default_design_complexity", "simple")
+        design_mult = {
+            "simple": 1.0,
+            "medium": 1.25,
+            "complex": 1.5,
+            "extreme": 2.0,
+        }.get(design_complexity, 1.0)
+        design_hours = base_design_time * design_mult
+
+    labor_rates = defaults.get("labor_rates", {})
+    production_rate = float(labor_rates.get("production", {}).get("hourly_rate", defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75))) or 0)
+    design_rate = float(labor_rates.get("design", {}).get("hourly_rate", defaults.get("design_hourly_rate", 85)) or 0)
+    install_rate = float(labor_rates.get("installation", {}).get("hourly_rate", defaults.get("install_hourly_rate", 95)) or 0)
+
+    production_cost = production_hours * production_rate
+    design_cost = design_hours * design_rate
+
+    file_cleanup_fee = 0
+    if data.file_cleanup_needed:
+        file_cleanup_fee = float(category_config.get("default_cleanup_fee", defaults.get("file_cleanup_fee_default", 0)) or 0)
+
+    install_hours = 0
+    install_cost = 0
+    if data.install_required:
+        base_install_hours = total_billable_area * float(category_config.get("install_hours_per_sqft", 0.06) or 0)
+        install_complexity = data.install_complexity or category_config.get("default_install_complexity", "easy")
+        install_mult = float(category_config.get("install_complexity_multipliers", {}).get(install_complexity, 1.0) or 1.0)
+        surface_type = data.surface_type or category_config.get("default_surface_type", "flat_smooth")
+        surface_mult = float(category_config.get("surface_multipliers", {}).get(surface_type, 1.0) or 1.0)
+        install_hours = base_install_hours * install_mult * surface_mult
+        install_min = float(defaults.get("minimum_install_charge", 0) or 0)
+        install_cost = max(install_min, install_hours * install_rate)
+    else:
+        surface_type = data.surface_type or category_config.get("default_surface_type", "flat_smooth")
+
+    labor_cost = production_cost + design_cost + install_cost
+
+    overhead_cost = calculate_overhead_cost(
+        material_cost + labor_cost,
+        production_hours + design_hours + install_hours,
+        defaults,
+        category_config,
     )
-    # Setup fee added FLAT — not marked up
-    suggested_price += setup_fee
-    suggested_price = max(
-        suggested_price,
-        float(category_config.get("minimum_charge", defaults.get("minimum_vinyl_charge", 5.0)) or 5.0),
-    )
-    suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order)
 
-    return create_pricing_result(
-        material_cost=material_cost,
-        labor_cost=labor_cost,
-        setup_cost=setup_fee,
-        additional_costs=0,
-        overhead_cost=overhead_cost,
-        suggested_price=suggested_price,
-        estimated_labor_minutes=labor_hours * 60,
-        breakdown={
-            "dimensions": f"{width}\" x {height}\"",
-            "square_feet": round(sqft, 2),
-            "vinyl_type": vinyl_type,
-            "vinyl_cost_per_sqft": vinyl_cost_per_sqft,
-            "transfer_tape_cost_per_sqft": transfer_tape_cost_per_sqft,
-            "labor_hours": round(labor_hours, 2),
-            "production_rate": production_rate,
-            "overhead_cost": round(overhead_cost, 2),
-            "setup_fee": setup_fee,
-            "setup_included": include_setup,
-            "price_per_sqft": round(suggested_price / sqft, 2) if sqft > 0 else 0
-        }
-    )
+    base_sell_rate = float(vinyl_sell_rate or category_config.get("sell_rate_defaults", {}).get("base_rate", 12.0) or 12.0)
+    sell_base = base_sell_rate * total_billable_area * color_mult * weeding_mult
 
+    use_type = data.use_type or category_config.get("default_use_type", "indoor")
+    use_type_mult = float(category_config.get("use_type_multipliers", {}).get(use_type, 1.0) or 1.0)
+    sell_base *= use_type_mult
 
-async def calculate_services(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate services using tenant labor and pricing settings."""
-    category_config = get_category_pricing_config(defaults, "services")
-    material_cost_map = get_material_cost_map(defaults)
-    hours = data.estimated_hours or float(category_config.get("default_labor_hours", 1.0) or 1.0)
+    min_sell = float(category_config.get("default_minimum_sell_price", category_config.get("minimum_charge", 20.0)) or 20.0)
+    if category_config.get("sell_method") == "max_of_rate_or_minimum":
+        sell_base = max(sell_base, min_sell)
 
-    production_rate = float(defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75)) or 0)
-    service_rates = {
-        "design": float(defaults.get("design_hourly_rate", production_rate) or production_rate),
-        "installation": float(defaults.get("installer_hourly_rate", defaults.get("install_hourly_rate", production_rate)) or production_rate),
-        "removal": float(defaults.get("installer_hourly_rate", defaults.get("install_hourly_rate", production_rate)) or production_rate),
-        "site_survey": float(defaults.get("installer_hourly_rate", defaults.get("install_hourly_rate", production_rate)) or production_rate),
-        "consultation": production_rate,
-        "travel": float(defaults.get("installer_hourly_rate", defaults.get("install_hourly_rate", production_rate)) or production_rate),
-        "other_labor": production_rate,
-    }
+    discount_percent = 0
+    for tier in category_config.get("quantity_discounts", []):
+        min_qty = float(tier.get("min_qty", 0) or 0)
+        max_qty = tier.get("max_qty")
+        if quantity >= min_qty and (max_qty is None or quantity <= float(max_qty)):
+            discount_percent = float(tier.get("discount_percent", 0) or 0)
+            break
+    sell_base = sell_base * (1 - (discount_percent / 100))
 
-    service_type = data.service_type or "other_labor"
-    rate = data.hourly_rate_override or service_rates.get(service_type, production_rate)
-
-    labor_cost = rate * hours * quantity
-    material_cost = (data.unit_cost or 0) * quantity
-    if material_cost == 0 and service_type in ["installation", "removal", "other_labor"]:
-        material_cost = material_cost_map.get("misc_material", 0)
-
-    pre_overhead_total = material_cost + labor_cost
-    overhead_cost = calculate_overhead_cost(pre_overhead_total, hours * quantity, defaults, category_config)
-    suggested_price = resolve_selling_price(
-        pre_overhead_total + overhead_cost,
-        category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5)),
-        category_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40.0)),
-    )
-    suggested_price = max(
-        suggested_price,
-        float(category_config.get("minimum_charge", defaults.get("minimum_service_charge", 0)) or 0),
-    )
-    suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order)
+    suggested_price = sell_base + design_cost + install_cost + file_cleanup_fee
+    rush_multiplier = 1 + (float(defaults.get("rush_fee_percentage", 0) or 0) / 100)
+    suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order, rush_multiplier)
 
     return create_pricing_result(
         material_cost=material_cost,
         labor_cost=labor_cost,
         setup_cost=0,
-        additional_costs=0,
+        additional_costs=file_cleanup_fee,
         overhead_cost=overhead_cost,
         suggested_price=suggested_price,
-        estimated_labor_minutes=hours * 60,
+        estimated_labor_minutes=(production_hours + design_hours + install_hours) * 60,
         breakdown={
-            "service_type": service_type,
-            "hourly_rate": rate,
-            "hours": hours,
-            "quantity": quantity,
-            "overhead_cost": round(overhead_cost, 2),
+            "dimensions": f"{width}\" x {height}\"",
+            "unit_of_measure": unit,
+            "area_per_piece": round(area_per_piece, 2),
+            "billable_area_per_piece": round(billable_area_per_piece, 2),
+            "total_billable_area": round(total_billable_area, 2),
+            "waste_adjusted_area": round(waste_adjusted_area, 2),
+            "vinyl_key": vinyl_key,
+            "vinyl_warning": vinyl_warning,
+            "vinyl_cost_per_sqft": vinyl_cost_per_sqft,
+            "transfer_tape_cost_per_sqft": transfer_tape_cost_per_sqft,
+            "masking_required": masking_required,
+            "color_count": color_count,
+            "manual_review": manual_review,
+            "color_multiplier": color_mult,
+            "weeding_complexity": weeding_complexity,
+            "weeding_multiplier": weeding_mult,
+            "production_hours": round(production_hours, 2),
+            "design_hours": round(design_hours, 2),
+            "install_hours": round(install_hours, 2),
+            "use_type": use_type,
+            "use_type_multiplier": use_type_mult,
+            "surface_type": surface_type,
+            "quantity_discount_percent": discount_percent,
+            "file_cleanup_fee": round(file_cleanup_fee, 2),
         }
     )
 
@@ -1133,6 +1176,43 @@ async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, 
             "setup_fee": setup_fee,
             "setup_included": include_setup,
             "total_per_vehicle": round(suggested_price / quantity, 2) if quantity > 0 else 0
+        }
+    )
+
+
+async def calculate_services(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
+    """Calculate service-based pricing."""
+    category_config = get_category_pricing_config(defaults, "services")
+    estimated_hours = float(data.estimated_hours or 1)
+    num_workers = max(int(data.num_workers or 1), 1)
+    labor_hours = estimated_hours * num_workers
+    hourly_rate = float(data.hourly_rate_override or defaults.get("hourly_rate", 75) or 0)
+
+    labor_cost = labor_hours * hourly_rate
+    travel_cost = float(data.distance_miles or 0) * float(defaults.get("mileage_rate", 0) or 0)
+    material_cost = travel_cost
+
+    overhead_cost = calculate_overhead_cost(material_cost + labor_cost, labor_hours, defaults, category_config)
+    suggested_price = resolve_selling_price(
+        material_cost + labor_cost + overhead_cost,
+        category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5)),
+        category_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40.0)),
+    )
+    suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order)
+
+    return create_pricing_result(
+        material_cost=material_cost,
+        labor_cost=labor_cost,
+        setup_cost=0,
+        additional_costs=0,
+        overhead_cost=overhead_cost,
+        suggested_price=suggested_price,
+        estimated_labor_minutes=labor_hours * 60,
+        breakdown={
+            "estimated_hours": estimated_hours,
+            "num_workers": num_workers,
+            "hourly_rate": hourly_rate,
+            "travel_cost": round(travel_cost, 2),
         }
     )
 

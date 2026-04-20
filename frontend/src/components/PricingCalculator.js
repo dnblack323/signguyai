@@ -48,12 +48,16 @@ const SERVICE_TYPES = [
 
 // Vinyl types
 const VINYL_TYPES = [
-  { id: 'oracal_651', name: 'Oracal 651 (Intermediate)' },
-  { id: 'oracal_751', name: 'Oracal 751 (High Performance)' },
-  { id: 'oracal_951', name: 'Oracal 951 (Premium Cast)' },
+  { id: 'oracal_651', name: 'Oracal 651' },
+  { id: 'oracal_751', name: 'Oracal 751' },
+  { id: 'oracal_951', name: 'Oracal 951' },
   { id: 'avery_hp750', name: 'Avery HP750' },
-  { id: 'reflective', name: 'Reflective Vinyl' },
-  { id: 'specialty', name: 'Specialty Vinyl' },
+  { id: 'reflective_vinyl', name: 'Reflective Vinyl' },
+  { id: 'metallic_vinyl', name: 'Metallic Vinyl' },
+  { id: 'fluorescent_vinyl', name: 'Fluorescent Vinyl' },
+  { id: 'etched_frost_vinyl', name: 'Etched / Frost Vinyl' },
+  { id: 'wall_vinyl', name: 'Wall Vinyl' },
+  { id: 'specialty_custom_vinyl', name: 'Specialty / Custom Vinyl' },
 ];
 
 // Print materials
@@ -94,6 +98,37 @@ const USE_TYPES = [
   { value: 'window', label: 'Window' },
   { value: 'wall', label: 'Wall' },
   { value: 'backlit', label: 'Backlit' },
+];
+
+const CUT_VINYL_USE_TYPES = [
+  { value: 'indoor', label: 'Indoor' },
+  { value: 'outdoor', label: 'Outdoor' },
+  { value: 'wall', label: 'Wall' },
+  { value: 'glass_window', label: 'Glass / Window' },
+  { value: 'vehicle', label: 'Vehicle' },
+  { value: 'specialty', label: 'Specialty' },
+];
+
+const CUT_VINYL_WEEDING_LEVELS = [
+  { value: 'simple', label: 'Simple' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'complex', label: 'Complex' },
+  { value: 'extreme', label: 'Extreme' },
+];
+
+const CUT_VINYL_SURFACE_TYPES = [
+  { value: 'flat_smooth', label: 'Flat Smooth' },
+  { value: 'glass_window', label: 'Glass / Window' },
+  { value: 'vehicle', label: 'Vehicle' },
+  { value: 'textured_rough', label: 'Textured / Rough' },
+  { value: 'curved_awkward', label: 'Curved / Awkward' },
+];
+
+const CUT_VINYL_COLOR_OPTIONS = [
+  { value: 1, label: '1 Color' },
+  { value: 2, label: '2 Colors' },
+  { value: 3, label: '3 Colors' },
+  { value: 4, label: '4+ Colors' },
 ];
 
 const DESIGN_COMPLEXITY_LEVELS = [
@@ -231,6 +266,7 @@ export default function PricingCalculator({
   const [pricingData, setPricingData] = useState(initialData || {});
   const [foundationDefaults, setFoundationDefaults] = useState(null);
   const [digitalPrintSources, setDigitalPrintSources] = useState({});
+  const [cutVinylSources, setCutVinylSources] = useState({});
   const [includeSetupFee, setIncludeSetupFee] = useState(false);  // Setup fee is opt-in
   // Initialize calculation with zeros instead of null
   const [calculation, setCalculation] = useState({
@@ -434,6 +470,116 @@ export default function PricingCalculator({
       setDigitalPrintSources(nextSources);
     }
   }, [category, foundationDefaults, orderItemName, description, pricingData.use_type]);
+
+  const getCutVinylCategoryDefaults = () => (
+    foundationDefaults?.category_defaults?.cut_vinyl || {}
+  );
+
+  const getCutVinylOptions = () => {
+    const materials = foundationDefaults?.materials || [];
+    const options = materials.filter((m) => m.category === 'cut_vinyl');
+    if (options.length) return options;
+    return VINYL_TYPES.map((item) => ({ key: item.id, name: item.name }));
+  };
+
+  const updateCutVinylField = (field, value) => {
+    setPricingData((prev) => ({ ...prev, [field]: value }));
+    setCutVinylSources((prev) => ({ ...prev, [field]: 'user' }));
+  };
+
+  const resolveCutVinylDefaults = () => {
+    const catDefaults = getCutVinylCategoryDefaults();
+    return {
+      unit_of_measure: catDefaults.default_unit_of_measure || 'inches',
+      use_type: catDefaults.default_use_type || 'indoor',
+      vinyl_type_key: catDefaults.default_vinyl_type_key || 'oracal_651',
+      num_colors: catDefaults.default_number_of_colors ?? 1,
+      weeding_complexity: catDefaults.default_weeding_complexity || 'simple',
+      masking_required: catDefaults.default_masking_required ?? true,
+      install_required: catDefaults.default_install_included ?? false,
+      install_complexity: catDefaults.default_install_complexity || 'easy',
+      surface_type: catDefaults.default_surface_type || 'flat_smooth',
+      design_complexity: catDefaults.default_design_complexity || 'simple',
+    };
+  };
+
+  const resolveCutVinylAiSuggestions = (baseDefaults) => {
+    if (!foundationDefaults?.ai_estimation_rules?.fill_missing_only) return {};
+    const text = `${orderItemName || ''} ${description || ''}`.toLowerCase();
+    const useType = pricingData.use_type || baseDefaults.use_type || 'indoor';
+    const suggestions = {};
+
+    if (!pricingData.use_type) suggestions.use_type = baseDefaults.use_type;
+
+    if (!pricingData.vinyl_type_key) {
+      if (text.includes('reflective')) suggestions.vinyl_type_key = 'reflective_vinyl';
+      else if (text.includes('metallic')) suggestions.vinyl_type_key = 'metallic_vinyl';
+      else if (text.includes('fluorescent')) suggestions.vinyl_type_key = 'fluorescent_vinyl';
+      else if (useType === 'glass_window' || text.includes('window') || text.includes('glass')) suggestions.vinyl_type_key = 'etched_frost_vinyl';
+      else if (useType === 'wall' || text.includes('wall')) suggestions.vinyl_type_key = 'wall_vinyl';
+      else if (useType === 'vehicle' || text.includes('vehicle')) suggestions.vinyl_type_key = 'oracal_951';
+      else if (useType === 'outdoor') suggestions.vinyl_type_key = 'oracal_751';
+      else suggestions.vinyl_type_key = baseDefaults.vinyl_type_key;
+    }
+
+    if (pricingData.masking_required === undefined) suggestions.masking_required = baseDefaults.masking_required;
+
+    if (!pricingData.weeding_complexity) {
+      if (text.includes('intricate') || text.includes('detailed')) suggestions.weeding_complexity = 'complex';
+      else suggestions.weeding_complexity = baseDefaults.weeding_complexity;
+    }
+
+    if (!pricingData.num_colors) {
+      if (text.includes('two color')) suggestions.num_colors = 2;
+      else if (text.includes('three color')) suggestions.num_colors = 3;
+      else suggestions.num_colors = baseDefaults.num_colors;
+    }
+
+    if (pricingData.install_required === undefined && text.includes('install')) suggestions.install_required = true;
+    if (!pricingData.install_complexity) suggestions.install_complexity = baseDefaults.install_complexity;
+
+    if (!pricingData.surface_type) {
+      if (useType === 'glass_window') suggestions.surface_type = 'glass_window';
+      else if (useType === 'vehicle') suggestions.surface_type = 'vehicle';
+      else if (useType === 'wall') suggestions.surface_type = 'flat_smooth';
+      else suggestions.surface_type = baseDefaults.surface_type;
+    }
+
+    if (!pricingData.design_complexity) suggestions.design_complexity = baseDefaults.design_complexity;
+
+    if (pricingData.artwork_needed === undefined && (text.includes('design') || text.includes('artwork needed')))
+      suggestions.artwork_needed = true;
+
+    return suggestions;
+  };
+
+  useEffect(() => {
+    if (category !== 'cut_vinyl' || !foundationDefaults) return;
+    const defaults = resolveCutVinylDefaults();
+    const aiSuggestions = resolveCutVinylAiSuggestions(defaults);
+    const nextData = { ...pricingData };
+    const nextSources = { ...cutVinylSources };
+    let changed = false;
+
+    const applyValues = (values, source) => {
+      Object.entries(values).forEach(([key, value]) => {
+        if (nextData[key] === undefined || nextData[key] === null || nextData[key] === '') {
+          nextData[key] = value;
+          if (!nextSources[key]) nextSources[key] = source;
+          changed = true;
+        }
+      });
+    };
+
+    applyValues(aiSuggestions, 'ai');
+    applyValues(defaults, 'default');
+
+    if (changed) {
+      setPricingData(nextData);
+      setCutVinylSources(nextSources);
+    }
+  }, [category, foundationDefaults, orderItemName, description, pricingData.use_type]);
+
   const fetchAiSuggestions = async () => {
     if (!category || !calculation) return;
     
@@ -729,6 +875,16 @@ export default function PricingCalculator({
     );
   };
 
+  const renderCutVinylSource = (field) => {
+    const source = cutVinylSources[field] || 'default';
+    const label = source === 'ai' ? 'AI Estimated' : source === 'user' ? 'User Entered' : 'Shop Default';
+    return (
+      <Badge variant="outline" className="text-[10px]" data-testid={`cut-vinyl-source-${field}`}>
+        {label}
+      </Badge>
+    );
+  };
+
   // Render category-specific fields
   const renderCategoryFields = () => {
     switch (category) {
@@ -774,63 +930,235 @@ export default function PricingCalculator({
           </div>
         );
 
-      case 'cut_vinyl':
+      case 'cut_vinyl': {
+        const vinylOptions = getCutVinylOptions();
+        const unit = pricingData.unit_of_measure || 'inches';
+        const widthValue = Number(pricingData.width_inches || 0);
+        const heightValue = Number(pricingData.length_inches || 0);
+        const areaPerPiece = unit === 'feet' ? (widthValue * heightValue) : ((widthValue * heightValue) / 144);
+        const selectedVinyl = vinylOptions.find((m) => (m.key || m.id) === pricingData.vinyl_type_key);
         return (
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
+          <div className="space-y-4" data-testid="cut-vinyl-fields">
+            <div className="grid grid-cols-1 gap-4">
               <div>
-                <Label>Width (inches)</Label>
-                <Input 
-                  type="number" 
-                  value={pricingData.width_inches || ''} 
-                  onChange={(e) => setPricingData({...pricingData, width_inches: parseFloat(e.target.value) || 0})}
-                />
-              </div>
-              <div>
-                <Label>Length (inches)</Label>
-                <Input 
-                  type="number" 
-                  value={pricingData.length_inches || ''} 
-                  onChange={(e) => setPricingData({...pricingData, length_inches: parseFloat(e.target.value) || 0})}
-                />
-              </div>
-              <div>
-                <Label>Sq Ft (auto)</Label>
-                <Input 
-                  type="number" 
-                  value={((pricingData.width_inches || 0) * (pricingData.length_inches || 0) / 144).toFixed(2)} 
-                  disabled
-                  className="bg-slate-100"
+                <Label className="flex items-center justify-between">Order Item Name {renderCutVinylSource('item_name')}</Label>
+                <Input
+                  value={orderItemName}
+                  onChange={(e) => {
+                    setOrderItemName(e.target.value);
+                    setCutVinylSources((prev) => ({ ...prev, item_name: 'user' }));
+                  }}
+                  placeholder="e.g., Door Lettering"
+                  data-testid="cut-vinyl-item-name"
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div>
-                <Label>Vinyl Type</Label>
-                <Select 
-                  value={pricingData.vinyl_type || ''} 
-                  onValueChange={(v) => setPricingData({...pricingData, vinyl_type: v})}
+                <Label className="flex items-center justify-between">Width {renderCutVinylSource('width_inches')}</Label>
+                <Input
+                  type="number"
+                  value={pricingData.width_inches || ''}
+                  onChange={(e) => updateCutVinylField('width_inches', parseFloat(e.target.value) || 0)}
+                  data-testid="cut-vinyl-width"
+                />
+              </div>
+              <div>
+                <Label className="flex items-center justify-between">Height {renderCutVinylSource('length_inches')}</Label>
+                <Input
+                  type="number"
+                  value={pricingData.length_inches || ''}
+                  onChange={(e) => updateCutVinylField('length_inches', parseFloat(e.target.value) || 0)}
+                  data-testid="cut-vinyl-height"
+                />
+              </div>
+              <div>
+                <Label className="flex items-center justify-between">Unit {renderCutVinylSource('unit_of_measure')}</Label>
+                <Select
+                  value={pricingData.unit_of_measure || 'inches'}
+                  onValueChange={(v) => updateCutVinylField('unit_of_measure', v)}
                 >
-                  <SelectTrigger><SelectValue placeholder="Select vinyl" /></SelectTrigger>
+                  <SelectTrigger className="h-9" data-testid="cut-vinyl-unit">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
-                    {VINYL_TYPES.map(t => (
-                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    {UNIT_OF_MEASURE_OPTIONS.map((u) => (
+                      <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Number of Colors</Label>
-                <Input 
-                  type="number" 
-                  min="1"
-                  value={pricingData.num_colors || 1} 
-                  onChange={(e) => setPricingData({...pricingData, num_colors: parseInt(e.target.value) || 1})}
+                <Label>Area / Piece</Label>
+                <Input value={areaPerPiece.toFixed(2)} disabled className="bg-slate-100" data-testid="cut-vinyl-area" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div>
+                <Label className="flex items-center justify-between">Vinyl Type {renderCutVinylSource('vinyl_type_key')}</Label>
+                <Select value={pricingData.vinyl_type_key || ''} onValueChange={(v) => updateCutVinylField('vinyl_type_key', v)}>
+                  <SelectTrigger className="h-9" data-testid="cut-vinyl-type">
+                    <SelectValue placeholder="Select vinyl" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vinylOptions.map((t) => (
+                      <SelectItem key={t.key || t.id} value={t.key || t.id}>{t.name || t.key}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {pricingData.vinyl_type_key && !selectedVinyl && (
+                  <p className="text-xs text-amber-600 mt-1" data-testid="cut-vinyl-type-warning">
+                    Missing vinyl type.
+                    <Link to="/pricing-foundation" className="text-amber-700 underline ml-1" data-testid="cut-vinyl-type-add-new">Add New</Link>
+                  </p>
+                )}
+              </div>
+              <div>
+                <Label className="flex items-center justify-between">Number of Colors {renderCutVinylSource('num_colors')}</Label>
+                <Select value={String(pricingData.num_colors || 1)} onValueChange={(v) => updateCutVinylField('num_colors', parseInt(v, 10))}>
+                  <SelectTrigger className="h-9" data-testid="cut-vinyl-colors">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CUT_VINYL_COLOR_OPTIONS.map((t) => (
+                      <SelectItem key={t.value} value={String(t.value)}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="flex items-center justify-between">Weeding Complexity {renderCutVinylSource('weeding_complexity')}</Label>
+                <Select value={pricingData.weeding_complexity || 'simple'} onValueChange={(v) => updateCutVinylField('weeding_complexity', v)}>
+                  <SelectTrigger className="h-9" data-testid="cut-vinyl-weeding">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CUT_VINYL_WEEDING_LEVELS.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={pricingData.masking_required ?? false}
+                  onCheckedChange={(c) => updateCutVinylField('masking_required', Boolean(c))}
+                  data-testid="cut-vinyl-masking"
                 />
+                <Label className="cursor-pointer">Masking Required</Label>
+              </div>
+              <div>
+                <Label className="flex items-center justify-between">Application / Use Type {renderCutVinylSource('use_type')}</Label>
+                <Select value={pricingData.use_type || 'indoor'} onValueChange={(v) => updateCutVinylField('use_type', v)}>
+                  <SelectTrigger className="h-9" data-testid="cut-vinyl-use-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CUT_VINYL_USE_TYPES.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={pricingData.artwork_ready || false}
+                  onCheckedChange={(c) => updateCutVinylField('artwork_ready', Boolean(c))}
+                  data-testid="cut-vinyl-artwork-ready"
+                />
+                <Label className="cursor-pointer">Artwork Ready</Label>
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={pricingData.artwork_needed || false}
+                  onCheckedChange={(c) => updateCutVinylField('artwork_needed', Boolean(c))}
+                  data-testid="cut-vinyl-artwork-needed"
+                />
+                <Label className="cursor-pointer">Artwork Needed</Label>
+              </div>
+              <div>
+                <Label className="flex items-center justify-between">Design Complexity {renderCutVinylSource('design_complexity')}</Label>
+                <Select value={pricingData.design_complexity || 'simple'} onValueChange={(v) => updateCutVinylField('design_complexity', v)}>
+                  <SelectTrigger className="h-9" data-testid="cut-vinyl-design-complexity">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DESIGN_COMPLEXITY_LEVELS.map((level) => (
+                      <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={pricingData.file_cleanup_needed || false}
+                  onCheckedChange={(c) => updateCutVinylField('file_cleanup_needed', Boolean(c))}
+                  data-testid="cut-vinyl-file-cleanup"
+                />
+                <Label className="cursor-pointer">File Cleanup Needed</Label>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={pricingData.install_required || false}
+                  onCheckedChange={(c) => updateCutVinylField('install_required', Boolean(c))}
+                  data-testid="cut-vinyl-install-required"
+                />
+                <Label className="cursor-pointer">Install Required</Label>
+              </div>
+              <div>
+                <Label className="flex items-center justify-between">Install Complexity {renderCutVinylSource('install_complexity')}</Label>
+                <Select
+                  value={pricingData.install_complexity || 'easy'}
+                  onValueChange={(v) => updateCutVinylField('install_complexity', v)}
+                  disabled={!pricingData.install_required}
+                >
+                  <SelectTrigger className="h-9" data-testid="cut-vinyl-install-complexity">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INSTALL_COMPLEXITY_LEVELS.map((level) => (
+                      <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="flex items-center justify-between">Surface Type {renderCutVinylSource('surface_type')}</Label>
+                <Select
+                  value={pricingData.surface_type || 'flat_smooth'}
+                  onValueChange={(v) => updateCutVinylField('surface_type', v)}
+                  disabled={!pricingData.install_required}
+                >
+                  <SelectTrigger className="h-9" data-testid="cut-vinyl-surface-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CUT_VINYL_SURFACE_TYPES.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={pricingData.rush_order || false}
+                  onCheckedChange={(c) => updateCutVinylField('rush_order', Boolean(c))}
+                  data-testid="cut-vinyl-rush"
+                />
+                <Label className="cursor-pointer">Rush</Label>
               </div>
             </div>
           </div>
         );
+      }
 
       case 'services':
         return (
@@ -1555,6 +1883,9 @@ export default function PricingCalculator({
                     setDescription(e.target.value);
                     if (category === 'digital_print') {
                       setDigitalPrintSources((prev) => ({ ...prev, description: 'user' }));
+                    }
+                    if (category === 'cut_vinyl') {
+                      setCutVinylSources((prev) => ({ ...prev, description: 'user' }));
                     }
                   }}
                   placeholder={`e.g., ${getCategoryName(category)} for customer`}
