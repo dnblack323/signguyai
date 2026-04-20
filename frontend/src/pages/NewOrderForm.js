@@ -15,6 +15,9 @@ import DynamicCategoryFields from '../components/DynamicCategoryFields';
 import LivePricingPreview from '../components/LivePricingPreview';
 import DrawingModal from './DrawingModal';
 import { OrderCommandBar } from '../components/orders/OrderCommandBar';
+import AddOrderItemMenu from '../components/orders/AddOrderItemMenu';
+import SharedContextPanel from '../components/orders/SharedContextPanel';
+import OrderAssetsPanel from '../components/orders/OrderAssetsPanel';
 import { getAuthToken } from '../lib/authStorage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -314,13 +317,25 @@ export default function NewOrderForm() {
         {orderSketches.length > 0 && <Badge variant="secondary" className="text-xs">{orderSketches.length} sketch{orderSketches.length > 1 ? 'es' : ''}</Badge>}
       </div>
 
+      {/* Shared order-level context (inherited by all items) */}
+      <SharedContextPanel order={order} onChange={(patch) => setOrder(patch)} />
+
       {/* Order Items Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-white">Order Items ({tickets.length})</h2>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => addTicket('quick')} className="gap-2 bg-white" data-testid="add-quick-ticket"><Plus className="w-4 h-4" /> Quick Entry</Button>
-          <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white gap-2" onClick={() => addTicket('detailed')} data-testid="add-detailed-ticket"><Plus className="w-4 h-4" /> Detailed Entry</Button>
-        </div>
+        <AddOrderItemMenu
+          orderId={null}
+          existingItems={tickets.map((t) => ({ id: t.local_id, item_name: t.item_name, item_category: t.item_category, quantity: t.quantity, estimated_price: t.estimated_price }))}
+          onQuickAdd={() => addTicket('quick')}
+          onDetailedAdd={() => addTicket('detailed')}
+          onCloneComplete={(newItem) => {
+            // Clones require a persisted order; prompt user to save first.
+            toast.info('Save the order first, then use clone from the order detail page.');
+          }}
+          onAddWithSharedArtwork={() => {
+            toast.info('Save the order first to upload and link shared artwork.');
+          }}
+        />
       </div>
 
       {/* Empty state */}
@@ -329,7 +344,7 @@ export default function NewOrderForm() {
           <CardContent className="py-12 text-center">
             <p className="text-gray-500 mb-4">No order items yet. Add your first item to get started.</p>
             <div className="flex gap-3 justify-center">
-              <Button variant="outline" onClick={() => addTicket('quick')} className="gap-2"><Plus className="w-4 h-4" /> Quick Entry</Button>
+              <Button variant="outline" onClick={() => addTicket('quick')} className="gap-2"><Plus className="w-4 h-4" /> Quick Manual</Button>
               <Button className="bg-violet-600 hover:bg-violet-700 text-white gap-2" onClick={() => addTicket('detailed')}><Plus className="w-4 h-4" /> Detailed Entry</Button>
             </div>
           </CardContent>

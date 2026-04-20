@@ -178,6 +178,15 @@ class Order(BaseModel):
     final_completion_date: Optional[str] = None
     is_archived: bool = False
     is_active: bool = True
+    # ===== Shared Order-Level Context (inherited by items) =====
+    order_title: str = ""
+    shared_production_notes: str = ""
+    shared_design_notes: str = ""
+    shared_install_notes: str = ""
+    shared_color_brand_notes: str = ""
+    shared_reference_links: List[str] = Field(default_factory=list)
+    default_item_category: Optional[str] = None
+    shared_artwork_default_mode: str = "ask"  # "inherit" | "ask" | "none"
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
@@ -220,6 +229,14 @@ class OrderUpdate(BaseModel):
     internal_notes: Optional[str] = None
     customer_notes: Optional[str] = None
     is_archived: Optional[bool] = None
+    order_title: Optional[str] = None
+    shared_production_notes: Optional[str] = None
+    shared_design_notes: Optional[str] = None
+    shared_install_notes: Optional[str] = None
+    shared_color_brand_notes: Optional[str] = None
+    shared_reference_links: Optional[List[str]] = None
+    default_item_category: Optional[str] = None
+    shared_artwork_default_mode: Optional[str] = None
 
 
 # ============== LAYER 2: JOB TICKET ==============
@@ -311,6 +328,19 @@ class JobTicket(BaseModel):
     rework_needed: bool = False
     rework_notes: str = ""
     progress: float = 0.0
+    # ===== Entry Mode & Intake Enhancements =====
+    entry_mode: str = "quick"  # "quick" | "detailed"
+    description: str = ""
+    manual_quote_override: Optional[float] = None
+    pricing_snapshot: Optional[Dict[str, Any]] = None  # latest /api/pricing/calculate output
+    # Artwork linking (reference IDs only — zero duplication)
+    linked_order_file_ids: List[str] = Field(default_factory=list)
+    item_artwork_file_ids: List[str] = Field(default_factory=list)
+    artwork_use_mode: str = "shared_only"  # "shared_only" | "item_only" | "both" | "none"
+    # Clone lineage
+    source_item_id: Optional[str] = None
+    clone_mode: Optional[str] = None  # "duplicate" | "variation" | "copy_to_category"
+    converted_from_category: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
@@ -338,6 +368,13 @@ class JobTicketCreate(BaseModel):
     estimated_price: float = 0.0
     labor_estimate: float = 0.0
     material_estimate: float = 0.0
+    entry_mode: str = "quick"
+    description: str = ""
+    manual_quote_override: Optional[float] = None
+    pricing_snapshot: Optional[Dict[str, Any]] = None
+    linked_order_file_ids: List[str] = Field(default_factory=list)
+    item_artwork_file_ids: List[str] = Field(default_factory=list)
+    artwork_use_mode: str = "shared_only"
 
 
 class JobTicketUpdate(BaseModel):
@@ -371,6 +408,13 @@ class JobTicketUpdate(BaseModel):
     ready_for_pickup: Optional[bool] = None
     rework_needed: Optional[bool] = None
     rework_notes: Optional[str] = None
+    entry_mode: Optional[str] = None
+    description: Optional[str] = None
+    manual_quote_override: Optional[float] = None
+    pricing_snapshot: Optional[Dict[str, Any]] = None
+    linked_order_file_ids: Optional[List[str]] = None
+    item_artwork_file_ids: Optional[List[str]] = None
+    artwork_use_mode: Optional[str] = None
 
 
 # ============== LAYER 4: PRODUCTION TASK ==============

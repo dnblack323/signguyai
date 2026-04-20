@@ -37,6 +37,21 @@ const GROUP_LABELS = {
   coverage: 'Coverage Level',
   paneling: 'Paneling & Production',
   print_options: 'Print Options',
+  // Foundation-driven groups (Vehicle Wraps, Apparel, Services, Banners)
+  window_perf: 'Window Perf',
+  prep_removal: 'Surface Prep / Removal',
+  install: 'Install',
+  addons: 'Add-Ons',
+  placement: 'Placement',
+  service_info: 'Service',
+  labor: 'Labor',
+  minimums: 'Minimum Charge',
+  travel: 'Travel',
+  equipment: 'Equipment',
+  subcontract: 'Subcontract / Outsourced',
+  passthrough: 'Pass-Through Fees',
+  hems_finishing: 'Hems & Finishing',
+  hardware: 'Hardware & Accessories',
   other: 'Other',
 };
 
@@ -237,7 +252,32 @@ export default function DynamicCategoryFields({ category, subtype, specs, onChan
   if (loading) return <div className="flex items-center gap-2 py-4 text-gray-500 text-sm"><Loader2 className="w-4 h-4 animate-spin" /> Loading fields...</div>;
   if (!schema?.fields) return null;
 
-  const groups = buildGroups(schema.fields);
+  // Progressive disclosure: evaluate visible_when against current specs
+  const evalCondition = (cond, values) => {
+    if (!cond || typeof cond !== 'object') return true;
+    if (cond.all && Array.isArray(cond.all)) return cond.all.every((c) => evalCondition(c, values));
+    if (cond.any && Array.isArray(cond.any)) return cond.any.some((c) => evalCondition(c, values));
+    return Object.entries(cond).every(([key, expected]) => {
+      const actual = values?.[key];
+      if (expected && typeof expected === 'object') {
+        if ('in' in expected) return (expected.in || []).includes(actual);
+        if ('not_in' in expected) return !(expected.not_in || []).includes(actual);
+        if ('not' in expected) return actual !== expected.not;
+        if ('gt' in expected) return Number(actual) > Number(expected.gt);
+        if ('lt' in expected) return Number(actual) < Number(expected.lt);
+        return actual === expected;
+      }
+      if (typeof expected === 'boolean') return !!actual === expected;
+      return actual === expected;
+    });
+  };
+  const visibleFields = (schema.fields || []).filter((f) => {
+    if (!f.visible_when) return true;
+    return evalCondition(f.visible_when, specs);
+  });
+  // Sort: core fields first within their group
+  const sortedFields = [...visibleFields].sort((a, b) => (b.core ? 1 : 0) - (a.core ? 1 : 0));
+  const groups = buildGroups(sortedFields);
   const updateField = (key, value) => onChange({ ...specs, [key]: value });
   const toggleLocation = (location) => {
     const current = specs.print_locations || [];

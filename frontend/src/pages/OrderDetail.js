@@ -20,6 +20,9 @@ import DrawingPreviewModal from './DrawingPreviewModal';
 import { TicketWorkflowShortcutDialog } from '../components/TicketWorkflowShortcutDialog';
 import { SignatureSection } from '../components/SignatureSection';
 import { SignatureActivityList } from '../components/SignatureActivityList';
+import AddOrderItemMenu from '../components/orders/AddOrderItemMenu';
+import SharedContextPanel from '../components/orders/SharedContextPanel';
+import OrderAssetsPanel from '../components/orders/OrderAssetsPanel';
 import { getAuthToken } from '../lib/authStorage';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 
@@ -557,9 +560,24 @@ export default function OrderDetail() {
       {/* === TICKETS TAB === */}
       {tab === 'tickets' && (
         <div className="space-y-3">
-          <Button variant="outline" size="sm" onClick={() => navigate(`/orders/${id}/add-ticket`)} className="gap-2" data-testid="add-ticket-btn">
-            <Plus className="w-4 h-4" /> Add Order Item
-          </Button>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-700">Order Items ({tickets.length})</h3>
+            <AddOrderItemMenu
+              orderId={id}
+              existingItems={tickets.map((t) => ({ id: t.id, item_name: t.item_name, item_category: t.item_category, quantity: t.quantity, estimated_price: t.estimated_price }))}
+              onQuickAdd={() => navigate(`/orders/${id}/add-ticket?mode=quick`)}
+              onDetailedAdd={() => navigate(`/orders/${id}/add-ticket?mode=detailed`)}
+              onCloneComplete={(newItem) => {
+                toast.success(`Item created (${newItem?.clone_mode || 'cloned'})`);
+                if (newItem?.id) navigate(`/job-tickets/${newItem.id}`);
+                else window.location.reload();
+              }}
+              onAddWithSharedArtwork={(fileIds) => {
+                const params = new URLSearchParams({ mode: 'detailed', shared_artwork: fileIds.join(',') });
+                navigate(`/orders/${id}/add-ticket?${params.toString()}`);
+              }}
+            />
+          </div>
           {tickets.length === 0 ? (
             <Card className="bg-white rounded-xl border border-gray-200 shadow-sm"><CardContent className="py-12 text-center text-gray-500">No order items yet.</CardContent></Card>
           ) : tickets.map(ticket => {
@@ -958,6 +976,27 @@ export default function OrderDetail() {
       {/* === NOTES TAB === */}
       {tab === 'notes' && (
         <div className="space-y-4">
+          {/* Shared order-level context (inherited by every item) */}
+          <SharedContextPanel
+            order={order}
+            onChange={async (patch) => {
+              try {
+                const token = getAuthToken();
+                const diff = {};
+                ['order_title','shared_production_notes','shared_design_notes','shared_install_notes','shared_color_brand_notes','requested_due_date'].forEach((k) => {
+                  if (patch[k] !== order[k]) diff[k] = patch[k];
+                });
+                if (Object.keys(diff).length) {
+                  await axios.put(`${process.env.REACT_APP_BACKEND_URL}/api/orders/${id}`, diff, { headers: { Authorization: `Bearer ${token}` } });
+                  setOrder((prev) => ({ ...prev, ...diff }));
+                  toast.success('Shared context saved');
+                }
+              } catch (err) {
+                toast.error('Save failed');
+              }
+            }}
+          />
+          <OrderAssetsPanel orderId={id} />
           <SignatureSection
             title="Order Authorization Signature"
             parentRecordType="order"

@@ -5,7 +5,7 @@ CRUD for Job Ticket records (Layer 2) — the operational source of truth.
 """
 
 from fastapi import APIRouter, HTTPException, Depends
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import datetime, timezone
 from copy import deepcopy
 
@@ -1090,6 +1090,101 @@ def _vehicle_wrap_schema(defaults, vinyl_opts, vehicle_type_opts):
 
 
 
+# ===== Progressive disclosure rules =====
+# Marks which field keys are "core" (always visible after category selected) and
+# applies visible_when rules so follow-up fields only render when their trigger is met.
+_CORE_BY_CATEGORY = {
+    "banners": {"width", "height", "unit_of_measure", "banner_material_key", "print_sides", "artwork_ready", "artwork_needed"},
+    "apparel": {"apparel_product_type", "apparel_brand_style_key", "apparel_garment_color", "apparel_decoration_method", "apparel_placement_set", "apparel_placement_set_hat", "artwork_ready", "artwork_needed"},
+    "rigid_signs": {"width", "height", "unit_of_measure", "substrate_material_key", "print_method", "double_sided", "artwork_ready", "artwork_needed"},
+    "cut_vinyl": {"width", "height", "unit_of_measure", "vinyl_type_key", "num_colors", "surface_type", "artwork_ready", "artwork_needed"},
+    "vehicle_wrap": {"vehicle_type", "coverage_type", "wrap_material_key", "artwork_ready", "artwork_needed"},
+    "digital_print": {"width", "height", "unit_of_measure", "print_media_key", "use_type", "print_quality_mode", "artwork_ready", "artwork_needed"},
+    "services": {"service_type", "services_billing_unit", "services_labor_role", "estimated_hours", "services_flat_fee"},
+}
+
+_VISIBLE_WHEN_RULES = {
+    "banners": {
+        "grommet_spacing": {"grommets": True},
+        "pole_pocket_sides": {"pole_pockets": True},
+        "install_complexity": {"install_required": True},
+        "design_complexity": {"artwork_needed": True},
+        "file_cleanup_level": {"artwork_ready": True},
+    },
+    "apparel": {
+        "apparel_custom_name_number_count": {"apparel_custom_name_number": True},
+        "apparel_two_tone_hat_finish": {"apparel_product_type": {"in": ["hat_standard", "hat_premium", "visor"]}},
+        "apparel_leather_patch": {"apparel_product_type": {"in": ["hat_standard", "hat_premium", "visor"]}},
+        "apparel_stitch_count": {"apparel_decoration_method": "embroidery"},
+        "size_xs": {"apparel_product_type": {"not_in": ["hat_standard", "hat_premium", "visor"]}},
+        "size_s": {"apparel_product_type": {"not_in": ["hat_standard", "hat_premium", "visor"]}},
+        "size_m": {"apparel_product_type": {"not_in": ["hat_standard", "hat_premium", "visor"]}},
+        "size_l": {"apparel_product_type": {"not_in": ["hat_standard", "hat_premium", "visor"]}},
+        "size_xl": {"apparel_product_type": {"not_in": ["hat_standard", "hat_premium", "visor"]}},
+        "size_2xl": {"apparel_product_type": {"not_in": ["hat_standard", "hat_premium", "visor"]}},
+        "size_3xl": {"apparel_product_type": {"not_in": ["hat_standard", "hat_premium", "visor"]}},
+        "size_4xl": {"apparel_product_type": {"not_in": ["hat_standard", "hat_premium", "visor"]}},
+        "size_5xl": {"apparel_product_type": {"not_in": ["hat_standard", "hat_premium", "visor"]}},
+        "apparel_plus_size_count": {"apparel_product_type": {"not_in": ["hat_standard", "hat_premium", "visor"]}},
+        "apparel_placement_set": {"apparel_product_type": {"not_in": ["hat_standard", "hat_premium", "visor"]}},
+        "apparel_placement_set_hat": {"apparel_product_type": {"in": ["hat_standard", "hat_premium", "visor"]}},
+        "design_complexity": {"artwork_needed": True},
+        "apparel_rush_percent": {"rush_order": True},
+    },
+    "services": {
+        "services_flat_fee": {"services_billing_unit": "flat"},
+        "services_unit_rate_override": {"services_billing_unit": {"in": ["piece", "sqft", "linear_foot", "mile", "trip", "day", "custom"]}},
+        "estimated_hours": {"services_billing_unit": {"in": ["hour", "flat", "piece", "sqft", "linear_foot", "custom"]}},
+        "services_travel_miles": {"services_travel_required": True},
+        "services_trip_charge_applies": {"services_travel_required": True},
+        "services_trip_count": {"services_trip_charge_applies": True},
+        "services_equipment_type": {"services_equipment_required": True},
+        "services_equipment_days": {"services_equipment_required": True},
+        "services_equipment_hours": {"services_equipment_required": True},
+        "services_subcontract_cost": {"services_subcontracted": True},
+        "services_subcontract_markup_applies": {"services_subcontracted": True},
+    },
+    "vehicle_wrap": {
+        "custom_coverage_percent": {"coverage_type": "custom"},
+        "wrap_laminate_type_key": {"wrap_laminate_required": True},
+        "window_perf_scope": {"window_perf_included": True},
+        "design_complexity": {"artwork_needed": True},
+        "install_difficulty_level": {"install_required": True},
+        "seam_complexity": {"install_required": True},
+        "second_installer_required": {"install_required": True},
+    },
+    "digital_print": {
+        "laminate_material_key": {"laminate": True},
+        "design_complexity": {"artwork_needed": True},
+    },
+    "rigid_signs": {
+        "design_complexity": {"artwork_needed": True},
+    },
+    "cut_vinyl": {
+        "design_complexity": {"artwork_needed": True},
+    },
+}
+
+
+def _apply_progressive_disclosure(category: str, fields):
+    """Tag each field with `core` and `visible_when` based on category rules."""
+    core_keys = _CORE_BY_CATEGORY.get(category, set())
+    rules = _VISIBLE_WHEN_RULES.get(category, {})
+    out = []
+    for f in fields:
+        # clone-safe shallow copy
+        nf = dict(f)
+        nf["core"] = nf.get("core") or (f.get("key") in core_keys)
+        if f.get("key") in rules:
+            nf["visible_when"] = rules[f["key"]]
+            nf["depends_on"] = list(rules[f["key"]].keys()) if isinstance(rules[f["key"]], dict) else []
+        # default group if missing
+        if "group" not in nf:
+            nf["group"] = "production"
+        out.append(nf)
+    return out
+
+
 @router.get("/schema/{category}")
 async def get_category_field_schema(category: str, current_user: UserInDB = Depends(get_current_active_user)):
     """Return dynamic field schema for a job ticket category.
@@ -1140,6 +1235,7 @@ async def get_category_field_schema(category: str, current_user: UserInDB = Depe
     }
 
     fields = schemas.get(category, schemas["custom"])
+    fields = _apply_progressive_disclosure(category, fields)
 
     # Subtypes per category (from settings or defaults)
     subtypes = {
@@ -1436,6 +1532,120 @@ async def delete_job_ticket(ticket_id: str, current_user: UserInDB = Depends(get
     await db.production_tasks.delete_many({"job_ticket_id": ticket_id})
     await update_order_progress(db, existing["order_id"])
     return {"message": "Job ticket and tasks deleted"}
+
+
+@router.post("/{ticket_id}/clone")
+async def clone_job_ticket(ticket_id: str, payload: Dict[str, Any], current_user: UserInDB = Depends(get_current_active_user)):
+    """Clone a job ticket with one of three modes: duplicate | variation | copy_to_category.
+
+    Request body:
+      {
+        "mode": "duplicate" | "variation" | "copy_to_category",
+        "target_category": "rigid_signs",  # only for copy_to_category
+        "carry_over": { "artwork": true, "artwork_notes": true, ... }
+      }
+    """
+    import uuid as uuid_mod
+    from models.pricing import remap_specs_for_category
+
+    mode = (payload.get("mode") or "duplicate").lower()
+    target_category = payload.get("target_category")
+    carry_over = payload.get("carry_over") or {}
+
+    existing = await db.job_tickets.find_one(
+        {"id": ticket_id, "tenant_id": current_user.tenant_id}, {"_id": 0}
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Order Item not found")
+
+    source_category = existing.get("item_category") or "custom"
+    final_category = target_category if mode == "copy_to_category" and target_category else source_category
+
+    new_id = str(uuid_mod.uuid4())
+    new_number = await _next_ticket_number(existing["order_id"], current_user.tenant_id)
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Remap specs using the matrix
+    source_specs = dict(existing.get("specs") or {})
+    new_specs = remap_specs_for_category(source_category, final_category, source_specs, carry_over)
+
+    # Start from blank template, merge carry-over scalar fields
+    new_item: Dict[str, Any] = {
+        "id": new_id,
+        "ticket_number": new_number,
+        "order_id": existing["order_id"],
+        "tenant_id": current_user.tenant_id,
+        "item_name": ("Copy of " if mode == "duplicate" else ("Variant — " if mode == "variation" else "Converted — ")) + (existing.get("item_name") or "Item"),
+        "item_category": final_category,
+        "item_subcategory": existing.get("item_subcategory", "") if source_category == final_category else "",
+        "quantity": existing.get("quantity", 1) if carry_over.get("quantity", False) else 1,
+        "unit_type": existing.get("unit_type", "each"),
+        "due_date": existing.get("due_date") if carry_over.get("due_date", True) else None,
+        "priority": existing.get("priority", "normal"),
+        "department_route": "",
+        "assigned_team": "",
+        "assigned_user_id": "",
+        "status": "new",
+        "production_flow_enabled": False,
+        "specs": new_specs,
+        "design_needed": False,
+        "customer_artwork": False,
+        "artwork_status": "none",
+        "proof_required": False,
+        "proof_approval_status": "none",
+        "revision_count": 0,
+        "special_instructions": existing.get("special_instructions", "") if carry_over.get("production_notes", True) else "",
+        "production_notes": existing.get("production_notes", "") if carry_over.get("production_notes", True) else "",
+        "install_notes": existing.get("install_notes", "") if carry_over.get("install_location_notes", True) else "",
+        "packaging_notes": "",
+        "artwork_files": [],
+        "reference_images": [],
+        "mockups": [],
+        "proof_files": [],
+        "production_output_files": [],
+        "linked_pricing_profile": existing.get("linked_pricing_profile", ""),
+        "estimated_price": 0.0,
+        "actual_cost": 0.0,
+        "labor_estimate": 0.0,
+        "material_estimate": 0.0,
+        "started_date": None,
+        "finished_date": None,
+        "ready_for_qc": False,
+        "qc_status": "none",
+        "ready_for_pickup": False,
+        "rework_needed": False,
+        "rework_notes": "",
+        "progress": 0.0,
+        # Intake extensions
+        "entry_mode": "detailed" if mode in ("variation", "copy_to_category") else existing.get("entry_mode", "quick"),
+        "description": existing.get("description", "") if carry_over.get("production_notes", True) else "",
+        "manual_quote_override": None,
+        "pricing_snapshot": None,
+        "linked_order_file_ids": list(existing.get("linked_order_file_ids") or []) if carry_over.get("artwork", True) else [],
+        "item_artwork_file_ids": list(existing.get("item_artwork_file_ids") or []) if carry_over.get("artwork", True) else [],
+        "artwork_use_mode": existing.get("artwork_use_mode", "shared_only"),
+        # Clone lineage
+        "source_item_id": ticket_id,
+        "clone_mode": mode,
+        "converted_from_category": source_category if mode == "copy_to_category" else None,
+        "created_at": now,
+        "updated_at": now,
+    }
+
+    await db.job_tickets.insert_one(new_item)
+    # Reverse-link shared files → new item
+    if new_item["linked_order_file_ids"]:
+        await db.order_files.update_many(
+            {"id": {"$in": new_item["linked_order_file_ids"]}, "order_id": existing["order_id"]},
+            {"$addToSet": {"linked_item_ids": new_id}},
+        )
+    await update_order_progress(db, existing["order_id"])
+    await log_activity(db, existing["order_id"], current_user.tenant_id, "job_ticket", new_id,
+                       "cloned", f"{mode.replace('_', ' ').title()} of {existing.get('ticket_number', '')}",
+                       user_id=current_user.id, user_name=current_user.full_name or "")
+
+    new_item.pop("_id", None)
+    return new_item
 
 
 @router.post("/{ticket_id}/duplicate")

@@ -5,7 +5,7 @@ CRUD for the master Order record (Layer 1).
 """
 
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, Response
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 import uuid
 import base64
@@ -533,9 +533,12 @@ async def upload_order_file(
     order_id: str,
     file: UploadFile = File(...),
     label: str = Form(""),
+    category: str = Form("artwork"),
+    tags: str = Form(""),
+    is_shared: bool = Form(True),
     current_user: UserInDB = Depends(get_current_active_user),
 ):
-    """Upload a file attachment to an order (artwork, drawings, notes, photos)."""
+    """Upload a file attachment to an order (artwork, logo, reference, production_note, proof, other)."""
     order = await db.orders.find_one({"id": order_id, "tenant_id": current_user.tenant_id}, {"_id": 0, "id": 1})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -543,6 +546,11 @@ async def upload_order_file(
     contents = await file.read()
     if len(contents) > 15 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large (max 15MB)")
+
+    valid_categories = {"artwork", "logo", "reference", "production_note", "proof", "other"}
+    if category not in valid_categories:
+        category = "artwork"
+    tag_list = [t.strip() for t in (tags or "").split(",") if t.strip()]
 
     file_id = str(uuid.uuid4())
     storage_path = _build_order_file_storage_path(current_user.tenant_id, order_id, file_id, file.filename or "attachment.bin")
@@ -559,6 +567,12 @@ async def upload_order_file(
         "storage_backend": "emergent_object_storage",
         "uploaded_by": current_user.id,
         "created_at": datetime.now(timezone.utc).isoformat(),
+        "category": category,
+        "tags": tag_list,
+        "is_shared": bool(is_shared),
+        "linked_item_ids": [],
+        "uploaded_scope": "order" if is_shared else "item",
+        "original_item_id": None,
     }
     await db.order_files.insert_one(file_doc)
 
@@ -566,17 +580,87 @@ async def upload_order_file(
                        "uploaded", f"File uploaded: {file.filename}",
                        user_id=current_user.id, user_name=current_user.full_name or "")
 
-    return {"id": file_id, "filename": file.filename, "label": file_doc["label"], "file_size": len(contents), "content_type": file.content_type}
+    return {"id": file_id, "filename": file.filename, "label": file_doc["label"], "file_size": len(contents), "content_type": file.content_type, "category": category, "tags": tag_list, "is_shared": is_shared}
 
 
 @router.get("/{order_id}/files")
-async def list_order_files(order_id: str, current_user: UserInDB = Depends(get_current_active_user)):
-    """List all file attachments for an order."""
+async def list_order_files(order_id: str, category: Optional[str] = None, current_user: UserInDB = Depends(get_current_active_user)):
+    """List all file attachments for an order. Optional category filter."""
+    query = {"order_id": order_id, "tenant_id": current_user.tenant_id}
+    if category:
+        query["category"] = category
     files = await db.order_files.find(
-        {"order_id": order_id, "tenant_id": current_user.tenant_id},
+        query,
         {"_id": 0, "file_data": 0}
-    ).sort("created_at", -1).to_list(50)
+    ).sort("created_at", -1).to_list(200)
     return files
+
+
+@router.post("/{order_id}/items/{item_id}/link-artwork")
+async def link_artwork_to_item(
+    order_id: str,
+    item_id: str,
+    payload: Dict[str, Any],
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Link shared order-level artwork files to an Order Item (reference-only, no file duplication)."""
+    file_ids = [str(fid) for fid in (payload.get("file_ids") or [])]
+    item = await db.job_tickets.find_one({"id": item_id, "order_id": order_id, "tenant_id": current_user.tenant_id}, {"_id": 0, "linked_order_file_ids": 1})
+    if not item:
+        raise HTTPException(status_code=404, detail="Order Item not found")
+    existing = list(item.get("linked_order_file_ids") or [])
+    merged = list(dict.fromkeys([*existing, *file_ids]))
+    await db.job_tickets.update_one({"id": item_id}, {"$set": {"linked_order_file_ids": merged, "updated_at": datetime.now(timezone.utc).isoformat()}})
+    # Also record the reverse link on each file doc
+    for fid in file_ids:
+        await db.order_files.update_one({"id": fid, "order_id": order_id}, {"$addToSet": {"linked_item_ids": item_id}})
+    return {"linked_order_file_ids": merged}
+
+
+@router.post("/{order_id}/items/{item_id}/unlink-artwork")
+async def unlink_artwork_from_item(
+    order_id: str,
+    item_id: str,
+    payload: Dict[str, Any],
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    file_ids = set(str(fid) for fid in (payload.get("file_ids") or []))
+    item = await db.job_tickets.find_one({"id": item_id, "order_id": order_id, "tenant_id": current_user.tenant_id}, {"_id": 0, "linked_order_file_ids": 1})
+    if not item:
+        raise HTTPException(status_code=404, detail="Order Item not found")
+    remaining = [fid for fid in (item.get("linked_order_file_ids") or []) if fid not in file_ids]
+    await db.job_tickets.update_one({"id": item_id}, {"$set": {"linked_order_file_ids": remaining, "updated_at": datetime.now(timezone.utc).isoformat()}})
+    for fid in file_ids:
+        await db.order_files.update_one({"id": fid, "order_id": order_id}, {"$pull": {"linked_item_ids": item_id}})
+    return {"linked_order_file_ids": remaining}
+
+
+@router.get("/{order_id}/items/{item_id}/artwork")
+async def get_item_artwork(order_id: str, item_id: str, current_user: UserInDB = Depends(get_current_active_user)):
+    """Merged artwork view for an Order Item: shared + item-specific file metadata."""
+    item = await db.job_tickets.find_one({"id": item_id, "order_id": order_id, "tenant_id": current_user.tenant_id}, {"_id": 0, "linked_order_file_ids": 1, "item_artwork_file_ids": 1})
+    if not item:
+        raise HTTPException(status_code=404, detail="Order Item not found")
+    shared_ids = list(item.get("linked_order_file_ids") or [])
+    item_ids = list(item.get("item_artwork_file_ids") or [])
+    all_ids = list({*shared_ids, *item_ids})
+    docs = await db.order_files.find({"id": {"$in": all_ids}, "order_id": order_id, "tenant_id": current_user.tenant_id}, {"_id": 0, "file_data": 0}).to_list(200)
+    by_id = {d["id"]: d for d in docs}
+    return {
+        "shared_files": [by_id[fid] for fid in shared_ids if fid in by_id],
+        "item_files": [by_id[fid] for fid in item_ids if fid in by_id],
+    }
+
+
+@router.post("/{order_id}/files/{file_id}/promote-to-shared")
+async def promote_file_to_shared(order_id: str, file_id: str, current_user: UserInDB = Depends(get_current_active_user)):
+    result = await db.order_files.update_one(
+        {"id": file_id, "order_id": order_id, "tenant_id": current_user.tenant_id},
+        {"$set": {"is_shared": True, "uploaded_scope": "order"}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="File not found")
+    return {"ok": True}
 
 
 @router.delete("/{order_id}/files/{file_id}")

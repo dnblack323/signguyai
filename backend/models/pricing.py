@@ -976,7 +976,6 @@ class PricingDefaults(BaseModel):
         },
         "services": {
             "label": "Services",
-            "default_labor_hours": 1.0,
             "default_markup_multiplier": 1.8,
             "target_profit_margin_percent": 35.0,
             "minimum_charge": 25.0,
@@ -1535,3 +1534,124 @@ class PriceCalculateRequest(BaseModel):
     category: PricingCategory
     pricing_data: Dict[str, Any]
     quantity: int = 1
+
+
+# ============== CATEGORY COPY REMAP MATRIX ==============
+# Universal fields carried across ALL cross-category clones (when user has the carry-over toggle enabled)
+UNIVERSAL_CARRY_KEYS = [
+    "artwork_notes", "production_notes", "install_notes",
+    "shared_reference_links", "design_complexity",
+    "artwork_ready", "artwork_needed",
+    "rush_order", "due_date",
+]
+
+# Per-category "safe" spec keys to carry when source category == target category
+CATEGORY_SAFE_KEYS = {
+    "apparel": [
+        "apparel_product_type", "apparel_brand_style_key", "apparel_garment_color",
+        "apparel_placement_set", "apparel_decoration_method", "apparel_decoration_subtype",
+        "design_complexity", "artwork_ready", "artwork_needed",
+    ],
+    "banners": [
+        "width", "height", "unit_of_measure", "banner_material_key", "print_sides",
+        "hems", "grommets", "pole_pockets", "wind_slits", "reinforced_corners",
+    ],
+    "rigid_signs": [
+        "width", "height", "unit_of_measure", "substrate_material_key", "double_sided",
+        "mounting_type", "sides",
+    ],
+    "digital_print": [
+        "width", "height", "unit_of_measure", "print_media_key", "use_type",
+        "print_quality_mode", "laminate", "laminate_material_key",
+    ],
+    "vehicle_wraps": [
+        "vehicle_type", "coverage_type", "wrap_material_key",
+        "wrap_laminate_required", "wrap_laminate_type_key",
+        "window_perf_included", "window_perf_scope",
+    ],
+    "cut_vinyl": [
+        "width", "height", "unit_of_measure", "vinyl_type_key", "num_colors", "surface_type",
+    ],
+    "services": [
+        "service_type", "services_billing_unit", "services_labor_role",
+        "services_complexity", "location_address",
+    ],
+}
+
+# Cross-category remap rules — explicit allow-lists; everything else is dropped
+# Format: { source: { target: [keys_to_keep] } }
+CATEGORY_COPY_REMAP = {
+    "banners": {
+        "rigid_signs": ["width", "height", "unit_of_measure", "double_sided", "mounting_type"],
+        "digital_print": ["width", "height", "unit_of_measure"],
+        "cut_vinyl": ["width", "height", "unit_of_measure"],
+    },
+    "rigid_signs": {
+        "banners": ["width", "height", "unit_of_measure", "double_sided"],
+        "digital_print": ["width", "height", "unit_of_measure"],
+    },
+    "digital_print": {
+        "banners": ["width", "height", "unit_of_measure"],
+        "rigid_signs": ["width", "height", "unit_of_measure"],
+        "vehicle_wraps": ["design_complexity"],
+        "cut_vinyl": ["width", "height", "unit_of_measure"],
+    },
+    "vehicle_wraps": {
+        "digital_print": ["design_complexity"],
+    },
+    "cut_vinyl": {
+        "digital_print": ["width", "height", "unit_of_measure"],
+        "banners": ["width", "height", "unit_of_measure"],
+    },
+    "apparel": {},   # apparel → any non-apparel: drop all apparel_* fields
+    "services": {},  # services → any non-services: drop all services_* fields
+}
+
+
+def remap_specs_for_category(source_category: str, target_category: str, source_specs: Dict[str, Any], carry_over: Dict[str, bool]) -> Dict[str, Any]:
+    """Return a new specs dict containing only keys allowed for the target category.
+
+    Universal keys flow through when their carry_over toggle is True.
+    Same-category clones keep everything in CATEGORY_SAFE_KEYS[target].
+    Cross-category clones keep only CATEGORY_COPY_REMAP[source][target].
+    """
+    carry_over = carry_over or {}
+    result: Dict[str, Any] = {}
+
+    # Universal keys
+    if carry_over.get("artwork_notes", True):
+        if source_specs.get("artwork_notes"):
+            result["artwork_notes"] = source_specs.get("artwork_notes")
+    if carry_over.get("production_notes", True) and source_specs.get("production_notes"):
+        result["production_notes"] = source_specs.get("production_notes")
+    if carry_over.get("install_location_notes", True) and source_specs.get("install_notes"):
+        result["install_notes"] = source_specs.get("install_notes")
+    if carry_over.get("design_setup", True):
+        for k in ("design_complexity", "artwork_ready", "artwork_needed"):
+            if k in source_specs:
+                result[k] = source_specs[k]
+    if carry_over.get("rush_setting", True) and "rush_order" in source_specs:
+        result["rush_order"] = source_specs["rush_order"]
+    if carry_over.get("quantity", False) and "quantity" in source_specs:
+        result["quantity"] = source_specs["quantity"]
+    if carry_over.get("size_breakdown", False):
+        for sz in ("size_xs", "size_s", "size_m", "size_l", "size_xl", "size_2xl", "size_3xl", "size_4xl", "size_5xl", "apparel_plus_size_count"):
+            if sz in source_specs:
+                result[sz] = source_specs[sz]
+    if carry_over.get("names_numbers", False):
+        for k in ("apparel_custom_name_number", "apparel_custom_name_number_count"):
+            if k in source_specs:
+                result[k] = source_specs[k]
+
+    # Same-category or cross-category spec keys
+    if source_category == target_category:
+        for k in CATEGORY_SAFE_KEYS.get(target_category, []):
+            if k in source_specs:
+                result[k] = source_specs[k]
+    else:
+        allow = (CATEGORY_COPY_REMAP.get(source_category, {}) or {}).get(target_category, [])
+        for k in allow:
+            if k in source_specs:
+                result[k] = source_specs[k]
+
+    return result

@@ -35,7 +35,7 @@ const normalizeCoverageType = (value) => {
   return raw || undefined;
 };
 
-export default function LivePricingPreview({ category, specs, quantity, onPriceChange }) {
+export default function LivePricingPreview({ category, specs, quantity, onPriceChange, entryMode = 'detailed', manualQuoteOverride = null, onManualOverrideChange }) {
   const [calc, setCalc] = useState(null);
   const [loading, setLoading] = useState(false);
   const debounceRef = useRef(null);
@@ -171,9 +171,17 @@ export default function LivePricingPreview({ category, specs, quantity, onPriceC
   }, [pricingInput, effectiveQuantity, category, onPriceChange]);
 
   if (!category) return null;
+  // Quick-mode items never render the detailed live estimate — they use manual price only.
+  if (entryMode === 'quick') return null;
 
   const breakdown = calc || {};
   const hasCalc = calc && (calc.selling_price > 0 || calc.total_cost > 0);
+  const suggestedSell = breakdown.selling_price || 0;
+  const manualActive = manualQuoteOverride !== null && manualQuoteOverride !== undefined && Number(manualQuoteOverride) > 0;
+  const activePrice = manualActive ? Number(manualQuoteOverride) : suggestedSell;
+  const totalCost = breakdown.total_cost || 0;
+  const activeProfit = activePrice - totalCost;
+  const activeMargin = activePrice > 0 ? (activeProfit / activePrice) * 100 : 0;
 
   return (
     <Card className="bg-white rounded-xl border border-gray-200 shadow-sm" data-testid="live-pricing-preview">
@@ -213,10 +221,40 @@ export default function LivePricingPreview({ category, specs, quantity, onPriceC
               <span className="text-gray-600">${(breakdown.profit_amount || 0).toFixed(2)}</span>
             </div>
             <div className="bg-violet-50 border border-violet-200 rounded-lg p-3 text-center mt-2">
-              <p className="text-xs text-violet-600">Estimated Sell Price</p>
-              <p className="text-2xl font-bold text-gray-900">${(breakdown.selling_price || 0).toFixed(2)}</p>
-              {effectiveQuantity > 1 && <p className="text-xs text-gray-500">${((breakdown.selling_price || 0) / effectiveQuantity).toFixed(2)} each</p>}
+              <p className="text-[10px] text-violet-600 uppercase tracking-wide">Suggested Sell</p>
+              <p className="text-xl font-bold text-gray-900">${suggestedSell.toFixed(2)}</p>
+              {effectiveQuantity > 1 && <p className="text-[10px] text-gray-500">${(suggestedSell / effectiveQuantity).toFixed(2)} each</p>}
             </div>
+            {onManualOverrideChange && (
+              <div className="mt-2 space-y-1">
+                <label className="text-[10px] text-gray-500 uppercase tracking-wide">Manual Quote Override</label>
+                <div className="flex gap-1">
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={manualQuoteOverride ?? ''}
+                    onChange={(e) => onManualOverrideChange(parseFloat(e.target.value) || null)}
+                    className="flex-1 text-xs border rounded px-2 py-1"
+                    placeholder="0 = use suggested"
+                    data-testid="live-estimate-manual-override"
+                  />
+                  {manualActive && (
+                    <button
+                      type="button"
+                      onClick={() => onManualOverrideChange(null)}
+                      className="text-[10px] text-violet-600 hover:underline"
+                      data-testid="live-estimate-manual-reset"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+                <p className="text-[10px] text-gray-500">
+                  Using: <span className="font-medium">{manualActive ? 'Manual' : 'Suggested'}</span>
+                  {' '}· Active ${activePrice.toFixed(2)} · Profit ${activeProfit.toFixed(2)} · Margin {activeMargin.toFixed(1)}%
+                </p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="text-center py-3">
