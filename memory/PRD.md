@@ -1,7 +1,7 @@
 # SignGuy AI - Product Requirements Document
 
-> **Last Updated:** April 19, 2026
-> **Version:** 7.0
+> **Last Updated:** April 20, 2026
+> **Version:** 7.1
 
 ---
 
@@ -18,6 +18,20 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ---
 
 ## What's Been Implemented
+
+### Session: Apr 20, 2026 (Vehicle Graphics / Wraps Category — Pricing Foundation)
+- Implemented full Vehicle Graphics / Wraps pricing category following exact user spec, mirroring Banner/Rigid/Cut Vinyl/Digital Print robustness.
+- **Backend:**
+  - `models/pricing.py`: Added 10 new wrap materials (wrap_standard_calendared, wrap_premium_cast, wrap_cast_film, wrap_reflective, wrap_etched_frost, wrap_specialty_media, wrap_laminate_gloss/matte/satin, wrap_window_perf). Rewrote `vehicle_wraps` category_defaults with ~30 new spec fields: install_hours_by_vehicle_coverage, package_pricing_by_vehicle_coverage, install_difficulty_multipliers, seam_complexity_multipliers, surface_prep_hours, removal_hours, design_time_by_coverage_hours, waste_by_coverage, window_perf_sell_rates, etc. Added 11 new JobItemPricingData fields.
+  - `models/enums.py`: Added `CoverageType.CUSTOM = "custom"`.
+  - `server.py`: Rewrote `calculate_vehicle_graphics` with full spec: coverage resolution (with custom % interpolation), vehicle-type × coverage install hours, difficulty × seam multipliers, optional second installer helper labor, window perf area/sell, surface prep, removal + consumables, max-of-package-or-cost-plus pricing.
+  - `routes/job_tickets.py`: Rewrote `_vehicle_wrap_schema` to dynamically pull vehicle types, wrap materials, laminates from Foundation. `_build_ticket_pricing_payload` passes all new wrap fields. `_normalize_vehicle_coverage` preserves `custom`.
+- **Frontend:**
+  - `PricingFoundation.js`: Added Vehicle Wraps admin card (default material/laminate, install rate, helper rate, rush %, waste % by coverage, design time by coverage, prep/removal hours, install difficulty multipliers, seam multipliers, window perf sell rates).
+  - `PricingCalculator.js`: Rewrote vehicle_graphics UI with all 18 spec controls (vehicle type, coverage, custom %, make/model, wrap material, laminate toggle + type, window perf toggle + scope, artwork ready/needed, design complexity, surface prep, removal, install required, install difficulty, seam complexity, second installer, rush, sqft override). Added Switch import.
+- **Testing:** backend 20/20 ✓, frontend 100% ✓ via testing_agent_v3_fork iteration_112. Pytest suite at `/app/backend/tests/test_vehicle_graphics.py`. All spec test scenarios pass: vehicle change, coverage change, custom % interpolation, material change, laminate on/off + type, window perf rear/side, design complexity, surface prep, removal, install on/off, difficulty, seam, second installer, rush, quantity, schema, foundation admin, calculator UI, live breakdown.
+
+### Session: Apr 2026 (Banners Category — Pricing Foundation)
 
 ### Session: Apr 2026 (TimeClock Stale Shift Auto-Close — P0 Bugfix)
 - Fixed TimeClock incorrectly showing employees as "Working" on selection, caused by orphaned open shifts in the DB
