@@ -1986,7 +1986,7 @@ export default function PricingCalculator({
                       <p className="text-xl font-bold text-violet-800">{formatCurrency(calculation.overhead_cost || 0)}</p>
                     </div>
                     <div className="p-4 bg-slate-100 rounded-lg" data-testid="pricing-total-cost-card">
-                      <p className="text-xs text-slate-500 uppercase">Total Cost</p>
+                      <p className="text-xs text-slate-500 uppercase">Total Production Cost</p>
                       <p className="text-xl font-bold text-slate-700">{formatCurrency(calculation.total_cost || calculation.production_cost)}</p>
                     </div>
                     <div className="p-4 bg-teal-100 rounded-lg" data-testid="pricing-suggested-price-card">
@@ -2041,7 +2041,7 @@ export default function PricingCalculator({
                         </div>
                       )}
                       <div className="flex justify-between pt-2 border-t border-slate-200" data-testid="pricing-breakdown-total-cost">
-                        <span className="text-slate-700 font-medium">Total Cost:</span>
+                        <span className="text-slate-700 font-medium">Total Production Cost:</span>
                         <span className="font-semibold">{formatCurrency(calculation.total_cost || calculation.production_cost)}</span>
                       </div>
                       <div className="flex justify-between" data-testid="pricing-breakdown-selling-price">
