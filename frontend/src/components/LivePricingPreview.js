@@ -49,8 +49,6 @@ export default function LivePricingPreview({ category, specs, quantity, onPriceC
     const hRaw = parseFloat(specs?.height) || 0;
     const wIn = unit === 'feet' ? wRaw * 12 : wRaw;
     const hIn = unit === 'feet' ? hRaw * 12 : hRaw;
-    const doubleSided = specs?.double_sided === 'double' || specs?.double_sided === true;
-    const hasLam = specs?.lamination && specs.lamination !== 'none';
 
     const CATEGORY_MAP = {
       banners: 'digital_print', rigid_signs: 'rigid_signs', cut_vinyl: 'cut_vinyl',
@@ -58,20 +56,47 @@ export default function LivePricingPreview({ category, specs, quantity, onPriceC
       apparel: 'apparel', services: 'services', promo_misc: 'promotional', custom: 'custom',
     };
 
-    // Only set vinyl_type for cut_vinyl and vehicle_wrap categories
-    const isVinylCategory = ['cut_vinyl', 'vehicle_wrap'].includes(category);
-    
     return {
       category: CATEGORY_MAP[category] || 'custom',
       width_inches: wIn || null,
       length_inches: hIn || null,
-      double_sided: doubleSided,
-      laminate: hasLam,
-      laminate_type: specs?.lamination,
-      vinyl_type: isVinylCategory ? (specs?.vinyl_type || null) : null,
-      substrate_type: specs?.substrate,
+      unit_of_measure: unit,
+      print_media_key: specs?.print_media_key,
+      use_type: specs?.use_type,
+      print_quality_mode: specs?.print_quality_mode,
+      ink_coverage_percent: specs?.ink_coverage_percent,
+      laminate: specs?.laminate || false,
+      laminate_material_key: specs?.laminate_material_key,
+      contour_cut_type: specs?.contour_cut_type,
+      trim_finish_type: specs?.trim_finish_type,
+      piece_separation_required: specs?.piece_separation_required || false,
+      separated_piece_count: parseInt(specs?.separated_piece_count) || 0,
+      mounted_to_substrate: specs?.mounted_to_substrate || false,
+      substrate_material_key: specs?.substrate_material_key,
+      vinyl_type_key: specs?.vinyl_type_key,
+      num_colors: parseInt(specs?.num_colors) || 1,
+      weeding_complexity: specs?.weeding_complexity,
+      masking_required: specs?.masking_required,
+      surface_type: specs?.surface_type,
+      artwork_ready: specs?.artwork_ready || false,
+      artwork_needed: specs?.artwork_needed || false,
+      design_complexity: specs?.design_complexity,
+      file_cleanup_needed: specs?.file_cleanup_needed || false,
+      install_required: specs?.install_required || false,
+      install_complexity: specs?.install_complexity,
+      rush_order: specs?.rush_order || false,
+      substrate_type_key: specs?.substrate_type_key,
       thickness: specs?.thickness,
-      print_material: specs?.material,
+      graphic_method: specs?.graphic_method,
+      protective_finish: specs?.protective_finish || false,
+      protective_finish_type: specs?.protective_finish_type,
+      sidedness: specs?.sidedness,
+      double_sided_art: specs?.double_sided_art,
+      shape_type: specs?.shape_type,
+      finish_quality: specs?.finish_quality,
+      hardware_included: specs?.hardware_included || false,
+      hardware_type: specs?.hardware_type,
+      drill_prep_required: specs?.drill_prep_required || false,
       apparel_type: specs?.garment_type,
       transfer_type: specs?.decoration_method,
       num_print_locations: (specs?.print_locations || []).length || 1,
@@ -79,25 +104,11 @@ export default function LivePricingPreview({ category, specs, quantity, onPriceC
       estimated_hours: specs?.estimated_hours ? Number(specs.estimated_hours) : null,
       vehicle_type: specs?.vehicle_type,
       coverage_type: normalizeCoverageType(specs?.coverage_type),
-      // Finishing options that affect price
-      grommets: specs?.grommets === true || (specs?.grommets && specs.grommets !== 'none'),
-      hemming: specs?.hemming === true || (specs?.hems && specs.hems !== 'none'),
       include_setup_fee: specs?.design_needed || specs?.setup_required || false,
-      // Rigid sign options
-      rounded_corners: specs?.rounded_corners || false,
-      drill_holes: specs?.drill_holes || 'none',
-      num_holes: parseInt(specs?.num_holes) || 4,
-      cut_shape: specs?.cut_shape || 'square',
-      stakes_included: specs?.stakes_included || false,
-      num_stakes: parseInt(specs?.num_stakes) || 0,
-      mounting_hardware: specs?.mounting_hardware || 'none',
-      install_required: specs?.install_required || false,
-      // Cut vinyl
-      num_colors: parseInt(specs?.num_colors) || 1,
-      rush_order: specs?.rush_order || false,
       complexity: 1,
     };
   }, [category, JSON.stringify(specs)]);
+
 
   const effectiveQuantity = useMemo(() => getEffectiveQuantity(category, specs, quantity), [category, specs, quantity]);
 

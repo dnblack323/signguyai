@@ -24,44 +24,68 @@ router = APIRouter(prefix="/job-tickets", tags=["Job Tickets"])
 SETTINGS_CATEGORY_KEYS = {
     "vehicle_wrap": "vehicle_wraps",
     "promo_misc": "custom",
-    "digital_print": "banners",
+    "digital_print": "digital_print",
 }
 
 FALLBACK_MATERIALS_CATALOG = {
     "vinyl": [
-        {"id": "oracal_651", "name": "Oracal 651 (Intermediate)", "cost_per_sqft": 0.50},
-        {"id": "oracal_751", "name": "Oracal 751 (High Performance)", "cost_per_sqft": 0.75},
-        {"id": "oracal_951", "name": "Oracal 951 (Premium Cast)", "cost_per_sqft": 1.25},
-        {"id": "avery_hp750", "name": "Avery HP750", "cost_per_sqft": 0.90},
-        {"id": "reflective", "name": "Reflective Vinyl", "cost_per_sqft": 2.50},
-        {"id": "specialty", "name": "Specialty Vinyl", "cost_per_sqft": 1.50},
+        {"id": "oracal_651", "name": "Oracal 651", "cost_per_sqft": 1.25},
+        {"id": "oracal_751", "name": "Oracal 751", "cost_per_sqft": 2.50},
+        {"id": "oracal_951", "name": "Oracal 951", "cost_per_sqft": 2.50},
+        {"id": "avery_hp750", "name": "Avery HP750", "cost_per_sqft": 2.50},
+        {"id": "reflective_vinyl", "name": "Reflective Vinyl", "cost_per_sqft": 4.50},
+        {"id": "metallic_vinyl", "name": "Metallic Vinyl", "cost_per_sqft": 4.50},
+        {"id": "fluorescent_vinyl", "name": "Fluorescent Vinyl", "cost_per_sqft": 4.50},
+        {"id": "etched_frost_vinyl", "name": "Etched / Frost Vinyl", "cost_per_sqft": 4.50},
+        {"id": "wall_vinyl", "name": "Wall Vinyl", "cost_per_sqft": 2.50},
+        {"id": "specialty_custom_vinyl", "name": "Specialty / Custom Vinyl", "cost_per_sqft": 4.50},
     ],
     "print_material": [
-        {"id": "banner_13oz", "name": "13oz Banner", "cost_per_sqft": 0.75},
-        {"id": "banner_18oz", "name": "18oz Banner (Heavy)", "cost_per_sqft": 1.10},
-        {"id": "mesh", "name": "Mesh Banner", "cost_per_sqft": 0.85},
-        {"id": "vinyl_adhesive", "name": "Adhesive Vinyl", "cost_per_sqft": 1.25},
-        {"id": "poster_paper", "name": "Poster Paper", "cost_per_sqft": 0.35},
-        {"id": "canvas", "name": "Canvas", "cost_per_sqft": 2.50},
-        {"id": "backlit", "name": "Backlit Film", "cost_per_sqft": 2.00},
-        {"id": "perforated", "name": "Perforated Window Film", "cost_per_sqft": 1.75},
-        {"id": "blockout", "name": "Blockout Banner", "cost_per_sqft": 1.00},
-        {"id": "retractable_film", "name": "Retractable Film", "cost_per_sqft": 1.50},
-        {"id": "static_cling", "name": "Static Cling", "cost_per_sqft": 1.60},
-        {"id": "floor_graphic", "name": "Floor Graphic Media", "cost_per_sqft": 2.00},
+        {"id": "printable_adhesive_vinyl", "name": "Printable Adhesive Vinyl", "cost_per_sqft": 1.50},
+        {"id": "poster_paper", "name": "Poster Paper", "cost_per_sqft": 0.60},
+        {"id": "canvas", "name": "Canvas", "cost_per_sqft": 2.25},
+        {"id": "backlit_film", "name": "Backlit Film", "cost_per_sqft": 2.50},
+        {"id": "perforated_window_film", "name": "Perforated Window Film", "cost_per_sqft": 2.75},
+        {"id": "wall_graphic_media", "name": "Wall Graphic Media", "cost_per_sqft": 2.25},
+        {"id": "floor_graphic_media", "name": "Floor Graphic Media", "cost_per_sqft": 3.00},
+        {"id": "removable_adhesive_print_media", "name": "Removable Adhesive Print Media", "cost_per_sqft": 1.50},
+        {"id": "photo_paper", "name": "Photo Paper", "cost_per_sqft": 0.75},
+        {"id": "specialty_print_media", "name": "Specialty / Custom Print Media", "cost_per_sqft": 2.00},
     ],
     "substrate": [
-        {"id": "coroplast_4mm", "name": "Coroplast 4mm", "cost_per_sqft": 0.45},
-        {"id": "coroplast_10mm", "name": "Coroplast 10mm", "cost_per_sqft": 0.65},
-        {"id": "aluminum_040", "name": "Aluminum .040", "cost_per_sqft": 1.50},
-        {"id": "aluminum_063", "name": "Aluminum .063", "cost_per_sqft": 2.25},
-        {"id": "aluminum_080", "name": "Aluminum .080", "cost_per_sqft": 3.00},
-        {"id": "pvc_3mm", "name": "PVC 3mm", "cost_per_sqft": 1.00},
-        {"id": "pvc_6mm", "name": "PVC 6mm", "cost_per_sqft": 1.50},
-        {"id": "acrylic", "name": "Acrylic", "cost_per_sqft": 4.00},
-        {"id": "dibond", "name": "Dibond/ACM", "cost_per_sqft": 3.50},
-        {"id": "mdo", "name": "MDO Plywood", "cost_per_sqft": 2.00},
-        {"id": "foam_board", "name": "Foam Board", "cost_per_sqft": 0.75},
+        {"id": "coroplast_4mm", "name": "Coroplast 4mm", "cost_per_sqft": 0.90},
+        {"id": "coroplast_10mm", "name": "Coroplast 10mm", "cost_per_sqft": 1.60},
+        {"id": "pvc_3mm", "name": "PVC 3mm", "cost_per_sqft": 2.25},
+        {"id": "pvc_6mm", "name": "PVC 6mm", "cost_per_sqft": 3.50},
+        {"id": "acm_dibond_3mm", "name": "ACM / Dibond 3mm", "cost_per_sqft": 4.25},
+        {"id": "aluminum_040", "name": "Aluminum .040", "cost_per_sqft": 3.25},
+        {"id": "aluminum_063", "name": "Aluminum .063", "cost_per_sqft": 4.25},
+        {"id": "aluminum_080", "name": "Aluminum .080", "cost_per_sqft": 5.25},
+        {"id": "acrylic_1_8", "name": "Acrylic 1/8\"", "cost_per_sqft": 4.50},
+        {"id": "acrylic_1_4", "name": "Acrylic 1/4\"", "cost_per_sqft": 6.50},
+        {"id": "foamboard_3_16", "name": "Foamboard 3/16\"", "cost_per_sqft": 1.25},
+        {"id": "mdo_1_2", "name": "MDO 1/2\"", "cost_per_sqft": 3.75},
+        {"id": "custom_other_substrate", "name": "Custom Other Substrate", "cost_per_sqft": 4.00},
+    ],
+    "finish": [
+        {"id": "rigid_finish_standard", "name": "Standard Protective Finish", "cost_per_sqft": 0.75},
+    ],
+    "laminate": [
+        {"id": "laminate_gloss", "name": "Gloss Laminate", "cost_per_sqft": 0.85},
+        {"id": "laminate_matte", "name": "Matte Laminate", "cost_per_sqft": 0.85},
+        {"id": "laminate_heavy_duty", "name": "Heavy-Duty Laminate", "cost_per_sqft": 1.25},
+        {"id": "laminate_floor", "name": "Floor Laminate", "cost_per_sqft": 1.25},
+        {"id": "laminate_uv", "name": "UV Laminate", "cost_per_sqft": 0.85},
+        {"id": "laminate_specialty", "name": "Specialty / Custom Laminate", "cost_per_sqft": 0.85},
+    ],
+    "hardware": [
+        {"id": "hw-h-stake", "name": "Standard H-Stake", "cost_each": 1.50},
+        {"id": "hw-heavy-stake", "name": "Heavy-Duty Stake", "cost_each": 2.50},
+        {"id": "hw-screws", "name": "Screws / Basic Mounting Set", "cost_each": 1.00},
+        {"id": "hw-standoff", "name": "Stand-Off Set", "cost_each": 3.00},
+        {"id": "hw-easel", "name": "Easel Back", "cost_each": 2.00},
+        {"id": "hw-hanging", "name": "Hanging Hardware", "cost_each": 1.50},
+        {"id": "hw-custom", "name": "Custom Other Hardware", "cost_each": 2.00},
     ],
     "apparel": [
         {"id": "tshirt", "name": "T-Shirt", "cost_each": 4.50},
@@ -166,23 +190,31 @@ def _normalize_substrate_type(substrate: Optional[str], thickness: Optional[str]
 def _infer_material_bucket(material: dict) -> Optional[str]:
     category = str(material.get("category") or "").lower()
     key = str(material.get("key") or material.get("id") or "").lower()
-    if category in {"print_material", "media", "banner"}:
+    if category in {"print_material", "media", "banner", "print_media"}:
         return "print_material"
-    if category == "vinyl":
+    if category in {"vinyl", "cut_vinyl"}:
         return "vinyl"
     if category in {"substrate", "board"}:
         return "substrate"
+    if category == "laminate":
+        return "laminate"
+    if category in {"rigid_finish", "protective_finish", "finish"}:
+        return "finish"
     if category == "apparel":
         return "apparel"
     if category in {"decoration", "transfer_type"}:
         return "decoration"
     if category == "vehicle_type":
         return "vehicle_type"
-    if key.startswith("banner_") or key in {"mesh", "vinyl_adhesive", "poster_paper", "canvas", "backlit", "perforated", "blockout", "retractable_film", "static_cling", "floor_graphic"}:
+    if key.startswith("banner_") or key in {"mesh", "vinyl_adhesive", "poster_paper", "canvas", "backlit", "perforated", "blockout", "retractable_film", "static_cling", "floor_graphic", "printable_adhesive_vinyl", "backlit_film", "perforated_window_film", "wall_graphic_media", "floor_graphic_media", "removable_adhesive_print_media", "photo_paper", "specialty_print_media"}:
         return "print_material"
-    if key in {"oracal_651", "oracal_751", "oracal_951", "avery_hp750", "reflective", "specialty", "vinyl"}:
+    if key.startswith("laminate_") or key in {"laminate_gloss", "laminate_matte", "laminate_heavy_duty", "laminate_floor", "laminate_uv", "laminate_specialty"}:
+        return "laminate"
+    if key in {"rigid_finish_standard"}:
+        return "finish"
+    if key in {"oracal_651", "oracal_751", "oracal_951", "avery_hp750", "reflective", "specialty", "vinyl", "reflective_vinyl", "metallic_vinyl", "fluorescent_vinyl", "etched_frost_vinyl", "wall_vinyl", "specialty_custom_vinyl"}:
         return "vinyl"
-    if key.startswith("coroplast") or key.startswith("aluminum") or key.startswith("pvc") or key in {"acrylic", "dibond", "mdo", "foam_board", "rigid_sign_board", "acrylic_sheet"}:
+    if key.startswith("coroplast") or key.startswith("aluminum") or key.startswith("pvc") or key in {"acrylic", "dibond", "mdo", "foam_board", "rigid_sign_board", "acrylic_sheet", "acm_dibond_3mm", "acrylic_1_8", "acrylic_1_4", "foamboard_3_16", "mdo_1_2", "custom_other_substrate"}:
         return "substrate"
     if key in {"tshirt", "hoodie", "hat", "polo", "tank", "longsleeve", "jacket", "crewneck", "safety_vest", "apparel_blank"}:
         return "apparel"
@@ -204,7 +236,7 @@ def _build_materials_catalog(defaults: dict) -> dict:
         if not key:
             continue
         entry = {"id": key, "name": material.get("name") or key.replace("_", " ").title()}
-        cost = float(material.get("cost_per_unit", 0) or 0)
+        cost = float(material.get("cost_per_sqft", material.get("cost_per_unit", 0)) or 0)
         unit_type = material.get("unit_type")
         if bucket == "apparel":
             entry["cost_each"] = cost
@@ -227,6 +259,22 @@ def _build_materials_catalog(defaults: dict) -> dict:
             catalog[bucket].append(entry)
         else:
             catalog[bucket][existing_idx] = {**catalog[bucket][existing_idx], **entry}
+
+    for hardware in defaults.get("hardware_accessories", []) or []:
+        key = hardware.get("id") or hardware.get("name")
+        if not key:
+            continue
+        entry = {
+            "id": key,
+            "name": hardware.get("name") or key.replace("_", " ").title(),
+            "cost_each": float(hardware.get("purchase_cost", 0) or 0),
+            "sell_each": float(hardware.get("default_sell_price", 0) or 0),
+        }
+        existing_idx = next((idx for idx, item in enumerate(catalog["hardware"]) if item.get("id") == key), None)
+        if existing_idx is None:
+            catalog["hardware"].append(entry)
+        else:
+            catalog["hardware"][existing_idx] = {**catalog["hardware"][existing_idx], **entry}
     return catalog
 
 
@@ -258,25 +306,44 @@ def _build_ticket_pricing_payload(ticket: dict, pricing_input: Optional[dict] = 
         "complexity": int(incoming.get("complexity", 1) or 1),
         "width_inches": width_inches,
         "length_inches": height_inches,
-        "double_sided": double_sided,
-        "laminate": specs.get("lamination", "none") not in ("none", "", None, False),
-        "laminate_type": specs.get("lamination") if specs.get("lamination") not in ("none", "") else None,
-        "grommets": specs.get("grommets"),
-        "hemming": specs.get("hems") or specs.get("hemming"),
-        "include_setup_fee": bool(specs.get("setup_required") or ticket.get("design_needed") or incoming.get("include_setup_fee")),
-        "vinyl_type": (specs.get("vinyl_type") or specs.get("material")) if is_vinyl_category else None,
-        "print_material": specs.get("media_type") or specs.get("material"),
+        "unit_of_measure": specs.get("unit_of_measure") or incoming.get("unit_of_measure") or "inches",
+        "print_media_key": specs.get("print_media_key") or specs.get("media_type") or specs.get("material"),
+        "use_type": specs.get("use_type") or specs.get("application_type"),
+        "print_quality_mode": specs.get("print_quality_mode"),
+        "ink_coverage_percent": specs.get("ink_coverage_percent"),
+        "laminate": bool(specs.get("laminate") or (specs.get("lamination") not in ("none", "", None, False))),
+        "laminate_material_key": specs.get("laminate_material_key") or specs.get("laminate_type") or (specs.get("lamination") if specs.get("lamination") not in ("none", "") else None),
+        "contour_cut_type": specs.get("contour_cut_type"),
+        "trim_finish_type": specs.get("trim_finish_type"),
+        "piece_separation_required": bool(specs.get("piece_separation_required")),
+        "separated_piece_count": int(specs.get("separated_piece_count", 0) or 0),
+        "mounted_to_substrate": bool(specs.get("mounted_to_substrate")),
+        "substrate_material_key": specs.get("substrate_material_key"),
+        "vinyl_type_key": specs.get("vinyl_type_key") or (specs.get("vinyl_type") if is_vinyl_category else None),
+        "vinyl_type": specs.get("vinyl_type") if is_vinyl_category else None,
+        "num_colors": int(specs.get("num_colors", 1) or 1),
+        "weeding_complexity": specs.get("weeding_complexity"),
+        "masking_required": specs.get("masking_required"),
+        "surface_type": specs.get("surface_type"),
+        "substrate_type_key": specs.get("substrate_type_key") or _normalize_substrate_type(specs.get("substrate"), specs.get("thickness")),
         "substrate_type": _normalize_substrate_type(specs.get("substrate"), specs.get("thickness")),
         "thickness": specs.get("thickness"),
-        "num_colors": int(specs.get("num_colors", 1) or 1),
-        "rounded_corners": bool(specs.get("rounded_corners")),
-        "drill_holes": specs.get("drill_holes"),
-        "num_holes": int(specs.get("num_holes", 4) or 4),
-        "cut_shape": specs.get("cut_shape"),
-        "stakes_included": bool(specs.get("stakes_included")),
-        "num_stakes": int(specs.get("num_stakes", 0) or 0),
-        "mounting_hardware": specs.get("mounting_hardware"),
+        "graphic_method": specs.get("graphic_method"),
+        "protective_finish": bool(specs.get("protective_finish")),
+        "protective_finish_type": specs.get("protective_finish_type"),
+        "sidedness": specs.get("sidedness"),
+        "double_sided_art": specs.get("double_sided_art"),
+        "shape_type": specs.get("shape_type"),
+        "finish_quality": specs.get("finish_quality"),
+        "hardware_included": bool(specs.get("hardware_included")),
+        "hardware_type": specs.get("hardware_type"),
+        "drill_prep_required": bool(specs.get("drill_prep_required")),
+        "artwork_ready": bool(specs.get("artwork_ready") or specs.get("artwork_provided")),
+        "artwork_needed": bool(specs.get("artwork_needed") or specs.get("design_needed") or ticket.get("design_needed")),
+        "design_complexity": specs.get("design_complexity"),
+        "file_cleanup_needed": bool(specs.get("file_cleanup_needed")),
         "install_required": bool(specs.get("install_required")),
+        "install_complexity": specs.get("install_complexity"),
         "apparel_type": specs.get("garment_type") or specs.get("subtype"),
         "transfer_type": specs.get("decoration_method") or specs.get("print_method"),
         "num_print_locations": len(specs.get("print_locations", [])) or 1,
@@ -421,125 +488,197 @@ def _apparel_schema(defaults, garment_opts, decoration_opts):
     ]
 
 
-def _rigid_sign_schema(defaults, substrate_opts):
-    """Full Rigid Sign category schema — substrates from catalog."""
-    thickness_opts = [
-        {"value": "4mm", "label": "4mm"}, {"value": "6mm", "label": "6mm"},
-        {"value": "10mm", "label": "10mm"}, {"value": "0.040", "label": "0.040\""},
-        {"value": "0.063", "label": "0.063\""}, {"value": "0.080", "label": "0.080\""},
-        {"value": "3mm_pvc", "label": "3mm PVC"}, {"value": "6mm_pvc", "label": "6mm PVC"},
-    ]
+def _rigid_sign_schema(defaults, substrate_opts, finish_opts, hardware_opts):
+    cat_config = defaults.get("category_defaults", {}).get("rigid_signs", {})
     return [
-        # Size & Material
-        {"key": "width", "label": "Width", "type": "text", "placeholder": "e.g. 18 or 24", "group": "size_material", "required": True, "pricing": True},
-        {"key": "height", "label": "Height", "type": "text", "placeholder": "e.g. 24 or 36", "group": "size_material", "required": True, "pricing": True},
-        {"key": "unit_of_measure", "label": "Unit of Measure", "type": "select", "options": [{"value": "inches", "label": "Inches"}, {"value": "feet", "label": "Feet"}], "default": "inches", "group": "size_material", "required": True, "pricing": True},
-        {"key": "sq_footage", "label": "Square Footage", "type": "calculated", "group": "size_material", "pricing": True},
-        {"key": "substrate", "label": "Board Material", "type": "select", "options": substrate_opts, "group": "size_material", "required": True, "pricing": True},
-        {"key": "thickness", "label": "Thickness", "type": "select", "options": thickness_opts, "group": "size_material", "pricing": True},
-        {"key": "double_sided", "label": "Sidedness", "type": "select", "options": [{"value": "single", "label": "Single-Sided"}, {"value": "double", "label": "Double-Sided"}], "default": "single", "group": "size_material", "pricing": True},
-        # Finishing & Fabrication
-        {"key": "lamination", "label": "Lamination", "type": "select", "options": [{"value": "none", "label": "None"}, {"value": "gloss", "label": "Gloss"}, {"value": "matte", "label": "Matte"}], "default": "none", "group": "finishing", "pricing": True},
-        {"key": "rounded_corners", "label": "Rounded Corners", "type": "toggle", "default": False, "group": "finishing", "pricing": True},
-        {"key": "drill_holes", "label": "Drill Holes", "type": "select", "options": [{"value": "none", "label": "None"}, {"value": "corners", "label": "Corner Holes"}, {"value": "custom", "label": "Custom Pattern"}], "default": "none", "group": "finishing", "pricing": True},
-        {"key": "cut_shape", "label": "Cut Shape", "type": "select", "options": [{"value": "square", "label": "Square / Rectangle"}, {"value": "contour", "label": "Contour Cut"}, {"value": "custom", "label": "Custom Shape"}], "default": "square", "group": "finishing", "pricing": True},
-        {"key": "edge_finishing", "label": "Edge Finishing", "type": "text", "placeholder": "Sanded, polished, raw", "group": "finishing"},
-        # Mounting / Hardware
-        {"key": "stakes_included", "label": "Stakes Included", "type": "toggle", "default": False, "group": "mounting", "pricing": True},
-        {"key": "num_stakes", "label": "Number of Stakes", "type": "number", "default": 0, "group": "mounting", "pricing": True},
-        {"key": "mounting_hardware", "label": "Mounting Hardware", "type": "select", "options": [{"value": "none", "label": "None"}, {"value": "screws", "label": "Screws"}, {"value": "brackets", "label": "Brackets"}, {"value": "posts", "label": "Posts"}, {"value": "standoffs", "label": "Standoffs"}], "default": "none", "group": "mounting", "pricing": True},
-        {"key": "install_required", "label": "Installation Required", "type": "toggle", "default": False, "group": "mounting", "pricing": True},
-        # Design
-        {"key": "artwork_provided", "label": "Artwork Provided", "type": "toggle", "default": False, "group": "design"},
-        {"key": "artwork_notes", "label": "Notes", "type": "textarea", "group": "design"},
-        # Production
-        {"key": "rush_order", "label": "Rush Order", "type": "toggle", "default": False, "group": "production", "pricing": True},
-        {"key": "outsourced", "label": "Outsourced", "type": "toggle", "default": False, "group": "production"},
+        {"key": "width", "label": "Width", "type": "number", "unit": "in", "required": True, "pricing": True},
+        {"key": "height", "label": "Height", "type": "number", "unit": "in", "required": True, "pricing": True},
+        {"key": "unit_of_measure", "label": "Unit of Measure", "type": "select", "options": [
+            {"value": "inches", "label": "Inches"},
+            {"value": "feet", "label": "Feet"},
+        ], "default": cat_config.get("default_unit_of_measure", "inches"), "pricing": True},
+        {"key": "substrate_type_key", "label": "Substrate Type", "type": "select", "options": substrate_opts, "default": cat_config.get("default_substrate_key", "coroplast_4mm"), "pricing": True},
+        {"key": "thickness", "label": "Thickness", "type": "select", "options": [
+            {"value": "4mm", "label": "4mm"},
+            {"value": "10mm", "label": "10mm"},
+            {"value": "3mm", "label": "3mm"},
+            {"value": "6mm", "label": "6mm"},
+            {"value": "0.040", "label": ".040"},
+            {"value": "0.063", "label": ".063"},
+            {"value": "0.080", "label": ".080"},
+            {"value": "1/8", "label": "1/8""},
+            {"value": "1/4", "label": "1/4""},
+            {"value": "3/16", "label": "3/16""},
+            {"value": "1/2", "label": "1/2""},
+            {"value": "custom", "label": "Custom"},
+        ], "default": "4mm", "pricing": True},
+        {"key": "graphic_method", "label": "Graphic Method", "type": "select", "options": [
+            {"value": "direct_print", "label": "Direct Print"},
+            {"value": "mounted_print", "label": "Mounted Print"},
+            {"value": "cut_vinyl_applied", "label": "Cut Vinyl Applied"},
+        ], "default": cat_config.get("default_graphic_method", "direct_print"), "pricing": True},
+        {"key": "protective_finish", "label": "Protective Finish / Laminate", "type": "toggle", "default": cat_config.get("default_finish_required", False), "pricing": True},
+        {"key": "protective_finish_type", "label": "Protective Finish Type", "type": "select", "options": finish_opts, "default": cat_config.get("default_finish_key", "rigid_finish_standard"), "pricing": True},
+        {"key": "sidedness", "label": "Single or Double Sided", "type": "select", "options": [
+            {"value": "single", "label": "Single-Sided"},
+            {"value": "double", "label": "Double-Sided"},
+        ], "default": cat_config.get("default_sidedness", "single"), "pricing": True},
+        {"key": "double_sided_art", "label": "Double-Sided Art", "type": "select", "options": [
+            {"value": "same", "label": "Same Art"},
+            {"value": "different", "label": "Different Art"},
+        ], "default": cat_config.get("default_double_sided_art", "same"), "pricing": True},
+        {"key": "shape_type", "label": "Shape Type", "type": "select", "options": [
+            {"value": "rectangle", "label": "Rectangle"},
+            {"value": "rounded_corners", "label": "Rounded Corners"},
+            {"value": "simple_contour", "label": "Simple Contour"},
+            {"value": "complex_contour", "label": "Complex Contour"},
+            {"value": "specialty_routed", "label": "Specialty Routed"},
+        ], "default": cat_config.get("default_shape_type", "rectangle"), "pricing": True},
+        {"key": "finish_quality", "label": "Finish Quality Tier", "type": "select", "options": [
+            {"value": "standard", "label": "Standard"},
+            {"value": "premium", "label": "Premium"},
+            {"value": "presentation", "label": "Presentation"},
+            {"value": "architectural", "label": "Architectural"},
+        ], "default": cat_config.get("default_finish_quality", "standard"), "pricing": True},
+        {"key": "hardware_included", "label": "Hardware Included", "type": "toggle", "default": False, "pricing": True},
+        {"key": "hardware_type", "label": "Hardware Type", "type": "select", "options": hardware_opts, "pricing": True},
+        {"key": "drill_prep_required", "label": "Drill / Prep Required", "type": "toggle", "default": False, "pricing": True},
+        {"key": "artwork_ready", "label": "Artwork Ready", "type": "toggle", "default": False, "pricing": True},
+        {"key": "artwork_needed", "label": "Artwork Needed", "type": "toggle", "default": False, "pricing": True},
+        {"key": "design_complexity", "label": "Design Complexity", "type": "select", "options": [
+            {"value": "simple", "label": "Simple"},
+            {"value": "medium", "label": "Medium"},
+            {"value": "complex", "label": "Complex"},
+            {"value": "extreme", "label": "Extreme"},
+        ], "default": cat_config.get("default_design_complexity", "simple"), "pricing": True},
+        {"key": "install_required", "label": "Install Required", "type": "toggle", "default": cat_config.get("default_install_included", False), "pricing": True},
+        {"key": "install_complexity", "label": "Install Complexity", "type": "select", "options": [
+            {"value": "easy", "label": "Easy"},
+            {"value": "medium", "label": "Medium"},
+            {"value": "difficult", "label": "Difficult"},
+            {"value": "high_risk", "label": "High-Risk"},
+        ], "default": cat_config.get("default_install_complexity", "easy"), "pricing": True},
+        {"key": "rush_order", "label": "Rush", "type": "toggle", "default": False, "pricing": True},
     ]
 
 
 def _cut_vinyl_schema(defaults, vinyl_opts):
-    """Full Cut Vinyl category schema — vinyl types from catalog."""
+    cat_config = defaults.get("category_defaults", {}).get("cut_vinyl", {})
     return [
-        # Size & Layout
-        {"key": "width", "label": "Width", "type": "text", "placeholder": "e.g. 24 or 36", "group": "size_layout", "required": True, "pricing": True},
-        {"key": "height", "label": "Height", "type": "text", "placeholder": "e.g. 36 or 48", "group": "size_layout", "required": True, "pricing": True},
-        {"key": "unit_of_measure", "label": "Unit of Measure", "type": "select", "options": [{"value": "inches", "label": "Inches"}, {"value": "feet", "label": "Feet"}], "default": "inches", "group": "size_layout", "pricing": True},
-        {"key": "sq_footage", "label": "Coverage Area", "type": "calculated", "group": "size_layout", "pricing": True},
-        {"key": "num_pieces", "label": "Number of Separate Pieces", "type": "number", "placeholder": "1", "group": "size_layout", "pricing": True},
-        # Vinyl Details
-        {"key": "vinyl_type", "label": "Vinyl Type", "type": "select", "options": vinyl_opts, "group": "vinyl_details", "required": True, "pricing": True},
-        {"key": "color_specs", "label": "Color(s)", "type": "text", "placeholder": "Red, White, Blue", "group": "vinyl_details"},
-        {"key": "num_colors", "label": "Number of Colors", "type": "number", "default": 1, "group": "vinyl_details", "pricing": True},
-        {"key": "layered", "label": "Layered or Single Color", "type": "select", "options": [{"value": "single", "label": "Single Color"}, {"value": "layered", "label": "Layered / Multi-Color"}], "default": "single", "group": "vinyl_details", "pricing": True},
-        {"key": "finish", "label": "Finish", "type": "select", "options": [{"value": "gloss", "label": "Gloss"}, {"value": "matte", "label": "Matte"}, {"value": "satin", "label": "Satin"}], "default": "gloss", "group": "vinyl_details"},
-        # Production Options
-        {"key": "weed_required", "label": "Weed Required", "type": "toggle", "default": True, "group": "vinyl_production", "pricing": True},
-        {"key": "mask_required", "label": "Mask / Transfer Tape Required", "type": "toggle", "default": True, "group": "vinyl_production", "pricing": True},
-        {"key": "transfer_tape_type", "label": "Transfer Tape Type", "type": "text", "placeholder": "Standard, high-tack", "group": "vinyl_production"},
-        {"key": "reverse_cut", "label": "Reverse Cut", "type": "toggle", "default": False, "group": "vinyl_production"},
-        {"key": "mount_type", "label": "Inside / Outside Mount", "type": "select", "options": [{"value": "outside", "label": "Outside Mount"}, {"value": "inside", "label": "Inside Mount"}, {"value": "na", "label": "N/A"}], "default": "outside", "group": "vinyl_production"},
-        # Installation
-        {"key": "install_required", "label": "Install Required", "type": "toggle", "default": False, "group": "installation", "pricing": True},
-        {"key": "surface_type", "label": "Surface Type", "type": "text", "placeholder": "Glass, wall, vehicle", "group": "installation"},
-        {"key": "location_notes", "label": "Location / Install Notes", "type": "textarea", "group": "installation"},
-        # Design
-        {"key": "artwork_provided", "label": "Artwork Provided", "type": "toggle", "default": False, "group": "design"},
-        # Production
-        {"key": "rush_order", "label": "Rush Order", "type": "toggle", "default": False, "group": "production", "pricing": True},
-        {"key": "outsourced", "label": "Outsourced", "type": "toggle", "default": False, "group": "production"},
+        {"key": "width", "label": "Width", "type": "number", "unit": "in", "required": True, "pricing": True},
+        {"key": "height", "label": "Height", "type": "number", "unit": "in", "required": True, "pricing": True},
+        {"key": "unit_of_measure", "label": "Unit of Measure", "type": "select", "options": [
+            {"value": "inches", "label": "Inches"},
+            {"value": "feet", "label": "Feet"},
+        ], "default": cat_config.get("default_unit_of_measure", "inches"), "pricing": True},
+        {"key": "vinyl_type_key", "label": "Vinyl Type", "type": "select", "options": vinyl_opts, "default": cat_config.get("default_vinyl_type_key", "oracal_651"), "pricing": True},
+        {"key": "num_colors", "label": "Number of Colors", "type": "select", "options": [
+            {"value": 1, "label": "1"},
+            {"value": 2, "label": "2"},
+            {"value": 3, "label": "3"},
+            {"value": 4, "label": "4+"},
+        ], "default": cat_config.get("default_number_of_colors", 1), "pricing": True},
+        {"key": "weeding_complexity", "label": "Weeding Complexity", "type": "select", "options": [
+            {"value": "simple", "label": "Simple"},
+            {"value": "medium", "label": "Medium"},
+            {"value": "complex", "label": "Complex"},
+            {"value": "extreme", "label": "Extreme"},
+        ], "default": cat_config.get("default_weeding_complexity", "simple"), "pricing": True},
+        {"key": "masking_required", "label": "Masking Required", "type": "toggle", "default": cat_config.get("default_masking_required", True), "pricing": True},
+        {"key": "use_type", "label": "Application / Use Type", "type": "select", "options": [
+            {"value": "indoor", "label": "Indoor"},
+            {"value": "outdoor", "label": "Outdoor"},
+            {"value": "wall", "label": "Wall"},
+            {"value": "glass_window", "label": "Glass / Window"},
+            {"value": "vehicle", "label": "Vehicle"},
+            {"value": "specialty", "label": "Specialty"},
+        ], "default": cat_config.get("default_use_type", "indoor"), "pricing": True},
+        {"key": "artwork_ready", "label": "Artwork Ready", "type": "toggle", "default": False, "pricing": True},
+        {"key": "artwork_needed", "label": "Artwork Needed", "type": "toggle", "default": False, "pricing": True},
+        {"key": "design_complexity", "label": "Design Complexity", "type": "select", "options": [
+            {"value": "simple", "label": "Simple"},
+            {"value": "medium", "label": "Medium"},
+            {"value": "complex", "label": "Complex"},
+            {"value": "extreme", "label": "Extreme"},
+        ], "default": cat_config.get("default_design_complexity", "simple"), "pricing": True},
+        {"key": "file_cleanup_needed", "label": "File Cleanup Needed", "type": "toggle", "default": False, "pricing": True},
+        {"key": "install_required", "label": "Install Required", "type": "toggle", "default": cat_config.get("default_install_included", False), "pricing": True},
+        {"key": "install_complexity", "label": "Install Complexity", "type": "select", "options": [
+            {"value": "easy", "label": "Easy"},
+            {"value": "medium", "label": "Medium"},
+            {"value": "difficult", "label": "Difficult"},
+            {"value": "extreme", "label": "Extreme"},
+        ], "default": cat_config.get("default_install_complexity", "easy"), "pricing": True},
+        {"key": "surface_type", "label": "Surface Type", "type": "select", "options": [
+            {"value": "flat_smooth", "label": "Flat Smooth"},
+            {"value": "glass_window", "label": "Glass / Window"},
+            {"value": "vehicle", "label": "Vehicle"},
+            {"value": "textured_rough", "label": "Textured / Rough"},
+            {"value": "curved_awkward", "label": "Curved / Awkward"},
+        ], "default": cat_config.get("default_surface_type", "flat_smooth"), "pricing": True},
+        {"key": "rush_order", "label": "Rush", "type": "toggle", "default": False, "pricing": True},
     ]
 
 
-def _digital_print_schema(defaults, media_opts):
-    """Full Digital Print category schema — media from catalog."""
+def _digital_print_schema(defaults, media_opts, laminate_opts, substrate_opts):
+    cat_config = defaults.get("category_defaults", {}).get("digital_print", {})
     return [
-        # Size & Media
-        {"key": "width", "label": "Width", "type": "text", "placeholder": "e.g. 24 or 48", "group": "size_media", "required": True, "pricing": True},
-        {"key": "height", "label": "Height", "type": "text", "placeholder": "e.g. 36 or 96", "group": "size_media", "required": True, "pricing": True},
-        {"key": "unit_of_measure", "label": "Unit of Measure", "type": "select", "options": [{"value": "inches", "label": "Inches"}, {"value": "feet", "label": "Feet"}], "default": "inches", "group": "size_media", "pricing": True},
-        {"key": "sq_footage", "label": "Square Footage", "type": "calculated", "group": "size_media", "pricing": True},
-        {"key": "media_type", "label": "Media Type", "type": "select", "options": media_opts, "group": "size_media", "required": True, "pricing": True},        {"key": "roll_or_sheet", "label": "Roll vs Sheet", "type": "select", "options": [{"value": "roll", "label": "Roll"}, {"value": "sheet", "label": "Sheet"}], "default": "roll", "group": "size_media", "pricing": True},
-        {"key": "num_copies", "label": "Number of Copies / Sets", "type": "number", "placeholder": "1", "group": "size_media"},
-        # Print Options
-        {"key": "print_quality", "label": "Print Quality", "type": "select", "options": [{"value": "draft", "label": "Draft"}, {"value": "standard", "label": "Standard"}, {"value": "high", "label": "High Quality"}], "default": "standard", "group": "print_options", "pricing": True},
-        {"key": "bleed_required", "label": "Bleed Required", "type": "toggle", "default": True, "group": "print_options"},
-        # Finishing
-        {"key": "lamination", "label": "Lamination", "type": "select", "options": [{"value": "none", "label": "None"}, {"value": "gloss", "label": "Gloss"}, {"value": "matte", "label": "Matte"}, {"value": "dry_erase", "label": "Dry Erase"}, {"value": "anti_slip", "label": "Anti-Slip (Floor)"}], "default": "none", "group": "finishing", "pricing": True},
-        {"key": "mounting", "label": "Mounting", "type": "select", "options": [{"value": "none", "label": "None"}, {"value": "foam_board", "label": "Foam Board"}, {"value": "pvc", "label": "PVC"}, {"value": "acm", "label": "ACM"}], "default": "none", "group": "finishing", "pricing": True},
-        {"key": "contour_cut", "label": "Contour Cut", "type": "select", "options": [{"value": "none", "label": "None"}, {"value": "simple", "label": "Simple Cut"}, {"value": "complex", "label": "Complex / Detailed"}], "default": "none", "group": "finishing", "pricing": True},
-        {"key": "trim", "label": "Trim", "type": "select", "options": [{"value": "none", "label": "None"}, {"value": "standard", "label": "Standard Trim"}, {"value": "custom", "label": "Custom Trim"}], "default": "standard", "group": "finishing"},
-        {"key": "corner_rounding", "label": "Corner Rounding", "type": "toggle", "default": False, "group": "finishing", "pricing": True},
-        # Installation
-        {"key": "install_required", "label": "Install Required", "type": "toggle", "default": False, "group": "installation", "pricing": True},
-        {"key": "surface_type", "label": "Surface Type", "type": "select", "options": [{"value": "glass", "label": "Glass"}, {"value": "wall", "label": "Wall"}, {"value": "floor", "label": "Floor"}, {"value": "vehicle", "label": "Vehicle"}, {"value": "other", "label": "Other"}], "group": "installation"},
-        {"key": "interior_exterior", "label": "Interior / Exterior", "type": "select", "options": [{"value": "interior", "label": "Interior"}, {"value": "exterior", "label": "Exterior"}, {"value": "both", "label": "Both"}], "default": "interior", "group": "installation"},
-        {"key": "install_notes", "label": "Install Notes", "type": "textarea", "group": "installation"},
-        # Design
-        {"key": "artwork_provided", "label": "Artwork Provided", "type": "toggle", "default": False, "group": "design"},
-        {"key": "artwork_notes", "label": "Notes", "type": "textarea", "group": "design"},
-        # Production
-        {"key": "rush_order", "label": "Rush Order", "type": "toggle", "default": False, "group": "production", "pricing": True},
-        {"key": "outsourced", "label": "Outsourced", "type": "toggle", "default": False, "group": "production"},
-    ]
-
-
-def _services_schema(defaults):
-    service_options = [
-        {"value": "design", "label": "Logo / Graphic Design"},
-        {"value": "consultation", "label": "Consultation"},
-        {"value": "installation", "label": "Installation"},
-        {"value": "removal", "label": "Removal"},
-        {"value": "site_survey", "label": "Site Survey"},
-        {"value": "travel", "label": "Travel"},
-        {"value": "other", "label": "Other Service"},
-    ]
-    return [
-        {"key": "service_type", "label": "Service Type", "type": "select", "options": service_options, "group": "specs", "required": True, "pricing": True},
-        {"key": "estimated_hours", "label": "Hours", "type": "number", "placeholder": "1", "group": "specs", "required": True, "pricing": True},
-        {"key": "complexity", "label": "Complexity (1-5)", "type": "number", "default": 1, "group": "specs", "pricing": True},
-        {"key": "hourly_rate_override", "label": "Override Hourly Rate", "type": "number", "placeholder": "Optional", "group": "specs", "pricing": True},
-        {"key": "service_notes", "label": "Service Notes", "type": "textarea", "group": "specs"},
+        {"key": "width", "label": "Width", "type": "number", "unit": "in", "required": True, "pricing": True},
+        {"key": "height", "label": "Height", "type": "number", "unit": "in", "required": True, "pricing": True},
+        {"key": "unit_of_measure", "label": "Unit of Measure", "type": "select", "options": [
+            {"value": "inches", "label": "Inches"},
+            {"value": "feet", "label": "Feet"},
+        ], "default": cat_config.get("default_unit_of_measure", "inches"), "pricing": True},
+        {"key": "print_media_key", "label": "Print Media Type", "type": "select", "options": media_opts, "default": cat_config.get("default_print_media_key", "printable_adhesive_vinyl"), "pricing": True},
+        {"key": "use_type", "label": "Application / Use Type", "type": "select", "options": [
+            {"value": "indoor", "label": "Indoor"},
+            {"value": "outdoor", "label": "Outdoor"},
+            {"value": "display", "label": "Display"},
+            {"value": "floor", "label": "Floor"},
+            {"value": "window", "label": "Window"},
+            {"value": "wall", "label": "Wall"},
+            {"value": "backlit", "label": "Backlit"},
+        ], "default": cat_config.get("default_use_type", "indoor"), "pricing": True},
+        {"key": "print_quality_mode", "label": "Print Quality Mode", "type": "select", "options": [
+            {"value": "draft", "label": "Draft"},
+            {"value": "standard", "label": "Standard"},
+            {"value": "high", "label": "High"},
+            {"value": "photo", "label": "Photo"},
+        ], "default": cat_config.get("default_print_quality_mode", "standard"), "pricing": True},
+        {"key": "ink_coverage_percent", "label": "Ink Coverage %", "type": "number", "default": cat_config.get("default_ink_coverage_percent", 35), "pricing": True},
+        {"key": "laminate", "label": "Laminate Required", "type": "toggle", "default": cat_config.get("default_laminate_required", False), "pricing": True},
+        {"key": "laminate_material_key", "label": "Laminate Type", "type": "select", "options": laminate_opts, "default": cat_config.get("default_laminate_key", "laminate_gloss"), "pricing": True},
+        {"key": "contour_cut_type", "label": "Contour Cut Type", "type": "select", "options": [
+            {"value": "none", "label": "None"},
+            {"value": "simple", "label": "Simple Contour"},
+            {"value": "complex", "label": "Complex Contour"},
+            {"value": "kiss", "label": "Kiss Cut / Sheet Cut"},
+        ], "default": cat_config.get("default_contour_cut_type", "none"), "pricing": True},
+        {"key": "trim_finish_type", "label": "Trim Finish Type", "type": "select", "options": [
+            {"value": "standard", "label": "Standard Trim"},
+            {"value": "premium", "label": "Premium Trim"},
+        ], "default": cat_config.get("default_trim_finish_type", "standard"), "pricing": True},
+        {"key": "piece_separation_required", "label": "Piece Separation Required", "type": "toggle", "default": False, "pricing": True},
+        {"key": "separated_piece_count", "label": "Separated Piece Count", "type": "number", "default": 0, "pricing": True},
+        {"key": "artwork_ready", "label": "Artwork Ready", "type": "toggle", "default": False, "pricing": True},
+        {"key": "artwork_needed", "label": "Artwork Needed", "type": "toggle", "default": False, "pricing": True},
+        {"key": "design_complexity", "label": "Design Complexity", "type": "select", "options": [
+            {"value": "simple", "label": "Simple"},
+            {"value": "medium", "label": "Medium"},
+            {"value": "complex", "label": "Complex"},
+            {"value": "extreme", "label": "Extreme"},
+        ], "default": cat_config.get("default_design_complexity", "simple"), "pricing": True},
+        {"key": "file_cleanup_needed", "label": "File Cleanup Needed", "type": "toggle", "default": False, "pricing": True},
+        {"key": "mounted_to_substrate", "label": "Mounted to Substrate", "type": "toggle", "default": False, "pricing": True},
+        {"key": "substrate_material_key", "label": "Substrate Type", "type": "select", "options": substrate_opts, "pricing": True},
+        {"key": "install_required", "label": "Install Required", "type": "toggle", "default": cat_config.get("default_install_included", False), "pricing": True},
+        {"key": "install_complexity", "label": "Install Complexity", "type": "select", "options": [
+            {"value": "easy", "label": "Easy"},
+            {"value": "medium", "label": "Medium"},
+            {"value": "difficult", "label": "Difficult"},
+            {"value": "extreme", "label": "Extreme"},
+        ], "default": cat_config.get("default_install_complexity", "easy"), "pricing": True},
+        {"key": "rush_order", "label": "Rush", "type": "toggle", "default": False, "pricing": True},
     ]
 
 
@@ -628,10 +767,10 @@ async def get_category_field_schema(category: str, current_user: UserInDB = Depe
     schemas = {
         "banners": _banner_schema(defaults, cat_opts("print_material")),
         "apparel": _apparel_schema(defaults, cat_opts("apparel"), cat_opts("decoration")),
-        "rigid_signs": _rigid_sign_schema(defaults, cat_opts("substrate")),
+        "rigid_signs": _rigid_sign_schema(defaults, cat_opts("substrate"), cat_opts("finish"), cat_opts("hardware")),
         "cut_vinyl": _cut_vinyl_schema(defaults, cat_opts("vinyl")),
         "vehicle_wrap": _vehicle_wrap_schema(defaults, cat_opts("vinyl"), cat_opts("vehicle_type")),
-        "digital_print": _digital_print_schema(defaults, cat_opts("print_material")),
+        "digital_print": _digital_print_schema(defaults, cat_opts("print_material"), cat_opts("laminate"), cat_opts("substrate")),
         "services": _services_schema(defaults),
         "promo_misc": [
             {"key": "material", "label": "Product Type", "type": "select", "options": [{"value": m.value, "label": m.value.replace("_"," ").title()} for m in PromoProductType], "group": "material"},

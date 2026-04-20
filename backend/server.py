@@ -289,6 +289,29 @@ def get_material_cost_per_sqft(defaults: dict, key: str) -> float:
     return float(cost_value or 0)
 
 
+def find_hardware_accessory(defaults: dict, key: str) -> dict:
+    if not key:
+        return {}
+    for item in defaults.get("hardware_accessories", []):
+        if item.get("id") == key or item.get("name") == key:
+            return item
+    return {}
+
+
+def get_hardware_cost(defaults: dict, key: str) -> float:
+    item = find_hardware_accessory(defaults, key)
+    if not item:
+        return 0
+    return float(item.get("purchase_cost", 0) or 0)
+
+
+def get_hardware_sell_price(defaults: dict, key: str) -> float:
+    item = find_hardware_accessory(defaults, key)
+    if not item:
+        return 0
+    return float(item.get("default_sell_price", 0) or 0)
+
+
 def get_category_pricing_config(defaults: dict, category_key: str) -> dict:
     return {
         "default_labor_hours_per_sqft": 0,
@@ -869,215 +892,213 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
 
 
 async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate rigid signs using company cost settings."""
+    """Calculate rigid sign pricing using Pricing Foundation defaults."""
     width = data.width_inches or 24
-    height = data.length_inches or 18
-    sqft = (width * height) / 144
+    height = data.length_inches or 24
+    unit = (data.unit_of_measure or "inches").lower()
+    area_per_piece = (width * height) / 144 if unit != "feet" else (width * height)
 
-    substrate = data.substrate_type or "coroplast_4mm"
     category_config = get_category_pricing_config(defaults, "rigid_signs")
-    material_cost_map = get_material_cost_map(defaults)
-    substrate_key_map = {
-        "coroplast_4mm": "coroplast",
-        "coroplast_10mm": "coroplast",
-        "aluminum_040": "aluminum_composite",
-        "aluminum_063": "aluminum_composite",
-        "aluminum_080": "aluminum_composite",
-        "dibond": "aluminum_composite",
-        "pvc_3mm": "foam_board",
-        "pvc_6mm": "foam_board",
-        "acrylic": "acrylic_sheet",
-        "mdo": "rigid_sign_board",
-    }
-    material_key = substrate_key_map.get(substrate, "coroplast")
-    substrate_cost_per_sqft = material_cost_map.get(material_key, 2.0)
-    thickness_multiplier = {
-        "4mm": 1.0,
-        "6mm": 1.18,
-        "10mm": 1.45,
-        "0.040": 1.0,
-        "0.063": 1.2,
-        "0.080": 1.42,
-        "3mm_pvc": 1.0,
-        "6mm_pvc": 1.32,
-    }.get(str(data.thickness or "").lower(), 1.0)
-    substrate_cost_per_sqft *= thickness_multiplier
-    ink_cost_per_sqft = material_cost_map.get("ink", 0)
-    laminate_cost_per_sqft = material_cost_map.get("laminate", 0) if data.laminate else 0
+    min_billable = float(category_config.get("default_minimum_billable_area", 1.0) or 1.0)
+    billable_area_per_piece = max(area_per_piece, min_billable)
+    total_billable_area = billable_area_per_piece * quantity
 
-    material_cost = sqft * quantity * (substrate_cost_per_sqft + ink_cost_per_sqft + laminate_cost_per_sqft)
+    waste_percent = float(category_config.get("waste_percentage", defaults.get("waste_percentage", 0)) or 0)
+    waste_adjusted_area = total_billable_area * (1 + (waste_percent / 100))
 
-    # Finishing costs
-    finishing_cost = 0
-    if data.rounded_corners:
-        finishing_cost += 1.00 * quantity
-    drill_hole_mode = str(data.drill_holes or "none")
-    drill_hole_count = 0
-    if drill_hole_mode != "none":
-        drill_hole_count = 4 if drill_hole_mode == "corners" else max(int(data.num_holes or 4), 4)
-        finishing_cost += drill_hole_count * 0.35 * quantity
-    contour_cut_cost = 0
-    if data.cut_shape == "contour":
-        contour_cut_cost = 6.0 * quantity
-    elif data.cut_shape == "custom":
-        contour_cut_cost = 10.0 * quantity
-    finishing_cost += contour_cut_cost
+    default_substrate_key = category_config.get("default_substrate_key", "coroplast_4mm")
+    substrate_key = data.substrate_type_key or (data.substrate_type.value if data.substrate_type else None) or default_substrate_key
+    substrate_material = find_material(defaults, substrate_key)
+    substrate_warning = ""
+    if not substrate_material:
+        substrate_warning = f"Missing substrate type: {substrate_key}. Using default."
+        substrate_key = default_substrate_key
+        substrate_material = find_material(defaults, substrate_key)
 
-    stake_count = max(int(data.num_stakes or 0), 0)
-    if data.stakes_included:
-        stake_count = stake_count or 2
-        finishing_cost += stake_count * 1.5
+    substrate_cost_per_sqft = get_material_cost_per_sqft(defaults, substrate_key)
+    substrate_sell_rate = get_material_sell_rate(defaults, substrate_key)
+    substrate_cost = waste_adjusted_area * substrate_cost_per_sqft
 
-    mounting_hardware_cost = {
-        "screws": 0.35,
-        "brackets": 2.5,
-        "posts": 18.0,
-        "standoffs": 6.0,
-    }.get(str(data.mounting_hardware or "none"), 0)
-    finishing_cost += mounting_hardware_cost * quantity
+    graphic_method = data.graphic_method or category_config.get("default_graphic_method", "direct_print")
+    graphic_cost_per_sqft = 0
+    mounting_hours = 0
+    graphic_warning = ""
+    if graphic_method == "direct_print":
+        graphic_cost_per_sqft = get_material_cost_per_sqft(defaults, category_config.get("direct_print_consumable_key", "direct_print_consumable"))
+    elif graphic_method == "mounted_print":
+        graphic_cost_per_sqft = get_material_cost_per_sqft(defaults, category_config.get("mounted_print_graphic_key", "mounted_print_graphic"))
+        mounting_hours = waste_adjusted_area * float(category_config.get("default_mounting_labor_hours_per_sqft", 0.08) or 0)
+    elif graphic_method == "cut_vinyl_applied":
+        cut_vinyl_key = category_config.get("cut_vinyl_material_key", "oracal_651")
+        graphic_cost_per_sqft = get_material_cost_per_sqft(defaults, cut_vinyl_key)
+    else:
+        graphic_warning = f"Unknown graphic method: {graphic_method}. Using direct print consumables."
+        graphic_cost_per_sqft = get_material_cost_per_sqft(defaults, category_config.get("direct_print_consumable_key", "direct_print_consumable"))
 
-    if data.double_sided:
-        material_cost *= 1.75
+    sidedness = data.sidedness or category_config.get("default_sidedness", "single")
+    double_art = data.double_sided_art or category_config.get("default_double_sided_art", "same")
+    if sidedness == "double":
+        sided_key = "double_diff" if double_art == "different" else "double_same"
+    else:
+        sided_key = "single"
+    sided_mult = float(category_config.get("sidedness_multipliers", {}).get(sided_key, 1.0) or 1.0)
 
-    labor_hours = sqft * quantity * float(category_config.get("default_labor_hours_per_sqft", 0.08) or 0)
-    production_rate = float(defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75)) or 0)
+    shape_type = data.shape_type or category_config.get("default_shape_type", "rectangle")
+    shape_mult = float(category_config.get("shape_multipliers", {}).get(shape_type, 1.0) or 1.0)
+
+    thickness_value = (data.thickness or "").lower()
+    if any(token in thickness_value for token in ["10mm", "0.080", "1/4", "1/2"]):
+        thickness_tier = "thick_heavy"
+    elif any(token in thickness_value for token in ["6mm", "0.063"]):
+        thickness_tier = "medium"
+    else:
+        thickness_tier = "thin_basic"
+    thickness_mult = float(category_config.get("thickness_multipliers", {}).get(thickness_tier, 1.0) or 1.0)
+
+    finish_quality = data.finish_quality or category_config.get("default_finish_quality", "standard")
+    finish_quality_mult = float(category_config.get("finish_quality_multipliers", {}).get(finish_quality, 1.0) or 1.0)
+
+    finish_required = data.protective_finish
+    if finish_required is None:
+        finish_required = bool(category_config.get("default_finish_required", False))
+    finish_key = data.protective_finish_type or category_config.get("default_finish_key", "rigid_finish_standard")
+    finish_warning = ""
+    finish_cost = 0
+    if finish_required:
+        finish_cost_per_sqft = get_material_cost_per_sqft(defaults, finish_key)
+        if finish_cost_per_sqft <= 0:
+            finish_warning = f"Missing finish type: {finish_key}."
+        finish_cost = waste_adjusted_area * finish_cost_per_sqft * sided_mult
+
+    graphic_face_cost = waste_adjusted_area * graphic_cost_per_sqft * sided_mult
+
+    base_hours_per_sqft = float(category_config.get("production_labor_hours_per_sqft", category_config.get("default_labor_hours_per_sqft", 0.15)) or 0)
+    min_prod_hours = float(category_config.get("min_production_labor_hours_per_item", 0.2) or 0)
+    per_piece_hours = billable_area_per_piece * base_hours_per_sqft
+    per_piece_hours = max(per_piece_hours, min_prod_hours)
+    production_hours = per_piece_hours * quantity * thickness_mult * shape_mult * sided_mult
+
+    labor_rates = defaults.get("labor_rates", {})
+    production_rate = float(labor_rates.get("production", {}).get("hourly_rate", defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75))) or 0)
+    design_rate = float(labor_rates.get("design", {}).get("hourly_rate", defaults.get("design_hourly_rate", 85)) or 0)
+    install_rate = float(labor_rates.get("installation", {}).get("hourly_rate", defaults.get("install_hourly_rate", 95)) or 0)
+
+    production_cost = production_hours * production_rate
+    mounting_cost = mounting_hours * production_rate
+
+    design_hours = 0
+    if data.artwork_ready:
+        design_hours = 0
+    elif data.artwork_needed or data.artwork_needed is None:
+        base_design_time = float(category_config.get("default_design_time_hours", 0.5) or 0)
+        design_complexity = data.design_complexity or "simple"
+        design_mult = {
+            "simple": 1.0,
+            "medium": 1.25,
+            "complex": 1.5,
+            "extreme": 2.0,
+        }.get(design_complexity, 1.0)
+        design_hours = base_design_time * design_mult
+    design_cost = design_hours * design_rate
+
     install_hours = 0
+    install_cost = 0
     if data.install_required:
-        install_hours = max(0.25 * quantity, sqft * quantity * 0.02)
-    labor_hours += install_hours
-    labor_cost = labor_hours * production_rate
+        base_install_hours = total_billable_area * float(category_config.get("install_hours_per_sqft", 0.08) or 0)
+        install_complexity = data.install_complexity or "easy"
+        install_mult = float(category_config.get("install_complexity_multipliers", {}).get(install_complexity, 1.0) or 1.0)
+        install_hours = base_install_hours * install_mult
+        install_min = float(defaults.get("minimum_install_charge", 0) or 0)
+        install_cost = max(install_min, install_hours * install_rate)
 
-    # Setup fee is OPTIONAL
-    include_setup = getattr(data, 'include_setup_fee', False)
-    setup_fee = 0
-    if include_setup:
-        setup_fee = data.setup_fee or defaults.get("minimum_sign_charge", 20.0)
+    hardware_cost = 0
+    hardware_sell = 0
+    hardware_warning = ""
+    hardware_labor_cost = 0
+    if data.hardware_included:
+        hardware_key = data.hardware_type or ""
+        hardware_cost = get_hardware_cost(defaults, hardware_key) * quantity
+        hardware_sell = get_hardware_sell_price(defaults, hardware_key) * quantity
+        if hardware_key and hardware_cost == 0 and hardware_sell == 0:
+            hardware_warning = f"Missing hardware: {hardware_key}."
+        hardware_labor_cost = float(category_config.get("hardware_handling_labor_cost", 5.0) or 0) * quantity
 
-    pre_overhead_total = material_cost + labor_cost + finishing_cost  # setup_fee added flat after markup
-    overhead_cost = calculate_overhead_cost(pre_overhead_total, labor_hours, defaults, category_config)
-    suggested_price = resolve_selling_price(
-        pre_overhead_total + overhead_cost,
-        category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5)),
-        category_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40.0)),
-    )
-    # Setup fee added FLAT — not marked up
-    suggested_price += setup_fee
-    suggested_price = max(
-        suggested_price,
-        float(category_config.get("minimum_charge", defaults.get("minimum_sign_charge", 15.0)) or 15.0),
-    )
-    suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order)
+    drill_prep_fee = 0
+    if data.drill_prep_required:
+        drill_prep_fee = float(category_config.get("drill_prep_fee", 3.0) or 0) * quantity
 
-    return create_pricing_result(
-        material_cost=material_cost + finishing_cost,
-        labor_cost=labor_cost,
-        setup_cost=setup_fee,
-        additional_costs=0,
-        overhead_cost=overhead_cost,
-        suggested_price=suggested_price,
-        estimated_labor_minutes=labor_hours * 60,
-        breakdown={
-            "dimensions": f"{width}\" x {height}\"",
-            "square_feet": round(sqft, 2),
-            "substrate": substrate,
-            "thickness": data.thickness,
-            "thickness_multiplier": thickness_multiplier,
-            "substrate_cost_per_sqft": substrate_cost_per_sqft,
-            "ink_cost_per_sqft": ink_cost_per_sqft,
-            "laminate_cost_per_sqft": laminate_cost_per_sqft,
-            "finishing_cost": round(finishing_cost, 2),
-            "drill_hole_mode": drill_hole_mode,
-            "drill_hole_count": drill_hole_count,
-            "stake_count": stake_count,
-            "mounting_hardware": data.mounting_hardware,
-            "mounting_hardware_cost": mounting_hardware_cost,
-            "install_required": data.install_required,
-            "install_hours": round(install_hours, 2),
-            "rush_order": data.rush_order,
-            "labor_hours": round(labor_hours, 2),
-            "production_rate": production_rate,
-            "overhead_cost": round(overhead_cost, 2),
-            "double_sided": data.double_sided,
-            "setup_fee": setup_fee,
-            "setup_included": include_setup,
-            "price_per_sqft": round(suggested_price / sqft, 2) if sqft > 0 else 0
-        }
-    )
+    material_cost = substrate_cost + graphic_face_cost + finish_cost + hardware_cost
+    labor_cost = production_cost + mounting_cost + design_cost + install_cost + hardware_labor_cost
 
+    overhead_cost = calculate_overhead_cost(material_cost + labor_cost, production_hours + design_hours + install_hours + mounting_hours, defaults, category_config)
 
-async def calculate_apparel(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate apparel using tenant cost settings."""
-    category_config = get_category_pricing_config(defaults, "apparel")
-    material_cost_map = get_material_cost_map(defaults)
+    base_sell_rate = float(substrate_sell_rate or category_config.get("sell_rate_defaults", {}).get("base_rate", 0) or 0)
+    sell_base = base_sell_rate * total_billable_area
+    sell_base *= sided_mult * thickness_mult * shape_mult * finish_quality_mult
 
-    apparel_type = data.apparel_type or "tshirt"
-    garment_cost = data.blank_cost_override or material_cost_map.get("apparel_blank", 5.0)
+    min_sell = float(category_config.get("default_minimum_sell_price", category_config.get("minimum_charge", 25.0)) or 25.0)
+    if category_config.get("sell_method") == "max_of_rate_or_minimum":
+        sell_base = max(sell_base, min_sell)
 
-    transfer_type = data.transfer_type or "htv"
-    decoration_cost = material_cost_map.get("apparel_decoration", 2.5)
-    num_locations = data.num_print_locations or 1
-    decoration_cost *= num_locations
+    discount_percent = 0
+    for tier in category_config.get("quantity_discounts", []):
+        min_qty = float(tier.get("min_qty", 0) or 0)
+        max_qty = tier.get("max_qty")
+        if quantity >= min_qty and (max_qty is None or quantity <= float(max_qty)):
+            discount_percent = float(tier.get("discount_percent", 0) or 0)
+            break
+    sell_base = sell_base * (1 - (discount_percent / 100))
 
-    per_item_cost = garment_cost + decoration_cost
-    material_cost = per_item_cost * quantity
-
-    time_per_item = float(category_config.get("default_labor_hours_per_unit", 0.08) or 0.08)
-    production_rate = float(defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75)) or 0)
-    labor_cost = time_per_item * quantity * production_rate
-
-    include_setup = getattr(data, 'include_setup_fee', False)
-    setup_fee = 0
-    if include_setup:
-        setup_fee = data.setup_fee or (
-            defaults.get("setup_fee_apparel_screen", 35.0)
-            if transfer_type == "screen_print"
-            else defaults.get("setup_fee_apparel_dtf", 20.0)
-        )
-
-    pre_overhead_total = material_cost + labor_cost  # setup_fee added flat after markup
-    overhead_cost = calculate_overhead_cost(pre_overhead_total, time_per_item * quantity, defaults, category_config)
-    suggested_price = resolve_selling_price(
-        pre_overhead_total + overhead_cost,
-        category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5)),
-        category_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40.0)),
-    )
-    # Setup fee added FLAT — not marked up
-    suggested_price += setup_fee
-    
-    # Apparel quantity discounts
-    apparel_qty_breaks = category_config.get("quantity_breaks", defaults.get("apparel_quantity_breaks", {
-        "12": 5, "24": 10, "48": 15, "72": 20, "144": 25
-    }))
-    discount = get_quantity_discount(quantity, apparel_qty_breaks)
-    if discount > 0:
-        suggested_price *= (1 - discount)
-    
-    suggested_price = max(
-        suggested_price,
-        float(category_config.get("minimum_charge", defaults.get("minimum_order", 0)) or 0),
-    )
-    suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order)
+    suggested_price = sell_base + design_cost + install_cost + drill_prep_fee + hardware_sell
+    rush_multiplier = 1 + (float(defaults.get("rush_fee_percentage", 0) or 0) / 100)
+    suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order, rush_multiplier)
 
     return create_pricing_result(
         material_cost=material_cost,
         labor_cost=labor_cost,
-        setup_cost=setup_fee,
-        additional_costs=0,
+        setup_cost=0,
+        additional_costs=drill_prep_fee,
         overhead_cost=overhead_cost,
         suggested_price=suggested_price,
-        estimated_labor_minutes=time_per_item * quantity * 60,
+        estimated_labor_minutes=(production_hours + design_hours + install_hours + mounting_hours) * 60,
         breakdown={
-            "apparel_type": apparel_type,
-            "garment_cost": garment_cost,
-            "transfer_type": transfer_type,
-            "decoration_cost_per_location": material_cost_map.get("apparel_decoration", 2.5),
-            "print_locations": num_locations,
-            "per_item_cost": round(per_item_cost, 2),
-            "setup_fee": setup_fee,
-            "setup_included": include_setup,
-            "overhead_cost": round(overhead_cost, 2),
-            "quantity_discount": f"{int(discount*100)}%" if discount > 0 else "0%",
-            "price_per_item": round(suggested_price / quantity, 2) if quantity > 0 else 0
+            "dimensions": f"{width}" x {height}"",
+            "unit_of_measure": unit,
+            "area_per_piece": round(area_per_piece, 2),
+            "billable_area_per_piece": round(billable_area_per_piece, 2),
+            "total_billable_area": round(total_billable_area, 2),
+            "waste_adjusted_area": round(waste_adjusted_area, 2),
+            "substrate_key": substrate_key,
+            "substrate_warning": substrate_warning,
+            "substrate_cost_per_sqft": substrate_cost_per_sqft,
+            "graphic_method": graphic_method,
+            "graphic_warning": graphic_warning,
+            "graphic_cost_per_sqft": graphic_cost_per_sqft,
+            "finish_required": finish_required,
+            "finish_key": finish_key,
+            "finish_warning": finish_warning,
+            "finish_cost_per_sqft": get_material_cost_per_sqft(defaults, finish_key),
+            "sidedness": sidedness,
+            "double_sided_art": double_art,
+            "sidedness_multiplier": sided_mult,
+            "shape_type": shape_type,
+            "shape_multiplier": shape_mult,
+            "thickness": data.thickness,
+            "thickness_tier": thickness_tier,
+            "thickness_multiplier": thickness_mult,
+            "finish_quality": finish_quality,
+            "finish_quality_multiplier": finish_quality_mult,
+            "production_hours": round(production_hours, 2),
+            "mounting_hours": round(mounting_hours, 2),
+            "design_hours": round(design_hours, 2),
+            "install_hours": round(install_hours, 2),
+            "hardware_key": data.hardware_type,
+            "hardware_warning": hardware_warning,
+            "hardware_cost": round(hardware_cost, 2),
+            "hardware_sell": round(hardware_sell, 2),
+            "hardware_labor_cost": round(hardware_labor_cost, 2),
+            "drill_prep_fee": round(drill_prep_fee, 2),
+            "quantity_discount_percent": discount_percent,
         }
     )
 

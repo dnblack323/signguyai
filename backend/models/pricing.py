@@ -120,8 +120,32 @@ class PricingDefaults(BaseModel):
         {"id": "cv-etched", "key": "etched_frost_vinyl", "name": "Etched / Frost Vinyl", "category": "cut_vinyl", "cost_per_unit": 4.5, "cost_per_sqft": 4.5, "sell_rate_per_sqft": 20.0, "unit_type": "sqft", "compatible_categories": ["cut_vinyl"], "is_active": True},
         {"id": "cv-wall", "key": "wall_vinyl", "name": "Wall Vinyl", "category": "cut_vinyl", "cost_per_unit": 2.5, "cost_per_sqft": 2.5, "sell_rate_per_sqft": 15.0, "unit_type": "sqft", "compatible_categories": ["cut_vinyl"], "is_active": True},
         {"id": "cv-specialty", "key": "specialty_custom_vinyl", "name": "Specialty / Custom Vinyl", "category": "cut_vinyl", "cost_per_unit": 4.5, "cost_per_sqft": 4.5, "sell_rate_per_sqft": 24.0, "unit_type": "sqft", "compatible_categories": ["cut_vinyl"], "is_active": True},
+        {"id": "rs-coroplast-4mm", "key": "coroplast_4mm", "name": "Coroplast 4mm", "category": "substrate", "cost_per_unit": 0.9, "cost_per_sqft": 0.9, "sell_rate_per_sqft": 10.0, "unit_type": "sqft", "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "rs-coroplast-10mm", "key": "coroplast_10mm", "name": "Coroplast 10mm", "category": "substrate", "cost_per_unit": 1.6, "cost_per_sqft": 1.6, "sell_rate_per_sqft": 14.0, "unit_type": "sqft", "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "rs-pvc-3mm", "key": "pvc_3mm", "name": "PVC 3mm", "category": "substrate", "cost_per_unit": 2.25, "cost_per_sqft": 2.25, "sell_rate_per_sqft": 16.0, "unit_type": "sqft", "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "rs-pvc-6mm", "key": "pvc_6mm", "name": "PVC 6mm", "category": "substrate", "cost_per_unit": 3.5, "cost_per_sqft": 3.5, "sell_rate_per_sqft": 22.0, "unit_type": "sqft", "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "rs-acm-dibond", "key": "acm_dibond_3mm", "name": "ACM / Dibond 3mm", "category": "substrate", "cost_per_unit": 4.25, "cost_per_sqft": 4.25, "sell_rate_per_sqft": 24.0, "unit_type": "sqft", "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "rs-aluminum-040", "key": "aluminum_040", "name": "Aluminum .040", "category": "substrate", "cost_per_unit": 3.25, "cost_per_sqft": 3.25, "sell_rate_per_sqft": 18.0, "unit_type": "sqft", "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "rs-aluminum-063", "key": "aluminum_063", "name": "Aluminum .063", "category": "substrate", "cost_per_unit": 4.25, "cost_per_sqft": 4.25, "sell_rate_per_sqft": 22.0, "unit_type": "sqft", "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "rs-aluminum-080", "key": "aluminum_080", "name": "Aluminum .080", "category": "substrate", "cost_per_unit": 5.25, "cost_per_sqft": 5.25, "sell_rate_per_sqft": 26.0, "unit_type": "sqft", "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "rs-acrylic-1-8", "key": "acrylic_1_8", "name": "Acrylic 1/8\"", "category": "substrate", "cost_per_unit": 4.5, "cost_per_sqft": 4.5, "sell_rate_per_sqft": 24.0, "unit_type": "sqft", "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "rs-acrylic-1-4", "key": "acrylic_1_4", "name": "Acrylic 1/4\"", "category": "substrate", "cost_per_unit": 6.5, "cost_per_sqft": 6.5, "sell_rate_per_sqft": 32.0, "unit_type": "sqft", "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "rs-foamboard", "key": "foamboard_3_16", "name": "Foamboard 3/16\"", "category": "substrate", "cost_per_unit": 1.25, "cost_per_sqft": 1.25, "sell_rate_per_sqft": 12.0, "unit_type": "sqft", "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "rs-mdo", "key": "mdo_1_2", "name": "MDO 1/2\"", "category": "substrate", "cost_per_unit": 3.75, "cost_per_sqft": 3.75, "sell_rate_per_sqft": 20.0, "unit_type": "sqft", "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "rs-custom-substrate", "key": "custom_other_substrate", "name": "Custom Other Substrate", "category": "substrate", "cost_per_unit": 4.0, "cost_per_sqft": 4.0, "sell_rate_per_sqft": 20.0, "unit_type": "sqft", "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "rs-mounted-print", "key": "mounted_print_graphic", "name": "Mounted Print Graphic", "category": "rigid_graphic", "cost_per_unit": 2.0, "cost_per_sqft": 2.0, "unit_type": "sqft", "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "rs-direct-print", "key": "direct_print_consumable", "name": "Direct Print Consumable", "category": "rigid_graphic", "cost_per_unit": 1.25, "cost_per_sqft": 1.25, "unit_type": "sqft", "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "rs-finish-standard", "key": "rigid_finish_standard", "name": "Standard Protective Finish", "category": "rigid_finish", "cost_per_unit": 0.75, "cost_per_sqft": 0.75, "unit_type": "sqft", "compatible_categories": ["rigid_signs"], "is_active": True},
     ])
-    hardware_accessories: List[Dict[str, Any]] = Field(default_factory=list)
+    hardware_accessories: List[Dict[str, Any]] = Field(default_factory=lambda: [
+        {"id": "hw-h-stake", "name": "Standard H-Stake", "category": "stakes", "subcategory": "standard", "unit_type": "each", "purchase_cost": 1.5, "default_sell_price": 3.5, "default_labor_addon_minutes": 0, "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "hw-heavy-stake", "name": "Heavy-Duty Stake", "category": "stakes", "subcategory": "heavy", "unit_type": "each", "purchase_cost": 2.5, "default_sell_price": 5.0, "default_labor_addon_minutes": 0, "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "hw-screws", "name": "Screws / Basic Mounting Set", "category": "mounting", "subcategory": "screws", "unit_type": "set", "purchase_cost": 1.0, "default_sell_price": 3.0, "default_labor_addon_minutes": 0, "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "hw-standoff", "name": "Stand-Off Set", "category": "mounting", "subcategory": "standoff", "unit_type": "set", "purchase_cost": 3.0, "default_sell_price": 7.0, "default_labor_addon_minutes": 0, "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "hw-easel", "name": "Easel Back", "category": "display", "subcategory": "easel", "unit_type": "each", "purchase_cost": 2.0, "default_sell_price": 5.0, "default_labor_addon_minutes": 0, "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "hw-hanging", "name": "Hanging Hardware", "category": "mounting", "subcategory": "hanging", "unit_type": "set", "purchase_cost": 1.5, "default_sell_price": 4.0, "default_labor_addon_minutes": 0, "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "hw-custom", "name": "Custom Other Hardware", "category": "custom", "subcategory": "other", "unit_type": "each", "purchase_cost": 2.0, "default_sell_price": 5.0, "default_labor_addon_minutes": 0, "compatible_categories": ["rigid_signs"], "is_active": True},
+    ])
     labor_rates: Dict[str, Any] = Field(default_factory=lambda: {
         "design": {
             "hourly_rate": 85.0,
@@ -326,15 +350,90 @@ class PricingDefaults(BaseModel):
         },
         "rigid_signs": {
             "label": "Rigid Signs",
-            "default_labor_hours_per_sqft": 0.08,
+            "default_labor_hours_per_sqft": 0.15,
             "default_markup_multiplier": 2.45,
             "target_profit_margin_percent": 41.0,
-            "minimum_charge": 55.0,
-            "default_material_keys": ["coroplast", "aluminum_composite", "foam_board", "ink"],
-            "default_hardware_keys": [],
+            "minimum_charge": 25.0,
+            "default_material_keys": ["coroplast_4mm", "direct_print_consumable"],
+            "default_hardware_keys": ["hw-h-stake"],
             "default_labor_types": ["production", "installation"],
             "sell_rate_defaults": {},
             "ai_prefill_overrides": {},
+            "default_substrate_key": "coroplast_4mm",
+            "available_substrate_keys": [
+                "coroplast_4mm",
+                "coroplast_10mm",
+                "pvc_3mm",
+                "pvc_6mm",
+                "acm_dibond_3mm",
+                "aluminum_040",
+                "aluminum_063",
+                "aluminum_080",
+                "acrylic_1_8",
+                "acrylic_1_4",
+                "foamboard_3_16",
+                "mdo_1_2",
+                "custom_other_substrate",
+            ],
+            "default_finish_required": False,
+            "default_finish_key": "rigid_finish_standard",
+            "default_install_included": False,
+            "default_minimum_billable_area": 1.0,
+            "default_minimum_sell_price": 25.0,
+            "default_design_time_hours": 0.5,
+            "default_mounting_labor_hours_per_sqft": 0.08,
+            "waste_percentage": 5.0,
+            "production_labor_hours_per_sqft": 0.15,
+            "min_production_labor_hours_per_item": 0.2,
+            "install_hours_per_sqft": 0.08,
+            "direct_print_consumable_key": "direct_print_consumable",
+            "mounted_print_graphic_key": "mounted_print_graphic",
+            "cut_vinyl_material_key": "oracal_651",
+            "hardware_handling_labor_cost": 5.0,
+            "drill_prep_fee": 3.0,
+            "thickness_multipliers": {
+                "thin_basic": 1.0,
+                "medium": 1.1,
+                "thick_heavy": 1.2,
+            },
+            "sidedness_multipliers": {
+                "single": 1.0,
+                "double_same": 1.75,
+                "double_diff": 2.0,
+            },
+            "shape_multipliers": {
+                "rectangle": 1.0,
+                "rounded_corners": 1.1,
+                "simple_contour": 1.25,
+                "complex_contour": 1.5,
+                "specialty_routed": 2.0,
+            },
+            "finish_quality_multipliers": {
+                "standard": 1.0,
+                "premium": 1.15,
+                "presentation": 1.3,
+                "architectural": 1.5,
+            },
+            "install_complexity_multipliers": {
+                "easy": 1.0,
+                "medium": 1.25,
+                "difficult": 1.5,
+                "high_risk": 2.0,
+            },
+            "quantity_discounts": [
+                {"min_qty": 1, "max_qty": 4, "discount_percent": 0},
+                {"min_qty": 5, "max_qty": 24, "discount_percent": 5},
+                {"min_qty": 25, "max_qty": 99, "discount_percent": 10},
+                {"min_qty": 100, "max_qty": None, "discount_percent": 15},
+            ],
+            "sell_method": "max_of_rate_or_minimum",
+            "default_unit_of_measure": "inches",
+            "default_graphic_method": "direct_print",
+            "default_protective_finish": False,
+            "default_sidedness": "single",
+            "default_double_sided_art": "same",
+            "default_shape_type": "rectangle",
+            "default_finish_quality": "standard",
         },
         "cut_vinyl": {
             "label": "Cut Vinyl",
@@ -711,15 +810,18 @@ class JobItemPricingData(BaseModel):
     
     # Rigid Signs
     substrate_type: Optional[SubstrateType] = None
+    substrate_type_key: Optional[str] = None
     thickness: Optional[str] = None
-    double_sided: bool = False
-    rounded_corners: bool = False
-    drill_holes: Optional[str] = None
-    num_holes: int = 4
-    cut_shape: Optional[str] = None
-    stakes_included: bool = False
-    num_stakes: int = 0
-    mounting_hardware: Optional[str] = None
+    graphic_method: Optional[str] = None
+    protective_finish: bool = False
+    protective_finish_type: Optional[str] = None
+    sidedness: Optional[str] = None
+    double_sided_art: Optional[str] = None
+    shape_type: Optional[str] = None
+    finish_quality: Optional[str] = None
+    hardware_included: bool = False
+    hardware_type: Optional[str] = None
+    drill_prep_required: bool = False
     install_required: bool = False
     
     # Services
