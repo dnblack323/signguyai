@@ -215,6 +215,17 @@ async def get_pricing_defaults(tenant_id: str) -> dict:
     else:
         merged["materials"] = base_materials
     merged["hardware_accessories"] = config.get("hardware_accessories") or base_defaults.get("hardware_accessories", [])
+    base_hardware = base_defaults.get("hardware_accessories", []) or []
+    config_hardware = config.get("hardware_accessories") or []
+    if config_hardware:
+        hardware_map = { (h.get("id") or h.get("name")): h for h in base_hardware }
+        for h in config_hardware:
+            hk = h.get("id") or h.get("name")
+            if hk:
+                hardware_map[hk] = h
+        merged["hardware_accessories"] = list(hardware_map.values())
+    else:
+        merged["hardware_accessories"] = base_hardware
     merged["labor_rates"] = {
         **base_defaults.get("labor_rates", {}),
         **config.get("labor_rates", {}),
@@ -1103,6 +1114,353 @@ async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defau
     )
 
 
+async def calculate_banners(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
+    """Calculate Banner pricing using Pricing Foundation defaults.
+
+    Spec-driven flow:
+      1. Load defaults  2. Compute area  3. Apply min billable + waste
+      4. Material cost (banner material + print consumable + optional coating)
+      5. Finishing: hems, grommets, pole pockets, reinforced corners, wind slits, specialty sewing
+      6. Labor: production + design + install + hardware handling
+      7. Overhead  8. Suggested price (sell rate + multipliers + discounts)
+      9. Hardware additive  10. Minimum sell price enforcement  11. Rush
+    """
+    cfg = get_category_pricing_config(defaults, "banners")
+
+    # Dimensions & area
+    width = float(data.width_inches or 0)
+    height = float(data.length_inches or 0)
+    unit = (data.unit_of_measure or cfg.get("default_unit_of_measure", "feet")).lower()
+    if unit == "feet":
+        area_per_piece = width * height
+        perimeter_feet = 2 * (width + height)
+        width_feet = width
+        height_feet = height
+    else:
+        area_per_piece = (width * height) / 144 if width and height else 0
+        perimeter_feet = 2 * (width + height) / 12 if width and height else 0
+        width_feet = width / 12
+        height_feet = height / 12
+
+    min_billable = float(cfg.get("default_minimum_billable_area", 4.0) or 4.0)
+    billable_area_per_piece = max(area_per_piece, min_billable)
+    total_billable_area = billable_area_per_piece * quantity
+
+    waste_percent = float(cfg.get("waste_percentage", 8.0) or 0)
+    waste_adjusted_area = total_billable_area * (1 + (waste_percent / 100))
+
+    # ===== BANNER MATERIAL =====
+    default_material_key = cfg.get("default_banner_material_key", "banner_13oz")
+    material_key = data.banner_material_key or default_material_key
+    banner_material = find_material(defaults, material_key)
+    material_warning = ""
+    if not banner_material:
+        material_warning = f"Banner material not found: {material_key}. Using 13 oz fallback."
+        material_key = default_material_key
+        banner_material = find_material(defaults, material_key)
+
+    material_cost_per_sqft = get_material_cost_per_sqft(defaults, material_key)
+    material_sell_rate = get_material_sell_rate(defaults, material_key)
+
+    # Sidedness multiplier (applies to material + sell)
+    sided_key = data.banner_double_sided or cfg.get("default_double_sided", "no")
+    if sided_key == "same":
+        sided_mult_key = "double_same"
+    elif sided_key == "different":
+        sided_mult_key = "double_diff"
+    else:
+        sided_mult_key = "single"
+    sided_mult = float(cfg.get("sidedness_multipliers", {}).get(sided_mult_key, 1.0) or 1.0)
+
+    banner_material_cost = waste_adjusted_area * material_cost_per_sqft * sided_mult
+
+    # Print consumable (always)
+    consumable_key = cfg.get("banner_print_consumable_key", "banner_print_consumable")
+    print_consumable_cost_per_sqft = get_material_cost_per_sqft(defaults, consumable_key) or 0.75
+    print_consumable_cost = waste_adjusted_area * print_consumable_cost_per_sqft * sided_mult
+
+    # Optional laminate / coating
+    laminate_required = data.banner_laminate
+    if laminate_required is None:
+        laminate_required = bool(cfg.get("default_laminate_required", False))
+    laminate_key = data.banner_laminate_type_key or cfg.get("default_laminate_key", "banner_laminate_coating")
+    laminate_cost_per_sqft = 0.0
+    laminate_cost = 0.0
+    laminate_warning = ""
+    if laminate_required:
+        laminate_cost_per_sqft = get_material_cost_per_sqft(defaults, laminate_key)
+        if laminate_cost_per_sqft <= 0:
+            laminate_warning = f"Laminate/coating not found: {laminate_key}."
+        laminate_cost = waste_adjusted_area * laminate_cost_per_sqft * sided_mult
+
+    # ===== FINISHING =====
+    hems = data.banner_hems or cfg.get("default_hems", "standard")
+    hem_rate = 0.0
+    if hems == "standard":
+        hem_rate = float(cfg.get("standard_hem_rate_per_linear_foot", 0.75) or 0)
+    elif hems == "reinforced":
+        hem_rate = float(cfg.get("reinforced_hem_rate_per_linear_foot", 1.25) or 0)
+    hem_cost_per_item = perimeter_feet * hem_rate
+    hem_cost = hem_cost_per_item * quantity
+
+    # Grommets
+    grommet_mode = data.banner_grommets or cfg.get("default_grommets", "corners")
+    grommet_cost_each = float(cfg.get("grommet_cost_each", 0.20) or 0)
+    grommet_sell_each = float(cfg.get("grommet_sell_each", 0.75) or 0)
+    grommet_min_charge = float(cfg.get("grommet_minimum_charge", 4.0) or 0)
+    default_corner_count = int(cfg.get("grommet_default_corner_count", 4) or 4)
+    grommet_labor_minutes_each = 0.5
+    grommet_count_per_item = 0
+    if grommet_mode == "none":
+        grommet_count_per_item = 0
+    elif grommet_mode == "corners":
+        grommet_count_per_item = default_corner_count
+    elif grommet_mode == "every_2ft":
+        spacing = float(cfg.get("grommet_spacing_feet", {}).get("every_2ft", 2.0) or 2.0)
+        grommet_count_per_item = max(4, int(round(perimeter_feet / spacing))) if perimeter_feet else default_corner_count
+    elif grommet_mode == "every_3ft":
+        spacing = float(cfg.get("grommet_spacing_feet", {}).get("every_3ft", 3.0) or 3.0)
+        grommet_count_per_item = max(4, int(round(perimeter_feet / spacing))) if perimeter_feet else default_corner_count
+    elif grommet_mode == "custom":
+        grommet_count_per_item = int(data.banner_grommet_count or 0)
+    total_grommets = grommet_count_per_item * quantity
+    grommet_material_cost = total_grommets * grommet_cost_each
+    grommet_sell_subtotal = total_grommets * grommet_sell_each
+    if grommet_mode != "none" and grommet_sell_subtotal > 0:
+        grommet_sell_subtotal = max(grommet_sell_subtotal, grommet_min_charge * quantity)
+    grommet_labor_hours = (total_grommets * grommet_labor_minutes_each) / 60.0
+
+    # Pole pockets
+    pole_mode = data.banner_pole_pockets or cfg.get("default_pole_pockets", "none")
+    pole_rate = float(cfg.get("pole_pocket_rate_per_linear_foot", 3.50) or 0)
+    pole_linear_feet_per_item = 0.0
+    if pole_mode == "top":
+        pole_linear_feet_per_item = width_feet
+    elif pole_mode == "top_and_bottom":
+        pole_linear_feet_per_item = width_feet * 2
+    elif pole_mode == "side_pockets":
+        pole_linear_feet_per_item = height_feet * 2
+    pole_pocket_cost = pole_linear_feet_per_item * pole_rate * quantity
+
+    # Reinforced corners
+    reinforced_corners = data.banner_reinforced_corners
+    if reinforced_corners is None:
+        reinforced_corners = bool(cfg.get("default_reinforced_corners", False))
+    reinforced_corners_cost = (float(cfg.get("reinforced_corners_charge", 6.0) or 0) * quantity) if reinforced_corners else 0.0
+
+    # Wind slits
+    wind_slits = data.banner_wind_slits
+    if wind_slits is None:
+        wind_slits = bool(cfg.get("default_wind_slits", False))
+    wind_slit_cost = (float(cfg.get("wind_slit_charge", 2.0) or 0) * quantity) if wind_slits else 0.0
+
+    # Specialty sewing (uses perimeter as linear footage basis)
+    specialty_sewing = data.banner_specialty_sewing
+    if specialty_sewing is None:
+        specialty_sewing = bool(cfg.get("default_specialty_sewing", False))
+    specialty_sewing_rate = float(cfg.get("specialty_sewing_rate_per_linear_foot", 2.0) or 0)
+    specialty_sewing_cost = (perimeter_feet * specialty_sewing_rate * quantity) if specialty_sewing else 0.0
+
+    # ===== LABOR =====
+    labor_rates = defaults.get("labor_rates", {})
+    production_rate = float(labor_rates.get("production", {}).get("hourly_rate", defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75))) or 75)
+    design_rate = float(labor_rates.get("design", {}).get("hourly_rate", defaults.get("design_hourly_rate", 85)) or 85)
+    install_rate = float(labor_rates.get("installation", {}).get("hourly_rate", defaults.get("install_hourly_rate", 95)) or 95)
+    finishing_rate = float(labor_rates.get("finishing", {}).get("hourly_rate", production_rate) or production_rate)
+    install_minimum = float(labor_rates.get("installation", {}).get("minimum_charge", defaults.get("minimum_install_charge", 0)) or 0)
+
+    base_hrs_per_sqft = float(cfg.get("production_labor_hours_per_sqft", 0.10) or 0)
+    min_prod_hrs = float(cfg.get("min_production_labor_hours_per_item", 0.20) or 0)
+    per_piece_hours = max(billable_area_per_piece * base_hrs_per_sqft, min_prod_hrs)
+    production_hours = per_piece_hours * quantity
+    production_cost = production_hours * production_rate
+
+    # Design labor
+    design_hours = 0.0
+    artwork_ready = data.artwork_ready
+    artwork_needed = data.artwork_needed
+    if artwork_ready:
+        design_hours = 0.0
+    elif artwork_needed or artwork_needed is None:
+        base_design_time = float(cfg.get("default_design_time_hours", 0.5) or 0)
+        complexity = data.design_complexity or cfg.get("default_design_complexity", "simple")
+        design_mult = float(cfg.get("design_complexity_multipliers", {}).get(complexity, 1.0) or 1.0)
+        design_hours = base_design_time * design_mult
+    design_cost = design_hours * design_rate
+
+    # Install labor
+    install_hours = 0.0
+    install_cost = 0.0
+    if data.install_required:
+        base_install_hours = float(cfg.get("install_base_hours", 0.5) or 0) + (total_billable_area * float(cfg.get("install_hours_per_sqft", 0.04) or 0))
+        complexity = data.install_complexity or cfg.get("default_install_complexity", "easy")
+        install_mult = float(cfg.get("install_complexity_multipliers", {}).get(complexity, 1.0) or 1.0)
+        install_hours = base_install_hours * install_mult
+        install_cost = max(install_minimum, install_hours * install_rate)
+
+    # Hardware (from banner_hardware_keys list)
+    hardware_keys_list = data.banner_hardware_keys or []
+    hardware_cost = 0.0
+    hardware_sell = 0.0
+    hardware_labor_minutes = 0.0
+    hardware_warning = ""
+    for hk in hardware_keys_list:
+        hw_list = defaults.get("hardware_accessories", []) or []
+        hw = next((h for h in hw_list if h.get("id") == hk or h.get("key") == hk), None)
+        if not hw:
+            if not hardware_warning:
+                hardware_warning = f"Hardware not found: {hk}."
+            continue
+        hardware_cost += float(hw.get("purchase_cost", 0) or 0) * quantity
+        hardware_sell += float(hw.get("default_sell_price", 0) or 0) * quantity
+        hardware_labor_minutes += float(hw.get("default_labor_addon_minutes", 0) or 0) * quantity
+    hardware_labor_hours = hardware_labor_minutes / 60.0
+    hardware_labor_cost = hardware_labor_hours * production_rate
+
+    finishing_labor_hours = grommet_labor_hours
+    finishing_labor_cost = finishing_labor_hours * finishing_rate
+
+    # ===== TOTALS =====
+    material_cost_total = (
+        banner_material_cost
+        + print_consumable_cost
+        + laminate_cost
+        + grommet_material_cost
+        + hardware_cost
+    )
+    labor_cost_total = (
+        production_cost
+        + design_cost
+        + install_cost
+        + finishing_labor_cost
+        + hardware_labor_cost
+    )
+    total_labor_hours = production_hours + design_hours + install_hours + finishing_labor_hours + hardware_labor_hours
+
+    overhead_cost = calculate_overhead_cost(
+        material_cost_total + labor_cost_total,
+        total_labor_hours,
+        defaults,
+        cfg,
+    )
+
+    # ===== SELL SIDE =====
+    # Area-based sell rate from material library + sidedness multiplier
+    sell_base = (material_sell_rate or 0) * total_billable_area * sided_mult
+
+    # Finishing sell additions (hems/pole pockets/reinforced corners/wind slits/specialty sewing/grommets)
+    finishing_sell = hem_cost + pole_pocket_cost + reinforced_corners_cost + wind_slit_cost + specialty_sewing_cost + grommet_sell_subtotal
+
+    # Enforce minimum sell per item using sell_method
+    min_sell_per_item = float(cfg.get("default_minimum_sell_price", cfg.get("minimum_charge", 35.0)) or 35.0)
+    if cfg.get("sell_method") == "max_of_rate_or_minimum":
+        sell_base = max(sell_base, min_sell_per_item * quantity)
+
+    suggested_price = sell_base + finishing_sell + design_cost + install_cost + hardware_sell
+
+    # Quantity discount
+    discount_percent = 0
+    for tier in cfg.get("quantity_discounts", []) or []:
+        min_q = float(tier.get("min_qty", 0) or 0)
+        max_q = tier.get("max_qty")
+        if quantity >= min_q and (max_q is None or quantity <= float(max_q)):
+            discount_percent = float(tier.get("discount_percent", 0) or 0)
+            break
+    suggested_price = suggested_price * (1 - (discount_percent / 100))
+
+    # Event / pole banner premium
+    event_premium_applied = 1.0
+    use_type = (data.banner_use_type or cfg.get("default_use_type", "outdoor")).lower()
+    event_flag = data.banner_event_premium
+    if event_flag is None:
+        event_flag = use_type in ("backwall_step_repeat", "event_display")
+    if event_flag:
+        event_premium_applied *= float(cfg.get("event_premium_multiplier", 1.20) or 1.0)
+    if use_type == "pole_banner":
+        event_premium_applied *= float(cfg.get("pole_banner_premium_multiplier", 1.30) or 1.0)
+    suggested_price = suggested_price * event_premium_applied
+
+    # Enforce total minimum (per-item min × qty)
+    suggested_price = max(suggested_price, min_sell_per_item * quantity)
+
+    # Rush
+    rush_multiplier = 1 + (float(defaults.get("rush_fee_percentage", 0) or 0) / 100)
+    suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order, rush_multiplier)
+
+    # Price override
+    if data.override_enabled and data.price_override:
+        suggested_price = float(data.price_override) * quantity
+
+    return create_pricing_result(
+        material_cost=material_cost_total,
+        labor_cost=labor_cost_total,
+        setup_cost=0,
+        additional_costs=0,
+        overhead_cost=overhead_cost,
+        suggested_price=suggested_price,
+        estimated_labor_minutes=total_labor_hours * 60,
+        breakdown={
+            "dimensions": f"{width} x {height} {unit}",
+            "unit_of_measure": unit,
+            "area_per_piece": round(area_per_piece, 2),
+            "billable_area_per_piece": round(billable_area_per_piece, 2),
+            "total_billable_area": round(total_billable_area, 2),
+            "waste_adjusted_area": round(waste_adjusted_area, 2),
+            "waste_percent": waste_percent,
+            "perimeter_feet": round(perimeter_feet, 2),
+            "banner_material_key": material_key,
+            "banner_material_cost_per_sqft": material_cost_per_sqft,
+            "banner_material_sell_rate": material_sell_rate,
+            "banner_material_cost": round(banner_material_cost, 2),
+            "banner_material_warning": material_warning,
+            "print_consumable_cost": round(print_consumable_cost, 2),
+            "print_consumable_cost_per_sqft": print_consumable_cost_per_sqft,
+            "laminate_required": laminate_required,
+            "laminate_key": laminate_key if laminate_required else None,
+            "laminate_cost_per_sqft": laminate_cost_per_sqft,
+            "laminate_cost": round(laminate_cost, 2),
+            "laminate_warning": laminate_warning,
+            "sidedness": sided_key,
+            "sidedness_multiplier": sided_mult,
+            "hems": hems,
+            "hem_rate_per_linear_foot": hem_rate,
+            "hem_cost": round(hem_cost, 2),
+            "grommet_mode": grommet_mode,
+            "grommet_count_per_item": grommet_count_per_item,
+            "total_grommets": total_grommets,
+            "grommet_material_cost": round(grommet_material_cost, 2),
+            "grommet_sell_subtotal": round(grommet_sell_subtotal, 2),
+            "pole_pockets": pole_mode,
+            "pole_pocket_linear_feet_per_item": round(pole_linear_feet_per_item, 2),
+            "pole_pocket_cost": round(pole_pocket_cost, 2),
+            "reinforced_corners": reinforced_corners,
+            "reinforced_corners_cost": round(reinforced_corners_cost, 2),
+            "wind_slits": wind_slits,
+            "wind_slit_cost": round(wind_slit_cost, 2),
+            "specialty_sewing": specialty_sewing,
+            "specialty_sewing_cost": round(specialty_sewing_cost, 2),
+            "production_hours": round(production_hours, 2),
+            "production_cost": round(production_cost, 2),
+            "design_hours": round(design_hours, 2),
+            "design_cost": round(design_cost, 2),
+            "install_hours": round(install_hours, 2),
+            "install_cost": round(install_cost, 2),
+            "finishing_labor_hours": round(finishing_labor_hours, 2),
+            "finishing_labor_cost": round(finishing_labor_cost, 2),
+            "hardware_keys": hardware_keys_list,
+            "hardware_cost": round(hardware_cost, 2),
+            "hardware_sell": round(hardware_sell, 2),
+            "hardware_labor_cost": round(hardware_labor_cost, 2),
+            "hardware_warning": hardware_warning,
+            "overhead_cost": round(overhead_cost, 2),
+            "use_type": use_type,
+            "event_premium_applied": event_premium_applied,
+            "quantity_discount_percent": discount_percent,
+            "min_sell_per_item": min_sell_per_item,
+        },
+    )
+
+
 async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
     """Calculate vehicle wraps using company cost settings."""
     vehicle_sqft = {
@@ -1304,6 +1662,7 @@ async def calculate_pricing(
         PricingCategory.SERVICES: calculate_services,
         PricingCategory.DIGITAL_PRINT: calculate_digital_print,
         PricingCategory.RIGID_SIGNS: calculate_rigid_signs,
+        PricingCategory.BANNERS: calculate_banners,
         PricingCategory.APPAREL: calculate_apparel,
         PricingCategory.VEHICLE_GRAPHICS: calculate_vehicle_graphics,
         PricingCategory.CUSTOM: calculate_custom,

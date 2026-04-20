@@ -293,7 +293,7 @@ def _build_ticket_pricing_payload(ticket: dict, pricing_input: Optional[dict] = 
     width_inches = (width_raw * 12) if unit == "feet" and width_raw else width_raw
     height_inches = (height_raw * 12) if unit == "feet" and height_raw else height_raw
     category_map = {
-        "banners": "digital_print",
+        "banners": "banners",
         "rigid_signs": "rigid_signs",
         "cut_vinyl": "cut_vinyl",
         "digital_print": "digital_print",
@@ -352,6 +352,21 @@ def _build_ticket_pricing_payload(ticket: dict, pricing_input: Optional[dict] = 
         "apparel_type": specs.get("garment_type") or specs.get("subtype"),
         "transfer_type": specs.get("decoration_method") or specs.get("print_method"),
         "num_print_locations": len(specs.get("print_locations", [])) or 1,
+        # Banner-specific pricing inputs (must match JobItemPricingData keys)
+        "banner_material_key": specs.get("banner_material_key") or specs.get("material"),
+        "banner_use_type": specs.get("banner_use_type") or specs.get("use_type"),
+        "banner_laminate": bool(specs.get("banner_laminate")) if specs.get("banner_laminate") is not None else None,
+        "banner_laminate_type_key": specs.get("banner_laminate_type_key"),
+        "banner_hems": specs.get("banner_hems") or specs.get("hems"),
+        "banner_grommets": specs.get("banner_grommets") or specs.get("grommets"),
+        "banner_grommet_count": int(specs.get("banner_grommet_count", 0) or 0) or None,
+        "banner_pole_pockets": specs.get("banner_pole_pockets") or specs.get("pole_pockets"),
+        "banner_reinforced_corners": bool(specs.get("banner_reinforced_corners")) if specs.get("banner_reinforced_corners") is not None else None,
+        "banner_wind_slits": bool(specs.get("banner_wind_slits")) if specs.get("banner_wind_slits") is not None else (bool(specs.get("wind_slits")) if specs.get("wind_slits") is not None else None),
+        "banner_specialty_sewing": bool(specs.get("banner_specialty_sewing")) if specs.get("banner_specialty_sewing") is not None else None,
+        "banner_double_sided": specs.get("banner_double_sided"),
+        "banner_event_premium": bool(specs.get("banner_event_premium")) if specs.get("banner_event_premium") is not None else None,
+        "banner_hardware_keys": specs.get("banner_hardware_keys") or [],
         "service_type": specs.get("service_type") or specs.get("subtype"),
         "hourly_rate_override": float(specs.get("hourly_rate_override", 0) or 0) or None,
         "vehicle_type": specs.get("vehicle_type"),
@@ -401,29 +416,137 @@ async def _calculate_ticket_snapshot(ticket: dict, tenant_id: str):
 
 
 
-def _banner_schema(defaults, material_opts):
-    """Full Banner category schema — materials from catalog."""
+def _banner_schema(defaults, material_opts=None):
+    """Full Banner category schema — all options sourced from Pricing Foundation defaults."""
+    cat_defaults = (defaults.get("category_defaults", {}) or {}).get("banners", {}) or {}
+    materials = defaults.get("materials", []) or []
+    hardware_list = defaults.get("hardware_accessories", []) or []
+
+    available_keys = cat_defaults.get("available_banner_material_keys") or []
+    def _material_by_key(k):
+        return next((m for m in materials if (m.get("key") == k or m.get("id") == k) and m.get("is_active", True)), None)
+    banner_material_options = []
+    for k in available_keys:
+        m = _material_by_key(k)
+        if m:
+            banner_material_options.append({"value": m.get("key") or m.get("id"), "label": m.get("name") or k})
+    if not banner_material_options:
+        banner_material_options = [
+            {"value": "banner_13oz", "label": "13 oz Banner"},
+            {"value": "banner_18oz", "label": "18 oz Banner"},
+            {"value": "banner_mesh", "label": "Mesh Banner"},
+            {"value": "banner_blockout", "label": "Blockout Banner"},
+            {"value": "banner_pole", "label": "Pole Banner Material"},
+            {"value": "banner_fabric", "label": "Fabric Display Banner"},
+            {"value": "banner_double_sided", "label": "Double-Sided Banner Material"},
+            {"value": "banner_custom", "label": "Specialty / Custom Banner Material"},
+        ]
+
+    # Optional laminate/coating options (any material compatible with banners + category banner_coating or laminate)
+    laminate_options = [
+        {"value": m.get("key") or m.get("id"), "label": m.get("name")}
+        for m in materials
+        if m.get("is_active", True)
+        and (
+            str(m.get("category", "")).lower() in {"banner_coating", "laminate"}
+            and ("banners" in (m.get("compatible_categories") or []) or str(m.get("category", "")).lower() == "banner_coating")
+        )
+    ]
+    if not laminate_options:
+        laminate_options = [{"value": "banner_laminate_coating", "label": "Optional Laminate / Coating"}]
+
+    # Banner hardware (multi-select) filtered to compat ["banners"]
+    banner_hardware_options = [
+        {"value": h.get("id") or h.get("key"), "label": h.get("name")}
+        for h in hardware_list
+        if h.get("is_active", True) and "banners" in (h.get("compatible_categories") or [])
+    ]
+
+    default_material = cat_defaults.get("default_banner_material_key", "banner_13oz")
+    default_uom = cat_defaults.get("default_unit_of_measure", "feet")
+    default_use_type = cat_defaults.get("default_use_type", "outdoor")
+    default_hems = cat_defaults.get("default_hems", "standard")
+    default_grommets = cat_defaults.get("default_grommets", "corners")
+    default_pole_pockets = cat_defaults.get("default_pole_pockets", "none")
+    default_double_sided = cat_defaults.get("default_double_sided", "no")
+    default_reinforced = bool(cat_defaults.get("default_reinforced_corners", False))
+    default_wind_slits = bool(cat_defaults.get("default_wind_slits", False))
+    default_specialty_sewing = bool(cat_defaults.get("default_specialty_sewing", False))
+    default_event = bool(cat_defaults.get("default_event_premium", False))
+    default_install_complexity = cat_defaults.get("default_install_complexity", "easy")
+    default_design_complexity = cat_defaults.get("default_design_complexity", "simple")
+    default_laminate_required = bool(cat_defaults.get("default_laminate_required", False))
+    default_laminate_key = cat_defaults.get("default_laminate_key", "banner_laminate_coating")
+    default_install_included = bool(cat_defaults.get("default_install_included", False))
+
     return [
         # Size & Material
         {"key": "width", "label": "Width", "type": "text", "placeholder": "e.g. 8 or 96", "group": "size_material", "required": True, "pricing": True},
         {"key": "height", "label": "Height", "type": "text", "placeholder": "e.g. 3 or 36", "group": "size_material", "required": True, "pricing": True},
-        {"key": "unit_of_measure", "label": "Unit of Measure", "type": "select", "options": [{"value": "feet", "label": "Feet"}, {"value": "inches", "label": "Inches"}], "default": "feet", "group": "size_material", "required": True, "pricing": True},
+        {"key": "unit_of_measure", "label": "Unit of Measure", "type": "select", "options": [{"value": "feet", "label": "Feet"}, {"value": "inches", "label": "Inches"}], "default": default_uom, "group": "size_material", "required": True, "pricing": True},
         {"key": "sq_footage", "label": "Square Footage", "type": "calculated", "group": "size_material", "pricing": True},
-        {"key": "material", "label": "Material", "type": "select", "options": material_opts, "group": "size_material", "required": True, "pricing": True},
-        {"key": "indoor_outdoor", "label": "Indoor / Outdoor", "type": "select", "options": [{"value": "outdoor", "label": "Outdoor"}, {"value": "indoor", "label": "Indoor"}, {"value": "both", "label": "Both"}], "default": "outdoor", "group": "size_material"},
-        {"key": "double_sided", "label": "Sidedness", "type": "select", "options": [{"value": "single", "label": "Single-Sided"}, {"value": "double", "label": "Double-Sided"}], "default": "single", "group": "size_material", "pricing": True},
+        {"key": "banner_material_key", "label": "Banner Material Type", "type": "select", "options": banner_material_options, "default": default_material, "group": "size_material", "required": True, "pricing": True},
+        {"key": "banner_use_type", "label": "Use Type", "type": "select", "options": [
+            {"value": "indoor", "label": "Indoor"},
+            {"value": "outdoor", "label": "Outdoor"},
+            {"value": "event_display", "label": "Event / Display"},
+            {"value": "fence", "label": "Fence"},
+            {"value": "pole_banner", "label": "Pole Banner"},
+            {"value": "backwall_step_repeat", "label": "Backwall / Step-and-Repeat"},
+            {"value": "custom", "label": "Custom"},
+        ], "default": default_use_type, "group": "size_material", "pricing": True},
+        {"key": "banner_double_sided", "label": "Double-Sided?", "type": "select", "options": [
+            {"value": "no", "label": "No"},
+            {"value": "same", "label": "Same art both sides"},
+            {"value": "different", "label": "Different art both sides"},
+        ], "default": default_double_sided, "group": "size_material", "pricing": True},
+        # Laminate / Coating
+        {"key": "banner_laminate", "label": "Laminate / Coating?", "type": "toggle", "default": default_laminate_required, "group": "finishing", "pricing": True},
+        {"key": "banner_laminate_type_key", "label": "Laminate / Coating Type", "type": "select", "options": laminate_options, "default": default_laminate_key, "group": "finishing", "pricing": True},
         # Finishing
-        {"key": "hems", "label": "Hems", "type": "select", "options": [{"value": "none", "label": "None"}, {"value": "all_sides", "label": "All Sides"}, {"value": "top_bottom", "label": "Top & Bottom"}, {"value": "custom", "label": "Custom"}], "default": "all_sides", "group": "finishing", "pricing": True},
-        {"key": "grommets", "label": "Grommets", "type": "select", "options": [{"value": "none", "label": "None"}, {"value": "corners", "label": "Corners Only"}, {"value": "every_2ft", "label": "Every 2 ft"}, {"value": "every_3ft", "label": "Every 3 ft"}, {"value": "custom", "label": "Custom"}], "default": "corners", "group": "finishing", "pricing": True},
-        {"key": "pole_pockets", "label": "Pole Pockets", "type": "select", "options": [{"value": "none", "label": "None"}, {"value": "top", "label": "Top"}, {"value": "bottom", "label": "Bottom"}, {"value": "both", "label": "Both"}, {"value": "custom", "label": "Custom"}], "default": "none", "group": "finishing", "pricing": True},
-        {"key": "wind_slits", "label": "Wind Slits", "type": "toggle", "default": False, "group": "finishing", "pricing": True},
-        # Design / Artwork
-        {"key": "artwork_provided", "label": "Artwork Provided", "type": "toggle", "default": False, "group": "design"},
-        {"key": "artwork_notes", "label": "Artwork Notes", "type": "textarea", "group": "design"},
-        # Production / Delivery
-        {"key": "rush_order", "label": "Rush Order", "type": "toggle", "default": False, "group": "production", "pricing": True},
-        {"key": "outsourced", "label": "Outsourced", "type": "toggle", "default": False, "group": "production"},
-        {"key": "hardware_included", "label": "Hardware Included", "type": "toggle", "default": False, "group": "production", "pricing": True},
+        {"key": "banner_hems", "label": "Hems", "type": "select", "options": [
+            {"value": "none", "label": "None"},
+            {"value": "standard", "label": "Standard Hem"},
+            {"value": "reinforced", "label": "Reinforced Hem"},
+        ], "default": default_hems, "group": "finishing", "pricing": True},
+        {"key": "banner_grommets", "label": "Grommets", "type": "select", "options": [
+            {"value": "none", "label": "None"},
+            {"value": "corners", "label": "Corners Only"},
+            {"value": "every_2ft", "label": "Every 2 ft"},
+            {"value": "every_3ft", "label": "Every 3 ft"},
+            {"value": "custom", "label": "Custom Count"},
+        ], "default": default_grommets, "group": "finishing", "pricing": True},
+        {"key": "banner_grommet_count", "label": "Grommet Count (if custom)", "type": "number", "default": 0, "group": "finishing", "pricing": True},
+        {"key": "banner_pole_pockets", "label": "Pole Pockets", "type": "select", "options": [
+            {"value": "none", "label": "None"},
+            {"value": "top", "label": "Top Only"},
+            {"value": "top_and_bottom", "label": "Top and Bottom"},
+            {"value": "side_pockets", "label": "Side Pockets"},
+        ], "default": default_pole_pockets, "group": "finishing", "pricing": True},
+        {"key": "banner_reinforced_corners", "label": "Reinforced Corners?", "type": "toggle", "default": default_reinforced, "group": "finishing", "pricing": True},
+        {"key": "banner_wind_slits", "label": "Wind Slits?", "type": "toggle", "default": default_wind_slits, "group": "finishing", "pricing": True},
+        {"key": "banner_specialty_sewing", "label": "Specialty Sewing?", "type": "toggle", "default": default_specialty_sewing, "group": "finishing", "pricing": True},
+        # Design
+        {"key": "artwork_ready", "label": "Artwork Ready?", "type": "toggle", "default": False, "group": "design", "pricing": True},
+        {"key": "artwork_needed", "label": "Artwork Needed?", "type": "toggle", "default": False, "group": "design", "pricing": True},
+        {"key": "design_complexity", "label": "Design Complexity", "type": "select", "options": [
+            {"value": "simple", "label": "Simple"},
+            {"value": "medium", "label": "Medium"},
+            {"value": "complex", "label": "Complex"},
+            {"value": "extreme", "label": "Extreme"},
+        ], "default": default_design_complexity, "group": "design", "pricing": True},
+        # Install
+        {"key": "install_required", "label": "Install Required?", "type": "toggle", "default": default_install_included, "group": "install", "pricing": True},
+        {"key": "install_complexity", "label": "Install Complexity", "type": "select", "options": [
+            {"value": "easy", "label": "Easy"},
+            {"value": "medium", "label": "Medium"},
+            {"value": "difficult", "label": "Difficult"},
+            {"value": "high_access", "label": "High-Access"},
+        ], "default": default_install_complexity, "group": "install", "pricing": True},
+        # Hardware / Production
+        {"key": "banner_hardware_keys", "label": "Hardware / Accessories", "type": "multi_select", "options": banner_hardware_options, "default": [], "group": "production", "pricing": True},
+        {"key": "banner_event_premium", "label": "Step-and-Repeat / Event Premium?", "type": "toggle", "default": default_event, "group": "production", "pricing": True},
+        {"key": "rush_order", "label": "Rush?", "type": "toggle", "default": False, "group": "production", "pricing": True},
         {"key": "packaging_notes", "label": "Packaging / Rolling Notes", "type": "textarea", "group": "production"},
         {"key": "delivery_notes", "label": "Pickup / Delivery Notes", "type": "textarea", "group": "production"},
     ]

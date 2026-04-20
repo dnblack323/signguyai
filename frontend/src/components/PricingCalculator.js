@@ -28,7 +28,8 @@ const PRICING_CATEGORIES = [
   { id: 'promotional', name: 'Promotional Items', icon: Tag, description: 'Magnets, yard signs, stickers, branded items' },
   { id: 'cut_vinyl', name: 'Cut Vinyl', icon: Scissors, description: 'Decals, lettering, graphics' },
   { id: 'services', name: 'Services', icon: Wrench, description: 'Design, installation, removal, site survey' },
-  { id: 'digital_print', name: 'Digital Print', icon: Printer, description: 'Banners, posters, prints' },
+  { id: 'digital_print', name: 'Digital Print', icon: Printer, description: 'Posters, prints, mounted graphics' },
+  { id: 'banners', name: 'Banners', icon: Printer, description: 'Indoor/outdoor, event, pole, fabric, step-and-repeat' },
   { id: 'rigid_signs', name: 'Rigid Signs', icon: Square, description: 'Coroplast, aluminum, PVC signs' },
   { id: 'apparel', name: 'Apparel', icon: Shirt, description: 'T-shirts, hoodies, hats' },
   { id: 'vehicle_graphics', name: 'Vehicle Graphics', icon: Car, description: 'Wraps, lettering, partial graphics' },
@@ -643,6 +644,91 @@ export default function PricingCalculator({
       }
     });
 
+    if (changed) setPricingData(nextData);
+  }, [category, foundationDefaults]);
+
+  /* ───────── BANNERS helpers ───────── */
+  const getBannersCategoryDefaults = () => (
+    foundationDefaults?.category_defaults?.banners || {}
+  );
+
+  const getBannerMaterialOptions = () => {
+    const materials = foundationDefaults?.materials || [];
+    const cat = getBannersCategoryDefaults();
+    const availableKeys = cat.available_banner_material_keys || [];
+    const filtered = materials.filter((m) =>
+      m.category === 'banner_material'
+      && m.is_active !== false
+      && (availableKeys.length === 0 || availableKeys.includes(m.key || m.id))
+    );
+    if (filtered.length) return filtered;
+    return [
+      { key: 'banner_13oz', name: '13 oz Banner' },
+      { key: 'banner_18oz', name: '18 oz Banner' },
+      { key: 'banner_mesh', name: 'Mesh Banner' },
+      { key: 'banner_blockout', name: 'Blockout Banner' },
+      { key: 'banner_pole', name: 'Pole Banner Material' },
+      { key: 'banner_fabric', name: 'Fabric Display Banner' },
+      { key: 'banner_double_sided', name: 'Double-Sided Banner Material' },
+      { key: 'banner_custom', name: 'Specialty / Custom Banner Material' },
+    ];
+  };
+
+  const getBannerCoatingOptions = () => {
+    const materials = foundationDefaults?.materials || [];
+    const options = materials.filter((m) =>
+      (m.category === 'banner_coating' || m.category === 'laminate')
+      && m.is_active !== false
+    );
+    if (options.length) return options;
+    return [{ key: 'banner_laminate_coating', name: 'Optional Laminate / Coating' }];
+  };
+
+  const getBannerHardwareOptions = () => {
+    const hardware = foundationDefaults?.hardware_accessories || [];
+    return hardware.filter((item) => {
+      if (item.is_active === false) return false;
+      return (item.compatible_categories || []).includes('banners');
+    });
+  };
+
+  const updateBannerField = (field, value) => {
+    setPricingData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const resolveBannerDefaults = () => {
+    const catDefaults = getBannersCategoryDefaults();
+    return {
+      unit_of_measure: catDefaults.default_unit_of_measure || 'feet',
+      banner_material_key: catDefaults.default_banner_material_key || 'banner_13oz',
+      banner_use_type: catDefaults.default_use_type || 'outdoor',
+      banner_hems: catDefaults.default_hems || 'standard',
+      banner_grommets: catDefaults.default_grommets || 'corners',
+      banner_pole_pockets: catDefaults.default_pole_pockets || 'none',
+      banner_double_sided: catDefaults.default_double_sided || 'no',
+      banner_reinforced_corners: catDefaults.default_reinforced_corners ?? false,
+      banner_wind_slits: catDefaults.default_wind_slits ?? false,
+      banner_specialty_sewing: catDefaults.default_specialty_sewing ?? false,
+      banner_event_premium: catDefaults.default_event_premium ?? false,
+      banner_laminate: catDefaults.default_laminate_required ?? false,
+      banner_laminate_type_key: catDefaults.default_laminate_key || 'banner_laminate_coating',
+      install_required: catDefaults.default_install_included ?? false,
+      install_complexity: catDefaults.default_install_complexity || 'easy',
+      design_complexity: catDefaults.default_design_complexity || 'simple',
+    };
+  };
+
+  useEffect(() => {
+    if (category !== 'banners' || !foundationDefaults) return;
+    const defaults = resolveBannerDefaults();
+    const nextData = { ...pricingData };
+    let changed = false;
+    Object.entries(defaults).forEach(([key, value]) => {
+      if (nextData[key] === undefined || nextData[key] === null || nextData[key] === '') {
+        nextData[key] = value;
+        changed = true;
+      }
+    });
     if (changed) setPricingData(nextData);
   }, [category, foundationDefaults]);
 
@@ -1944,6 +2030,335 @@ export default function PricingCalculator({
                 </Select>
               </div>
             </div>
+          </div>
+        );
+      }
+
+      case 'banners': {
+        const materialOptions = getBannerMaterialOptions();
+        const coatingOptions = getBannerCoatingOptions();
+        const hardwareOptions = getBannerHardwareOptions();
+        const selectedMaterial = materialOptions.find((m) => (m.key || m.id) === pricingData.banner_material_key);
+        const selectedCoating = coatingOptions.find((m) => (m.key || m.id) === pricingData.banner_laminate_type_key);
+        const unit = pricingData.unit_of_measure || 'feet';
+        const widthVal = Number(pricingData.width_inches || 0);
+        const heightVal = Number(pricingData.length_inches || 0);
+        const areaPerPiece = unit === 'feet' ? widthVal * heightVal : (widthVal * heightVal) / 144;
+
+        return (
+          <div className="space-y-4" data-testid="banners-fields">
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <Label>Order Item Name</Label>
+                <Input
+                  value={orderItemName}
+                  onChange={(e) => setOrderItemName(e.target.value)}
+                  placeholder="e.g., Grand Opening Banner"
+                  data-testid="banners-item-name"
+                />
+              </div>
+              <div>
+                <Label>Description</Label>
+                <Textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={2}
+                  placeholder="Describe the banner (indoor/outdoor, event context, etc.)"
+                  data-testid="banners-description"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div>
+                <Label>Width</Label>
+                <Input
+                  type="number"
+                  value={pricingData.width_inches || ''}
+                  onChange={(e) => updateBannerField('width_inches', parseFloat(e.target.value) || 0)}
+                  data-testid="banners-width"
+                />
+              </div>
+              <div>
+                <Label>Height</Label>
+                <Input
+                  type="number"
+                  value={pricingData.length_inches || ''}
+                  onChange={(e) => updateBannerField('length_inches', parseFloat(e.target.value) || 0)}
+                  data-testid="banners-height"
+                />
+              </div>
+              <div>
+                <Label>Unit of Measure</Label>
+                <Select value={unit} onValueChange={(v) => updateBannerField('unit_of_measure', v)}>
+                  <SelectTrigger className="h-9" data-testid="banners-unit"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="feet">Feet</SelectItem>
+                    <SelectItem value="inches">Inches</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Area / piece</Label>
+                <div className="h-9 flex items-center text-sm text-gray-600" data-testid="banners-area-per-piece">
+                  {areaPerPiece.toFixed(2)} sq ft
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div>
+                <Label>Banner Material Type</Label>
+                <Select
+                  value={pricingData.banner_material_key || ''}
+                  onValueChange={(v) => updateBannerField('banner_material_key', v)}
+                >
+                  <SelectTrigger className="h-9" data-testid="banners-material"><SelectValue placeholder="Select material" /></SelectTrigger>
+                  <SelectContent>
+                    {materialOptions.map((m) => (
+                      <SelectItem key={m.key || m.id} value={m.key || m.id}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedMaterial && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    Cost ${Number(selectedMaterial.cost_per_sqft || 0).toFixed(2)}/sqft · Sell ${Number(selectedMaterial.sell_rate_per_sqft || 0).toFixed(2)}/sqft
+                  </div>
+                )}
+              </div>
+              <div>
+                <Label>Use Type</Label>
+                <Select value={pricingData.banner_use_type || 'outdoor'} onValueChange={(v) => updateBannerField('banner_use_type', v)}>
+                  <SelectTrigger className="h-9" data-testid="banners-use-type"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="indoor">Indoor</SelectItem>
+                    <SelectItem value="outdoor">Outdoor</SelectItem>
+                    <SelectItem value="event_display">Event / Display</SelectItem>
+                    <SelectItem value="fence">Fence</SelectItem>
+                    <SelectItem value="pole_banner">Pole Banner</SelectItem>
+                    <SelectItem value="backwall_step_repeat">Backwall / Step-and-Repeat</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Double-Sided?</Label>
+                <Select value={pricingData.banner_double_sided || 'no'} onValueChange={(v) => updateBannerField('banner_double_sided', v)}>
+                  <SelectTrigger className="h-9" data-testid="banners-double-sided"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no">No</SelectItem>
+                    <SelectItem value="same">Same art both sides</SelectItem>
+                    <SelectItem value="different">Different art both sides</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={!!pricingData.banner_laminate}
+                  onCheckedChange={(c) => updateBannerField('banner_laminate', Boolean(c))}
+                  data-testid="banners-laminate-toggle"
+                />
+                <Label className="cursor-pointer">Laminate / Coating?</Label>
+              </div>
+              <div>
+                <Label>Laminate / Coating Type</Label>
+                <Select
+                  value={pricingData.banner_laminate_type_key || ''}
+                  onValueChange={(v) => updateBannerField('banner_laminate_type_key', v)}
+                  disabled={!pricingData.banner_laminate}
+                >
+                  <SelectTrigger className="h-9" data-testid="banners-laminate-type"><SelectValue placeholder="Select coating" /></SelectTrigger>
+                  <SelectContent>
+                    {coatingOptions.map((m) => (
+                      <SelectItem key={m.key || m.id} value={m.key || m.id}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedCoating && pricingData.banner_laminate && (
+                  <div className="text-xs text-gray-500 mt-1">Cost ${Number(selectedCoating.cost_per_sqft || 0).toFixed(2)}/sqft</div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div>
+                <Label>Hems</Label>
+                <Select value={pricingData.banner_hems || 'standard'} onValueChange={(v) => updateBannerField('banner_hems', v)}>
+                  <SelectTrigger className="h-9" data-testid="banners-hems"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="standard">Standard Hem</SelectItem>
+                    <SelectItem value="reinforced">Reinforced Hem</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Grommets</Label>
+                <Select value={pricingData.banner_grommets || 'corners'} onValueChange={(v) => updateBannerField('banner_grommets', v)}>
+                  <SelectTrigger className="h-9" data-testid="banners-grommets"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="corners">Corners Only</SelectItem>
+                    <SelectItem value="every_2ft">Every 2 ft</SelectItem>
+                    <SelectItem value="every_3ft">Every 3 ft</SelectItem>
+                    <SelectItem value="custom">Custom Count</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Grommet Count (custom)</Label>
+                <Input
+                  type="number"
+                  value={pricingData.banner_grommet_count || ''}
+                  onChange={(e) => updateBannerField('banner_grommet_count', parseInt(e.target.value) || 0)}
+                  disabled={pricingData.banner_grommets !== 'custom'}
+                  data-testid="banners-grommet-count"
+                />
+              </div>
+              <div>
+                <Label>Pole Pockets</Label>
+                <Select value={pricingData.banner_pole_pockets || 'none'} onValueChange={(v) => updateBannerField('banner_pole_pockets', v)}>
+                  <SelectTrigger className="h-9" data-testid="banners-pole-pockets"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="top">Top Only</SelectItem>
+                    <SelectItem value="top_and_bottom">Top and Bottom</SelectItem>
+                    <SelectItem value="side_pockets">Side Pockets</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={!!pricingData.banner_reinforced_corners}
+                  onCheckedChange={(c) => updateBannerField('banner_reinforced_corners', Boolean(c))}
+                  data-testid="banners-reinforced-corners"
+                />
+                <Label className="cursor-pointer">Reinforced Corners</Label>
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={!!pricingData.banner_wind_slits}
+                  onCheckedChange={(c) => updateBannerField('banner_wind_slits', Boolean(c))}
+                  data-testid="banners-wind-slits"
+                />
+                <Label className="cursor-pointer">Wind Slits</Label>
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={!!pricingData.banner_specialty_sewing}
+                  onCheckedChange={(c) => updateBannerField('banner_specialty_sewing', Boolean(c))}
+                  data-testid="banners-specialty-sewing"
+                />
+                <Label className="cursor-pointer">Specialty Sewing</Label>
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={!!pricingData.banner_event_premium}
+                  onCheckedChange={(c) => updateBannerField('banner_event_premium', Boolean(c))}
+                  data-testid="banners-event-premium"
+                />
+                <Label className="cursor-pointer">Event / Step-and-Repeat Premium</Label>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={!!pricingData.artwork_ready}
+                  onCheckedChange={(c) => updateBannerField('artwork_ready', Boolean(c))}
+                  data-testid="banners-artwork-ready"
+                />
+                <Label className="cursor-pointer">Artwork Ready</Label>
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={!!pricingData.artwork_needed}
+                  onCheckedChange={(c) => updateBannerField('artwork_needed', Boolean(c))}
+                  data-testid="banners-artwork-needed"
+                />
+                <Label className="cursor-pointer">Artwork Needed</Label>
+              </div>
+              <div>
+                <Label>Design Complexity</Label>
+                <Select value={pricingData.design_complexity || 'simple'} onValueChange={(v) => updateBannerField('design_complexity', v)}>
+                  <SelectTrigger className="h-9" data-testid="banners-design-complexity"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="simple">Simple</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="complex">Complex</SelectItem>
+                    <SelectItem value="extreme">Extreme</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={!!pricingData.rush_order}
+                  onCheckedChange={(c) => updateBannerField('rush_order', Boolean(c))}
+                  data-testid="banners-rush"
+                />
+                <Label className="cursor-pointer">Rush</Label>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={!!pricingData.install_required}
+                  onCheckedChange={(c) => updateBannerField('install_required', Boolean(c))}
+                  data-testid="banners-install-required"
+                />
+                <Label className="cursor-pointer">Install Required</Label>
+              </div>
+              <div>
+                <Label>Install Complexity</Label>
+                <Select
+                  value={pricingData.install_complexity || 'easy'}
+                  onValueChange={(v) => updateBannerField('install_complexity', v)}
+                  disabled={!pricingData.install_required}
+                >
+                  <SelectTrigger className="h-9" data-testid="banners-install-complexity"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="easy">Easy</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="difficult">Difficult</SelectItem>
+                    <SelectItem value="high_access">High-Access</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {hardwareOptions.length > 0 && (
+              <div>
+                <Label>Hardware / Accessories</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                  {hardwareOptions.map((hw) => {
+                    const currentKeys = pricingData.banner_hardware_keys || [];
+                    const checked = currentKeys.includes(hw.id || hw.key);
+                    return (
+                      <div key={hw.id || hw.key} className="flex items-center gap-2">
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(c) => {
+                            const next = c
+                              ? [...currentKeys, hw.id || hw.key]
+                              : currentKeys.filter((k) => k !== (hw.id || hw.key));
+                            updateBannerField('banner_hardware_keys', next);
+                          }}
+                          data-testid={`banners-hw-${hw.id || hw.key}`}
+                        />
+                        <Label className="cursor-pointer text-sm">{hw.name}</Label>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         );
       }

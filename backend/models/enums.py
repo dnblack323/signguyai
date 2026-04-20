@@ -67,6 +67,7 @@ class PricingCategory(str, Enum):
     SERVICES = "services"
     DIGITAL_PRINT = "digital_print"
     RIGID_SIGNS = "rigid_signs"
+    BANNERS = "banners"
     APPAREL = "apparel"
     VEHICLE_GRAPHICS = "vehicle_graphics"
     CUSTOM = "custom"

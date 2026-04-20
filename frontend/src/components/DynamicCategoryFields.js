@@ -123,6 +123,36 @@ const renderStandardField = (field, specs, updateField, sqFootage) => {
     );
   }
 
+  if (field.type === 'multi_select') {
+    const currentValues = Array.isArray(specs[field.key]) ? specs[field.key] : [];
+    return (
+      <div key={field.key} className="col-span-2 md:col-span-3">
+        <Label className="text-gray-500 text-xs">{field.label}</Label>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-1" data-testid={`field-${field.key}-multi`}>
+          {(field.options || []).map((option) => {
+            const checked = currentValues.includes(option.value);
+            return (
+              <label key={option.value} className="flex items-center gap-2 text-xs text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(e) => {
+                    const next = e.target.checked
+                      ? [...currentValues, option.value]
+                      : currentValues.filter((v) => v !== option.value);
+                    updateField(field.key, next);
+                  }}
+                  data-testid={`field-${field.key}-opt-${option.value}`}
+                />
+                {option.label}
+              </label>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   if (field.type === 'number') {
     return (
       <div key={field.key}>

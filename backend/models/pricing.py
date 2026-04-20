@@ -136,6 +136,16 @@ class PricingDefaults(BaseModel):
         {"id": "rs-mounted-print", "key": "mounted_print_graphic", "name": "Mounted Print Graphic", "category": "rigid_graphic", "cost_per_unit": 2.0, "cost_per_sqft": 2.0, "unit_type": "sqft", "compatible_categories": ["rigid_signs"], "is_active": True},
         {"id": "rs-direct-print", "key": "direct_print_consumable", "name": "Direct Print Consumable", "category": "rigid_graphic", "cost_per_unit": 1.25, "cost_per_sqft": 1.25, "unit_type": "sqft", "compatible_categories": ["rigid_signs"], "is_active": True},
         {"id": "rs-finish-standard", "key": "rigid_finish_standard", "name": "Standard Protective Finish", "category": "rigid_finish", "cost_per_unit": 0.75, "cost_per_sqft": 0.75, "unit_type": "sqft", "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "bn-13oz", "key": "banner_13oz", "name": "13 oz Banner", "category": "banner_material", "cost_per_unit": 0.85, "cost_per_sqft": 0.85, "sell_rate_per_sqft": 8.0, "unit_type": "sqft", "compatible_categories": ["banners"], "is_active": True},
+        {"id": "bn-18oz", "key": "banner_18oz", "name": "18 oz Banner", "category": "banner_material", "cost_per_unit": 1.25, "cost_per_sqft": 1.25, "sell_rate_per_sqft": 10.0, "unit_type": "sqft", "compatible_categories": ["banners"], "is_active": True},
+        {"id": "bn-mesh", "key": "banner_mesh", "name": "Mesh Banner", "category": "banner_material", "cost_per_unit": 1.40, "cost_per_sqft": 1.40, "sell_rate_per_sqft": 11.0, "unit_type": "sqft", "compatible_categories": ["banners"], "is_active": True},
+        {"id": "bn-blockout", "key": "banner_blockout", "name": "Blockout Banner", "category": "banner_material", "cost_per_unit": 1.65, "cost_per_sqft": 1.65, "sell_rate_per_sqft": 12.0, "unit_type": "sqft", "compatible_categories": ["banners"], "is_active": True},
+        {"id": "bn-pole", "key": "banner_pole", "name": "Pole Banner Material", "category": "banner_material", "cost_per_unit": 2.25, "cost_per_sqft": 2.25, "sell_rate_per_sqft": 14.0, "unit_type": "sqft", "compatible_categories": ["banners"], "is_active": True},
+        {"id": "bn-fabric", "key": "banner_fabric", "name": "Fabric Display Banner", "category": "banner_material", "cost_per_unit": 2.75, "cost_per_sqft": 2.75, "sell_rate_per_sqft": 16.0, "unit_type": "sqft", "compatible_categories": ["banners"], "is_active": True},
+        {"id": "bn-double-sided", "key": "banner_double_sided", "name": "Double-Sided Banner Material", "category": "banner_material", "cost_per_unit": 1.95, "cost_per_sqft": 1.95, "sell_rate_per_sqft": 13.0, "unit_type": "sqft", "compatible_categories": ["banners"], "is_active": True},
+        {"id": "bn-custom", "key": "banner_custom", "name": "Specialty / Custom Banner Material", "category": "banner_material", "cost_per_unit": 2.00, "cost_per_sqft": 2.00, "sell_rate_per_sqft": 12.0, "unit_type": "sqft", "compatible_categories": ["banners"], "is_active": True},
+        {"id": "bn-print-consumable", "key": "banner_print_consumable", "name": "Banner Print Consumable (ink/wear)", "category": "banner_consumable", "cost_per_unit": 0.75, "cost_per_sqft": 0.75, "unit_type": "sqft", "compatible_categories": ["banners"], "is_active": True},
+        {"id": "bn-laminate-coating", "key": "banner_laminate_coating", "name": "Optional Laminate / Coating", "category": "banner_coating", "cost_per_unit": 0.60, "cost_per_sqft": 0.60, "unit_type": "sqft", "compatible_categories": ["banners"], "is_active": True},
         {"id": "apparel-tshirt", "key": "tshirt", "name": "T-Shirt", "category": "apparel", "cost_per_unit": 4.5, "unit_type": "each", "is_active": True},
         {"id": "apparel-hoodie", "key": "hoodie", "name": "Hoodie", "category": "apparel", "cost_per_unit": 18.0, "unit_type": "each", "is_active": True},
         {"id": "apparel-hat", "key": "hat", "name": "Hat/Cap", "category": "apparel", "cost_per_unit": 8.0, "unit_type": "each", "is_active": True},
@@ -171,6 +181,15 @@ class PricingDefaults(BaseModel):
         {"id": "hw-easel", "name": "Easel Back", "category": "display", "subcategory": "easel", "unit_type": "each", "purchase_cost": 2.0, "default_sell_price": 5.0, "default_labor_addon_minutes": 0, "compatible_categories": ["rigid_signs"], "is_active": True},
         {"id": "hw-hanging", "name": "Hanging Hardware", "category": "mounting", "subcategory": "hanging", "unit_type": "set", "purchase_cost": 1.5, "default_sell_price": 4.0, "default_labor_addon_minutes": 0, "compatible_categories": ["rigid_signs"], "is_active": True},
         {"id": "hw-custom", "name": "Custom Other Hardware", "category": "custom", "subcategory": "other", "unit_type": "each", "purchase_cost": 2.0, "default_sell_price": 5.0, "default_labor_addon_minutes": 0, "compatible_categories": ["rigid_signs"], "is_active": True},
+        {"id": "hw-banner-grommet", "name": "Banner Grommet", "category": "banner_hardware", "subcategory": "grommet", "unit_type": "each", "purchase_cost": 0.20, "default_sell_price": 0.75, "default_labor_addon_minutes": 0.5, "compatible_categories": ["banners"], "is_active": True},
+        {"id": "hw-banner-pole-rod", "name": "Pole Pocket Rod", "category": "banner_hardware", "subcategory": "pole_rod", "unit_type": "each", "purchase_cost": 3.50, "default_sell_price": 12.0, "default_labor_addon_minutes": 2, "compatible_categories": ["banners"], "is_active": True},
+        {"id": "hw-banner-bungee", "name": "Bungee Cord Set", "category": "banner_hardware", "subcategory": "tie_down", "unit_type": "set", "purchase_cost": 1.50, "default_sell_price": 4.0, "default_labor_addon_minutes": 0, "compatible_categories": ["banners"], "is_active": True},
+        {"id": "hw-banner-rope", "name": "Rope / Tie Set", "category": "banner_hardware", "subcategory": "tie_down", "unit_type": "set", "purchase_cost": 1.25, "default_sell_price": 3.5, "default_labor_addon_minutes": 0, "compatible_categories": ["banners"], "is_active": True},
+        {"id": "hw-banner-zipties", "name": "Zip Tie Set", "category": "banner_hardware", "subcategory": "tie_down", "unit_type": "set", "purchase_cost": 0.50, "default_sell_price": 2.0, "default_labor_addon_minutes": 0, "compatible_categories": ["banners"], "is_active": True},
+        {"id": "hw-banner-retractable-stand", "name": "Retractable Stand Base", "category": "banner_hardware", "subcategory": "stand", "unit_type": "each", "purchase_cost": 40.0, "default_sell_price": 95.0, "default_labor_addon_minutes": 5, "compatible_categories": ["banners"], "is_active": True},
+        {"id": "hw-banner-x-stand", "name": "X-Banner Stand", "category": "banner_hardware", "subcategory": "stand", "unit_type": "each", "purchase_cost": 18.0, "default_sell_price": 45.0, "default_labor_addon_minutes": 3, "compatible_categories": ["banners"], "is_active": True},
+        {"id": "hw-banner-sandbag", "name": "Sandbag", "category": "banner_hardware", "subcategory": "weight", "unit_type": "each", "purchase_cost": 8.0, "default_sell_price": 20.0, "default_labor_addon_minutes": 0, "compatible_categories": ["banners"], "is_active": True},
+        {"id": "hw-banner-custom", "name": "Custom Other Banner Hardware", "category": "banner_hardware", "subcategory": "other", "unit_type": "each", "purchase_cost": 2.0, "default_sell_price": 5.0, "default_labor_addon_minutes": 0, "compatible_categories": ["banners"], "is_active": True},
     ])
     labor_rates: Dict[str, Any] = Field(default_factory=lambda: {
         "design": {
@@ -364,15 +383,88 @@ class PricingDefaults(BaseModel):
         },
         "banners": {
             "label": "Banners",
-            "default_labor_hours_per_sqft": 0.06,
+            "default_labor_hours_per_sqft": 0.10,
             "default_markup_multiplier": 2.35,
             "target_profit_margin_percent": 40.0,
             "minimum_charge": 35.0,
-            "default_material_keys": ["banner_material", "ink"],
+            "default_material_keys": ["banner_13oz", "banner_print_consumable"],
             "default_hardware_keys": [],
             "default_labor_types": ["production"],
             "sell_rate_defaults": {},
             "ai_prefill_overrides": {},
+            "default_banner_material_key": "banner_13oz",
+            "available_banner_material_keys": [
+                "banner_13oz",
+                "banner_18oz",
+                "banner_mesh",
+                "banner_blockout",
+                "banner_pole",
+                "banner_fabric",
+                "banner_double_sided",
+                "banner_custom",
+            ],
+            "banner_print_consumable_key": "banner_print_consumable",
+            "banner_laminate_key": "banner_laminate_coating",
+            "default_laminate_required": False,
+            "default_laminate_key": "banner_laminate_coating",
+            "default_install_included": False,
+            "default_minimum_billable_area": 4.0,
+            "default_minimum_sell_price": 35.0,
+            "default_design_time_hours": 0.5,
+            "waste_percentage": 8.0,
+            "production_labor_hours_per_sqft": 0.10,
+            "min_production_labor_hours_per_item": 0.20,
+            "standard_hem_rate_per_linear_foot": 0.75,
+            "reinforced_hem_rate_per_linear_foot": 1.25,
+            "pole_pocket_rate_per_linear_foot": 3.50,
+            "specialty_sewing_rate_per_linear_foot": 2.00,
+            "grommet_cost_each": 0.20,
+            "grommet_sell_each": 0.75,
+            "grommet_minimum_charge": 4.0,
+            "grommet_default_corner_count": 4,
+            "grommet_spacing_feet": {"every_2ft": 2.0, "every_3ft": 3.0},
+            "reinforced_corners_charge": 6.0,
+            "wind_slit_charge": 2.0,
+            "install_hours_per_sqft": 0.04,
+            "install_base_hours": 0.5,
+            "sidedness_multipliers": {
+                "single": 1.0,
+                "double_same": 1.75,
+                "double_diff": 2.0,
+            },
+            "event_premium_multiplier": 1.20,
+            "pole_banner_premium_multiplier": 1.30,
+            "design_complexity_multipliers": {
+                "simple": 1.0,
+                "medium": 1.25,
+                "complex": 1.5,
+                "extreme": 2.0,
+            },
+            "install_complexity_multipliers": {
+                "easy": 1.0,
+                "medium": 1.25,
+                "difficult": 1.5,
+                "high_access": 2.0,
+            },
+            "quantity_discounts": [
+                {"min_qty": 1, "max_qty": 2, "discount_percent": 0},
+                {"min_qty": 3, "max_qty": 9, "discount_percent": 5},
+                {"min_qty": 10, "max_qty": 24, "discount_percent": 10},
+                {"min_qty": 25, "max_qty": None, "discount_percent": 15},
+            ],
+            "sell_method": "max_of_rate_or_minimum",
+            "default_unit_of_measure": "feet",
+            "default_use_type": "outdoor",
+            "default_hems": "standard",
+            "default_grommets": "corners",
+            "default_pole_pockets": "none",
+            "default_double_sided": "no",
+            "default_reinforced_corners": False,
+            "default_wind_slits": False,
+            "default_specialty_sewing": False,
+            "default_event_premium": False,
+            "default_install_complexity": "easy",
+            "default_design_complexity": "simple",
         },
         "rigid_signs": {
             "label": "Rigid Signs",
@@ -849,6 +941,22 @@ class JobItemPricingData(BaseModel):
     hardware_type: Optional[str] = None
     drill_prep_required: bool = False
     install_required: bool = False
+
+    # Banners
+    banner_material_key: Optional[str] = None
+    banner_use_type: Optional[str] = None  # indoor, outdoor, event_display, fence, pole_banner, backwall_step_repeat, custom
+    banner_laminate: Optional[bool] = None
+    banner_laminate_type_key: Optional[str] = None
+    banner_hems: Optional[str] = None  # none, standard, reinforced
+    banner_grommets: Optional[str] = None  # none, corners, every_2ft, every_3ft, custom
+    banner_grommet_count: Optional[int] = None
+    banner_pole_pockets: Optional[str] = None  # none, top, top_and_bottom, side_pockets
+    banner_reinforced_corners: Optional[bool] = None
+    banner_wind_slits: Optional[bool] = None
+    banner_specialty_sewing: Optional[bool] = None
+    banner_double_sided: Optional[str] = None  # no, same, different
+    banner_event_premium: Optional[bool] = None
+    banner_hardware_keys: List[str] = Field(default_factory=list)
     
     # Services
     service_type: Optional[ServiceType] = None

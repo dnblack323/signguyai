@@ -709,6 +709,9 @@ function CategoryRulesTab({ settings, onChange, canEdit, materials }) {
   const rigidFinishOptions = (materials || []).filter((m) => m.category === 'rigid_finish' || m.category === 'finish');
   const rigidGraphicOptions = (materials || []).filter((m) => m.category === 'rigid_graphic');
   const rigidVinylOptions = (materials || []).filter((m) => m.category === 'cut_vinyl');
+  const bannerMaterialOptions = (materials || []).filter((m) => m.category === 'banner_material');
+  const bannerCoatingOptions = (materials || []).filter((m) => m.category === 'banner_coating' || m.category === 'laminate');
+  const bannerHardwareOptions = ((settings?.hardware_accessories) || []).filter((h) => (h.compatible_categories || []).includes('banners'));
 
   return (
     <div className="space-y-3" data-testid="category-rules-tab">
@@ -752,6 +755,16 @@ function CategoryRulesTab({ settings, onChange, canEdit, materials }) {
         ];
         const updateRsTier = (idx, field, value) => {
           const next = rsTiers.map((tier, i) => (i === idx ? { ...tier, [field]: value } : tier));
+          setCatField(def.key, 'quantity_discounts', next);
+        };
+        const bnTiers = cat.quantity_discounts || [
+          { min_qty: 1, max_qty: 2, discount_percent: 0 },
+          { min_qty: 3, max_qty: 9, discount_percent: 5 },
+          { min_qty: 10, max_qty: 24, discount_percent: 10 },
+          { min_qty: 25, max_qty: null, discount_percent: 15 },
+        ];
+        const updateBnTier = (idx, field, value) => {
+          const next = bnTiers.map((tier, i) => (i === idx ? { ...tier, [field]: value } : tier));
           setCatField(def.key, 'quantity_discounts', next);
         };
         return (
@@ -1410,6 +1423,139 @@ function CategoryRulesTab({ settings, onChange, canEdit, materials }) {
                         <Input type="number" className="h-7 text-xs" value={tier.min_qty ?? ''} onChange={(e) => updateRsTier(idx, 'min_qty', n(e.target.value))} data-testid={`rigid-signs-tier-${idx}-min`} disabled={!canEdit} />
                         <Input type="number" className="h-7 text-xs" value={tier.max_qty ?? ''} onChange={(e) => updateRsTier(idx, 'max_qty', e.target.value === '' ? null : n(e.target.value))} data-testid={`rigid-signs-tier-${idx}-max`} disabled={!canEdit} />
                         <Input type="number" className="h-7 text-xs" value={tier.discount_percent ?? ''} onChange={(e) => updateRsTier(idx, 'discount_percent', n(e.target.value))} data-testid={`rigid-signs-tier-${idx}-discount`} disabled={!canEdit} />
+                        <div className="text-xs text-gray-400 flex items-center">%</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {def.key === 'banners' && (
+                <div className="space-y-4 border rounded-lg p-3 bg-slate-50" data-testid="banners-category-defaults">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Banner Material</Label>
+                      <Select value={cat.default_banner_material_key || 'banner_13oz'} onValueChange={(v) => setCatField(def.key, 'default_banner_material_key', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="banners-default-material">
+                          <SelectValue placeholder="Select material" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {bannerMaterialOptions.map((m) => (
+                            <SelectItem key={m.key || m.id} value={m.key || m.id}>{m.name || m.key}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Laminate / Coating</Label>
+                      <Select value={cat.default_laminate_key || 'banner_laminate_coating'} onValueChange={(v) => setCatField(def.key, 'default_laminate_key', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="banners-default-laminate">
+                          <SelectValue placeholder="Select coating" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {bannerCoatingOptions.map((m) => (
+                            <SelectItem key={m.key || m.id} value={m.key || m.id}>{m.name || m.key}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center space-x-2 pt-5">
+                      <Switch checked={!!cat.default_laminate_required} onCheckedChange={(v) => setCatField(def.key, 'default_laminate_required', v)} disabled={!canEdit} data-testid="banners-default-laminate-required" />
+                      <Label className="text-[11px] text-gray-600">Laminate Required by Default</Label>
+                    </div>
+                    <div className="flex items-center space-x-2 pt-5">
+                      <Switch checked={!!cat.default_install_included} onCheckedChange={(v) => setCatField(def.key, 'default_install_included', v)} disabled={!canEdit} data-testid="banners-default-install-included" />
+                      <Label className="text-[11px] text-gray-600">Install Included by Default</Label>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <F label="Min Billable Area (sqft)" value={cat.default_minimum_billable_area} onChg={(v) => setCatField(def.key, 'default_minimum_billable_area', v)} suffix="sqft" testId="banners-min-billable" />
+                    <F label="Min Sell Price / Item" value={cat.default_minimum_sell_price} onChg={(v) => setCatField(def.key, 'default_minimum_sell_price', v)} testId="banners-min-sell" />
+                    <F label="Design Time (when needed)" value={cat.default_design_time_hours} onChg={(v) => setCatField(def.key, 'default_design_time_hours', v)} suffix="hrs" testId="banners-design-time" />
+                    <F label="Waste %" value={cat.waste_percentage} onChg={(v) => setCatField(def.key, 'waste_percentage', v)} suffix="%" testId="banners-waste" />
+                    <F label="Labor Hrs / SqFt" value={cat.production_labor_hours_per_sqft} onChg={(v) => setCatField(def.key, 'production_labor_hours_per_sqft', v)} suffix="hrs" testId="banners-labor-per-sqft" />
+                    <F label="Min Labor Hrs / Item" value={cat.min_production_labor_hours_per_item} onChg={(v) => setCatField(def.key, 'min_production_labor_hours_per_item', v)} suffix="hrs" testId="banners-min-labor-item" />
+                    <F label="Install Hrs / SqFt" value={cat.install_hours_per_sqft} onChg={(v) => setCatField(def.key, 'install_hours_per_sqft', v)} suffix="hrs" testId="banners-install-per-sqft" />
+                    <F label="Install Base Hrs" value={cat.install_base_hours} onChg={(v) => setCatField(def.key, 'install_base_hours', v)} suffix="hrs" testId="banners-install-base" />
+                  </div>
+
+                  <div className="border-t pt-3">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Finishing Rates</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <F label="Standard Hem / Lin Ft" value={cat.standard_hem_rate_per_linear_foot} onChg={(v) => setCatField(def.key, 'standard_hem_rate_per_linear_foot', v)} testId="banners-standard-hem" />
+                      <F label="Reinforced Hem / Lin Ft" value={cat.reinforced_hem_rate_per_linear_foot} onChg={(v) => setCatField(def.key, 'reinforced_hem_rate_per_linear_foot', v)} testId="banners-reinforced-hem" />
+                      <F label="Pole Pocket / Lin Ft" value={cat.pole_pocket_rate_per_linear_foot} onChg={(v) => setCatField(def.key, 'pole_pocket_rate_per_linear_foot', v)} testId="banners-pole-pocket-rate" />
+                      <F label="Specialty Sewing / Lin Ft" value={cat.specialty_sewing_rate_per_linear_foot} onChg={(v) => setCatField(def.key, 'specialty_sewing_rate_per_linear_foot', v)} testId="banners-specialty-sewing" />
+                      <F label="Grommet Cost Each" value={cat.grommet_cost_each} onChg={(v) => setCatField(def.key, 'grommet_cost_each', v)} testId="banners-grommet-cost" />
+                      <F label="Grommet Sell Each" value={cat.grommet_sell_each} onChg={(v) => setCatField(def.key, 'grommet_sell_each', v)} testId="banners-grommet-sell" />
+                      <F label="Min Grommet Charge" value={cat.grommet_minimum_charge} onChg={(v) => setCatField(def.key, 'grommet_minimum_charge', v)} testId="banners-grommet-min" />
+                      <F label="Reinforced Corners Charge" value={cat.reinforced_corners_charge} onChg={(v) => setCatField(def.key, 'reinforced_corners_charge', v)} testId="banners-reinforced-corners" />
+                      <F label="Wind Slit Charge" value={cat.wind_slit_charge} onChg={(v) => setCatField(def.key, 'wind_slit_charge', v)} testId="banners-wind-slit" />
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-3">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Sidedness Multipliers</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <F label="Single-Sided" value={(cat.sidedness_multipliers || {}).single} onChg={(v) => setCatField(def.key, 'sidedness_multipliers', { ...(cat.sidedness_multipliers || {}), single: v })} suffix="x" testId="banners-single-mult" />
+                      <F label="Double-Sided Same Art" value={(cat.sidedness_multipliers || {}).double_same} onChg={(v) => setCatField(def.key, 'sidedness_multipliers', { ...(cat.sidedness_multipliers || {}), double_same: v })} suffix="x" testId="banners-dbl-same-mult" />
+                      <F label="Double-Sided Different" value={(cat.sidedness_multipliers || {}).double_diff} onChg={(v) => setCatField(def.key, 'sidedness_multipliers', { ...(cat.sidedness_multipliers || {}), double_diff: v })} suffix="x" testId="banners-dbl-diff-mult" />
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-3">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Event / Pole / Premium Multipliers</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <F label="Step-and-Repeat Premium" value={cat.event_premium_multiplier} onChg={(v) => setCatField(def.key, 'event_premium_multiplier', v)} suffix="x" testId="banners-event-premium" />
+                      <F label="Pole Banner Premium" value={cat.pole_banner_premium_multiplier} onChg={(v) => setCatField(def.key, 'pole_banner_premium_multiplier', v)} suffix="x" testId="banners-pole-premium" />
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-3">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Install Complexity Multipliers</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <F label="Easy" value={(cat.install_complexity_multipliers || {}).easy} onChg={(v) => setCatField(def.key, 'install_complexity_multipliers', { ...(cat.install_complexity_multipliers || {}), easy: v })} suffix="x" testId="banners-install-easy" />
+                      <F label="Medium" value={(cat.install_complexity_multipliers || {}).medium} onChg={(v) => setCatField(def.key, 'install_complexity_multipliers', { ...(cat.install_complexity_multipliers || {}), medium: v })} suffix="x" testId="banners-install-medium" />
+                      <F label="Difficult" value={(cat.install_complexity_multipliers || {}).difficult} onChg={(v) => setCatField(def.key, 'install_complexity_multipliers', { ...(cat.install_complexity_multipliers || {}), difficult: v })} suffix="x" testId="banners-install-difficult" />
+                      <F label="High-Access" value={(cat.install_complexity_multipliers || {}).high_access} onChg={(v) => setCatField(def.key, 'install_complexity_multipliers', { ...(cat.install_complexity_multipliers || {}), high_access: v })} suffix="x" testId="banners-install-high-access" />
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-3">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Design Complexity Multipliers</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <F label="Simple" value={(cat.design_complexity_multipliers || {}).simple} onChg={(v) => setCatField(def.key, 'design_complexity_multipliers', { ...(cat.design_complexity_multipliers || {}), simple: v })} suffix="x" testId="banners-design-simple" />
+                      <F label="Medium" value={(cat.design_complexity_multipliers || {}).medium} onChg={(v) => setCatField(def.key, 'design_complexity_multipliers', { ...(cat.design_complexity_multipliers || {}), medium: v })} suffix="x" testId="banners-design-medium" />
+                      <F label="Complex" value={(cat.design_complexity_multipliers || {}).complex} onChg={(v) => setCatField(def.key, 'design_complexity_multipliers', { ...(cat.design_complexity_multipliers || {}), complex: v })} suffix="x" testId="banners-design-complex" />
+                      <F label="Extreme" value={(cat.design_complexity_multipliers || {}).extreme} onChg={(v) => setCatField(def.key, 'design_complexity_multipliers', { ...(cat.design_complexity_multipliers || {}), extreme: v })} suffix="x" testId="banners-design-extreme" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-[10px] text-gray-500">Available Banner Material Keys (comma-sep)</Label>
+                    <Input
+                      className="h-7 text-xs"
+                      value={listToCsv(cat.available_banner_material_keys)}
+                      onChange={(e) => setCatField(def.key, 'available_banner_material_keys', parseCsvList(e.target.value))}
+                      placeholder="banner_13oz, banner_18oz, banner_mesh..."
+                      data-testid="banners-available-material-keys"
+                      disabled={!canEdit}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs text-gray-500">Quantity Discount Tiers</Label>
+                    <div className="grid grid-cols-4 gap-2 text-[11px] text-gray-500">
+                      <span>Min Qty</span>
+                      <span>Max Qty</span>
+                      <span>Discount %</span>
+                      <span></span>
+                    </div>
+                    {bnTiers.map((tier, idx) => (
+                      <div key={`bn-tier-${idx}`} className="grid grid-cols-4 gap-2">
+                        <Input type="number" className="h-7 text-xs" value={tier.min_qty ?? ''} onChange={(e) => updateBnTier(idx, 'min_qty', n(e.target.value))} data-testid={`banners-tier-${idx}-min`} disabled={!canEdit} />
+                        <Input type="number" className="h-7 text-xs" value={tier.max_qty ?? ''} onChange={(e) => updateBnTier(idx, 'max_qty', e.target.value === '' ? null : n(e.target.value))} data-testid={`banners-tier-${idx}-max`} disabled={!canEdit} />
+                        <Input type="number" className="h-7 text-xs" value={tier.discount_percent ?? ''} onChange={(e) => updateBnTier(idx, 'discount_percent', n(e.target.value))} data-testid={`banners-tier-${idx}-discount`} disabled={!canEdit} />
                         <div className="text-xs text-gray-400 flex items-center">%</div>
                       </div>
                     ))}

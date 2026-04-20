@@ -1097,3 +1097,133 @@ agent_communication:
     message: "TOTAL PRODUCTION COST LABEL UPDATE VERIFICATION COMPLETE - Quick retest after label update from 'Total Cost' to 'Total Production Cost' completed successfully. Test performed on Cut Vinyl pricing flow at /pricing-calculator. VERIFIED: (1) ✅ Output card displays 'Total Production Cost' label (appears as 'TOTAL PRODUCTION COST' due to CSS uppercase styling), (2) ✅ Breakdown section displays 'Total Production Cost: $152.87', (3) ✅ Old 'Total Cost' label completely removed (0 occurrences), (4) ✅ Code changes confirmed at lines 1989 and 2044 in PricingCalculator.js. Test data: 48x24 inches Cut Vinyl, Oracal 651, 2 colors, calculation result $152.87. No console errors. Label update is working correctly and ready for production."
   - agent: "testing"
     message: "RIGID SIGNS PRICING FLOW TESTING COMPLETE - Comprehensive verification of Rigid Signs pricing flow completed successfully at https://dynamic-order-form-2.preview.emergentagent.com. ALL 4 TEST SCENARIOS PASSED: (1) ✅ Login successful with credentials signguypa@gmail.com / Billnel323, (2) ✅ Pricing Foundation → Category Rules → Rigid Signs card: ALL 7 default fields verified (substrate, graphic method, finish type, sidedness, shape, finish quality, install complexity) + ALL 13 multiplier fields verified (thickness thin/medium/heavy, sidedness single/same/diff, shape rectangle/rounded/simple/complex/specialty, drill/prep fee, hardware labor) = 20/20 fields found (100%), (3) ✅ Pricing Calculator → Rigid Signs category: ALL 22 input fields verified (width, height, unit, area, substrate, thickness, graphic method, finish quality, protective finish toggle, finish type, sidedness, double art, shape type, hardware included, hardware type, drill/prep, artwork ready, artwork needed, design complexity, install required, install complexity, rush) = 22/22 fields found (100%). Field interactions tested: width=48, height=96, area auto-calculated to 32.00 sqft correctly, (4) ✅ New Order Form (/orders/new) → Category dropdowns tested for all three categories: Digital Print (print media, laminate fields found), Cut Vinyl (vinyl type field found), Rigid Signs (substrate, finish, hardware fields found). All dropdowns populated correctly. No console errors detected. No network errors detected. All Rigid Signs pricing features working correctly and production-ready."
+
+  - task: "Banners Pricing Calculation (calculate_banners in server.py)"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented calculate_banners() end-to-end following the user-provided Banners spec. Covers: minimum billable area (4 sqft), waste % (8%), banner material cost from Pricing Foundation materials (13oz/18oz/mesh/blockout/pole/fabric/double-sided/custom), print consumable $0.75/sqft, optional laminate/coating, sidedness multipliers (single=1.0, double_same=1.75, double_diff=2.0), hem rates (standard $0.75/lf, reinforced $1.25/lf), grommet count logic (corners=4, every_2ft/3ft auto from perimeter, custom), pole pockets (top/top+bottom/side), reinforced corners $6/banner, wind slits $2/banner, specialty sewing $2/lf, design complexity multipliers, install complexity multipliers (easy/medium/difficult/high_access), event premium 1.20x, pole banner premium 1.30x, quantity discount tiers (1-2:0%, 3-9:5%, 10-24:10%, 25+:15%), minimum sell price $35, rush order adjustment, hardware from banner_hardware_keys with purchase/sell/labor. Removed alias banners→digital_print from /app/backend/routes/pricing.py so banners routes to PricingCategory.BANNERS."
+
+  - task: "Banners Pricing Foundation Defaults (models/pricing.py + admin UI)"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/models/pricing.py, /app/frontend/src/pages/PricingFoundation.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Expanded category_defaults.banners with full Banner foundation spec: default_banner_material_key=banner_13oz, available_banner_material_keys (8 preloaded types), laminate defaults, minimum billable (4 sqft), minimum sell ($35), design time (0.5 hr), waste % (8%), labor hrs/sqft (0.10), hem rates, pole pocket rate ($3.50/lf), grommet cost/sell/min/default, reinforced corners ($6), wind slit ($2), specialty sewing ($2/lf), sidedness multipliers, event premium (1.20x), pole banner premium (1.30x), design & install complexity multipliers, install hours/sqft & base, quantity discount tiers. Added 9 banner materials to materials library (13oz, 18oz, mesh, blockout, pole, fabric, double-sided, custom, print consumable, laminate coating). Added 9 banner hardware items (grommet, pole rod, bungee, rope, zipties, retractable stand, x-stand, sandbag, custom). Added dedicated Banners admin card in PricingFoundation.js with 35+ editable fields + tier editor + available_material_keys CSV. hardware_accessories merge-by-id fix applied in get_pricing_defaults so newly added banner hardware shows up for existing tenants."
+
+  - task: "Banners Pricing Calculator UI (PricingCalculator.js)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/PricingCalculator.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added dedicated 'banners' case to renderCategoryFields() with full spec UI: Order Item Name, Description, Width, Height, Unit of Measure, calculated Area/piece, Banner Material dropdown (dynamic from Pricing Foundation + inline cost/sell display), Use Type (7 values), Double-Sided, Laminate toggle + coating type, Hems (none/standard/reinforced), Grommets (none/corners/every_2ft/every_3ft/custom) + custom count, Pole Pockets (none/top/top_and_bottom/side_pockets), Reinforced Corners, Wind Slits, Specialty Sewing, Event Premium, Artwork Ready/Needed, Design Complexity (4 levels), Rush, Install Required + Install Complexity, Hardware multi-select from Pricing Foundation. Banners category card added to category selector. useEffect auto-prefills foundation defaults only when field is empty (AI prefill pattern)."
+
+  - task: "Banners New Order Form Schema (_banner_schema in job_tickets.py)"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/routes/job_tickets.py, /app/frontend/src/components/DynamicCategoryFields.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Rewrote _banner_schema to source ALL options from Pricing Foundation (defaults.category_defaults.banners): banner_material_options from available_banner_material_keys filter against materials library, coating options from category banner_coating/laminate, banner hardware options from hardware_accessories compat banners. All defaults (use_type, hems, grommets, pole_pockets, double_sided, reinforced_corners, wind_slits, specialty_sewing, event_premium, install_complexity, design_complexity, laminate, install_included) sourced from category_defaults. Added multi_select type handler to DynamicCategoryFields.js for banner_hardware_keys. Updated _build_ticket_pricing_payload to map banner-specific spec keys into JobItemPricingData fields (banner_material_key, banner_use_type, banner_laminate, banner_laminate_type_key, banner_hems, banner_grommets, banner_grommet_count, banner_pole_pockets, banner_reinforced_corners, banner_wind_slits, banner_specialty_sewing, banner_double_sided, banner_event_premium, banner_hardware_keys)."
+
+metadata:
+  updated_by: "main_agent"
+  test_sequence: 12
+
+test_plan:
+  current_focus:
+    - "Banners Pricing Calculation (calculate_banners in server.py)"
+    - "Banners Pricing Foundation Defaults (models/pricing.py + admin UI)"
+    - "Banners Pricing Calculator UI (PricingCalculator.js)"
+    - "Banners New Order Form Schema (_banner_schema in job_tickets.py)"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "BANNERS CATEGORY IMPLEMENTATION COMPLETE - Implemented complete Banners pricing following user-provided spec. Backend: added 9 banner materials + 9 banner hardware to library, expanded category_defaults.banners with 35+ keys (sell method, min billable, min sell, waste, labor rates, finishing rates, sidedness/event/pole/install/design multipliers, quantity discount tiers), added calculate_banners() function, removed banners→digital_print alias. Frontend: added dedicated Banners category card in PricingFoundation.js (35/35 fields verified via screenshot), added dedicated Banners case in PricingCalculator.js with all 25+ inputs pulling dynamic options from Pricing Foundation. job_tickets.py _banner_schema now fully foundation-driven. DynamicCategoryFields.js supports multi_select. Smoke tests passed via curl: min billable enforces 4 sqft, min sell $35, material $0.85/sqft for 13oz, hems/grommets/pole pockets/reinforced corners/wind slits/specialty sewing all add correctly, sidedness double_diff = 2.0x, event premium 1.20x, pole banner 1.30x, quantity discount tiers apply, hardware purchase/sell/labor counted. Test credentials: signguypa@gmail.com / Billnel323. Ready for backend testing."
+  - agent: "testing"
+    message: "BANNERS PRICING BACKEND TESTING COMPLETE - Comprehensive end-to-end testing of Banners category pricing implementation completed successfully. ALL 9 TEST SCENARIOS PASSED: (1) Simple 8x3 ft banner: material cost $42.27, selling price $261.00, banner_material_key='banner_13oz', total_grommets=4, sidedness_multiplier=1.0 ✅, (2) Small 1x1 ft banner: billable_area_per_piece=4.0 (minimum enforced), selling_price=$90.50 (≥$35 minimum) ✅, (3) Complex 10x8 ft fabric banner qty=5: sidedness_multiplier=2.0, event_premium_applied=1.2, quantity_discount=5%, hardware costs calculated, reinforced corners/wind slits/pole pockets all working ✅, (4) Pole banner: event_premium_applied=1.3 (includes pole banner premium) ✅, (5) Minimum sell enforcement: $35 minimum enforced correctly ✅, (6) GET /api/job-tickets/schema/banners: 26 fields returned, foundation-driven schema with banner_material_key options, banner_hardware_keys multi_select type, banner_grommets options (none/corners/every_2ft/every_3ft/custom) ✅, (7) GET /api/pricing/defaults: category_defaults.banners with 55 keys, 11 banner materials, 10 banner hardware items ✅, (8) PUT /api/pricing/defaults: successfully updated waste_percentage and hem rates, pricing calculation picked up new values ✅, (9) Regression tests: digital_print, cut_vinyl, rigid_signs all still working correctly ✅. Banners pricing routes to calculate_banners (NOT calculate_digital_print). All breakdown fields present. Hardware integration working. No critical issues found."
+
+backend:
+  - task: "Banners Pricing - POST /api/pricing/calculate with category=banners"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - POST /api/pricing/calculate with category=banners routes to calculate_banners function correctly. All test scenarios passed: (a) Simple 8x3 ft 13oz banner: material_cost=$42.27, selling_price=$261.00, breakdown shows banner_material_key='banner_13oz', banner_material_cost, hem_cost, total_grommets=4, sidedness_multiplier=1.0, (b) Small 1x1 ft banner: billable_area_per_piece=4.0 (minimum enforced), selling_price≥$35 (min sell enforced), (c) Complex 10x8 ft fabric banner qty=5: sidedness_multiplier=2.0, event_premium_applied=1.20, quantity_discount_percent=5, hardware_cost=17.5, hardware_sell=60, reinforced_corners_cost=30, wind_slit_cost=10, pole_pocket_cost=350, (d) Pole banner: event_premium_applied=1.30 (includes pole banner premium), (e) Minimum sell enforcement: min_sell_per_item=$35 enforced correctly."
+
+  - task: "Banners Schema - GET /api/job-tickets/schema/banners"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/job_tickets.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - GET /api/job-tickets/schema/banners returns foundation-driven schema with 26 fields including all required banner fields: banner_material_key, banner_use_type, banner_hems, banner_grommets, banner_grommet_count, banner_pole_pockets, banner_reinforced_corners, banner_wind_slits, banner_specialty_sewing, banner_double_sided, banner_event_premium, banner_hardware_keys, banner_laminate, banner_laminate_type_key, install_required, install_complexity, design_complexity, artwork_ready, artwork_needed, rush_order, width, height, unit_of_measure, sq_footage. banner_material_key has 8 options including banner_13oz, banner_18oz, banner_mesh, banner_blockout, banner_pole, banner_fabric. banner_hardware_keys is multi_select type. banner_grommets has options: none, corners, every_2ft, every_3ft, custom. Schema is foundation-driven from category_defaults.banners."
+
+  - task: "Pricing Defaults - GET /api/pricing/defaults"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/pricing.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - GET /api/pricing/defaults returns category_defaults.banners with 55 keys including: default_banner_material_key, available_banner_material_keys, waste_percentage, default_minimum_billable_area, default_minimum_sell_price, default_design_time_hours, standard_hem_rate_per_linear_foot, reinforced_hem_rate_per_linear_foot, pole_pocket_rate_per_linear_foot, grommet_cost_each, grommet_sell_each, grommet_minimum_charge, reinforced_corners_charge, wind_slit_charge, specialty_sewing_rate_per_linear_foot, sidedness_multipliers, event_premium_multiplier, pole_banner_premium_multiplier, install_complexity_multipliers, design_complexity_multipliers, quantity_discounts. Materials list includes 11 banner materials (banner_13oz cost 0.85 sell 8, banner_18oz cost 1.25 sell 10, etc.). Hardware_accessories includes 10 banner hardware items with compatible_categories containing 'banners'."
+
+  - task: "Pricing Defaults Update - PUT /api/pricing/defaults"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/pricing.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - PUT /api/pricing/defaults successfully updates category_defaults.banners. Test: changed waste_percentage from 8.0 to 10.0 and standard_hem_rate_per_linear_foot from 0.75 to 1.0. Updates applied correctly. Subsequent POST /api/pricing/calculate for banners picked up new values: breakdown.waste_percent=10.0. Original values restored after test. Update mechanism working correctly for banners category."
+
+  - task: "Regression Testing - Existing Categories"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/pricing.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - Regression testing for existing categories passed. POST /api/pricing/calculate still works correctly for: (1) Digital Print: selling_price=$168.50, (2) Cut Vinyl: selling_price=$72.50, (3) Rigid Signs: selling_price=$78.50. All categories return proper response structure with material_cost, labor_cost, selling_price, breakdown fields. No regressions detected from banners implementation or hardware_accessories merge changes."
+

@@ -58,7 +58,6 @@ def _normalize_pricing_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
 def _normalize_pricing_category(category: Any) -> PricingCategory:
     raw = str(category or "custom").lower()
     alias_map = {
-        "banners": PricingCategory.DIGITAL_PRINT,
         "promo_misc": PricingCategory.PROMOTIONAL,
         "vehicle_wrap": PricingCategory.VEHICLE_GRAPHICS,
     }
