@@ -2674,12 +2674,50 @@ app.add_middleware(
 
 # ============== SHUTDOWN EVENT ==============
 
+async def _run_password_hash_audit():
+    """Background audit of stored password hashes.
+
+    bcrypt.checkpw is CPU-bound and blocking. Running this inline during
+    FastAPI startup can block the event loop long enough that production
+    health checks fail (observed: uvicorn never emits 'Application startup
+    complete' on resource-limited containers). We run it off the critical
+    path so startup completes immediately.
+    """
+    import asyncio
+    try:
+        users = await db.users.find(
+            {}, {"_id": 0, "id": 1, "email": 1, "hashed_password": 1}
+        ).to_list(100)
+        for user in users:
+            hp = user.get("hashed_password", "")
+            if not hp:
+                continue
+            try:
+                # Offload the blocking bcrypt call to a thread so we don't
+                # stall the event loop across many users.
+                await asyncio.to_thread(
+                    bcrypt.checkpw, b"test", hp.encode("utf-8")
+                )
+            except (ValueError, TypeError):
+                logger.warning(
+                    f"User {user.get('email')} has an incompatible password hash. "
+                    "They should use forgot-password to reset."
+                )
+    except Exception as e:
+        logger.error(f"Password hash audit error: {e}")
+
+
 @app.on_event("startup")
 async def startup_migrations():
     """Run one-time migrations on startup to fix known production issues."""
+    import asyncio
+
     # Start the digest email scheduler
-    from services.digest_scheduler import start_digest_scheduler
-    start_digest_scheduler()
+    try:
+        from services.digest_scheduler import start_digest_scheduler
+        start_digest_scheduler()
+    except Exception as e:
+        logger.warning(f"Digest scheduler init deferred: {e}")
 
     # Initialize object storage
     try:
@@ -2687,23 +2725,12 @@ async def startup_migrations():
     except Exception as e:
         logger.warning(f"Object storage init deferred: {e}")
 
+    # Kick off password hash audit as a background task so it never blocks
+    # application startup / readiness.
     try:
-        # Fix: Re-hash any passwords that might have been created by old passlib
-        # This runs silently and only fixes hashes that fail bcrypt verification
-        users = await db.users.find({}, {"_id": 0, "id": 1, "email": 1, "hashed_password": 1}).to_list(100)
-        for user in users:
-            hp = user.get("hashed_password", "")
-            if not hp:
-                continue
-            try:
-                # Test if the hash is valid bcrypt
-                bcrypt.checkpw(b"test", hp.encode("utf-8"))
-            except (ValueError, TypeError):
-                # Hash is corrupt/incompatible — can't fix without knowing the password
-                # But we can flag it for the user to reset via forgot-password
-                logger.warning(f"User {user.get('email')} has an incompatible password hash. They should use forgot-password to reset.")
+        asyncio.create_task(_run_password_hash_audit())
     except Exception as e:
-        logger.error(f"Startup migration error: {e}")
+        logger.error(f"Failed to schedule password hash audit: {e}")
 
 
 @app.on_event("shutdown")
