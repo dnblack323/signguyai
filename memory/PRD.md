@@ -1003,6 +1003,10 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
   - Invoice Line Items: Verified fallback chain (job_items → line_items → subtotal → quote.total)
 - **Testing:** 14/14 backend tests passed, 100% frontend verification (iteration_70)
 
+### Session: April 20, 2026
+- **Cut Vinyl Pricing Phase:** Implemented Cut Vinyl defaults, materials, AI prefill, and full calculation flow (materials, labor, overhead, suggested price, manual quote, profit/margin)
+- **Total Production Cost Label:** Updated calculator output label to match required terminology
+
 ### Session: April 19, 2026
 - **Digital Print Pricing Phase:** Implemented Digital Print-specific defaults, media/laminate libraries, AI prefill logic, and full calculation flow (material, labor, overhead, suggested price, manual quote, profit/margin)
 - **Pricing Foundation Phase:** Extended Pricing Foundation as the single source of truth (general defaults, materials, hardware/accessories, labor rates, category rule containers, AI rules, benchmarks, global calculation rules, review panel)
