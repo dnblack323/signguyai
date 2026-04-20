@@ -383,6 +383,27 @@ def _build_ticket_pricing_payload(ticket: dict, pricing_input: Optional[dict] = 
         "banner_event_premium": bool(specs.get("banner_event_premium")) if specs.get("banner_event_premium") is not None else None,
         "banner_hardware_keys": specs.get("banner_hardware_keys") or [],
         "service_type": specs.get("service_type") or specs.get("subtype"),
+        # Services — Foundation-driven inputs
+        "services_billing_unit": specs.get("services_billing_unit"),
+        "services_labor_role": specs.get("services_labor_role"),
+        "services_flat_fee": float(specs.get("services_flat_fee", 0) or 0) or None,
+        "services_unit_rate_override": float(specs.get("services_unit_rate_override", 0) or 0) or None,
+        "services_complexity": specs.get("services_complexity"),
+        "services_minimum_applies": bool(specs.get("services_minimum_applies")) if specs.get("services_minimum_applies") is not None else None,
+        "services_travel_required": bool(specs.get("services_travel_required")) if specs.get("services_travel_required") is not None else None,
+        "services_travel_miles": float(specs.get("services_travel_miles", 0) or 0) or None,
+        "services_trip_charge_applies": bool(specs.get("services_trip_charge_applies")) if specs.get("services_trip_charge_applies") is not None else None,
+        "services_trip_count": int(specs.get("services_trip_count", 0) or 0) or None,
+        "services_equipment_required": bool(specs.get("services_equipment_required")) if specs.get("services_equipment_required") is not None else None,
+        "services_equipment_type": specs.get("services_equipment_type"),
+        "services_equipment_days": float(specs.get("services_equipment_days", 0) or 0) or None,
+        "services_equipment_hours": float(specs.get("services_equipment_hours", 0) or 0) or None,
+        "services_subcontracted": bool(specs.get("services_subcontracted")) if specs.get("services_subcontracted") is not None else None,
+        "services_subcontract_cost": float(specs.get("services_subcontract_cost", 0) or 0) or None,
+        "services_subcontract_markup_applies": bool(specs.get("services_subcontract_markup_applies")) if specs.get("services_subcontract_markup_applies") is not None else None,
+        "services_permit_external_fee": float(specs.get("services_permit_external_fee", 0) or 0) or None,
+        "services_manual_quote_override": float(specs.get("services_manual_quote_override", 0) or 0) or None,
+        "services_minimum_override": float(specs.get("services_minimum_override", 0) or 0) or None,
         "hourly_rate_override": float(specs.get("hourly_rate_override", 0) or 0) or None,
         "vehicle_type": specs.get("vehicle_type"),
         "coverage_type": coverage_type,
@@ -667,19 +688,62 @@ def _apparel_schema(defaults, garment_opts, decoration_opts):
 
 
 def _services_schema(defaults):
-    cat_config = defaults.get("category_defaults", {}).get("services", {})
+    cat = defaults.get("category_defaults", {}).get("services", {}) or {}
+    service_types = cat.get("available_service_types", []) or []
+    billing_units = cat.get("available_billing_units", ["hour", "flat", "piece", "sqft", "linear_foot", "mile", "trip", "day", "custom"])
+    labor_roles_map = cat.get("labor_roles", {}) or {}
+    equipment_library = cat.get("equipment_library", []) or []
+
+    st_options = [{"value": s["key"], "label": s["label"]} for s in service_types]
+    bu_options = [{"value": u, "label": {"hour": "Hour", "flat": "Flat Fee", "piece": "Piece", "sqft": "Sq Ft", "linear_foot": "Linear Ft", "mile": "Mile", "trip": "Trip", "day": "Day", "custom": "Custom Unit"}.get(u, u.title())} for u in billing_units]
+    role_options = [{"value": k, "label": v.get("label", k)} for k, v in labor_roles_map.items()]
+    equipment_options = [{"value": e["key"], "label": e["label"]} for e in equipment_library]
+
+    complexity_opts = [
+        {"value": "easy", "label": "Easy"},
+        {"value": "medium", "label": "Medium"},
+        {"value": "difficult", "label": "Difficult"},
+        {"value": "extreme", "label": "Extreme"},
+    ]
+
+    default_st = cat.get("default_service_type", "general_labor")
+    default_role = cat.get("default_labor_role", "production")
+    default_bu = "hour"
+
     return [
-        {"key": "service_type", "label": "Service Type", "type": "select", "options": [
-            {"value": "installation", "label": "Installation"},
-            {"value": "design", "label": "Design"},
-            {"value": "survey", "label": "Site Survey"},
-            {"value": "repair", "label": "Repair"},
-            {"value": "consultation", "label": "Consultation"},
-            {"value": "other", "label": "Other / Custom"},
-        ], "default": cat_config.get("default_service_type", "installation"), "group": "specs", "pricing": True},
-        {"key": "estimated_hours", "label": "Estimated Hours", "type": "number", "default": cat_config.get("default_estimated_hours", 1), "group": "specs", "pricing": True},
-        {"key": "service_notes", "label": "Service Notes", "type": "textarea", "group": "specs"},
-        {"key": "rush_order", "label": "Rush Order", "type": "toggle", "default": False, "group": "production", "pricing": True},
+        {"key": "service_type", "label": "Service Type", "type": "select", "options": st_options, "default": default_st, "group": "service_info", "required": True, "pricing": True},
+        {"key": "services_billing_unit", "label": "Billing Unit", "type": "select", "options": bu_options, "default": default_bu, "group": "service_info", "required": True, "pricing": True},
+        {"key": "services_labor_role", "label": "Labor Role", "type": "select", "options": role_options, "default": default_role, "group": "service_info", "pricing": True},
+        {"key": "services_complexity", "label": "Complexity", "type": "select", "options": complexity_opts, "default": "medium", "group": "service_info", "pricing": True},
+
+        {"key": "estimated_hours", "label": "Estimated Hours", "type": "number", "default": 1, "group": "labor", "pricing": True},
+        {"key": "num_workers", "label": "Number of Workers", "type": "number", "default": 1, "group": "labor", "pricing": True},
+        {"key": "services_flat_fee", "label": "Flat Fee ($, if billing_unit=flat)", "type": "number", "group": "labor", "pricing": True},
+        {"key": "services_unit_rate_override", "label": "Unit Rate Override ($)", "type": "number", "group": "labor", "pricing": True},
+        {"key": "hourly_rate_override", "label": "Hourly Rate Override ($)", "type": "number", "group": "labor", "pricing": True},
+
+        {"key": "services_minimum_applies", "label": "Apply Minimum Charge?", "type": "toggle", "default": True, "group": "minimums", "pricing": True},
+        {"key": "services_minimum_override", "label": "Minimum Charge Override ($)", "type": "number", "group": "minimums", "pricing": True},
+
+        {"key": "services_travel_required", "label": "Travel Required?", "type": "toggle", "default": False, "group": "travel", "pricing": True},
+        {"key": "services_travel_miles", "label": "Travel Miles", "type": "number", "default": 0, "group": "travel", "pricing": True},
+        {"key": "services_trip_charge_applies", "label": "Trip Charge Applies?", "type": "toggle", "default": False, "group": "travel", "pricing": True},
+        {"key": "services_trip_count", "label": "Trip Count", "type": "number", "default": 1, "group": "travel", "pricing": True},
+
+        {"key": "services_equipment_required", "label": "Equipment Required?", "type": "toggle", "default": False, "group": "equipment", "pricing": True},
+        {"key": "services_equipment_type", "label": "Equipment Type", "type": "select", "options": equipment_options, "group": "equipment", "pricing": True},
+        {"key": "services_equipment_days", "label": "Equipment Days", "type": "number", "default": 0, "group": "equipment", "pricing": True},
+        {"key": "services_equipment_hours", "label": "Equipment Hours", "type": "number", "default": 0, "group": "equipment", "pricing": True},
+
+        {"key": "services_subcontracted", "label": "Subcontracted / Outsourced?", "type": "toggle", "default": False, "group": "subcontract", "pricing": True},
+        {"key": "services_subcontract_cost", "label": "Subcontract Cost ($)", "type": "number", "default": 0, "group": "subcontract", "pricing": True},
+        {"key": "services_subcontract_markup_applies", "label": "Apply Markup to Subcontract?", "type": "toggle", "default": True, "group": "subcontract", "pricing": True},
+
+        {"key": "services_permit_external_fee", "label": "Permit / External Fee ($)", "type": "number", "default": 0, "group": "passthrough", "pricing": True},
+
+        {"key": "rush_order", "label": "Rush?", "type": "toggle", "default": False, "group": "production", "pricing": True},
+        {"key": "services_manual_quote_override", "label": "Manual Quote Override ($)", "type": "number", "default": 0, "group": "production", "pricing": True},
+        {"key": "service_notes", "label": "Service Notes", "type": "textarea", "group": "production"},
     ]
 
 

@@ -1,0 +1,168 @@
+=== T1 General labor 1hr hour ===
+  sell=$93.75  labor=$35.00  mat(non-labor)=$0.00  over=$6.65  profit=$52.10  margin=55.6%
+  svc=general_labor billing=hour role=production complex=medium(1.25) hrs=1.0 workers=1
+  labor_sell_baseline=$93.75  cost_plus=$73.06 sell_method=max_of_both
+  travel: req=False miles=0.0 cost=$0.00 sell=$0.00  trip_applies=False
+  equip: req=False type=None days=0.0/hrs=0.0 cost=$0.00 sell=$0.00
+  sub: on=False cost=$0.00 markup=True sell=$0.00  permit=$0.00
+  min: applied=True per_svc=$25.00 effective=$25.00 rush%=0
+=== T2 Installation 2hrs installer role ===
+  sell=$237.50  labor=$87.50  mat(non-labor)=$0.00  over=$16.62  profit=$133.38  margin=56.2%
+  svc=installation billing=hour role=installer complex=medium(1.25) hrs=2.0 workers=1
+  labor_sell_baseline=$237.50  cost_plus=$182.65 sell_method=max_of_both
+  travel: req=True miles=0.0 cost=$0.00 sell=$0.00  trip_applies=False
+  equip: req=False type=None days=0.0/hrs=0.0 cost=$0.00 sell=$0.00
+  sub: on=False cost=$0.00 markup=True sell=$0.00  permit=$0.00
+  min: applied=True per_svc=$125.00 effective=$125.00 rush%=0
+=== T3 Installation 2hrs difficult ===
+  sell=$285.00  labor=$105.00  mat(non-labor)=$0.00  over=$19.95  profit=$160.05  margin=56.2%
+  svc=installation billing=hour role=installer complex=difficult(1.5) hrs=2.0 workers=1
+  labor_sell_baseline=$285.00  cost_plus=$219.18 sell_method=max_of_both
+  travel: req=True miles=0.0 cost=$0.00 sell=$0.00  trip_applies=False
+  equip: req=False type=None days=0.0/hrs=0.0 cost=$0.00 sell=$0.00
+  sub: on=False cost=$0.00 markup=True sell=$0.00  permit=$0.00
+  min: applied=True per_svc=$125.00 effective=$125.00 rush%=0
+=== T4 Site survey flat (uses default flat_fee) ===
+  sell=$125.00  labor=$35.00  mat(non-labor)=$0.00  over=$6.65  profit=$83.35  margin=66.7%
+  svc=site_survey billing=flat role=installer complex=medium(1.25) hrs=1.0 workers=1
+  labor_sell_baseline=$125.00  cost_plus=$73.06 sell_method=max_of_both
+  travel: req=True miles=0.0 cost=$0.00 sell=$0.00  trip_applies=False
+  equip: req=False type=None days=0.0/hrs=0.0 cost=$0.00 sell=$0.00
+  sub: on=False cost=$0.00 markup=True sell=$0.00  permit=$0.00
+  min: applied=True per_svc=$125.00 effective=$125.00 rush%=0
+=== T5 Artwork setup flat 0 override ===
+  sell=$50.00  labor=$22.50  mat(non-labor)=$0.00  over=$4.28  profit=$23.23  margin=46.5%
+  svc=artwork_setup billing=flat role=design complex=medium(1.25) hrs=0.5 workers=1
+  labor_sell_baseline=$50.00  cost_plus=$46.97 sell_method=max_of_both
+  travel: req=False miles=0.0 cost=$0.00 sell=$0.00  trip_applies=False
+  equip: req=False type=None days=0.0/hrs=0.0 cost=$0.00 sell=$0.00
+  sub: on=False cost=$0.00 markup=True sell=$0.00  permit=$0.00
+  min: applied=True per_svc=$25.00 effective=$25.00 rush%=0
+=== T6 Delivery billing=mile 40mi ===
+  sell=$54.27  labor=$26.00  mat(non-labor)=$0.00  over=$4.94  profit=$23.33  margin=43.0%
+  svc=delivery billing=mile role=helper complex=medium(1.25) hrs=0.0 workers=1
+  labor_sell_baseline=$50.00  cost_plus=$54.27 sell_method=max_of_both
+  travel: req=True miles=40.0 cost=$0.00 sell=$0.00  trip_applies=False
+  equip: req=False type=None days=0.0/hrs=0.0 cost=$0.00 sell=$0.00
+  sub: on=False cost=$0.00 markup=True sell=$0.00  permit=$0.00
+  min: applied=True per_svc=$45.00 effective=$45.00 rush%=0
+=== T7 Delivery billing=trip count=2 ===
+  sell=$130.00  labor=$11.00  mat(non-labor)=$0.00  over=$2.09  profit=$116.91  margin=89.9%
+  svc=delivery billing=trip role=helper complex=medium(1.25) hrs=0.5 workers=1
+  labor_sell_baseline=$130.00  cost_plus=$22.96 sell_method=max_of_both
+  travel: req=True miles=0.0 cost=$0.00 sell=$0.00  trip_applies=False
+  equip: req=False type=None days=0.0/hrs=0.0 cost=$0.00 sell=$0.00
+  sub: on=False cost=$0.00 markup=True sell=$0.00  permit=$0.00
+  min: applied=True per_svc=$45.00 effective=$45.00 rush%=0
+=== T8 Equipment rental 2 days scissor lift ===
+  sell=$2209.74  labor=$700.00  mat(non-labor)=$450.00  over=$218.50  profit=$841.24  margin=38.1%
+  svc=equipment_rental billing=day role=installer complex=medium(1.25) hrs=0.0 workers=1
+  labor_sell_baseline=$1900.00  cost_plus=$1559.74 sell_method=cost_plus
+  travel: req=False miles=0.0 cost=$0.00 sell=$0.00  trip_applies=False
+  equip: req=True type=scissor_lift days=2.0/hrs=0.0 cost=$450.00 sell=$650.00
+  sub: on=False cost=$0.00 markup=True sell=$0.00  permit=$0.00
+  min: applied=True per_svc=$0.00 effective=$0.00 rush%=0
+=== T9 Install 3hrs + 25mi travel + trip charge ===
+  sell=$432.50  labor=$131.25  mat(non-labor)=$16.25  over=$28.02  profit=$256.98  margin=59.4%
+  svc=installation billing=hour role=installer complex=medium(1.25) hrs=3.0 workers=1
+  labor_sell_baseline=$356.25  cost_plus=$277.82 sell_method=max_of_both
+  travel: req=True miles=25.0 cost=$16.25 sell=$76.25  trip_applies=True
+  equip: req=False type=None days=0.0/hrs=0.0 cost=$0.00 sell=$0.00
+  sub: on=False cost=$0.00 markup=True sell=$0.00  permit=$0.00
+  min: applied=True per_svc=$125.00 effective=$125.00 rush%=0
+=== T10 Install 4hrs + boom lift 1 day ===
+  sell=$950.00  labor=$175.00  mat(non-labor)=$325.00  over=$95.00  profit=$355.00  margin=37.4%
+  svc=installation billing=hour role=installer complex=medium(1.25) hrs=4.0 workers=1
+  labor_sell_baseline=$475.00  cost_plus=$425.83 sell_method=max_of_both
+  travel: req=True miles=0.0 cost=$0.00 sell=$0.00  trip_applies=False
+  equip: req=True type=boom_lift days=1.0/hrs=0.0 cost=$325.00 sell=$475.00
+  sub: on=False cost=$0.00 markup=True sell=$0.00  permit=$0.00
+  min: applied=True per_svc=$125.00 effective=$125.00 rush%=0
+=== T11 Subcontracted 00 + markup ===
+  sell=$600.00  labor=$14.00  mat(non-labor)=$500.00  over=$97.66  profit=$-11.66  margin=-1.9%
+  svc=subcontracted billing=flat role=outsourced complex=medium(1.25) hrs=0.0 workers=1
+  labor_sell_baseline=$0.00  cost_plus=$47.24 sell_method=pass_through_plus_markup
+  travel: req=False miles=0.0 cost=$0.00 sell=$0.00  trip_applies=False
+  equip: req=False type=None days=0.0/hrs=0.0 cost=$0.00 sell=$0.00
+  sub: on=True cost=$500.00 markup=True sell=$600.00  permit=$0.00
+  min: applied=True per_svc=$0.00 effective=$0.00 rush%=0
+=== T12 Subcontracted 00 no markup ===
+  sell=$500.00  labor=$14.00  mat(non-labor)=$500.00  over=$97.66  profit=$-111.66  margin=-22.3%
+  svc=subcontracted billing=flat role=outsourced complex=medium(1.25) hrs=0.0 workers=1
+  labor_sell_baseline=$0.00  cost_plus=$47.24 sell_method=pass_through_plus_markup
+  travel: req=False miles=0.0 cost=$0.00 sell=$0.00  trip_applies=False
+  equip: req=False type=None days=0.0/hrs=0.0 cost=$0.00 sell=$0.00
+  sub: on=True cost=$500.00 markup=False sell=$500.00  permit=$0.00
+  min: applied=True per_svc=$0.00 effective=$0.00 rush%=0
+=== T13 Permit handling +00 permit fee ===
+  sell=$475.00  labor=$15.00  mat(non-labor)=$300.00  over=$59.85  profit=$100.15  margin=21.1%
+  svc=permit_handling billing=flat role=admin complex=medium(1.25) hrs=0.0 workers=1
+  labor_sell_baseline=$175.00  cost_plus=$48.59 sell_method=max_of_both
+  travel: req=False miles=0.0 cost=$0.00 sell=$0.00  trip_applies=False
+  equip: req=False type=None days=0.0/hrs=0.0 cost=$0.00 sell=$0.00
+  sub: on=False cost=$0.00 markup=True sell=$0.00  permit=$300.00
+  min: applied=True per_svc=$175.00 effective=$175.00 rush%=0
+=== T14 Install 0.5hr => min kick in ===
+  sell=$125.00  labor=$43.75  mat(non-labor)=$0.00  over=$8.31  profit=$72.94  margin=58.4%
+  svc=installation billing=hour role=installer complex=medium(1.25) hrs=1.0 workers=1
+  labor_sell_baseline=$118.75  cost_plus=$91.32 sell_method=max_of_both
+  travel: req=True miles=0.0 cost=$0.00 sell=$0.00  trip_applies=False
+  equip: req=False type=None days=0.0/hrs=0.0 cost=$0.00 sell=$0.00
+  sub: on=False cost=$0.00 markup=True sell=$0.00  permit=$0.00
+  min: applied=True per_svc=$125.00 effective=$125.00 rush%=0
+=== T15 Install 0.5hr min_override=00 ===
+  sell=$200.00  labor=$43.75  mat(non-labor)=$0.00  over=$8.31  profit=$147.94  margin=74.0%
+  svc=installation billing=hour role=installer complex=medium(1.25) hrs=1.0 workers=1
+  labor_sell_baseline=$118.75  cost_plus=$91.32 sell_method=max_of_both
+  travel: req=True miles=0.0 cost=$0.00 sell=$0.00  trip_applies=False
+  equip: req=False type=None days=0.0/hrs=0.0 cost=$0.00 sell=$0.00
+  sub: on=False cost=$0.00 markup=True sell=$0.00  permit=$0.00
+  min: applied=True per_svc=$125.00 effective=$200.00 rush%=0
+=== T16 Install 0.5hr min_applies=false ===
+  sell=$59.38  labor=$21.88  mat(non-labor)=$0.00  over=$4.16  profit=$33.34  margin=56.2%
+  svc=installation billing=hour role=installer complex=medium(1.25) hrs=0.5 workers=1
+  labor_sell_baseline=$59.38  cost_plus=$45.66 sell_method=max_of_both
+  travel: req=True miles=0.0 cost=$0.00 sell=$0.00  trip_applies=False
+  equip: req=False type=None days=0.0/hrs=0.0 cost=$0.00 sell=$0.00
+  sub: on=False cost=$0.00 markup=True sell=$0.00  permit=$0.00
+  min: applied=False per_svc=$125.00 effective=$125.00 rush%=0
+=== T17 Install 2hrs rush ===
+  sell=$296.88  labor=$87.50  mat(non-labor)=$0.00  over=$16.62  profit=$192.75  margin=64.9%
+  svc=installation billing=hour role=installer complex=medium(1.25) hrs=2.0 workers=1
+  labor_sell_baseline=$237.50  cost_plus=$182.65 sell_method=max_of_both
+  travel: req=True miles=0.0 cost=$0.00 sell=$0.00  trip_applies=False
+  equip: req=False type=None days=0.0/hrs=0.0 cost=$0.00 sell=$0.00
+  sub: on=False cost=$0.00 markup=True sell=$0.00  permit=$0.00
+  min: applied=True per_svc=$125.00 effective=$125.00 rush%=25.0
+=== T18 Install manual=00 ===
+  sell=$500.00  labor=$87.50  mat(non-labor)=$0.00  over=$16.62  profit=$395.88  margin=79.2%
+  svc=installation billing=hour role=installer complex=medium(1.25) hrs=2.0 workers=1
+  labor_sell_baseline=$237.50  cost_plus=$182.65 sell_method=max_of_both
+  travel: req=True miles=0.0 cost=$0.00 sell=$0.00  trip_applies=False
+  equip: req=False type=None days=0.0/hrs=0.0 cost=$0.00 sell=$0.00
+  sub: on=False cost=$0.00 markup=True sell=$0.00  permit=$0.00
+  min: applied=True per_svc=$125.00 effective=$125.00 rush%=0
+=== T19 Design 3hrs unit_rate_override=150 ===
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+KeyError: 'breakdown'
+=== T20 Unknown service type (fallback) ===
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+KeyError: 'breakdown'
+=== T21 Wrap install 10hrs extreme ===
+  sell=$2200.00  labor=$900.00  mat(non-labor)=$0.00  over=$171.00  profit=$1129.00  margin=51.3%
+  svc=wrap_install billing=hour role=lead_installer complex=extreme(2.0) hrs=10.0 workers=1
+  labor_sell_baseline=$2200.00  cost_plus=$1878.66 sell_method=max_of_both
+  travel: req=True miles=0.0 cost=$0.00 sell=$0.00  trip_applies=False
+  equip: req=False type=None days=0.0/hrs=0.0 cost=$0.00 sell=$0.00
+  sub: on=False cost=$0.00 markup=True sell=$0.00  permit=$0.00
+  min: applied=True per_svc=$450.00 effective=$450.00 rush%=0
+=== T22 Install 3hrs 2 workers ===
+  sell=$712.50  labor=$262.50  mat(non-labor)=$0.00  over=$49.88  profit=$400.12  margin=56.2%
+  svc=installation billing=hour role=installer complex=medium(1.25) hrs=3.0 workers=2
+  labor_sell_baseline=$712.50  cost_plus=$547.94 sell_method=max_of_both
+  travel: req=True miles=0.0 cost=$0.00 sell=$0.00  trip_applies=False
+  equip: req=False type=None days=0.0/hrs=0.0 cost=$0.00 sell=$0.00
+  sub: on=False cost=$0.00 markup=True sell=$0.00  permit=$0.00
+  min: applied=True per_svc=$125.00 effective=$125.00 rush%=0

@@ -1331,66 +1331,190 @@ export default function PricingCalculator({
         );
       }
 
-      case 'services':
+      case 'services': {
+        const svcCat = (foundationDefaults?.category_defaults || {}).services || {};
+        const serviceTypes = svcCat.available_service_types || [];
+        const billingUnits = svcCat.available_billing_units || ['hour','flat','piece','sqft','linear_foot','mile','trip','day','custom'];
+        const laborRolesMap = svcCat.labor_roles || {};
+        const equipmentLibrary = svcCat.equipment_library || [];
+        const selectedSt = pricingData.service_type || svcCat.default_service_type || 'general_labor';
+        const selectedStInfo = serviceTypes.find((s) => s.key === selectedSt) || {};
+        const billingUnit = pricingData.services_billing_unit || selectedStInfo.default_billing_unit || 'hour';
+        const laborRole = pricingData.services_labor_role || selectedStInfo.default_labor_role || svcCat.default_labor_role || 'production';
+        const showFlat = billingUnit === 'flat';
+        const showUnitRate = ['piece','sqft','linear_foot','mile','trip','day','custom'].includes(billingUnit);
+        const buLabels = { hour: 'Hour', flat: 'Flat Fee', piece: 'Piece', sqft: 'Sq Ft', linear_foot: 'Linear Ft', mile: 'Mile', trip: 'Trip', day: 'Day', custom: 'Custom Unit' };
         return (
           <div className="space-y-4">
+            {/* Service Type + Billing Unit */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Service Type</Label>
-                <Select 
-                  value={pricingData.service_type || ''} 
-                  onValueChange={(v) => setPricingData({...pricingData, service_type: v})}
-                >
-                  <SelectTrigger><SelectValue placeholder="Select service" /></SelectTrigger>
+                <Label>Service Type *</Label>
+                <Select value={selectedSt} onValueChange={(v) => {
+                  const info = serviceTypes.find((s) => s.key === v) || {};
+                  setPricingData({ ...pricingData, service_type: v, services_billing_unit: info.default_billing_unit || 'hour', services_labor_role: info.default_labor_role || 'production', services_travel_required: !!info.requires_travel, services_equipment_required: !!info.uses_equipment, services_subcontracted: !!info.typically_subcontracted });
+                }}>
+                  <SelectTrigger data-testid="svc-service-type"><SelectValue placeholder="Select service" /></SelectTrigger>
                   <SelectContent>
-                    {SERVICE_TYPES.map(t => (
-                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                    ))}
+                    {serviceTypes.map((s) => (<SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Estimated Hours</Label>
-                <Input 
-                  type="number" 
-                  step="0.5"
-                  value={pricingData.estimated_hours || ''} 
-                  onChange={(e) => setPricingData({...pricingData, estimated_hours: parseFloat(e.target.value) || 0})}
-                />
+                <Label>Billing Unit *</Label>
+                <Select value={billingUnit} onValueChange={(v) => setPricingData({ ...pricingData, services_billing_unit: v })}>
+                  <SelectTrigger data-testid="svc-billing-unit"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {billingUnits.map((u) => (<SelectItem key={u} value={u}>{buLabels[u] || u}</SelectItem>))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
+
+            {/* Labor Role + Complexity */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Number of Workers</Label>
-                <Input 
-                  type="number" 
-                  min="1"
-                  value={pricingData.num_workers || 1} 
-                  onChange={(e) => setPricingData({...pricingData, num_workers: parseInt(e.target.value) || 1})}
-                />
+                <Label>Labor Role</Label>
+                <Select value={laborRole} onValueChange={(v) => setPricingData({ ...pricingData, services_labor_role: v })}>
+                  <SelectTrigger data-testid="svc-labor-role"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(laborRolesMap).map(([k, v]) => (<SelectItem key={k} value={k}>{v.label || k}</SelectItem>))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
-                <Label>Distance (miles)</Label>
-                <Input 
-                  type="number" 
-                  value={pricingData.distance_miles || ''} 
-                  onChange={(e) => setPricingData({...pricingData, distance_miles: parseFloat(e.target.value) || 0})}
-                  placeholder="For travel cost"
-                />
+                <Label>Complexity</Label>
+                <Select value={pricingData.services_complexity || 'medium'} onValueChange={(v) => setPricingData({ ...pricingData, services_complexity: v })}>
+                  <SelectTrigger data-testid="svc-complexity"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="easy">Easy (1.0x)</SelectItem>
+                    <SelectItem value="medium">Medium (1.25x)</SelectItem>
+                    <SelectItem value="difficult">Difficult (1.5x)</SelectItem>
+                    <SelectItem value="extreme">Extreme (2.0x)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            <div>
-              <Label>Hourly Rate Override ($)</Label>
-              <Input 
-                type="number" 
-                step="0.01"
-                value={pricingData.hourly_rate_override || ''} 
-                onChange={(e) => setPricingData({...pricingData, hourly_rate_override: parseFloat(e.target.value) || null})}
-                placeholder="Leave blank for default"
-              />
+
+            {/* Labor params */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Estimated Hours</Label>
+                <Input type="number" step="0.25" value={pricingData.estimated_hours ?? ''} onChange={(e) => setPricingData({ ...pricingData, estimated_hours: parseFloat(e.target.value) || 0 })} data-testid="svc-estimated-hours" />
+              </div>
+              <div>
+                <Label>Number of Workers</Label>
+                <Input type="number" min="1" value={pricingData.num_workers ?? 1} onChange={(e) => setPricingData({ ...pricingData, num_workers: parseInt(e.target.value) || 1 })} data-testid="svc-num-workers" />
+              </div>
+              {showFlat && (
+                <div>
+                  <Label>Flat Fee ($)</Label>
+                  <Input type="number" step="0.01" value={pricingData.services_flat_fee ?? ''} onChange={(e) => setPricingData({ ...pricingData, services_flat_fee: parseFloat(e.target.value) || 0 })} data-testid="svc-flat-fee" />
+                </div>
+              )}
+              {showUnitRate && (
+                <div>
+                  <Label>Unit Rate Override ($)</Label>
+                  <Input type="number" step="0.01" value={pricingData.services_unit_rate_override ?? ''} onChange={(e) => setPricingData({ ...pricingData, services_unit_rate_override: parseFloat(e.target.value) || 0 })} data-testid="svc-unit-rate-override" />
+                </div>
+              )}
+              <div>
+                <Label>Hourly Rate Override ($)</Label>
+                <Input type="number" step="0.01" value={pricingData.hourly_rate_override ?? ''} onChange={(e) => setPricingData({ ...pricingData, hourly_rate_override: parseFloat(e.target.value) || null })} placeholder="Leave blank for default" data-testid="svc-hourly-override" />
+              </div>
+            </div>
+
+            {/* Minimums */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-2 h-10">
+                <Switch checked={pricingData.services_minimum_applies !== false} onCheckedChange={(v) => setPricingData({ ...pricingData, services_minimum_applies: v })} data-testid="svc-min-applies" />
+                <Label>Apply Minimum Charge</Label>
+              </div>
+              <div>
+                <Label>Minimum Charge Override ($)</Label>
+                <Input type="number" step="0.01" value={pricingData.services_minimum_override ?? ''} onChange={(e) => setPricingData({ ...pricingData, services_minimum_override: parseFloat(e.target.value) || 0 })} placeholder="0 = use service default" data-testid="svc-min-override" />
+              </div>
+            </div>
+
+            {/* Travel */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-2 h-10">
+                <Switch checked={!!pricingData.services_travel_required} onCheckedChange={(v) => setPricingData({ ...pricingData, services_travel_required: v })} data-testid="svc-travel-required" />
+                <Label>Travel Required</Label>
+              </div>
+              <div>
+                <Label>Travel Miles</Label>
+                <Input type="number" value={pricingData.services_travel_miles ?? ''} onChange={(e) => setPricingData({ ...pricingData, services_travel_miles: parseFloat(e.target.value) || 0 })} disabled={!pricingData.services_travel_required && billingUnit !== 'mile'} data-testid="svc-travel-miles" />
+              </div>
+              <div className="flex items-center gap-2 h-10">
+                <Switch checked={!!pricingData.services_trip_charge_applies} onCheckedChange={(v) => setPricingData({ ...pricingData, services_trip_charge_applies: v })} data-testid="svc-trip-applies" />
+                <Label>Trip Charge</Label>
+              </div>
+              <div>
+                <Label>Trip Count</Label>
+                <Input type="number" min="1" value={pricingData.services_trip_count ?? 1} onChange={(e) => setPricingData({ ...pricingData, services_trip_count: parseInt(e.target.value) || 1 })} data-testid="svc-trip-count" />
+              </div>
+            </div>
+
+            {/* Equipment */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-2 h-10">
+                <Switch checked={!!pricingData.services_equipment_required} onCheckedChange={(v) => setPricingData({ ...pricingData, services_equipment_required: v })} data-testid="svc-equip-required" />
+                <Label>Equipment Required</Label>
+              </div>
+              <div>
+                <Label>Equipment Type</Label>
+                <Select value={pricingData.services_equipment_type || ''} onValueChange={(v) => setPricingData({ ...pricingData, services_equipment_type: v })} disabled={!pricingData.services_equipment_required}>
+                  <SelectTrigger data-testid="svc-equip-type"><SelectValue placeholder="Select equipment" /></SelectTrigger>
+                  <SelectContent>
+                    {equipmentLibrary.map((e) => (<SelectItem key={e.key} value={e.key}>{e.label}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Equipment Days</Label>
+                <Input type="number" step="0.25" value={pricingData.services_equipment_days ?? 0} onChange={(e) => setPricingData({ ...pricingData, services_equipment_days: parseFloat(e.target.value) || 0 })} disabled={!pricingData.services_equipment_required} data-testid="svc-equip-days" />
+              </div>
+              <div>
+                <Label>Equipment Hours</Label>
+                <Input type="number" step="0.25" value={pricingData.services_equipment_hours ?? 0} onChange={(e) => setPricingData({ ...pricingData, services_equipment_hours: parseFloat(e.target.value) || 0 })} disabled={!pricingData.services_equipment_required} data-testid="svc-equip-hours" />
+              </div>
+            </div>
+
+            {/* Subcontract */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-2 h-10">
+                <Switch checked={!!pricingData.services_subcontracted} onCheckedChange={(v) => setPricingData({ ...pricingData, services_subcontracted: v })} data-testid="svc-subcontracted" />
+                <Label>Subcontracted / Outsourced</Label>
+              </div>
+              <div>
+                <Label>Subcontract Cost ($)</Label>
+                <Input type="number" step="0.01" value={pricingData.services_subcontract_cost ?? 0} onChange={(e) => setPricingData({ ...pricingData, services_subcontract_cost: parseFloat(e.target.value) || 0 })} disabled={!pricingData.services_subcontracted} data-testid="svc-sub-cost" />
+              </div>
+              <div className="flex items-center gap-2 h-10">
+                <Switch checked={pricingData.services_subcontract_markup_applies !== false} onCheckedChange={(v) => setPricingData({ ...pricingData, services_subcontract_markup_applies: v })} disabled={!pricingData.services_subcontracted} data-testid="svc-sub-markup" />
+                <Label>Apply Markup</Label>
+              </div>
+              <div>
+                <Label>Permit / External Fee ($)</Label>
+                <Input type="number" step="0.01" value={pricingData.services_permit_external_fee ?? 0} onChange={(e) => setPricingData({ ...pricingData, services_permit_external_fee: parseFloat(e.target.value) || 0 })} data-testid="svc-permit-fee" />
+              </div>
+            </div>
+
+            {/* Rush + Manual Override */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-2 h-10">
+                <Switch checked={!!pricingData.rush_order} onCheckedChange={(v) => setPricingData({ ...pricingData, rush_order: v })} data-testid="svc-rush" />
+                <Label>Rush</Label>
+              </div>
+              <div>
+                <Label>Manual Quote Override ($ total)</Label>
+                <Input type="number" step="0.01" value={pricingData.services_manual_quote_override ?? 0} onChange={(e) => setPricingData({ ...pricingData, services_manual_quote_override: parseFloat(e.target.value) || 0 })} placeholder="0 = use suggested" data-testid="svc-manual-override" />
+              </div>
             </div>
           </div>
         );
+      }
 
       case 'digital_print': {
         const mediaOptions = getDigitalPrintMediaOptions();

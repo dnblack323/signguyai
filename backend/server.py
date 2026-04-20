@@ -1794,39 +1794,263 @@ async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, 
 
 
 async def calculate_services(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate service-based pricing."""
-    category_config = get_category_pricing_config(defaults, "services")
-    estimated_hours = float(data.estimated_hours or 1)
+    """Calculate Services pricing using Pricing Foundation defaults.
+
+    Cost side: labor + travel + equipment + subcontract + permit + overhead
+    Sell side: resolved per sell_method (cost_plus | pass_through_plus_markup | max_of_both)
+               with service-type minimum, billing-unit math, complexity multipliers, rush.
+    """
+    cfg = get_category_pricing_config(defaults, "services")
+
+    # ===== Service type resolution =====
+    service_types = cfg.get("available_service_types", []) or []
+    st_key = data.service_type or cfg.get("default_service_type", "general_labor")
+    if hasattr(st_key, "value"):
+        st_key = st_key.value
+    st_info = next((s for s in service_types if s.get("key") == st_key), None)
+    warnings = []
+    if not st_info:
+        warnings.append(f"Service type '{st_key}' not found. Using general_labor fallback.")
+        st_key = "general_labor"
+        st_info = next((s for s in service_types if s.get("key") == "general_labor"), {}) or {}
+
+    # ===== Billing unit =====
+    billing_unit = (data.services_billing_unit or st_info.get("default_billing_unit") or "hour").lower()
+
+    # ===== Labor role + rates =====
+    labor_role = data.services_labor_role or st_info.get("default_labor_role") or cfg.get("default_labor_role", "production")
+    labor_roles = cfg.get("labor_roles", {}) or {}
+    role_entry = labor_roles.get(labor_role, labor_roles.get("production", {})) or {}
+    if labor_role not in labor_roles:
+        warnings.append(f"Labor role '{labor_role}' not found. Using production rate.")
+    labor_cost_rate = float(role_entry.get("cost_per_hour", 28.0) or 28.0)
+    labor_sell_rate = float(role_entry.get("sell_per_hour", 75.0) or 75.0)
+    if data.hourly_rate_override and data.hourly_rate_override > 0:
+        labor_sell_rate = float(data.hourly_rate_override)
+
+    # ===== Complexity =====
+    complexity_key = (data.services_complexity or "medium").lower()
+    complexity_mult = float((cfg.get("complexity_multipliers", {}) or {}).get(complexity_key, 1.25))
+
+    # ===== Quantity / hours =====
+    qty_raw = float(quantity or 1)
+    min_billable_qty = float(cfg.get("default_min_billable_quantity", 1.0) or 1.0)
+    minimum_applies = data.services_minimum_applies if data.services_minimum_applies is not None else True
+    estimated_hours = float(data.estimated_hours or 0)
+    # Apply minimum billable quantity to hour-based billing if minimum applies
+    effective_hours = estimated_hours
+    if billing_unit == "hour" and minimum_applies and effective_hours > 0 and effective_hours < min_billable_qty:
+        effective_hours = min_billable_qty
+
+    # ===== Labor cost + suggested-sell labor portion =====
+    labor_cost = 0.0
+    labor_sell_baseline = 0.0
+    flat_fee = data.services_flat_fee if data.services_flat_fee is not None else st_info.get("default_flat_fee")
+    unit_rate = data.services_unit_rate_override if data.services_unit_rate_override is not None else st_info.get("default_suggested_sell_per_hour")
+    unit_rate = float(unit_rate or 0)
+
+    trip_count = int(data.services_trip_count or 1)
     num_workers = max(int(data.num_workers or 1), 1)
-    labor_hours = estimated_hours * num_workers
-    hourly_rate = float(data.hourly_rate_override or defaults.get("hourly_rate", 75) or 0)
 
-    labor_cost = labor_hours * hourly_rate
-    travel_cost = float(data.distance_miles or 0) * float(defaults.get("mileage_rate", 0) or 0)
-    material_cost = travel_cost
+    if billing_unit == "hour":
+        effective_hours_workers = effective_hours * num_workers
+        labor_cost = effective_hours_workers * labor_cost_rate * complexity_mult
+        labor_sell_baseline = effective_hours_workers * (unit_rate if unit_rate > 0 else labor_sell_rate) * complexity_mult
+    elif billing_unit == "flat":
+        # Flat-fee services: labor cost = est_hours × role rate (if provided) for internal cost tracking
+        labor_cost = (effective_hours or 0.5) * num_workers * labor_cost_rate
+        flat_value = float(flat_fee if flat_fee is not None else unit_rate)
+        labor_sell_baseline = flat_value * qty_raw
+    elif billing_unit in ("piece", "sqft", "linear_foot"):
+        labor_cost = (effective_hours or 0) * num_workers * labor_cost_rate * complexity_mult
+        labor_sell_baseline = qty_raw * (unit_rate if unit_rate > 0 else labor_sell_rate) * complexity_mult
+    elif billing_unit == "mile":
+        miles = float(data.services_travel_miles or qty_raw or 0)
+        labor_cost = miles * float(cfg.get("travel_cost_per_mile", 0.65) or 0)
+        labor_sell_baseline = miles * float(cfg.get("travel_sell_rate_per_mile", 1.25) or 0)
+    elif billing_unit == "trip":
+        trip_rate = float(cfg.get("trip_charge_default", 45.0) or 0)
+        trip_cost = float(cfg.get("trip_charge_cost", 0) or 0)
+        trips = max(trip_count, int(qty_raw))
+        labor_cost = trips * trip_cost + (effective_hours * num_workers * labor_cost_rate)
+        labor_sell_baseline = trips * (unit_rate if unit_rate > 0 else trip_rate)
+    elif billing_unit == "day":
+        days = float(qty_raw or 1)
+        labor_cost = days * 8 * num_workers * labor_cost_rate * complexity_mult
+        daily_sell = (unit_rate if unit_rate > 0 else labor_sell_rate * 8)
+        labor_sell_baseline = days * daily_sell * complexity_mult
+    else:  # custom
+        labor_cost = (effective_hours or 0) * num_workers * labor_cost_rate * complexity_mult
+        labor_sell_baseline = qty_raw * (unit_rate if unit_rate > 0 else labor_sell_rate) * complexity_mult
 
-    overhead_cost = calculate_overhead_cost(material_cost + labor_cost, labor_hours, defaults, category_config)
-    suggested_price = resolve_selling_price(
-        material_cost + labor_cost + overhead_cost,
-        category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5)),
-        category_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40.0)),
+    # ===== Travel =====
+    travel_cost = 0.0
+    travel_sell = 0.0
+    travel_required = data.services_travel_required if data.services_travel_required is not None else bool(st_info.get("requires_travel", cfg.get("default_travel_enabled", False)))
+    travel_miles = float(data.services_travel_miles or 0)
+    if travel_required and billing_unit != "mile":
+        travel_cost = travel_miles * float(cfg.get("travel_cost_per_mile", 0.65) or 0)
+        travel_sell = travel_miles * float(cfg.get("travel_sell_rate_per_mile", 1.25) or 0)
+
+    trip_charge_applies = bool(data.services_trip_charge_applies)
+    if trip_charge_applies and billing_unit != "trip":
+        trip_rate = float(cfg.get("trip_charge_default", 45.0) or 0)
+        trip_cost_rate = float(cfg.get("trip_charge_cost", 0) or 0)
+        trips = max(int(data.services_trip_count or 1), 1)
+        travel_cost += trips * trip_cost_rate
+        travel_sell += trips * trip_rate
+        # Enforce minimum_trip_charge floor on travel_sell
+        min_trip = float(cfg.get("minimum_trip_charge", 45.0) or 0)
+        if travel_sell < min_trip:
+            travel_sell = min_trip
+
+    # ===== Equipment =====
+    equipment_cost = 0.0
+    equipment_sell = 0.0
+    equipment_required = data.services_equipment_required if data.services_equipment_required is not None else bool(cfg.get("default_equipment_enabled", False))
+    equipment_days = float(data.services_equipment_days or 0)
+    equipment_hours = float(data.services_equipment_hours or 0)
+    equipment_type = data.services_equipment_type or "custom"
+    if equipment_required and (equipment_days > 0 or equipment_hours > 0):
+        eq_library = cfg.get("equipment_library", []) or []
+        eq_entry = next((e for e in eq_library if e.get("key") == equipment_type), None)
+        if not eq_entry:
+            warnings.append(f"Equipment type '{equipment_type}' not found. Using generic custom rates.")
+            eq_entry = {"cost_per_day": cfg.get("equipment_cost_per_day", 150.0), "sell_per_day": cfg.get("equipment_sell_rate_per_day", 225.0), "cost_per_hour": 25.0, "sell_per_hour": 45.0}
+        if equipment_days > 0:
+            equipment_cost += equipment_days * float(eq_entry.get("cost_per_day", 150.0) or 0)
+            equipment_sell += equipment_days * float(eq_entry.get("sell_per_day", 225.0) or 0)
+        if equipment_hours > 0:
+            equipment_cost += equipment_hours * float(eq_entry.get("cost_per_hour", 25.0) or 0)
+            equipment_sell += equipment_hours * float(eq_entry.get("sell_per_hour", 45.0) or 0)
+
+    # ===== Subcontract =====
+    subcontract_cost = 0.0
+    subcontract_sell = 0.0
+    subcontracted = data.services_subcontracted if data.services_subcontracted is not None else bool(st_info.get("typically_subcontracted", False))
+    markup_applies = data.services_subcontract_markup_applies if data.services_subcontract_markup_applies is not None else True
+    if subcontracted and data.services_subcontract_cost:
+        subcontract_cost = float(data.services_subcontract_cost or 0)
+        markup_pct = float(cfg.get("subcontract_markup_percent", 20.0) or 0)
+        if markup_applies:
+            subcontract_sell = subcontract_cost * (1 + markup_pct / 100.0)
+        else:
+            subcontract_sell = subcontract_cost
+
+    # ===== Permit / External pass-through =====
+    permit_cost = float(data.services_permit_external_fee or 0)
+    permit_sell = permit_cost  # default pass-through to sell
+
+    # ===== Subtotal / overhead =====
+    material_cost_total = travel_cost + equipment_cost + subcontract_cost + permit_cost  # non-labor direct costs
+    labor_hours_for_overhead = effective_hours * num_workers if billing_unit in ("hour", "flat", "piece", "sqft", "linear_foot", "custom") else 0
+    overhead_cost = calculate_overhead_cost(
+        material_cost_total + labor_cost,
+        labor_hours_for_overhead,
+        defaults,
+        cfg,
     )
-    suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order)
+
+    production_cost_total = labor_cost + material_cost_total + overhead_cost
+
+    # ===== Suggested sell price =====
+    sell_method = st_info.get("sell_method") or cfg.get("default_sell_method", "max_of_both")
+    markup = float(cfg.get("default_markup_multiplier", 1.8) or 1.8)
+    target_margin = float(cfg.get("target_profit_margin_percent", 35.0) or 35.0)
+
+    # Cost-plus candidate
+    cost_plus_labor_sell = resolve_selling_price(labor_cost + (overhead_cost * (labor_cost / max(production_cost_total - travel_cost - equipment_cost - subcontract_cost - permit_cost, 1) if production_cost_total > 0 else 1)), markup, target_margin)
+
+    # Baseline candidate (labor_sell_baseline already computed)
+    if sell_method == "cost_plus":
+        baseline_portion = cost_plus_labor_sell
+    elif sell_method == "pass_through_plus_markup":
+        baseline_portion = 0.0  # subcontract_sell carries the value
+    elif sell_method == "max_of_both":
+        baseline_portion = max(labor_sell_baseline, cost_plus_labor_sell)
+    else:
+        baseline_portion = labor_sell_baseline
+
+    suggested_price = baseline_portion + travel_sell + equipment_sell + subcontract_sell + permit_sell
+
+    # ===== Minimum charge floors =====
+    per_service_min = float(st_info.get("default_minimum_charge", cfg.get("default_minimum_sell_price", 25.0)) or 0)
+    min_override = float(data.services_minimum_override or 0)
+    if min_override > 0:
+        effective_min = min_override
+    else:
+        effective_min = per_service_min
+    if minimum_applies and effective_min > 0:
+        suggested_price = max(suggested_price, effective_min)
+
+    global_min = float(cfg.get("default_minimum_sell_price", 25.0) or 25.0)
+    suggested_price = max(suggested_price, global_min)
+
+    # ===== Rush =====
+    rush_pct = float(cfg.get("rush_percent", 25.0) or 0)
+    if data.rush_order:
+        suggested_price = suggested_price * (1 + rush_pct / 100.0)
+
+    # ===== Manual override =====
+    manual_override = None
+    if data.services_manual_quote_override and float(data.services_manual_quote_override) > 0:
+        manual_override = float(data.services_manual_quote_override)
+        suggested_price = manual_override
+    if data.override_enabled and data.price_override:
+        suggested_price = float(data.price_override)
 
     return create_pricing_result(
-        material_cost=material_cost,
+        material_cost=material_cost_total,
         labor_cost=labor_cost,
         setup_cost=0,
         additional_costs=0,
         overhead_cost=overhead_cost,
         suggested_price=suggested_price,
-        estimated_labor_minutes=labor_hours * 60,
+        estimated_labor_minutes=effective_hours * num_workers * 60 if billing_unit in ("hour", "flat", "piece", "sqft", "linear_foot", "custom") else 0,
         breakdown={
-            "estimated_hours": estimated_hours,
+            "service_type": st_key,
+            "service_type_label": st_info.get("label") if st_info else st_key,
+            "billing_unit": billing_unit,
+            "labor_role": labor_role,
+            "labor_cost_rate": labor_cost_rate,
+            "labor_sell_rate": labor_sell_rate,
+            "complexity": complexity_key,
+            "complexity_multiplier": complexity_mult,
+            "effective_hours": round(effective_hours, 2),
             "num_workers": num_workers,
-            "hourly_rate": hourly_rate,
+            "flat_fee": flat_fee,
+            "unit_rate": unit_rate,
+            "labor_cost": round(labor_cost, 2),
+            "labor_sell_baseline": round(labor_sell_baseline, 2),
+            "cost_plus_labor_sell": round(cost_plus_labor_sell, 2),
+            "travel_required": bool(travel_required),
+            "travel_miles": travel_miles,
             "travel_cost": round(travel_cost, 2),
-        }
+            "travel_sell": round(travel_sell, 2),
+            "trip_charge_applies": bool(trip_charge_applies),
+            "trip_count": trip_count,
+            "equipment_required": bool(equipment_required),
+            "equipment_type": equipment_type if equipment_required else None,
+            "equipment_days": equipment_days,
+            "equipment_hours": equipment_hours,
+            "equipment_cost": round(equipment_cost, 2),
+            "equipment_sell": round(equipment_sell, 2),
+            "subcontracted": bool(subcontracted),
+            "subcontract_cost": round(subcontract_cost, 2),
+            "subcontract_markup_applies": bool(markup_applies),
+            "subcontract_sell": round(subcontract_sell, 2),
+            "permit_cost": round(permit_cost, 2),
+            "permit_sell": round(permit_sell, 2),
+            "overhead_cost": round(overhead_cost, 2),
+            "production_cost_total": round(production_cost_total, 2),
+            "sell_method": sell_method,
+            "per_service_min": per_service_min,
+            "effective_min": effective_min,
+            "minimum_applied": minimum_applies,
+            "rush_percent_applied": rush_pct if data.rush_order else 0,
+            "manual_quote_override": manual_override,
+            "warnings": warnings,
+        },
     )
 
 

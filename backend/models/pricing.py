@@ -979,12 +979,87 @@ class PricingDefaults(BaseModel):
             "default_labor_hours": 1.0,
             "default_markup_multiplier": 1.8,
             "target_profit_margin_percent": 35.0,
-            "minimum_charge": 75.0,
+            "minimum_charge": 25.0,
             "default_material_keys": ["misc_material"],
             "default_hardware_keys": [],
-            "default_labor_types": ["consultation"],
+            "default_labor_types": ["production"],
             "sell_rate_defaults": {},
             "ai_prefill_overrides": {},
+            # ===== Service Type Library =====
+            "default_service_type": "general_labor",
+            "available_service_types": [
+                {"key": "graphic_design", "label": "Graphic Design", "default_billing_unit": "hour", "default_labor_role": "design", "default_suggested_sell_per_hour": 95.0, "default_flat_fee": None, "default_minimum_charge": 25.0, "sell_method": "max_of_both", "requires_travel": False, "uses_equipment": False, "typically_subcontracted": False},
+                {"key": "artwork_setup", "label": "Artwork Setup", "default_billing_unit": "flat", "default_labor_role": "design", "default_suggested_sell_per_hour": 85.0, "default_flat_fee": 25.0, "default_minimum_charge": 25.0, "sell_method": "max_of_both", "requires_travel": False, "uses_equipment": False, "typically_subcontracted": False},
+                {"key": "file_cleanup", "label": "File Cleanup", "default_billing_unit": "flat", "default_labor_role": "design", "default_suggested_sell_per_hour": 85.0, "default_flat_fee": 25.0, "default_minimum_charge": 25.0, "sell_method": "max_of_both", "requires_travel": False, "uses_equipment": False, "typically_subcontracted": False},
+                {"key": "consultation", "label": "Consultation", "default_billing_unit": "hour", "default_labor_role": "project_management", "default_suggested_sell_per_hour": 95.0, "default_flat_fee": 50.0, "default_minimum_charge": 50.0, "sell_method": "max_of_both", "requires_travel": False, "uses_equipment": False, "typically_subcontracted": False},
+                {"key": "site_survey", "label": "Site Survey", "default_billing_unit": "flat", "default_labor_role": "installer", "default_suggested_sell_per_hour": 95.0, "default_flat_fee": 125.0, "default_minimum_charge": 125.0, "sell_method": "max_of_both", "requires_travel": True, "uses_equipment": False, "typically_subcontracted": False},
+                {"key": "measurement", "label": "Measurement", "default_billing_unit": "flat", "default_labor_role": "installer", "default_suggested_sell_per_hour": 85.0, "default_flat_fee": 75.0, "default_minimum_charge": 75.0, "sell_method": "max_of_both", "requires_travel": True, "uses_equipment": False, "typically_subcontracted": False},
+                {"key": "delivery", "label": "Delivery", "default_billing_unit": "trip", "default_labor_role": "helper", "default_suggested_sell_per_hour": 65.0, "default_flat_fee": 45.0, "default_minimum_charge": 45.0, "sell_method": "max_of_both", "requires_travel": True, "uses_equipment": False, "typically_subcontracted": False},
+                {"key": "installation", "label": "Installation", "default_billing_unit": "hour", "default_labor_role": "installer", "default_suggested_sell_per_hour": 95.0, "default_flat_fee": None, "default_minimum_charge": 125.0, "sell_method": "max_of_both", "requires_travel": True, "uses_equipment": False, "typically_subcontracted": False},
+                {"key": "removal", "label": "Removal", "default_billing_unit": "hour", "default_labor_role": "installer", "default_suggested_sell_per_hour": 85.0, "default_flat_fee": None, "default_minimum_charge": 100.0, "sell_method": "max_of_both", "requires_travel": True, "uses_equipment": False, "typically_subcontracted": False},
+                {"key": "maintenance", "label": "Maintenance / Repair", "default_billing_unit": "hour", "default_labor_role": "installer", "default_suggested_sell_per_hour": 95.0, "default_flat_fee": None, "default_minimum_charge": 95.0, "sell_method": "max_of_both", "requires_travel": True, "uses_equipment": False, "typically_subcontracted": False},
+                {"key": "vehicle_graphics_install", "label": "Vehicle Graphics Install Labor", "default_billing_unit": "hour", "default_labor_role": "installer", "default_suggested_sell_per_hour": 95.0, "default_flat_fee": None, "default_minimum_charge": 125.0, "sell_method": "max_of_both", "requires_travel": True, "uses_equipment": False, "typically_subcontracted": False},
+                {"key": "wrap_install", "label": "Wrap Install Labor", "default_billing_unit": "hour", "default_labor_role": "lead_installer", "default_suggested_sell_per_hour": 110.0, "default_flat_fee": None, "default_minimum_charge": 450.0, "sell_method": "max_of_both", "requires_travel": True, "uses_equipment": False, "typically_subcontracted": False},
+                {"key": "service_call", "label": "Service Call Labor", "default_billing_unit": "hour", "default_labor_role": "installer", "default_suggested_sell_per_hour": 110.0, "default_flat_fee": None, "default_minimum_charge": 150.0, "sell_method": "max_of_both", "requires_travel": True, "uses_equipment": False, "typically_subcontracted": False},
+                {"key": "project_management", "label": "Project Management", "default_billing_unit": "hour", "default_labor_role": "project_manager", "default_suggested_sell_per_hour": 95.0, "default_flat_fee": None, "default_minimum_charge": 50.0, "sell_method": "max_of_both", "requires_travel": False, "uses_equipment": False, "typically_subcontracted": False},
+                {"key": "permit_handling", "label": "Permit Handling", "default_billing_unit": "flat", "default_labor_role": "admin", "default_suggested_sell_per_hour": 85.0, "default_flat_fee": 175.0, "default_minimum_charge": 175.0, "sell_method": "max_of_both", "requires_travel": False, "uses_equipment": False, "typically_subcontracted": False},
+                {"key": "equipment_rental", "label": "Equipment / Lift Rental", "default_billing_unit": "day", "default_labor_role": "installer", "default_suggested_sell_per_hour": 0.0, "default_flat_fee": None, "default_minimum_charge": 0.0, "sell_method": "cost_plus", "requires_travel": False, "uses_equipment": True, "typically_subcontracted": False},
+                {"key": "subcontracted", "label": "Subcontracted Service", "default_billing_unit": "flat", "default_labor_role": "outsourced", "default_suggested_sell_per_hour": 0.0, "default_flat_fee": None, "default_minimum_charge": 0.0, "sell_method": "pass_through_plus_markup", "requires_travel": False, "uses_equipment": False, "typically_subcontracted": True},
+                {"key": "general_labor", "label": "General Labor Service", "default_billing_unit": "hour", "default_labor_role": "production", "default_suggested_sell_per_hour": 75.0, "default_flat_fee": None, "default_minimum_charge": 25.0, "sell_method": "max_of_both", "requires_travel": False, "uses_equipment": False, "typically_subcontracted": False},
+                {"key": "specialty_custom", "label": "Specialty / Custom Service", "default_billing_unit": "hour", "default_labor_role": "specialty_technician", "default_suggested_sell_per_hour": 125.0, "default_flat_fee": None, "default_minimum_charge": 50.0, "sell_method": "max_of_both", "requires_travel": False, "uses_equipment": False, "typically_subcontracted": False},
+            ],
+            # ===== Billing units =====
+            "available_billing_units": ["hour", "flat", "piece", "sqft", "linear_foot", "mile", "trip", "day", "custom"],
+            # ===== Labor roles + cost rates =====
+            "default_labor_role": "production",
+            "labor_roles": {
+                "design": {"label": "Design", "cost_per_hour": 45.0, "sell_per_hour": 95.0},
+                "production": {"label": "Production", "cost_per_hour": 28.0, "sell_per_hour": 75.0},
+                "installer": {"label": "Installer", "cost_per_hour": 35.0, "sell_per_hour": 95.0},
+                "lead_installer": {"label": "Lead Installer", "cost_per_hour": 45.0, "sell_per_hour": 110.0},
+                "helper": {"label": "Helper", "cost_per_hour": 22.0, "sell_per_hour": 55.0},
+                "project_manager": {"label": "Project Manager", "cost_per_hour": 45.0, "sell_per_hour": 95.0},
+                "admin": {"label": "Admin", "cost_per_hour": 30.0, "sell_per_hour": 75.0},
+                "outsourced": {"label": "Outsourced / Subcontracted", "cost_per_hour": 0.0, "sell_per_hour": 0.0},
+                "specialty_technician": {"label": "Specialty Technician", "cost_per_hour": 55.0, "sell_per_hour": 125.0},
+            },
+            # ===== Complexity =====
+            "complexity_multipliers": {"easy": 1.0, "medium": 1.25, "difficult": 1.5, "extreme": 2.0},
+            # ===== Travel =====
+            "default_travel_enabled": False,
+            "travel_cost_per_mile": 0.65,
+            "travel_sell_rate_per_mile": 1.25,
+            "trip_charge_default": 45.0,
+            "trip_charge_cost": 0.0,  # cost side (cost of a trip; 0 means pure sell add)
+            # ===== Equipment =====
+            "default_equipment_enabled": False,
+            "equipment_cost_per_day": 150.0,
+            "equipment_sell_rate_per_day": 225.0,
+            "equipment_library": [
+                {"key": "scissor_lift", "label": "Scissor Lift", "cost_per_day": 225.0, "sell_per_day": 325.0, "cost_per_hour": 35.0, "sell_per_hour": 55.0},
+                {"key": "boom_lift", "label": "Boom Lift", "cost_per_day": 325.0, "sell_per_day": 475.0, "cost_per_hour": 55.0, "sell_per_hour": 80.0},
+                {"key": "ladder_rig", "label": "Ladder Rig", "cost_per_day": 50.0, "sell_per_day": 95.0, "cost_per_hour": 15.0, "sell_per_hour": 25.0},
+                {"key": "generator", "label": "Generator", "cost_per_day": 80.0, "sell_per_day": 125.0, "cost_per_hour": 15.0, "sell_per_hour": 25.0},
+                {"key": "utility_truck", "label": "Utility Truck", "cost_per_day": 120.0, "sell_per_day": 200.0, "cost_per_hour": 25.0, "sell_per_hour": 40.0},
+                {"key": "custom", "label": "Custom Equipment", "cost_per_day": 150.0, "sell_per_day": 225.0, "cost_per_hour": 25.0, "sell_per_hour": 45.0},
+            ],
+            # ===== Subcontract =====
+            "default_subcontract_enabled": False,
+            "subcontract_markup_percent": 20.0,
+            # ===== Rush =====
+            "default_rush_enabled": False,
+            "rush_percent": 25.0,
+            # ===== Minimums =====
+            "default_min_billable_quantity": 1.0,
+            "default_minimum_sell_price": 25.0,
+            "design_setup_minimum": 25.0,
+            "service_call_minimum": 50.0,
+            "install_minimum": 125.0,
+            "minimum_trip_charge": 45.0,
+            # ===== Sell method =====
+            "default_sell_method": "max_of_both",
+            # ===== AI =====
+            "ai_prefill_enabled": True,
         },
         "custom": {
             "label": "Custom / Miscellaneous",
@@ -1292,6 +1367,28 @@ class JobItemPricingData(BaseModel):
     location_address: Optional[str] = None
     distance_miles: Optional[float] = None
     equipment_required: List[str] = Field(default_factory=list)
+
+    # Services — Foundation-driven fields
+    services_billing_unit: Optional[str] = None  # hour, flat, piece, sqft, linear_foot, mile, trip, day, custom
+    services_labor_role: Optional[str] = None
+    services_flat_fee: Optional[float] = None
+    services_unit_rate_override: Optional[float] = None
+    services_complexity: Optional[str] = None  # easy, medium, difficult, extreme
+    services_minimum_applies: Optional[bool] = None
+    services_travel_required: Optional[bool] = None
+    services_travel_miles: Optional[float] = None
+    services_trip_charge_applies: Optional[bool] = None
+    services_trip_count: Optional[int] = None
+    services_equipment_required: Optional[bool] = None
+    services_equipment_type: Optional[str] = None
+    services_equipment_days: Optional[float] = None
+    services_equipment_hours: Optional[float] = None
+    services_subcontracted: Optional[bool] = None
+    services_subcontract_cost: Optional[float] = None
+    services_subcontract_markup_applies: Optional[bool] = None
+    services_permit_external_fee: Optional[float] = None
+    services_manual_quote_override: Optional[float] = None
+    services_minimum_override: Optional[float] = None
     
     # Apparel
     apparel_type: Optional[ApparelType] = None

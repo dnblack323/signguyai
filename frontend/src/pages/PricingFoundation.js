@@ -1734,6 +1734,79 @@ function CategoryRulesTab({ settings, onChange, canEdit, materials }) {
                   <p className="text-[11px] text-gray-500 italic">Shop quantity-table (by product × brand × tier × placement) and per-method pricing rules can be fine-tuned via server JSON. Defaults ship production-ready for HTV, Screen Print Transfer, and DTF Transfer using the uploaded shop pricing.</p>
                 </div>
               )}
+              {def.key === 'services' && (
+                <div className="space-y-4 border rounded-lg p-3 bg-slate-50" data-testid="services-category-defaults">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Service Type</Label>
+                      <Select value={cat.default_service_type || 'general_labor'} onValueChange={(v) => setCatField(def.key, 'default_service_type', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="svc-default-type"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {(cat.available_service_types || []).map((s) => (<SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Labor Role</Label>
+                      <Select value={cat.default_labor_role || 'production'} onValueChange={(v) => setCatField(def.key, 'default_labor_role', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="svc-default-role"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(cat.labor_roles || {}).map(([k, v]) => (<SelectItem key={k} value={k}>{v.label || k}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <F label="Min Billable Qty" value={cat.default_min_billable_quantity} onChg={(v) => setCatField(def.key, 'default_min_billable_quantity', v)} testId="svc-min-billable-qty" />
+                    <F label="Default Min Sell ($)" value={cat.default_minimum_sell_price} onChg={(v) => setCatField(def.key, 'default_minimum_sell_price', v)} testId="svc-default-min-sell" />
+                    <F label="Design/Setup Min ($)" value={cat.design_setup_minimum} onChg={(v) => setCatField(def.key, 'design_setup_minimum', v)} testId="svc-design-min" />
+                    <F label="Service Call Min ($)" value={cat.service_call_minimum} onChg={(v) => setCatField(def.key, 'service_call_minimum', v)} testId="svc-call-min" />
+                    <F label="Install Min ($)" value={cat.install_minimum} onChg={(v) => setCatField(def.key, 'install_minimum', v)} testId="svc-install-min" />
+                    <F label="Rush %" value={cat.rush_percent} onChg={(v) => setCatField(def.key, 'rush_percent', v)} suffix="%" testId="svc-rush-percent" />
+                  </div>
+
+                  <div className="border-t pt-3">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Labor Role Rates ($/hr)</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {Object.entries(cat.labor_roles || {}).map(([k, v]) => (
+                        <div key={k} className="flex justify-between items-center border rounded px-2 py-1 text-[11px] bg-white">
+                          <span className="truncate">{v.label || k}</span>
+                          <span className="text-gray-600 font-mono">cost ${(v.cost_per_hour || 0).toFixed(2)} → sell ${(v.sell_per_hour || 0).toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-3">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Travel / Trip</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <F label="Cost / Mile" value={cat.travel_cost_per_mile} onChg={(v) => setCatField(def.key, 'travel_cost_per_mile', v)} testId="svc-travel-cost-mile" />
+                      <F label="Sell / Mile" value={cat.travel_sell_rate_per_mile} onChg={(v) => setCatField(def.key, 'travel_sell_rate_per_mile', v)} testId="svc-travel-sell-mile" />
+                      <F label="Trip Charge Default" value={cat.trip_charge_default} onChg={(v) => setCatField(def.key, 'trip_charge_default', v)} testId="svc-trip-charge" />
+                      <F label="Min Trip Charge" value={cat.minimum_trip_charge} onChg={(v) => setCatField(def.key, 'minimum_trip_charge', v)} testId="svc-min-trip" />
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-3">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Equipment Library (cost/day → sell/day)</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {(cat.equipment_library || []).map((e) => (
+                        <div key={e.key} className="flex justify-between items-center border rounded px-2 py-1 text-[11px] bg-white">
+                          <span className="truncate">{e.label}</span>
+                          <span className="text-gray-600 font-mono">${(e.cost_per_day || 0).toFixed(0)} → ${(e.sell_per_day || 0).toFixed(0)} /day</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-3">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Subcontract</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <F label="Subcontract Markup %" value={cat.subcontract_markup_percent} onChg={(v) => setCatField(def.key, 'subcontract_markup_percent', v)} suffix="%" testId="svc-sub-markup" />
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-gray-500 italic">The full service-type library (with per-service billing units, roles, sell rates, minimums, and sell methods) plus labor-role rates can be fine-tuned via server JSON. Defaults ship production-ready.</p>
+                </div>
+              )}
               <div className="border-t pt-3">
                 <p className="text-xs font-medium text-gray-700 mb-2">Selling Benchmarks</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
