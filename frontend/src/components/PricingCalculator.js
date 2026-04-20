@@ -580,6 +580,72 @@ export default function PricingCalculator({
     }
   }, [category, foundationDefaults, orderItemName, description, pricingData.use_type]);
 
+  const getRigidSignCategoryDefaults = () => (
+    foundationDefaults?.category_defaults?.rigid_signs || {}
+  );
+
+  const getRigidSignSubstrateOptions = () => {
+    const materials = foundationDefaults?.materials || [];
+    const options = materials.filter((m) => m.category === 'substrate');
+    if (options.length) return options;
+    return SUBSTRATE_TYPES.map((item) => ({ key: item.id, name: item.name }));
+  };
+
+  const getRigidSignFinishOptions = () => {
+    const materials = foundationDefaults?.materials || [];
+    const options = materials.filter((m) => m.category === 'rigid_finish' || m.category === 'finish');
+    if (options.length) return options;
+    return [{ key: 'rigid_finish_standard', name: 'Standard Protective Finish' }];
+  };
+
+  const getRigidSignHardwareOptions = () => {
+    const hardware = foundationDefaults?.hardware_accessories || [];
+    const options = hardware.filter((item) => {
+      if (item.is_active === false) return false;
+      if (!item.compatible_categories || item.compatible_categories.length === 0) return true;
+      return item.compatible_categories.includes('rigid_signs');
+    });
+    return options;
+  };
+
+  const updateRigidSignField = (field, value) => {
+    setPricingData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const resolveRigidSignDefaults = () => {
+    const catDefaults = getRigidSignCategoryDefaults();
+    return {
+      unit_of_measure: catDefaults.default_unit_of_measure || 'inches',
+      substrate_type_key: catDefaults.default_substrate_key || '',
+      graphic_method: catDefaults.default_graphic_method || 'direct_print',
+      protective_finish: catDefaults.default_finish_required ?? false,
+      protective_finish_type: catDefaults.default_finish_key || '',
+      sidedness: catDefaults.default_sidedness || 'single',
+      double_sided_art: catDefaults.default_double_sided_art || 'same',
+      shape_type: catDefaults.default_shape_type || 'rectangle',
+      finish_quality: catDefaults.default_finish_quality || 'standard',
+      install_required: catDefaults.default_install_included ?? false,
+      install_complexity: catDefaults.default_install_complexity || 'easy',
+      design_complexity: catDefaults.default_design_complexity || 'simple',
+    };
+  };
+
+  useEffect(() => {
+    if (category !== 'rigid_signs' || !foundationDefaults) return;
+    const defaults = resolveRigidSignDefaults();
+    const nextData = { ...pricingData };
+    let changed = false;
+
+    Object.entries(defaults).forEach(([key, value]) => {
+      if (nextData[key] === undefined || nextData[key] === null || nextData[key] === '') {
+        nextData[key] = value;
+        changed = true;
+      }
+    });
+
+    if (changed) setPricingData(nextData);
+  }, [category, foundationDefaults]);
+
   const fetchAiSuggestions = async () => {
     if (!category || !calculation) return;
     
@@ -1538,69 +1604,349 @@ export default function PricingCalculator({
         );
       }
 
-      case 'rigid_signs':
+      case 'rigid_signs': {
+        const substrateOptions = getRigidSignSubstrateOptions();
+        const finishOptions = getRigidSignFinishOptions();
+        const hardwareOptions = getRigidSignHardwareOptions();
+        const selectedSubstrate = substrateOptions.find((m) => (m.key || m.id) === pricingData.substrate_type_key);
+        const selectedFinish = finishOptions.find((m) => (m.key || m.id) === pricingData.protective_finish_type);
+        const selectedHardware = hardwareOptions.find((m) => (m.id || m.key) === pricingData.hardware_type);
+        const unit = pricingData.unit_of_measure || 'inches';
+        const widthVal = Number(pricingData.width_inches || 0);
+        const heightVal = Number(pricingData.length_inches || 0);
+        const area = unit === 'feet' ? widthVal * heightVal : (widthVal * heightVal) / 144;
+
         return (
           <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div>
-                <Label>Width (inches)</Label>
-                <Input 
-                  type="number" 
-                  value={pricingData.width_inches || ''} 
-                  onChange={(e) => setPricingData({...pricingData, width_inches: parseFloat(e.target.value) || 0})}
+                <Label>Width</Label>
+                <Input
+                  type="number"
+                  value={pricingData.width_inches || ''}
+                  onChange={(e) => updateRigidSignField('width_inches', parseFloat(e.target.value) || 0)}
+                  data-testid="rigid-signs-width"
                 />
               </div>
               <div>
-                <Label>Length (inches)</Label>
-                <Input 
-                  type="number" 
-                  value={pricingData.length_inches || ''} 
-                  onChange={(e) => setPricingData({...pricingData, length_inches: parseFloat(e.target.value) || 0})}
+                <Label>Height</Label>
+                <Input
+                  type="number"
+                  value={pricingData.length_inches || ''}
+                  onChange={(e) => updateRigidSignField('length_inches', parseFloat(e.target.value) || 0)}
+                  data-testid="rigid-signs-height"
                 />
               </div>
               <div>
-                <Label>Sq Ft</Label>
-                <Input 
-                  value={((pricingData.width_inches || 0) * (pricingData.length_inches || 0) / 144).toFixed(2)} 
+                <Label>Unit</Label>
+                <Select value={unit} onValueChange={(v) => updateRigidSignField('unit_of_measure', v)}>
+                  <SelectTrigger className="h-9" data-testid="rigid-signs-unit">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {UNIT_OF_MEASURE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Area (sqft)</Label>
+                <Input
+                  value={area.toFixed(2)}
                   disabled
                   className="bg-slate-100"
+                  data-testid="rigid-signs-area"
                 />
               </div>
             </div>
-            <div>
-              <Label>Substrate</Label>
-              <Select 
-                value={pricingData.substrate_type || ''} 
-                onValueChange={(v) => setPricingData({...pricingData, substrate_type: v})}
-              >
-                <SelectTrigger><SelectValue placeholder="Select substrate" /></SelectTrigger>
-                <SelectContent>
-                  {SUBSTRATE_TYPES.map(t => (
-                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex gap-6">
-              <div className="flex items-center gap-2">
-                <Checkbox 
-                  id="double_sided"
-                  checked={pricingData.double_sided || false}
-                  onCheckedChange={(c) => setPricingData({...pricingData, double_sided: c})}
-                />
-                <Label htmlFor="double_sided" className="cursor-pointer">Double-Sided</Label>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div>
+                <Label>Substrate</Label>
+                <Select
+                  value={pricingData.substrate_type_key || ''}
+                  onValueChange={(v) => updateRigidSignField('substrate_type_key', v)}
+                >
+                  <SelectTrigger className="h-9" data-testid="rigid-signs-substrate">
+                    <SelectValue placeholder="Select substrate" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {substrateOptions.map((m) => (
+                      <SelectItem key={m.key || m.id} value={m.key || m.id}>{m.name || m.key}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {pricingData.substrate_type_key && !selectedSubstrate && (
+                  <p className="text-xs text-amber-600 mt-1" data-testid="rigid-signs-substrate-warning">
+                    Missing substrate in Pricing Foundation.
+                    <Link to="/pricing-foundation" className="text-amber-700 underline ml-1" data-testid="rigid-signs-substrate-add">Add New</Link>
+                  </p>
+                )}
               </div>
-              <div className="flex items-center gap-2">
-                <Checkbox 
-                  id="laminate_sign"
-                  checked={pricingData.laminate || false}
-                  onCheckedChange={(c) => setPricingData({...pricingData, laminate: c})}
+              <div>
+                <Label>Thickness</Label>
+                <Select
+                  value={pricingData.thickness || ''}
+                  onValueChange={(v) => updateRigidSignField('thickness', v)}
+                >
+                  <SelectTrigger className="h-9" data-testid="rigid-signs-thickness">
+                    <SelectValue placeholder="Select thickness" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[
+                      { value: '3mm', label: '3mm' },
+                      { value: '4mm', label: '4mm' },
+                      { value: '6mm', label: '6mm' },
+                      { value: '10mm', label: '10mm' },
+                      { value: '0.040', label: '0.040"' },
+                      { value: '0.063', label: '0.063"' },
+                      { value: '0.080', label: '0.080"' },
+                      { value: '1/8', label: '1/8"' },
+                      { value: '3/16', label: '3/16"' },
+                      { value: '1/4', label: '1/4"' },
+                      { value: '1/2', label: '1/2"' },
+                      { value: 'custom', label: 'Custom' },
+                    ].map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Graphic Method</Label>
+                <Select
+                  value={pricingData.graphic_method || 'direct_print'}
+                  onValueChange={(v) => updateRigidSignField('graphic_method', v)}
+                >
+                  <SelectTrigger className="h-9" data-testid="rigid-signs-graphic-method">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="direct_print">Direct Print</SelectItem>
+                    <SelectItem value="mounted_print">Mounted Print</SelectItem>
+                    <SelectItem value="cut_vinyl_applied">Cut Vinyl Applied</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Finish Quality</Label>
+                <Select
+                  value={pricingData.finish_quality || 'standard'}
+                  onValueChange={(v) => updateRigidSignField('finish_quality', v)}
+                >
+                  <SelectTrigger className="h-9" data-testid="rigid-signs-finish-quality">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="standard">Standard</SelectItem>
+                    <SelectItem value="premium">Premium</SelectItem>
+                    <SelectItem value="presentation">Presentation</SelectItem>
+                    <SelectItem value="architectural">Architectural</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={pricingData.protective_finish || false}
+                  onCheckedChange={(c) => updateRigidSignField('protective_finish', Boolean(c))}
+                  data-testid="rigid-signs-protective-finish"
                 />
-                <Label htmlFor="laminate_sign" className="cursor-pointer">Laminate</Label>
+                <Label className="cursor-pointer">Protective Finish</Label>
+              </div>
+              <div>
+                <Label>Finish Type</Label>
+                <Select
+                  value={pricingData.protective_finish_type || ''}
+                  onValueChange={(v) => updateRigidSignField('protective_finish_type', v)}
+                  disabled={!pricingData.protective_finish}
+                >
+                  <SelectTrigger className="h-9" data-testid="rigid-signs-finish-type">
+                    <SelectValue placeholder="Select finish" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {finishOptions.map((m) => (
+                      <SelectItem key={m.key || m.id} value={m.key || m.id}>{m.name || m.key}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {pricingData.protective_finish && pricingData.protective_finish_type && !selectedFinish && (
+                  <p className="text-xs text-amber-600 mt-1" data-testid="rigid-signs-finish-warning">
+                    Missing finish in Pricing Foundation.
+                    <Link to="/pricing-foundation" className="text-amber-700 underline ml-1" data-testid="rigid-signs-finish-add">Add New</Link>
+                  </p>
+                )}
+              </div>
+              <div>
+                <Label>Sidedness</Label>
+                <Select
+                  value={pricingData.sidedness || 'single'}
+                  onValueChange={(v) => updateRigidSignField('sidedness', v)}
+                >
+                  <SelectTrigger className="h-9" data-testid="rigid-signs-sidedness">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="single">Single</SelectItem>
+                    <SelectItem value="double">Double</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Double-Sided Art</Label>
+                <Select
+                  value={pricingData.double_sided_art || 'same'}
+                  onValueChange={(v) => updateRigidSignField('double_sided_art', v)}
+                  disabled={pricingData.sidedness !== 'double'}
+                >
+                  <SelectTrigger className="h-9" data-testid="rigid-signs-double-art">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="same">Same Art</SelectItem>
+                    <SelectItem value="different">Different Art</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div>
+                <Label>Shape Type</Label>
+                <Select
+                  value={pricingData.shape_type || 'rectangle'}
+                  onValueChange={(v) => updateRigidSignField('shape_type', v)}
+                >
+                  <SelectTrigger className="h-9" data-testid="rigid-signs-shape">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="rectangle">Rectangle</SelectItem>
+                    <SelectItem value="rounded_corners">Rounded Corners</SelectItem>
+                    <SelectItem value="simple_contour">Simple Contour</SelectItem>
+                    <SelectItem value="complex_contour">Complex Contour</SelectItem>
+                    <SelectItem value="specialty_routed">Specialty Routed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={pricingData.hardware_included || false}
+                  onCheckedChange={(c) => updateRigidSignField('hardware_included', Boolean(c))}
+                  data-testid="rigid-signs-hardware-included"
+                />
+                <Label className="cursor-pointer">Hardware Included</Label>
+              </div>
+              <div>
+                <Label>Hardware Type</Label>
+                <Select
+                  value={pricingData.hardware_type || ''}
+                  onValueChange={(v) => updateRigidSignField('hardware_type', v)}
+                  disabled={!pricingData.hardware_included}
+                >
+                  <SelectTrigger className="h-9" data-testid="rigid-signs-hardware-type">
+                    <SelectValue placeholder="Select hardware" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {hardwareOptions.map((h) => (
+                      <SelectItem key={h.id || h.key} value={h.id || h.key}>{h.name || h.id}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {pricingData.hardware_included && pricingData.hardware_type && !selectedHardware && (
+                  <p className="text-xs text-amber-600 mt-1" data-testid="rigid-signs-hardware-warning">
+                    Missing hardware in Pricing Foundation.
+                    <Link to="/pricing-foundation" className="text-amber-700 underline ml-1" data-testid="rigid-signs-hardware-add">Add New</Link>
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={pricingData.drill_prep_required || false}
+                  onCheckedChange={(c) => updateRigidSignField('drill_prep_required', Boolean(c))}
+                  data-testid="rigid-signs-drill-prep"
+                />
+                <Label className="cursor-pointer">Drill / Prep Required</Label>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={pricingData.artwork_ready || false}
+                  onCheckedChange={(c) => updateRigidSignField('artwork_ready', Boolean(c))}
+                  data-testid="rigid-signs-artwork-ready"
+                />
+                <Label className="cursor-pointer">Artwork Ready</Label>
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={pricingData.artwork_needed || false}
+                  onCheckedChange={(c) => updateRigidSignField('artwork_needed', Boolean(c))}
+                  data-testid="rigid-signs-artwork-needed"
+                />
+                <Label className="cursor-pointer">Design Needed</Label>
+              </div>
+              <div>
+                <Label>Design Complexity</Label>
+                <Select
+                  value={pricingData.design_complexity || 'simple'}
+                  onValueChange={(v) => updateRigidSignField('design_complexity', v)}
+                >
+                  <SelectTrigger className="h-9" data-testid="rigid-signs-design-complexity">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="simple">Simple</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="complex">Complex</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={pricingData.rush_order || false}
+                  onCheckedChange={(c) => updateRigidSignField('rush_order', Boolean(c))}
+                  data-testid="rigid-signs-rush"
+                />
+                <Label className="cursor-pointer">Rush</Label>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={pricingData.install_required || false}
+                  onCheckedChange={(c) => updateRigidSignField('install_required', Boolean(c))}
+                  data-testid="rigid-signs-install-required"
+                />
+                <Label className="cursor-pointer">Install Required</Label>
+              </div>
+              <div>
+                <Label>Install Complexity</Label>
+                <Select
+                  value={pricingData.install_complexity || 'easy'}
+                  onValueChange={(v) => updateRigidSignField('install_complexity', v)}
+                  disabled={!pricingData.install_required}
+                >
+                  <SelectTrigger className="h-9" data-testid="rigid-signs-install-complexity">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="easy">Easy</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="difficult">Difficult</SelectItem>
+                    <SelectItem value="high_risk">High-Risk</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
         );
+      }
 
       case 'apparel':
         return (

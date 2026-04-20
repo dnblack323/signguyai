@@ -1062,7 +1062,7 @@ async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defau
         suggested_price=suggested_price,
         estimated_labor_minutes=(production_hours + design_hours + install_hours + mounting_hours) * 60,
         breakdown={
-            "dimensions": f"{width}" x {height}"",
+            "dimensions": f"{width}\" x {height}\"",
             "unit_of_measure": unit,
             "area_per_piece": round(area_per_piece, 2),
             "billable_area_per_piece": round(billable_area_per_piece, 2),
@@ -1283,6 +1283,10 @@ async def calculate_custom(data: JobItemPricingData, quantity: float, defaults: 
             "overhead_cost": round(overhead_cost, 2),
         }
     )
+
+
+async def calculate_apparel(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
+    return await calculate_custom(data, quantity, defaults)
 
 
 async def calculate_pricing(

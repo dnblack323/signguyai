@@ -226,11 +226,11 @@ def _infer_material_bucket(material: dict) -> Optional[str]:
 
 
 def _build_materials_catalog(defaults: dict) -> dict:
-    catalog = deepcopy(FALLBACK_MATERIALS_CATALOG)
+    catalog = {key: [] for key in FALLBACK_MATERIALS_CATALOG.keys()}
     active_materials = [m for m in defaults.get("materials", []) if m.get("is_active", True)]
     for material in active_materials:
         bucket = _infer_material_bucket(material)
-        if not bucket:
+        if not bucket or bucket not in catalog:
             continue
         key = material.get("key") or material.get("id")
         if not key:
@@ -261,6 +261,8 @@ def _build_materials_catalog(defaults: dict) -> dict:
             catalog[bucket][existing_idx] = {**catalog[bucket][existing_idx], **entry}
 
     for hardware in defaults.get("hardware_accessories", []) or []:
+        if not hardware.get("is_active", True):
+            continue
         key = hardware.get("id") or hardware.get("name")
         if not key:
             continue
@@ -275,6 +277,10 @@ def _build_materials_catalog(defaults: dict) -> dict:
             catalog["hardware"].append(entry)
         else:
             catalog["hardware"][existing_idx] = {**catalog["hardware"][existing_idx], **entry}
+
+    for key, fallback_items in FALLBACK_MATERIALS_CATALOG.items():
+        if not catalog.get(key):
+            catalog[key] = deepcopy(fallback_items)
     return catalog
 
 
@@ -298,7 +304,6 @@ def _build_ticket_pricing_payload(ticket: dict, pricing_input: Optional[dict] = 
         "custom": "custom",
     }
     is_vinyl_category = ticket.get("item_category") in {"cut_vinyl", "vehicle_wrap"}
-    double_sided = specs.get("double_sided") == "double" or specs.get("double_sided") is True
     coverage_percent = float(specs.get("coverage_percent", 0) or 0)
     coverage_type = _normalize_vehicle_coverage(specs.get("coverage_type"), coverage_percent)
     merged_input = {
@@ -488,6 +493,23 @@ def _apparel_schema(defaults, garment_opts, decoration_opts):
     ]
 
 
+def _services_schema(defaults):
+    cat_config = defaults.get("category_defaults", {}).get("services", {})
+    return [
+        {"key": "service_type", "label": "Service Type", "type": "select", "options": [
+            {"value": "installation", "label": "Installation"},
+            {"value": "design", "label": "Design"},
+            {"value": "survey", "label": "Site Survey"},
+            {"value": "repair", "label": "Repair"},
+            {"value": "consultation", "label": "Consultation"},
+            {"value": "other", "label": "Other / Custom"},
+        ], "default": cat_config.get("default_service_type", "installation"), "group": "specs", "pricing": True},
+        {"key": "estimated_hours", "label": "Estimated Hours", "type": "number", "default": cat_config.get("default_estimated_hours", 1), "group": "specs", "pricing": True},
+        {"key": "service_notes", "label": "Service Notes", "type": "textarea", "group": "specs"},
+        {"key": "rush_order", "label": "Rush Order", "type": "toggle", "default": False, "group": "production", "pricing": True},
+    ]
+
+
 def _rigid_sign_schema(defaults, substrate_opts, finish_opts, hardware_opts):
     cat_config = defaults.get("category_defaults", {}).get("rigid_signs", {})
     return [
@@ -506,10 +528,10 @@ def _rigid_sign_schema(defaults, substrate_opts, finish_opts, hardware_opts):
             {"value": "0.040", "label": ".040"},
             {"value": "0.063", "label": ".063"},
             {"value": "0.080", "label": ".080"},
-            {"value": "1/8", "label": "1/8""},
-            {"value": "1/4", "label": "1/4""},
-            {"value": "3/16", "label": "3/16""},
-            {"value": "1/2", "label": "1/2""},
+            {"value": "1/8", "label": "1/8"},
+            {"value": "1/4", "label": "1/4"},
+            {"value": "3/16", "label": "3/16"},
+            {"value": "1/2", "label": "1/2"},
             {"value": "custom", "label": "Custom"},
         ], "default": "4mm", "pricing": True},
         {"key": "graphic_method", "label": "Graphic Method", "type": "select", "options": [

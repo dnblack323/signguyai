@@ -705,6 +705,10 @@ function CategoryRulesTab({ settings, onChange, canEdit, materials }) {
     m.category === 'laminate'
   ));
   const cvVinylOptions = (materials || []).filter((m) => m.category === 'cut_vinyl');
+  const rigidSubstrateOptions = (materials || []).filter((m) => m.category === 'substrate');
+  const rigidFinishOptions = (materials || []).filter((m) => m.category === 'rigid_finish' || m.category === 'finish');
+  const rigidGraphicOptions = (materials || []).filter((m) => m.category === 'rigid_graphic');
+  const rigidVinylOptions = (materials || []).filter((m) => m.category === 'cut_vinyl');
 
   return (
     <div className="space-y-3" data-testid="category-rules-tab">
@@ -738,6 +742,16 @@ function CategoryRulesTab({ settings, onChange, canEdit, materials }) {
         ];
         const updateCvTier = (idx, field, value) => {
           const next = cvTiers.map((tier, i) => (i === idx ? { ...tier, [field]: value } : tier));
+          setCatField(def.key, 'quantity_discounts', next);
+        };
+        const rsTiers = cat.quantity_discounts || [
+          { min_qty: 1, max_qty: 4, discount_percent: 0 },
+          { min_qty: 5, max_qty: 24, discount_percent: 5 },
+          { min_qty: 25, max_qty: 99, discount_percent: 10 },
+          { min_qty: 100, max_qty: null, discount_percent: 15 },
+        ];
+        const updateRsTier = (idx, field, value) => {
+          const next = rsTiers.map((tier, i) => (i === idx ? { ...tier, [field]: value } : tier));
           setCatField(def.key, 'quantity_discounts', next);
         };
         return (
@@ -1161,6 +1175,241 @@ function CategoryRulesTab({ settings, onChange, canEdit, materials }) {
                         <Input type="number" className="h-7 text-xs" value={tier.min_qty ?? ''} onChange={(e) => updateCvTier(idx, 'min_qty', n(e.target.value))} data-testid={`cut-vinyl-tier-${idx}-min`} disabled={!canEdit} />
                         <Input type="number" className="h-7 text-xs" value={tier.max_qty ?? ''} onChange={(e) => updateCvTier(idx, 'max_qty', e.target.value === '' ? null : n(e.target.value))} data-testid={`cut-vinyl-tier-${idx}-max`} disabled={!canEdit} />
                         <Input type="number" className="h-7 text-xs" value={tier.discount_percent ?? ''} onChange={(e) => updateCvTier(idx, 'discount_percent', n(e.target.value))} data-testid={`cut-vinyl-tier-${idx}-discount`} disabled={!canEdit} />
+                        <div className="text-xs text-gray-400 flex items-center">%</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {def.key === 'rigid_signs' && (
+                <div className="space-y-4 border rounded-lg p-3 bg-slate-50" data-testid="rigid-signs-category-defaults">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Substrate</Label>
+                      <Select value={cat.default_substrate_key || ''} onValueChange={(v) => setCatField(def.key, 'default_substrate_key', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="rigid-signs-default-substrate">
+                          <SelectValue placeholder="Select substrate" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {rigidSubstrateOptions.map((m) => (
+                            <SelectItem key={m.key || m.id} value={m.key || m.id}>{m.name || m.key}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Graphic Method</Label>
+                      <Select value={cat.default_graphic_method || 'direct_print'} onValueChange={(v) => setCatField(def.key, 'default_graphic_method', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="rigid-signs-default-graphic-method">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="direct_print">Direct Print</SelectItem>
+                          <SelectItem value="mounted_print">Mounted Print</SelectItem>
+                          <SelectItem value="cut_vinyl_applied">Cut Vinyl Applied</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Finish Type</Label>
+                      <Select value={cat.default_finish_key || ''} onValueChange={(v) => setCatField(def.key, 'default_finish_key', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="rigid-signs-default-finish">
+                          <SelectValue placeholder="Select finish" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {rigidFinishOptions.map((m) => (
+                            <SelectItem key={m.key || m.id} value={m.key || m.id}>{m.name || m.key}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Unit of Measure</Label>
+                      <Select value={cat.default_unit_of_measure || 'inches'} onValueChange={(v) => setCatField(def.key, 'default_unit_of_measure', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="rigid-signs-default-unit">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CUT_VINYL_UNIT_OPTIONS.map((t) => (
+                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Sidedness</Label>
+                      <Select value={cat.default_sidedness || 'single'} onValueChange={(v) => setCatField(def.key, 'default_sidedness', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="rigid-signs-default-sidedness">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="single">Single</SelectItem>
+                          <SelectItem value="double">Double</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Double-Sided Art</Label>
+                      <Select value={cat.default_double_sided_art || 'same'} onValueChange={(v) => setCatField(def.key, 'default_double_sided_art', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="rigid-signs-default-double-art">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="same">Same Art</SelectItem>
+                          <SelectItem value="different">Different Art</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Shape Type</Label>
+                      <Select value={cat.default_shape_type || 'rectangle'} onValueChange={(v) => setCatField(def.key, 'default_shape_type', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="rigid-signs-default-shape">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="rectangle">Rectangle</SelectItem>
+                          <SelectItem value="rounded_corners">Rounded Corners</SelectItem>
+                          <SelectItem value="simple_contour">Simple Contour</SelectItem>
+                          <SelectItem value="complex_contour">Complex Contour</SelectItem>
+                          <SelectItem value="specialty_routed">Specialty Routed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Finish Quality</Label>
+                      <Select value={cat.default_finish_quality || 'standard'} onValueChange={(v) => setCatField(def.key, 'default_finish_quality', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="rigid-signs-default-finish-quality">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="standard">Standard</SelectItem>
+                          <SelectItem value="premium">Premium</SelectItem>
+                          <SelectItem value="presentation">Presentation</SelectItem>
+                          <SelectItem value="architectural">Architectural</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Install Complexity</Label>
+                      <Select value={cat.default_install_complexity || 'easy'} onValueChange={(v) => setCatField(def.key, 'default_install_complexity', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="rigid-signs-default-install-complexity">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="easy">Easy</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="difficult">Difficult</SelectItem>
+                          <SelectItem value="high_risk">High-Risk</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <F label="Min Billable Area" value={cat.default_minimum_billable_area} onChg={(v) => setCatField(def.key, 'default_minimum_billable_area', v)} prefix="" suffix="sqft" testId="rigid-signs-min-billable" />
+                    <F label="Min Sell Price" value={cat.default_minimum_sell_price} onChg={(v) => setCatField(def.key, 'default_minimum_sell_price', v)} testId="rigid-signs-min-sell" />
+                    <F label="Design Time (hrs)" value={cat.default_design_time_hours} onChg={(v) => setCatField(def.key, 'default_design_time_hours', v)} prefix="" suffix="hrs" testId="rigid-signs-design-time" />
+                    <F label="Waste %" value={cat.waste_percentage} onChg={(v) => setCatField(def.key, 'waste_percentage', v)} prefix="" suffix="%" testId="rigid-signs-waste" />
+                    <F label="Prod Labor / Sq Ft" value={cat.production_labor_hours_per_sqft} onChg={(v) => setCatField(def.key, 'production_labor_hours_per_sqft', v)} prefix="" suffix="hrs" testId="rigid-signs-prod-labor" />
+                    <F label="Min Prod Labor / Item" value={cat.min_production_labor_hours_per_item} onChg={(v) => setCatField(def.key, 'min_production_labor_hours_per_item', v)} prefix="" suffix="hrs" testId="rigid-signs-min-prod-labor" />
+                    <F label="Mounting Labor / Sq Ft" value={cat.default_mounting_labor_hours_per_sqft} onChg={(v) => setCatField(def.key, 'default_mounting_labor_hours_per_sqft', v)} prefix="" suffix="hrs" testId="rigid-signs-mounting-labor" />
+                    <F label="Install Hours / Sq Ft" value={cat.install_hours_per_sqft} onChg={(v) => setCatField(def.key, 'install_hours_per_sqft', v)} prefix="" suffix="hrs" testId="rigid-signs-install-hours" />
+                    <F label="Hardware Handling Labor" value={cat.hardware_handling_labor_cost} onChg={(v) => setCatField(def.key, 'hardware_handling_labor_cost', v)} testId="rigid-signs-hardware-labor" />
+                    <F label="Drill / Prep Fee" value={cat.drill_prep_fee} onChg={(v) => setCatField(def.key, 'drill_prep_fee', v)} testId="rigid-signs-drill-fee" />
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="flex items-center gap-2 pt-4">
+                      <Switch checked={cat.default_finish_required ?? false} onCheckedChange={(v) => setCatField(def.key, 'default_finish_required', v)} disabled={!canEdit} data-testid="rigid-signs-default-finish-required" />
+                      <Label className="text-xs">Default Finish Required</Label>
+                    </div>
+                    <div className="flex items-center gap-2 pt-4">
+                      <Switch checked={cat.default_install_included ?? false} onCheckedChange={(v) => setCatField(def.key, 'default_install_included', v)} disabled={!canEdit} data-testid="rigid-signs-default-install-included" />
+                      <Label className="text-xs">Default Install Included</Label>
+                    </div>
+                    <div className="flex items-center gap-2 pt-4">
+                      <Switch checked={cat.sell_method === 'max_of_rate_or_minimum'} onCheckedChange={(v) => setCatField(def.key, 'sell_method', v ? 'max_of_rate_or_minimum' : 'rate_only')} disabled={!canEdit} data-testid="rigid-signs-sell-method" />
+                      <Label className="text-xs">Use max of rate/min</Label>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <F label="Thickness: Thin" value={cat.thickness_multipliers?.thin_basic} onChg={(v) => setCatField(def.key, 'thickness_multipliers', { ...(cat.thickness_multipliers || {}), thin_basic: v })} prefix="" suffix="x" testId="rigid-signs-thickness-thin" />
+                    <F label="Thickness: Medium" value={cat.thickness_multipliers?.medium} onChg={(v) => setCatField(def.key, 'thickness_multipliers', { ...(cat.thickness_multipliers || {}), medium: v })} prefix="" suffix="x" testId="rigid-signs-thickness-medium" />
+                    <F label="Thickness: Heavy" value={cat.thickness_multipliers?.thick_heavy} onChg={(v) => setCatField(def.key, 'thickness_multipliers', { ...(cat.thickness_multipliers || {}), thick_heavy: v })} prefix="" suffix="x" testId="rigid-signs-thickness-heavy" />
+                    <F label="Sidedness: Single" value={cat.sidedness_multipliers?.single} onChg={(v) => setCatField(def.key, 'sidedness_multipliers', { ...(cat.sidedness_multipliers || {}), single: v })} prefix="" suffix="x" testId="rigid-signs-sided-single" />
+                    <F label="Sidedness: Double Same" value={cat.sidedness_multipliers?.double_same} onChg={(v) => setCatField(def.key, 'sidedness_multipliers', { ...(cat.sidedness_multipliers || {}), double_same: v })} prefix="" suffix="x" testId="rigid-signs-sided-same" />
+                    <F label="Sidedness: Double Diff" value={cat.sidedness_multipliers?.double_diff} onChg={(v) => setCatField(def.key, 'sidedness_multipliers', { ...(cat.sidedness_multipliers || {}), double_diff: v })} prefix="" suffix="x" testId="rigid-signs-sided-diff" />
+                    <F label="Shape: Rectangle" value={cat.shape_multipliers?.rectangle} onChg={(v) => setCatField(def.key, 'shape_multipliers', { ...(cat.shape_multipliers || {}), rectangle: v })} prefix="" suffix="x" testId="rigid-signs-shape-rectangle" />
+                    <F label="Shape: Rounded" value={cat.shape_multipliers?.rounded_corners} onChg={(v) => setCatField(def.key, 'shape_multipliers', { ...(cat.shape_multipliers || {}), rounded_corners: v })} prefix="" suffix="x" testId="rigid-signs-shape-rounded" />
+                    <F label="Shape: Simple Contour" value={cat.shape_multipliers?.simple_contour} onChg={(v) => setCatField(def.key, 'shape_multipliers', { ...(cat.shape_multipliers || {}), simple_contour: v })} prefix="" suffix="x" testId="rigid-signs-shape-simple" />
+                    <F label="Shape: Complex Contour" value={cat.shape_multipliers?.complex_contour} onChg={(v) => setCatField(def.key, 'shape_multipliers', { ...(cat.shape_multipliers || {}), complex_contour: v })} prefix="" suffix="x" testId="rigid-signs-shape-complex" />
+                    <F label="Shape: Specialty" value={cat.shape_multipliers?.specialty_routed} onChg={(v) => setCatField(def.key, 'shape_multipliers', { ...(cat.shape_multipliers || {}), specialty_routed: v })} prefix="" suffix="x" testId="rigid-signs-shape-specialty" />
+                    <F label="Finish: Standard" value={cat.finish_quality_multipliers?.standard} onChg={(v) => setCatField(def.key, 'finish_quality_multipliers', { ...(cat.finish_quality_multipliers || {}), standard: v })} prefix="" suffix="x" testId="rigid-signs-finish-standard" />
+                    <F label="Finish: Premium" value={cat.finish_quality_multipliers?.premium} onChg={(v) => setCatField(def.key, 'finish_quality_multipliers', { ...(cat.finish_quality_multipliers || {}), premium: v })} prefix="" suffix="x" testId="rigid-signs-finish-premium" />
+                    <F label="Finish: Presentation" value={cat.finish_quality_multipliers?.presentation} onChg={(v) => setCatField(def.key, 'finish_quality_multipliers', { ...(cat.finish_quality_multipliers || {}), presentation: v })} prefix="" suffix="x" testId="rigid-signs-finish-presentation" />
+                    <F label="Finish: Architectural" value={cat.finish_quality_multipliers?.architectural} onChg={(v) => setCatField(def.key, 'finish_quality_multipliers', { ...(cat.finish_quality_multipliers || {}), architectural: v })} prefix="" suffix="x" testId="rigid-signs-finish-architectural" />
+                    <F label="Install: Easy" value={cat.install_complexity_multipliers?.easy} onChg={(v) => setCatField(def.key, 'install_complexity_multipliers', { ...(cat.install_complexity_multipliers || {}), easy: v })} prefix="" suffix="x" testId="rigid-signs-install-easy" />
+                    <F label="Install: Medium" value={cat.install_complexity_multipliers?.medium} onChg={(v) => setCatField(def.key, 'install_complexity_multipliers', { ...(cat.install_complexity_multipliers || {}), medium: v })} prefix="" suffix="x" testId="rigid-signs-install-medium" />
+                    <F label="Install: Difficult" value={cat.install_complexity_multipliers?.difficult} onChg={(v) => setCatField(def.key, 'install_complexity_multipliers', { ...(cat.install_complexity_multipliers || {}), difficult: v })} prefix="" suffix="x" testId="rigid-signs-install-difficult" />
+                    <F label="Install: High-Risk" value={cat.install_complexity_multipliers?.high_risk} onChg={(v) => setCatField(def.key, 'install_complexity_multipliers', { ...(cat.install_complexity_multipliers || {}), high_risk: v })} prefix="" suffix="x" testId="rigid-signs-install-high-risk" />
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Direct Print Consumable</Label>
+                      <Select value={cat.direct_print_consumable_key || ''} onValueChange={(v) => setCatField(def.key, 'direct_print_consumable_key', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="rigid-signs-direct-print-key">
+                          <SelectValue placeholder="Select material" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {rigidGraphicOptions.map((m) => (
+                            <SelectItem key={m.key || m.id} value={m.key || m.id}>{m.name || m.key}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Mounted Print Graphic</Label>
+                      <Select value={cat.mounted_print_graphic_key || ''} onValueChange={(v) => setCatField(def.key, 'mounted_print_graphic_key', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="rigid-signs-mounted-print-key">
+                          <SelectValue placeholder="Select material" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {rigidGraphicOptions.map((m) => (
+                            <SelectItem key={m.key || m.id} value={m.key || m.id}>{m.name || m.key}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Cut Vinyl Material</Label>
+                      <Select value={cat.cut_vinyl_material_key || ''} onValueChange={(v) => setCatField(def.key, 'cut_vinyl_material_key', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="rigid-signs-cut-vinyl-key">
+                          <SelectValue placeholder="Select vinyl" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {rigidVinylOptions.map((m) => (
+                            <SelectItem key={m.key || m.id} value={m.key || m.id}>{m.name || m.key}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs text-gray-500">Quantity Discount Tiers</Label>
+                    <div className="grid grid-cols-4 gap-2 text-[11px] text-gray-500">
+                      <span>Min Qty</span>
+                      <span>Max Qty</span>
+                      <span>Discount %</span>
+                      <span></span>
+                    </div>
+                    {rsTiers.map((tier, idx) => (
+                      <div key={`rs-tier-${idx}`} className="grid grid-cols-4 gap-2">
+                        <Input type="number" className="h-7 text-xs" value={tier.min_qty ?? ''} onChange={(e) => updateRsTier(idx, 'min_qty', n(e.target.value))} data-testid={`rigid-signs-tier-${idx}-min`} disabled={!canEdit} />
+                        <Input type="number" className="h-7 text-xs" value={tier.max_qty ?? ''} onChange={(e) => updateRsTier(idx, 'max_qty', e.target.value === '' ? null : n(e.target.value))} data-testid={`rigid-signs-tier-${idx}-max`} disabled={!canEdit} />
+                        <Input type="number" className="h-7 text-xs" value={tier.discount_percent ?? ''} onChange={(e) => updateRsTier(idx, 'discount_percent', n(e.target.value))} data-testid={`rigid-signs-tier-${idx}-discount`} disabled={!canEdit} />
                         <div className="text-xs text-gray-400 flex items-center">%</div>
                       </div>
                     ))}
