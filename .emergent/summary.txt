@@ -1,0 +1,118 @@
+<analysis>**original_problem_statement**: 
+The user requested the build-out of a Pricing Foundation to act as the single source of truth for production cost defaults, material costs, labor rates, and AI prefill behavior. Following the foundation phase, specific pricing categories were requested sequentially: Digital Print, Cut Vinyl, and Rigid Signs. A critical, overarching requirement is that all order-item inputs and dropdowns on the actual New Order Form must dynamically populate their options from this Pricing Foundation, rather than just functioning within the standalone pricing calculator. 
+
+**PRODUCT REQUIREMENTS**:
+- **Pricing Foundation**: Single source of truth for all pricing rules, material costs, and labor rates. Eliminate overlapping/conflicting pricing settings.
+- **Rigid Signs Implementation**: Support substrates (coroplast, PVC, aluminum), thickness multipliers, protective finishes, sidedness (same/diff art), shape complexities, hardware, and drill/prep charges.
+- **New Order Form Integration**: All category-specific dropdowns inside  (via ) MUST pull options directly from the Pricing Foundation defaults (via backend schemas in ).
+
+**User's preferred language**: English
+(INSTRUCT next agent to respond in English only)
+
+**what currently exists?** 
+A fully functioning unified Pricing Foundation. Categories for Digital Print, Cut Vinyl, and now Rigid Signs are completely implemented. These categories are active in the backend calculator (), the standalone quoting UI (), and the admin settings UI (). Crucially, the New Order Form schemas dynamically fetch material and hardware options directly from the Pricing Foundation via updated backend logic.
+
+**Last working item**: 
+    - Last item agent was working: Completing the Rigid Signs category pricing implementation and linking the backend schema generation () to the Pricing Foundation defaults so that  in the New Order Form populates dynamic options (substrates, finishes, hardware).
+    - Status: USER VERIFICATION PENDING
+    - Agent Testing Done: Y
+    - Which testing method agent to use? NA (testing is already done via  and Python scripts)
+    - User Testing Done: N
+
+**All Pending/In progress Issue list**:  
+None
+
+**In progress Task List**: 
+None
+
+**Upcoming and Future Tasks**
+    Upcoming Tasks:
+    - P1: Vehicle Graphics / Wraps Implementation (Spec pending from user, next logical category).
+    - P1: Banners Implementation.
+    - P1: Apparel Implementation.
+    - P1: Services Implementation.
+    - P1: Custom / Misc Implementation.
+    - P2: Easy Artwork sharing to Customer Portal (Streamlined way to send art from order details).
+    - P2: AI Estimate Support for Pricing Foundation (Auto-fill missing item fields based on defaults).
+    - P2: AI receipt analysis for expense photos (Extract data from uploaded receipt photos).
+    
+    Future Tasks:
+    - P3: Business Assistant Enhancements Phases 1-5.
+    - P3: Team / Workforce Ribbon Rebuild (ON HOLD).
+
+**Completed work in this session**
+- Rigid Signs calculation logic implemented in backend () (DONE)
+- Rigid Signs UI added to Admin () and Calculator () (DONE)
+-  schemas updated to map all Dynamic Category dropdowns (Substrates, Hardware, Finishes) to real Pricing Foundation defaults (DONE)
+-  refactored to handle dynamic option payloads seamlessly (DONE)
+- Fixed backend calculation route error by adding missing  stub mapping (DONE)
+
+**Earlier issues found/mentioned but not fixed**
+None.
+
+**Known issue recurrence from previous fork**
+  - Issue recurrence in previous fork: None.
+  - Recurrence count: 0
+  - Status: RESOLVED
+
+**Code Architecture**
+
+
+**Key Technical Concepts**
+- **Single Source of Truth**: All pricing multipliers, base rates, material lists, and AI prefill behaviors are retrieved from  via . 
+- **Calculator vs. Order Form Parity**:  handles quoting manually, while  handles the actual internal Order Form creation. Both now successfully read their options from the exact same backend pricing objects.
+
+**key DB schema**
+  - : Document holding , encompassing labor rates, , , and .
+
+**changes in tech stack**
+  - None
+
+**All files of reference** 
+  -  (Updated to handle )
+  -  (Contains extended category default models)
+  -  (Updated to dynamically inject Pricing Foundation values into generated schemas)
+  -  (Updated for Rigid Signs fields)
+  -  (Updated for Rigid Signs defaults)
+  -  (Updated to properly map and render the dynamic schema values)
+  -  (Updated)
+
+**Areas that need refactoring**: 
+-  remains massive and should be split into  and  (deferred).
+
+**key api endpoints**
+- 
+- 
+-  (Critical endpoint linking pricing to dynamic forms)
+
+**Critical Info for New Agent** 
+- **New Order Form Integrity:** The latest integration ensures that New Order inputs strictly pull from Pricing defaults (e.g., rigid signs substrates, digital print laminates). If you add the next category (like Vehicle Wraps or Banners), you MUST follow this pattern: add defaults to , logic to , quoting UI to , and finally map the schema in  so the Order Form inherits those options dynamically. 
+- Do NOT rewrite or overwrite the pricing logic already established for Digital Print, Cut Vinyl, or Rigid Signs.
+
+**documents and test reports created in this job** 
+  -  (Updated)
+
+**Last 10 User Messages and any pending HUMAN messages** 
+ - *User*: continue (Triggered agent to proceed with finalizing the Rigid Signs and Dynamic dropdown integration) (Completed)
+
+**Project Health Check:**
+- Broken: None
+- Mocked: None
+
+**3rd Party Integrations** 
+  - OpenAI GPT-5.2 (Text) — uses Emergent LLM Key
+  - OpenAI Whisper (STT) & TTS — uses Emergent LLM Key
+  - Emergent Object Storage — uses Emergent LLM Key
+  - Stripe (Payments) — requires User API Key
+
+**Testing status**
+  - Testing agent used after significant changes: YES (Successfully used  to verify all 20 Rigid Signs fields in Pricing Foundation and 18 fields in Pricing Calculator without errors).
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: None
+  - Known regressions: None
+
+**Credentials to test flow:**
+-  / 
+
+**What agent forgot to execute**
+Nothing. The task was fully completed according to instructions. The agent correctly finalized the New Order Form dynamic schema mappings and Rigid Signs implementation.</analysis>
