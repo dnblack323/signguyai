@@ -1,7 +1,7 @@
 # SignGuy AI - Product Requirements Document
 
 > **Last Updated:** April 20, 2026
-> **Version:** 7.2
+> **Version:** 7.3
 
 ---
 
@@ -18,6 +18,18 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ---
 
 ## What's Been Implemented
+
+### Session: Apr 20, 2026 (Services Category — Pricing Foundation)
+- Implemented full Services pricing category matching exact user spec; extended existing Pricing Foundation (no parallel system).
+- **Backend:**
+  - `models/enums.py`: `ServiceType` expanded to 21 values (graphic_design, artwork_setup, file_cleanup, consultation, site_survey, measurement, delivery, installation, removal, maintenance, vehicle_graphics_install, wrap_install, service_call, project_management, permit_handling, equipment_rental, subcontracted, general_labor, specialty_custom, travel, other_labor).
+  - `models/pricing.py`: `services` category_defaults rebuilt with 19-entry service-type library (each with default_billing_unit, default_labor_role, default_sell_rate, default_flat_fee, default_minimum_charge, sell_method, travel/equipment/subcontract flags), 9 billing units, 9-role labor rate map (cost + sell per hour), 4-tier complexity multipliers (1.0/1.25/1.5/2.0), travel rates ($0.65 cost/$1.25 sell per mile, $45 trip), equipment library (scissor/boom lift, ladder rig, generator, utility truck, custom) with cost_per_day + sell_per_day + cost_per_hour + sell_per_hour, subcontract_markup_percent 20%, minimums (design $25, service call $50, install $125, global $25), rush 25%. Added 22 new `JobItemPricingData.services_*` fields.
+  - `server.py`: `calculate_services` fully rewritten as service-type + billing-unit dispatcher. Supports hour/flat/piece/sqft/linear_foot/mile/trip/day/custom billing math. Sell methods: `cost_plus`, `pass_through_plus_markup`, `max_of_both`. Cost side tracks labor, travel, equipment, subcontract, permit separately; sell side uses per-service-type baseline + travel_sell + equipment_sell + subcontract_sell + permit_sell, then floored by per-service-type minimum or override, then rush.
+  - `routes/job_tickets.py`: `_services_schema` rebuilt Foundation-driven (26 fields). `_build_ticket_pricing_payload` passes all `services_*` inputs.
+- **Frontend:**
+  - `PricingFoundation.js`: Services admin card (default service type, default labor role, minimums, rush %, labor role rates, travel rates, equipment library, subcontract markup).
+  - `PricingCalculator.js`: Services case rewritten with full dynamic UI — service-type switch auto-sets billing unit + labor role + travel/equipment/subcontract flags; conditional flat-fee and unit-rate-override fields; 24+ `svc-*` test IDs.
+- **Testing:** testing_agent_v3_fork iteration_114 = 100% pass (backend 29/29, frontend 100%, 0 issues, 0 action items). Backend curl matrix at `/app/test_reports/services_backend_tests.txt` (22 scenarios covering every billing unit + sell method + add-on).
 
 ### Session: Apr 20, 2026 (Apparel Category — Pricing Foundation)
 - Implemented full Apparel pricing category matching exact user spec; extended existing Pricing Foundation (not a parallel system) and designed for multi-decoration-method expansion.
