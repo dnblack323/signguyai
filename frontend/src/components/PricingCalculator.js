@@ -2382,87 +2382,177 @@ export default function PricingCalculator({
         );
       }
 
-      case 'apparel':
+      case 'apparel': {
+        const apCat = (foundationDefaults?.category_defaults || {}).apparel || {};
+        const productTypes = apCat.available_product_types || [];
+        const brandStylesMap = apCat.available_brand_styles || {};
+        const placementSets = apCat.placement_sets || {};
+        const methodCfg = apCat.method_config || {};
+        const availMethods = apCat.available_decoration_methods || [];
+        const selectedProduct = pricingData.apparel_product_type || (productTypes[0]?.key || 'short_sleeve_tee');
+        const productInfo = productTypes.find((p) => p.key === selectedProduct) || {};
+        const isHat = !!productInfo.is_hat;
+        const placementKind = productInfo.allowed_placement_set || 'garment';
+        const brandOptions = brandStylesMap[selectedProduct] || [];
+        const placementOptions = placementSets[placementKind] || [];
+        const selectedMethodCfg = methodCfg[pricingData.apparel_decoration_method || apCat.default_decoration_method || 'htv'] || {};
+        const usesShopTable = !!selectedMethodCfg.uses_shop_table;
         return (
           <div className="space-y-4">
+            {/* Product + Brand */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Apparel Type</Label>
-                <Select 
-                  value={pricingData.apparel_type || ''} 
-                  onValueChange={(v) => setPricingData({...pricingData, apparel_type: v})}
-                >
-                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                <Label>Product Type *</Label>
+                <Select value={selectedProduct} onValueChange={(v) => setPricingData({ ...pricingData, apparel_product_type: v, apparel_brand_style_key: (brandStylesMap[v] || [])[0]?.key || '', apparel_placement_set: 'front' })}>
+                  <SelectTrigger data-testid="ap-product-type"><SelectValue placeholder="Select product" /></SelectTrigger>
                   <SelectContent>
-                    {APPAREL_TYPES.map(t => (
-                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                    ))}
+                    {productTypes.map((p) => (<SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Transfer Type</Label>
-                <Select 
-                  value={pricingData.transfer_type || ''} 
-                  onValueChange={(v) => setPricingData({...pricingData, transfer_type: v})}
-                >
-                  <SelectTrigger><SelectValue placeholder="Select transfer" /></SelectTrigger>
+                <Label>Brand / Style *</Label>
+                <Select value={pricingData.apparel_brand_style_key || ''} onValueChange={(v) => setPricingData({ ...pricingData, apparel_brand_style_key: v })}>
+                  <SelectTrigger data-testid="ap-brand-style"><SelectValue placeholder="Select brand" /></SelectTrigger>
                   <SelectContent>
-                    {TRANSFER_TYPES.map(t => (
-                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                    ))}
+                    {brandOptions.map((b) => (<SelectItem key={b.key} value={b.key}>{b.label}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
+
+            {/* Garment color */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Number of Colors</Label>
-                <Input 
-                  type="number" 
-                  min="1"
-                  value={pricingData.num_colors || 1} 
-                  onChange={(e) => setPricingData({...pricingData, num_colors: parseInt(e.target.value) || 1})}
-                />
+                <Label>Garment / Hat Color</Label>
+                <Input value={pricingData.apparel_garment_color || ''} onChange={(e) => setPricingData({ ...pricingData, apparel_garment_color: e.target.value })} placeholder="Black, White, Navy" data-testid="ap-color" />
               </div>
               <div>
                 <Label>Blank Cost Override ($)</Label>
-                <Input 
-                  type="number" 
-                  step="0.01"
-                  value={pricingData.blank_cost_override || ''} 
-                  onChange={(e) => setPricingData({...pricingData, blank_cost_override: parseFloat(e.target.value) || null})}
-                  placeholder="Leave blank for default"
-                />
+                <Input type="number" step="0.01" value={pricingData.blank_cost_override ?? ''} onChange={(e) => setPricingData({ ...pricingData, blank_cost_override: parseFloat(e.target.value) || null })} placeholder="Auto from brand" data-testid="ap-blank-override" />
               </div>
             </div>
-            <div>
-              <Label>Print Locations</Label>
-              <div className="flex flex-wrap gap-3 mt-2">
-                {PRINT_LOCATIONS.map(loc => (
-                  <div key={loc.id} className="flex items-center gap-2">
-                    <Checkbox 
-                      id={`loc_${loc.id}`}
-                      checked={(pricingData.print_locations || []).includes(loc.id)}
-                      onCheckedChange={(c) => {
-                        const current = pricingData.print_locations || [];
-                        const updated = c 
-                          ? [...current, loc.id]
-                          : current.filter(l => l !== loc.id);
-                        setPricingData({
-                          ...pricingData, 
-                          print_locations: updated,
-                          num_print_locations: updated.length || 1
-                        });
-                      }}
-                    />
-                    <Label htmlFor={`loc_${loc.id}`} className="cursor-pointer text-sm">{loc.name}</Label>
+
+            {/* Placement + Decoration Method */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Placement Set *</Label>
+                <Select value={pricingData.apparel_placement_set || 'front'} onValueChange={(v) => setPricingData({ ...pricingData, apparel_placement_set: v })}>
+                  <SelectTrigger data-testid="ap-placement"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {placementOptions.map((p) => (<SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Decoration Method *</Label>
+                <Select value={pricingData.apparel_decoration_method || apCat.default_decoration_method || 'htv'} onValueChange={(v) => setPricingData({ ...pricingData, apparel_decoration_method: v })}>
+                  <SelectTrigger data-testid="ap-decoration-method"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {availMethods.map((m) => (<SelectItem key={m} value={m}>{(methodCfg[m] || {}).label || m.replace(/_/g, ' ')}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="text-[11px] text-slate-500" data-testid="ap-method-source">
+              {usesShopTable ? 'Pricing baseline: shop quantity-table (uploaded)' : 'Pricing baseline: cost-plus (method-specific)'}
+            </div>
+
+            {/* Method-specific details */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Number of Colors</Label>
+                <Input type="number" min="1" value={pricingData.apparel_num_colors ?? 1} onChange={(e) => setPricingData({ ...pricingData, apparel_num_colors: parseInt(e.target.value) || 1 })} data-testid="ap-num-colors" />
+              </div>
+              <div>
+                <Label>Stitch Count (embroidery)</Label>
+                <Input type="number" value={pricingData.apparel_stitch_count ?? ''} onChange={(e) => setPricingData({ ...pricingData, apparel_stitch_count: parseInt(e.target.value) || 0 })} placeholder="6000" data-testid="ap-stitch-count" />
+              </div>
+            </div>
+
+            {/* Quantity / Plus size */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Plus Size Count (2XL–5XL, weighted)</Label>
+                <Input type="number" value={pricingData.apparel_plus_size_count ?? 0} onChange={(e) => setPricingData({ ...pricingData, apparel_plus_size_count: parseInt(e.target.value) || 0 })} data-testid="ap-plus-size-count" disabled={isHat} />
+                {isHat && <p className="text-[10px] text-slate-400">Not applicable to hats</p>}
+              </div>
+              <div>
+                <Label>Manual Quote Override ($ total)</Label>
+                <Input type="number" value={pricingData.apparel_manual_quote_override ?? 0} onChange={(e) => setPricingData({ ...pricingData, apparel_manual_quote_override: parseFloat(e.target.value) || 0 })} placeholder="0 = use suggested" data-testid="ap-manual-override" />
+              </div>
+            </div>
+
+            {/* Artwork / Design */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="flex items-center gap-2 h-10">
+                <Switch checked={!!pricingData.artwork_ready} onCheckedChange={(v) => setPricingData({ ...pricingData, artwork_ready: v })} data-testid="ap-artwork-ready" />
+                <Label>Artwork Ready</Label>
+              </div>
+              <div className="flex items-center gap-2 h-10">
+                <Switch checked={!!pricingData.artwork_needed} onCheckedChange={(v) => setPricingData({ ...pricingData, artwork_needed: v })} data-testid="ap-artwork-needed" />
+                <Label>Artwork Needed</Label>
+              </div>
+              <div>
+                <Label>Design Complexity</Label>
+                <Select value={pricingData.design_complexity || 'simple'} onValueChange={(v) => setPricingData({ ...pricingData, design_complexity: v })}>
+                  <SelectTrigger data-testid="ap-design-complexity"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="simple">Simple</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="complex">Complex</SelectItem>
+                    <SelectItem value="extreme">Extreme</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Add-ons */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-2 h-10">
+                <Switch checked={!!pricingData.apparel_custom_name_number} onCheckedChange={(v) => setPricingData({ ...pricingData, apparel_custom_name_number: v })} data-testid="ap-custom-nn" />
+                <Label>Custom Name / Number</Label>
+              </div>
+              <div>
+                <Label>Name/Number Count</Label>
+                <Input type="number" value={pricingData.apparel_custom_name_number_count ?? 0} onChange={(e) => setPricingData({ ...pricingData, apparel_custom_name_number_count: parseInt(e.target.value) || 0 })} disabled={!pricingData.apparel_custom_name_number} data-testid="ap-nn-count" />
+              </div>
+              <div className="flex items-center gap-2 h-10">
+                <Switch checked={!!pricingData.apparel_specialty_finish} onCheckedChange={(v) => setPricingData({ ...pricingData, apparel_specialty_finish: v })} data-testid="ap-specialty-finish" />
+                <Label>Specialty Finish / Vinyl</Label>
+              </div>
+              <div className="flex items-center gap-2 h-10">
+                <Switch checked={!!pricingData.apparel_bag_and_fold} onCheckedChange={(v) => setPricingData({ ...pricingData, apparel_bag_and_fold: v })} data-testid="ap-bag-fold" />
+                <Label>Bag & Fold</Label>
+              </div>
+              {isHat && (
+                <>
+                  <div className="flex items-center gap-2 h-10">
+                    <Switch checked={!!pricingData.apparel_two_tone_hat_finish} onCheckedChange={(v) => setPricingData({ ...pricingData, apparel_two_tone_hat_finish: v })} data-testid="ap-two-tone" />
+                    <Label>Two-Tone / Specialty Hat Finish</Label>
                   </div>
-                ))}
+                  <div className="flex items-center gap-2 h-10">
+                    <Switch checked={!!pricingData.apparel_leather_patch} onCheckedChange={(v) => setPricingData({ ...pricingData, apparel_leather_patch: v })} data-testid="ap-leather-patch" />
+                    <Label>Leather / Faux Patch</Label>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Rush */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-2 h-10">
+                <Switch checked={!!pricingData.rush_order} onCheckedChange={(v) => setPricingData({ ...pricingData, rush_order: v })} data-testid="ap-rush" />
+                <Label>Rush</Label>
+              </div>
+              <div>
+                <Label>Rush % (override)</Label>
+                <Input type="number" step="0.5" value={pricingData.apparel_rush_percent ?? (apCat.default_rush_percent || 17.5)} onChange={(e) => setPricingData({ ...pricingData, apparel_rush_percent: parseFloat(e.target.value) || 0 })} disabled={!pricingData.rush_order} data-testid="ap-rush-percent" />
               </div>
             </div>
           </div>
         );
+      }
 
       case 'vehicle_graphics': {
         const vwCat = (foundationDefaults?.category_defaults || {}).vehicle_wraps || {};

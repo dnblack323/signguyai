@@ -1878,7 +1878,293 @@ async def calculate_custom(data: JobItemPricingData, quantity: float, defaults: 
 
 
 async def calculate_apparel(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    return await calculate_custom(data, quantity, defaults)
+    """Calculate Apparel pricing using Pricing Foundation defaults.
+
+    Flow:
+      1. Resolve product type, brand/style, placement set, decoration method
+      2. Determine quantity tier
+      3. For "shop_table" methods: pull per-piece suggested sell from the foundation table
+         For non-table methods: cost-plus using per-method config (setup + material + labor)
+      4. Add plus-size upcharges, custom names/numbers, specialty finish, patch, bag-and-fold
+      5. Add setup/design fees based on artwork state and complexity
+      6. Multiply by quantity, apply rush, enforce minimum
+      7. Calculate blank + decoration material + labor costs + overhead for margin reporting
+    """
+    cfg = get_category_pricing_config(defaults, "apparel")
+
+    # ===== Resolve inputs =====
+    product_types = cfg.get("available_product_types", []) or []
+    product_type_key = data.apparel_product_type or (product_types[0]["key"] if product_types else "short_sleeve_tee")
+    product_type_info = next((p for p in product_types if p.get("key") == product_type_key), None) or {}
+    is_hat = bool(product_type_info.get("is_hat", False))
+    placement_set_kind = product_type_info.get("allowed_placement_set", "garment")
+
+    # Default brand/style = first in brand list for the product type
+    brand_styles = (cfg.get("available_brand_styles", {}) or {}).get(product_type_key, []) or []
+    brand_key = data.apparel_brand_style_key or (brand_styles[0]["key"] if brand_styles else "")
+
+    # Default placement: garment -> front; hat -> front
+    placement_key = data.apparel_placement_set or "front"
+
+    # Decoration method
+    avail_methods = cfg.get("available_decoration_methods", ["htv"])
+    method_key = data.apparel_decoration_method or cfg.get("default_decoration_method", "htv")
+    if method_key not in avail_methods:
+        method_key = "htv"
+
+    method_cfg = (cfg.get("method_config", {}) or {}).get(method_key, {}) or {}
+    uses_shop_table = method_key in (cfg.get("methods_using_shop_table", []) or []) and bool(method_cfg.get("uses_shop_table", False))
+
+    # ===== Quantity derivation =====
+    # Apparel uses summed size breakdown (already handled upstream in _derive_ticket_quantity);
+    # here we trust `quantity` as total pieces.
+    qty = max(int(round(quantity or 1)), 1)
+
+    # ===== Tier resolution =====
+    tiers = cfg.get("quantity_tiers", []) or []
+    tier_key = "1_4"
+    for t in tiers:
+        min_q = int(t.get("min_qty", 0) or 0)
+        max_q = t.get("max_qty")
+        if qty >= min_q and (max_q is None or qty <= int(max_q)):
+            tier_key = t.get("key", "1_4")
+            break
+
+    # ===== Blank cost =====
+    blank_material = find_material(defaults, brand_key) if brand_key else None
+    blank_cost_per_piece = float((blank_material or {}).get("cost_per_unit", 0) or 0)
+    if data.blank_cost_override is not None:
+        blank_cost_per_piece = float(data.blank_cost_override)
+    # Customer-supplied garments -> blank cost is 0 (specs flag handled by setting apparel_brand_style_key to None and override to 0)
+    total_blank_cost = blank_cost_per_piece * qty
+
+    # ===== Suggested per-piece sell price =====
+    warning = ""
+    shop_table = cfg.get("shop_pricing_table", {}) or {}
+    per_piece_sell = 0.0
+    baseline_source = ""
+
+    if uses_shop_table and brand_key and tier_key and placement_key:
+        tier_row = (shop_table.get(brand_key, {}) or {}).get(tier_key, {}) or {}
+        per_piece_sell = float(tier_row.get(placement_key, 0) or 0)
+        if per_piece_sell > 0:
+            baseline_source = f"shop_table:{method_key}"
+        else:
+            warning = f"Shop table missing row for {brand_key} / {tier_key} / {placement_key}. Falling back to cost-plus."
+
+    if per_piece_sell <= 0:
+        # Cost-plus fallback for non-table methods or missing table rows
+        setup_fee_per_piece_amortized = 0.0
+        setup_fee_flat = float(method_cfg.get("default_setup_fee", cfg.get("default_setup_fee", 10.0)) or 0)
+        material_cost = 0.0
+        if "material_cost_per_color_per_piece" in method_cfg:
+            num_colors = int(data.apparel_num_colors or 1)
+            material_cost = float(method_cfg["material_cost_per_color_per_piece"] or 0) * max(num_colors, 1)
+        elif "material_cost_per_piece" in method_cfg:
+            material_cost = float(method_cfg["material_cost_per_piece"] or 0)
+        elif "cost_per_1k_stitches" in method_cfg:
+            stitch_count = int(data.apparel_stitch_count or method_cfg.get("default_stitch_count", 6000))
+            material_cost = float(method_cfg["cost_per_1k_stitches"] or 0) * (stitch_count / 1000.0)
+        elif "material_cost_per_sqin" in method_cfg:
+            # Rough default sq in per print
+            material_cost = float(method_cfg["material_cost_per_sqin"] or 0) * 80.0
+        # amortize setup over quantity
+        if qty > 0:
+            setup_fee_per_piece_amortized = setup_fee_flat / qty
+        # add production labor (minutes)
+        labor_minutes = float(cfg.get("apparel_labor_minutes_per_piece", 1.5) or 1.5)
+        labor_rates = defaults.get("labor_rates", {}) or {}
+        prod_rate = float(labor_rates.get("production", {}).get("hourly_rate", defaults.get("production_hourly_rate", 28)) or 28)
+        labor_cost_per_piece = (labor_minutes / 60.0) * prod_rate
+        cost_per_piece = blank_cost_per_piece + material_cost + labor_cost_per_piece + setup_fee_per_piece_amortized
+        # Apply category markup + min
+        markup = float(cfg.get("default_markup_multiplier", 2.15) or 2.15)
+        per_piece_sell = max(cost_per_piece * markup, float(method_cfg.get("min_sell_per_piece", cfg.get("default_minimum_sell_price", 10.0)) or 10.0))
+        baseline_source = f"cost_plus:{method_key}"
+
+    # Retail base floor (no-print retail value acts as an absolute minimum sell per piece)
+    retail_base = float((blank_material or {}).get("retail_base_no_print", 0) or 0)
+    if retail_base > 0:
+        per_piece_sell = max(per_piece_sell, retail_base)
+
+    # Base decoration sell = per-piece × qty
+    decoration_sell = per_piece_sell * qty
+    # Suggested price starts at blanks + decoration IF using shop table (table already includes blank markup);
+    # for cost-plus baseline, blanks are already in cost_per_piece.
+    if uses_shop_table and baseline_source.startswith("shop_table"):
+        suggested_price = decoration_sell
+    else:
+        suggested_price = decoration_sell  # already includes blank via cost_per_piece
+
+    # ===== Add-ons =====
+    plus_size_count = int(data.apparel_plus_size_count or 0)
+    plus_size_rate = float(cfg.get("plus_size_upcharge_per_x", 2.0) or 0)
+    plus_size_cost = 0.0
+    if not is_hat:
+        plus_size_cost = plus_size_count * plus_size_rate
+    suggested_price += plus_size_cost
+
+    custom_nn_count = int(data.apparel_custom_name_number_count or 0)
+    if data.apparel_custom_name_number:
+        nn_rate = float(cfg.get("custom_name_number_hat", 3.0) if is_hat else cfg.get("custom_name_number_garment", 4.0))
+        custom_nn_cost = nn_rate * custom_nn_count
+    else:
+        custom_nn_cost = 0.0
+    suggested_price += custom_nn_cost
+
+    specialty_cost = 0.0
+    if data.apparel_specialty_finish:
+        rate = float(cfg.get("specialty_vinyl_hat", 1.5) if is_hat else cfg.get("specialty_finish_garment", 2.0))
+        specialty_cost = rate * qty
+    suggested_price += specialty_cost
+
+    two_tone_cost = 0.0
+    if is_hat and data.apparel_two_tone_hat_finish:
+        two_tone_cost = float(cfg.get("two_tone_hat_finish", 1.5) or 0) * qty
+    suggested_price += two_tone_cost
+
+    patch_cost = 0.0
+    if is_hat and data.apparel_leather_patch:
+        patch_cost = float(cfg.get("leather_patch_hat", 2.5) or 0) * qty
+    suggested_price += patch_cost
+
+    bag_fold_cost = 0.0
+    if data.apparel_bag_and_fold:
+        bag_fold_cost = float(cfg.get("bag_and_fold_each", 1.0) or 0) * qty
+    suggested_price += bag_fold_cost
+
+    # ===== Setup / Design =====
+    setup_fee = 0.0
+    complexity_key = (data.design_complexity or cfg.get("default_design_complexity", "simple")).lower()
+    artwork_ready = bool(data.artwork_ready)
+    artwork_needed = data.artwork_needed
+    if artwork_needed is None:
+        artwork_needed = bool(cfg.get("default_artwork_needed", False))
+    if not artwork_ready and artwork_needed:
+        setup_fees = cfg.get("design_complexity_setup_fees", {}) or {}
+        setup_fee = float(setup_fees.get(complexity_key, cfg.get("default_setup_fee", 10.0)) or 10.0)
+    # Method-specific setup (only when cost-plus path didn't already amortize it)
+    method_setup = 0.0
+    if uses_shop_table:
+        method_setup = float(method_cfg.get("default_setup_fee", 0) or 0)
+        # Shop-table sells often already include minor setup; only add method_setup when not amortized.
+        # We keep it additive for transparency (conservative). Can be toggled off by admin via method_config.
+        if method_setup > 0 and not method_cfg.get("setup_included_in_table", True):
+            setup_fee += method_setup
+    suggested_price += setup_fee
+
+    # ===== Rush =====
+    rush_percent = float(data.apparel_rush_percent if data.apparel_rush_percent is not None else cfg.get("default_rush_percent", 17.5))
+    if data.rush_order:
+        suggested_price = suggested_price * (1 + rush_percent / 100.0)
+
+    # ===== Minimum sell per item × qty =====
+    min_sell_per_piece = float(cfg.get("default_minimum_sell_price", 10.0) or 10.0)
+    suggested_price = max(suggested_price, min_sell_per_piece * qty)
+
+    # ===== Manual override =====
+    manual_override = None
+    if data.apparel_manual_quote_override is not None and float(data.apparel_manual_quote_override) > 0:
+        manual_override = float(data.apparel_manual_quote_override)
+        suggested_price = manual_override  # user's manual override takes precedence for display totals
+    if data.override_enabled and data.price_override:
+        suggested_price = float(data.price_override) * qty
+
+    # ===== Cost tracking (blank cost + decoration material + labor + overhead) =====
+    # Decoration material cost per piece (based on method)
+    decoration_material_per_piece = 0.0
+    if "material_cost_per_color_per_piece" in method_cfg:
+        num_colors = int(data.apparel_num_colors or 1)
+        decoration_material_per_piece = float(method_cfg["material_cost_per_color_per_piece"] or 0) * max(num_colors, 1)
+    elif "material_cost_per_piece" in method_cfg:
+        decoration_material_per_piece = float(method_cfg["material_cost_per_piece"] or 0)
+    elif "cost_per_1k_stitches" in method_cfg:
+        stitch_count = int(data.apparel_stitch_count or method_cfg.get("default_stitch_count", 6000))
+        decoration_material_per_piece = float(method_cfg["cost_per_1k_stitches"] or 0) * (stitch_count / 1000.0)
+    elif "material_cost_per_sqin" in method_cfg:
+        decoration_material_per_piece = float(method_cfg["material_cost_per_sqin"] or 0) * 80.0
+    total_decoration_material_cost = decoration_material_per_piece * qty
+
+    labor_rates = defaults.get("labor_rates", {}) or {}
+    prod_rate = float(labor_rates.get("production", {}).get("hourly_rate", defaults.get("production_hourly_rate", 28)) or 28)
+    labor_minutes_per_piece = float(cfg.get("apparel_labor_minutes_per_piece", 1.5) or 1.5) + float(cfg.get("apparel_handling_labor_minutes_per_piece", 0.5) or 0.5)
+    labor_hours = (labor_minutes_per_piece * qty) / 60.0
+    labor_cost_total = labor_hours * prod_rate
+
+    # Design labor (when artwork needed)
+    design_cost = 0.0
+    if not artwork_ready and artwork_needed:
+        design_rate = float(labor_rates.get("design", {}).get("hourly_rate", defaults.get("design_hourly_rate", 85)) or 85)
+        design_hours = float({"simple": 0.25, "medium": 0.5, "complex": 1.0, "extreme": 1.5}.get(complexity_key, 0.25))
+        design_cost = design_hours * design_rate
+        labor_hours += design_hours
+    labor_cost_total += design_cost
+
+    material_cost_total = total_blank_cost + total_decoration_material_cost
+    overhead_cost = calculate_overhead_cost(
+        material_cost_total + labor_cost_total,
+        labor_hours,
+        defaults,
+        cfg,
+    )
+
+    return create_pricing_result(
+        material_cost=material_cost_total,
+        labor_cost=labor_cost_total,
+        setup_cost=setup_fee,
+        additional_costs=plus_size_cost + custom_nn_cost + specialty_cost + two_tone_cost + patch_cost + bag_fold_cost,
+        overhead_cost=overhead_cost,
+        suggested_price=suggested_price,
+        estimated_labor_minutes=labor_hours * 60,
+        breakdown={
+            "product_type": product_type_key,
+            "is_hat": is_hat,
+            "brand_style_key": brand_key,
+            "brand_label": (blank_material or {}).get("name") if blank_material else None,
+            "placement_set": placement_key,
+            "placement_kind": placement_set_kind,
+            "decoration_method": method_key,
+            "decoration_subtype": data.apparel_decoration_subtype,
+            "method_label": method_cfg.get("label", method_key),
+            "uses_shop_table": uses_shop_table,
+            "baseline_source": baseline_source,
+            "shop_table_warning": warning,
+            "quantity": qty,
+            "quantity_tier": tier_key,
+            "per_piece_sell": round(per_piece_sell, 2),
+            "blank_cost_per_piece": round(blank_cost_per_piece, 2),
+            "retail_base_no_print": retail_base,
+            "total_blank_cost": round(total_blank_cost, 2),
+            "decoration_material_per_piece": round(decoration_material_per_piece, 2),
+            "total_decoration_material_cost": round(total_decoration_material_cost, 2),
+            "plus_size_count": plus_size_count,
+            "plus_size_cost": round(plus_size_cost, 2),
+            "custom_name_number": bool(data.apparel_custom_name_number),
+            "custom_name_number_count": custom_nn_count,
+            "custom_name_number_cost": round(custom_nn_cost, 2),
+            "specialty_finish": bool(data.apparel_specialty_finish),
+            "specialty_cost": round(specialty_cost, 2),
+            "two_tone_hat_finish": bool(data.apparel_two_tone_hat_finish),
+            "two_tone_cost": round(two_tone_cost, 2),
+            "leather_patch": bool(data.apparel_leather_patch),
+            "patch_cost": round(patch_cost, 2),
+            "bag_and_fold": bool(data.apparel_bag_and_fold),
+            "bag_fold_cost": round(bag_fold_cost, 2),
+            "artwork_ready": artwork_ready,
+            "artwork_needed": artwork_needed,
+            "design_complexity": complexity_key,
+            "setup_fee": round(setup_fee, 2),
+            "design_cost": round(design_cost, 2),
+            "num_colors": int(data.apparel_num_colors or 1),
+            "stitch_count": int(data.apparel_stitch_count or 0),
+            "labor_hours": round(labor_hours, 2),
+            "labor_cost_total": round(labor_cost_total, 2),
+            "overhead_cost": round(overhead_cost, 2),
+            "rush_percent_applied": round(rush_percent, 2) if data.rush_order else 0,
+            "manual_quote_override": manual_override,
+            "min_sell_per_piece": min_sell_per_piece,
+        },
+    )
 
 
 async def calculate_pricing(

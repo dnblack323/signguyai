@@ -344,6 +344,29 @@ def _build_ticket_pricing_payload(ticket: dict, pricing_input: Optional[dict] = 
         "apparel_type": specs.get("garment_type") or specs.get("subtype"),
         "transfer_type": specs.get("decoration_method") or specs.get("print_method"),
         "num_print_locations": len(specs.get("print_locations", [])) or 1,
+        # Apparel — Foundation-driven inputs
+        "apparel_product_type": specs.get("apparel_product_type") or specs.get("garment_type"),
+        "apparel_brand_style_key": specs.get("apparel_brand_style_key") or specs.get("brand_style"),
+        "apparel_garment_color": specs.get("apparel_garment_color") or specs.get("garment_color"),
+        "apparel_placement_set": specs.get("apparel_placement_set") or specs.get("apparel_placement_set_hat"),
+        "apparel_decoration_method": specs.get("apparel_decoration_method") or specs.get("decoration_method"),
+        "apparel_decoration_subtype": specs.get("apparel_decoration_subtype"),
+        "apparel_plus_size_count": (
+            int((specs.get("size_2xl", 0) or 0) + (specs.get("size_3xl", 0) or 0) * 2
+                + (specs.get("size_4xl", 0) or 0) * 3 + (specs.get("size_5xl", 0) or 0) * 4)
+            if any(specs.get(k) for k in ("size_2xl", "size_3xl", "size_4xl", "size_5xl"))
+            else (int(specs.get("apparel_plus_size_count", 0) or 0) or None)
+        ),
+        "apparel_custom_name_number": bool(specs.get("apparel_custom_name_number")) if specs.get("apparel_custom_name_number") is not None else None,
+        "apparel_custom_name_number_count": int(specs.get("apparel_custom_name_number_count", 0) or 0) or None,
+        "apparel_specialty_finish": bool(specs.get("apparel_specialty_finish")) if specs.get("apparel_specialty_finish") is not None else None,
+        "apparel_two_tone_hat_finish": bool(specs.get("apparel_two_tone_hat_finish")) if specs.get("apparel_two_tone_hat_finish") is not None else None,
+        "apparel_leather_patch": bool(specs.get("apparel_leather_patch")) if specs.get("apparel_leather_patch") is not None else None,
+        "apparel_bag_and_fold": bool(specs.get("apparel_bag_and_fold") or specs.get("folding_bagging")) if (specs.get("apparel_bag_and_fold") is not None or specs.get("folding_bagging") is not None) else None,
+        "apparel_num_colors": int(specs.get("apparel_num_colors", specs.get("num_colors", 0)) or 0) or None,
+        "apparel_stitch_count": int(specs.get("apparel_stitch_count", 0) or 0) or None,
+        "apparel_rush_percent": float(specs.get("apparel_rush_percent", 0) or 0) or None,
+        "apparel_manual_quote_override": float(specs.get("apparel_manual_quote_override", 0) or 0) or None,
         # Banner-specific pricing inputs (must match JobItemPricingData keys)
         "banner_material_key": specs.get("banner_material_key") or specs.get("material"),
         "banner_use_type": specs.get("banner_use_type") or specs.get("use_type"),
@@ -556,41 +579,50 @@ def _banner_schema(defaults, material_opts=None):
 
 
 def _apparel_schema(defaults, garment_opts, decoration_opts):
-    """Full Apparel category schema — options from catalog."""
-    print_locations = [
-        {"value": "front_center", "label": "Front Center"},
-        {"value": "left_chest", "label": "Left Chest"},
-        {"value": "right_chest", "label": "Right Chest"},
-        {"value": "full_back", "label": "Full Back"},
-        {"value": "upper_back", "label": "Upper Back"},
-        {"value": "left_sleeve", "label": "Left Sleeve"},
-        {"value": "right_sleeve", "label": "Right Sleeve"},
-        {"value": "hood", "label": "Hood"},
-        {"value": "hat_front", "label": "Hat Front"},
-        {"value": "hat_side", "label": "Hat Side"},
-        {"value": "hat_back", "label": "Hat Back"},
-        {"value": "other", "label": "Other Custom Location"},
+    """Full Apparel category schema — all options sourced from Pricing Foundation defaults."""
+    cat = (defaults.get("category_defaults", {}) or {}).get("apparel", {}) or {}
+    product_types = cat.get("available_product_types", []) or []
+    brand_styles_map = cat.get("available_brand_styles", {}) or {}
+    method_cfg = cat.get("method_config", {}) or {}
+    avail_methods = cat.get("available_decoration_methods", []) or []
+
+    product_type_options = [{"value": p["key"], "label": p["label"]} for p in product_types]
+    # For initial schema we return brand options for the first product type; UI will filter by selected product type.
+    default_product = cat.get("default_product_type") or (product_types[0]["key"] if product_types else "short_sleeve_tee")
+    default_brand_styles = brand_styles_map.get(default_product, [])
+    brand_style_options = [{"value": b["key"], "label": b["label"]} for b in default_brand_styles]
+
+    # Placement set options (garment + hat) — UI switches based on product type
+    garment_placement = [{"value": "front", "label": "Front Small"}, {"value": "back", "label": "Back Large"}, {"value": "front_back", "label": "Front + Back"}]
+    hat_placement = [{"value": "front", "label": "Front Only"}, {"value": "side_back", "label": "Side / Back Only"}, {"value": "front_side_back", "label": "Front + Side/Back"}]
+
+    decoration_method_options = [
+        {"value": m, "label": (method_cfg.get(m, {}) or {}).get("label", m.replace("_", " ").title())}
+        for m in avail_methods
     ]
-    brand_options = [
-        {"value": "gildan_5000", "label": "Gildan 5000"},
-        {"value": "gildan_softstyle", "label": "Gildan Softstyle"},
-        {"value": "bella_canvas_3001", "label": "Bella+Canvas 3001"},
-        {"value": "next_level_3600", "label": "Next Level 3600"},
-        {"value": "comfort_colors", "label": "Comfort Colors"},
-        {"value": "jerzees", "label": "Jerzees"},
-        {"value": "hanes", "label": "Hanes"},
-        {"value": "richardson", "label": "Richardson (Hats)"},
-        {"value": "port_authority", "label": "Port Authority"},
-        {"value": "custom", "label": "Custom / Manual Entry"},
-    ]
+    if not decoration_method_options:
+        decoration_method_options = [
+            {"value": "htv", "label": "HTV"},
+            {"value": "screen_print_transfer", "label": "Screen Print Transfer"},
+            {"value": "dtf_transfer", "label": "DTF Transfer"},
+            {"value": "direct_screen_print", "label": "Direct Screen Print"},
+            {"value": "embroidery", "label": "Embroidery"},
+            {"value": "dtg", "label": "DTG"},
+            {"value": "patch_emblem", "label": "Patch / Emblem"},
+            {"value": "sublimation", "label": "Sublimation"},
+            {"value": "specialty_custom", "label": "Specialty / Custom"},
+        ]
+
+    default_method = cat.get("default_decoration_method", "htv")
+    default_complexity = cat.get("default_design_complexity", "simple")
+
     return [
-        # Garment Information
-        {"key": "garment_type", "label": "Garment Type", "type": "select", "options": garment_opts, "group": "garment_info", "required": True, "pricing": True},
-        {"key": "brand_style", "label": "Brand / Style", "type": "select_or_text", "options": brand_options, "placeholder": "Select or type custom", "group": "garment_info", "pricing": True},
-        {"key": "garment_color", "label": "Garment Color", "type": "text", "placeholder": "Black, White, Navy", "group": "garment_info"},
-        {"key": "garment_material", "label": "Material / Fabric", "type": "text", "placeholder": "Cotton, Polyester, Blend", "group": "garment_info"},
+        # Product / Brand / Color
+        {"key": "apparel_product_type", "label": "Product Type", "type": "select", "options": product_type_options, "default": default_product, "group": "garment_info", "required": True, "pricing": True},
+        {"key": "apparel_brand_style_key", "label": "Brand / Style", "type": "select", "options": brand_style_options, "group": "garment_info", "required": True, "pricing": True},
+        {"key": "apparel_garment_color", "label": "Garment / Hat Color", "type": "text", "placeholder": "Black, White, Navy", "group": "garment_info"},
         {"key": "customer_supplied", "label": "Customer Supplied Garments", "type": "toggle", "default": False, "group": "garment_info", "pricing": True},
-        # Size Breakdown
+        # Size breakdown (existing — quantity derives from sum; plus-size count for upcharge)
         {"key": "size_xs", "label": "XS", "type": "number", "default": 0, "group": "size_breakdown", "pricing": True},
         {"key": "size_s", "label": "S", "type": "number", "default": 0, "group": "size_breakdown", "pricing": True},
         {"key": "size_m", "label": "M", "type": "number", "default": 0, "group": "size_breakdown", "pricing": True},
@@ -600,21 +632,36 @@ def _apparel_schema(defaults, garment_opts, decoration_opts):
         {"key": "size_3xl", "label": "3XL", "type": "number", "default": 0, "group": "size_breakdown", "pricing": True},
         {"key": "size_4xl", "label": "4XL", "type": "number", "default": 0, "group": "size_breakdown", "pricing": True},
         {"key": "size_5xl", "label": "5XL", "type": "number", "default": 0, "group": "size_breakdown", "pricing": True},
+        {"key": "apparel_plus_size_count", "label": "Plus Size Count (2XL–5XL, auto)", "type": "calculated", "group": "size_breakdown", "pricing": True},
+        # Placement (garment options shown by default; UI switches to hat placements when product_type is a hat)
+        {"key": "apparel_placement_set", "label": "Placement Set (Garment)", "type": "select", "options": garment_placement, "default": "front", "group": "placement", "required": True, "pricing": True, "visible_when_garment": True},
+        {"key": "apparel_placement_set_hat", "label": "Placement Set (Hat)", "type": "select", "options": hat_placement, "default": "front", "group": "placement", "required": True, "pricing": True, "visible_when_hat": True},
         # Decoration
-        {"key": "decoration_method", "label": "Decoration Method", "type": "select", "options": decoration_opts, "group": "decoration", "required": True, "pricing": True},
-        {"key": "num_colors", "label": "Number of Colors", "type": "number", "placeholder": "1", "group": "decoration", "pricing": True},
-        {"key": "specialty_finish", "label": "Specialty Finish", "type": "text", "placeholder": "Metallic, Puff, Glitter", "group": "decoration", "pricing": True},
-        {"key": "setup_required", "label": "Setup Required", "type": "toggle", "default": True, "group": "decoration", "pricing": True},
-        {"key": "artwork_provided", "label": "Artwork Provided", "type": "toggle", "default": False, "group": "decoration"},
-        # Print Locations
-        {"key": "print_locations", "label": "Print Locations", "type": "location_picker", "options": print_locations, "group": "print_locations", "pricing": True},
-        # Per-location details are handled dynamically in frontend based on selected locations
-        # Design / Proof
-        {"key": "artwork_notes", "label": "Notes", "type": "textarea", "group": "design"},
+        {"key": "apparel_decoration_method", "label": "Decoration Method", "type": "select", "options": decoration_method_options, "default": default_method, "group": "decoration", "required": True, "pricing": True},
+        {"key": "apparel_decoration_subtype", "label": "Method Detail / Subtype", "type": "text", "placeholder": "e.g. Siser EasyWeed, Plastisol", "group": "decoration"},
+        {"key": "apparel_num_colors", "label": "Number of Colors", "type": "number", "default": 1, "group": "decoration", "pricing": True},
+        {"key": "apparel_stitch_count", "label": "Stitch Count (embroidery)", "type": "number", "default": 0, "group": "decoration", "pricing": True},
+        # Design / Artwork
+        {"key": "artwork_ready", "label": "Artwork Ready?", "type": "toggle", "default": False, "group": "design", "pricing": True},
+        {"key": "artwork_needed", "label": "Artwork Needed?", "type": "toggle", "default": False, "group": "design", "pricing": True},
+        {"key": "design_complexity", "label": "Design Complexity", "type": "select", "options": [
+            {"value": "simple", "label": "Simple"},
+            {"value": "medium", "label": "Medium"},
+            {"value": "complex", "label": "Complex"},
+            {"value": "extreme", "label": "Extreme"},
+        ], "default": default_complexity, "group": "design", "pricing": True},
+        # Add-ons
+        {"key": "apparel_custom_name_number", "label": "Custom Name/Number?", "type": "toggle", "default": False, "group": "addons", "pricing": True},
+        {"key": "apparel_custom_name_number_count", "label": "Custom Name/Number Count", "type": "number", "default": 0, "group": "addons", "pricing": True},
+        {"key": "apparel_specialty_finish", "label": "Specialty Finish / Specialty Vinyl?", "type": "toggle", "default": False, "group": "addons", "pricing": True},
+        {"key": "apparel_two_tone_hat_finish", "label": "Two-Tone / Specialty Hat Finish? (hats)", "type": "toggle", "default": False, "group": "addons", "pricing": True},
+        {"key": "apparel_leather_patch", "label": "Leather / Faux Patch? (hats)", "type": "toggle", "default": False, "group": "addons", "pricing": True},
+        {"key": "apparel_bag_and_fold", "label": "Bag & Fold?", "type": "toggle", "default": False, "group": "addons", "pricing": True},
         # Production
-        {"key": "rush_order", "label": "Rush Order", "type": "toggle", "default": False, "group": "production", "pricing": True},
-        {"key": "outsourced", "label": "Outsourced", "type": "toggle", "default": False, "group": "production"},
-        {"key": "folding_bagging", "label": "Folding / Bagging Needed", "type": "toggle", "default": False, "group": "production", "pricing": True},
+        {"key": "rush_order", "label": "Rush?", "type": "toggle", "default": False, "group": "production", "pricing": True},
+        {"key": "apparel_rush_percent", "label": "Rush % (override)", "type": "number", "default": cat.get("default_rush_percent", 17.5), "group": "production", "pricing": True},
+        {"key": "apparel_manual_quote_override", "label": "Manual Quote Override ($)", "type": "number", "default": 0, "group": "production", "pricing": True},
+        {"key": "folding_bagging", "label": "Folding / Bagging Needed", "type": "toggle", "default": False, "group": "production"},
         {"key": "tagging_notes", "label": "Tagging / Sorting Notes", "type": "textarea", "group": "production"},
     ]
 

@@ -1,0 +1,100 @@
+=== T1 SS Gildan 5000 front qty=24 HTV ===
+  sell=$252.00  mat=$90.00  lab=$22.40  over=$21.36  profit=$118.24  margin=46.9%
+  product=short_sleeve_tee brand=blank_ss_gildan_5000 method=htv placement=front tier=5_24 qty=24
+  per_piece=$10.50  blank=$3.25  total_blank=$78.00  dec_mat=$12.00  source=shop_table:htv
+  plus_size=$0.00  names=$0.00  spec=$0.00  twotone=$0.00  patch=$0.00  bag=$0.00  setup=$0.00  rush%=0
+=== T2 Tier change qty=50 (50-99) ===
+  sell=$500.00  mat=$187.50  lab=$46.67  over=$44.49  profit=$221.34  margin=44.3%
+  product=short_sleeve_tee brand=blank_ss_gildan_5000 method=htv placement=front tier=50_99 qty=50
+  per_piece=$8.25  blank=$3.25  total_blank=$162.50  dec_mat=$25.00  source=shop_table:htv
+  plus_size=$0.00  names=$0.00  spec=$0.00  twotone=$0.00  patch=$0.00  bag=$0.00  setup=$0.00  rush%=0
+=== T3 Bella 3001 front qty=24 ===
+  sell=$300.00  mat=$132.00  lab=$22.40  over=$29.34  profit=$116.26  margin=38.8%
+  product=short_sleeve_tee brand=blank_ss_bella_3001 method=htv placement=front tier=5_24 qty=24
+  per_piece=$12.50  blank=$5.00  total_blank=$120.00  dec_mat=$12.00  source=shop_table:htv
+  plus_size=$0.00  names=$0.00  spec=$0.00  twotone=$0.00  patch=$0.00  bag=$0.00  setup=$0.00  rush%=0
+=== T4 Gildan 5000 BACK qty=24 ===
+  sell=$288.00  mat=$90.00  lab=$22.40  over=$21.36  profit=$154.24  margin=53.6%
+  product=short_sleeve_tee brand=blank_ss_gildan_5000 method=htv placement=back tier=5_24 qty=24
+  per_piece=$12.00  blank=$3.25  total_blank=$78.00  dec_mat=$12.00  source=shop_table:htv
+  plus_size=$0.00  names=$0.00  spec=$0.00  twotone=$0.00  patch=$0.00  bag=$0.00  setup=$0.00  rush%=0
+=== T5 Gildan 5000 front+back qty=24 ===
+  sell=$360.00  mat=$90.00  lab=$22.40  over=$21.36  profit=$226.24  margin=62.8%
+  product=short_sleeve_tee brand=blank_ss_gildan_5000 method=htv placement=front_back tier=5_24 qty=24
+  per_piece=$15.00  blank=$3.25  total_blank=$78.00  dec_mat=$12.00  source=shop_table:htv
+  plus_size=$0.00  names=$0.00  spec=$0.00  twotone=$0.00  patch=$0.00  bag=$0.00  setup=$0.00  rush%=0
+=== T6 Hoodie Gildan 18500 front qty=10 ===
+  sell=$215.00  mat=$135.00  lab=$9.33  over=$27.42  profit=$43.24  margin=20.1%
+  product=hoodie brand=blank_hd_gildan_18500 method=htv placement=front tier=5_24 qty=10
+  per_piece=$21.50  blank=$13.00  total_blank=$130.00  dec_mat=$5.00  source=shop_table:htv
+  plus_size=$0.00  names=$0.00  spec=$0.00  twotone=$0.00  patch=$0.00  bag=$0.00  setup=$0.00  rush%=0
+=== T7 Standard Cap front qty=24 ===
+  sell=$264.00  mat=$108.00  lab=$22.40  over=$24.78  profit=$108.82  margin=41.2%
+  product=hat_standard brand=blank_hat_standard method=htv placement=front tier=5_24 qty=24
+  per_piece=$11.00  blank=$4.00  total_blank=$96.00  dec_mat=$12.00  source=shop_table:htv
+  plus_size=$0.00  names=$0.00  spec=$0.00  twotone=$0.00  patch=$0.00  bag=$0.00  setup=$0.00  rush%=0
+=== T8 Premium Cap side/back qty=24 ===
+  sell=$336.00  mat=$156.00  lab=$22.40  over=$33.90  profit=$123.70  margin=36.8%
+  product=hat_premium brand=blank_hat_premium method=htv placement=side_back tier=5_24 qty=24
+  per_piece=$14.00  blank=$6.00  total_blank=$144.00  dec_mat=$12.00  source=shop_table:htv
+  plus_size=$0.00  names=$0.00  spec=$0.00  twotone=$0.00  patch=$0.00  bag=$0.00  setup=$0.00  rush%=0
+=== T9 SS w/plus_size_count=5 ===
+  sell=$262.00  mat=$90.00  lab=$22.40  over=$21.36  profit=$118.24  margin=45.1%
+  product=short_sleeve_tee brand=blank_ss_gildan_5000 method=htv placement=front tier=5_24 qty=24
+  per_piece=$10.50  blank=$3.25  total_blank=$78.00  dec_mat=$12.00  source=shop_table:htv
+  plus_size=$10.00  names=$0.00  spec=$0.00  twotone=$0.00  patch=$0.00  bag=$0.00  setup=$0.00  rush%=0
+=== T10 SS w/names on 10 ===
+  sell=$292.00  mat=$90.00  lab=$22.40  over=$21.36  profit=$118.24  margin=40.5%
+  product=short_sleeve_tee brand=blank_ss_gildan_5000 method=htv placement=front tier=5_24 qty=24
+  per_piece=$10.50  blank=$3.25  total_blank=$78.00  dec_mat=$12.00  source=shop_table:htv
+  plus_size=$0.00  names=$40.00  spec=$0.00  twotone=$0.00  patch=$0.00  bag=$0.00  setup=$0.00  rush%=0
+=== T11 SS specialty finish ===
+  sell=$300.00  mat=$90.00  lab=$22.40  over=$21.36  profit=$118.24  margin=39.4%
+  product=short_sleeve_tee brand=blank_ss_gildan_5000 method=htv placement=front tier=5_24 qty=24
+  per_piece=$10.50  blank=$3.25  total_blank=$78.00  dec_mat=$12.00  source=shop_table:htv
+  plus_size=$0.00  names=$0.00  spec=$48.00  twotone=$0.00  patch=$0.00  bag=$0.00  setup=$0.00  rush%=0
+=== T12 Hat two-tone + leather patch ===
+  sell=$408.00  mat=$156.00  lab=$22.40  over=$33.90  profit=$99.70  margin=24.4%
+  product=hat_premium brand=blank_hat_premium method=htv placement=front tier=5_24 qty=24
+  per_piece=$13.00  blank=$6.00  total_blank=$144.00  dec_mat=$12.00  source=shop_table:htv
+  plus_size=$0.00  names=$0.00  spec=$0.00  twotone=$36.00  patch=$60.00  bag=$0.00  setup=$0.00  rush%=0
+=== T13 SS bag+fold ===
+  sell=$276.00  mat=$90.00  lab=$22.40  over=$21.36  profit=$118.24  margin=42.8%
+  product=short_sleeve_tee brand=blank_ss_gildan_5000 method=htv placement=front tier=5_24 qty=24
+  per_piece=$10.50  blank=$3.25  total_blank=$78.00  dec_mat=$12.00  source=shop_table:htv
+  plus_size=$0.00  names=$0.00  spec=$0.00  twotone=$0.00  patch=$0.00  bag=$24.00  setup=$0.00  rush%=0
+=== T14 Artwork needed complex setup ===
+  sell=$277.00  mat=$90.00  lab=$119.40  over=$39.79  profit=$2.81  margin=1.0%
+  product=short_sleeve_tee brand=blank_ss_gildan_5000 method=htv placement=front tier=5_24 qty=24
+  per_piece=$10.50  blank=$3.25  total_blank=$78.00  dec_mat=$12.00  source=shop_table:htv
+  plus_size=$0.00  names=$0.00  spec=$0.00  twotone=$0.00  patch=$0.00  bag=$0.00  setup=$25.00  rush%=0
+=== T15 Rush ON ===
+  sell=$296.10  mat=$90.00  lab=$22.40  over=$21.36  profit=$162.34  margin=54.8%
+  product=short_sleeve_tee brand=blank_ss_gildan_5000 method=htv placement=front tier=5_24 qty=24
+  per_piece=$10.50  blank=$3.25  total_blank=$78.00  dec_mat=$12.00  source=shop_table:htv
+  plus_size=$0.00  names=$0.00  spec=$0.00  twotone=$0.00  patch=$0.00  bag=$0.00  setup=$0.00  rush%=17.5
+=== T16 Embroidery 6000 stitches qty=24 ===
+  sell=$631.67  mat=$252.00  lab=$22.40  over=$52.14  profit=$305.13  margin=48.3%
+  product=polo brand=blank_po_gildan_8800 method=embroidery placement=front tier=5_24 qty=24
+  per_piece=$26.32  blank=$6.00  total_blank=$144.00  dec_mat=$108.00  source=cost_plus:embroidery
+  plus_size=$0.00  names=$0.00  spec=$0.00  twotone=$0.00  patch=$0.00  bag=$0.00  setup=$0.00  rush%=0
+=== T17 DTG on hoodie qty=12 ===
+  sell=$428.71  mat=$186.00  lab=$11.20  over=$37.47  profit=$194.04  margin=45.3%
+  product=hoodie brand=blank_hd_gildan_18500 method=dtg placement=front tier=5_24 qty=12
+  per_piece=$35.73  blank=$13.00  total_blank=$156.00  dec_mat=$30.00  source=cost_plus:dtg
+  plus_size=$0.00  names=$0.00  spec=$0.00  twotone=$0.00  patch=$0.00  bag=$0.00  setup=$0.00  rush%=0
+=== T18 Direct screen print 3 colors qty=50 ===
+  sell=$526.75  mat=$200.00  lab=$46.67  over=$46.87  profit=$233.22  margin=44.3%
+  product=short_sleeve_tee brand=blank_ss_gildan_5000 method=direct_screen_print placement=front tier=50_99 qty=50
+  per_piece=$10.54  blank=$3.25  total_blank=$162.50  dec_mat=$37.50  source=cost_plus:direct_screen_print
+  plus_size=$0.00  names=$0.00  spec=$0.00  twotone=$0.00  patch=$0.00  bag=$0.00  setup=$0.00  rush%=0
+=== T19 Manual override $500 ===
+  sell=$500.00  mat=$90.00  lab=$22.40  over=$21.36  profit=$366.24  margin=73.2%
+  product=short_sleeve_tee brand=blank_ss_gildan_5000 method=htv placement=front tier=5_24 qty=24
+  per_piece=$10.50  blank=$3.25  total_blank=$78.00  dec_mat=$12.00  source=shop_table:htv
+  plus_size=$0.00  names=$0.00  spec=$0.00  twotone=$0.00  patch=$0.00  bag=$0.00  setup=$0.00  rush%=0
+=== T20 SS qty=150 (100+ tier) ===
+  sell=$1500.00  mat=$562.50  lab=$140.00  over=$133.47  profit=$664.02  margin=44.3%
+  product=short_sleeve_tee brand=blank_ss_gildan_5000 method=htv placement=front tier=100_plus qty=150
+  per_piece=$7.75  blank=$3.25  total_blank=$487.50  dec_mat=$75.00  source=shop_table:htv
+  plus_size=$0.00  names=$0.00  spec=$0.00  twotone=$0.00  patch=$0.00  bag=$0.00  setup=$0.00  rush%=0

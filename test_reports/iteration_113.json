@@ -1,0 +1,51 @@
+{
+  "summary": "Apparel pricing category end-to-end verification. Backend pytest: 29/29 PASSED covering breakdown fields, quantity tiers (1_4/5_24/50_99/100_plus), brand switch (Gildan 5000 vs Bella 3001), placements (front/back/front_back for garment; front/side_back/front_side_back for hat), product switches (short_sleeve_tee, hoodie, hat_standard, hat_premium, polo), all 7 add-ons (plus_size $2, custom_name_number $4/$3, specialty $2/$1.50, two_tone_hat $1.50, leather_patch $2.50, bag_and_fold $1), setup by design_complexity (simple/medium/complex/extreme), rush 17.5%, manual_quote_override, cost-plus methods (embroidery, DTG, direct_screen_print), shop-table methods (HTV, screen_print_transfer, DTF transfer), schema apparel 30+ fields, and /api/pricing/defaults apparel block. Frontend: PricingCalculator Apparel card renders all 22 ap-* testids (two-tone + leather-patch only appear when hat_premium selected — correct behavior), live calculation shows full breakdown with baseline_source=shop_table:htv. PricingFoundation -> Category Rules -> Apparel tab renders Default Decoration Method, Default Setup Fee, Min Sell, Default Rush %, Add-On Rates (plus-size, custom names garment/hat, specialty garment/hat, two-tone, leather patch, bag&fold), Setup Fee by Design Complexity (Simple/Medium/Complex/Extreme), and Apparel Blanks list with all 13 seeded blanks.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_apparel_pricing.py",
+    "/app/test_reports/pytest/apparel_results.xml",
+    "/app/test_reports/apparel_backend_tests.txt"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PricingCalculator.js continues to grow; after Apparel it is likely >3400 lines. Strongly recommend splitting each category card into its own component (e.g., ApparelCard.js, VehicleGraphicsCard.js) for maintainability.",
+    "Conditional rendering of ap-two-tone and ap-leather-patch only for hat products is correct per spec (hats-only) — testids appear dynamically after hat_premium selection.",
+    "Backend baseline_source labeling ('shop_table:<method>' vs 'cost_plus:<method>') is clean and directly testable. Keep this convention across future method additions.",
+    "Backend breakdown uses flat keys like plus_size_cost / specialty_cost / two_tone_cost / patch_cost / bag_fold_cost / custom_name_number_cost — consistent naming. Frontend Pricing Breakdown display keys should match.",
+    "Consider adding unit tests for edge case: qty=0 or negative qty (currently untested)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_apparel_pricing.py"
+  ],
+  "success_rate": {"backend": "100% (29/29)", "frontend": "100%"},
+  "test_credentials": "signguypa@gmail.com / Billnel323",
+  "seed_data_creation": "None - calculation endpoint is pure/stateless",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Apparel category fully verified. Regression suite lives at /app/backend/tests/test_apparel_pricing.py (29 tests). Run with: REACT_APP_BACKEND_URL=\"<public-url>\" pytest backend/tests/test_apparel_pricing.py -v. Backend breakdown keys: plus_size_cost, custom_name_number_cost, specialty_cost, two_tone_cost, patch_cost, bag_fold_cost, setup_fee, rush_percent_applied, manual_quote_override, baseline_source (shop_table:<m>|cost_plus:<m>), per_piece_sell, quantity_tier, total_blank_cost, total_decoration_material_cost. Hat-only testids (ap-two-tone, ap-leather-patch) conditionally render when product_type starts with hat_*.",
+  "features_verified": {
+    "backend_breakdown_all_fields": "PASS",
+    "quantity_tiers_1_4_5_24_50_99_100_plus": "PASS",
+    "brand_switch_gildan_vs_bella": "PASS",
+    "placement_front_back_front_back": "PASS (10.50/12.00/15.00)",
+    "hat_side_back_placement": "PASS (14.00)",
+    "product_switch_hoodie_hat_standard": "PASS",
+    "add_on_plus_size_2_per_x": "PASS",
+    "add_on_custom_names_4_garment_3_hat": "PASS",
+    "add_on_specialty_finish_2": "PASS",
+    "add_on_two_tone_1_50_hat": "PASS",
+    "add_on_leather_patch_2_50_hat": "PASS",
+    "add_on_bag_and_fold_1": "PASS",
+    "setup_by_design_complexity_complex_25": "PASS",
+    "rush_17_5_percent": "PASS",
+    "manual_override_replaces_suggested": "PASS",
+    "cost_plus_embroidery_dtg_direct_screen_print": "PASS",
+    "shop_table_htv_screen_print_transfer_dtf_transfer": "PASS",
+    "schema_apparel_30plus_fields": "PASS",
+    "pricing_defaults_apparel_block": "PASS",
+    "frontend_pricing_calculator_22_ap_testids": "PASS",
+    "frontend_live_breakdown": "PASS (Suggested $12 for SS Gildan 5000 qty=1 tier 1_4 front)",
+    "frontend_pricing_foundation_apparel_card": "PASS (all sections + 13 blanks list)"
+  }
+}

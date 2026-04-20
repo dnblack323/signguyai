@@ -166,6 +166,20 @@ class PricingDefaults(BaseModel):
         {"id": "apparel-jacket", "key": "jacket", "name": "Jacket", "category": "apparel", "cost_per_unit": 25.0, "unit_type": "each", "is_active": True},
         {"id": "apparel-crewneck", "key": "crewneck", "name": "Crewneck Sweatshirt", "category": "apparel", "cost_per_unit": 15.0, "unit_type": "each", "is_active": True},
         {"id": "apparel-safety-vest", "key": "safety_vest", "name": "Safety Vest", "category": "apparel", "cost_per_unit": 10.0, "unit_type": "each", "is_active": True},
+        # ===== Apparel Blank Styles (seeded from uploaded shop pricing) =====
+        {"id": "blank-ss-gildan-5000", "key": "blank_ss_gildan_5000", "name": "Short Sleeve Tee — Gildan 5000", "category": "apparel_blank", "subtype": "short_sleeve_tee", "brand": "Gildan 5000", "cost_per_unit": 3.25, "retail_base_no_print": 7.00, "unit_type": "each", "compatible_categories": ["apparel"], "is_active": True},
+        {"id": "blank-ss-bella-3001", "key": "blank_ss_bella_3001", "name": "Short Sleeve Tee — Bella+Canvas 3001", "category": "apparel_blank", "subtype": "short_sleeve_tee", "brand": "Bella+Canvas 3001", "cost_per_unit": 5.00, "retail_base_no_print": 9.00, "unit_type": "each", "compatible_categories": ["apparel"], "is_active": True},
+        {"id": "blank-ls-gildan-2400", "key": "blank_ls_gildan_2400", "name": "Long Sleeve Tee — Gildan 2400", "category": "apparel_blank", "subtype": "long_sleeve_tee", "brand": "Gildan 2400", "cost_per_unit": 6.00, "retail_base_no_print": 10.00, "unit_type": "each", "compatible_categories": ["apparel"], "is_active": True},
+        {"id": "blank-ls-bella-3501", "key": "blank_ls_bella_3501", "name": "Long Sleeve Tee — Bella+Canvas 3501", "category": "apparel_blank", "subtype": "long_sleeve_tee", "brand": "Bella+Canvas 3501", "cost_per_unit": 8.00, "retail_base_no_print": 12.00, "unit_type": "each", "compatible_categories": ["apparel"], "is_active": True},
+        {"id": "blank-cn-gildan-18000", "key": "blank_cn_gildan_18000", "name": "Crewneck — Gildan 18000", "category": "apparel_blank", "subtype": "crewneck", "brand": "Gildan 18000", "cost_per_unit": 9.00, "retail_base_no_print": 13.00, "unit_type": "each", "compatible_categories": ["apparel"], "is_active": True},
+        {"id": "blank-cn-bella-3901", "key": "blank_cn_bella_3901", "name": "Crewneck — Bella+Canvas 3901", "category": "apparel_blank", "subtype": "crewneck", "brand": "Bella+Canvas 3901", "cost_per_unit": 11.00, "retail_base_no_print": 15.00, "unit_type": "each", "compatible_categories": ["apparel"], "is_active": True},
+        {"id": "blank-hd-gildan-18500", "key": "blank_hd_gildan_18500", "name": "Hoodie — Gildan 18500", "category": "apparel_blank", "subtype": "hoodie", "brand": "Gildan 18500", "cost_per_unit": 13.00, "retail_base_no_print": 18.00, "unit_type": "each", "compatible_categories": ["apparel"], "is_active": True},
+        {"id": "blank-hd-bella-3719", "key": "blank_hd_bella_3719", "name": "Hoodie — Bella+Canvas 3719", "category": "apparel_blank", "subtype": "hoodie", "brand": "Bella+Canvas 3719", "cost_per_unit": 17.00, "retail_base_no_print": 22.00, "unit_type": "each", "compatible_categories": ["apparel"], "is_active": True},
+        {"id": "blank-po-gildan-8800", "key": "blank_po_gildan_8800", "name": "Polo — Gildan 8800", "category": "apparel_blank", "subtype": "polo", "brand": "Gildan 8800", "cost_per_unit": 6.00, "retail_base_no_print": 12.00, "unit_type": "each", "compatible_categories": ["apparel"], "is_active": True},
+        {"id": "blank-po-bella-3415", "key": "blank_po_bella_3415", "name": "Polo — Bella+Canvas 3415", "category": "apparel_blank", "subtype": "polo", "brand": "Bella+Canvas 3415", "cost_per_unit": 8.50, "retail_base_no_print": 14.00, "unit_type": "each", "compatible_categories": ["apparel"], "is_active": True},
+        {"id": "blank-hat-standard", "key": "blank_hat_standard", "name": "Hat — Standard Cap", "category": "apparel_blank", "subtype": "hat_standard", "brand": "Standard Cap", "cost_per_unit": 4.00, "retail_base_no_print": 10.00, "unit_type": "each", "compatible_categories": ["apparel"], "is_active": True},
+        {"id": "blank-hat-premium", "key": "blank_hat_premium", "name": "Hat — Premium Cap", "category": "apparel_blank", "subtype": "hat_premium", "brand": "Premium Cap", "cost_per_unit": 6.00, "retail_base_no_print": 13.00, "unit_type": "each", "compatible_categories": ["apparel"], "is_active": True},
+        {"id": "blank-visor-standard", "key": "blank_visor_standard", "name": "Visor — Standard", "category": "apparel_blank", "subtype": "visor", "brand": "Visor", "cost_per_unit": 4.00, "retail_base_no_print": 10.00, "unit_type": "each", "compatible_categories": ["apparel"], "is_active": True},
         {"id": "decor-htv", "key": "htv", "name": "HTV (Heat Transfer Vinyl)", "category": "decoration", "cost_per_unit": 0.5, "unit_type": "per_color", "is_active": True},
         {"id": "decor-screen-print", "key": "screen_print", "name": "Screen Print Transfer", "category": "decoration", "cost_per_unit": 0.35, "unit_type": "per_color", "is_active": True},
         {"id": "decor-dtf", "key": "dtf", "name": "DTF / Printed Transfer", "category": "decoration", "cost_per_unit": 0.03, "unit_type": "per_sqin", "is_active": True},
@@ -756,6 +770,209 @@ class PricingDefaults(BaseModel):
             "default_labor_types": ["production"],
             "sell_rate_defaults": {},
             "ai_prefill_overrides": {},
+            # ===== Decoration method architecture (structural support for all methods) =====
+            "default_decoration_method": "htv",
+            "available_decoration_methods": [
+                "htv",
+                "screen_print_transfer",
+                "dtf_transfer",
+                "direct_screen_print",
+                "embroidery",
+                "dtg",
+                "patch_emblem",
+                "sublimation",
+                "specialty_custom",
+            ],
+            # Which methods use the table-based sell path NOW
+            "methods_using_shop_table": ["htv", "screen_print_transfer", "dtf_transfer"],
+            # Per-method structural config (pricing rules can be expanded later per method)
+            "method_config": {
+                "htv": {"label": "HTV", "uses_shop_table": True, "default_setup_fee": 10.0, "material_cost_per_color_per_piece": 0.50, "min_sell_per_piece": 0},
+                "screen_print_transfer": {"label": "Screen Print Transfer", "uses_shop_table": True, "default_setup_fee": 15.0, "material_cost_per_color_per_piece": 0.35, "min_sell_per_piece": 0},
+                "dtf_transfer": {"label": "DTF Transfer", "uses_shop_table": True, "default_setup_fee": 10.0, "material_cost_per_sqin": 0.03, "min_sell_per_piece": 0},
+                "direct_screen_print": {"label": "Direct Screen Print", "uses_shop_table": False, "default_setup_fee_per_color": 30.0, "material_cost_per_color_per_piece": 0.25, "min_sell_per_piece": 5.0},
+                "embroidery": {"label": "Embroidery", "uses_shop_table": False, "default_setup_fee": 25.0, "cost_per_1k_stitches": 0.75, "default_stitch_count": 6000, "min_sell_per_piece": 6.0},
+                "dtg": {"label": "DTG", "uses_shop_table": False, "default_setup_fee": 5.0, "material_cost_per_piece": 2.50, "min_sell_per_piece": 8.0},
+                "patch_emblem": {"label": "Patch / Emblem", "uses_shop_table": False, "default_setup_fee": 0.0, "material_cost_per_piece": 3.00, "min_sell_per_piece": 4.0},
+                "sublimation": {"label": "Sublimation", "uses_shop_table": False, "default_setup_fee": 10.0, "material_cost_per_sqin": 0.04, "min_sell_per_piece": 5.0},
+                "specialty_custom": {"label": "Specialty / Custom", "uses_shop_table": False, "default_setup_fee": 20.0, "material_cost_per_piece": 3.00, "min_sell_per_piece": 6.0},
+            },
+            # ===== Preloaded product types + brands =====
+            "available_product_types": [
+                {"key": "short_sleeve_tee", "label": "Short Sleeve Tee", "is_hat": False, "allowed_placement_set": "garment"},
+                {"key": "long_sleeve_tee", "label": "Long Sleeve Tee", "is_hat": False, "allowed_placement_set": "garment"},
+                {"key": "crewneck", "label": "Crewneck Sweatshirt", "is_hat": False, "allowed_placement_set": "garment"},
+                {"key": "hoodie", "label": "Hoodie", "is_hat": False, "allowed_placement_set": "garment"},
+                {"key": "polo", "label": "Polo", "is_hat": False, "allowed_placement_set": "garment"},
+                {"key": "hat_standard", "label": "Standard Cap", "is_hat": True, "allowed_placement_set": "hat"},
+                {"key": "hat_premium", "label": "Premium Cap", "is_hat": True, "allowed_placement_set": "hat"},
+                {"key": "visor", "label": "Visor", "is_hat": True, "allowed_placement_set": "hat"},
+            ],
+            # Brand/style options per product type (for UI select; Foundation admin can add more)
+            "available_brand_styles": {
+                "short_sleeve_tee": [
+                    {"key": "blank_ss_gildan_5000", "label": "Gildan 5000"},
+                    {"key": "blank_ss_bella_3001", "label": "Bella+Canvas 3001"},
+                ],
+                "long_sleeve_tee": [
+                    {"key": "blank_ls_gildan_2400", "label": "Gildan 2400"},
+                    {"key": "blank_ls_bella_3501", "label": "Bella+Canvas 3501"},
+                ],
+                "crewneck": [
+                    {"key": "blank_cn_gildan_18000", "label": "Gildan 18000"},
+                    {"key": "blank_cn_bella_3901", "label": "Bella+Canvas 3901"},
+                ],
+                "hoodie": [
+                    {"key": "blank_hd_gildan_18500", "label": "Gildan 18500"},
+                    {"key": "blank_hd_bella_3719", "label": "Bella+Canvas 3719"},
+                ],
+                "polo": [
+                    {"key": "blank_po_gildan_8800", "label": "Gildan 8800"},
+                    {"key": "blank_po_bella_3415", "label": "Bella+Canvas 3415"},
+                ],
+                "hat_standard": [{"key": "blank_hat_standard", "label": "Standard Cap"}],
+                "hat_premium": [{"key": "blank_hat_premium", "label": "Premium Cap"}],
+                "visor": [{"key": "blank_visor_standard", "label": "Visor"}],
+            },
+            # ===== Placement sets =====
+            "placement_sets": {
+                "garment": [
+                    {"key": "front", "label": "Front Small"},
+                    {"key": "back", "label": "Back Large"},
+                    {"key": "front_back", "label": "Front + Back"},
+                ],
+                "hat": [
+                    {"key": "front", "label": "Front Only"},
+                    {"key": "side_back", "label": "Side / Back Only"},
+                    {"key": "front_side_back", "label": "Front + Side/Back"},
+                ],
+            },
+            # ===== Quantity tier boundaries =====
+            "quantity_tiers": [
+                {"key": "1_4", "min_qty": 1, "max_qty": 4, "label": "1–4"},
+                {"key": "5_24", "min_qty": 5, "max_qty": 24, "label": "5–24"},
+                {"key": "25_49", "min_qty": 25, "max_qty": 49, "label": "25–49"},
+                {"key": "50_99", "min_qty": 50, "max_qty": 99, "label": "50–99"},
+                {"key": "100_plus", "min_qty": 100, "max_qty": None, "label": "100+"},
+            ],
+            # ===== Shop pricing table (suggested sell per piece by product × brand × tier × placement) =====
+            "shop_pricing_table": {
+                "blank_ss_gildan_5000": {
+                    "1_4":    {"front": 12.00, "back": 13.50, "front_back": 17.00},
+                    "5_24":   {"front": 10.50, "back": 12.00, "front_back": 15.00},
+                    "25_49":  {"front":  9.00, "back": 10.50, "front_back": 14.00},
+                    "50_99":  {"front":  8.25, "back":  9.50, "front_back": 13.00},
+                    "100_plus": {"front": 7.75, "back":  9.00, "front_back": 12.50},
+                },
+                "blank_ss_bella_3001": {
+                    "1_4":    {"front": 14.00, "back": 15.50, "front_back": 19.00},
+                    "5_24":   {"front": 12.50, "back": 14.00, "front_back": 17.00},
+                    "25_49":  {"front": 11.00, "back": 12.50, "front_back": 16.00},
+                    "50_99":  {"front": 10.25, "back": 11.75, "front_back": 15.00},
+                    "100_plus": {"front": 9.75, "back": 11.25, "front_back": 14.50},
+                },
+                "blank_ls_gildan_2400": {
+                    "1_4":    {"front": 15.00, "back": 16.50, "front_back": 20.00},
+                    "5_24":   {"front": 13.50, "back": 15.00, "front_back": 18.00},
+                    "25_49":  {"front": 12.00, "back": 13.50, "front_back": 17.00},
+                    "50_99":  {"front": 11.25, "back": 12.50, "front_back": 16.00},
+                    "100_plus": {"front": 10.75, "back": 12.00, "front_back": 15.50},
+                },
+                "blank_ls_bella_3501": {
+                    "1_4":    {"front": 17.00, "back": 18.50, "front_back": 22.00},
+                    "5_24":   {"front": 15.50, "back": 17.00, "front_back": 20.00},
+                    "25_49":  {"front": 14.00, "back": 15.50, "front_back": 19.00},
+                    "50_99":  {"front": 13.25, "back": 14.75, "front_back": 18.00},
+                    "100_plus": {"front": 12.75, "back": 14.25, "front_back": 17.50},
+                },
+                "blank_cn_gildan_18000": {
+                    "1_4":    {"front": 18.00, "back": 19.50, "front_back": 23.00},
+                    "5_24":   {"front": 16.50, "back": 18.00, "front_back": 21.00},
+                    "25_49":  {"front": 15.00, "back": 16.50, "front_back": 20.00},
+                    "50_99":  {"front": 14.25, "back": 15.50, "front_back": 19.00},
+                    "100_plus": {"front": 13.75, "back": 15.00, "front_back": 18.50},
+                },
+                "blank_cn_bella_3901": {
+                    "1_4":    {"front": 20.00, "back": 21.50, "front_back": 25.00},
+                    "5_24":   {"front": 18.50, "back": 20.00, "front_back": 23.00},
+                    "25_49":  {"front": 17.00, "back": 18.50, "front_back": 22.00},
+                    "50_99":  {"front": 16.25, "back": 17.75, "front_back": 21.00},
+                    "100_plus": {"front": 15.75, "back": 17.25, "front_back": 20.50},
+                },
+                "blank_hd_gildan_18500": {
+                    "1_4":    {"front": 23.00, "back": 24.50, "front_back": 28.00},
+                    "5_24":   {"front": 21.50, "back": 23.00, "front_back": 26.00},
+                    "25_49":  {"front": 20.00, "back": 21.50, "front_back": 25.00},
+                    "50_99":  {"front": 19.25, "back": 20.50, "front_back": 24.00},
+                    "100_plus": {"front": 18.75, "back": 20.00, "front_back": 23.50},
+                },
+                "blank_hd_bella_3719": {
+                    "1_4":    {"front": 25.00, "back": 26.50, "front_back": 30.00},
+                    "5_24":   {"front": 23.50, "back": 25.00, "front_back": 28.00},
+                    "25_49":  {"front": 22.00, "back": 23.50, "front_back": 27.00},
+                    "50_99":  {"front": 21.25, "back": 22.75, "front_back": 26.00},
+                    "100_plus": {"front": 20.75, "back": 22.25, "front_back": 25.50},
+                },
+                "blank_po_gildan_8800": {
+                    "1_4":    {"front": 14.00, "back": 15.50, "front_back": 19.00},
+                    "5_24":   {"front": 12.50, "back": 14.00, "front_back": 17.00},
+                    "25_49":  {"front": 11.00, "back": 12.50, "front_back": 16.00},
+                    "50_99":  {"front": 10.25, "back": 11.75, "front_back": 15.00},
+                    "100_plus": {"front": 9.75, "back": 11.25, "front_back": 14.50},
+                },
+                "blank_po_bella_3415": {
+                    "1_4":    {"front": 16.00, "back": 17.50, "front_back": 21.00},
+                    "5_24":   {"front": 14.50, "back": 16.00, "front_back": 19.00},
+                    "25_49":  {"front": 13.00, "back": 14.50, "front_back": 18.00},
+                    "50_99":  {"front": 12.25, "back": 13.75, "front_back": 17.00},
+                    "100_plus": {"front": 11.75, "back": 13.25, "front_back": 16.50},
+                },
+                "blank_hat_standard": {
+                    "1_4":    {"front": 12.00, "side_back": 13.00, "front_side_back": 15.00},
+                    "5_24":   {"front": 11.00, "side_back": 12.00, "front_side_back": 14.00},
+                    "25_49":  {"front": 10.00, "side_back": 11.00, "front_side_back": 13.00},
+                    "50_99":  {"front":  9.50, "side_back": 10.50, "front_side_back": 12.50},
+                    "100_plus": {"front": 9.00, "side_back": 10.00, "front_side_back": 12.00},
+                },
+                "blank_hat_premium": {
+                    "1_4":    {"front": 14.00, "side_back": 15.00, "front_side_back": 17.00},
+                    "5_24":   {"front": 13.00, "side_back": 14.00, "front_side_back": 16.00},
+                    "25_49":  {"front": 12.00, "side_back": 13.00, "front_side_back": 15.00},
+                    "50_99":  {"front": 11.50, "side_back": 12.50, "front_side_back": 14.50},
+                    "100_plus": {"front": 11.00, "side_back": 12.00, "front_side_back": 14.00},
+                },
+                "blank_visor_standard": {
+                    "1_4":    {"front": 12.00, "side_back": 13.00, "front_side_back": 15.00},
+                    "5_24":   {"front": 11.00, "side_back": 12.00, "front_side_back": 14.00},
+                    "25_49":  {"front": 10.00, "side_back": 11.00, "front_side_back": 13.00},
+                    "50_99":  {"front":  9.50, "side_back": 10.50, "front_side_back": 12.50},
+                    "100_plus": {"front": 9.00, "side_back": 10.00, "front_side_back": 12.00},
+                },
+            },
+            # ===== Add-ons =====
+            "plus_size_upcharge_per_x": 2.00,
+            "custom_name_number_garment": 4.00,
+            "custom_name_number_hat": 3.00,
+            "specialty_finish_garment": 2.00,
+            "specialty_vinyl_hat": 1.50,
+            "two_tone_hat_finish": 1.50,
+            "leather_patch_hat": 2.50,
+            "bag_and_fold_each": 1.00,
+            "basic_setup_fee": 10.00,
+            "complex_layout_fee_min": 20.00,
+            "complex_layout_fee_max": 30.00,
+            "rush_percent_min": 15.0,
+            "rush_percent_max": 20.0,
+            "default_rush_percent": 17.5,
+            # ===== Defaults / fallbacks =====
+            "default_artwork_ready": False,
+            "default_artwork_needed": False,
+            "default_design_complexity": "simple",
+            "default_setup_fee": 10.0,
+            "design_complexity_setup_fees": {"simple": 10.0, "medium": 20.0, "complex": 25.0, "extreme": 30.0},
+            "default_minimum_sell_price": 10.0,
+            "apparel_labor_minutes_per_piece": 1.5,
+            "apparel_handling_labor_minutes_per_piece": 0.5,
         },
         "services": {
             "label": "Services",
@@ -1085,6 +1302,25 @@ class JobItemPricingData(BaseModel):
     ink_colors: List[str] = Field(default_factory=list)
     size_range: str = "S-XL"
     blank_cost_override: Optional[float] = None
+
+    # Apparel — Foundation-driven fields
+    apparel_product_type: Optional[str] = None  # short_sleeve_tee, long_sleeve_tee, crewneck, hoodie, polo, hat_standard, hat_premium, visor
+    apparel_brand_style_key: Optional[str] = None  # e.g. blank_ss_gildan_5000
+    apparel_garment_color: Optional[str] = None
+    apparel_placement_set: Optional[str] = None  # front, back, front_back (garments) | front, side_back, front_side_back (hats)
+    apparel_decoration_method: Optional[str] = None  # htv, screen_print_transfer, dtf_transfer, direct_screen_print, embroidery, dtg, patch_emblem, sublimation, specialty_custom
+    apparel_decoration_subtype: Optional[str] = None
+    apparel_plus_size_count: Optional[int] = None
+    apparel_custom_name_number: Optional[bool] = None
+    apparel_custom_name_number_count: Optional[int] = None
+    apparel_specialty_finish: Optional[bool] = None
+    apparel_two_tone_hat_finish: Optional[bool] = None
+    apparel_leather_patch: Optional[bool] = None
+    apparel_bag_and_fold: Optional[bool] = None
+    apparel_num_colors: Optional[int] = None
+    apparel_stitch_count: Optional[int] = None
+    apparel_rush_percent: Optional[float] = None
+    apparel_manual_quote_override: Optional[float] = None
     
     # Vehicle Graphics
     vehicle_type: Optional[VehicleType] = None

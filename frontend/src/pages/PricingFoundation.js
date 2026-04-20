@@ -714,6 +714,7 @@ function CategoryRulesTab({ settings, onChange, canEdit, materials }) {
   const bannerHardwareOptions = ((settings?.hardware_accessories) || []).filter((h) => (h.compatible_categories || []).includes('banners'));
   const vehicleWrapMaterialOptions = (materials || []).filter((m) => m.category === 'vehicle_wrap_material');
   const vehicleWrapLaminateOptions = (materials || []).filter((m) => m.category === 'vehicle_wrap_laminate');
+  const apparelBlankOptions = (materials || []).filter((m) => m.category === 'apparel_blank');
 
   return (
     <div className="space-y-3" data-testid="category-rules-tab">
@@ -1675,6 +1676,62 @@ function CategoryRulesTab({ settings, onChange, canEdit, materials }) {
                   </div>
 
                   <p className="text-[11px] text-gray-500 italic">Install hours by vehicle + coverage and package benchmark pricing can be fine-tuned by editing the JSON on the server. Defaults ship production-ready.</p>
+                </div>
+              )}
+              {def.key === 'apparel' && (
+                <div className="space-y-4 border rounded-lg p-3 bg-slate-50" data-testid="apparel-category-defaults">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Decoration Method</Label>
+                      <Select value={cat.default_decoration_method || 'htv'} onValueChange={(v) => setCatField(def.key, 'default_decoration_method', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="ap-default-method"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {(cat.available_decoration_methods || []).map((m) => (<SelectItem key={m} value={m}>{((cat.method_config || {})[m] || {}).label || m}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <F label="Default Setup Fee" value={cat.default_setup_fee} onChg={(v) => setCatField(def.key, 'default_setup_fee', v)} testId="ap-setup-fee" />
+                    <F label="Min Sell / Item" value={cat.default_minimum_sell_price} onChg={(v) => setCatField(def.key, 'default_minimum_sell_price', v)} testId="ap-min-sell" />
+                    <F label="Default Rush %" value={cat.default_rush_percent} onChg={(v) => setCatField(def.key, 'default_rush_percent', v)} suffix="%" testId="ap-rush-percent" />
+                  </div>
+
+                  <div className="border-t pt-3">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Add-On Rates ($)</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <F label="Plus-Size / X" value={cat.plus_size_upcharge_per_x} onChg={(v) => setCatField(def.key, 'plus_size_upcharge_per_x', v)} testId="ap-plussize-rate" />
+                      <F label="Custom Name/# (Garment)" value={cat.custom_name_number_garment} onChg={(v) => setCatField(def.key, 'custom_name_number_garment', v)} testId="ap-nn-garment" />
+                      <F label="Custom Name/# (Hat)" value={cat.custom_name_number_hat} onChg={(v) => setCatField(def.key, 'custom_name_number_hat', v)} testId="ap-nn-hat" />
+                      <F label="Specialty Finish (Garment)" value={cat.specialty_finish_garment} onChg={(v) => setCatField(def.key, 'specialty_finish_garment', v)} testId="ap-specialty-garment" />
+                      <F label="Specialty Vinyl (Hat)" value={cat.specialty_vinyl_hat} onChg={(v) => setCatField(def.key, 'specialty_vinyl_hat', v)} testId="ap-specialty-hat" />
+                      <F label="Two-Tone Hat" value={cat.two_tone_hat_finish} onChg={(v) => setCatField(def.key, 'two_tone_hat_finish', v)} testId="ap-twotone" />
+                      <F label="Leather Patch (Hat)" value={cat.leather_patch_hat} onChg={(v) => setCatField(def.key, 'leather_patch_hat', v)} testId="ap-patch" />
+                      <F label="Bag & Fold" value={cat.bag_and_fold_each} onChg={(v) => setCatField(def.key, 'bag_and_fold_each', v)} testId="ap-bagfold" />
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-3">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Setup Fee by Design Complexity ($)</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {['simple','medium','complex','extreme'].map((k) => (
+                        <F key={`ap-setup-${k}`} label={k.charAt(0).toUpperCase()+k.slice(1)} value={(cat.design_complexity_setup_fees || {})[k]} onChg={(v) => setCatField(def.key, 'design_complexity_setup_fees', { ...(cat.design_complexity_setup_fees || {}), [k]: v })} testId={`ap-setup-${k}`} />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-3">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Apparel Blanks (Seeded — edit in Materials Library)</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {apparelBlankOptions.map((m) => (
+                        <div key={m.id} className="flex justify-between items-center border rounded px-2 py-1 text-[11px] bg-white">
+                          <span className="truncate">{m.name}</span>
+                          <span className="text-gray-600 font-mono">${(m.cost_per_unit || 0).toFixed(2)} / retail ${(m.retail_base_no_print || 0).toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-gray-500 italic mt-2">Add or edit blanks in the Materials Library tab (category = apparel_blank). Retail base floor enforces minimum per-piece sell.</p>
+                  </div>
+
+                  <p className="text-[11px] text-gray-500 italic">Shop quantity-table (by product × brand × tier × placement) and per-method pricing rules can be fine-tuned via server JSON. Defaults ship production-ready for HTV, Screen Print Transfer, and DTF Transfer using the uploaded shop pricing.</p>
                 </div>
               )}
               <div className="border-t pt-3">
