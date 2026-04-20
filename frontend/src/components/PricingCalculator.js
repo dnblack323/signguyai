@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -305,14 +306,14 @@ export default function PricingCalculator({
 
   const getDigitalPrintMediaOptions = () => {
     const materials = foundationDefaults?.materials || [];
-    const options = materials.filter((m) => m.category === 'print_media' || (m.compatible_categories || []).includes('digital_print'));
+    const options = materials.filter((m) => m.category === 'print_media');
     if (options.length) return options;
     return PRINT_MATERIALS.map((item) => ({ key: item.id, name: item.name }));
   };
 
   const getDigitalPrintLaminateOptions = () => {
     const materials = foundationDefaults?.materials || [];
-    return materials.filter((m) => m.category === 'laminate' || (m.compatible_categories || []).includes('digital_print'));
+    return materials.filter((m) => m.category === 'laminate');
   };
 
   const getDigitalPrintSubstrateOptions = () => {
@@ -425,8 +426,8 @@ export default function PricingCalculator({
       });
     };
 
-    applyValues(defaults, 'default');
     applyValues(aiSuggestions, 'ai');
+    applyValues(defaults, 'default');
 
     if (changed) {
       setPricingData(nextData);
@@ -978,7 +979,10 @@ export default function PricingCalculator({
                   </SelectContent>
                 </Select>
                 {pricingData.print_media_key && !selectedMedia && (
-                  <p className="text-xs text-amber-600 mt-1" data-testid="digital-print-media-warning">Missing media type. Update in Pricing Foundation.</p>
+                  <p className="text-xs text-amber-600 mt-1" data-testid="digital-print-media-warning">
+                    Missing media type. 
+                    <Link to="/pricing-foundation" className="text-amber-700 underline ml-1" data-testid="digital-print-media-add-new">Add New</Link>
+                  </p>
                 )}
               </div>
               <div>
@@ -1044,7 +1048,10 @@ export default function PricingCalculator({
                   </SelectContent>
                 </Select>
                 {pricingData.laminate && pricingData.laminate_material_key && !selectedLaminate && (
-                  <p className="text-xs text-amber-600 mt-1" data-testid="digital-print-laminate-warning">Missing laminate type. Update in Pricing Foundation.</p>
+                  <p className="text-xs text-amber-600 mt-1" data-testid="digital-print-laminate-warning">
+                    Missing laminate type.
+                    <Link to="/pricing-foundation" className="text-amber-700 underline ml-1" data-testid="digital-print-laminate-add-new">Add New</Link>
+                  </p>
                 )}
               </div>
               <div>
@@ -1159,7 +1166,10 @@ export default function PricingCalculator({
                   </SelectContent>
                 </Select>
                 {pricingData.mounted_to_substrate && pricingData.substrate_material_key && !selectedSubstrate && (
-                  <p className="text-xs text-amber-600 mt-1" data-testid="digital-print-substrate-warning">Missing substrate type. Update in Pricing Foundation.</p>
+                  <p className="text-xs text-amber-600 mt-1" data-testid="digital-print-substrate-warning">
+                    Missing substrate type.
+                    <Link to="/pricing-foundation" className="text-amber-700 underline ml-1" data-testid="digital-print-substrate-add-new">Add New</Link>
+                  </p>
                 )}
               </div>
               <div className="flex items-center gap-2 pt-6">

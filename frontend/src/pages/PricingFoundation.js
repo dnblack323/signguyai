@@ -656,10 +656,10 @@ function CategoryRulesTab({ settings, onChange, canEdit, materials }) {
   );
 
   const dpMediaOptions = (materials || []).filter((m) => (
-    m.category === 'print_media' || (m.compatible_categories || []).includes('digital_print')
+    m.category === 'print_media'
   ));
   const dpLaminateOptions = (materials || []).filter((m) => (
-    m.category === 'laminate' || (m.compatible_categories || []).includes('digital_print')
+    m.category === 'laminate'
   ));
 
   return (
