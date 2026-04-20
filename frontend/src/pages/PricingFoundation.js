@@ -712,6 +712,8 @@ function CategoryRulesTab({ settings, onChange, canEdit, materials }) {
   const bannerMaterialOptions = (materials || []).filter((m) => m.category === 'banner_material');
   const bannerCoatingOptions = (materials || []).filter((m) => m.category === 'banner_coating' || m.category === 'laminate');
   const bannerHardwareOptions = ((settings?.hardware_accessories) || []).filter((h) => (h.compatible_categories || []).includes('banners'));
+  const vehicleWrapMaterialOptions = (materials || []).filter((m) => m.category === 'vehicle_wrap_material');
+  const vehicleWrapLaminateOptions = (materials || []).filter((m) => m.category === 'vehicle_wrap_laminate');
 
   return (
     <div className="space-y-3" data-testid="category-rules-tab">
@@ -1560,6 +1562,119 @@ function CategoryRulesTab({ settings, onChange, canEdit, materials }) {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+              {def.key === 'vehicle_wraps' && (
+                <div className="space-y-4 border rounded-lg p-3 bg-slate-50" data-testid="vehicle-wraps-category-defaults">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Wrap Material</Label>
+                      <Select value={cat.default_wrap_material_key || 'wrap_standard_calendared'} onValueChange={(v) => setCatField(def.key, 'default_wrap_material_key', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="vw-default-material"><SelectValue placeholder="Select material" /></SelectTrigger>
+                        <SelectContent>
+                          {vehicleWrapMaterialOptions.map((m) => (<SelectItem key={m.key || m.id} value={m.key || m.id}>{m.name || m.key}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Laminate</Label>
+                      <Select value={cat.default_wrap_laminate_key || 'wrap_laminate_gloss'} onValueChange={(v) => setCatField(def.key, 'default_wrap_laminate_key', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="vw-default-laminate"><SelectValue placeholder="Select laminate" /></SelectTrigger>
+                        <SelectContent>
+                          {vehicleWrapLaminateOptions.map((m) => (<SelectItem key={m.key || m.id} value={m.key || m.id}>{m.name || m.key}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center space-x-2 pt-5">
+                      <Switch checked={!!cat.default_laminate_required_for_prints} onCheckedChange={(v) => setCatField(def.key, 'default_laminate_required_for_prints', v)} disabled={!canEdit} data-testid="vw-default-laminate-required" />
+                      <Label className="text-[11px] text-gray-600">Laminate Required (Prints)</Label>
+                    </div>
+                    <div className="flex items-center space-x-2 pt-5">
+                      <Switch checked={!!cat.default_install_required} onCheckedChange={(v) => setCatField(def.key, 'default_install_required', v)} disabled={!canEdit} data-testid="vw-default-install-required" />
+                      <Label className="text-[11px] text-gray-600">Install Required by Default</Label>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <F label="Min Sell Price / Item" value={cat.default_minimum_sell_price} onChg={(v) => setCatField(def.key, 'default_minimum_sell_price', v)} testId="vw-min-sell" />
+                    <F label="Base Labor Hrs / SqFt" value={cat.production_labor_hours_per_sqft} onChg={(v) => setCatField(def.key, 'production_labor_hours_per_sqft', v)} suffix="hrs" testId="vw-labor-per-sqft" />
+                    <F label="Min Labor Hrs / Item" value={cat.min_production_labor_hours_per_item} onChg={(v) => setCatField(def.key, 'min_production_labor_hours_per_item', v)} suffix="hrs" testId="vw-min-labor-item" />
+                    <F label="Install Rate / Hr" value={cat.install_rate_per_hour} onChg={(v) => setCatField(def.key, 'install_rate_per_hour', v)} testId="vw-install-rate" />
+                    <F label="Install Minimum" value={cat.install_minimum} onChg={(v) => setCatField(def.key, 'install_minimum', v)} testId="vw-install-min" />
+                    <F label="Second Installer Rate / Hr" value={cat.second_installer_rate_per_hour} onChg={(v) => setCatField(def.key, 'second_installer_rate_per_hour', v)} testId="vw-helper-rate" />
+                    <F label="Removal Consumables" value={cat.removal_consumables_allowance} onChg={(v) => setCatField(def.key, 'removal_consumables_allowance', v)} testId="vw-removal-consumables" />
+                    <F label="Rush Increase %" value={cat.rush_increase_percent} onChg={(v) => setCatField(def.key, 'rush_increase_percent', v)} suffix="%" testId="vw-rush" />
+                  </div>
+
+                  <div className="border-t pt-3">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Waste % by Coverage</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                      {['spot','partial','half','full','custom'].map((k) => (
+                        <F key={`vw-waste-${k}`} label={k.charAt(0).toUpperCase()+k.slice(1)} value={(cat.waste_by_coverage || {})[k]} onChg={(v) => setCatField(def.key, 'waste_by_coverage', { ...(cat.waste_by_coverage || {}), [k]: v })} suffix="%" testId={`vw-waste-${k}`} />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-3">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Design / Mockup Time by Coverage (hrs)</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                      {['spot','partial','half','full','custom'].map((k) => (
+                        <F key={`vw-design-${k}`} label={k.charAt(0).toUpperCase()+k.slice(1)} value={(cat.design_time_by_coverage_hours || {})[k]} onChg={(v) => setCatField(def.key, 'design_time_by_coverage_hours', { ...(cat.design_time_by_coverage_hours || {}), [k]: v })} suffix="hrs" testId={`vw-design-${k}`} />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-3">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Surface Prep (hrs) / Removal (hrs)</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {['none','basic','moderate','heavy'].map((k) => (
+                        <F key={`vw-prep-${k}`} label={`Prep: ${k}`} value={(cat.surface_prep_hours || {})[k]} onChg={(v) => setCatField(def.key, 'surface_prep_hours', { ...(cat.surface_prep_hours || {}), [k]: v })} suffix="hrs" testId={`vw-prep-${k}`} />
+                      ))}
+                      {['none','small','partial','full'].map((k) => (
+                        <F key={`vw-rem-${k}`} label={`Removal: ${k}`} value={(cat.removal_hours || {})[k]} onChg={(v) => setCatField(def.key, 'removal_hours', { ...(cat.removal_hours || {}), [k]: v })} suffix="hrs" testId={`vw-rem-${k}`} />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-3">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Install Difficulty Multipliers</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {['easy','medium','difficult','extreme'].map((k) => (
+                        <F key={`vw-diff-${k}`} label={k.charAt(0).toUpperCase()+k.slice(1)} value={(cat.install_difficulty_multipliers || {})[k]} onChg={(v) => setCatField(def.key, 'install_difficulty_multipliers', { ...(cat.install_difficulty_multipliers || {}), [k]: v })} suffix="x" testId={`vw-diff-${k}`} />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-3">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Seam / Panel Alignment Multipliers</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      {['basic','moderate','advanced'].map((k) => (
+                        <F key={`vw-seam-${k}`} label={k.charAt(0).toUpperCase()+k.slice(1)} value={(cat.seam_complexity_multipliers || {})[k]} onChg={(v) => setCatField(def.key, 'seam_complexity_multipliers', { ...(cat.seam_complexity_multipliers || {}), [k]: v })} suffix="x" testId={`vw-seam-${k}`} />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-3">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Window Perf Sell Rates ($/sqft)</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      <F label="Rear / SqFt" value={cat.window_perf_sell_rate_rear_per_sqft} onChg={(v) => setCatField(def.key, 'window_perf_sell_rate_rear_per_sqft', v)} testId="vw-perf-rear" />
+                      <F label="Side / SqFt" value={cat.window_perf_sell_rate_side_per_sqft} onChg={(v) => setCatField(def.key, 'window_perf_sell_rate_side_per_sqft', v)} testId="vw-perf-side" />
+                      <F label="Rear Area (sqft)" value={(cat.window_perf_scope_area_sqft || {}).rear} onChg={(v) => setCatField(def.key, 'window_perf_scope_area_sqft', { ...(cat.window_perf_scope_area_sqft || {}), rear: v })} testId="vw-perf-area-rear" />
+                      <F label="Side Area (sqft)" value={(cat.window_perf_scope_area_sqft || {}).side} onChg={(v) => setCatField(def.key, 'window_perf_scope_area_sqft', { ...(cat.window_perf_scope_area_sqft || {}), side: v })} testId="vw-perf-area-side" />
+                      <F label="Full Pkg Area (sqft)" value={(cat.window_perf_scope_area_sqft || {}).full} onChg={(v) => setCatField(def.key, 'window_perf_scope_area_sqft', { ...(cat.window_perf_scope_area_sqft || {}), full: v })} testId="vw-perf-area-full" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-[10px] text-gray-500">Available Wrap Material Keys (comma-sep)</Label>
+                    <Input className="h-7 text-xs" value={listToCsv(cat.available_wrap_material_keys)} onChange={(e) => setCatField(def.key, 'available_wrap_material_keys', parseCsvList(e.target.value))} placeholder="wrap_standard_calendared, wrap_premium_cast..." data-testid="vw-available-material-keys" disabled={!canEdit} />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-gray-500">Available Laminate Keys (comma-sep)</Label>
+                    <Input className="h-7 text-xs" value={listToCsv(cat.available_wrap_laminate_keys)} onChange={(e) => setCatField(def.key, 'available_wrap_laminate_keys', parseCsvList(e.target.value))} placeholder="wrap_laminate_gloss, wrap_laminate_matte..." data-testid="vw-available-laminate-keys" disabled={!canEdit} />
+                  </div>
+
+                  <p className="text-[11px] text-gray-500 italic">Install hours by vehicle + coverage and package benchmark pricing can be fine-tuned by editing the JSON on the server. Defaults ship production-ready.</p>
                 </div>
               )}
               <div className="border-t pt-3">

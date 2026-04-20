@@ -159,16 +159,8 @@ def _normalize_vehicle_coverage(coverage_type: Optional[str], coverage_percent: 
     if raw in mapping:
         return mapping[raw]
     if raw == "custom":
-        percent = float(coverage_percent or 0)
-        if percent >= 100:
-            return "full"
-        if percent >= 60:
-            return "partial"
-        if percent >= 35:
-            return "half"
-        if percent > 0:
-            return "spot"
-        return "partial"
+        # Preserve custom — the calculator handles custom_coverage_percent directly
+        return "custom"
     return raw or None
 
 
@@ -371,7 +363,18 @@ def _build_ticket_pricing_payload(ticket: dict, pricing_input: Optional[dict] = 
         "hourly_rate_override": float(specs.get("hourly_rate_override", 0) or 0) or None,
         "vehicle_type": specs.get("vehicle_type"),
         "coverage_type": coverage_type,
+        "custom_coverage_percent": float(specs.get("custom_coverage_percent", specs.get("coverage_percent", 0)) or 0) or None,
         "estimated_vehicle_sqft": float(specs.get("estimated_vehicle_sqft", 0) or 0) or None,
+        "wrap_material_key": specs.get("wrap_material_key") or specs.get("vinyl_type"),
+        "wrap_laminate_required": bool(specs.get("wrap_laminate_required")) if specs.get("wrap_laminate_required") is not None else None,
+        "wrap_laminate_type_key": specs.get("wrap_laminate_type_key") or specs.get("lamination"),
+        "window_perf_included": bool(specs.get("window_perf_included")) if specs.get("window_perf_included") is not None else None,
+        "window_perf_scope": specs.get("window_perf_scope"),
+        "surface_prep_level": specs.get("surface_prep_level") or ("basic" if specs.get("surface_prep") else None),
+        "removal_scope": specs.get("removal_scope") or ("partial" if specs.get("removal_required") else None),
+        "install_difficulty_level": specs.get("install_difficulty_level") or specs.get("install_difficulty"),
+        "seam_complexity": specs.get("seam_complexity"),
+        "second_installer_required": bool(specs.get("second_installer_required")) if specs.get("second_installer_required") is not None else None,
         "estimated_hours": float(specs.get("estimated_hours", 0) or specs.get("estimated_install_hours", 0) or 0) or None,
         "rush_order": bool(specs.get("rush_order")),
         **{k: v for k, v in incoming.items() if v is not None and k not in {"complexity"}},
@@ -828,62 +831,150 @@ def _digital_print_schema(defaults, media_opts, laminate_opts, substrate_opts):
 
 
 def _vehicle_wrap_schema(defaults, vinyl_opts, vehicle_type_opts):
-    """Full Vehicle Wrap category schema — materials from catalog."""
-    difficulty_opts = [
-        {"value": "easy", "label": "Easy"}, {"value": "moderate", "label": "Moderate"}, {"value": "complex", "label": "Complex"},
-    ]
-    lam_opts = [
-        {"value": "gloss", "label": "Gloss"}, {"value": "matte", "label": "Matte"}, {"value": "satin", "label": "Satin"},
-    ]
-    coverage_full = [
-        {"value": "full", "label": "Full Wrap (100%)"},
-        {"value": "75", "label": "Partial Wrap (75%)"},
-        {"value": "50", "label": "Partial Wrap (50%)"},
-        {"value": "25", "label": "Spot Graphics (25%)"},
+    """Full Vehicle Graphics / Wraps category schema — all options sourced from Pricing Foundation defaults."""
+    cat = (defaults.get("category_defaults", {}) or {}).get("vehicle_wraps", {}) or {}
+    materials = defaults.get("materials", []) or []
+
+    # Build foundation-backed vehicle type options
+    available_vehicle_keys = cat.get("available_vehicle_type_keys") or []
+    vehicle_options = []
+    vehicle_lookup = {m.get("key") or m.get("id"): m for m in materials if m.get("category") == "vehicle_type"}
+    for vk in available_vehicle_keys:
+        m = vehicle_lookup.get(vk)
+        if m:
+            vehicle_options.append({"value": m.get("key") or m.get("id"), "label": m.get("name") or vk})
+    if not vehicle_options:
+        vehicle_options = vehicle_type_opts or [
+            {"value": "car_sedan", "label": "Sedan"},
+            {"value": "car_suv", "label": "SUV"},
+            {"value": "pickup", "label": "Pickup"},
+            {"value": "van_mini", "label": "Mini Van"},
+            {"value": "van_cargo", "label": "Cargo Van"},
+            {"value": "van_sprinter", "label": "Sprinter Van"},
+            {"value": "box_truck_12ft", "label": "12 ft Box Truck"},
+            {"value": "box_truck_16ft", "label": "16 ft Box Truck"},
+            {"value": "box_truck_24ft", "label": "24 ft Box Truck"},
+            {"value": "trailer", "label": "Trailer"},
+            {"value": "semi", "label": "Semi"},
+            {"value": "other", "label": "Custom / Other"},
+        ]
+
+    # Wrap material options from Foundation
+    available_wrap_keys = cat.get("available_wrap_material_keys") or []
+    def _material_by_key(k):
+        return next((m for m in materials if (m.get("key") == k or m.get("id") == k) and m.get("is_active", True)), None)
+    wrap_material_options = []
+    for k in available_wrap_keys:
+        m = _material_by_key(k)
+        if m:
+            wrap_material_options.append({"value": m.get("key") or m.get("id"), "label": m.get("name") or k})
+    if not wrap_material_options:
+        wrap_material_options = [
+            {"value": "wrap_standard_calendared", "label": "Standard Calendared Vinyl"},
+            {"value": "wrap_premium_cast", "label": "Premium Cast Vinyl"},
+            {"value": "wrap_cast_film", "label": "Wrap Cast Film"},
+            {"value": "wrap_reflective", "label": "Reflective Vinyl"},
+            {"value": "wrap_etched_frost", "label": "Etched / Frost Film"},
+            {"value": "wrap_specialty_media", "label": "Specialty / Custom Vehicle Media"},
+        ]
+
+    # Laminate options from Foundation (vehicle_wrap_laminate)
+    available_lam_keys = cat.get("available_wrap_laminate_keys") or []
+    laminate_options = []
+    for k in available_lam_keys:
+        m = _material_by_key(k)
+        if m:
+            laminate_options.append({"value": m.get("key") or m.get("id"), "label": m.get("name") or k})
+    if not laminate_options:
+        laminate_options = [
+            {"value": "wrap_laminate_gloss", "label": "Gloss Wrap Laminate"},
+            {"value": "wrap_laminate_matte", "label": "Matte Wrap Laminate"},
+            {"value": "wrap_laminate_satin", "label": "Satin Wrap Laminate"},
+        ]
+
+    coverage_opts = [
+        {"value": "spot", "label": "Spot Graphics"},
+        {"value": "partial", "label": "Partial Wrap"},
+        {"value": "half", "label": "Half Wrap"},
+        {"value": "full", "label": "Full Wrap"},
         {"value": "custom", "label": "Custom %"},
     ]
-    area_opts = [
-        {"value": "hood", "label": "Hood"}, {"value": "roof", "label": "Roof"},
-        {"value": "driver_side", "label": "Driver Side"}, {"value": "passenger_side", "label": "Passenger Side"},
-        {"value": "rear", "label": "Rear"}, {"value": "windows_perf", "label": "Windows (Perf)"},
-        {"value": "tailgate", "label": "Tailgate"}, {"value": "bumper", "label": "Bumper"},
-    ]
+
+    default_vehicle = vehicle_options[0]["value"] if vehicle_options else "van_cargo"
+    default_coverage = cat.get("default_coverage_type", "spot")
+    default_material = cat.get("default_wrap_material_key", "wrap_standard_calendared")
+    default_laminate_required = bool(cat.get("default_laminate_required_for_prints", True))
+    default_laminate_key = cat.get("default_wrap_laminate_key", "wrap_laminate_gloss")
+    default_install_difficulty = cat.get("default_install_difficulty", "medium")
+    default_seam = cat.get("default_seam_complexity", "basic")
+    default_surface_prep = cat.get("default_surface_prep", "none")
+    default_removal = cat.get("default_removal_scope", "none")
+    default_design_complexity = cat.get("default_design_complexity", "medium")
+    default_second_installer = bool(cat.get("default_second_installer_required", False))
+    default_perf_included = bool(cat.get("default_window_perf_included", False))
+    default_perf_scope = cat.get("default_window_perf_scope", "rear")
+    default_install_required = bool(cat.get("default_install_required", True))
+
     return [
-        # Vehicle Information
-        {"key": "vehicle_type", "label": "Vehicle Type", "type": "select", "options": vehicle_type_opts, "group": "vehicle_info", "required": True, "pricing": True},
+        # Vehicle Info
+        {"key": "vehicle_type", "label": "Vehicle Type", "type": "select", "options": vehicle_options, "default": default_vehicle, "group": "vehicle_info", "required": True, "pricing": True},
         {"key": "vehicle_year", "label": "Year", "type": "text", "placeholder": "2024", "group": "vehicle_info"},
         {"key": "vehicle_make", "label": "Make", "type": "text", "placeholder": "Ford, Chevy, Ram", "group": "vehicle_info"},
         {"key": "vehicle_model", "label": "Model", "type": "text", "placeholder": "Transit, Silverado", "group": "vehicle_info"},
-        {"key": "vehicle_notes", "label": "Existing Damage / Notes", "type": "textarea", "group": "vehicle_info"},
         # Coverage
-        {"key": "coverage_type", "label": "Coverage Level", "type": "select", "options": coverage_full, "group": "coverage", "required": True, "pricing": True},
-        {"key": "coverage_percent", "label": "Coverage % (if custom)", "type": "number", "placeholder": "100", "group": "coverage", "pricing": True},
-        {"key": "areas_covered", "label": "Areas Covered", "type": "location_picker", "options": area_opts, "group": "coverage", "pricing": True},
-        # Material & Print
-        {"key": "vinyl_type", "label": "Vinyl Type", "type": "select", "options": vinyl_opts, "group": "material_print", "required": True, "pricing": True},
-        {"key": "lamination", "label": "Lamination", "type": "select", "options": lam_opts, "group": "material_print", "pricing": True},
-        {"key": "print_quality", "label": "Print Quality", "type": "select", "options": [{"value": "standard", "label": "Standard"}, {"value": "high", "label": "High Quality"}], "default": "standard", "group": "material_print"},
-        {"key": "color_notes", "label": "Color / Design Notes", "type": "textarea", "group": "material_print"},
-        # Paneling & Production
-        {"key": "paneling_method", "label": "Paneling Method", "type": "select", "options": [{"value": "auto", "label": "Auto Paneling"}, {"value": "manual", "label": "Manual Paneling"}], "default": "auto", "group": "paneling"},
-        {"key": "num_panels", "label": "Number of Panels", "type": "number", "placeholder": "Auto", "group": "paneling"},
-        {"key": "contour_cuts", "label": "Contour Cuts Required", "type": "toggle", "default": False, "group": "paneling", "pricing": True},
-        # Installation
-        {"key": "install_required", "label": "Install Required", "type": "toggle", "default": True, "group": "installation", "pricing": True},
-        {"key": "install_location", "label": "Install Location", "type": "select", "options": [{"value": "in_house", "label": "In-House"}, {"value": "on_site", "label": "On-Site"}], "default": "in_house", "group": "installation"},
-        {"key": "install_difficulty", "label": "Install Difficulty", "type": "select", "options": difficulty_opts, "default": "moderate", "group": "installation", "pricing": True},
-        {"key": "estimated_install_hours", "label": "Estimated Install Hours", "type": "number", "placeholder": "Auto", "group": "installation", "pricing": True},
-        {"key": "removal_required", "label": "Removal Required", "type": "toggle", "default": False, "group": "installation", "pricing": True},
-        {"key": "surface_prep", "label": "Surface Prep Required", "type": "toggle", "default": False, "group": "installation", "pricing": True},
-        # Design & Complexity
-        {"key": "artwork_provided", "label": "Artwork Provided", "type": "toggle", "default": False, "group": "design"},
-        {"key": "design_complexity", "label": "Design Complexity", "type": "select", "options": [{"value": "simple", "label": "Simple"}, {"value": "moderate", "label": "Moderate"}, {"value": "complex", "label": "Complex"}], "default": "moderate", "group": "design", "pricing": True},
-        {"key": "num_revisions", "label": "Expected Revisions", "type": "number", "placeholder": "2", "group": "design"},
-        {"key": "mockups_required", "label": "Mockups Required", "type": "toggle", "default": True, "group": "design", "pricing": True},
+        {"key": "coverage_type", "label": "Coverage Type", "type": "select", "options": coverage_opts, "default": default_coverage, "group": "coverage", "required": True, "pricing": True},
+        {"key": "custom_coverage_percent", "label": "Custom Coverage % (if custom)", "type": "number", "placeholder": "e.g. 65", "group": "coverage", "pricing": True},
+        {"key": "estimated_vehicle_sqft", "label": "Override Estimated Sq Ft", "type": "number", "placeholder": "Auto from vehicle type", "group": "coverage", "pricing": True},
+        # Material
+        {"key": "wrap_material_key", "label": "Wrap Material", "type": "select", "options": wrap_material_options, "default": default_material, "group": "material", "required": True, "pricing": True},
+        {"key": "wrap_laminate_required", "label": "Laminate Required?", "type": "toggle", "default": default_laminate_required, "group": "material", "pricing": True},
+        {"key": "wrap_laminate_type_key", "label": "Laminate Type", "type": "select", "options": laminate_options, "default": default_laminate_key, "group": "material", "pricing": True},
+        # Window Perf
+        {"key": "window_perf_included", "label": "Window Perf Included?", "type": "toggle", "default": default_perf_included, "group": "window_perf", "pricing": True},
+        {"key": "window_perf_scope", "label": "Window Perf Scope", "type": "select", "options": [
+            {"value": "rear", "label": "Rear Only"},
+            {"value": "side", "label": "Side Windows"},
+            {"value": "full", "label": "Full Window Package"},
+        ], "default": default_perf_scope, "group": "window_perf", "pricing": True},
+        # Design
+        {"key": "artwork_ready", "label": "Artwork Ready?", "type": "toggle", "default": False, "group": "design", "pricing": True},
+        {"key": "artwork_needed", "label": "Artwork Needed?", "type": "toggle", "default": True, "group": "design", "pricing": True},
+        {"key": "design_complexity", "label": "Design Complexity", "type": "select", "options": [
+            {"value": "simple", "label": "Simple"},
+            {"value": "medium", "label": "Medium"},
+            {"value": "complex", "label": "Complex"},
+            {"value": "extreme", "label": "Extreme"},
+        ], "default": default_design_complexity, "group": "design", "pricing": True},
+        # Prep / Removal
+        {"key": "surface_prep_level", "label": "Surface Prep Required", "type": "select", "options": [
+            {"value": "none", "label": "None"},
+            {"value": "basic", "label": "Basic"},
+            {"value": "moderate", "label": "Moderate"},
+            {"value": "heavy", "label": "Heavy"},
+        ], "default": default_surface_prep, "group": "prep_removal", "pricing": True},
+        {"key": "removal_scope", "label": "Removal Required", "type": "select", "options": [
+            {"value": "none", "label": "None"},
+            {"value": "small", "label": "Small"},
+            {"value": "partial", "label": "Partial"},
+            {"value": "full", "label": "Full"},
+        ], "default": default_removal, "group": "prep_removal", "pricing": True},
+        # Install
+        {"key": "install_required", "label": "Install Required?", "type": "toggle", "default": default_install_required, "group": "install", "pricing": True},
+        {"key": "install_difficulty_level", "label": "Install Difficulty", "type": "select", "options": [
+            {"value": "easy", "label": "Easy"},
+            {"value": "medium", "label": "Medium"},
+            {"value": "difficult", "label": "Difficult"},
+            {"value": "extreme", "label": "Extreme"},
+        ], "default": default_install_difficulty, "group": "install", "pricing": True},
+        {"key": "seam_complexity", "label": "Panel / Seam Alignment", "type": "select", "options": [
+            {"value": "basic", "label": "Basic"},
+            {"value": "moderate", "label": "Moderate"},
+            {"value": "advanced", "label": "Advanced"},
+        ], "default": default_seam, "group": "install", "pricing": True},
+        {"key": "second_installer_required", "label": "Second Installer?", "type": "toggle", "default": default_second_installer, "group": "install", "pricing": True},
         # Production
-        {"key": "rush_order", "label": "Rush Order", "type": "toggle", "default": False, "group": "production", "pricing": True},
-        {"key": "outsourced_print", "label": "Outsourced Print", "type": "toggle", "default": False, "group": "production"},
-        {"key": "outsourced_install", "label": "Outsourced Install", "type": "toggle", "default": False, "group": "production"},
+        {"key": "rush_order", "label": "Rush?", "type": "toggle", "default": False, "group": "production", "pricing": True},
+        {"key": "vehicle_notes", "label": "Existing Damage / Notes", "type": "textarea", "group": "production"},
     ]
 
 

@@ -149,6 +149,7 @@ class CoverageType(str, Enum):
     PARTIAL = "partial"
     HALF = "half"
     FULL = "full"
+    CUSTOM = "custom"
 
 class PromoProductType(str, Enum):
     MAGNETS = "magnets"

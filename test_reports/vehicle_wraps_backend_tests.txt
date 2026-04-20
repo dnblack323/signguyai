@@ -1,0 +1,120 @@
+=== T1 Baseline SUV Full Premium Cast ===
+  sell=$9334.12  mat=$920.00  lab=$2348.25  over=$620.97  profit=$5444.90  margin=58.3%
+  vtype=car_suv cov=full custom%=None waste=15.0% area=200.0
+  vinyl=$632.50  lam_req=True lam=$287.50  perf_sell=$0.00
+  design_hrs=3.75 prep_hrs=0.0 removal_hrs=0.0 install_hrs=17.5 install_cost=$1312.50 helper=$0.00
+  pkg_total=$3500.00  cost_plus=$9334.12  method=max_of_package_or_cost_plus
+=== T2 Vehicle Type change -> Box 24ft Full ===
+  sell=$23312.81  mat=$2990.00  lab=$5172.75  over=$1550.92  profit=$13599.14  margin=58.3%
+  vtype=box_truck_24ft cov=full custom%=None waste=15.0% area=650.0
+  vinyl=$2055.62  lam_req=True lam=$934.37  perf_sell=$0.00
+  design_hrs=3.75 prep_hrs=0.0 removal_hrs=0.0 install_hrs=35.0 install_cost=$2625.00 helper=$0.00
+  pkg_total=$6500.00  cost_plus=$23312.81  method=max_of_package_or_cost_plus
+=== T3 Coverage -> spot (SUV) ===
+  sell=$1059.97  mat=$88.00  lab=$283.14  over=$70.52  profit=$618.32  margin=58.3%
+  vtype=car_suv cov=spot custom%=None waste=10.0% area=20.0
+  vinyl=$60.50  lam_req=True lam=$27.50  perf_sell=$0.00
+  design_hrs=0.94 prep_hrs=0.0 removal_hrs=0.0 install_hrs=1.25 install_cost=$125.00 helper=$0.00
+  pkg_total=$218.75  cost_plus=$1059.97  method=max_of_package_or_cost_plus
+=== T4 Custom 60% (SUV) ===
+  sell=$5974.89  mat=$537.60  lab=$1554.45  over=$397.49  profit=$3485.36  margin=58.3%
+  vtype=car_suv cov=full custom%=60.0 waste=12.0% area=120.0
+  vinyl=$369.60  lam_req=True lam=$168.00  perf_sell=$0.00
+  design_hrs=3.75 prep_hrs=0.0 removal_hrs=0.0 install_hrs=10.5 install_cost=$787.50 helper=$0.00
+  pkg_total=$2100.00  cost_plus=$5974.89  method=max_of_package_or_cost_plus
+=== T5 Material change -> Calendared ===
+  sell=$8513.02  mat=$632.50  lab=$2348.25  over=$566.34  profit=$4965.93  margin=58.3%
+  vtype=car_suv cov=full custom%=None waste=15.0% area=200.0
+  vinyl=$345.00  lam_req=True lam=$287.50  perf_sell=$0.00
+  design_hrs=3.75 prep_hrs=0.0 removal_hrs=0.0 install_hrs=17.5 install_cost=$1312.50 helper=$0.00
+  pkg_total=$3500.00  cost_plus=$8513.02  method=max_of_package_or_cost_plus
+=== T6 Laminate OFF ===
+  sell=$8513.02  mat=$632.50  lab=$2348.25  over=$566.34  profit=$4965.93  margin=58.3%
+  vtype=car_suv cov=full custom%=None waste=15.0% area=200.0
+  vinyl=$632.50  lam_req=False lam=$0.00  perf_sell=$0.00
+  design_hrs=3.75 prep_hrs=0.0 removal_hrs=0.0 install_hrs=17.5 install_cost=$1312.50 helper=$0.00
+  pkg_total=$3500.00  cost_plus=$8513.02  method=max_of_package_or_cost_plus
+=== T7 Laminate type -> satin ===
+  sell=$9399.81  mat=$943.00  lab=$2348.25  over=$625.34  profit=$5483.22  margin=58.3%
+  vtype=car_suv cov=full custom%=None waste=15.0% area=200.0
+  vinyl=$632.50  lam_req=True lam=$310.50  perf_sell=$0.00
+  design_hrs=3.75 prep_hrs=0.0 removal_hrs=0.0 install_hrs=17.5 install_cost=$1312.50 helper=$0.00
+  pkg_total=$3500.00  cost_plus=$9399.81  method=max_of_package_or_cost_plus
+=== T8 Window Perf ON rear ===
+  sell=$1187.08  mat=$110.00  lab=$192.20  over=$57.42  profit=$827.47  margin=69.7%
+  vtype=car_suv cov=spot custom%=None waste=10.0% area=20.0
+  vinyl=$60.50  lam_req=False lam=$0.00  perf_sell=$324.00
+  design_hrs=0.0 prep_hrs=0.0 removal_hrs=0.0 install_hrs=1.25 install_cost=$125.00 helper=$0.00
+  pkg_total=$218.75  cost_plus=$863.08  method=max_of_package_or_cost_plus
+=== T9 Window Perf scope -> side ===
+  sell=$1111.67  mat=$99.00  lab=$192.20  over=$55.33  profit=$765.14  margin=68.8%
+  vtype=car_suv cov=spot custom%=None waste=10.0% area=20.0
+  vinyl=$60.50  lam_req=False lam=$0.00  perf_sell=$280.00
+  design_hrs=0.0 prep_hrs=0.0 removal_hrs=0.0 install_hrs=1.25 install_cost=$125.00 helper=$0.00
+  pkg_total=$218.75  cost_plus=$831.67  method=max_of_package_or_cost_plus
+=== T10 Design complexity -> complex ===
+  sell=$9541.90  mat=$920.00  lab=$2421.00  over=$634.79  profit=$5566.11  margin=58.3%
+  vtype=car_suv cov=full custom%=None waste=15.0% area=200.0
+  vinyl=$632.50  lam_req=True lam=$287.50  perf_sell=$0.00
+  design_hrs=4.5 prep_hrs=0.0 removal_hrs=0.0 install_hrs=17.5 install_cost=$1312.50 helper=$0.00
+  pkg_total=$3500.00  cost_plus=$9541.90  method=max_of_package_or_cost_plus
+=== T11 Surface Prep -> moderate ===
+  sell=$9394.10  mat=$920.00  lab=$2369.25  over=$624.96  profit=$5479.89  margin=58.3%
+  vtype=car_suv cov=full custom%=None waste=15.0% area=200.0
+  vinyl=$632.50  lam_req=True lam=$287.50  perf_sell=$0.00
+  design_hrs=3.75 prep_hrs=0.75 removal_hrs=0.0 install_hrs=17.5 install_cost=$1312.50 helper=$0.00
+  pkg_total=$3500.00  cost_plus=$9394.10  method=max_of_package_or_cost_plus
+=== T12 Removal -> full ===
+  sell=$10099.53  mat=$928.00  lab=$2608.25  over=$671.89  profit=$5891.39  margin=58.3%
+  vtype=car_suv cov=full custom%=None waste=15.0% area=200.0
+  vinyl=$632.50  lam_req=True lam=$287.50  perf_sell=$0.00
+  design_hrs=3.75 prep_hrs=0.0 removal_hrs=4.0 install_hrs=17.5 install_cost=$1312.50 helper=$0.00
+  pkg_total=$3500.00  cost_plus=$10099.53  method=max_of_package_or_cost_plus
+=== T13 Install OFF ===
+  sell=$5585.62  mat=$920.00  lab=$1035.75  over=$371.59  profit=$3258.28  margin=58.3%
+  vtype=car_suv cov=full custom%=None waste=15.0% area=200.0
+  vinyl=$632.50  lam_req=True lam=$287.50  perf_sell=$0.00
+  design_hrs=3.75 prep_hrs=0.0 removal_hrs=0.0 install_hrs=0.0 install_cost=$0.00 helper=$0.00
+  pkg_total=$2800.00  cost_plus=$5585.62  method=max_of_package_or_cost_plus
+=== T14 Install diff -> extreme ===
+  sell=$11583.22  mat=$920.00  lab=$3135.75  over=$770.59  profit=$6756.88  margin=58.3%
+  vtype=car_suv cov=full custom%=None waste=15.0% area=200.0
+  vinyl=$632.50  lam_req=True lam=$287.50  perf_sell=$0.00
+  design_hrs=3.75 prep_hrs=0.0 removal_hrs=0.0 install_hrs=28.0 install_cost=$2100.00 helper=$0.00
+  pkg_total=$5600.00  cost_plus=$11583.22  method=max_of_package_or_cost_plus
+=== T15 Seam complexity -> advanced ===
+  sell=$10458.67  mat=$920.00  lab=$2742.00  over=$695.78  profit=$6100.89  margin=58.3%
+  vtype=car_suv cov=full custom%=None waste=15.0% area=200.0
+  vinyl=$632.50  lam_req=True lam=$287.50  perf_sell=$0.00
+  design_hrs=3.75 prep_hrs=0.0 removal_hrs=0.0 install_hrs=22.75 install_cost=$1706.25 helper=$0.00
+  pkg_total=$4550.00  cost_plus=$10458.67  method=max_of_package_or_cost_plus
+=== T16 Second Installer ON ===
+  sell=$11083.42  mat=$920.00  lab=$2960.75  over=$737.34  profit=$6465.33  margin=58.3%
+  vtype=car_suv cov=full custom%=None waste=15.0% area=200.0
+  vinyl=$632.50  lam_req=True lam=$287.50  perf_sell=$0.00
+  design_hrs=3.75 prep_hrs=0.0 removal_hrs=0.0 install_hrs=17.5 install_cost=$1312.50 helper=$612.50
+  pkg_total=$3500.00  cost_plus=$11083.42  method=max_of_package_or_cost_plus
+=== T17 Rush ON ===
+  sell=$12134.36  mat=$920.00  lab=$2348.25  over=$620.97  profit=$8245.14  margin=67.9%
+  vtype=car_suv cov=full custom%=None waste=15.0% area=200.0
+  vinyl=$632.50  lam_req=True lam=$287.50  perf_sell=$0.00
+  design_hrs=3.75 prep_hrs=0.0 removal_hrs=0.0 install_hrs=17.5 install_cost=$1312.50 helper=$0.00
+  pkg_total=$3500.00  cost_plus=$9334.12  method=max_of_package_or_cost_plus
+=== T18 Quantity 3 ===
+  sell=$25924.63  mat=$2760.00  lab=$6317.25  over=$1724.68  profit=$15122.70  margin=58.3%
+  vtype=car_suv cov=full custom%=None waste=15.0% area=200.0
+  vinyl=$1897.50  lam_req=True lam=$862.50  perf_sell=$0.00
+  design_hrs=3.75 prep_hrs=0.0 removal_hrs=0.0 install_hrs=52.5 install_cost=$3937.50 helper=$0.00
+  pkg_total=$10500.00  cost_plus=$25924.63  method=max_of_package_or_cost_plus
+=== T19 Artwork Ready = true (design=0) ===
+  sell=$8295.25  mat=$920.00  lab=$1984.50  over=$551.86  profit=$4838.90  margin=58.3%
+  vtype=car_suv cov=full custom%=None waste=15.0% area=200.0
+  vinyl=$632.50  lam_req=True lam=$287.50  perf_sell=$0.00
+  design_hrs=0.0 prep_hrs=0.0 removal_hrs=0.0 install_hrs=17.5 install_cost=$1312.50 helper=$0.00
+  pkg_total=$3500.00  cost_plus=$8295.25  method=max_of_package_or_cost_plus
+=== T20 Unknown material (warn fallback) ===
+  sell=$8513.02  mat=$632.50  lab=$2348.25  over=$566.34  profit=$4965.93  margin=58.3%
+  vtype=car_suv cov=full custom%=None waste=15.0% area=200.0
+  vinyl=$345.00  lam_req=True lam=$287.50  perf_sell=$0.00
+  design_hrs=3.75 prep_hrs=0.0 removal_hrs=0.0 install_hrs=17.5 install_cost=$1312.50 helper=$0.00
+  pkg_total=$3500.00  cost_plus=$8513.02  method=max_of_package_or_cost_plus

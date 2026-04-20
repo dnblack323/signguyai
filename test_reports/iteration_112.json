@@ -1,0 +1,51 @@
+{
+  "summary": "Vehicle Graphics / Wraps category end-to-end verification. Backend pytest: 20/20 PASSED. Frontend: PricingCalculator VG card renders all 18 vw-* controls, live calculation produces full breakdown (vinyl_material_cost, laminate_material_cost, window_perf_sell, install_labor_cost, helper_cost, package_price_total, cost_plus_price, design_hours, surface_prep_hours, removal_hours, etc.). PricingFoundation -> Category Rules -> Vehicle Graphics/Wraps admin card renders all foundation fields (default wrap material/laminate, install rate, helper rate, rush %, waste % by coverage, design time by coverage, prep/removal hours, install difficulty multipliers, seam multipliers, window perf sell rates, available wrap material/laminate keys).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_vehicle_graphics.py",
+    "/app/test_reports/pytest/vehicle_graphics_results.xml",
+    "/app/test_reports/vehicle_wraps_backend_tests.txt"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Backend /api/pricing/calculate expects 'quantity' at payload root, not inside pricing_data. Frontend (PricingCalculator.js line 947) already sends it at root - consistent. Any future callers should follow same convention.",
+    "For unknown wrap_material_key or wrap_laminate_type_key, backend falls back to calendared/gloss and returns a warning in breakdown (wrap_material_warning/laminate_warning). Good defensive handling.",
+    "Frontend WRAP_MATERIAL_DEFAULTS and WRAP_LAMINATE_DEFAULTS keys match backend seeded keys (wrap_premium_cast, wrap_laminate_gloss, etc.) - no key mismatch bug.",
+    "PricingCalculator.js is now 3298 lines - exceeds 700-line guideline; consider splitting category-specific UI into separate components for maintainability."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_vehicle_graphics.py"
+  ],
+  "success_rate": {"backend": "100% (20/20)", "frontend": "100%"},
+  "test_credentials": "signguypa@gmail.com / Billnel323",
+  "seed_data_creation": "None - calculation endpoint is pure/stateless",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Vehicle Graphics / Wraps category (pricing) fully verified. Backend regression suite lives at /app/backend/tests/test_vehicle_graphics.py and covers 20 scenarios: defaults/schema, vehicle type, coverage (spot/full/custom), material, laminate toggle, laminate type, window perf rear/side, design complexity, surface prep, removal, install on/off, install difficulty, seam complexity, second installer, rush, quantity. Test uses backend-seeded material keys like 'wrap_premium_cast' and 'wrap_laminate_gloss' (NOT short forms). Quantity must be at payload root. All breakdown fields from spec present in API response.",
+  "features_verified": {
+    "backend_calculate_returns_all_breakdown_fields": "PASS",
+    "vehicle_type_change_scales_install_hours_and_package": "PASS (sedan vs box_truck_24ft)",
+    "coverage_spot_vs_full": "PASS",
+    "custom_coverage_65pct_interpolates": "PASS (between spot and full)",
+    "material_calendared_vs_cast_film": "PASS (vinyl cost increases)",
+    "laminate_toggle_on_off": "PASS (off=$0)",
+    "laminate_type_gloss_vs_satin": "PASS ($287.50 vs $310.50)",
+    "window_perf_rear": "PASS (~$324)",
+    "window_perf_side": "PASS (~$280)",
+    "design_complexity_multiplier": "PASS",
+    "surface_prep_hours": "PASS",
+    "removal_hours_and_consumables": "PASS",
+    "install_required_false_zeros_labor": "PASS",
+    "install_difficulty_multiplier": "PASS",
+    "seam_complexity_multiplier": "PASS",
+    "second_installer_helper_cost_equals_hours_times_35": "PASS",
+    "rush_order_increases_price_notably": "PASS",
+    "quantity_scales_totals": "PASS",
+    "schema_vehicle_wrap_20plus_fields": "PASS",
+    "pricing_defaults_vehicle_wraps_block": "PASS",
+    "frontend_vg_card_renders_18_vw_testids": "PASS",
+    "frontend_live_breakdown_display": "PASS (Final Price $4,764.52 with full breakdown)",
+    "foundation_admin_card_all_fields": "PASS"
+  }
+}

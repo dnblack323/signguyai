@@ -146,6 +146,17 @@ class PricingDefaults(BaseModel):
         {"id": "bn-custom", "key": "banner_custom", "name": "Specialty / Custom Banner Material", "category": "banner_material", "cost_per_unit": 2.00, "cost_per_sqft": 2.00, "sell_rate_per_sqft": 12.0, "unit_type": "sqft", "compatible_categories": ["banners"], "is_active": True},
         {"id": "bn-print-consumable", "key": "banner_print_consumable", "name": "Banner Print Consumable (ink/wear)", "category": "banner_consumable", "cost_per_unit": 0.75, "cost_per_sqft": 0.75, "unit_type": "sqft", "compatible_categories": ["banners"], "is_active": True},
         {"id": "bn-laminate-coating", "key": "banner_laminate_coating", "name": "Optional Laminate / Coating", "category": "banner_coating", "cost_per_unit": 0.60, "cost_per_sqft": 0.60, "unit_type": "sqft", "compatible_categories": ["banners"], "is_active": True},
+        # ===== Vehicle Wraps Materials =====
+        {"id": "vw-calendared", "key": "wrap_standard_calendared", "name": "Standard Calendared Vinyl", "category": "vehicle_wrap_material", "cost_per_unit": 1.50, "cost_per_sqft": 1.50, "sell_rate_per_sqft": 9.0, "unit_type": "sqft", "compatible_categories": ["vehicle_wraps"], "is_active": True},
+        {"id": "vw-premium-cast", "key": "wrap_premium_cast", "name": "Premium Cast Vinyl", "category": "vehicle_wrap_material", "cost_per_unit": 2.75, "cost_per_sqft": 2.75, "sell_rate_per_sqft": 14.0, "unit_type": "sqft", "compatible_categories": ["vehicle_wraps"], "is_active": True},
+        {"id": "vw-cast-film", "key": "wrap_cast_film", "name": "Wrap Cast Film", "category": "vehicle_wrap_material", "cost_per_unit": 3.50, "cost_per_sqft": 3.50, "sell_rate_per_sqft": 18.0, "unit_type": "sqft", "compatible_categories": ["vehicle_wraps"], "is_active": True},
+        {"id": "vw-reflective", "key": "wrap_reflective", "name": "Reflective Vinyl (Wrap)", "category": "vehicle_wrap_material", "cost_per_unit": 5.00, "cost_per_sqft": 5.00, "sell_rate_per_sqft": 24.0, "unit_type": "sqft", "compatible_categories": ["vehicle_wraps"], "is_active": True},
+        {"id": "vw-etched-frost", "key": "wrap_etched_frost", "name": "Etched / Frost Film", "category": "vehicle_wrap_material", "cost_per_unit": 2.75, "cost_per_sqft": 2.75, "sell_rate_per_sqft": 14.0, "unit_type": "sqft", "compatible_categories": ["vehicle_wraps"], "is_active": True},
+        {"id": "vw-specialty", "key": "wrap_specialty_media", "name": "Specialty / Custom Vehicle Media", "category": "vehicle_wrap_material", "cost_per_unit": 4.00, "cost_per_sqft": 4.00, "sell_rate_per_sqft": 20.0, "unit_type": "sqft", "compatible_categories": ["vehicle_wraps"], "is_active": True},
+        {"id": "vw-laminate-gloss", "key": "wrap_laminate_gloss", "name": "Gloss Wrap Laminate", "category": "vehicle_wrap_laminate", "cost_per_unit": 1.25, "cost_per_sqft": 1.25, "unit_type": "sqft", "compatible_categories": ["vehicle_wraps"], "is_active": True},
+        {"id": "vw-laminate-matte", "key": "wrap_laminate_matte", "name": "Matte Wrap Laminate", "category": "vehicle_wrap_laminate", "cost_per_unit": 1.25, "cost_per_sqft": 1.25, "unit_type": "sqft", "compatible_categories": ["vehicle_wraps"], "is_active": True},
+        {"id": "vw-laminate-satin", "key": "wrap_laminate_satin", "name": "Satin Wrap Laminate", "category": "vehicle_wrap_laminate", "cost_per_unit": 1.35, "cost_per_sqft": 1.35, "unit_type": "sqft", "compatible_categories": ["vehicle_wraps"], "is_active": True},
+        {"id": "vw-window-perf", "key": "wrap_window_perf", "name": "Window Perf Film", "category": "vehicle_wrap_perf", "cost_per_unit": 2.50, "cost_per_sqft": 2.50, "sell_rate_per_sqft": 18.0, "unit_type": "sqft", "compatible_categories": ["vehicle_wraps"], "is_active": True},
         {"id": "apparel-tshirt", "key": "tshirt", "name": "T-Shirt", "category": "apparel", "cost_per_unit": 4.5, "unit_type": "each", "is_active": True},
         {"id": "apparel-hoodie", "key": "hoodie", "name": "Hoodie", "category": "apparel", "cost_per_unit": 18.0, "unit_type": "each", "is_active": True},
         {"id": "apparel-hat", "key": "hat", "name": "Hat/Cap", "category": "apparel", "cost_per_unit": 8.0, "unit_type": "each", "is_active": True},
@@ -374,12 +385,110 @@ class PricingDefaults(BaseModel):
             "default_labor_hours_per_sqft": 0.12,
             "default_markup_multiplier": 2.4,
             "target_profit_margin_percent": 42.0,
-            "minimum_charge": 850.0,
-            "default_material_keys": ["vinyl", "laminate", "ink"],
+            "minimum_charge": 150.0,
+            "default_material_keys": ["wrap_standard_calendared", "wrap_laminate_gloss"],
             "default_hardware_keys": [],
             "default_labor_types": ["installation", "design"],
             "sell_rate_defaults": {},
             "ai_prefill_overrides": {},
+            # Materials foundation
+            "default_wrap_material_key": "wrap_standard_calendared",
+            "available_wrap_material_keys": [
+                "wrap_standard_calendared",
+                "wrap_premium_cast",
+                "wrap_cast_film",
+                "wrap_reflective",
+                "wrap_etched_frost",
+                "wrap_specialty_media",
+            ],
+            "default_wrap_laminate_key": "wrap_laminate_gloss",
+            "available_wrap_laminate_keys": [
+                "wrap_laminate_gloss",
+                "wrap_laminate_matte",
+                "wrap_laminate_satin",
+            ],
+            "window_perf_material_key": "wrap_window_perf",
+            # Defaults
+            "default_graphic_type": "spot",
+            "default_coverage_type": "spot",
+            "default_laminate_required_for_prints": True,
+            "default_laminate_required_for_lettering": False,
+            "default_install_included_by_subtype": {"spot": True, "partial": True, "half": True, "full": True, "custom": True},
+            "default_minimum_sell_price": 150.0,
+            # Waste by coverage
+            "waste_percentage": 12.0,
+            "waste_by_coverage": {"spot": 10.0, "partial": 12.0, "half": 12.0, "full": 15.0, "custom": 12.0},
+            # Base production labor
+            "production_labor_hours_per_sqft": 0.12,
+            "min_production_labor_hours_per_item": 1.0,
+            # Design/mockup by coverage
+            "design_time_by_coverage_hours": {"spot": 0.75, "partial": 1.5, "half": 2.0, "full": 3.0, "custom": 1.5},
+            "design_complexity_multipliers": {"simple": 1.0, "medium": 1.25, "complex": 1.5, "extreme": 2.0},
+            # Surface prep / removal
+            "surface_prep_hours": {"none": 0, "basic": 0.25, "moderate": 0.75, "heavy": 1.5},
+            "removal_hours": {"none": 0, "small": 0.5, "partial": 2.0, "full": 4.0},
+            "removal_consumables_allowance": 8.0,
+            # Install rates
+            "install_rate_per_hour": 75.0,
+            "install_minimum": 125.0,
+            "second_installer_rate_per_hour": 35.0,
+            # Install hours by vehicle type + coverage
+            "install_hours_by_vehicle_coverage": {
+                "car_sedan": {"spot": 0.75, "partial": 3.0, "half": 6.0, "full": 12.0},
+                "car_suv": {"spot": 1.0, "partial": 4.0, "half": 7.0, "full": 14.0},
+                "pickup": {"spot": 1.0, "partial": 4.0, "half": 7.0, "full": 14.0},
+                "van_mini": {"spot": 1.0, "partial": 4.0, "half": 7.0, "full": 14.0},
+                "van_cargo": {"spot": 1.5, "partial": 5.0, "half": 9.0, "full": 18.0},
+                "van_sprinter": {"spot": 1.5, "partial": 5.0, "half": 9.0, "full": 18.0},
+                "box_truck_12ft": {"spot": 1.5, "partial": 6.0, "half": 10.0, "full": 20.0},
+                "box_truck_16ft": {"spot": 2.0, "partial": 7.0, "half": 12.0, "full": 24.0},
+                "box_truck_24ft": {"spot": 2.5, "partial": 8.5, "half": 14.0, "full": 28.0},
+                "trailer": {"spot": 1.5, "partial": 6.0, "half": 10.0, "full": 20.0},
+                "semi": {"spot": 3.0, "partial": 10.0, "half": 16.0, "full": 32.0},
+                "other": {"spot": 1.0, "partial": 4.0, "half": 7.0, "full": 14.0},
+            },
+            # Complexity multipliers
+            "install_difficulty_multipliers": {"easy": 1.0, "medium": 1.25, "difficult": 1.5, "extreme": 2.0},
+            "seam_complexity_multipliers": {"basic": 1.0, "moderate": 1.15, "advanced": 1.3},
+            # Package benchmark sell pricing (by vehicle type + coverage)
+            "package_pricing_by_vehicle_coverage": {
+                "car_sedan": {"spot": 150, "partial": 650, "half": 1400, "full": 2400},
+                "car_suv": {"spot": 175, "partial": 750, "half": 1600, "full": 2800},
+                "pickup": {"spot": 175, "partial": 750, "half": 1600, "full": 2800},
+                "van_mini": {"spot": 175, "partial": 750, "half": 1600, "full": 2800},
+                "van_cargo": {"spot": 225, "partial": 950, "half": 2000, "full": 3400},
+                "van_sprinter": {"spot": 225, "partial": 950, "half": 2000, "full": 3400},
+                "box_truck_12ft": {"spot": 250, "partial": 1100, "half": 2300, "full": 4000},
+                "box_truck_16ft": {"spot": 300, "partial": 1300, "half": 2700, "full": 4600},
+                "box_truck_24ft": {"spot": 350, "partial": 1500, "half": 3100, "full": 5200},
+                "trailer": {"spot": 250, "partial": 1200, "half": 2400, "full": 4200},
+                "semi": {"spot": 400, "partial": 1800, "half": 3600, "full": 6000},
+                "other": {"spot": 175, "partial": 750, "half": 1600, "full": 2800},
+            },
+            # Window perf sell pricing
+            "window_perf_sell_rate_rear_per_sqft": 18.0,
+            "window_perf_sell_rate_side_per_sqft": 20.0,
+            "window_perf_scope_area_sqft": {"rear": 18.0, "side": 14.0, "full": 40.0},
+            # Rush
+            "rush_increase_percent": 30.0,
+            # Sell method
+            "sell_method": "max_of_package_or_cost_plus",
+            # UI/coverage options
+            "available_vehicle_type_keys": [
+                "car_sedan", "car_suv", "pickup", "van_mini", "van_cargo", "van_sprinter",
+                "box_truck_12ft", "box_truck_16ft", "box_truck_24ft", "trailer", "semi", "other",
+            ],
+            "available_coverage_types": ["spot", "partial", "half", "full", "custom"],
+            # Defaults for UI prefill
+            "default_install_difficulty": "medium",
+            "default_seam_complexity": "basic",
+            "default_surface_prep": "none",
+            "default_removal_scope": "none",
+            "default_design_complexity": "medium",
+            "default_second_installer_required": False,
+            "default_window_perf_included": False,
+            "default_window_perf_scope": "rear",
+            "default_install_required": True,
         },
         "banners": {
             "label": "Banners",
@@ -982,10 +1091,23 @@ class JobItemPricingData(BaseModel):
     vehicle_make: Optional[str] = None
     vehicle_model: Optional[str] = None
     coverage_type: Optional[CoverageType] = None
+    custom_coverage_percent: Optional[float] = None
     estimated_vehicle_sqft: Optional[float] = None
     install_difficulty: int = 5
     include_design: bool = False
     rush_order: bool = False
+
+    # Vehicle Wraps — foundation-driven fields
+    wrap_material_key: Optional[str] = None
+    wrap_laminate_required: Optional[bool] = None
+    wrap_laminate_type_key: Optional[str] = None
+    window_perf_included: Optional[bool] = None
+    window_perf_scope: Optional[str] = None  # rear, side, full
+    surface_prep_level: Optional[str] = None  # none, basic, moderate, heavy
+    removal_scope: Optional[str] = None  # none, small, partial, full
+    install_difficulty_level: Optional[str] = None  # easy, medium, difficult, extreme
+    seam_complexity: Optional[str] = None  # basic, moderate, advanced
+    second_installer_required: Optional[bool] = None
     
     # Price override
     price_override: Optional[float] = None

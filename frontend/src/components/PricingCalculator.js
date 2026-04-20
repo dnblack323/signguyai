@@ -6,6 +6,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Checkbox } from '../components/ui/checkbox';
+import { Switch } from '../components/ui/switch';
 import { Slider } from '../components/ui/slider';
 import { Separator } from '../components/ui/separator';
 import { Badge } from '../components/ui/badge';
@@ -185,26 +186,44 @@ const TRANSFER_TYPES = [
   { id: 'embroidery', name: 'Embroidery' },
 ];
 
-// Vehicle types
+// Vehicle types (labels match Foundation material keys)
 const VEHICLE_TYPES = [
-  { id: 'car_sedan', name: 'Car (Sedan)' },
-  { id: 'car_suv', name: 'Car (SUV)' },
-  { id: 'van_mini', name: 'Minivan' },
+  { id: 'car_sedan', name: 'Sedan' },
+  { id: 'car_suv', name: 'SUV' },
+  { id: 'pickup', name: 'Pickup' },
+  { id: 'van_mini', name: 'Mini Van' },
   { id: 'van_cargo', name: 'Cargo Van' },
   { id: 'van_sprinter', name: 'Sprinter Van' },
-  { id: 'box_truck_12ft', name: 'Box Truck (12ft)' },
-  { id: 'box_truck_16ft', name: 'Box Truck (16ft)' },
-  { id: 'box_truck_24ft', name: 'Box Truck (24ft)' },
+  { id: 'box_truck_12ft', name: '12 ft Box Truck' },
+  { id: 'box_truck_16ft', name: '16 ft Box Truck' },
+  { id: 'box_truck_24ft', name: '24 ft Box Truck' },
   { id: 'trailer', name: 'Trailer' },
   { id: 'semi', name: 'Semi Truck' },
+  { id: 'other', name: 'Custom / Other' },
 ];
 
 // Coverage types
 const COVERAGE_TYPES = [
-  { id: 'spot', name: 'Spot Graphics (15%)' },
-  { id: 'partial', name: 'Partial Wrap (40%)' },
-  { id: 'half', name: 'Half Wrap (50%)' },
-  { id: 'full', name: 'Full Wrap (100%)' },
+  { id: 'spot', name: 'Spot Graphics' },
+  { id: 'partial', name: 'Partial Wrap' },
+  { id: 'half', name: 'Half Wrap' },
+  { id: 'full', name: 'Full Wrap' },
+  { id: 'custom', name: 'Custom %' },
+];
+
+const WRAP_MATERIAL_DEFAULTS = [
+  { id: 'wrap_standard_calendared', name: 'Standard Calendared Vinyl' },
+  { id: 'wrap_premium_cast', name: 'Premium Cast Vinyl' },
+  { id: 'wrap_cast_film', name: 'Wrap Cast Film' },
+  { id: 'wrap_reflective', name: 'Reflective Vinyl' },
+  { id: 'wrap_etched_frost', name: 'Etched / Frost Film' },
+  { id: 'wrap_specialty_media', name: 'Specialty / Custom Vehicle Media' },
+];
+
+const WRAP_LAMINATE_DEFAULTS = [
+  { id: 'wrap_laminate_gloss', name: 'Gloss Laminate' },
+  { id: 'wrap_laminate_matte', name: 'Matte Laminate' },
+  { id: 'wrap_laminate_satin', name: 'Satin Laminate' },
 ];
 
 // Promo product types
@@ -2445,73 +2464,215 @@ export default function PricingCalculator({
           </div>
         );
 
-      case 'vehicle_graphics':
+      case 'vehicle_graphics': {
+        const vwCat = (foundationDefaults?.category_defaults || {}).vehicle_wraps || {};
+        const matsAll = foundationDefaults?.materials || [];
+        const allowedMatKeys = vwCat.available_wrap_material_keys || [];
+        const wrapMaterials = allowedMatKeys.length
+          ? matsAll.filter((m) => allowedMatKeys.includes(m.key || m.id)).map((m) => ({ id: m.key || m.id, name: m.name }))
+          : WRAP_MATERIAL_DEFAULTS;
+        const allowedLamKeys = vwCat.available_wrap_laminate_keys || [];
+        const wrapLaminates = allowedLamKeys.length
+          ? matsAll.filter((m) => allowedLamKeys.includes(m.key || m.id)).map((m) => ({ id: m.key || m.id, name: m.name }))
+          : WRAP_LAMINATE_DEFAULTS;
         return (
           <div className="space-y-4">
+            {/* Vehicle + Coverage */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Vehicle Type</Label>
-                <Select 
-                  value={pricingData.vehicle_type || ''} 
-                  onValueChange={(v) => setPricingData({...pricingData, vehicle_type: v})}
-                >
-                  <SelectTrigger><SelectValue placeholder="Select vehicle" /></SelectTrigger>
+                <Label>Vehicle Type *</Label>
+                <Select value={pricingData.vehicle_type || ''} onValueChange={(v) => setPricingData({ ...pricingData, vehicle_type: v })}>
+                  <SelectTrigger data-testid="vw-vehicle-type"><SelectValue placeholder="Select vehicle" /></SelectTrigger>
                   <SelectContent>
-                    {VEHICLE_TYPES.map(t => (
-                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                    ))}
+                    {VEHICLE_TYPES.map((t) => (<SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Coverage</Label>
-                <Select 
-                  value={pricingData.coverage_type || ''} 
-                  onValueChange={(v) => setPricingData({...pricingData, coverage_type: v})}
-                >
-                  <SelectTrigger><SelectValue placeholder="Select coverage" /></SelectTrigger>
+                <Label>Coverage Type *</Label>
+                <Select value={pricingData.coverage_type || 'spot'} onValueChange={(v) => setPricingData({ ...pricingData, coverage_type: v })}>
+                  <SelectTrigger data-testid="vw-coverage-type"><SelectValue placeholder="Select coverage" /></SelectTrigger>
                   <SelectContent>
-                    {COVERAGE_TYPES.map(t => (
-                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                    ))}
+                    {COVERAGE_TYPES.map((t) => (<SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
+            {pricingData.coverage_type === 'custom' && (
+              <div>
+                <Label>Custom Coverage %</Label>
+                <Input type="number" placeholder="e.g. 65" value={pricingData.custom_coverage_percent ?? ''}
+                  onChange={(e) => setPricingData({ ...pricingData, custom_coverage_percent: parseFloat(e.target.value) || 0 })}
+                  data-testid="vw-custom-percent" />
+              </div>
+            )}
+
+            {/* Vehicle Details */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Vehicle Make</Label>
-                <Input 
-                  value={pricingData.vehicle_make || ''} 
-                  onChange={(e) => setPricingData({...pricingData, vehicle_make: e.target.value})}
-                  placeholder="e.g., Ford"
-                />
+                <Label>Make</Label>
+                <Input value={pricingData.vehicle_make || ''} onChange={(e) => setPricingData({ ...pricingData, vehicle_make: e.target.value })} placeholder="Ford" data-testid="vw-make" />
               </div>
               <div>
-                <Label>Vehicle Model</Label>
-                <Input 
-                  value={pricingData.vehicle_model || ''} 
-                  onChange={(e) => setPricingData({...pricingData, vehicle_model: e.target.value})}
-                  placeholder="e.g., Transit"
-                />
+                <Label>Model</Label>
+                <Input value={pricingData.vehicle_model || ''} onChange={(e) => setPricingData({ ...pricingData, vehicle_model: e.target.value })} placeholder="Transit" data-testid="vw-model" />
               </div>
             </div>
-            <div>
-              <Label>Install Difficulty (1-10)</Label>
-              <div className="flex items-center gap-4 mt-2">
-                <Slider
-                  value={[pricingData.install_difficulty || 5]}
-                  onValueChange={(v) => setPricingData({...pricingData, install_difficulty: v[0]})}
-                  min={1}
-                  max={10}
-                  step={1}
-                  className="flex-1"
-                />
-                <span className="w-8 text-center font-medium">{pricingData.install_difficulty || 5}</span>
+
+            {/* Material + Laminate */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Wrap Material *</Label>
+                <Select value={pricingData.wrap_material_key || ''} onValueChange={(v) => setPricingData({ ...pricingData, wrap_material_key: v })}>
+                  <SelectTrigger data-testid="vw-wrap-material"><SelectValue placeholder="Select material" /></SelectTrigger>
+                  <SelectContent>
+                    {wrapMaterials.map((m) => (<SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end gap-2">
+                <div className="flex items-center gap-2 h-10">
+                  <Switch checked={!!pricingData.wrap_laminate_required} onCheckedChange={(v) => setPricingData({ ...pricingData, wrap_laminate_required: v })} data-testid="vw-laminate-required" />
+                  <Label>Laminate Required</Label>
+                </div>
+              </div>
+            </div>
+            {pricingData.wrap_laminate_required && (
+              <div>
+                <Label>Laminate Type</Label>
+                <Select value={pricingData.wrap_laminate_type_key || ''} onValueChange={(v) => setPricingData({ ...pricingData, wrap_laminate_type_key: v })}>
+                  <SelectTrigger data-testid="vw-laminate-type"><SelectValue placeholder="Select laminate" /></SelectTrigger>
+                  <SelectContent>
+                    {wrapLaminates.map((m) => (<SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Window Perf */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-2 h-10">
+                <Switch checked={!!pricingData.window_perf_included} onCheckedChange={(v) => setPricingData({ ...pricingData, window_perf_included: v })} data-testid="vw-perf-included" />
+                <Label>Window Perf Included</Label>
+              </div>
+              {pricingData.window_perf_included && (
+                <div>
+                  <Label>Perf Scope</Label>
+                  <Select value={pricingData.window_perf_scope || 'rear'} onValueChange={(v) => setPricingData({ ...pricingData, window_perf_scope: v })}>
+                    <SelectTrigger data-testid="vw-perf-scope"><SelectValue placeholder="Select scope" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="rear">Rear Only</SelectItem>
+                      <SelectItem value="side">Side Windows</SelectItem>
+                      <SelectItem value="full">Full Window Package</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
+            {/* Design */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="flex items-center gap-2 h-10">
+                <Switch checked={!!pricingData.artwork_ready} onCheckedChange={(v) => setPricingData({ ...pricingData, artwork_ready: v })} data-testid="vw-artwork-ready" />
+                <Label>Artwork Ready</Label>
+              </div>
+              <div className="flex items-center gap-2 h-10">
+                <Switch checked={pricingData.artwork_needed !== false} onCheckedChange={(v) => setPricingData({ ...pricingData, artwork_needed: v })} data-testid="vw-artwork-needed" />
+                <Label>Artwork Needed</Label>
+              </div>
+              <div>
+                <Label>Design Complexity</Label>
+                <Select value={pricingData.design_complexity || 'medium'} onValueChange={(v) => setPricingData({ ...pricingData, design_complexity: v })}>
+                  <SelectTrigger data-testid="vw-design-complexity"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="simple">Simple</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="complex">Complex</SelectItem>
+                    <SelectItem value="extreme">Extreme</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Surface Prep / Removal */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Surface Prep</Label>
+                <Select value={pricingData.surface_prep_level || 'none'} onValueChange={(v) => setPricingData({ ...pricingData, surface_prep_level: v })}>
+                  <SelectTrigger data-testid="vw-prep-level"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="basic">Basic (+0.25h)</SelectItem>
+                    <SelectItem value="moderate">Moderate (+0.75h)</SelectItem>
+                    <SelectItem value="heavy">Heavy (+1.5h)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Removal</Label>
+                <Select value={pricingData.removal_scope || 'none'} onValueChange={(v) => setPricingData({ ...pricingData, removal_scope: v })}>
+                  <SelectTrigger data-testid="vw-removal-scope"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="small">Small (+0.5h)</SelectItem>
+                    <SelectItem value="partial">Partial (+2h)</SelectItem>
+                    <SelectItem value="full">Full (+4h+)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Install */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-2 h-10">
+                <Switch checked={pricingData.install_required !== false} onCheckedChange={(v) => setPricingData({ ...pricingData, install_required: v })} data-testid="vw-install-required" />
+                <Label>Install Required</Label>
+              </div>
+              <div className="flex items-center gap-2 h-10">
+                <Switch checked={!!pricingData.second_installer_required} onCheckedChange={(v) => setPricingData({ ...pricingData, second_installer_required: v })} data-testid="vw-second-installer" />
+                <Label>Second Installer (Helper)</Label>
+              </div>
+              <div>
+                <Label>Install Difficulty</Label>
+                <Select value={pricingData.install_difficulty_level || 'medium'} onValueChange={(v) => setPricingData({ ...pricingData, install_difficulty_level: v })}>
+                  <SelectTrigger data-testid="vw-install-difficulty"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="easy">Easy (1.0x)</SelectItem>
+                    <SelectItem value="medium">Medium (1.25x)</SelectItem>
+                    <SelectItem value="difficult">Difficult (1.5x)</SelectItem>
+                    <SelectItem value="extreme">Extreme (2.0x)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Panel / Seam Complexity</Label>
+                <Select value={pricingData.seam_complexity || 'basic'} onValueChange={(v) => setPricingData({ ...pricingData, seam_complexity: v })}>
+                  <SelectTrigger data-testid="vw-seam-complexity"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="basic">Basic (1.0x)</SelectItem>
+                    <SelectItem value="moderate">Moderate (1.15x)</SelectItem>
+                    <SelectItem value="advanced">Advanced (1.3x)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Rush + Optional Override */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-2 h-10">
+                <Switch checked={!!pricingData.rush_order} onCheckedChange={(v) => setPricingData({ ...pricingData, rush_order: v })} data-testid="vw-rush" />
+                <Label>Rush</Label>
+              </div>
+              <div>
+                <Label>Override Estimated Sq Ft (optional)</Label>
+                <Input type="number" value={pricingData.estimated_vehicle_sqft ?? ''}
+                  onChange={(e) => setPricingData({ ...pricingData, estimated_vehicle_sqft: parseFloat(e.target.value) || 0 })}
+                  placeholder="Auto from vehicle type" data-testid="vw-sqft-override" />
               </div>
             </div>
           </div>
         );
+      }
 
       case 'custom':
         return (

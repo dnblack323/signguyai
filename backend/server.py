@@ -1462,100 +1462,334 @@ async def calculate_banners(data: JobItemPricingData, quantity: float, defaults:
 
 
 async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate vehicle wraps using company cost settings."""
-    vehicle_sqft = {
-        "car_sedan": 120,
-        "car_suv": 160,
-        "pickup": 175,
-        "van_mini": 140,
-        "van_cargo": 200,
-        "van_sprinter": 250,
-        "box_truck_12ft": 320,
-        "box_truck_16ft": 400,
-        "box_truck_24ft": 520,
-        "trailer": 600,
-        "semi": 800,
-        "other": data.estimated_vehicle_sqft or 160
-    }
-    
-    coverage_multipliers = {
-        "spot": 0.10,      # Spot graphics (logo + phone)
-        "partial": 0.25,   # ~quarter of vehicle
-        "half": 0.45,
-        "full": 1.0
-    }
-    
+    """Calculate Vehicle Graphics / Wraps pricing using Pricing Foundation defaults.
+
+    Spec-driven flow:
+      1. Load defaults + coverage resolution
+      2. Compute estimated graphic area (base_sqft × coverage factor, custom % interpolates)
+      3. Apply coverage-appropriate waste for material area
+      4. Material cost: wrap vinyl + laminate (if required) + window perf (if included)
+      5. Labor: base production/prep + design + surface prep + removal + install + seam/difficulty multipliers + second installer
+      6. Overhead  7. Suggested price = max(package benchmark (scaled by complexity), cost-plus)
+      8. Window perf sell additive  9. Minimum sell  10. Rush  11. Quantity multiplies totals
+    """
+    cfg = get_category_pricing_config(defaults, "vehicle_wraps")
+
+    # ===== Coverage resolution =====
     vehicle_type = data.vehicle_type or "van_cargo"
-    base_sqft = vehicle_sqft.get(vehicle_type, 200)
+    if hasattr(vehicle_type, "value"):
+        vehicle_type = vehicle_type.value
+    coverage_raw = data.coverage_type or cfg.get("default_coverage_type", "spot")
+    if hasattr(coverage_raw, "value"):
+        coverage_raw = coverage_raw.value
+    coverage_raw = str(coverage_raw).lower()
 
-    coverage = data.coverage_type or "partial"
-    actual_sqft = base_sqft * coverage_multipliers.get(coverage, 0.25)
+    coverage_factors = {"spot": 0.10, "partial": 0.25, "half": 0.45, "full": 1.0}
+    custom_percent = float(data.custom_coverage_percent or 0)
 
-    category_config = get_category_pricing_config(defaults, "vehicle_wraps")
-    material_cost_map = get_material_cost_map(defaults)
-    vinyl_cost_per_sqft = material_cost_map.get("vinyl", 1.25)
-    laminate_cost_per_sqft = material_cost_map.get("laminate", 0.65)
-    ink_cost_per_sqft = material_cost_map.get("ink", 0.35)
+    is_custom = coverage_raw == "custom"
+    if is_custom:
+        if custom_percent >= 100:
+            coverage_key = "full"
+            coverage_factor = 1.0
+        elif custom_percent >= 60:
+            coverage_key = "full"
+            coverage_factor = custom_percent / 100.0
+        elif custom_percent >= 35:
+            coverage_key = "half"
+            coverage_factor = custom_percent / 100.0
+        elif custom_percent > 0:
+            coverage_key = "partial"
+            coverage_factor = custom_percent / 100.0
+        else:
+            coverage_key = "spot"
+            coverage_factor = coverage_factors["spot"]
+    else:
+        coverage_key = coverage_raw if coverage_raw in coverage_factors else "spot"
+        coverage_factor = coverage_factors.get(coverage_key, 0.10)
 
-    material_cost = actual_sqft * quantity * (vinyl_cost_per_sqft + laminate_cost_per_sqft + ink_cost_per_sqft)
+    # ===== Area estimation =====
+    # Look up vehicle base sqft from materials library (category=vehicle_type)
+    vehicle_base_sqft = 160.0
+    for m in defaults.get("materials", []) or []:
+        if (m.get("key") == vehicle_type or m.get("id") == vehicle_type) and m.get("category") == "vehicle_type":
+            vehicle_base_sqft = float(m.get("base_sqft", 160) or 160)
+            break
+    estimated_area_per_vehicle = float(data.estimated_vehicle_sqft or (vehicle_base_sqft * coverage_factor))
+    total_area = estimated_area_per_vehicle * quantity
 
-    install_hours = actual_sqft * quantity * float(category_config.get("default_labor_hours_per_sqft", 0.12) or 0)
-    installer_rate = float(defaults.get("installer_hourly_rate", defaults.get("install_hourly_rate", 95)) or 0)
-    labor_cost = install_hours * installer_rate
+    # ===== Waste =====
+    waste_map = cfg.get("waste_by_coverage", {}) or {}
+    waste_percent = float(waste_map.get(coverage_key, cfg.get("waste_percentage", 12.0)) or 12.0)
+    if is_custom and "custom" in waste_map:
+        waste_percent = float(waste_map.get("custom", waste_percent))
+    waste_adjusted_area = total_area * (1 + waste_percent / 100.0)
 
-    design_cost = 0
-    include_design = getattr(data, 'include_design', False)
-    design_hours = 0
-    if include_design:
-        complexity = data.complexity or 2
-        design_hours = max(1, complexity * 0.5)
-        design_cost = design_hours * float(defaults.get("design_hourly_rate", 85) or 0)
+    # ===== Material cost — wrap vinyl =====
+    wrap_material_key = data.wrap_material_key or cfg.get("default_wrap_material_key", "wrap_standard_calendared")
+    wrap_material = find_material(defaults, wrap_material_key)
+    material_warning = ""
+    if not wrap_material:
+        material_warning = f"Wrap material not found: {wrap_material_key}. Using calendared fallback."
+        wrap_material_key = cfg.get("default_wrap_material_key", "wrap_standard_calendared")
+        wrap_material = find_material(defaults, wrap_material_key)
+    vinyl_cost_per_sqft = get_material_cost_per_sqft(defaults, wrap_material_key) or 1.50
+    vinyl_material_cost = waste_adjusted_area * vinyl_cost_per_sqft
 
-    include_setup = getattr(data, 'include_setup_fee', False)
-    setup_fee = 0
-    if include_setup:
-        setup_fee = data.setup_fee or defaults.get("minimum_wrap_charge", 50.0)
+    # ===== Laminate (required by default for printed wrap graphics; default off for simple lettering unless user sets it) =====
+    lam_required = data.wrap_laminate_required
+    if lam_required is None:
+        lam_required = bool(cfg.get("default_laminate_required_for_prints", True))
+    lam_key = data.wrap_laminate_type_key or cfg.get("default_wrap_laminate_key", "wrap_laminate_gloss")
+    laminate_cost_per_sqft = 0.0
+    laminate_material_cost = 0.0
+    laminate_warning = ""
+    if lam_required:
+        laminate_cost_per_sqft = get_material_cost_per_sqft(defaults, lam_key)
+        if laminate_cost_per_sqft <= 0:
+            laminate_warning = f"Laminate not found: {lam_key}."
+            laminate_cost_per_sqft = 1.25
+        laminate_material_cost = waste_adjusted_area * laminate_cost_per_sqft
 
-    pre_overhead_total = material_cost + labor_cost + design_cost  # setup_fee added flat after markup
-    overhead_cost = calculate_overhead_cost(pre_overhead_total, install_hours + design_hours, defaults, category_config)
-    suggested_price = resolve_selling_price(
-        pre_overhead_total + overhead_cost,
-        category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5)),
-        category_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40.0)),
+    # ===== Window perf =====
+    perf_included = data.window_perf_included
+    if perf_included is None:
+        perf_included = bool(cfg.get("default_window_perf_included", False))
+    perf_scope = (data.window_perf_scope or cfg.get("default_window_perf_scope", "rear")).lower()
+    perf_key = cfg.get("window_perf_material_key", "wrap_window_perf")
+    perf_material_cost = 0.0
+    perf_sell = 0.0
+    perf_area = 0.0
+    if perf_included:
+        scope_area_map = cfg.get("window_perf_scope_area_sqft", {"rear": 18.0, "side": 14.0, "full": 40.0})
+        perf_area_per_vehicle = float(scope_area_map.get(perf_scope, 18.0) or 18.0)
+        perf_area = perf_area_per_vehicle * quantity
+        perf_cost_per_sqft = get_material_cost_per_sqft(defaults, perf_key) or 2.50
+        perf_material_cost = perf_area * perf_cost_per_sqft * (1 + waste_percent / 100.0)
+        if perf_scope == "side":
+            sell_rate = float(cfg.get("window_perf_sell_rate_side_per_sqft", 20.0) or 20.0)
+        elif perf_scope == "full":
+            # combined: rear + side weighted average
+            rear_rate = float(cfg.get("window_perf_sell_rate_rear_per_sqft", 18.0) or 18.0)
+            side_rate = float(cfg.get("window_perf_sell_rate_side_per_sqft", 20.0) or 20.0)
+            sell_rate = (rear_rate + side_rate) / 2.0
+        else:
+            sell_rate = float(cfg.get("window_perf_sell_rate_rear_per_sqft", 18.0) or 18.0)
+        perf_sell = perf_area * sell_rate
+
+    # ===== Labor rates =====
+    labor_rates = defaults.get("labor_rates", {}) or {}
+    production_rate = float(labor_rates.get("production", {}).get("hourly_rate", defaults.get("production_hourly_rate", 28)) or 28)
+    design_rate = float(labor_rates.get("design", {}).get("hourly_rate", defaults.get("design_hourly_rate", 85)) or 85)
+    install_rate = float(cfg.get("install_rate_per_hour", 75.0) or 75.0)
+    install_minimum = float(cfg.get("install_minimum", 125.0) or 125.0)
+    helper_rate = float(cfg.get("second_installer_rate_per_hour", 35.0) or 35.0)
+    removal_rate = float(labor_rates.get("removal", {}).get("hourly_rate", defaults.get("removal_hourly_rate", 65)) or 65)
+
+    # ===== Base production / prep labor =====
+    base_hrs_per_sqft = float(cfg.get("production_labor_hours_per_sqft", 0.12) or 0.12)
+    min_prod_hrs = float(cfg.get("min_production_labor_hours_per_item", 1.0) or 1.0)
+    per_piece_prod_hours = max(estimated_area_per_vehicle * base_hrs_per_sqft, min_prod_hrs)
+    production_hours = per_piece_prod_hours * quantity
+    production_cost = production_hours * production_rate
+
+    # ===== Design labor =====
+    design_hours = 0.0
+    artwork_ready = bool(data.artwork_ready)
+    artwork_needed = data.artwork_needed
+    if artwork_ready:
+        design_hours = 0.0
+    else:
+        needed = artwork_needed if artwork_needed is not None else True
+        if needed:
+            design_time_map = cfg.get("design_time_by_coverage_hours", {}) or {}
+            base_design = float(design_time_map.get(coverage_key, design_time_map.get("partial", 1.5)) or 1.5)
+            dc = (data.design_complexity or cfg.get("default_design_complexity", "medium")).lower()
+            dc_mult = float(cfg.get("design_complexity_multipliers", {}).get(dc, 1.0) or 1.0)
+            design_hours = base_design * dc_mult
+    design_cost = design_hours * design_rate
+
+    # ===== Surface prep =====
+    prep_scope = (data.surface_prep_level or cfg.get("default_surface_prep", "none")).lower()
+    prep_hours_map = cfg.get("surface_prep_hours", {}) or {}
+    prep_hours_per_vehicle = float(prep_hours_map.get(prep_scope, 0) or 0)
+    prep_hours = prep_hours_per_vehicle * quantity
+    prep_cost = prep_hours * production_rate
+
+    # ===== Removal =====
+    removal_scope = (data.removal_scope or cfg.get("default_removal_scope", "none")).lower()
+    removal_hours_map = cfg.get("removal_hours", {}) or {}
+    removal_hours_per_vehicle = float(removal_hours_map.get(removal_scope, 0) or 0)
+    removal_hours = removal_hours_per_vehicle * quantity
+    removal_cost = removal_hours * removal_rate
+    removal_consumables = float(cfg.get("removal_consumables_allowance", 8.0) or 8.0) * quantity if removal_scope != "none" else 0.0
+
+    # ===== Install =====
+    install_required = data.install_required if data.install_required is not None else bool(cfg.get("default_install_required", True))
+    install_hours = 0.0
+    install_labor_cost = 0.0
+    helper_cost = 0.0
+    install_difficulty_key = (data.install_difficulty_level or cfg.get("default_install_difficulty", "medium")).lower()
+    seam_key = (data.seam_complexity or cfg.get("default_seam_complexity", "basic")).lower()
+    second_installer = data.second_installer_required
+    if second_installer is None:
+        second_installer = bool(cfg.get("default_second_installer_required", False))
+
+    if install_required:
+        install_map = cfg.get("install_hours_by_vehicle_coverage", {}) or {}
+        vehicle_map = install_map.get(vehicle_type, install_map.get("other", {})) or {}
+        base_install_hrs_per_vehicle = float(vehicle_map.get(coverage_key, vehicle_map.get("partial", 4.0)) or 4.0)
+        # If custom coverage, interpolate between nearest tiers using the custom%
+        if is_custom and custom_percent > 0:
+            # scale linearly relative to "full" hours
+            full_hrs = float(vehicle_map.get("full", base_install_hrs_per_vehicle * 4) or (base_install_hrs_per_vehicle * 4))
+            base_install_hrs_per_vehicle = full_hrs * (custom_percent / 100.0)
+
+        diff_mult = float(cfg.get("install_difficulty_multipliers", {}).get(install_difficulty_key, 1.0) or 1.0)
+        seam_mult = float(cfg.get("seam_complexity_multipliers", {}).get(seam_key, 1.0) or 1.0)
+        install_hrs_per_vehicle = base_install_hrs_per_vehicle * diff_mult * seam_mult
+        install_hours = install_hrs_per_vehicle * quantity
+        install_raw_cost = install_hours * install_rate
+        # Install minimum enforced per vehicle
+        install_labor_cost = max(install_minimum * quantity, install_raw_cost)
+        if second_installer:
+            helper_cost = install_hours * helper_rate
+
+    # ===== Totals =====
+    material_cost_total = vinyl_material_cost + laminate_material_cost + perf_material_cost + removal_consumables
+    labor_cost_total = (
+        production_cost
+        + design_cost
+        + prep_cost
+        + removal_cost
+        + install_labor_cost
+        + helper_cost
     )
-    # Setup fee added FLAT — not marked up
-    suggested_price += setup_fee
-    suggested_price = max(
-        suggested_price,
-        float(category_config.get("minimum_charge", defaults.get("minimum_wrap_charge", 500.0)) or 500.0),
+    total_labor_hours = (
+        production_hours + design_hours + prep_hours + removal_hours + install_hours + (install_hours if second_installer else 0)
     )
-    suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order)
+
+    overhead_cost = calculate_overhead_cost(
+        material_cost_total + labor_cost_total,
+        total_labor_hours,
+        defaults,
+        cfg,
+    )
+
+    production_cost_total = material_cost_total + labor_cost_total + overhead_cost
+
+    # ===== Suggested selling price =====
+    # 1) Cost-plus via markup/margin
+    cost_plus_price = resolve_selling_price(
+        production_cost_total,
+        cfg.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.4)),
+        cfg.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 42.0)),
+    )
+    # 2) Package benchmark
+    package_map = cfg.get("package_pricing_by_vehicle_coverage", {}) or {}
+    vehicle_pkg = package_map.get(vehicle_type, package_map.get("other", {})) or {}
+    package_price_per_vehicle = float(vehicle_pkg.get(coverage_key, vehicle_pkg.get("partial", 0)) or 0)
+    if is_custom and custom_percent > 0:
+        full_pkg = float(vehicle_pkg.get("full", package_price_per_vehicle * 4) or 0)
+        package_price_per_vehicle = full_pkg * (custom_percent / 100.0)
+
+    # Apply install difficulty + seam complexity uplift to package price (reflect install complexity in benchmark)
+    if install_required:
+        diff_mult = float(cfg.get("install_difficulty_multipliers", {}).get(install_difficulty_key, 1.0) or 1.0)
+        seam_mult = float(cfg.get("seam_complexity_multipliers", {}).get(seam_key, 1.0) or 1.0)
+        package_price_per_vehicle *= diff_mult * seam_mult
+
+    package_price_total = package_price_per_vehicle * quantity
+
+    sell_method = cfg.get("sell_method", "max_of_package_or_cost_plus")
+    if sell_method == "max_of_package_or_cost_plus":
+        suggested_price = max(package_price_total, cost_plus_price)
+    elif sell_method == "package_only":
+        suggested_price = package_price_total if package_price_total > 0 else cost_plus_price
+    else:
+        suggested_price = cost_plus_price
+
+    # Add window perf sell additive
+    suggested_price += perf_sell
+
+    # Minimum sell
+    min_sell = float(cfg.get("default_minimum_sell_price", cfg.get("minimum_charge", 150.0)) or 150.0)
+    suggested_price = max(suggested_price, min_sell * quantity)
+
+    # Rush
+    rush_pct = float(cfg.get("rush_increase_percent", defaults.get("rush_fee_percentage", 30.0)) or 30.0)
+    rush_multiplier = 1 + (rush_pct / 100.0)
+    suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order, rush_multiplier)
+
+    # Price override (per vehicle × quantity)
+    if data.override_enabled and data.price_override:
+        suggested_price = float(data.price_override) * quantity
 
     return create_pricing_result(
-        material_cost=material_cost,
-        labor_cost=labor_cost,
-        setup_cost=setup_fee,
-        additional_costs=design_cost,
+        material_cost=material_cost_total,
+        labor_cost=labor_cost_total,
+        setup_cost=0,
+        additional_costs=0,
         overhead_cost=overhead_cost,
         suggested_price=suggested_price,
-        estimated_labor_minutes=(install_hours + design_hours) * 60,
+        estimated_labor_minutes=total_labor_hours * 60,
         breakdown={
             "vehicle_type": vehicle_type,
-            "coverage": coverage,
-            "base_sqft": base_sqft,
-            "actual_sqft": round(actual_sqft, 2),
+            "coverage_type_input": coverage_raw,
+            "coverage_resolved": coverage_key,
+            "custom_coverage_percent": custom_percent if is_custom else None,
+            "coverage_factor": round(coverage_factor, 3),
+            "vehicle_base_sqft": vehicle_base_sqft,
+            "estimated_area_per_vehicle": round(estimated_area_per_vehicle, 2),
+            "total_area": round(total_area, 2),
+            "waste_percent": waste_percent,
+            "waste_adjusted_area": round(waste_adjusted_area, 2),
+            "wrap_material_key": wrap_material_key,
+            "wrap_material_warning": material_warning,
             "vinyl_cost_per_sqft": vinyl_cost_per_sqft,
+            "vinyl_material_cost": round(vinyl_material_cost, 2),
+            "laminate_required": bool(lam_required),
+            "laminate_key": lam_key if lam_required else None,
             "laminate_cost_per_sqft": laminate_cost_per_sqft,
-            "ink_cost_per_sqft": ink_cost_per_sqft,
-            "installer_rate": installer_rate,
-            "install_hours": round(install_hours, 2),
+            "laminate_material_cost": round(laminate_material_cost, 2),
+            "laminate_warning": laminate_warning,
+            "window_perf_included": bool(perf_included),
+            "window_perf_scope": perf_scope if perf_included else None,
+            "window_perf_area": round(perf_area, 2),
+            "window_perf_material_cost": round(perf_material_cost, 2),
+            "window_perf_sell": round(perf_sell, 2),
+            "production_hours": round(production_hours, 2),
+            "production_cost": round(production_cost, 2),
             "design_hours": round(design_hours, 2),
-            "design_cost": design_cost,
+            "design_cost": round(design_cost, 2),
+            "design_complexity": (data.design_complexity or cfg.get("default_design_complexity", "medium")),
+            "surface_prep_level": prep_scope,
+            "surface_prep_hours": round(prep_hours, 2),
+            "surface_prep_cost": round(prep_cost, 2),
+            "removal_scope": removal_scope,
+            "removal_hours": round(removal_hours, 2),
+            "removal_cost": round(removal_cost, 2),
+            "removal_consumables": round(removal_consumables, 2),
+            "install_required": bool(install_required),
+            "install_difficulty": install_difficulty_key,
+            "seam_complexity": seam_key,
+            "install_hours": round(install_hours, 2),
+            "install_rate": install_rate,
+            "install_minimum": install_minimum,
+            "install_labor_cost": round(install_labor_cost, 2),
+            "second_installer_required": bool(second_installer),
+            "helper_rate_per_hour": helper_rate,
+            "helper_cost": round(helper_cost, 2),
             "overhead_cost": round(overhead_cost, 2),
-            "setup_fee": setup_fee,
-            "setup_included": include_setup,
-            "total_per_vehicle": round(suggested_price / quantity, 2) if quantity > 0 else 0
-        }
+            "production_cost_total": round(production_cost_total, 2),
+            "cost_plus_price": round(cost_plus_price, 2),
+            "package_price_per_vehicle": round(package_price_per_vehicle, 2),
+            "package_price_total": round(package_price_total, 2),
+            "sell_method": sell_method,
+            "min_sell_per_item": min_sell,
+            "quantity": quantity,
+            "total_per_vehicle": round(suggested_price / quantity, 2) if quantity > 0 else 0,
+        },
     )
 
 
