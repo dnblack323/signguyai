@@ -1006,6 +1006,10 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ### Session: April 20, 2026
 - **Cut Vinyl Pricing Phase:** Implemented Cut Vinyl defaults, materials, AI prefill, and full calculation flow (materials, labor, overhead, suggested price, manual quote, profit/margin)
 - **Total Production Cost Label:** Updated calculator output label to match required terminology
+- **Rigid Signs Pricing Phase:** Implemented Rigid Signs defaults + calculator UI + backend calculation (substrates, thickness, finish, sidedness, shape complexity, hardware/drill)
+- **New Order Form Schema Sync:** Job ticket schemas now pull options from Pricing Foundation (materials/laminates/hardware) with fallback only when missing; added base materials for apparel/decoration/vehicle types and a services schema definition
+- **Pricing Engine Fix:** Added calculate_apparel placeholder to prevent pricing dispatcher failures
+- **Testing:** Backend schema + rigid sign calc verified via API; frontend Rigid Signs + New Order Form dropdowns verified via Playwright/auto UI tests
 
 ### Session: April 19, 2026
 - **Digital Print Pricing Phase:** Implemented Digital Print-specific defaults, media/laminate libraries, AI prefill logic, and full calculation flow (material, labor, overhead, suggested price, manual quote, profit/margin)
