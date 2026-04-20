@@ -66,6 +66,54 @@ const PRINT_MATERIALS = [
   { id: 'perforated', name: 'Perforated Window Film' },
 ];
 
+const PRINT_QUALITY_MODES = [
+  { value: 'draft', label: 'Draft' },
+  { value: 'standard', label: 'Standard' },
+  { value: 'high', label: 'High' },
+  { value: 'photo', label: 'Photo' },
+];
+
+const CONTOUR_CUT_TYPES = [
+  { value: 'none', label: 'None' },
+  { value: 'simple', label: 'Simple Contour' },
+  { value: 'complex', label: 'Complex Contour' },
+  { value: 'kiss', label: 'Kiss Cut / Sheet Cut' },
+];
+
+const TRIM_FINISH_TYPES = [
+  { value: 'standard', label: 'Standard Trim' },
+  { value: 'premium', label: 'Premium Trim' },
+];
+
+const USE_TYPES = [
+  { value: 'indoor', label: 'Indoor' },
+  { value: 'outdoor', label: 'Outdoor' },
+  { value: 'display', label: 'Display' },
+  { value: 'floor', label: 'Floor' },
+  { value: 'window', label: 'Window' },
+  { value: 'wall', label: 'Wall' },
+  { value: 'backlit', label: 'Backlit' },
+];
+
+const DESIGN_COMPLEXITY_LEVELS = [
+  { value: 'simple', label: 'Simple' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'complex', label: 'Complex' },
+  { value: 'extreme', label: 'Extreme' },
+];
+
+const INSTALL_COMPLEXITY_LEVELS = [
+  { value: 'easy', label: 'Easy' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'difficult', label: 'Difficult' },
+  { value: 'extreme', label: 'Extreme' },
+];
+
+const UNIT_OF_MEASURE_OPTIONS = [
+  { value: 'inches', label: 'Inches' },
+  { value: 'feet', label: 'Feet' },
+];
+
 // Substrate types
 const SUBSTRATE_TYPES = [
   { id: 'coroplast_4mm', name: 'Coroplast 4mm' },
@@ -181,6 +229,7 @@ export default function PricingCalculator({
   const [complexity, setComplexity] = useState(1);  // Default to 1 (simple) - was 5
   const [pricingData, setPricingData] = useState(initialData || {});
   const [foundationDefaults, setFoundationDefaults] = useState(null);
+  const [digitalPrintSources, setDigitalPrintSources] = useState({});
   const [includeSetupFee, setIncludeSetupFee] = useState(false);  // Setup fee is opt-in
   // Initialize calculation with zeros instead of null
   const [calculation, setCalculation] = useState({
@@ -205,7 +254,16 @@ export default function PricingCalculator({
   const [overridePrice, setOverridePrice] = useState('');
   const [showBreakdown, setShowBreakdown] = useState(true);
   const [description, setDescription] = useState('');
+  const [orderItemName, setOrderItemName] = useState('');
   const [notes, setNotes] = useState('');
+  
+  // Calculate derived values for display
+  const finalPrice = overrideEnabled && overridePrice 
+    ? parseFloat(overridePrice) 
+    : calculation?.selling_price || calculation?.suggested_price || 0;
+  const totalCost = calculation?.total_cost || calculation?.production_cost || 0;
+  const profitAmount = finalPrice - totalCost;
+  const profitMarginPercent = finalPrice > 0 ? Number(((profitAmount / finalPrice) * 100).toFixed(1)) : 0;
   
   // AI Suggestions state
   const [aiSuggestions, setAiSuggestions] = useState(null);
@@ -241,7 +299,140 @@ export default function PricingCalculator({
     loadDefaults();
   }, []);
 
-  // Fetch AI-powered pricing suggestions
+  const getDigitalPrintCategoryDefaults = () => (
+    foundationDefaults?.category_defaults?.digital_print || {}
+  );
+
+  const getDigitalPrintMediaOptions = () => {
+    const materials = foundationDefaults?.materials || [];
+    const options = materials.filter((m) => m.category === 'print_media' || (m.compatible_categories || []).includes('digital_print'));
+    if (options.length) return options;
+    return PRINT_MATERIALS.map((item) => ({ key: item.id, name: item.name }));
+  };
+
+  const getDigitalPrintLaminateOptions = () => {
+    const materials = foundationDefaults?.materials || [];
+    return materials.filter((m) => m.category === 'laminate' || (m.compatible_categories || []).includes('digital_print'));
+  };
+
+  const getDigitalPrintSubstrateOptions = () => {
+    const materials = foundationDefaults?.materials || [];
+    return materials.filter((m) => m.category === 'substrate' || ['coroplast', 'aluminum_composite', 'foam_board', 'acrylic_sheet', 'rigid_sign_board'].includes(m.key));
+  };
+
+  const updateDigitalPrintField = (field, value) => {
+    setPricingData((prev) => ({ ...prev, [field]: value }));
+    setDigitalPrintSources((prev) => ({ ...prev, [field]: 'user' }));
+  };
+
+  const resolveDigitalPrintDefaults = () => {
+    const catDefaults = getDigitalPrintCategoryDefaults();
+    return {
+      unit_of_measure: catDefaults.default_unit_of_measure || 'inches',
+      use_type: catDefaults.default_use_type || 'indoor',
+      print_media_key: catDefaults.default_print_media_key || 'printable_adhesive_vinyl',
+      print_quality_mode: catDefaults.default_print_quality_mode || 'standard',
+      ink_coverage_percent: catDefaults.default_ink_coverage_percent ?? 35,
+      laminate: catDefaults.default_laminate_required ?? false,
+      laminate_material_key: catDefaults.default_laminate_key || 'laminate_gloss',
+      contour_cut_type: catDefaults.default_contour_cut_type || 'none',
+      trim_finish_type: catDefaults.default_trim_finish_type || 'standard',
+      design_complexity: catDefaults.default_design_complexity || 'simple',
+      install_required: catDefaults.default_install_included ?? false,
+      install_complexity: catDefaults.default_install_complexity || 'easy',
+    };
+  };
+
+  const resolveDigitalPrintAiSuggestions = (baseDefaults) => {
+    if (!foundationDefaults?.ai_estimation_rules?.fill_missing_only) return {};
+    const text = `${orderItemName || ''} ${description || ''}`.toLowerCase();
+    const useType = pricingData.use_type || baseDefaults.use_type || 'indoor';
+    const suggestions = {};
+
+    if (!pricingData.print_media_key) {
+      if (useType === 'floor' || text.includes('floor')) suggestions.print_media_key = 'floor_graphic_media';
+      else if (useType === 'window' || text.includes('window') || text.includes('perf')) suggestions.print_media_key = 'perforated_window_film';
+      else if (useType === 'backlit' || text.includes('backlit')) suggestions.print_media_key = 'backlit_film';
+      else if (useType === 'wall' || text.includes('wall')) suggestions.print_media_key = 'wall_graphic_media';
+      else if (useType === 'display' || text.includes('poster')) suggestions.print_media_key = 'poster_paper';
+      else if (text.includes('canvas')) suggestions.print_media_key = 'canvas';
+      else suggestions.print_media_key = baseDefaults.print_media_key;
+    }
+
+    if (pricingData.laminate === undefined) {
+      suggestions.laminate = ['floor', 'outdoor'].includes(useType) || text.includes('laminate');
+    }
+
+    if (!pricingData.laminate_material_key && (suggestions.laminate || pricingData.laminate)) {
+      if (useType === 'floor') suggestions.laminate_material_key = 'laminate_floor';
+      else if (useType === 'outdoor') suggestions.laminate_material_key = 'laminate_heavy_duty';
+      else suggestions.laminate_material_key = baseDefaults.laminate_material_key;
+    }
+
+    if (!pricingData.print_quality_mode) {
+      if (text.includes('photo')) suggestions.print_quality_mode = 'photo';
+      else if (text.includes('high')) suggestions.print_quality_mode = 'high';
+      else if (text.includes('draft')) suggestions.print_quality_mode = 'draft';
+      else suggestions.print_quality_mode = baseDefaults.print_quality_mode;
+    }
+
+    if (pricingData.ink_coverage_percent === undefined) {
+      suggestions.ink_coverage_percent = baseDefaults.ink_coverage_percent;
+    }
+
+    if (!pricingData.contour_cut_type) {
+      if (text.includes('kiss cut')) suggestions.contour_cut_type = 'kiss';
+      else if (text.includes('complex contour')) suggestions.contour_cut_type = 'complex';
+      else if (text.includes('contour')) suggestions.contour_cut_type = 'simple';
+    }
+
+    if (!pricingData.trim_finish_type) {
+      if (text.includes('premium trim')) suggestions.trim_finish_type = 'premium';
+      else suggestions.trim_finish_type = baseDefaults.trim_finish_type;
+    }
+
+    if (pricingData.mounted_to_substrate === undefined && (text.includes('mounted') || text.includes('mount')))
+      suggestions.mounted_to_substrate = true;
+
+    if (pricingData.install_required === undefined && text.includes('install'))
+      suggestions.install_required = true;
+
+    if (!pricingData.install_complexity) suggestions.install_complexity = baseDefaults.install_complexity;
+    if (!pricingData.design_complexity) suggestions.design_complexity = baseDefaults.design_complexity;
+
+    if (pricingData.artwork_needed === undefined) {
+      if (text.includes('artwork needed') || text.includes('design needed')) suggestions.artwork_needed = true;
+    }
+
+    return suggestions;
+  };
+
+  useEffect(() => {
+    if (category !== 'digital_print' || !foundationDefaults) return;
+    const defaults = resolveDigitalPrintDefaults();
+    const aiSuggestions = resolveDigitalPrintAiSuggestions(defaults);
+    const nextData = { ...pricingData };
+    const nextSources = { ...digitalPrintSources };
+    let changed = false;
+
+    const applyValues = (values, source) => {
+      Object.entries(values).forEach(([key, value]) => {
+        if (nextData[key] === undefined || nextData[key] === null || nextData[key] === '') {
+          nextData[key] = value;
+          if (!nextSources[key]) nextSources[key] = source;
+          changed = true;
+        }
+      });
+    };
+
+    applyValues(defaults, 'default');
+    applyValues(aiSuggestions, 'ai');
+
+    if (changed) {
+      setPricingData(nextData);
+      setDigitalPrintSources(nextSources);
+    }
+  }, [category, foundationDefaults, orderItemName, description, pricingData.use_type]);
   const fetchAiSuggestions = async () => {
     if (!category || !calculation) return;
     
@@ -493,6 +684,7 @@ export default function PricingCalculator({
 
     const itemData = {
       category,
+      order_item_name: orderItemName,
       description: description || getCategoryName(category),
       quantity,
       unit_price: finalPrice / quantity,
@@ -524,6 +716,16 @@ export default function PricingCalculator({
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
+  };
+
+  const renderDigitalPrintSource = (field) => {
+    const source = digitalPrintSources[field] || 'default';
+    const label = source === 'ai' ? 'AI Estimated' : source === 'user' ? 'User Entered' : 'Shop Default';
+    return (
+      <Badge variant="outline" className="text-[10px]" data-testid={`digital-print-source-${field}`}>
+        {label}
+      </Badge>
+    );
   };
 
   // Render category-specific fields
@@ -690,63 +892,313 @@ export default function PricingCalculator({
           </div>
         );
 
-      case 'digital_print':
+      case 'digital_print': {
+        const mediaOptions = getDigitalPrintMediaOptions();
+        const laminateOptions = getDigitalPrintLaminateOptions();
+        const substrateOptions = getDigitalPrintSubstrateOptions();
+        const unit = pricingData.unit_of_measure || 'inches';
+        const widthValue = Number(pricingData.width_inches || 0);
+        const heightValue = Number(pricingData.length_inches || 0);
+        const areaPerPiece = unit === 'feet' ? (widthValue * heightValue) : ((widthValue * heightValue) / 144);
+        const selectedMedia = mediaOptions.find((m) => (m.key || m.id) === pricingData.print_media_key);
+        const selectedLaminate = laminateOptions.find((m) => (m.key || m.id) === pricingData.laminate_material_key);
+        const selectedSubstrate = substrateOptions.find((m) => (m.key || m.id) === pricingData.substrate_material_key);
         return (
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
+          <div className="space-y-4" data-testid="digital-print-fields">
+            <div className="grid grid-cols-1 gap-4">
               <div>
-                <Label>Width (inches)</Label>
-                <Input 
-                  type="number" 
-                  value={pricingData.width_inches || ''} 
-                  onChange={(e) => setPricingData({...pricingData, width_inches: parseFloat(e.target.value) || 0})}
-                />
-              </div>
-              <div>
-                <Label>Length (inches)</Label>
-                <Input 
-                  type="number" 
-                  value={pricingData.length_inches || ''} 
-                  onChange={(e) => setPricingData({...pricingData, length_inches: parseFloat(e.target.value) || 0})}
-                />
-              </div>
-              <div>
-                <Label>Sq Ft</Label>
-                <Input 
-                  value={((pricingData.width_inches || 0) * (pricingData.length_inches || 0) / 144).toFixed(2)} 
-                  disabled
-                  className="bg-slate-100"
+                <Label className="flex items-center justify-between">Order Item Name {renderDigitalPrintSource('item_name')}</Label>
+                <Input
+                  value={orderItemName}
+                  onChange={(e) => {
+                    setOrderItemName(e.target.value);
+                    setDigitalPrintSources((prev) => ({ ...prev, item_name: 'user' }));
+                  }}
+                  placeholder="e.g., Window Graphics"
+                  data-testid="digital-print-item-name"
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div>
-                <Label>Material</Label>
-                <Select 
-                  value={pricingData.print_material || ''} 
-                  onValueChange={(v) => setPricingData({...pricingData, print_material: v})}
+                <Label className="flex items-center justify-between">Width {renderDigitalPrintSource('width_inches')}</Label>
+                <Input
+                  type="number"
+                  value={pricingData.width_inches || ''}
+                  onChange={(e) => updateDigitalPrintField('width_inches', parseFloat(e.target.value) || 0)}
+                  data-testid="digital-print-width"
+                />
+              </div>
+              <div>
+                <Label className="flex items-center justify-between">Height {renderDigitalPrintSource('length_inches')}</Label>
+                <Input
+                  type="number"
+                  value={pricingData.length_inches || ''}
+                  onChange={(e) => updateDigitalPrintField('length_inches', parseFloat(e.target.value) || 0)}
+                  data-testid="digital-print-height"
+                />
+              </div>
+              <div>
+                <Label className="flex items-center justify-between">Unit {renderDigitalPrintSource('unit_of_measure')}</Label>
+                <Select
+                  value={pricingData.unit_of_measure || 'inches'}
+                  onValueChange={(v) => updateDigitalPrintField('unit_of_measure', v)}
                 >
-                  <SelectTrigger><SelectValue placeholder="Select material" /></SelectTrigger>
+                  <SelectTrigger className="h-9" data-testid="digital-print-unit">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
-                    {PRINT_MATERIALS.map(t => (
-                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    {UNIT_OF_MEASURE_OPTIONS.map((u) => (
+                      <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-end">
-                <div className="flex items-center gap-2">
-                  <Checkbox 
-                    id="laminate"
-                    checked={pricingData.laminate || false}
-                    onCheckedChange={(c) => setPricingData({...pricingData, laminate: c})}
-                  />
-                  <Label htmlFor="laminate" className="cursor-pointer">Add Laminate</Label>
-                </div>
+              <div>
+                <Label>Area / Piece</Label>
+                <Input value={areaPerPiece.toFixed(2)} disabled className="bg-slate-100" data-testid="digital-print-area" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div>
+                <Label className="flex items-center justify-between">Print Media Type {renderDigitalPrintSource('print_media_key')}</Label>
+                <Select
+                  value={pricingData.print_media_key || ''}
+                  onValueChange={(v) => updateDigitalPrintField('print_media_key', v)}
+                >
+                  <SelectTrigger className="h-9" data-testid="digital-print-media">
+                    <SelectValue placeholder="Select media" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {mediaOptions.map((m) => (
+                      <SelectItem key={m.key || m.id} value={m.key || m.id}>{m.name || m.key}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {pricingData.print_media_key && !selectedMedia && (
+                  <p className="text-xs text-amber-600 mt-1" data-testid="digital-print-media-warning">Missing media type. Update in Pricing Foundation.</p>
+                )}
+              </div>
+              <div>
+                <Label className="flex items-center justify-between">Use Type / Finish Use {renderDigitalPrintSource('use_type')}</Label>
+                <Select value={pricingData.use_type || 'indoor'} onValueChange={(v) => updateDigitalPrintField('use_type', v)}>
+                  <SelectTrigger className="h-9" data-testid="digital-print-use-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {USE_TYPES.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="flex items-center justify-between">Print Quality Mode {renderDigitalPrintSource('print_quality_mode')}</Label>
+                <Select value={pricingData.print_quality_mode || 'standard'} onValueChange={(v) => updateDigitalPrintField('print_quality_mode', v)}>
+                  <SelectTrigger className="h-9" data-testid="digital-print-quality">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRINT_QUALITY_MODES.map((mode) => (
+                      <SelectItem key={mode.value} value={mode.value}>{mode.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="flex items-center justify-between">Ink Coverage % {renderDigitalPrintSource('ink_coverage_percent')}</Label>
+                <Input
+                  type="number"
+                  value={pricingData.ink_coverage_percent ?? ''}
+                  onChange={(e) => updateDigitalPrintField('ink_coverage_percent', parseFloat(e.target.value) || 0)}
+                  data-testid="digital-print-ink-coverage"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={pricingData.laminate || false}
+                  onCheckedChange={(c) => updateDigitalPrintField('laminate', Boolean(c))}
+                  data-testid="digital-print-laminate-toggle"
+                />
+                <Label className="cursor-pointer">Laminate Required</Label>
+              </div>
+              <div>
+                <Label className="flex items-center justify-between">Laminate Type {renderDigitalPrintSource('laminate_material_key')}</Label>
+                <Select
+                  value={pricingData.laminate_material_key || ''}
+                  onValueChange={(v) => updateDigitalPrintField('laminate_material_key', v)}
+                  disabled={!pricingData.laminate}
+                >
+                  <SelectTrigger className="h-9" data-testid="digital-print-laminate-type">
+                    <SelectValue placeholder="Select laminate" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {laminateOptions.map((m) => (
+                      <SelectItem key={m.key || m.id} value={m.key || m.id}>{m.name || m.key}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {pricingData.laminate && pricingData.laminate_material_key && !selectedLaminate && (
+                  <p className="text-xs text-amber-600 mt-1" data-testid="digital-print-laminate-warning">Missing laminate type. Update in Pricing Foundation.</p>
+                )}
+              </div>
+              <div>
+                <Label className="flex items-center justify-between">Contour Cut Type {renderDigitalPrintSource('contour_cut_type')}</Label>
+                <Select value={pricingData.contour_cut_type || 'none'} onValueChange={(v) => updateDigitalPrintField('contour_cut_type', v)}>
+                  <SelectTrigger className="h-9" data-testid="digital-print-contour-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CONTOUR_CUT_TYPES.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="flex items-center justify-between">Trim Finish Type {renderDigitalPrintSource('trim_finish_type')}</Label>
+                <Select value={pricingData.trim_finish_type || 'standard'} onValueChange={(v) => updateDigitalPrintField('trim_finish_type', v)}>
+                  <SelectTrigger className="h-9" data-testid="digital-print-trim-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TRIM_FINISH_TYPES.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={pricingData.piece_separation_required || false}
+                  onCheckedChange={(c) => updateDigitalPrintField('piece_separation_required', Boolean(c))}
+                  data-testid="digital-print-piece-separation"
+                />
+                <Label className="cursor-pointer">Piece Separation Required</Label>
+              </div>
+              <div>
+                <Label className="flex items-center justify-between">Separated Piece Count {renderDigitalPrintSource('separated_piece_count')}</Label>
+                <Input
+                  type="number"
+                  value={pricingData.separated_piece_count || ''}
+                  onChange={(e) => updateDigitalPrintField('separated_piece_count', parseInt(e.target.value, 10) || 0)}
+                  disabled={!pricingData.piece_separation_required}
+                  data-testid="digital-print-piece-count"
+                />
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={pricingData.artwork_ready || false}
+                  onCheckedChange={(c) => updateDigitalPrintField('artwork_ready', Boolean(c))}
+                  data-testid="digital-print-artwork-ready"
+                />
+                <Label className="cursor-pointer">Artwork Ready</Label>
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={pricingData.artwork_needed || false}
+                  onCheckedChange={(c) => updateDigitalPrintField('artwork_needed', Boolean(c))}
+                  data-testid="digital-print-artwork-needed"
+                />
+                <Label className="cursor-pointer">Artwork Needed</Label>
+              </div>
+              <div>
+                <Label className="flex items-center justify-between">Design Complexity {renderDigitalPrintSource('design_complexity')}</Label>
+                <Select value={pricingData.design_complexity || 'simple'} onValueChange={(v) => updateDigitalPrintField('design_complexity', v)}>
+                  <SelectTrigger className="h-9" data-testid="digital-print-design-complexity">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DESIGN_COMPLEXITY_LEVELS.map((level) => (
+                      <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={pricingData.file_cleanup_needed || false}
+                  onCheckedChange={(c) => updateDigitalPrintField('file_cleanup_needed', Boolean(c))}
+                  data-testid="digital-print-file-cleanup"
+                />
+                <Label className="cursor-pointer">File Cleanup Needed</Label>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={pricingData.mounted_to_substrate || false}
+                  onCheckedChange={(c) => updateDigitalPrintField('mounted_to_substrate', Boolean(c))}
+                  data-testid="digital-print-mounted"
+                />
+                <Label className="cursor-pointer">Mounted to Substrate</Label>
+              </div>
+              <div>
+                <Label className="flex items-center justify-between">Substrate Type {renderDigitalPrintSource('substrate_material_key')}</Label>
+                <Select
+                  value={pricingData.substrate_material_key || ''}
+                  onValueChange={(v) => updateDigitalPrintField('substrate_material_key', v)}
+                  disabled={!pricingData.mounted_to_substrate}
+                >
+                  <SelectTrigger className="h-9" data-testid="digital-print-substrate-type">
+                    <SelectValue placeholder="Select substrate" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {substrateOptions.map((m) => (
+                      <SelectItem key={m.key || m.id} value={m.key || m.id}>{m.name || m.key}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {pricingData.mounted_to_substrate && pricingData.substrate_material_key && !selectedSubstrate && (
+                  <p className="text-xs text-amber-600 mt-1" data-testid="digital-print-substrate-warning">Missing substrate type. Update in Pricing Foundation.</p>
+                )}
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={pricingData.install_required || false}
+                  onCheckedChange={(c) => updateDigitalPrintField('install_required', Boolean(c))}
+                  data-testid="digital-print-install-required"
+                />
+                <Label className="cursor-pointer">Install Required</Label>
+              </div>
+              <div>
+                <Label className="flex items-center justify-between">Install Complexity {renderDigitalPrintSource('install_complexity')}</Label>
+                <Select
+                  value={pricingData.install_complexity || 'easy'}
+                  onValueChange={(v) => updateDigitalPrintField('install_complexity', v)}
+                  disabled={!pricingData.install_required}
+                >
+                  <SelectTrigger className="h-9" data-testid="digital-print-install-complexity">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INSTALL_COMPLEXITY_LEVELS.map((level) => (
+                      <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  checked={pricingData.rush_order || false}
+                  onCheckedChange={(c) => updateDigitalPrintField('rush_order', Boolean(c))}
+                  data-testid="digital-print-rush"
+                />
+                <Label className="cursor-pointer">Rush</Label>
               </div>
             </div>
           </div>
         );
+      }
 
       case 'rigid_signs':
         return (
@@ -1089,7 +1541,12 @@ export default function PricingCalculator({
                 <Label>Item Description</Label>
                 <Input 
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => {
+                    setDescription(e.target.value);
+                    if (category === 'digital_print') {
+                      setDigitalPrintSources((prev) => ({ ...prev, description: 'user' }));
+                    }
+                  }}
                   placeholder={`e.g., ${getCategoryName(category)} for customer`}
                   className="mt-1"
                   data-testid="pricing-description-input"
@@ -1191,14 +1648,18 @@ export default function PricingCalculator({
                       <p className="text-xs text-slate-500 uppercase">Total Cost</p>
                       <p className="text-xl font-bold text-slate-700">{formatCurrency(calculation.total_cost || calculation.production_cost)}</p>
                     </div>
-                    <div className="p-4 bg-teal-100 rounded-lg" data-testid="pricing-selling-price-card">
-                      <p className="text-xs text-teal-600 uppercase">Selling Price</p>
+                    <div className="p-4 bg-teal-100 rounded-lg" data-testid="pricing-suggested-price-card">
+                      <p className="text-xs text-teal-600 uppercase">Suggested Price</p>
                       <p className="text-xl font-bold text-teal-700">{formatCurrency(calculation.selling_price || calculation.suggested_price)}</p>
+                    </div>
+                    <div className="p-4 bg-blue-100 rounded-lg" data-testid="pricing-manual-quote-card">
+                      <p className="text-xs text-blue-600 uppercase">Manual Quote</p>
+                      <p className="text-xl font-bold text-blue-700">{overrideEnabled ? formatCurrency(finalPrice) : 'Not set'}</p>
                     </div>
                     <div className="p-4 bg-green-100 rounded-lg" data-testid="pricing-profit-card">
                       <p className="text-xs text-green-600 uppercase">Profit</p>
-                      <p className="text-xl font-bold text-green-700">{formatCurrency(calculation.profit_amount)}</p>
-                      <p className="text-xs text-green-700 mt-1">{calculation.profit_margin_percent}% margin</p>
+                      <p className="text-xl font-bold text-green-700">{formatCurrency(profitAmount)}</p>
+                      <p className="text-xs text-green-700 mt-1">{profitMarginPercent}% margin</p>
                     </div>
                   </div>
 
@@ -1243,12 +1704,18 @@ export default function PricingCalculator({
                         <span className="font-semibold">{formatCurrency(calculation.total_cost || calculation.production_cost)}</span>
                       </div>
                       <div className="flex justify-between" data-testid="pricing-breakdown-selling-price">
-                        <span className="text-slate-700 font-medium">Selling Price:</span>
+                        <span className="text-slate-700 font-medium">Suggested Price:</span>
                         <span className="font-semibold text-teal-700">{formatCurrency(calculation.selling_price || calculation.suggested_price)}</span>
                       </div>
+                      {overrideEnabled && (
+                        <div className="flex justify-between" data-testid="pricing-breakdown-manual-quote">
+                          <span className="text-slate-700 font-medium">Manual Quote:</span>
+                          <span className="font-semibold text-blue-700">{formatCurrency(finalPrice)}</span>
+                        </div>
+                      )}
                       <div className="flex justify-between" data-testid="pricing-breakdown-profit">
                         <span className="text-slate-700 font-medium">Profit:</span>
-                        <span className="font-semibold text-green-700">{formatCurrency(calculation.profit_amount)}</span>
+                        <span className="font-semibold text-green-700">{formatCurrency(profitAmount)}</span>
                       </div>
                       {calculation.estimated_labor_minutes > 0 && (
                         <div className="flex justify-between pt-2 border-t border-slate-200">

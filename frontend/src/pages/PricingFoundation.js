@@ -614,7 +614,7 @@ function HardwareRow({ item, editing, canEdit, onToggleEdit, onChange, onRemove 
 }
 
 /* ────────── CATEGORY PRICING RULES TAB ────────── */
-function CategoryRulesTab({ settings, onChange, canEdit }) {
+function CategoryRulesTab({ settings, onChange, canEdit, materials }) {
   const [openCat, setOpenCat] = useState('digital_print');
   const cats = settings.category_defaults || {};
   const benchmarks = settings.selling_price_benchmarks || {};
@@ -655,6 +655,13 @@ function CategoryRulesTab({ settings, onChange, canEdit }) {
     </div>
   );
 
+  const dpMediaOptions = (materials || []).filter((m) => (
+    m.category === 'print_media' || (m.compatible_categories || []).includes('digital_print')
+  ));
+  const dpLaminateOptions = (materials || []).filter((m) => (
+    m.category === 'laminate' || (m.compatible_categories || []).includes('digital_print')
+  ));
+
   return (
     <div className="space-y-3" data-testid="category-rules-tab">
       <div className="flex flex-wrap gap-1.5">
@@ -669,6 +676,16 @@ function CategoryRulesTab({ settings, onChange, canEdit }) {
       {CATEGORY_DEFS.filter((c) => c.key === openCat).map((def) => {
         const cat = cats[def.key] || {};
         const bench = benchmarks[def.key] || {};
+        const dpTiers = cat.quantity_discounts || [
+          { min_qty: 1, max_qty: 4, discount_percent: 0 },
+          { min_qty: 5, max_qty: 24, discount_percent: 5 },
+          { min_qty: 25, max_qty: 99, discount_percent: 10 },
+          { min_qty: 100, max_qty: null, discount_percent: 15 },
+        ];
+        const updateDpTier = (idx, field, value) => {
+          const next = dpTiers.map((tier, i) => (i === idx ? { ...tier, [field]: value } : tier));
+          setCatField(def.key, 'quantity_discounts', next);
+        };
         return (
           <Card key={def.key}>
             <CardHeader className="pb-3">
@@ -734,6 +751,194 @@ function CategoryRulesTab({ settings, onChange, canEdit }) {
                   />
                 </div>
               </div>
+              {def.key === 'digital_print' && (
+                <div className="space-y-4 border rounded-lg p-3 bg-slate-50" data-testid="digital-print-category-defaults">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Print Media</Label>
+                      <Select value={cat.default_print_media_key || ''} onValueChange={(v) => setCatField(def.key, 'default_print_media_key', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="digital-print-default-media">
+                          <SelectValue placeholder="Select media" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {dpMediaOptions.map((m) => (
+                            <SelectItem key={m.key || m.id} value={m.key || m.id}>{m.name || m.key}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Laminate Type</Label>
+                      <Select value={cat.default_laminate_key || ''} onValueChange={(v) => setCatField(def.key, 'default_laminate_key', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="digital-print-default-laminate">
+                          <SelectValue placeholder="Select laminate" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {dpLaminateOptions.map((m) => (
+                            <SelectItem key={m.key || m.id} value={m.key || m.id}>{m.name || m.key}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Print Quality</Label>
+                      <Select value={cat.default_print_quality_mode || 'standard'} onValueChange={(v) => setCatField(def.key, 'default_print_quality_mode', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="digital-print-default-quality">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="standard">Standard</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="photo">Photo</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Use Type</Label>
+                      <Select value={cat.default_use_type || 'indoor'} onValueChange={(v) => setCatField(def.key, 'default_use_type', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="digital-print-default-use-type">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="indoor">Indoor</SelectItem>
+                          <SelectItem value="outdoor">Outdoor</SelectItem>
+                          <SelectItem value="display">Display</SelectItem>
+                          <SelectItem value="floor">Floor</SelectItem>
+                          <SelectItem value="window">Window</SelectItem>
+                          <SelectItem value="wall">Wall</SelectItem>
+                          <SelectItem value="backlit">Backlit</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Unit of Measure</Label>
+                      <Select value={cat.default_unit_of_measure || 'inches'} onValueChange={(v) => setCatField(def.key, 'default_unit_of_measure', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="digital-print-default-unit">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="inches">Inches</SelectItem>
+                          <SelectItem value="feet">Feet</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Contour Cut</Label>
+                      <Select value={cat.default_contour_cut_type || 'none'} onValueChange={(v) => setCatField(def.key, 'default_contour_cut_type', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="digital-print-default-contour">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          <SelectItem value="simple">Simple Contour</SelectItem>
+                          <SelectItem value="complex">Complex Contour</SelectItem>
+                          <SelectItem value="kiss">Kiss Cut / Sheet Cut</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Trim Finish</Label>
+                      <Select value={cat.default_trim_finish_type || 'standard'} onValueChange={(v) => setCatField(def.key, 'default_trim_finish_type', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="digital-print-default-trim">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="standard">Standard Trim</SelectItem>
+                          <SelectItem value="premium">Premium Trim</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Design Complexity</Label>
+                      <Select value={cat.default_design_complexity || 'simple'} onValueChange={(v) => setCatField(def.key, 'default_design_complexity', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="digital-print-default-design-complexity">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="simple">Simple</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="complex">Complex</SelectItem>
+                          <SelectItem value="extreme">Extreme</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Default Install Complexity</Label>
+                      <Select value={cat.default_install_complexity || 'easy'} onValueChange={(v) => setCatField(def.key, 'default_install_complexity', v)} disabled={!canEdit}>
+                        <SelectTrigger className="h-8 text-xs" data-testid="digital-print-default-install-complexity">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="easy">Easy</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="difficult">Difficult</SelectItem>
+                          <SelectItem value="extreme">Extreme</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <F label="Min Billable Area" value={cat.default_minimum_billable_area} onChg={(v) => setCatField(def.key, 'default_minimum_billable_area', v)} prefix="" suffix="sqft" testId="digital-print-min-billable" />
+                    <F label="Min Sell Price" value={cat.default_minimum_sell_price} onChg={(v) => setCatField(def.key, 'default_minimum_sell_price', v)} testId="digital-print-min-sell" />
+                    <F label="File Prep Fee" value={cat.default_file_prep_fee} onChg={(v) => setCatField(def.key, 'default_file_prep_fee', v)} testId="digital-print-file-prep" />
+                    <F label="Design Time (hrs)" value={cat.default_design_time_hours} onChg={(v) => setCatField(def.key, 'default_design_time_hours', v)} prefix="" suffix="hrs" testId="digital-print-design-time" />
+                    <F label="Ink Coverage %" value={cat.default_ink_coverage_percent} onChg={(v) => setCatField(def.key, 'default_ink_coverage_percent', v)} prefix="" suffix="%" testId="digital-print-ink-coverage" />
+                    <F label="Ink Cost / Sq Ft" value={cat.base_ink_cost_per_sqft} onChg={(v) => setCatField(def.key, 'base_ink_cost_per_sqft', v)} testId="digital-print-ink-cost" />
+                    <F label="Prod Labor / Sq Ft" value={cat.production_labor_hours_per_sqft} onChg={(v) => setCatField(def.key, 'production_labor_hours_per_sqft', v)} prefix="" suffix="hrs" testId="digital-print-prod-labor" />
+                    <F label="Min Prod Labor / Item" value={cat.min_production_labor_hours_per_item} onChg={(v) => setCatField(def.key, 'min_production_labor_hours_per_item', v)} prefix="" suffix="hrs" testId="digital-print-min-prod-labor" />
+                    <F label="Mounting Labor / Sq Ft" value={cat.mounting_labor_hours_per_sqft} onChg={(v) => setCatField(def.key, 'mounting_labor_hours_per_sqft', v)} prefix="" suffix="hrs" testId="digital-print-mounting-labor" />
+                    <F label="Separation Labor / Piece" value={cat.piece_separation_hours_per_piece} onChg={(v) => setCatField(def.key, 'piece_separation_hours_per_piece', v)} prefix="" suffix="hrs" testId="digital-print-separation-labor" />
+                    <F label="Install Hours / Sq Ft" value={cat.install_hours_per_sqft} onChg={(v) => setCatField(def.key, 'install_hours_per_sqft', v)} prefix="" suffix="hrs" testId="digital-print-install-hours" />
+                    <F label="Trim Premium Add-on" value={cat.trim_premium_addon} onChg={(v) => setCatField(def.key, 'trim_premium_addon', v)} testId="digital-print-trim-addon" />
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="flex items-center gap-2 pt-4">
+                      <Switch checked={cat.default_laminate_required ?? false} onCheckedChange={(v) => setCatField(def.key, 'default_laminate_required', v)} disabled={!canEdit} data-testid="digital-print-default-laminate-required" />
+                      <Label className="text-xs">Default Laminate Required</Label>
+                    </div>
+                    <div className="flex items-center gap-2 pt-4">
+                      <Switch checked={cat.default_install_included ?? false} onCheckedChange={(v) => setCatField(def.key, 'default_install_included', v)} disabled={!canEdit} data-testid="digital-print-default-install-included" />
+                      <Label className="text-xs">Default Install Included</Label>
+                    </div>
+                    <div className="flex items-center gap-2 pt-4">
+                      <Switch checked={cat.sell_method === 'max_of_rate_or_minimum'} onCheckedChange={(v) => setCatField(def.key, 'sell_method', v ? 'max_of_rate_or_minimum' : 'rate_only')} disabled={!canEdit} data-testid="digital-print-sell-method" />
+                      <Label className="text-xs">Use max of rate/min</Label>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <F label="Quality Mult: Draft" value={cat.quality_multipliers?.draft} onChg={(v) => setCatField(def.key, 'quality_multipliers', { ...(cat.quality_multipliers || {}), draft: v })} prefix="" suffix="x" testId="digital-print-quality-draft" />
+                    <F label="Quality Mult: Standard" value={cat.quality_multipliers?.standard} onChg={(v) => setCatField(def.key, 'quality_multipliers', { ...(cat.quality_multipliers || {}), standard: v })} prefix="" suffix="x" testId="digital-print-quality-standard" />
+                    <F label="Quality Mult: High" value={cat.quality_multipliers?.high} onChg={(v) => setCatField(def.key, 'quality_multipliers', { ...(cat.quality_multipliers || {}), high: v })} prefix="" suffix="x" testId="digital-print-quality-high" />
+                    <F label="Quality Mult: Photo" value={cat.quality_multipliers?.photo} onChg={(v) => setCatField(def.key, 'quality_multipliers', { ...(cat.quality_multipliers || {}), photo: v })} prefix="" suffix="x" testId="digital-print-quality-photo" />
+                    <F label="Contour Mult: None" value={cat.contour_cut_multipliers?.none} onChg={(v) => setCatField(def.key, 'contour_cut_multipliers', { ...(cat.contour_cut_multipliers || {}), none: v })} prefix="" suffix="x" testId="digital-print-contour-none" />
+                    <F label="Contour Mult: Simple" value={cat.contour_cut_multipliers?.simple} onChg={(v) => setCatField(def.key, 'contour_cut_multipliers', { ...(cat.contour_cut_multipliers || {}), simple: v })} prefix="" suffix="x" testId="digital-print-contour-simple" />
+                    <F label="Contour Mult: Complex" value={cat.contour_cut_multipliers?.complex} onChg={(v) => setCatField(def.key, 'contour_cut_multipliers', { ...(cat.contour_cut_multipliers || {}), complex: v })} prefix="" suffix="x" testId="digital-print-contour-complex" />
+                    <F label="Contour Mult: Kiss" value={cat.contour_cut_multipliers?.kiss} onChg={(v) => setCatField(def.key, 'contour_cut_multipliers', { ...(cat.contour_cut_multipliers || {}), kiss: v })} prefix="" suffix="x" testId="digital-print-contour-kiss" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs text-gray-500">Quantity Discount Tiers</Label>
+                    <div className="grid grid-cols-4 gap-2 text-[11px] text-gray-500">
+                      <span>Min Qty</span>
+                      <span>Max Qty</span>
+                      <span>Discount %</span>
+                      <span></span>
+                    </div>
+                    {dpTiers.map((tier, idx) => (
+                      <div key={`dp-tier-${idx}`} className="grid grid-cols-4 gap-2">
+                        <Input type="number" className="h-7 text-xs" value={tier.min_qty ?? ''} onChange={(e) => updateDpTier(idx, 'min_qty', n(e.target.value))} data-testid={`digital-print-tier-${idx}-min`} disabled={!canEdit} />
+                        <Input type="number" className="h-7 text-xs" value={tier.max_qty ?? ''} onChange={(e) => updateDpTier(idx, 'max_qty', e.target.value === '' ? null : n(e.target.value))} data-testid={`digital-print-tier-${idx}-max`} disabled={!canEdit} />
+                        <Input type="number" className="h-7 text-xs" value={tier.discount_percent ?? ''} onChange={(e) => updateDpTier(idx, 'discount_percent', n(e.target.value))} data-testid={`digital-print-tier-${idx}-discount`} disabled={!canEdit} />
+                        <div className="text-xs text-gray-400 flex items-center">%</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="border-t pt-3">
                 <p className="text-xs font-medium text-gray-700 mb-2">Selling Benchmarks</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -1478,7 +1683,7 @@ export default function PricingFoundation() {
         </TabsContent>
 
         <TabsContent value="categories">
-          <CategoryRulesTab settings={settings} onChange={handleSettingsChange} canEdit={canEdit} />
+          <CategoryRulesTab settings={settings} onChange={handleSettingsChange} canEdit={canEdit} materials={materials} />
         </TabsContent>
 
         <TabsContent value="ai">

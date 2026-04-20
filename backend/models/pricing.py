@@ -93,6 +93,23 @@ class PricingDefaults(BaseModel):
         {"id": "misc-material-cost", "key": "misc_material", "name": "Custom / Misc Material Cost Per Item", "category": "material", "cost_per_unit": 10.0, "unit_type": "each", "is_active": True},
         {"id": "acrylic-sheet-cost", "key": "acrylic_sheet", "name": "Acrylic Sheet Cost Per Sq Ft", "category": "material", "cost_per_unit": 5.5, "unit_type": "sqft", "is_active": True},
         {"id": "rigid-sign-board-cost", "key": "rigid_sign_board", "name": "Rigid Sign Board Cost Per Sq Ft", "category": "material", "cost_per_unit": 2.85, "unit_type": "sqft", "is_active": True},
+        {"id": "dp-printable-adhesive-vinyl", "key": "printable_adhesive_vinyl", "name": "Printable Adhesive Vinyl", "category": "print_media", "cost_per_unit": 1.5, "cost_per_sqft": 1.5, "sell_rate_per_sqft": 10.0, "unit_type": "sqft", "compatible_categories": ["digital_print"], "is_active": True},
+        {"id": "dp-poster-paper", "key": "poster_paper", "name": "Poster Paper", "category": "print_media", "cost_per_unit": 0.6, "cost_per_sqft": 0.6, "sell_rate_per_sqft": 6.0, "unit_type": "sqft", "compatible_categories": ["digital_print"], "is_active": True},
+        {"id": "dp-canvas", "key": "canvas", "name": "Canvas", "category": "print_media", "cost_per_unit": 2.25, "cost_per_sqft": 2.25, "sell_rate_per_sqft": 15.0, "unit_type": "sqft", "compatible_categories": ["digital_print"], "is_active": True},
+        {"id": "dp-backlit-film", "key": "backlit_film", "name": "Backlit Film", "category": "print_media", "cost_per_unit": 2.5, "cost_per_sqft": 2.5, "sell_rate_per_sqft": 16.0, "unit_type": "sqft", "compatible_categories": ["digital_print"], "is_active": True},
+        {"id": "dp-perforated-window-film", "key": "perforated_window_film", "name": "Perforated Window Film", "category": "print_media", "cost_per_unit": 2.75, "cost_per_sqft": 2.75, "sell_rate_per_sqft": 18.0, "unit_type": "sqft", "compatible_categories": ["digital_print"], "is_active": True},
+        {"id": "dp-wall-graphic-media", "key": "wall_graphic_media", "name": "Wall Graphic Media", "category": "print_media", "cost_per_unit": 2.25, "cost_per_sqft": 2.25, "sell_rate_per_sqft": 14.0, "unit_type": "sqft", "compatible_categories": ["digital_print"], "is_active": True},
+        {"id": "dp-floor-graphic-media", "key": "floor_graphic_media", "name": "Floor Graphic Media", "category": "print_media", "cost_per_unit": 3.0, "cost_per_sqft": 3.0, "sell_rate_per_sqft": 20.0, "unit_type": "sqft", "compatible_categories": ["digital_print"], "is_active": True},
+        {"id": "dp-removable-adhesive", "key": "removable_adhesive_print_media", "name": "Removable Adhesive Print Media", "category": "print_media", "cost_per_unit": 1.5, "cost_per_sqft": 1.5, "sell_rate_per_sqft": 10.0, "unit_type": "sqft", "compatible_categories": ["digital_print"], "is_active": True},
+        {"id": "dp-photo-paper", "key": "photo_paper", "name": "Photo Paper", "category": "print_media", "cost_per_unit": 0.75, "cost_per_sqft": 0.75, "sell_rate_per_sqft": 8.0, "unit_type": "sqft", "compatible_categories": ["digital_print"], "is_active": True},
+        {"id": "dp-specialty-media", "key": "specialty_print_media", "name": "Specialty / Custom Print Media", "category": "print_media", "cost_per_unit": 2.0, "cost_per_sqft": 2.0, "sell_rate_per_sqft": 12.0, "unit_type": "sqft", "compatible_categories": ["digital_print"], "is_active": True},
+        {"id": "dp-ink-cost", "key": "digital_print_ink", "name": "Digital Print Ink (100% coverage)", "category": "consumable", "cost_per_unit": 0.75, "cost_per_sqft": 0.75, "unit_type": "sqft", "compatible_categories": ["digital_print"], "is_active": True},
+        {"id": "dp-laminate-gloss", "key": "laminate_gloss", "name": "Gloss Laminate", "category": "laminate", "cost_per_unit": 0.85, "cost_per_sqft": 0.85, "unit_type": "sqft", "compatible_categories": ["digital_print"], "is_active": True},
+        {"id": "dp-laminate-matte", "key": "laminate_matte", "name": "Matte Laminate", "category": "laminate", "cost_per_unit": 0.85, "cost_per_sqft": 0.85, "unit_type": "sqft", "compatible_categories": ["digital_print"], "is_active": True},
+        {"id": "dp-laminate-heavy", "key": "laminate_heavy_duty", "name": "Heavy-Duty Laminate", "category": "laminate", "cost_per_unit": 1.25, "cost_per_sqft": 1.25, "unit_type": "sqft", "compatible_categories": ["digital_print"], "is_active": True},
+        {"id": "dp-laminate-floor", "key": "laminate_floor", "name": "Floor Laminate", "category": "laminate", "cost_per_unit": 1.25, "cost_per_sqft": 1.25, "unit_type": "sqft", "compatible_categories": ["digital_print"], "is_active": True},
+        {"id": "dp-laminate-uv", "key": "laminate_uv", "name": "UV Laminate", "category": "laminate", "cost_per_unit": 0.85, "cost_per_sqft": 0.85, "unit_type": "sqft", "compatible_categories": ["digital_print"], "is_active": True},
+        {"id": "dp-laminate-specialty", "key": "laminate_specialty", "name": "Specialty / Custom Laminate", "category": "laminate", "cost_per_unit": 0.85, "cost_per_sqft": 0.85, "unit_type": "sqft", "compatible_categories": ["digital_print"], "is_active": True},
     ])
     hardware_accessories: List[Dict[str, Any]] = Field(default_factory=list)
     labor_rates: Dict[str, Any] = Field(default_factory=lambda: {
@@ -207,15 +224,71 @@ class PricingDefaults(BaseModel):
     category_defaults: Dict[str, Any] = Field(default_factory=lambda: {
         "digital_print": {
             "label": "Digital Print",
-            "default_labor_hours_per_sqft": 0.05,
+            "default_labor_hours_per_sqft": 0.08,
             "default_markup_multiplier": 2.3,
             "target_profit_margin_percent": 40.0,
             "minimum_charge": 40.0,
-            "default_material_keys": ["banner_material", "ink"],
+            "default_material_keys": ["printable_adhesive_vinyl", "digital_print_ink"],
             "default_hardware_keys": [],
             "default_labor_types": ["production"],
             "sell_rate_defaults": {},
             "ai_prefill_overrides": {},
+            "default_print_media_key": "printable_adhesive_vinyl",
+            "default_ink_material_key": "digital_print_ink",
+            "available_print_media_keys": [
+                "printable_adhesive_vinyl",
+                "poster_paper",
+                "canvas",
+                "backlit_film",
+                "perforated_window_film",
+                "wall_graphic_media",
+                "floor_graphic_media",
+                "removable_adhesive_print_media",
+                "photo_paper",
+                "specialty_print_media",
+            ],
+            "default_laminate_required": False,
+            "default_laminate_key": "laminate_gloss",
+            "default_install_included": False,
+            "default_minimum_billable_area": 1.0,
+            "default_minimum_sell_price": 20.0,
+            "default_file_prep_fee": 20.0,
+            "default_design_time_hours": 0.5,
+            "default_print_quality_mode": "standard",
+            "default_ink_coverage_percent": 35.0,
+            "waste_percentage": 10.0,
+            "base_ink_cost_per_sqft": 0.75,
+            "sell_method": "max_of_rate_or_minimum",
+            "production_labor_hours_per_sqft": 0.08,
+            "min_production_labor_hours_per_item": 0.2,
+            "mounting_labor_hours_per_sqft": 0.08,
+            "piece_separation_hours_per_piece": 0.02,
+            "install_hours_per_sqft": 0.08,
+            "quality_multipliers": {
+                "draft": 0.9,
+                "standard": 1.0,
+                "high": 1.15,
+                "photo": 1.3,
+            },
+            "contour_cut_multipliers": {
+                "none": 1.0,
+                "simple": 1.2,
+                "complex": 1.5,
+                "kiss": 1.15,
+            },
+            "trim_premium_addon": 3.0,
+            "quantity_discounts": [
+                {"min_qty": 1, "max_qty": 4, "discount_percent": 0},
+                {"min_qty": 5, "max_qty": 24, "discount_percent": 5},
+                {"min_qty": 25, "max_qty": 99, "discount_percent": 10},
+                {"min_qty": 100, "max_qty": None, "discount_percent": 15},
+            ],
+            "default_use_type": "indoor",
+            "default_unit_of_measure": "inches",
+            "default_contour_cut_type": "none",
+            "default_trim_finish_type": "standard",
+            "default_design_complexity": "simple",
+            "default_install_complexity": "easy",
         },
         "vehicle_wraps": {
             "label": "Vehicle Graphics / Wraps",
@@ -528,9 +601,26 @@ class JobItemPricingData(BaseModel):
     num_colors: int = 1
     
     # Digital Print
+    print_media_key: Optional[str] = None
     print_material: Optional[PrintMaterial] = None
+    unit_of_measure: Optional[str] = None
+    use_type: Optional[str] = None
+    print_quality_mode: Optional[str] = None
+    ink_coverage_percent: Optional[float] = None
     laminate: bool = False
     laminate_type: Optional[str] = None
+    laminate_material_key: Optional[str] = None
+    contour_cut_type: Optional[str] = None
+    trim_finish_type: Optional[str] = None
+    piece_separation_required: bool = False
+    separated_piece_count: int = 0
+    artwork_ready: Optional[bool] = None
+    artwork_needed: Optional[bool] = None
+    design_complexity: Optional[str] = None
+    file_cleanup_needed: bool = False
+    mounted_to_substrate: bool = False
+    substrate_material_key: Optional[str] = None
+    install_complexity: Optional[str] = None
     grommets: Optional[str] = None
     hemming: Optional[str] = None
     

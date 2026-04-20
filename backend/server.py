@@ -203,7 +203,17 @@ async def get_pricing_defaults(tenant_id: str) -> dict:
         return base_defaults
 
     merged = {**base_defaults, **config}
-    merged["materials"] = config.get("materials") or base_defaults.get("materials", [])
+    base_materials = base_defaults.get("materials", [])
+    config_materials = config.get("materials") or []
+    if config_materials:
+        material_map = { (m.get("key") or m.get("id")): m for m in base_materials }
+        for material in config_materials:
+            key = material.get("key") or material.get("id")
+            if key:
+                material_map[key] = material
+        merged["materials"] = list(material_map.values())
+    else:
+        merged["materials"] = base_materials
     merged["hardware_accessories"] = config.get("hardware_accessories") or base_defaults.get("hardware_accessories", [])
     merged["labor_rates"] = {
         **base_defaults.get("labor_rates", {}),
@@ -213,6 +223,15 @@ async def get_pricing_defaults(tenant_id: str) -> dict:
         **base_defaults.get("category_defaults", {}),
         **config.get("category_defaults", {}),
     }
+    base_categories = base_defaults.get("category_defaults", {})
+    config_categories = config.get("category_defaults", {})
+    merged_categories = {}
+    for key, base_cat in base_categories.items():
+        merged_categories[key] = {**base_cat, **config_categories.get(key, {})}
+    for key, value in config_categories.items():
+        if key not in merged_categories:
+            merged_categories[key] = value
+    merged["category_defaults"] = merged_categories
     merged["selling_price_benchmarks"] = {
         **base_defaults.get("selling_price_benchmarks", {}),
         **config.get("selling_price_benchmarks", {}),
@@ -237,8 +256,37 @@ def get_material_cost_map(defaults: dict) -> dict:
     for material in defaults.get("materials", []):
         key = material.get("key") or material.get("id")
         if key:
-            material_map[key] = float(material.get("cost_per_unit", 0) or 0)
+            cost_value = material.get("cost_per_sqft")
+            if cost_value in (None, ""):
+                cost_value = material.get("cost_per_unit", 0)
+            material_map[key] = float(cost_value or 0)
     return material_map
+
+
+def find_material(defaults: dict, key: str) -> dict:
+    if not key:
+        return {}
+    for material in defaults.get("materials", []):
+        if material.get("key") == key or material.get("id") == key:
+            return material
+    return {}
+
+
+def get_material_sell_rate(defaults: dict, key: str) -> float:
+    material = find_material(defaults, key)
+    if not material:
+        return 0
+    return float(material.get("sell_rate_per_sqft", 0) or 0)
+
+
+def get_material_cost_per_sqft(defaults: dict, key: str) -> float:
+    material = find_material(defaults, key)
+    if not material:
+        return 0
+    cost_value = material.get("cost_per_sqft")
+    if cost_value in (None, ""):
+        cost_value = material.get("cost_per_unit", 0)
+    return float(cost_value or 0)
 
 
 def get_category_pricing_config(defaults: dict, category_key: str) -> dict:
@@ -547,105 +595,232 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
 
 
 async def calculate_digital_print(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
-    """Calculate banner-first pricing using tenant cost settings."""
+    """Calculate digital print pricing using Pricing Foundation defaults."""
     width = data.width_inches or 24
-    height = data.length_inches or 36
-    sqft = (width * height) / 144
+    height = data.length_inches or 24
+    unit = (data.unit_of_measure or "inches").lower()
+    area_per_piece = (width * height) / 144 if unit != "feet" else (width * height)
 
-    material = data.print_material or "banner_13oz"
-    is_banner_job = material.startswith("banner_")
-    category_key = "banners" if is_banner_job else "digital_print"
-    category_config = get_category_pricing_config(defaults, category_key)
-    material_cost_map = get_material_cost_map(defaults)
+    category_config = get_category_pricing_config(defaults, "digital_print")
+    min_billable = float(category_config.get("default_minimum_billable_area", 1.0) or 1.0)
+    billable_area_per_piece = max(area_per_piece, min_billable)
+    total_billable_area = billable_area_per_piece * quantity
 
-    material_cost_per_sqft = material_cost_map.get("banner_material", 0.9) if is_banner_job else material_cost_map.get("vinyl", 1.25)
-    ink_cost_per_sqft = material_cost_map.get("ink", 0)
-    laminate_cost_per_sqft = material_cost_map.get("laminate", 0) if data.laminate else 0
-    material_cost = sqft * quantity * (material_cost_per_sqft + ink_cost_per_sqft + laminate_cost_per_sqft)
+    waste_percent = float(category_config.get("waste_percentage", defaults.get("waste_percentage", 0)) or 0)
+    waste_adjusted_area = total_billable_area * (1 + (waste_percent / 100))
 
-    finishing_cost = 0
-    grommets = getattr(data, 'grommets', False)
-    hemming = getattr(data, 'hemming', False)
-    lamination = data.laminate
-    
-    grommet_price = float(defaults.get("banner_grommet_price_each", 1.0) or 0)
-    hemming_price_per_inch = float(defaults.get("banner_hemming_tape_price_per_linear_inch", 0.03) or 0)
+    default_media_key = category_config.get("default_print_media_key", "printable_adhesive_vinyl")
+    media_key = data.print_media_key
+    if not media_key and data.print_material:
+        media_map = {
+            "banner_13oz": "printable_adhesive_vinyl",
+            "banner_18oz": "printable_adhesive_vinyl",
+            "vinyl_adhesive": "printable_adhesive_vinyl",
+            "poster_paper": "poster_paper",
+            "canvas": "canvas",
+            "backlit": "backlit_film",
+            "perforated": "perforated_window_film",
+        }
+        media_key = media_map.get(str(data.print_material.value), default_media_key)
+    media_key = media_key or default_media_key
 
-    if grommets and grommets != 'none':
-        perimeter_inches = (width + height) * 2
-        perimeter_feet = perimeter_inches / 12 if perimeter_inches else 0
-        if grommets == 'corners':
-            grommet_count = 4
-        elif grommets == 'every_2ft':
-            grommet_count = max(int(perimeter_feet / 2), 1)
-        elif grommets == 'every_3ft':
-            grommet_count = max(int(perimeter_feet / 3), 1)
+    media_material = find_material(defaults, media_key)
+    media_warning = ""
+    if not media_material:
+        media_warning = f"Missing media type: {media_key}. Using default."
+        media_key = default_media_key
+        media_material = find_material(defaults, media_key)
+
+    media_cost_per_sqft = get_material_cost_per_sqft(defaults, media_key)
+    media_sell_rate = get_material_sell_rate(defaults, media_key)
+
+    material_cost = waste_adjusted_area * media_cost_per_sqft
+
+    ink_coverage = float(data.ink_coverage_percent or category_config.get("default_ink_coverage_percent", 35) or 0)
+    ink_key = category_config.get("default_ink_material_key", "digital_print_ink")
+    ink_cost_per_sqft = get_material_cost_per_sqft(defaults, ink_key) or float(category_config.get("base_ink_cost_per_sqft", 0.75) or 0)
+    ink_cost = waste_adjusted_area * ink_cost_per_sqft * (ink_coverage / 100.0)
+
+    laminate_required = bool(data.laminate)
+    laminate_key = data.laminate_material_key or data.laminate_type or category_config.get("default_laminate_key", "laminate_gloss")
+    laminate_cost = 0
+    laminate_warning = ""
+    if laminate_required:
+        laminate_cost_per_sqft = get_material_cost_per_sqft(defaults, laminate_key)
+        if laminate_cost_per_sqft <= 0:
+            laminate_warning = f"Missing laminate type: {laminate_key}."
+        laminate_cost = waste_adjusted_area * laminate_cost_per_sqft
+
+    substrate_cost = 0
+    mounting_hours = 0
+    substrate_warning = ""
+    if data.mounted_to_substrate:
+        substrate_key = data.substrate_material_key
+        if not substrate_key and data.substrate_type:
+            substrate_map = {
+                "coroplast_4mm": "coroplast",
+                "coroplast_10mm": "coroplast",
+                "aluminum_040": "aluminum_composite",
+                "aluminum_063": "aluminum_composite",
+                "aluminum_080": "aluminum_composite",
+                "pvc_3mm": "foam_board",
+                "pvc_6mm": "foam_board",
+                "acrylic": "acrylic_sheet",
+                "dibond": "aluminum_composite",
+                "mdo": "rigid_sign_board",
+            }
+            substrate_key = substrate_map.get(str(data.substrate_type.value), "")
+        if substrate_key:
+            substrate_cost_per_sqft = get_material_cost_per_sqft(defaults, substrate_key)
+            substrate_cost = waste_adjusted_area * substrate_cost_per_sqft
         else:
-            grommet_count = max(int(getattr(data, 'custom_grommet_count', 0) or 0), 0)
-        finishing_cost += grommet_count * grommet_price * quantity
-    else:
-        grommet_count = 0
+            substrate_warning = "Missing substrate type."
 
-    if hemming and hemming != 'none':
-        perimeter_inches = (width + height) * 2
-        hem_linear_inches = width * 2 if hemming == 'top_bottom' else perimeter_inches
-        finishing_cost += hem_linear_inches * hemming_price_per_inch * quantity
-    else:
-        hem_linear_inches = 0
+        mounting_rate = float(category_config.get("mounting_labor_hours_per_sqft", 0.08) or 0)
+        mounting_hours = waste_adjusted_area * mounting_rate
 
-    labor_hours = sqft * quantity * float(category_config.get("default_labor_hours_per_sqft", 0.06) or 0)
-    production_rate = float(defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75)) or 0)
-    labor_cost = labor_hours * production_rate
+    quality_mode = (data.print_quality_mode or category_config.get("default_print_quality_mode", "standard"))
+    quality_mult = float(category_config.get("quality_multipliers", {}).get(quality_mode, 1.0) or 1.0)
+    contour_type = (data.contour_cut_type or category_config.get("default_contour_cut_type", "none"))
+    contour_mult = float(category_config.get("contour_cut_multipliers", {}).get(contour_type, 1.0) or 1.0)
 
-    # Setup fee is OPTIONAL - only included if checkbox is checked
-    include_setup = getattr(data, 'include_setup_fee', False)
-    setup_fee = data.setup_fee or 0
-    if include_setup and setup_fee == 0:
-        setup_fee = defaults.get("setup_fee_print", 20.0)
-    elif not include_setup:
-        setup_fee = 0
+    base_prod_hours_per_sqft = float(category_config.get("production_labor_hours_per_sqft", category_config.get("default_labor_hours_per_sqft", 0.08)) or 0)
+    min_prod_hours = float(category_config.get("min_production_labor_hours_per_item", 0.2) or 0)
+    per_piece_prod_hours = billable_area_per_piece * base_prod_hours_per_sqft * quality_mult * contour_mult
+    per_piece_prod_hours = max(per_piece_prod_hours, min_prod_hours)
+    production_hours = per_piece_prod_hours * quantity
 
-    pre_overhead_total = material_cost + labor_cost + finishing_cost  # setup_fee added flat after markup
-    overhead_cost = calculate_overhead_cost(pre_overhead_total, labor_hours, defaults, category_config)
-    suggested_price = resolve_selling_price(
-        pre_overhead_total + overhead_cost,
-        category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5)),
-        category_config.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 40.0)),
+    complexity_mult = get_complexity_multiplier(
+        int(data.complexity or 1),
+        float(defaults.get("complexity_multiplier_base", 1.0) or 1.0),
+        float(defaults.get("complexity_multiplier_max", 1.5) or 1.5)
     )
-    # Setup fee added FLAT — not marked up
-    suggested_price += setup_fee
-    suggested_price = max(suggested_price, float(category_config.get("minimum_charge", 15.0) or 15.0))
-    suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order)
+    production_hours *= complexity_mult
+
+    separation_hours = 0
+    if data.piece_separation_required:
+        count = max(int(data.separated_piece_count or 0), 0)
+        separation_rate = float(category_config.get("piece_separation_hours_per_piece", 0.02) or 0)
+        separation_hours = count * separation_rate
+
+    design_hours = 0
+    if data.artwork_ready:
+        design_hours = 0
+    elif data.artwork_needed or data.artwork_needed is None:
+        base_design_time = float(category_config.get("default_design_time_hours", 0.5) or 0)
+        design_complexity = (data.design_complexity or category_config.get("default_design_complexity", "simple"))
+        design_mult = {
+            "simple": 1.0,
+            "medium": 1.25,
+            "complex": 1.5,
+            "extreme": 2.0,
+        }.get(design_complexity, 1.0)
+        design_hours = base_design_time * design_mult
+
+    labor_rates = defaults.get("labor_rates", {})
+    production_rate = float(labor_rates.get("production", {}).get("hourly_rate", defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75))) or 0)
+    design_rate = float(labor_rates.get("design", {}).get("hourly_rate", defaults.get("design_hourly_rate", 85)) or 0)
+    install_rate = float(labor_rates.get("installation", {}).get("hourly_rate", defaults.get("install_hourly_rate", 95)) or 0)
+
+    production_labor_cost = production_hours * production_rate
+    mounting_labor_cost = mounting_hours * production_rate
+    separation_labor_cost = separation_hours * production_rate
+    design_cost = design_hours * design_rate
+
+    install_hours = 0
+    install_cost = 0
+    if data.install_required:
+        base_install_hours = total_billable_area * float(category_config.get("install_hours_per_sqft", 0.08) or 0)
+        install_complexity = (data.install_complexity or category_config.get("default_install_complexity", "easy"))
+        install_mult = {
+            "easy": 1.0,
+            "medium": 1.25,
+            "difficult": 1.5,
+            "extreme": 2.0,
+        }.get(install_complexity, 1.0)
+        install_hours = base_install_hours * install_mult
+        install_min = float(defaults.get("minimum_install_charge", 0) or 0)
+        install_cost = max(install_min, install_hours * install_rate)
+
+    file_cleanup_fee = 0
+    if data.file_cleanup_needed:
+        file_cleanup_fee = float(category_config.get("default_file_prep_fee", defaults.get("file_cleanup_fee_default", 0)) or 0)
+
+    trim_finish = data.trim_finish_type or category_config.get("default_trim_finish_type", "standard")
+    trim_addon = 0
+    if trim_finish == "premium":
+        trim_addon = float(category_config.get("trim_premium_addon", 3.0) or 0) * quantity
+
+    # Setup fee (optional)
+    include_setup = getattr(data, 'include_setup_fee', False)
+    setup_fee = 0
+    if include_setup:
+        setup_fee = float(data.setup_fee or defaults.get("setup_fee_print", defaults.get("setup_fee_default", 0)) or 0)
+
+    material_cost = material_cost + ink_cost + laminate_cost + substrate_cost
+    labor_cost = production_labor_cost + mounting_labor_cost + separation_labor_cost + design_cost + install_cost
+
+    overhead_cost = calculate_overhead_cost(material_cost + labor_cost, production_hours + mounting_hours + separation_hours + design_hours + install_hours, defaults, category_config)
+
+    base_sell_rate = float(media_sell_rate or category_config.get("sell_rate_defaults", {}).get("base_rate", 0) or 0)
+    sell_base = base_sell_rate * total_billable_area * quality_mult * contour_mult
+    min_sell = float(category_config.get("default_minimum_sell_price", category_config.get("minimum_charge", 0)) or 0)
+    sell_base = max(sell_base, min_sell)
+
+    discount_tiers = category_config.get("quantity_discounts", [])
+    discount_percent = 0
+    for tier in discount_tiers:
+        min_qty = float(tier.get("min_qty", 0) or 0)
+        max_qty = tier.get("max_qty")
+        if quantity >= min_qty and (max_qty is None or quantity <= float(max_qty)):
+            discount_percent = float(tier.get("discount_percent", 0) or 0)
+            break
+    sell_base = sell_base * (1 - (discount_percent / 100))
+
+    suggested_price = sell_base + design_cost + install_cost + file_cleanup_fee + trim_addon + setup_fee
+    rush_multiplier = 1 + (float(defaults.get("rush_fee_percentage", 0) or 0) / 100)
+    suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order, rush_multiplier)
 
     return create_pricing_result(
-        material_cost=material_cost + finishing_cost,
+        material_cost=material_cost,
         labor_cost=labor_cost,
         setup_cost=setup_fee,
-        additional_costs=0,
+        additional_costs=file_cleanup_fee + trim_addon,
         overhead_cost=overhead_cost,
         suggested_price=suggested_price,
-        estimated_labor_minutes=labor_hours * 60,
+        estimated_labor_minutes=(production_hours + mounting_hours + separation_hours + design_hours + install_hours) * 60,
         breakdown={
             "dimensions": f"{width}\" x {height}\"",
-            "square_feet": round(sqft, 2),
-            "material": material,
-            "material_cost_per_sqft": material_cost_per_sqft,
+            "unit_of_measure": unit,
+            "area_per_piece": round(area_per_piece, 2),
+            "billable_area_per_piece": round(billable_area_per_piece, 2),
+            "total_billable_area": round(total_billable_area, 2),
+            "waste_adjusted_area": round(waste_adjusted_area, 2),
+            "print_media_key": media_key,
+            "media_warning": media_warning,
+            "media_cost_per_sqft": media_cost_per_sqft,
             "ink_cost_per_sqft": ink_cost_per_sqft,
-            "laminate_cost_per_sqft": laminate_cost_per_sqft,
-            "finishing_cost": round(finishing_cost, 2),
-            "grommets": grommets,
-            "grommet_count": grommet_count,
-            "grommet_price_each": grommet_price,
-            "hemming": hemming,
-            "hem_linear_inches": round(hem_linear_inches, 2),
-            "hemming_price_per_linear_inch": hemming_price_per_inch,
-            "lamination": lamination,
-            "labor_hours": round(labor_hours, 2),
-            "production_rate": production_rate,
-            "overhead_cost": round(overhead_cost, 2),
-            "setup_fee": setup_fee,
-            "setup_included": include_setup,
-            "price_per_sqft": round(suggested_price / sqft, 2) if sqft > 0 else 0
+            "ink_coverage_percent": ink_coverage,
+            "laminate_required": laminate_required,
+            "laminate_key": laminate_key,
+            "laminate_warning": laminate_warning,
+            "laminate_cost_per_sqft": get_material_cost_per_sqft(defaults, laminate_key),
+            "substrate_key": data.substrate_material_key or (data.substrate_type.value if data.substrate_type else ""),
+            "substrate_warning": substrate_warning,
+            "substrate_cost": round(substrate_cost, 2),
+            "quality_mode": quality_mode,
+            "quality_multiplier": quality_mult,
+            "contour_cut_type": contour_type,
+            "contour_multiplier": contour_mult,
+            "production_hours": round(production_hours, 2),
+            "design_hours": round(design_hours, 2),
+            "install_hours": round(install_hours, 2),
+            "mounting_hours": round(mounting_hours, 2),
+            "separation_hours": round(separation_hours, 2),
+            "quantity_discount_percent": discount_percent,
+            "file_cleanup_fee": round(file_cleanup_fee, 2),
+            "trim_addon": round(trim_addon, 2),
+            "setup_fee": round(setup_fee, 2),
         }
     )
 
