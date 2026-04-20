@@ -1,7 +1,7 @@
 # SignGuy AI - Product Requirements Document
 
 > **Last Updated:** April 20, 2026
-> **Version:** 7.1
+> **Version:** 7.2
 
 ---
 
@@ -18,6 +18,19 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ---
 
 ## What's Been Implemented
+
+### Session: Apr 20, 2026 (Apparel Category — Pricing Foundation)
+- Implemented full Apparel pricing category matching exact user spec; extended existing Pricing Foundation (not a parallel system) and designed for multi-decoration-method expansion.
+- **Backend:**
+  - `models/pricing.py`: Added 13 new `apparel_blank` materials (Gildan 5000/2400/18000/18500/8800; Bella+Canvas 3001/3501/3901/3719/3415; Standard + Premium Cap; Visor) with cost_per_unit + retail_base_no_print. Rewrote `apparel` category_defaults with: `available_decoration_methods` (9 methods), `methods_using_shop_table` (htv/screen_print_transfer/dtf_transfer), `method_config` (per-method pricing rules with uses_shop_table flag), `available_product_types`, `available_brand_styles`, `placement_sets`, `quantity_tiers`, full `shop_pricing_table` (13 blank keys × 5 tiers × 3 placements), add-on rates (plus_size $2, custom_name_number $4/$3, specialty $2/$1.50, two_tone_hat $1.50, leather_patch $2.50, bag_and_fold $1), setup-by-complexity, rush range. Added 17 new JobItemPricingData apparel fields.
+  - `server.py`: `calculate_apparel` fully rewritten as method-dispatcher. Shop-table methods pull exact per-piece sell; cost-plus methods use method_config (color/stitch/sqin rules + setup + labor + markup). Adds plus-size/names/specialty/two-tone/patch/bag-fold/setup × complexity. Enforces retail_base floor per piece. Supports rush % override and manual_quote_override.
+  - `routes/job_tickets.py`: `_apparel_schema` rewritten (34 Foundation-driven fields). `_build_ticket_pricing_payload` passes all new apparel_* fields + auto-derives apparel_plus_size_count from size breakdown (2XL=1x, 3XL=2x, 4XL=3x, 5XL=4x per spec).
+- **Frontend:**
+  - `PricingFoundation.js`: Apparel admin card (default method, setup fee, min sell, rush %, all add-on rates, setup-by-complexity, apparel_blank list).
+  - `PricingCalculator.js`: Apparel case rewritten with dynamic UI — product type switches brand list + placement options + hat-only add-ons; all 22 `ap-*` test IDs (product/brand/color/placement/method/colors/stitch/plus-size/manual/artwork/complexity/custom-nn/nn-count/specialty/two-tone/patch/bag-fold/rush/rush-percent/blank-override).
+- **Methods fully priced now:** HTV, Screen Print Transfer, DTF Transfer (all using uploaded shop quantity table).
+- **Methods structurally supported + cost-plus scaffolded:** Direct Screen Print (per-color amortized setup), Embroidery (per 1k stitches), DTG (flat per-piece), Patch/Emblem, Sublimation (per sq in), Specialty/Custom. Each method has its own `method_config` block; shop can later add per-method pricing tables without engine changes.
+- **Testing:** testing_agent_v3_fork iteration_113 = 100% pass (0 backend issues, 0 frontend issues, 0 action items, retest_needed=false). Backend curl matrix at `/app/test_reports/apparel_backend_tests.txt` (20 scenarios).
 
 ### Session: Apr 20, 2026 (Vehicle Graphics / Wraps Category — Pricing Foundation)
 - Implemented full Vehicle Graphics / Wraps pricing category following exact user spec, mirroring Banner/Rigid/Cut Vinyl/Digital Print robustness.
