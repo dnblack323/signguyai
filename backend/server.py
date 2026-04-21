@@ -1958,8 +1958,19 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
     markup = float(cfg.get("default_markup_multiplier", 1.8) or 1.8)
     target_margin = float(cfg.get("target_profit_margin_percent", 35.0) or 35.0)
 
-    # Cost-plus candidate
-    cost_plus_labor_sell = resolve_selling_price(labor_cost + (overhead_cost * (labor_cost / max(production_cost_total - travel_cost - equipment_cost - subcontract_cost - permit_cost, 1) if production_cost_total > 0 else 1)), markup, target_margin)
+    # Cost-plus candidate.
+    # Allocate a share of overhead to the labor portion proportional to labor's
+    # share of the "allocable" cost base (everything except direct pass-through
+    # costs — travel, equipment, subcontract, permit). When allocable_base is
+    # zero (e.g. a pure pass-through job), keep all overhead on labor rather
+    # than silently dropping it.
+    non_allocable = travel_cost + equipment_cost + subcontract_cost + permit_cost
+    allocable_base = production_cost_total - non_allocable
+    if allocable_base > 0 and labor_cost > 0:
+        labor_overhead_share = overhead_cost * (labor_cost / allocable_base)
+    else:
+        labor_overhead_share = overhead_cost
+    cost_plus_labor_sell = resolve_selling_price(labor_cost + labor_overhead_share, markup, target_margin)
 
     # Baseline candidate (labor_sell_baseline already computed)
     if sell_method == "cost_plus":
@@ -1980,11 +1991,16 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
         effective_min = min_override
     else:
         effective_min = per_service_min
-    if minimum_applies and effective_min > 0:
-        suggested_price = max(suggested_price, effective_min)
-
-    global_min = float(cfg.get("default_minimum_sell_price", 25.0) or 25.0)
-    suggested_price = max(suggested_price, global_min)
+    # Both the per-service minimum AND the global floor are gated by
+    # `services_minimum_applies`. When a shop explicitly turns minimums off
+    # (e.g. free consultation, relationship discount) neither floor should
+    # silently re-inflate the quote.
+    if minimum_applies:
+        if effective_min > 0:
+            suggested_price = max(suggested_price, effective_min)
+        global_min = float(cfg.get("default_minimum_sell_price", 25.0) or 25.0)
+        if global_min > 0:
+            suggested_price = max(suggested_price, global_min)
 
     # ===== Rush =====
     # Spec: prefer Pricing Foundation rush default; fallback to services-specific rush_percent.
@@ -2002,12 +2018,18 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
         suggested_price = suggested_price * (1 + rush_pct / 100.0)
 
     # ===== Manual override =====
+    # Precedence (highest-priority wins, applied last):
+    #   1. services_manual_quote_override — Services-specific, set by the user
+    #      on this line item.
+    #   2. Generic price_override (data.override_enabled + data.price_override)
+    #      — legacy category-agnostic override; applied FIRST so that the
+    #      Services-specific field can still win when both are set.
     manual_override = None
+    if data.override_enabled and data.price_override:
+        suggested_price = float(data.price_override)
     if data.services_manual_quote_override and float(data.services_manual_quote_override) > 0:
         manual_override = float(data.services_manual_quote_override)
         suggested_price = manual_override
-    if data.override_enabled and data.price_override:
-        suggested_price = float(data.price_override)
 
     # ===== Field provenance (shop_default / ai_estimated / user_entered) =====
     # ai_prefilled_fields = list of attribute names injected by AI prefill; any
