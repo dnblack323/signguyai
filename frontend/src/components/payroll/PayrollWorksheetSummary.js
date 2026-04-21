@@ -4,10 +4,10 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Pencil, Check, X } from 'lucide-react';
 
-const SummaryRow = ({ label, value, testId, strong = false }) => (
-  <div className="grid grid-cols-[1fr_180px] border-b border-slate-200 last:border-b-0">
-    <div className="px-4 py-3 text-sm uppercase tracking-[0.18em] text-slate-500">{label}</div>
-    <div className={`px-4 py-3 text-right text-sm ${strong ? 'font-semibold text-slate-900' : 'font-medium text-slate-700'}`} data-testid={testId}>{value}</div>
+const Row = ({ label, value, testId, emphasis = false }) => (
+  <div className="flex items-baseline justify-between py-2 border-b border-slate-200 last:border-b-0">
+    <span className={`text-sm ${emphasis ? 'font-semibold text-slate-900' : 'text-slate-600'}`}>{label}</span>
+    <span className={`tabular-nums ${emphasis ? 'text-base font-semibold text-slate-900' : 'text-sm font-medium text-slate-800'}`} data-testid={testId}>{value}</span>
   </div>
 );
 
@@ -48,43 +48,54 @@ export const PayrollWorksheetSummary = ({
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_280px]" data-testid="payroll-worksheet-summary">
-      <div className="rounded-[26px] border border-slate-300 bg-white">
+    <div className="mx-auto max-w-xl rounded-[22px] border border-slate-300 bg-white p-5 shadow-sm" data-testid="payroll-worksheet-summary">
+      <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Pay Period Summary</h3>
+
+      {/* Hours section */}
+      <div className="divide-y divide-slate-200">
         {legacyManualHours > 0 && (
-          <SummaryRow label="Legacy Manual Included" value={`${legacyManualHours.toFixed(2)} hrs · ${formatCurrency(legacyManualPay)}`} testId="payroll-summary-legacy-manual" />
+          <Row label="Legacy Manual Included" value={`${legacyManualHours.toFixed(2)} hrs · ${formatCurrency(legacyManualPay)}`} testId="payroll-summary-legacy-manual" />
         )}
-        <SummaryRow label="Total Time" value={`${totalHours.toFixed(2)} hrs`} testId="payroll-summary-total-time" strong />
-        <SummaryRow label="Total Regular Hours" value={`${regularHours.toFixed(2)} hrs`} testId="payroll-summary-regular-hours" />
-        <SummaryRow label="Total Overtime Hours" value={`${summary.overtimeHours.toFixed(2)} hrs`} testId="payroll-summary-overtime-hours" />
-        <SummaryRow label="Regular Pay" value={formatCurrency(regularPay)} testId="payroll-summary-regular-pay" />
-        <SummaryRow label="Overtime Pay" value={formatCurrency(summary.overtimePay)} testId="payroll-summary-overtime-pay" />
-        <SummaryRow label="Gross Pay Before Adjustments" value={formatCurrency(grossPay)} testId="payroll-summary-gross-pay" strong />
+        <Row label="Total Time" value={`${totalHours.toFixed(2)} hrs`} testId="payroll-summary-total-time" emphasis />
+        <Row label="Regular Hours" value={`${regularHours.toFixed(2)} hrs`} testId="payroll-summary-regular-hours" />
+        <Row label="Overtime Hours" value={`${summary.overtimeHours.toFixed(2)} hrs`} testId="payroll-summary-overtime-hours" />
       </div>
 
-      <div className="space-y-4 self-end rounded-[26px] border border-slate-300 bg-[#fffdf6] p-5">
-        <div className="grid gap-2">
-          <div className="flex items-center justify-between">
-            <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Carryover Balance</p>
+      {/* Pay calc section */}
+      <div className="mt-3 divide-y divide-slate-200">
+        <Row label="Regular Pay" value={formatCurrency(regularPay)} testId="payroll-summary-regular-pay" />
+        <Row label="Overtime Pay" value={formatCurrency(summary.overtimePay)} testId="payroll-summary-overtime-pay" />
+        <Row label="Gross Pay (before adjustments)" value={formatCurrency(grossPay)} testId="payroll-summary-gross-pay" emphasis />
+      </div>
+
+      {/* Adjustments + editable carryover */}
+      <div className="mt-3 divide-y divide-slate-200">
+        <Row label="Total Adjustments" value={formatCurrency(adjustmentsTotal)} testId="payroll-summary-total-adjustments" />
+
+        {/* Carryover row — clearly editable when permitted */}
+        <div className="flex items-baseline justify-between py-2">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-slate-600">Carryover Balance</span>
             {canEditCarryover && !editing && (
               <Button
                 size="sm"
-                variant="ghost"
-                className="h-7 px-2 text-slate-600 hover:text-slate-900"
+                variant="outline"
+                className="h-7 px-2 text-[11px] font-medium border-slate-300 text-slate-700 hover:bg-slate-50 gap-1"
                 onClick={() => setEditing(true)}
                 data-testid="edit-carryover-balance-btn"
               >
-                <Pencil className="w-3.5 h-3.5" />
+                <Pencil className="w-3 h-3" /> Edit
               </Button>
             )}
           </div>
           {editing ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <Input
                 type="number"
                 step="0.01"
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
-                className="h-10 text-right font-semibold"
+                className="h-9 w-28 text-right tabular-nums"
                 data-testid="carryover-balance-input"
                 autoFocus
               />
@@ -92,8 +103,9 @@ export const PayrollWorksheetSummary = ({
                 size="sm"
                 onClick={handleSave}
                 disabled={saving}
-                className="bg-slate-900 hover:bg-slate-800 text-white"
+                className="h-9 bg-slate-900 hover:bg-slate-800 text-white px-2"
                 data-testid="save-carryover-balance-btn"
+                title="Save"
               >
                 <Check className="w-4 h-4" />
               </Button>
@@ -102,23 +114,26 @@ export const PayrollWorksheetSummary = ({
                 variant="outline"
                 onClick={() => { setDraft(String(carryoverBalance ?? 0)); setEditing(false); }}
                 disabled={saving}
+                className="h-9 px-2"
                 data-testid="cancel-carryover-balance-btn"
+                title="Cancel"
               >
                 <X className="w-4 h-4" />
               </Button>
             </div>
           ) : (
-            <div className="border border-slate-300 bg-white px-4 py-3 text-right text-lg font-semibold text-slate-900" data-testid="payroll-summary-carryover-balance">{formatCurrency(carryoverBalance)}</div>
+            <span className="tabular-nums text-sm font-medium text-slate-800" data-testid="payroll-summary-carryover-balance">{formatCurrency(carryoverBalance)}</span>
           )}
         </div>
-        <div className="grid gap-2">
-          <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Total Adjustments</p>
-          <div className="border border-slate-300 bg-white px-4 py-3 text-right text-lg font-semibold text-slate-900" data-testid="payroll-summary-total-adjustments">{formatCurrency(adjustmentsTotal)}</div>
+      </div>
+
+      {/* Final Total — standout block */}
+      <div className="mt-5 rounded-2xl bg-slate-900 px-5 py-5 text-white">
+        <div className="flex items-baseline justify-between">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.26em] text-slate-400">Final Total for Pay Period</span>
         </div>
-        <div className="grid gap-2">
-          <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Final Total For Pay Period</p>
-          <div className="border border-slate-900 bg-slate-900 px-4 py-4 text-right text-xl font-semibold text-white" data-testid="payroll-summary-final-total">{formatCurrency(finalTotal)}</div>
-        </div>
+        <div className="mt-2 text-4xl font-bold tabular-nums" data-testid="payroll-summary-final-total">{formatCurrency(finalTotal)}</div>
+        <p className="mt-2 text-[11px] text-slate-400">Gross Pay + Adjustments + Carryover</p>
       </div>
     </div>
   );
