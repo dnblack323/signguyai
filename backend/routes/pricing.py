@@ -96,7 +96,8 @@ async def calculate_price(
             category,
             pricing_data,
             quantity,
-            current_user.tenant_id
+            current_user.tenant_id,
+            user_id=current_user.id,
         )
         return calculation.model_dump()
     except Exception as e:

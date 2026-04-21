@@ -2056,10 +2056,23 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
         suggested_price = manual_override
 
     # ===== Field provenance (shop_default / ai_estimated / user_entered) =====
-    # ai_prefilled_fields = list of attribute names injected by AI prefill; any
-    # field not AI-injected but set by the user resolves to "user_entered";
-    # otherwise "shop_default" (pulled from Pricing Foundation).
-    ai_fields = set((getattr(data, "ai_prefilled_fields", None) or []))
+    # M-1: AI provenance is trusted ONLY when the HMAC signature from the
+    # /services-prefill endpoint verifies. Clients cannot forge "ai_estimated"
+    # tags by hand-crafting ai_prefilled_fields — unsigned or invalid claims
+    # silently downgrade to "user_entered".
+    claimed_ai_fields = list(getattr(data, "ai_prefilled_fields", None) or [])
+    signature = getattr(data, "ai_prefill_signature", None)
+    tenant_id = getattr(data, "_tenant_id", "") or ""
+    user_id = getattr(data, "_user_id", "") or ""
+    ai_fields: set = set()
+    if claimed_ai_fields and tenant_id and user_id:
+        try:
+            from routes.ai import verify_prefill_signature
+            if verify_prefill_signature(tenant_id, user_id, claimed_ai_fields, signature):
+                ai_fields = set(claimed_ai_fields)
+        except Exception:
+            # If verification throws for any reason, treat all claims as unsigned.
+            ai_fields = set()
     def _src(attr: str, was_set: bool) -> str:
         if attr in ai_fields:
             return "ai_estimated"
@@ -2496,7 +2509,8 @@ async def calculate_pricing(
     category: PricingCategory,
     data: JobItemPricingData,
     quantity: float,
-    tenant_id: str
+    tenant_id: str,
+    user_id: Optional[str] = None,
 ) -> PricingCalculation:
     """Main pricing calculation dispatcher"""
     defaults = await get_pricing_defaults(tenant_id)
@@ -2514,6 +2528,12 @@ async def calculate_pricing(
     }
     
     calculator = calculators.get(category, calculate_custom)
+    # Only Services needs user_id (for AI-prefill signature verification).
+    # Pass it via a keyword-only attribute on the pricing_data so we don't
+    # have to change the signature of every other calculator.
+    if category == PricingCategory.SERVICES:
+        setattr(data, "_tenant_id", tenant_id)
+        setattr(data, "_user_id", user_id or "")
     return await calculator(data, quantity, defaults)
 
 

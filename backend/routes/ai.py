@@ -12,12 +12,15 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field
 import asyncio
+import logging
 import uuid
 import os
 import base64
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 from server import db, get_current_active_user
 from models import UserInDB
@@ -2310,6 +2313,102 @@ Respond ONLY with valid JSON, nothing else."""
 
 # ============== SERVICES AI PREFILL ==============
 
+# --- Per-key validators for AI-returned values (M-2: tamper defense) -------
+# Each validator returns the COERCED value if acceptable, or raises ValueError.
+# We run the validator on every value the LLM proposes; anything that fails
+# is silently dropped so it never reaches the calculator.
+def _v_float_range(lo: float, hi: float):
+    def _check(value):
+        num = float(value)
+        if not (lo <= num <= hi):
+            raise ValueError(f"out of range [{lo}, {hi}]")
+        return num
+    return _check
+
+
+def _v_int_range(lo: int, hi: int):
+    def _check(value):
+        num = int(value)
+        if not (lo <= num <= hi):
+            raise ValueError(f"out of range [{lo}, {hi}]")
+        return num
+    return _check
+
+
+def _v_bool(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str) and value.lower() in ("true", "false"):
+        return value.lower() == "true"
+    raise ValueError("not a boolean")
+
+
+def _v_enum(choices):
+    normalized = {c.lower() for c in choices}
+    def _check(value):
+        if not isinstance(value, str):
+            raise ValueError("not a string")
+        if value.lower() not in normalized:
+            raise ValueError(f"not in {sorted(choices)}")
+        return value.lower()
+    return _check
+
+
+def _build_services_prefill_validators(services_cfg: Dict[str, Any]):
+    """Build validators using the live Pricing Foundation enums."""
+    service_types = [s["key"] for s in (services_cfg.get("available_service_types") or [])]
+    billing_units = list(services_cfg.get("available_billing_units") or [
+        "hour", "flat", "piece", "sqft", "linear_foot", "mile", "trip", "day", "custom",
+    ])
+    labor_roles = list((services_cfg.get("labor_roles") or {}).keys())
+    complexity_keys = list((services_cfg.get("complexity_multipliers") or {}).keys()) or [
+        "easy", "medium", "difficult", "extreme",
+    ]
+    equipment_keys = [e["key"] for e in (services_cfg.get("equipment_library") or [])]
+    return {
+        "service_type": _v_enum(service_types) if service_types else (lambda v: str(v)[:64]),
+        "services_billing_unit": _v_enum(billing_units),
+        "services_labor_role": _v_enum(labor_roles) if labor_roles else (lambda v: str(v)[:64]),
+        "services_complexity": _v_enum(complexity_keys),
+        "services_equipment_type": _v_enum(equipment_keys) if equipment_keys else (lambda v: str(v)[:64]),
+        "estimated_hours": _v_float_range(0, 500),
+        "quantity": _v_float_range(0, 100000),
+        "services_flat_fee": _v_float_range(0, 100000),
+        "services_unit_rate_override": _v_float_range(0, 100000),
+        "services_travel_miles": _v_float_range(0, 10000),
+        "services_trip_count": _v_int_range(0, 500),
+        "services_equipment_days": _v_float_range(0, 365),
+        "services_subcontract_cost": _v_float_range(0, 1000000),
+        "services_permit_external_fee": _v_float_range(0, 100000),
+        "services_minimum_applies": _v_bool,
+        "services_travel_required": _v_bool,
+        "services_trip_charge_applies": _v_bool,
+        "services_equipment_required": _v_bool,
+        "services_subcontracted": _v_bool,
+        "services_subcontract_markup_applies": _v_bool,
+        "rush_order": _v_bool,
+    }
+
+
+def _sign_prefill_fields(tenant_id: str, user_id: str, keys: List[str]) -> str:
+    """HMAC-sign the set of AI-prefilled keys so the calculator can verify
+    provenance was not forged by a malicious client (M-1)."""
+    import hmac as _hmac
+    import hashlib as _hashlib
+    secret = os.environ.get("JWT_SECRET_KEY", "")
+    payload = f"{tenant_id}|{user_id}|{','.join(sorted(keys))}"
+    return _hmac.new(secret.encode(), payload.encode(), _hashlib.sha256).hexdigest()
+
+
+def verify_prefill_signature(tenant_id: str, user_id: str, keys: List[str], signature: Optional[str]) -> bool:
+    """Return True iff the signature matches the claimed keys for this user."""
+    if not signature or not keys:
+        return False
+    import hmac as _hmac
+    expected = _sign_prefill_fields(tenant_id, user_id, keys)
+    return _hmac.compare_digest(expected, signature)
+
+
 class ServicesPrefillRequest(BaseModel):
     description: str = Field(..., min_length=3, max_length=2000)
     existing_inputs: Dict[str, Any] = Field(default_factory=dict)
@@ -2326,6 +2425,8 @@ async def services_ai_prefill(
     - Only fills fields the user hasn't already set (`existing_inputs`).
     - Never overwrites user-entered values.
     - Returns per-field list so the calculator can tag provenance.
+    - Validates every proposed value against per-key type/range rules.
+    - Signs the field list with HMAC so provenance cannot be forged.
     """
     from server import get_pricing_defaults
     from emergentintegrations.llm.chat import LlmChat, UserMessage
@@ -2340,17 +2441,10 @@ async def services_ai_prefill(
         "easy", "medium", "difficult", "extreme",
     ]
     equipment_library = services_cfg.get("equipment_library", []) or []
+    validators = _build_services_prefill_validators(services_cfg)
 
     # Keys the AI is allowed to propose (and only if not already present in existing_inputs)
-    fillable_keys = [
-        "service_type", "services_billing_unit", "services_labor_role", "services_complexity",
-        "estimated_hours", "quantity", "services_flat_fee", "services_unit_rate_override",
-        "services_minimum_applies", "services_travel_required", "services_travel_miles",
-        "services_trip_charge_applies", "services_trip_count",
-        "services_equipment_required", "services_equipment_type", "services_equipment_days",
-        "services_subcontracted", "services_subcontract_cost", "services_subcontract_markup_applies",
-        "services_permit_external_fee", "rush_order",
-    ]
+    fillable_keys = list(validators.keys())
     already_set = {k for k, v in request.existing_inputs.items() if v not in (None, "", [])}
     missing_keys = [k for k in fillable_keys if k not in already_set]
 
@@ -2380,15 +2474,21 @@ async def services_ai_prefill(
         f"Propose values ONLY for these missing fields:\n{missing_keys}"
     )
 
+    # M-3: stable per-user session id so conversation memory (if any) can be
+    # reused across prefill calls. Still a lightweight single-turn interaction.
     chat = LlmChat(
         api_key=EMERGENT_LLM_KEY,
-        session_id=f"services_prefill_{uuid.uuid4()}",
+        session_id=f"services_prefill_{current_user.id}",
         system_message=system_prompt,
     ).with_model("openai", "gpt-5.2")
 
     try:
         raw = await chat.send_message(UserMessage(text=user_text))
     except Exception as exc:
+        # M-4: log full traceback server-side, return a generic user-safe
+        # message. Never include `exc` in the response body — SDK error
+        # strings have been known to echo bearer tokens.
+        logger.exception("Services prefill LLM call failed")
         await log_failed_ai_usage(
             db,
             tenant_id=current_user.tenant_id,
@@ -2398,34 +2498,67 @@ async def services_ai_prefill(
             feature_name="ai_services_prefill",
             metadata={"error": str(exc)[:500]},
         )
-        raise HTTPException(status_code=500, detail=f"AI prefill failed: {exc}")
+        raise HTTPException(status_code=500, detail="AI prefill is temporarily unavailable. Please try again in a moment.")
 
     # Extract JSON payload (strip accidental code fences / prose around it)
     cleaned = (raw or "").strip()
     if cleaned.startswith("```"):
-        # strip leading and trailing code fences
         cleaned = cleaned.split("```", 2)[-1]
         if cleaned.startswith("json"):
             cleaned = cleaned[4:]
         cleaned = cleaned.rsplit("```", 1)[0].strip()
-    # find the first '{' and last '}' as a resilient fallback
     first = cleaned.find("{")
     last = cleaned.rfind("}")
     if first == -1 or last == -1 or last <= first:
-        return {"prefilled": {}, "ai_prefilled_fields": [], "reasoning": cleaned[:400], "missing_keys": missing_keys}
+        return {
+            "prefilled": {},
+            "ai_prefilled_fields": [],
+            "ai_prefill_signature": None,
+            "reasoning": cleaned[:400],
+            "missing_keys": missing_keys,
+        }
     try:
         proposed = _json.loads(cleaned[first:last + 1])
     except Exception:
-        return {"prefilled": {}, "ai_prefilled_fields": [], "reasoning": cleaned[:400], "missing_keys": missing_keys}
+        return {
+            "prefilled": {},
+            "ai_prefilled_fields": [],
+            "ai_prefill_signature": None,
+            "reasoning": cleaned[:400],
+            "missing_keys": missing_keys,
+        }
 
-    # Filter: never overwrite user-entered, never return unknown keys
+    if not isinstance(proposed, dict):
+        return {
+            "prefilled": {},
+            "ai_prefilled_fields": [],
+            "ai_prefill_signature": None,
+            "reasoning": "AI returned non-object payload",
+            "missing_keys": missing_keys,
+        }
+
+    # M-2: Filter + validate every proposed value against its per-key schema.
+    # Never overwrite user-entered. Silently drop anything that fails validation.
     filtered: Dict[str, Any] = {}
-    for key, value in (proposed or {}).items():
+    validation_errors: List[str] = []
+    for key, value in proposed.items():
         if key not in fillable_keys:
             continue
         if key in already_set:
             continue
-        filtered[key] = value
+        validator = validators.get(key)
+        if validator is None:
+            continue
+        try:
+            filtered[key] = validator(value)
+        except (ValueError, TypeError) as exc:
+            validation_errors.append(f"{key}: {exc}")
+
+    if validation_errors:
+        logger.warning(
+            "Services prefill dropped %d invalid fields for tenant %s: %s",
+            len(validation_errors), current_user.tenant_id, validation_errors[:5],
+        )
 
     await deduct_credits_after_success(
         db,
@@ -2437,9 +2570,13 @@ async def services_ai_prefill(
         metadata={"description_len": len(request.description), "fields_filled": len(filtered)},
     )
 
+    filled_keys = list(filtered.keys())
+    signature = _sign_prefill_fields(current_user.tenant_id, current_user.id, filled_keys) if filled_keys else None
+
     return {
         "prefilled": filtered,
-        "ai_prefilled_fields": list(filtered.keys()),
+        "ai_prefilled_fields": filled_keys,
+        "ai_prefill_signature": signature,
         "missing_keys": missing_keys,
         "reasoning": None,
     }

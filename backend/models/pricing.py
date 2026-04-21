@@ -1392,6 +1392,11 @@ class JobItemPricingData(BaseModel):
     # whose values were injected by AI prefill. Used by calculate_services to
     # tag breakdown.field_sources for UI source labels.
     ai_prefilled_fields: Optional[List[str]] = None
+    # HMAC signature over (tenant_id | user_id | sorted ai_prefilled_fields)
+    # produced by /api/ai/services-prefill. If present and valid, the
+    # calculator trusts the ai_prefilled_fields claim. Unsigned or forged
+    # claims are ignored (silently downgraded to `user_entered`).
+    ai_prefill_signature: Optional[str] = None
     
     # Apparel
     apparel_type: Optional[ApparelType] = None

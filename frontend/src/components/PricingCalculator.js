@@ -1366,12 +1366,19 @@ export default function PricingCalculator({
             );
             const filled = data?.prefilled || {};
             const aiKeys = data?.ai_prefilled_fields || [];
+            const aiSignature = data?.ai_prefill_signature || null;
             if (Object.keys(filled).length === 0) {
               toast.info('AI had nothing new to add — all fields were already set.');
             } else {
               toast.success(`AI prefilled ${Object.keys(filled).length} field(s)`);
             }
-            setPricingData((prev) => ({ ...prev, ...filled, ai_prefilled_fields: [...new Set([...(prev.ai_prefilled_fields || []), ...aiKeys])], _ai_prefilling: false }));
+            setPricingData((prev) => ({
+              ...prev,
+              ...filled,
+              ai_prefilled_fields: [...new Set([...(prev.ai_prefilled_fields || []), ...aiKeys])],
+              ai_prefill_signature: aiSignature,
+              _ai_prefilling: false,
+            }));
           } catch (err) {
             setPricingData((prev) => ({ ...prev, _ai_prefilling: false }));
             toast.error(err?.response?.data?.detail || 'AI prefill failed');
