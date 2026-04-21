@@ -1159,9 +1159,15 @@ _VISIBLE_WHEN_RULES = {
     },
     "rigid_signs": {
         "design_complexity": {"artwork_needed": True},
+        "install_complexity": {"install_required": True},
+        "hardware_type": {"hardware_included": True},
+        "drill_prep_required": {"hardware_included": True},
+        "double_sided_art": {"sidedness": "double"},
+        "protective_finish_type": {"protective_finish": True},
     },
     "cut_vinyl": {
         "design_complexity": {"artwork_needed": True},
+        "install_complexity": {"install_required": True},
     },
 }
 

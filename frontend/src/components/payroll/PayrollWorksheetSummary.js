@@ -1,4 +1,8 @@
+import { useEffect, useState } from 'react';
 import { formatCurrency } from '../../lib/utils';
+import { Input } from '../ui/input';
+import { Button } from '../ui/button';
+import { Pencil, Check, X } from 'lucide-react';
 
 const SummaryRow = ({ label, value, testId, strong = false }) => (
   <div className="grid grid-cols-[1fr_180px] border-b border-slate-200 last:border-b-0">
@@ -7,12 +11,41 @@ const SummaryRow = ({ label, value, testId, strong = false }) => (
   </div>
 );
 
-export const PayrollWorksheetSummary = ({ adjustmentsTotal, carryoverBalance, legacyManualHours = 0, legacyManualPay = 0, summary }) => {
+export const PayrollWorksheetSummary = ({
+  adjustmentsTotal,
+  carryoverBalance,
+  legacyManualHours = 0,
+  legacyManualPay = 0,
+  summary,
+  canEditCarryover = false,
+  onSaveCarryover,
+}) => {
   const totalHours = summary.totalHours + legacyManualHours;
   const regularHours = summary.regularHours + legacyManualHours;
   const regularPay = summary.regularPay + legacyManualPay;
   const grossPay = regularPay + summary.overtimePay;
   const finalTotal = grossPay + adjustmentsTotal + carryoverBalance;
+
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(String(carryoverBalance ?? 0));
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!editing) setDraft(String(carryoverBalance ?? 0));
+  }, [carryoverBalance, editing]);
+
+  const handleSave = async () => {
+    if (!onSaveCarryover) return;
+    const numericValue = Number(draft);
+    if (Number.isNaN(numericValue)) return;
+    setSaving(true);
+    try {
+      await onSaveCarryover(numericValue);
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_280px]" data-testid="payroll-worksheet-summary">
@@ -30,8 +63,53 @@ export const PayrollWorksheetSummary = ({ adjustmentsTotal, carryoverBalance, le
 
       <div className="space-y-4 self-end rounded-[26px] border border-slate-300 bg-[#fffdf6] p-5">
         <div className="grid gap-2">
-          <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Carryover Balance</p>
-          <div className="border border-slate-300 bg-white px-4 py-3 text-right text-lg font-semibold text-slate-900" data-testid="payroll-summary-carryover-balance">{formatCurrency(carryoverBalance)}</div>
+          <div className="flex items-center justify-between">
+            <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Carryover Balance</p>
+            {canEditCarryover && !editing && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-slate-600 hover:text-slate-900"
+                onClick={() => setEditing(true)}
+                data-testid="edit-carryover-balance-btn"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </Button>
+            )}
+          </div>
+          {editing ? (
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                step="0.01"
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                className="h-10 text-right font-semibold"
+                data-testid="carryover-balance-input"
+                autoFocus
+              />
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={saving}
+                className="bg-slate-900 hover:bg-slate-800 text-white"
+                data-testid="save-carryover-balance-btn"
+              >
+                <Check className="w-4 h-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => { setDraft(String(carryoverBalance ?? 0)); setEditing(false); }}
+                disabled={saving}
+                data-testid="cancel-carryover-balance-btn"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="border border-slate-300 bg-white px-4 py-3 text-right text-lg font-semibold text-slate-900" data-testid="payroll-summary-carryover-balance">{formatCurrency(carryoverBalance)}</div>
+          )}
         </div>
         <div className="grid gap-2">
           <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Total Adjustments</p>

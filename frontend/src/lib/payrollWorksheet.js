@@ -3,6 +3,26 @@ const DAY_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frid
 
 const pad = (value) => String(value).padStart(2, '0');
 
+// Convert an ISO datetime (UTC or offset-aware) from the backend into the
+// user's local HH:MM. Falls back to empty string on parse failure.
+// Handles both "2025-01-20T22:00:00" (naive, treated as UTC by backend) and
+// "2025-01-20T22:00:00+00:00" / "Z" forms.
+const isoToLocalHHMM = (iso) => {
+  if (!iso) return '';
+  const normalized = /[Zz]|[+-]\d{2}:?\d{2}$/.test(iso) ? iso : `${iso}Z`;
+  const d = new Date(normalized);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+// Convert local date + HH:MM back into an ISO UTC string for the backend.
+const localDateTimeToIsoUtc = (date, time) => {
+  if (!date || !time) return null;
+  const d = new Date(`${date}T${time}:00`); // interpreted as local time
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
+};
+
 const normalizeDate = (value) => {
   const date = new Date(`${value}T00:00:00`);
   return Number.isNaN(date.getTime()) ? null : date;
@@ -90,10 +110,10 @@ export const buildWorksheetRows = (startDate, endDate, shifts = []) => {
       id: shift?.id || null,
       date,
       dayLabel,
-      startTime: shift?.clock_in?.slice(11, 16) || '',
-      lunchStart: shift?.lunch_start?.slice(11, 16) || '',
-      lunchEnd: shift?.lunch_end?.slice(11, 16) || '',
-      endTime: shift?.clock_out?.slice(11, 16) || '',
+      startTime: isoToLocalHHMM(shift?.clock_in),
+      lunchStart: isoToLocalHHMM(shift?.lunch_start),
+      lunchEnd: isoToLocalHHMM(shift?.lunch_end),
+      endTime: isoToLocalHHMM(shift?.clock_out),
       notes: shift?.notes || '',
       source: shift?.source || 'worksheet',
       shiftStatus: shift?.status || null,
@@ -175,6 +195,6 @@ export const hasShiftContent = (row) => [row.startTime, row.lunchStart, row.lunc
 
 export const hasAdjustmentContent = (row) => [row.date, row.notes, row.amount].some((value) => String(value || '').trim() !== '');
 
-export const toIsoDateTime = (date, time) => (date && time ? `${date}T${time}:00` : null);
+export const toIsoDateTime = (date, time) => localDateTimeToIsoUtc(date, time);
 
 export const formatHoursCell = (value) => (Number(value || 0).toFixed(2));

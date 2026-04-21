@@ -1,0 +1,23 @@
+{
+  "summary": "Iteration 115 backend regression on carryover_override + rigid_signs/cut_vinyl visible_when rules + timeclock-shifts. 12/12 pytest tests PASSED against public preview URL. Verified: (1) PUT /api/employees/{id} with carryover_override=500.0 → GET /api/payroll/timesheet returns carryover_balance=500.0 and GET /api/employees/{id} returns carryover_override=500.0 (round-trip). (2) carryover_override=0 → timesheet carryover=0.0. (3) carryover_override=null → override cleared via $unset, GET shows carryover_override missing/None. (4) GET /api/job-tickets/schema/rigid_signs returns all 6 expected visible_when rules: install_complexity→{install_required:true}, hardware_type→{hardware_included:true}, drill_prep_required→{hardware_included:true}, double_sided_art→{sidedness:'double'}, protective_finish_type→{protective_finish:true}, design_complexity→{artwork_needed:true}. (5) GET /api/job-tickets/schema/cut_vinyl returns install_complexity→{install_required:true} and design_complexity→{artwork_needed:true}. (6) POST /api/payroll/timeclock-shifts regression: ISO clock_in/clock_out round-trip intact, metrics calculated correctly (4h → work_minutes=240, net_minutes=240, net_hours=4.0), status='finished'. Cleanup ensures carryover_override is reset to null after test run.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iteration115_carryover_visible_when.py",
+    "/app/test_reports/pytest/iteration115_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "employees.py update_employee() correctly implements null-to-unset via $unset — raw = model_dump(exclude_unset=True) preserves explicit-null sentinel, then filters for $set vs $unset. Pattern is sound.",
+    "_build_employee_payroll_snapshot honors carryover_override via `if carryover_override is not None: carryover_balance = round(float(carryover_override), 2)` short-circuiting the computed path. Works for 0 as explicit override (not treated as falsy) because check is `is not None`.",
+    "_VISIBLE_WHEN_RULES for rigid_signs and cut_vinyl now complete. Minor enhancement: consider also adding a 'design_complexity' rule for digital_print / vehicle_wrap parity (already present), good consistency.",
+    "employees.py is 1658 lines — still well over 700-line guideline. Not regression but should be split (EmployeeCRUD, PayrollWorksheet, TimeclockShifts, PayrollTransactions, Timesheet into separate route modules) in a future refactor iteration."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration115_carryover_visible_when.py"],
+  "success_rate": {"backend": "100% (12/12)", "frontend": "N/A (backend-only testing per review_request)"},
+  "test_credentials": "signguypa@gmail.com / Billnel323",
+  "seed_data_creation": "Test creates one timeclock shift (notes TEST_iter115_*) and one temporary carryover_override=500 → 0 → null on employee 18eed187-1a90-4bf8-b233-dc47b44c9579. Module-scoped autouse cleanup resets carryover_override to null at end of suite. Test shift is deleted at end of test (DELETE /api/payroll/timeclock-shifts/{id}).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "iteration 115 regression suite is at /app/backend/tests/test_iteration115_carryover_visible_when.py. Key assertions: carryover_override accepts float|0|null, null clears via $unset. Rigid signs schema has 6 visible_when rules. calculate_shift_metrics returns work_minutes/net_minutes/net_hours (NOT total_minutes — common mistake). timeclock-shifts payload required fields: employee_id, date, clock_in (ISO), clock_out (ISO), break_minutes, notes. Legacy tests test_iteration109/110/111 have pre-existing fixture errors due to BASE_URL env handling but are unrelated to this iteration's changes. Frontend not tested per review_request directive."
+}

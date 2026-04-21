@@ -47,6 +47,9 @@ class EmployeeBase(BaseModel):
     pin: Optional[str] = None  # 4-6 digit PIN for employee portal login
     profile_image: Optional[str] = None  # URL to profile image
     linked_user_id: Optional[str] = None
+    # Admin override: when set, bypasses the computed historical carryover balance
+    # and uses this value directly. Set to 0.0 to zero out legacy carryover.
+    carryover_override: Optional[float] = None
 
 class EmployeeCreate(EmployeeBase):
     pass
@@ -63,6 +66,7 @@ class EmployeeUpdate(BaseModel):
     is_active: Optional[bool] = None
     pin: Optional[str] = None
     profile_image: Optional[str] = None
+    carryover_override: Optional[float] = None
 
 
 class EmployeePinReset(BaseModel):
@@ -586,7 +590,11 @@ async def _build_employee_payroll_snapshot(tenant_id: str, employee: dict, start
     previous_end_date = date_type.fromisoformat(start_date) - timedelta(days=1)
     carryover_balance = 0.0
     previous_transaction_summary = _summarize_transactions([])
-    if previous_end_date.isoformat() >= "2000-01-01":
+    carryover_override = employee.get("carryover_override")
+    if carryover_override is not None:
+        # Admin has explicitly set the carryover — use it verbatim and skip history calc.
+        carryover_balance = round(float(carryover_override), 2)
+    elif previous_end_date.isoformat() >= "2000-01-01":
         previous_snapshot = await _get_employee_compensation_snapshot(tenant_id, employee, "2000-01-01", previous_end_date.isoformat())
         previous_entries = previous_snapshot["job_details"] + previous_snapshot["manual_details"] + previous_snapshot["shift_details"]
         previous_pay = _summarize_entry_pay(previous_entries, hourly_rate, overtime_rate, pay_week_start_day)
@@ -689,11 +697,24 @@ async def update_employee(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Update an employee (must belong to current tenant)"""
-    update_data = {k: v for k, v in input.model_dump().items() if v is not None}
+    raw = input.model_dump(exclude_unset=True)
+    update_data = {k: v for k, v in raw.items() if v is not None}
+    # Allow explicit null for carryover_override to clear the admin override
+    # and fall back to computed carryover from historical entries.
+    unset_fields = {}
+    if "carryover_override" in raw and raw["carryover_override"] is None:
+        unset_fields["carryover_override"] = ""
+    mongo_update = {}
+    if update_data:
+        mongo_update["$set"] = update_data
+    if unset_fields:
+        mongo_update["$unset"] = unset_fields
+    if not mongo_update:
+        mongo_update = {"$set": {}}
     result = await db.employees.update_one({
         "id": employee_id,
         "tenant_id": current_user.tenant_id
-    }, {"$set": update_data})
+    }, mongo_update)
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Employee not found")
     employee = await db.employees.find_one(

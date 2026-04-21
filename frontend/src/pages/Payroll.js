@@ -589,6 +589,18 @@ export default function Payroll() {
                 legacyManualHours={legacyReview.unmappedHours}
                 legacyManualPay={legacyReview.unmappedPay}
                 summary={worksheetSummary}
+                canEditCarryover={canEditPayroll && !!selectedEmployeeId}
+                onSaveCarryover={async (nextValue) => {
+                  if (!selectedEmployeeId) return;
+                  try {
+                    await api.put(`/employees/${selectedEmployeeId}`, { carryover_override: Number(nextValue) });
+                    toast.success('Carryover balance updated');
+                    await doLoadWorksheet(selectedEmployeeId, startDate, endDate);
+                  } catch (err) {
+                    toast.error(err.response?.data?.detail || 'Failed to update carryover');
+                    throw err;
+                  }
+                }}
               />
             </div>
           </section>
