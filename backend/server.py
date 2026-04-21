@@ -1876,8 +1876,9 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
         labor_sell_baseline = trips * (unit_rate if unit_rate > 0 else trip_rate)
     elif billing_unit == "day":
         days = float(qty_raw or 1)
-        labor_cost = days * 8 * num_workers * labor_cost_rate * complexity_mult
-        daily_sell = (unit_rate if unit_rate > 0 else labor_sell_rate * 8)
+        day_hours = float(cfg.get("default_day_hours", 8) or 8)
+        labor_cost = days * day_hours * num_workers * labor_cost_rate * complexity_mult
+        daily_sell = (unit_rate if unit_rate > 0 else labor_sell_rate * day_hours)
         labor_sell_baseline = days * daily_sell * complexity_mult
     else:  # custom
         labor_cost = (effective_hours or 0) * num_workers * labor_cost_rate * complexity_mult
@@ -1893,7 +1894,11 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
         travel_sell = travel_miles * float(cfg.get("travel_sell_rate_per_mile", 1.25) or 0)
 
     trip_charge_applies = bool(data.services_trip_charge_applies)
-    if trip_charge_applies and billing_unit != "trip":
+    # H-1: when billing_unit is already a travel-based unit (mile or trip), the
+    # trip charge is implicit in the unit rate. Adding it again would double-bill
+    # the customer for travel. Skip the add-on in those cases.
+    travel_native_unit = billing_unit in ("mile", "trip")
+    if trip_charge_applies and not travel_native_unit:
         trip_rate = float(cfg.get("trip_charge_default", 45.0) or 0)
         trip_cost_rate = float(cfg.get("trip_charge_cost", 0) or 0)
         trips = max(int(data.services_trip_count or 1), 1)
@@ -1943,7 +1948,26 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
 
     # ===== Subtotal / overhead =====
     material_cost_total = travel_cost + equipment_cost + subcontract_cost + permit_cost  # non-labor direct costs
-    labor_hours_for_overhead = effective_hours * num_workers if billing_unit in ("hour", "flat", "piece", "sqft", "linear_foot", "custom") else 0
+    # H-3: compute an hours-equivalent for overhead regardless of billing unit.
+    # Hour-based units: use estimated_hours × workers (what the shop will actually spend).
+    # Day billing:      days × configured day_hours.
+    # Trip billing:     trips × 1h minimum + travel round-trip estimate (0 → 0 for hour-less work).
+    # Mile billing:     one-way miles / 35mph as a rough drive-time contribution.
+    # These give overhead something sensible to multiply against even on
+    # pass-through-heavy categories without inflating non-labor jobs.
+    hour_like_units = ("hour", "flat", "piece", "sqft", "linear_foot", "custom")
+    day_hours = float(cfg.get("default_day_hours", 8) or 8)
+    if billing_unit in hour_like_units:
+        labor_hours_for_overhead = effective_hours * num_workers
+    elif billing_unit == "day":
+        labor_hours_for_overhead = float(qty_raw or 0) * day_hours * num_workers
+    elif billing_unit == "trip":
+        trips_total = max(int(data.services_trip_count or 1), int(qty_raw))
+        labor_hours_for_overhead = trips_total * 1.0 * num_workers
+    elif billing_unit == "mile":
+        labor_hours_for_overhead = (travel_miles / 35.0) * num_workers if travel_miles else 0
+    else:
+        labor_hours_for_overhead = 0
     overhead_cost = calculate_overhead_cost(
         material_cost_total + labor_cost,
         labor_hours_for_overhead,
@@ -2074,7 +2098,7 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
         additional_costs=0,
         overhead_cost=overhead_cost,
         suggested_price=suggested_price,
-        estimated_labor_minutes=effective_hours * num_workers * 60 if billing_unit in ("hour", "flat", "piece", "sqft", "linear_foot", "custom") else 0,
+        estimated_labor_minutes=round(labor_hours_for_overhead * 60, 0),
         breakdown={
             "service_type": st_key,
             "service_type_label": st_info.get("label") if st_info else st_key,

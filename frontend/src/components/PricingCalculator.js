@@ -1465,7 +1465,19 @@ export default function PricingCalculator({
               </div>
               <div>
                 <Label>Number of Workers</Label>
-                <Input type="number" min="1" value={pricingData.num_workers ?? 1} onChange={(e) => setPricingData({ ...pricingData, num_workers: parseInt(e.target.value) || 1 })} data-testid="svc-num-workers" />
+                <Input
+                  type="number"
+                  min="1"
+                  value={pricingData.num_workers ?? 1}
+                  onChange={(e) => setPricingData({ ...pricingData, num_workers: parseInt(e.target.value) || 1 })}
+                  disabled={showFlat}
+                  data-testid="svc-num-workers"
+                />
+                {showFlat && (
+                  <p className="text-[10px] text-amber-700 mt-1">
+                    Flat-fee pricing ignores worker count on the sell side. Use hourly billing if workers should scale the price.
+                  </p>
+                )}
               </div>
               {showFlat && (
                 <div>
@@ -1508,12 +1520,19 @@ export default function PricingCalculator({
                 <Input type="number" value={pricingData.services_travel_miles ?? ''} onChange={(e) => setPricingData({ ...pricingData, services_travel_miles: parseFloat(e.target.value) || 0 })} disabled={!pricingData.services_travel_required && billingUnit !== 'mile'} data-testid="svc-travel-miles" />
               </div>
               <div className="flex items-center gap-2 h-10">
-                <Switch checked={!!pricingData.services_trip_charge_applies} onCheckedChange={(v) => setPricingData({ ...pricingData, services_trip_charge_applies: v })} data-testid="svc-trip-applies" />
-                <Label>Trip Charge</Label>
+                <Switch
+                  checked={!!pricingData.services_trip_charge_applies && !['mile','trip'].includes(billingUnit)}
+                  onCheckedChange={(v) => setPricingData({ ...pricingData, services_trip_charge_applies: v })}
+                  disabled={['mile','trip'].includes(billingUnit)}
+                  data-testid="svc-trip-applies"
+                />
+                <Label className={['mile','trip'].includes(billingUnit) ? 'text-slate-400' : ''}>
+                  Trip Charge {['mile','trip'].includes(billingUnit) && '(included in unit rate)'}
+                </Label>
               </div>
               <div>
                 <Label>Trip Count</Label>
-                <Input type="number" min="1" value={pricingData.services_trip_count ?? 1} onChange={(e) => setPricingData({ ...pricingData, services_trip_count: parseInt(e.target.value) || 1 })} data-testid="svc-trip-count" />
+                <Input type="number" min="1" value={pricingData.services_trip_count ?? 1} onChange={(e) => setPricingData({ ...pricingData, services_trip_count: parseInt(e.target.value) || 1 })} disabled={['mile'].includes(billingUnit)} data-testid="svc-trip-count" />
               </div>
             </div>
 
