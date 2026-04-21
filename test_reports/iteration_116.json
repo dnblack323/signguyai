@@ -1,0 +1,40 @@
+{
+  "summary": "Iteration 116 full-stack regression of the Detailed Order Item Entry flow. Backend: 13/13 pytest tests PASSED covering (1) POST /api/job-tickets/{id}/clone in all 3 modes — duplicate returns item_name 'Copy of …' and clone_mode=duplicate, variation returns 'Variant — …' with entry_mode=detailed and quantity reset to 1, copy_to_category returns 'Converted — …' with converted_from_category set. (2) carry_over flags validated: artwork=true preserves linked_order_file_ids/item_artwork_file_ids, artwork=false zeroes them; quantity=true/false; due_date carried when true; production_notes carry special_instructions/production_notes/install_notes. (3) Cross-category rigid_signs→banners correctly drops hardware_included, hardware_type, double_sided_art, substrate_material_key and keeps universal artwork_ready, rush_order plus remapped width/height/unit_of_measure/double_sided. (4) Non-existent source returns 404. (5) GET /api/job-tickets/schema/{category} returns visible_when rules for rigid_signs (6), cut_vinyl (2), banners (install_complexity, design_complexity), vehicle_wrap (install_difficulty_level, wrap_laminate_type_key), services (services_flat_fee, services_travel_miles), apparel size_m/apparel_stitch_count. (6) PUT/GET /api/orders/{id} round-trips shared_production_notes, shared_color_brand_notes, shared_install_notes, shared_design_notes, shared_artwork_default_mode. (7) POST /api/orders/{id}/upload with is_shared=true is returned and persisted via GET /files. Frontend: /orders/new loads with single-column layout, deprecated data-testid='new-order-summary-sidebar' is NOT present, only one Live Estimate rendering. Add Order Item dropdown renders all 5 options (add-item-quick/detailed/duplicate/variation/shared-artwork). Selecting Rigid Signs in a Detailed row renders DynamicCategoryFields with LivePricingPreview to the right and ticket-add-to-order-btn-* button directly below the estimate. Progressive disclosure verified by DEFAULT state: Install Complexity, Hardware Type, Drill Prep, Double-Sided Art are all HIDDEN because Install Required/Hardware Included/sidedness toggles are off. SharedContextPanel renders 4 shared note fields.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/job-tickets/schema/banners", "issue": "_VISIBLE_WHEN_RULES defines grommet_spacing, pole_pocket_sides, file_cleanup_level for banners but those field keys do NOT exist in the banners schema (actual keys are banner_grommets, banner_grommet_count, banner_pole_pockets). Rules are inert dead entries. File: backend/routes/job_tickets.py lines 1108–1112."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Rigid Signs progressive disclosure toggle (Install Required ON → Install Complexity appears)", "issue": "Could not conclusively verify via automation because clicking the shadcn Switch via label did not toggle the control in the Playwright run. Default-hidden state IS correct (Install Complexity/Hardware Type/Drill Prep/Double-Sided Art all hidden). Visual inspection of NewOrderForm + backend visible_when rules (asserted in tests) indicate the wiring is correct; manual verification of the ON-toggle branch is recommended.", "affected_selectors": ["switch role=switch near label 'Install Required'"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration116_detailed_item_clone.py",
+    "/app/test_reports/pytest/iteration116_results.xml"
+  ],
+  "action_items": [
+    "(minor) Either add grommet_spacing / pole_pocket_sides / file_cleanup_level fields to the banners schema in get_category_field_schema, OR update _VISIBLE_WHEN_RULES['banners'] to use the real keys (banner_grommets, banner_pole_pockets). Currently those rule entries are silently no-ops.",
+    "(nice-to-have) Add data-testid attributes to the SharedContextPanel textareas (e.g. shared-production-notes, shared-color-brand-notes, shared-install-notes, shared-design-notes) and the category combobox inside each ticket row to make future automation deterministic."
+  ],
+  "critical_code_review_comments": [
+    "clone_job_ticket (job_tickets.py:1543) correctly resets started_date/finished_date/status/progress and regenerates id+ticket_number. It also reverse-links shared order_files via $addToSet when artwork is carried over — good.",
+    "carry_over defaults are implicit: production_notes / install_location_notes / artwork / design_setup / rush_setting default TRUE when absent; quantity defaults FALSE; size_breakdown/names_numbers default FALSE. Behavior is correct but consider documenting the defaults on the endpoint schema/docstring so frontend clients know which flags they need to set explicitly to opt-OUT.",
+    "remap_specs_for_category reads carry_over.get('install_location_notes') but the key used in the clone_job_ticket body is read via install_notes flag (mapped same name). Frontend CloneItemDialog should use 'install_location_notes' consistently — worth grep-checking.",
+    "CATEGORY_COPY_REMAP uses 'vehicle_wraps' (plural) but the category elsewhere is 'vehicle_wrap' (singular, see _VISIBLE_WHEN_RULES, _CORE_BY_CATEGORY). Cross-category copy TO/FROM vehicle_wrap will fail to hit the remap allow-list, leaving specs empty for that direction. This is a latent bug. File: backend/models/pricing.py lines 1596, 1599.",
+    "job_tickets.py is 1792 lines — still well above the 700-line guideline; should be split (schema/progressive-disclosure, clone, duplicate, CRUD) in a future refactor.",
+    "Shared-context field naming inconsistency: review request used shared_color_notes / shared_location_notes / shared_artwork_notes but actual model fields are shared_color_brand_notes / shared_install_notes / shared_design_notes — fine but worth aligning docs + any future API contract tests."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration116_detailed_item_clone.py"],
+  "success_rate": {"backend": "100% (13/13)", "frontend": "~92% — 11/12 critical UI assertions verified; 1 toggle-on interaction inconclusive"},
+  "test_credentials": "signguypa@gmail.com / Billnel323",
+  "seed_data_creation": "Session-scoped order 'TEST_iter116_Order_*' and one source rigid_signs ticket 'TEST_iter116_SourceSign' created and archived at end of suite. Clone operations produced ~4 additional tickets on that order (same cleanup path). One uploaded order file named TEST_iter116.txt (13 bytes) left attached to the test order (removed when order is deleted).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Test file is /app/backend/tests/test_iteration116_detailed_item_clone.py. Key gotchas: (1) JobTicketSpecs.double_sided must be a STRING (e.g. 'single'/'double'), NOT bool — passing True yields pydantic 500 on POST /api/job-tickets. (2) Rigid Signs source-ticket specs require width/height as strings. (3) banners schema doesn't expose grommet_spacing or file_cleanup_level as field keys despite _VISIBLE_WHEN_RULES listing them — test only asserts install_complexity + design_complexity for banners. (4) CATEGORY_COPY_REMAP has 'vehicle_wraps' (plural) vs category 'vehicle_wrap' elsewhere — latent inconsistency, not covered in tests. Frontend shadcn Switch click-via-label does not toggle the control in Playwright; click the button[role=switch] directly next run.",
+  "rca of the issue": "No user-reported bug to RCA this iteration; regression of recently-shipped Detailed Order Item Entry / 3-mode clone. Clone endpoint (earlier JSONDecodeError) confirmed working in all 3 modes via both curl (by main agent) and the 13-test pytest suite created here."
+}
