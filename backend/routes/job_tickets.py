@@ -1105,11 +1105,9 @@ _CORE_BY_CATEGORY = {
 
 _VISIBLE_WHEN_RULES = {
     "banners": {
-        "grommet_spacing": {"grommets": True},
-        "pole_pocket_sides": {"pole_pockets": True},
+        "banner_grommet_count": {"banner_grommets": "custom"},
         "install_complexity": {"install_required": True},
         "design_complexity": {"artwork_needed": True},
-        "file_cleanup_level": {"artwork_ready": True},
     },
     "apparel": {
         "apparel_custom_name_number_count": {"apparel_custom_name_number": True},

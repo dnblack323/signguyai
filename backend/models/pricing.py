@@ -1616,6 +1616,11 @@ def remap_specs_for_category(source_category: str, target_category: str, source_
     Cross-category clones keep only CATEGORY_COPY_REMAP[source][target].
     """
     carry_over = carry_over or {}
+    # Normalize historical singular/plural divergence between route handlers
+    # (which use `vehicle_wrap`) and CATEGORY_* maps (which use `vehicle_wraps`).
+    _alias = {"vehicle_wrap": "vehicle_wraps"}
+    source_category = _alias.get(source_category, source_category)
+    target_category = _alias.get(target_category, target_category)
     result: Dict[str, Any] = {}
 
     # Universal keys
