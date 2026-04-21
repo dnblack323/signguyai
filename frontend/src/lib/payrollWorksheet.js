@@ -3,24 +3,35 @@ const DAY_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frid
 
 const pad = (value) => String(value).padStart(2, '0');
 
-// Convert an ISO datetime (UTC or offset-aware) from the backend into the
-// user's local HH:MM. Falls back to empty string on parse failure.
-// Handles both "2025-01-20T22:00:00" (naive, treated as UTC by backend) and
-// "2025-01-20T22:00:00+00:00" / "Z" forms.
+// Detect whether an ISO string carries a timezone designator.
+const hasTzSuffix = (iso) => /[Zz]$|[+-]\d{2}:?\d{2}$/.test(iso);
+
+// Convert an ISO datetime from the backend into the user's local HH:MM.
+// IMPORTANT: the backend stores two different shapes in `clock_in`/`clock_out`:
+//   (a) Real-time punches: UTC with +00:00 suffix (e.g. "2026-04-21T02:00:00+00:00")
+//   (b) Manual worksheet entries: naive local "YYYY-MM-DDTHH:MM:00" (no tz)
+// Shape (a) needs UTC → local conversion. Shape (b) is ALREADY local — slice as-is.
+// Falls back to empty string on parse failure.
 const isoToLocalHHMM = (iso) => {
   if (!iso) return '';
-  const normalized = /[Zz]|[+-]\d{2}:?\d{2}$/.test(iso) ? iso : `${iso}Z`;
-  const d = new Date(normalized);
+  if (!hasTzSuffix(iso)) {
+    // Naive ISO: the stored value already represents local clock time.
+    // Returning chars 11-15 preserves historical worksheet behavior.
+    return iso.slice(11, 16);
+  }
+  const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-// Convert local date + HH:MM back into an ISO UTC string for the backend.
+// Convert local date + HH:MM → naive ISO ("YYYY-MM-DDTHH:MM:00").
+// We deliberately keep the naive shape here (no timezone suffix) so that
+// new worksheet entries match the historical storage format and round-trip
+// via `isoToLocalHHMM` without drift. Real-time punches continue to write
+// UTC timestamps via the backend _now_iso() helper.
 const localDateTimeToIsoUtc = (date, time) => {
   if (!date || !time) return null;
-  const d = new Date(`${date}T${time}:00`); // interpreted as local time
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toISOString();
+  return `${date}T${time}:00`;
 };
 
 const normalizeDate = (value) => {
