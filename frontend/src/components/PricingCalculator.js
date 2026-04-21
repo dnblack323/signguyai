@@ -1334,7 +1334,9 @@ export default function PricingCalculator({
       case 'services': {
         const svcCat = (foundationDefaults?.category_defaults || {}).services || {};
         const serviceTypes = svcCat.available_service_types || [];
-        const billingUnits = svcCat.available_billing_units || ['hour','flat','piece','sqft','linear_foot','mile','trip','day','custom'];
+        const billingUnits = (svcCat.available_billing_units && svcCat.available_billing_units.length > 0)
+          ? svcCat.available_billing_units
+          : ['hour','flat','piece','sqft','linear_foot','mile','trip','day','custom']; // last-resort fallback — Foundation should provide these
         const laborRolesMap = svcCat.labor_roles || {};
         const equipmentLibrary = svcCat.equipment_library || [];
         const selectedSt = pricingData.service_type || svcCat.default_service_type || 'general_labor';
@@ -1367,6 +1369,13 @@ export default function PricingCalculator({
             const filled = data?.prefilled || {};
             const aiKeys = data?.ai_prefilled_fields || [];
             const aiSignature = data?.ai_prefill_signature || null;
+            // L-3: backend validators already drop unknown enum values, but
+            // double-check service_type on the client in case the library was
+            // updated in another tab between prefill and render.
+            if (filled.service_type && !serviceTypes.some((s) => s.key === filled.service_type)) {
+              toast.warning(`AI proposed unknown service type "${filled.service_type}" — ignoring.`);
+              delete filled.service_type;
+            }
             if (Object.keys(filled).length === 0) {
               toast.info('AI had nothing new to add — all fields were already set.');
             } else {
@@ -1560,11 +1569,20 @@ export default function PricingCalculator({
               </div>
               <div>
                 <Label>Equipment Days</Label>
-                <Input type="number" step="0.25" value={pricingData.services_equipment_days ?? 0} onChange={(e) => setPricingData({ ...pricingData, services_equipment_days: parseFloat(e.target.value) || 0 })} disabled={!pricingData.services_equipment_required} data-testid="svc-equip-days" />
+                <Input type="number" step="0.25" min="0" value={pricingData.services_equipment_days ?? 0} onChange={(e) => setPricingData({ ...pricingData, services_equipment_days: parseFloat(e.target.value) || 0 })} disabled={!pricingData.services_equipment_required} data-testid="svc-equip-days" />
               </div>
               <div>
-                <Label>Equipment Hours</Label>
-                <Input type="number" step="0.25" value={pricingData.services_equipment_hours ?? 0} onChange={(e) => setPricingData({ ...pricingData, services_equipment_hours: parseFloat(e.target.value) || 0 })} disabled={!pricingData.services_equipment_required} data-testid="svc-equip-hours" />
+                <Label>Partial-Day Hours <span className="text-[10px] text-slate-500 font-normal">(added on top of days)</span></Label>
+                <Input
+                  type="number"
+                  step="0.25"
+                  min="0"
+                  value={pricingData.services_equipment_hours ?? 0}
+                  onChange={(e) => setPricingData({ ...pricingData, services_equipment_hours: parseFloat(e.target.value) || 0 })}
+                  readOnly={!pricingData.services_equipment_required}
+                  className={!pricingData.services_equipment_required ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''}
+                  data-testid="svc-equip-hours"
+                />
               </div>
             </div>
 

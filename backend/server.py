@@ -1849,8 +1849,21 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
     unit_rate = data.services_unit_rate_override if data.services_unit_rate_override is not None else st_info.get("default_suggested_sell_per_hour")
     unit_rate = float(unit_rate or 0)
 
-    trip_count = int(data.services_trip_count or 1)
-    num_workers = max(int(data.num_workers or 1), 1)
+    # L-10: num_workers must be a positive integer. Fractional values from AI
+    # would silently truncate via int(); reject them by rounding to nearest
+    # whole worker with a minimum of 1. A bulletproof bound that never lets
+    # the multiplier collapse to zero.
+    try:
+        num_workers_raw = float(data.num_workers if data.num_workers is not None else 1)
+    except (TypeError, ValueError):
+        num_workers_raw = 1.0
+    num_workers = max(int(round(num_workers_raw)), 1)
+    # L-7: resolve trip rate / cost once so we don't recompute it inside the
+    # Travel block below. Kept here for clarity; used later when trip charge
+    # applies or when billing_unit == "trip".
+    trip_rate_default = float(cfg.get("trip_charge_default", 45.0) or 0)
+    trip_cost_rate = float(cfg.get("trip_charge_cost", 0) or 0)
+    trip_count = max(int(data.services_trip_count or 1), 1)
 
     if billing_unit == "hour":
         effective_hours_workers = effective_hours * num_workers
@@ -1869,11 +1882,10 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
         labor_cost = miles * float(cfg.get("travel_cost_per_mile", 0.65) or 0)
         labor_sell_baseline = miles * float(cfg.get("travel_sell_rate_per_mile", 1.25) or 0)
     elif billing_unit == "trip":
-        trip_rate = float(cfg.get("trip_charge_default", 45.0) or 0)
-        trip_cost = float(cfg.get("trip_charge_cost", 0) or 0)
+        # L-7: reuse already-resolved trip_rate_default / trip_cost_rate / trip_count
         trips = max(trip_count, int(qty_raw))
-        labor_cost = trips * trip_cost + (effective_hours * num_workers * labor_cost_rate)
-        labor_sell_baseline = trips * (unit_rate if unit_rate > 0 else trip_rate)
+        labor_cost = trips * trip_cost_rate + (effective_hours * num_workers * labor_cost_rate)
+        labor_sell_baseline = trips * (unit_rate if unit_rate > 0 else trip_rate_default)
     elif billing_unit == "day":
         days = float(qty_raw or 1)
         day_hours = float(cfg.get("default_day_hours", 8) or 8)
@@ -1899,11 +1911,9 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
     # the customer for travel. Skip the add-on in those cases.
     travel_native_unit = billing_unit in ("mile", "trip")
     if trip_charge_applies and not travel_native_unit:
-        trip_rate = float(cfg.get("trip_charge_default", 45.0) or 0)
-        trip_cost_rate = float(cfg.get("trip_charge_cost", 0) or 0)
-        trips = max(int(data.services_trip_count or 1), 1)
-        travel_cost += trips * trip_cost_rate
-        travel_sell += trips * trip_rate
+        # L-7: reuse resolved trip_rate_default / trip_cost_rate / trip_count
+        travel_cost += trip_count * trip_cost_rate
+        travel_sell += trip_count * trip_rate_default
         # Enforce minimum_trip_charge floor on travel_sell
         min_trip = float(cfg.get("minimum_trip_charge", 45.0) or 0)
         if travel_sell < min_trip:
@@ -2009,12 +2019,18 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
     suggested_price = baseline_portion + travel_sell + equipment_sell + subcontract_sell + permit_sell
 
     # ===== Minimum charge floors =====
-    per_service_min = float(st_info.get("default_minimum_charge", cfg.get("default_minimum_sell_price", 25.0)) or 0)
+    # L-8: Explicit fallback chain. In priority order:
+    #   1. services_minimum_override (set by user on this line item)
+    #   2. st_info.default_minimum_charge (per-service-type override)
+    #   3. cfg.default_minimum_sell_price (category-wide default)
+    #   4. 25.0 hard floor (safety net so a missing/corrupt config doesn't zero out minimums)
+    per_service_min = float(
+        st_info.get("default_minimum_charge")
+        or cfg.get("default_minimum_sell_price")
+        or 25.0
+    )
     min_override = float(data.services_minimum_override or 0)
-    if min_override > 0:
-        effective_min = min_override
-    else:
-        effective_min = per_service_min
+    effective_min = min_override if min_override > 0 else per_service_min
     # Both the per-service minimum AND the global floor are gated by
     # `services_minimum_applies`. When a shop explicitly turns minimums off
     # (e.g. free consultation, relationship discount) neither floor should
