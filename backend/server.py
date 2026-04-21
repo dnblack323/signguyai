@@ -1987,11 +1987,17 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
     suggested_price = max(suggested_price, global_min)
 
     # ===== Rush =====
-    # Spec: prefer Pricing Foundation rush default; fallback to services-specific rush_percent
-    foundation_rush_pct = float(defaults.get("default_rush_percent", 0) or 0)
+    # Spec: prefer Pricing Foundation rush default; fallback to services-specific rush_percent.
+    # Use `is not None` so a tenant who explicitly sets foundation default_rush_percent=0
+    # gets zero rush (not the 25% category fallback).
+    foundation_rush_raw = defaults.get("default_rush_percent")
     services_rush_pct = float(cfg.get("rush_percent", 25.0) or 25.0)
-    rush_pct = foundation_rush_pct if foundation_rush_pct > 0 else services_rush_pct
-    rush_source = "foundation" if foundation_rush_pct > 0 else "services_category"
+    if foundation_rush_raw is not None:
+        rush_pct = float(foundation_rush_raw or 0)
+        rush_source = "foundation"
+    else:
+        rush_pct = services_rush_pct
+        rush_source = "services_category"
     if data.rush_order:
         suggested_price = suggested_price * (1 + rush_pct / 100.0)
 
