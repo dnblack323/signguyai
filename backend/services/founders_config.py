@@ -302,6 +302,8 @@ AI_CREDIT_COSTS.update({
     # Internal AI pipeline actions
     "historical_invoice_pdf_extract": 3,
     "historical_invoice_benchmark_synthesis": 2,
+    # Services AI prefill — low cost, structured JSON output
+    "ai_services_prefill": 1,
 })
 
 # Default cost for unknown tools

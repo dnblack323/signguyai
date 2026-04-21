@@ -2306,3 +2306,141 @@ Respond ONLY with valid JSON, nothing else."""
             "needs_more_info": True,
             "question": "I couldn't understand that. Could you rephrase?"
         }
+
+
+# ============== SERVICES AI PREFILL ==============
+
+class ServicesPrefillRequest(BaseModel):
+    description: str = Field(..., min_length=3, max_length=2000)
+    existing_inputs: Dict[str, Any] = Field(default_factory=dict)
+
+
+@router.post("/services-prefill")
+async def services_ai_prefill(
+    request: ServicesPrefillRequest,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """AI-prefill missing Services order-item fields from a free-text description.
+
+    Rules:
+    - Only fills fields the user hasn't already set (`existing_inputs`).
+    - Never overwrites user-entered values.
+    - Returns per-field list so the calculator can tag provenance.
+    """
+    from server import get_pricing_defaults
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    import json as _json
+
+    defaults = await get_pricing_defaults(current_user.tenant_id)
+    services_cfg = (defaults.get("category_defaults") or {}).get("services", {}) or {}
+    service_types = services_cfg.get("available_service_types", []) or []
+    labor_roles = services_cfg.get("labor_roles", {}) or {}
+    billing_units = services_cfg.get("available_billing_units", []) or []
+    complexity_keys = list((services_cfg.get("complexity_multipliers") or {}).keys()) or [
+        "easy", "medium", "difficult", "extreme",
+    ]
+    equipment_library = services_cfg.get("equipment_library", []) or []
+
+    # Keys the AI is allowed to propose (and only if not already present in existing_inputs)
+    fillable_keys = [
+        "service_type", "services_billing_unit", "services_labor_role", "services_complexity",
+        "estimated_hours", "quantity", "services_flat_fee", "services_unit_rate_override",
+        "services_minimum_applies", "services_travel_required", "services_travel_miles",
+        "services_trip_charge_applies", "services_trip_count",
+        "services_equipment_required", "services_equipment_type", "services_equipment_days",
+        "services_subcontracted", "services_subcontract_cost", "services_subcontract_markup_applies",
+        "services_permit_external_fee", "rush_order",
+    ]
+    already_set = {k for k, v in request.existing_inputs.items() if v not in (None, "", [])}
+    missing_keys = [k for k in fillable_keys if k not in already_set]
+
+    # Credit preview (cheap text call)
+    preview = await preview_credit_usage(db, current_user.tenant_id, "ai_services_prefill")
+    if not preview.get("sufficient_credits", True):
+        raise HTTPException(status_code=402, detail="Insufficient AI credits for services prefill")
+
+    system_prompt = (
+        "You are a pricing assistant for a sign & graphics shop. Given a short "
+        "description of a Services job, propose sensible default values ONLY for "
+        "the listed missing fields. Do not invent fields that aren't in the list. "
+        "Use only these enums:\n"
+        f"- service_type keys: {[s['key'] for s in service_types]}\n"
+        f"- services_billing_unit values: {billing_units}\n"
+        f"- services_labor_role keys: {list(labor_roles.keys())}\n"
+        f"- services_complexity values: {complexity_keys}\n"
+        f"- services_equipment_type keys: {[e['key'] for e in equipment_library]}\n"
+        "Numeric fields should be numbers. Booleans should be true/false. "
+        "Respond with a single JSON object containing ONLY the fields you are proposing values for. "
+        "No prose, no markdown, no code fences."
+    )
+
+    user_text = (
+        f"Description:\n{request.description}\n\n"
+        f"User has already set:\n{_json.dumps(request.existing_inputs, default=str)}\n\n"
+        f"Propose values ONLY for these missing fields:\n{missing_keys}"
+    )
+
+    chat = LlmChat(
+        api_key=EMERGENT_LLM_KEY,
+        session_id=f"services_prefill_{uuid.uuid4()}",
+        system_message=system_prompt,
+    ).with_model("openai", "gpt-5.2")
+
+    try:
+        raw = await chat.send_message(UserMessage(text=user_text))
+    except Exception as exc:
+        await log_failed_ai_usage(
+            db,
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            action_type="ai_services_prefill",
+            module="Services Pricing",
+            feature_name="ai_services_prefill",
+            metadata={"error": str(exc)[:500]},
+        )
+        raise HTTPException(status_code=500, detail=f"AI prefill failed: {exc}")
+
+    # Extract JSON payload (strip accidental code fences / prose around it)
+    cleaned = (raw or "").strip()
+    if cleaned.startswith("```"):
+        # strip leading and trailing code fences
+        cleaned = cleaned.split("```", 2)[-1]
+        if cleaned.startswith("json"):
+            cleaned = cleaned[4:]
+        cleaned = cleaned.rsplit("```", 1)[0].strip()
+    # find the first '{' and last '}' as a resilient fallback
+    first = cleaned.find("{")
+    last = cleaned.rfind("}")
+    if first == -1 or last == -1 or last <= first:
+        return {"prefilled": {}, "ai_prefilled_fields": [], "reasoning": cleaned[:400], "missing_keys": missing_keys}
+    try:
+        proposed = _json.loads(cleaned[first:last + 1])
+    except Exception:
+        return {"prefilled": {}, "ai_prefilled_fields": [], "reasoning": cleaned[:400], "missing_keys": missing_keys}
+
+    # Filter: never overwrite user-entered, never return unknown keys
+    filtered: Dict[str, Any] = {}
+    for key, value in (proposed or {}).items():
+        if key not in fillable_keys:
+            continue
+        if key in already_set:
+            continue
+        filtered[key] = value
+
+    await deduct_credits_after_success(
+        db,
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id,
+        action_type="ai_services_prefill",
+        module="Services Pricing",
+        feature_name="ai_services_prefill",
+        metadata={"description_len": len(request.description), "fields_filled": len(filtered)},
+    )
+
+    return {
+        "prefilled": filtered,
+        "ai_prefilled_fields": list(filtered.keys()),
+        "missing_keys": missing_keys,
+        "reasoning": None,
+    }
+

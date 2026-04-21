@@ -1987,7 +1987,11 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
     suggested_price = max(suggested_price, global_min)
 
     # ===== Rush =====
-    rush_pct = float(cfg.get("rush_percent", 25.0) or 0)
+    # Spec: prefer Pricing Foundation rush default; fallback to services-specific rush_percent
+    foundation_rush_pct = float(defaults.get("default_rush_percent", 0) or 0)
+    services_rush_pct = float(cfg.get("rush_percent", 25.0) or 25.0)
+    rush_pct = foundation_rush_pct if foundation_rush_pct > 0 else services_rush_pct
+    rush_source = "foundation" if foundation_rush_pct > 0 else "services_category"
     if data.rush_order:
         suggested_price = suggested_price * (1 + rush_pct / 100.0)
 
@@ -1998,6 +2002,42 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
         suggested_price = manual_override
     if data.override_enabled and data.price_override:
         suggested_price = float(data.price_override)
+
+    # ===== Field provenance (shop_default / ai_estimated / user_entered) =====
+    # ai_prefilled_fields = list of attribute names injected by AI prefill; any
+    # field not AI-injected but set by the user resolves to "user_entered";
+    # otherwise "shop_default" (pulled from Pricing Foundation).
+    ai_fields = set((getattr(data, "ai_prefilled_fields", None) or []))
+    def _src(attr: str, was_set: bool) -> str:
+        if attr in ai_fields:
+            return "ai_estimated"
+        return "user_entered" if was_set else "shop_default"
+
+    field_sources = {
+        "service_type": _src("service_type", bool(data.service_type)),
+        "billing_unit": _src("services_billing_unit", bool(data.services_billing_unit)),
+        "labor_role": _src("services_labor_role", bool(data.services_labor_role)),
+        "complexity": _src("services_complexity", bool(data.services_complexity)),
+        "estimated_hours": _src("estimated_hours", bool(data.estimated_hours)),
+        "flat_fee": _src("services_flat_fee", data.services_flat_fee is not None),
+        "unit_rate": _src("services_unit_rate_override", data.services_unit_rate_override is not None),
+        "minimum_applies": _src("services_minimum_applies", data.services_minimum_applies is not None),
+        "minimum_override": _src("services_minimum_override", bool(data.services_minimum_override)),
+        "travel_required": _src("services_travel_required", data.services_travel_required is not None),
+        "travel_miles": _src("services_travel_miles", bool(data.services_travel_miles)),
+        "trip_charge_applies": _src("services_trip_charge_applies", data.services_trip_charge_applies is not None),
+        "trip_count": _src("services_trip_count", bool(data.services_trip_count)),
+        "equipment_required": _src("services_equipment_required", data.services_equipment_required is not None),
+        "equipment_type": _src("services_equipment_type", bool(data.services_equipment_type)),
+        "equipment_days": _src("services_equipment_days", bool(data.services_equipment_days)),
+        "subcontracted": _src("services_subcontracted", data.services_subcontracted is not None),
+        "subcontract_cost": _src("services_subcontract_cost", bool(data.services_subcontract_cost)),
+        "subcontract_markup_applies": _src("services_subcontract_markup_applies", data.services_subcontract_markup_applies is not None),
+        "permit_cost": _src("services_permit_external_fee", bool(data.services_permit_external_fee)),
+        "rush_order": _src("rush_order", bool(data.rush_order)),
+        "manual_quote_override": _src("services_manual_quote_override", bool(data.services_manual_quote_override)),
+        "rush_percent": rush_source,
+    }
 
     return create_pricing_result(
         material_cost=material_cost_total,
@@ -2048,7 +2088,16 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
             "effective_min": effective_min,
             "minimum_applied": minimum_applies,
             "rush_percent_applied": rush_pct if data.rush_order else 0,
+            "rush_percent_source": rush_source,
             "manual_quote_override": manual_override,
+            # Spec-named totals (mirror existing fields for display convenience)
+            "total_labor_cost": round(labor_cost, 2),
+            "total_travel_cost": round(travel_cost, 2),
+            "total_equipment_cost": round(equipment_cost, 2),
+            "total_subcontract_cost": round(subcontract_cost, 2),
+            "total_permit_cost": round(permit_cost, 2),
+            "total_production_cost": round(production_cost_total, 2),
+            "field_sources": field_sources,
             "warnings": warnings,
         },
     )

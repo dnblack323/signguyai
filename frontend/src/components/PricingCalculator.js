@@ -1344,12 +1344,73 @@ export default function PricingCalculator({
         const showFlat = billingUnit === 'flat';
         const showUnitRate = ['piece','sqft','linear_foot','mile','trip','day','custom'].includes(billingUnit);
         const buLabels = { hour: 'Hour', flat: 'Flat Fee', piece: 'Piece', sqft: 'Sq Ft', linear_foot: 'Linear Ft', mile: 'Mile', trip: 'Trip', day: 'Day', custom: 'Custom Unit' };
+        const aiFieldSet = new Set(pricingData.ai_prefilled_fields || []);
+        const srcBadge = (fieldName, userSetCheck) => {
+          if (aiFieldSet.has(fieldName)) return <Badge variant="outline" className="ml-2 text-[9px] bg-violet-50 text-violet-700 border-violet-300">AI</Badge>;
+          if (userSetCheck) return <Badge variant="outline" className="ml-2 text-[9px] bg-slate-100 text-slate-600 border-slate-300">Edited</Badge>;
+          return <Badge variant="outline" className="ml-2 text-[9px] bg-emerald-50 text-emerald-700 border-emerald-300">Default</Badge>;
+        };
+        const runAiPrefill = async () => {
+          const desc = (pricingData.ai_description || '').trim();
+          if (desc.length < 3) { toast.error('Describe the service in a few words first'); return; }
+          try {
+            setPricingData((prev) => ({ ...prev, _ai_prefilling: true }));
+            const existing = { ...pricingData };
+            delete existing.ai_description;
+            delete existing._ai_prefilling;
+            delete existing.ai_prefilled_fields;
+            const { data } = await (await import('axios')).default.post(
+              `${API_URL}/api/ai/services-prefill`,
+              { description: desc, existing_inputs: existing },
+              { headers: { Authorization: `Bearer ${getAuthToken()}` } }
+            );
+            const filled = data?.prefilled || {};
+            const aiKeys = data?.ai_prefilled_fields || [];
+            if (Object.keys(filled).length === 0) {
+              toast.info('AI had nothing new to add — all fields were already set.');
+            } else {
+              toast.success(`AI prefilled ${Object.keys(filled).length} field(s)`);
+            }
+            setPricingData((prev) => ({ ...prev, ...filled, ai_prefilled_fields: [...new Set([...(prev.ai_prefilled_fields || []), ...aiKeys])], _ai_prefilling: false }));
+          } catch (err) {
+            setPricingData((prev) => ({ ...prev, _ai_prefilling: false }));
+            toast.error(err?.response?.data?.detail || 'AI prefill failed');
+          }
+        };
         return (
           <div className="space-y-4">
+            {/* AI Prefill panel */}
+            <div className="rounded-lg border border-violet-200 bg-violet-50/60 p-3" data-testid="services-ai-prefill-panel">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 text-violet-600" />
+                <p className="text-xs font-semibold text-violet-900">AI Prefill (Services) — optional, fills missing fields only</p>
+              </div>
+              <div className="flex gap-2">
+                <Textarea
+                  value={pricingData.ai_description || ''}
+                  onChange={(e) => setPricingData({ ...pricingData, ai_description: e.target.value })}
+                  placeholder="e.g. Install 4 aluminum signs at a new retail site, 15 miles away, needs a lift…"
+                  rows={2}
+                  className="text-sm flex-1"
+                  data-testid="svc-ai-description"
+                />
+                <Button
+                  type="button"
+                  onClick={runAiPrefill}
+                  disabled={pricingData._ai_prefilling}
+                  className="bg-violet-600 hover:bg-violet-700 text-white self-stretch"
+                  data-testid="svc-ai-prefill-btn"
+                >
+                  {pricingData._ai_prefilling ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Prefill'}
+                </Button>
+              </div>
+              <p className="text-[10px] text-violet-700/80 mt-1">Badges next to each field: <span className="font-semibold">Default</span> = shop default, <span className="font-semibold">AI</span> = AI estimated, <span className="font-semibold">Edited</span> = user entered.</p>
+            </div>
+
             {/* Service Type + Billing Unit */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Service Type *</Label>
+                <Label className="flex items-center">Service Type *{srcBadge('service_type', !!pricingData.service_type)}</Label>
                 <Select value={selectedSt} onValueChange={(v) => {
                   const info = serviceTypes.find((s) => s.key === v) || {};
                   setPricingData({ ...pricingData, service_type: v, services_billing_unit: info.default_billing_unit || 'hour', services_labor_role: info.default_labor_role || 'production', services_travel_required: !!info.requires_travel, services_equipment_required: !!info.uses_equipment, services_subcontracted: !!info.typically_subcontracted });

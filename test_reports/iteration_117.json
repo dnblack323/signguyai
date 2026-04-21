@@ -1,0 +1,34 @@
+{
+  "summary": "Iteration 117 — Services Pricing Foundation extension (AI prefill + rush-source + field_sources + total_* totals) backend regression. 9/9 pytest tests PASSED against the live preview URL. Verified: (1) POST /api/ai/services-prefill returns 422 for <3-char descriptions; (2) realistic prompt 'Install 4 aluminum signs 15 miles away, needs a scissor lift' returns prefilled={service_type:'installation', services_billing_unit:'hour', services_travel_required:true, services_equipment_type:<set>} with matching ai_prefilled_fields and missing_keys; (3) existing_inputs={service_type:'wrap_install'} is preserved — service_type is NOT in response.prefilled or ai_prefilled_fields or missing_keys; (4) POST /api/pricing/calculate services with foundation.default_rush_percent=0 → breakdown.rush_percent_source='services_category', rush_percent_applied=25.0; with default_rush_percent=17.5 → rush_percent_source='foundation', rush_percent_applied=17.5; (5) breakdown exposes total_labor_cost/total_travel_cost/total_equipment_cost/total_subcontract_cost/total_permit_cost/total_production_cost each mirroring the underlying cost fields; (6) field_sources correctly tags 'ai_estimated' for AI-injected keys (service_type, travel_required), 'user_entered' for user-set keys (billing_unit), 'shop_default' for unset keys (flat_fee); (7) Full install scenario (service_type=installation, billing=hour, hours=4, lead_installer, 15mi travel, trip charge, scissor_lift 1d, rush ON) → suggested_price=$1133.77, profit_amount=$586.66, profit_margin_percent=51.7%, overhead_cost=$87.35 — all thresholds met; (8) Tiny consultation (service_type=consultation, estimated_hours=0.25, billing=hour) hits the per-service minimum $50 (breakdown.effective_min=50, minimum_applied=true, suggested_price>=$50). default_rush_percent restored to its original value (0) after the suite via session-scoped autouse teardown.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration117_services_extension.py",
+    "/app/test_reports/pytest/iteration117_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py:1991-1994 — foundation_rush_pct is treated as 'unset' when it equals 0 (via `if foundation_rush_pct > 0`). That is fine for the current spec, but a tenant who legitimately wants '0% rush' at the foundation level cannot express it without the calculator silently falling back to the services-category 25%. Consider using `defaults.get('default_rush_percent') is not None` or a separate `default_rush_percent_enabled` flag if a true-zero foundation default ever becomes a valid user intent.",
+    "server.py:2010 — ai_prefilled_fields is read via getattr(data, 'ai_prefilled_fields', None). Good defensive access. The models/pricing.py JobItemPricingData.ai_prefilled_fields at line 1391 is declared Optional[List[str]]; verify Pydantic accepts an empty list and None equivalently (both are handled here).",
+    "routes/ai.py:2354 — already_set = {k for k,v in existing_inputs.items() if v not in (None,'',[])}. An explicit `False` is treated as 'set' (correct), but `0` (legit numeric input) is ALSO treated as set — good. An empty dict {} is considered set — probably fine since the current fillable_keys have no dict-valued fields.",
+    "routes/ai.py:2405-2419 — JSON extraction from LLM output is resilient (handles ```json fences and prose), but if the model returns multiple JSON blocks the first-'{'/last-'}' fallback may pick an outer envelope that spans both. Low risk with gpt-5.2's current behavior but worth a unit test if prompts change.",
+    "routes/ai.py:2360 — insufficient_credits raises 402 BEFORE the LLM call, but deduct_credits_after_success is only invoked AFTER a successful filtered response. The empty-filtered path (line 2422-2428) still reaches deduct — acceptable since a credit was still consumed server-side for the API call, but worth documenting."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration117_services_extension.py"
+  ],
+  "success_rate": {"backend": "100% (9/9)", "frontend": "not tested (testing_type=backend only per review request)"},
+  "test_credentials": "signguypa@gmail.com / Billnel323",
+  "seed_data_creation": "No persistent seed data. Test temporarily toggled tenant.default_rush_percent between 0 and 17.5; autouse session-scope teardown restored it to the original snapshot (0).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Test file is /app/backend/tests/test_iteration117_services_extension.py. Notes: (1) REACT_APP_BACKEND_URL MUST be exported before pytest (the module reads it at import time with no default — intentional per env rules). Use: `export REACT_APP_BACKEND_URL=$(grep REACT_APP_BACKEND_URL /app/frontend/.env | cut -d= -f2)`. (2) POST /api/pricing/calculate response uses `profit_margin_percent` (not `profit_margin`) — initial draft of the full-scenario test failed on this alias. (3) AI prefill consumes credits; the 2 AI tests here skip gracefully on 402 but otherwise will burn 2 credits per run. (4) `rush_percent_source='foundation'` requires foundation.default_rush_percent > 0 strictly (>0 check, not 'is not None'). (5) Minimum-charge consultation path verified (effective_min=50, minimum_applied=True, suggested_price>=50).",
+  "rca of the issue": "No bugs found. Only test-side correction: assertion used `profit_margin` where the API returns `profit_margin_percent`; fixed in the test file, then all 9 tests passed cleanly."
+}

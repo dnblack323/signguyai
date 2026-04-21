@@ -1388,6 +1388,10 @@ class JobItemPricingData(BaseModel):
     services_permit_external_fee: Optional[float] = None
     services_manual_quote_override: Optional[float] = None
     services_minimum_override: Optional[float] = None
+    # Field provenance hint — list of JobItemPricingData attribute names
+    # whose values were injected by AI prefill. Used by calculate_services to
+    # tag breakdown.field_sources for UI source labels.
+    ai_prefilled_fields: Optional[List[str]] = None
     
     # Apparel
     apparel_type: Optional[ApparelType] = None
