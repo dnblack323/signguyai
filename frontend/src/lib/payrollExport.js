@@ -351,31 +351,72 @@ export const buildPayrollPrintHtml = ({ report, timesheet, selectedEmployeeLabel
       <meta charset="utf-8" />
       <title>Payroll Report</title>
       <style>
-        body { font-family: "Helvetica Neue", Arial, sans-serif; margin: 32px; color: #0f172a; }
+        /* Hard reset: iframe inherits styles from the parent app.
+           Force every element in the export to render as plain solid text
+           so nothing comes through as outline / transparent / hollow. */
+        *, *::before, *::after {
+          -webkit-text-stroke: 0 !important;
+          -webkit-text-fill-color: currentColor !important;
+          text-shadow: none !important;
+          text-decoration: none !important;
+          background-clip: border-box !important;
+          -webkit-background-clip: border-box !important;
+          font-variation-settings: normal !important;
+          filter: none !important;
+        }
+        html, body {
+          font-family: "Helvetica Neue", "Helvetica", "Arial", sans-serif !important;
+          color: #0f172a !important;
+          background: #ffffff !important;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        body { margin: 32px; }
+        h1, h2, h3, h4, p, span, strong, div, th, td {
+          font-family: "Helvetica Neue", "Helvetica", "Arial", sans-serif !important;
+          color: #0f172a !important;
+        }
+        h1 { font-size: 26px; font-weight: 700 !important; }
+        h2 { font-size: 18px; font-weight: 700 !important; }
+        h3 { font-size: 15px; font-weight: 700 !important; }
+        strong { font-weight: 700 !important; }
         h1, h2, h3, p { margin: 0; }
         .page-header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-end; margin-bottom: 24px; }
-        .meta { color: #475569; font-size: 13px; display: grid; gap: 6px; }
+        .meta { color: #334155 !important; font-size: 13px; display: grid; gap: 6px; }
         .summary-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 24px; }
-        .summary-card { border: 1px solid #cbd5e1; border-radius: 14px; padding: 14px 16px; background: #f8fafc; }
-        .summary-card span { display: block; color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
-        .summary-card strong { font-size: 20px; }
+        .summary-card { border: 1px solid #64748b; border-radius: 10px; padding: 14px 16px; background: #ffffff !important; }
+        .summary-card span { display: block; color: #1e293b !important; font-size: 11px; font-weight: 600 !important; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+        .summary-card strong { font-size: 20px; font-weight: 700 !important; color: #0f172a !important; }
         table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-        th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; vertical-align: top; }
-        thead th { background: #eff6ff; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; }
+        th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #94a3b8; font-size: 13px; vertical-align: top; }
+        thead th {
+          background: #e2e8f0 !important;
+          color: #0f172a !important;
+          font-weight: 700 !important;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          font-size: 11px;
+        }
         .employee-section { margin-top: 28px; page-break-inside: avoid; }
         .employee-header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-end; margin-bottom: 8px; }
-        .employee-header p { color: #64748b; margin-top: 4px; }
-        .employee-totals { display: flex; gap: 16px; color: #0f172a; font-size: 13px; }
+        .employee-header p { color: #334155 !important; margin-top: 4px; font-weight: 500; }
+        .employee-totals { display: flex; gap: 16px; color: #0f172a !important; font-size: 13px; font-weight: 600; }
         @media print {
           body { margin: 20px; }
           .summary-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+          /* Belt-and-suspenders: re-assert solid fill at print time */
+          *, *::before, *::after {
+            -webkit-text-stroke: 0 !important;
+            -webkit-text-fill-color: currentColor !important;
+            text-shadow: none !important;
+          }
         }
       </style>
     </head>
     <body>
       <header class="page-header">
         <div>
-          <p style="color:#2563eb; font-size:12px; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Payroll export</p>
+          <p style="color:#1e293b !important; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px; -webkit-text-fill-color:#1e293b;">Payroll export</p>
           <h1>Payroll Report</h1>
         </div>
         <div class="meta">
