@@ -57,21 +57,41 @@ const buildWorksheetSnapshot = ({ adjustmentRows, employeeDraft, endDate, legacy
 });
 
 const printHtmlDocument = (html) => new Promise((resolve, reject) => {
+  // Use a slightly larger, visible-but-offscreen iframe rather than 0×0.
+  // 0×0 iframes are treated as "not rendered" by some Chrome print pipelines
+  // and the print command quietly falls back to printing the parent page,
+  // which picks up the app's heavy fonts/gradients ("outline" text look).
   const frame = document.createElement('iframe');
   frame.style.position = 'fixed';
-  frame.style.right = '0';
-  frame.style.bottom = '0';
-  frame.style.width = '0';
-  frame.style.height = '0';
+  frame.style.left = '-10000px';
+  frame.style.top = '0';
+  frame.style.width = '800px';
+  frame.style.height = '600px';
   frame.style.border = '0';
   frame.setAttribute('aria-hidden', 'true');
   document.body.appendChild(frame);
 
+  let done = false;
   const cleanup = () => {
-    window.setTimeout(() => {
-      frame.remove();
-    }, 500);
+    window.setTimeout(() => { try { frame.remove(); } catch { /* no-op */ } }, 800);
   };
+  const finish = () => {
+    if (done) return;
+    done = true;
+    try {
+      frame.contentWindow?.focus();
+      frame.contentWindow?.print();
+      cleanup();
+      resolve();
+    } catch (e) {
+      cleanup();
+      reject(e);
+    }
+  };
+
+  // Attach onload BEFORE writing so we don't miss a synchronous fire.
+  // Modern browsers also fire 'afterprint' — we resolve on print() return.
+  frame.onload = finish;
 
   try {
     const frameDocument = frame.contentWindow?.document;
@@ -80,17 +100,18 @@ const printHtmlDocument = (html) => new Promise((resolve, reject) => {
       reject(new Error('Unable to open print frame'));
       return;
     }
-
     frameDocument.open();
     frameDocument.write(html);
     frameDocument.close();
 
-    frame.onload = () => {
-      frame.contentWindow.focus();
-      frame.contentWindow.print();
-      cleanup();
-      resolve();
-    };
+    // If the iframe's readyState is already 'complete' (happens in some
+    // engines immediately after close), onload may have already missed.
+    // Fallback after a short microtask-style wait.
+    window.setTimeout(() => {
+      if (!done && frame.contentWindow?.document?.readyState === 'complete') {
+        finish();
+      }
+    }, 150);
   } catch (error) {
     cleanup();
     reject(error);

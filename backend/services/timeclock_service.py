@@ -274,10 +274,18 @@ async def get_timeclock_status(db, tenant_id: str, employee_id: str) -> dict:
     )
     if open_shift:
         status = "working" if open_shift["status"] == "working" else "on_break"
+        # Canonical "clocked in at" = shift's clock_in.
+        # `last_action_at` = most-recent state change (useful for "on break since"
+        # displays). Previously we returned updated_at as last_timestamp which
+        # caused the UI to show "Clocked in at 2:47 PM" after a break — users
+        # thought the app had just clocked them in.
         return {
             "status": status,
             "last_action": "start_work" if status == "working" else "break_start",
-            "last_timestamp": open_shift.get("updated_at") or open_shift.get("clock_in"),
+            "last_timestamp": open_shift.get("clock_in"),
+            "clocked_in_at": open_shift.get("clock_in"),
+            "last_action_at": open_shift.get("updated_at") or open_shift.get("clock_in"),
+            "shift_id": open_shift.get("id"),
         }
 
     # Fallback: check recent timelogs (48h window covers timezone edge cases)

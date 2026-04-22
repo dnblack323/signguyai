@@ -408,38 +408,47 @@ async def get_team_status_today(current_user: UserInDB = Depends(get_current_act
         if today_shift and (today_shift.get("start") or today_shift.get("end")):
             schedule_map[emp_id] = today_shift
 
-    # Check clock status for each employee
+    # Check clock status for each employee.
+    #
+    # Previously this queried `timelogs` with a regex `^YYYY-MM-DD` against the
+    # UTC timestamp. That silently dropped anyone whose shift crossed a UTC day
+    # boundary (common for evening employees in US timezones) — so the Dashboard
+    # widget would show "nobody clocked in" while the portal clearly showed them
+    # working. We now use `timeclock_shifts` (the canonical store) and look for
+    # ANY open shift (status ∈ working|on_break) regardless of date.
+    open_shifts_cursor = db.timeclock_shifts.find(
+        {"tenant_id": tenant_id, "status": {"$in": ["working", "on_break"]}},
+        {"_id": 0}
+    )
+    open_shifts_by_emp = {s["employee_id"]: s async for s in open_shifts_cursor}
+
     team_status = []
     for emp in employees:
         emp_id = emp.get("id", "")
         is_scheduled = emp_id in schedule_map
         shift_info = schedule_map.get(emp_id, {})
 
-        # Get today's latest timelog
-        logs = await db.timelogs.find({
-            "employee_id": emp_id,
-            "timestamp": {"$regex": f"^{today_str}"}
-        }, {"_id": 0}).sort("timestamp", -1).to_list(1)
-
+        open_shift = open_shifts_by_emp.get(emp_id)
         clock_status = "not_clocked_in"
         clocked_in_at = None
-        if logs:
-            last_action = logs[0].get("action")
-            if last_action in ["start_work", "break_end"]:
-                clock_status = "working"
-            elif last_action == "break_start":
-                clock_status = "on_break"
-            elif last_action == "end_work":
+        if open_shift:
+            # Canonical: an open shift ⇒ currently working or on break.
+            clock_status = "on_break" if open_shift.get("status") == "on_break" else "working"
+            clocked_in_at = open_shift.get("clock_in")
+        else:
+            # Secondary: did they have a shift that finished today (local UTC)?
+            finished_today = await db.timeclock_shifts.find_one(
+                {
+                    "tenant_id": tenant_id,
+                    "employee_id": emp_id,
+                    "status": "finished",
+                    "date": today_str,
+                },
+                {"_id": 0, "clock_in": 1, "clock_out": 1},
+            )
+            if finished_today:
                 clock_status = "finished"
-
-            # Find first clock-in time
-            start_log = await db.timelogs.find_one({
-                "employee_id": emp_id,
-                "timestamp": {"$regex": f"^{today_str}"},
-                "action": "start_work"
-            }, {"_id": 0}, sort=[("timestamp", 1)])
-            if start_log:
-                clocked_in_at = start_log.get("timestamp")
+                clocked_in_at = finished_today.get("clock_in")
 
         entry = {
             "employee_id": emp_id,

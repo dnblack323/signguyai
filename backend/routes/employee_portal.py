@@ -321,7 +321,8 @@ async def get_time_clock_status(authorization: str = Header(default="")):
     return TimeClockStatus(
         is_clocked_in=status.get("status") in {"working", "on_break"},
         current_status=status.get("status") if status.get("status") != "not_started" else None,
-        clocked_in_at=status.get("last_timestamp"),
+        # Canonical clock-in time (not updated_at — see timeclock_service fix).
+        clocked_in_at=status.get("clocked_in_at") or status.get("last_timestamp"),
         total_hours_today=total_hours,
         break_time_today=break_hours,
     )
