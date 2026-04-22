@@ -2000,35 +2000,90 @@ async def confirm_assistant_action(
 
 @router.get("/assistant/actions/audit")
 async def get_action_audit_log(
-    limit: int = 50,
+    limit: int = 100,
     action_type: Optional[str] = None,
+    status: Optional[str] = None,
+    user_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
+    """Admin-only audit log of AI Assistant actions for the tenant.
+
+    Phase 4: adds filters (status, user_id, date range) and returns user names
+    for readable admin UI. OWNER/ADMIN only — surface visibility is a trust feature.
     """
-    Get audit log of AI Assistant actions for the tenant.
-    
-    Returns all actions executed via the AI Assistant, including:
-    - Action type and parameters
-    - Status (executed, failed, cancelled, pending)
-    - Results or errors
-    - Timestamps
-    """
-    actions = get_ai_assistant_actions(db)
-    
-    at = None
+    from models.enums import UserRole
+    if current_user.role not in (UserRole.OWNER, UserRole.ADMIN):
+        raise HTTPException(status_code=403, detail="Admin access required to view AI audit log")
+
+    query: Dict[str, Any] = {"tenant_id": current_user.tenant_id}
     if action_type:
-        try:
-            at = ActionType(action_type)
-        except ValueError:
-            pass
-    
-    entries = await actions.get_action_audit_log(
-        tenant_id=current_user.tenant_id,
-        limit=limit,
-        action_type=at
+        query["action_type"] = action_type
+    if status:
+        query["status"] = status
+    if user_id:
+        query["user_id"] = user_id
+    if start_date or end_date:
+        rng: Dict[str, str] = {}
+        if start_date:
+            rng["$gte"] = start_date
+        if end_date:
+            rng["$lte"] = end_date + "T23:59:59Z"
+        query["created_at"] = rng
+
+    cursor = db.ai_action_audit.find(query, {"_id": 0}).sort("created_at", -1).limit(max(1, min(limit, 500)))
+    entries = await cursor.to_list(max(1, min(limit, 500)))
+
+    # Attach human-readable user name (best-effort — tenant-scoped).
+    user_ids = list({e.get("user_id") for e in entries if e.get("user_id")})
+    user_map: Dict[str, str] = {}
+    if user_ids:
+        users = await db.users.find(
+            {"id": {"$in": user_ids}, "tenant_id": current_user.tenant_id},
+            {"_id": 0, "id": 1, "email": 1, "first_name": 1, "last_name": 1},
+        ).to_list(500)
+        for u in users:
+            full = f"{u.get('first_name', '')} {u.get('last_name', '')}".strip() or u.get("email") or u["id"]
+            user_map[u["id"]] = full
+
+    for e in entries:
+        e["user_name"] = user_map.get(e.get("user_id"), e.get("user_id", "—"))
+
+    # Quick counts for the filter bar.
+    totals = {
+        "total": len(entries),
+        "executed": sum(1 for e in entries if e.get("status") == "executed"),
+        "failed": sum(1 for e in entries if e.get("status") == "failed"),
+        "cancelled": sum(1 for e in entries if e.get("status") == "cancelled"),
+        "pending": sum(1 for e in entries if e.get("status") == "pending_confirmation"),
+    }
+    return {"audit_log": entries, "count": len(entries), "totals": totals}
+
+
+@router.get("/assistant/actions/audit/{audit_id}")
+async def get_action_audit_detail(
+    audit_id: str,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Full detail of a single audit entry (admin-only)."""
+    from models.enums import UserRole
+    if current_user.role not in (UserRole.OWNER, UserRole.ADMIN):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    entry = await db.ai_action_audit.find_one(
+        {"id": audit_id, "tenant_id": current_user.tenant_id}, {"_id": 0}
     )
-    
-    return {"audit_log": entries, "count": len(entries)}
+    if not entry:
+        raise HTTPException(status_code=404, detail="Audit entry not found")
+
+    if entry.get("user_id"):
+        u = await db.users.find_one(
+            {"id": entry["user_id"], "tenant_id": current_user.tenant_id},
+            {"_id": 0, "email": 1, "first_name": 1, "last_name": 1},
+        )
+        if u:
+            entry["user_name"] = f"{u.get('first_name', '')} {u.get('last_name', '')}".strip() or u.get("email")
+    return entry
 
 
 @router.get("/assistant/actions/pending")

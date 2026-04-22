@@ -13,6 +13,9 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import { useAICreditGuard } from './credits/AICreditConfirmationDialog';
 import AssistantQueryResult from './assistant/AssistantQueryResult';
+import AssistantPreviewCard from './assistant/AssistantPreviewCard';
+import AssistantEmptyState from './assistant/AssistantEmptyState';
+import AssistantErrorBlock from './assistant/AssistantErrorBlock';
 import { useNavigate } from 'react-router-dom';
 import { usePageContext } from '../context/PageContext';
 
@@ -72,6 +75,23 @@ What would you like to do?`,
   const [isRecording, setIsRecording] = useState(false);
   const [voiceLoading, setVoiceLoading] = useState(false);
   const [pendingTranscript, setPendingTranscript] = useState(null);
+  const [recentCommands, setRecentCommands] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('assistant_recent_commands') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  const pushRecentCommand = (text) => {
+    setRecentCommands((prev) => {
+      const trimmed = text.trim();
+      if (!trimmed) return prev;
+      const next = [trimmed, ...prev.filter((c) => c !== trimmed)].slice(0, 8);
+      try { localStorage.setItem('assistant_recent_commands', JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
   const [position, setPosition] = useState({ right: 24, bottom: 80 });
   const [isDragging, setIsDragging] = useState(false);
   const recordingTimeoutRef = useRef(null);
@@ -239,6 +259,7 @@ What would you like to do?`,
   const handleSend = async (messageText = input, source = 'text') => {
     if (!messageText.trim() || loading) return;
 
+    pushRecentCommand(messageText);
     const userMessage = createAssistantMessage({ role: 'user', content: messageText.trim() });
     setMessages(prev => [...prev, userMessage]);
     setInput('');
@@ -407,6 +428,8 @@ What would you like to do?`,
             content: 'Who is this order for? Please give me a customer name or company.',
           });
         }
+        const warnings = [];
+        if (source === 'voice') warnings.push('Voice command — please confirm before I create this.');
         setPendingAction({
           type: 'create_order',
           params,
@@ -415,11 +438,19 @@ What would you like to do?`,
         });
         return createAssistantMessage({
           role: 'assistant',
-          content: `I'll create this order:\n\n**Customer:** ${params.customer_name || params.company_name}\n**Due Date:** ${params.requested_due_date || 'Not set'}\n**Notes:** ${params.description || 'None'}\n\nShould I create this order?`,
-          actions: [
-            { id: 'assistant-confirm-create-order', label: 'Yes, create it', action: 'confirm', variant: 'default' },
-            { id: 'assistant-cancel-create-order', label: 'No, cancel', action: 'cancel', variant: 'outline' },
-          ],
+          previewCard: {
+            title: 'Create Order',
+            fields: [
+              { label: 'Customer', value: params.customer_name || params.company_name },
+              { label: 'Company', value: params.company_name || '—' },
+              { label: 'Due Date', value: params.requested_due_date || 'Not set' },
+              { label: 'Description', value: params.description || '—' },
+              { label: 'Pickup/Delivery', value: params.pickup_delivery_method || 'pickup' },
+            ],
+            warnings,
+            confirmLabel: 'Create Order',
+            intent: 'create_order',
+          },
         });
       }
 
@@ -430,6 +461,8 @@ What would you like to do?`,
             content: 'What should the appointment be titled, and what date and time?',
           });
         }
+        const warnings = [];
+        if (source === 'voice') warnings.push('Voice command — please confirm before I schedule.');
         setPendingAction({
           type: 'create_calendar_event',
           params,
@@ -438,22 +471,32 @@ What would you like to do?`,
         });
         return createAssistantMessage({
           role: 'assistant',
-          content: `I'll schedule this appointment:\n\n**Title:** ${params.title}\n**Date:** ${params.date}\n**Time:** ${params.time || 'TBD'}\n**Customer:** ${params.customer_name || 'N/A'}\n\nShould I create it?`,
-          actions: [
-            { id: 'assistant-confirm-create-event', label: 'Yes, schedule it', action: 'confirm', variant: 'default' },
-            { id: 'assistant-cancel-create-event', label: 'No, cancel', action: 'cancel', variant: 'outline' },
-          ],
+          previewCard: {
+            title: 'Schedule Appointment',
+            fields: [
+              { label: 'Title', value: params.title },
+              { label: 'Date', value: params.date },
+              { label: 'Time', value: params.time || 'TBD' },
+              { label: 'Duration', value: params.duration_minutes ? `${params.duration_minutes} min` : '60 min' },
+              { label: 'Customer', value: params.customer_name || '—' },
+              { label: 'Location', value: params.location || '—' },
+            ],
+            warnings,
+            confirmLabel: 'Schedule It',
+            intent: 'create_calendar_event',
+          },
         });
       }
 
       case 'create_invoice': {
-        // Invoices now REQUIRE an order_id — cannot be fabricated from scratch.
         if (!params.order_id && !params.order_number) {
           return createAssistantMessage({
             role: 'assistant',
             content: 'To generate an invoice I need a specific order. Which order number should I invoice? (e.g., "invoice ORD-0042")',
           });
         }
+        const warnings = ['This will pull all current job-ticket line items from the order.'];
+        if (source === 'voice') warnings.push('Voice command — please confirm before I create this invoice.');
         setPendingAction({
           type: 'create_invoice',
           params,
@@ -462,11 +505,17 @@ What would you like to do?`,
         });
         return createAssistantMessage({
           role: 'assistant',
-          content: `I'll create an invoice for **${params.order_number || params.order_id}**. This pulls in all the order's line items.\n\nConfirm?`,
-          actions: [
-            { id: 'assistant-confirm-create-invoice', label: 'Yes, create invoice', action: 'confirm', variant: 'default' },
-            { id: 'assistant-cancel-create-invoice', label: 'No, cancel', action: 'cancel', variant: 'outline' },
-          ],
+          previewCard: {
+            title: 'Create Invoice',
+            fields: [
+              { label: 'From Order', value: params.order_number || params.order_id },
+              { label: 'Notes', value: params.notes || '—' },
+              { label: 'Due Date', value: params.due_date || 'Inherits from order' },
+            ],
+            warnings,
+            confirmLabel: 'Create Invoice',
+            intent: 'create_invoice',
+          },
         });
       }
 
@@ -477,6 +526,8 @@ What would you like to do?`,
             content: 'How many hours should I log, and for which order?',
           });
         }
+        const warnings = [];
+        if (source === 'voice') warnings.push('Voice command — please confirm before logging time.');
         setPendingAction({
           type: 'log_time_entry',
           params,
@@ -485,16 +536,24 @@ What would you like to do?`,
         });
         return createAssistantMessage({
           role: 'assistant',
-          content: `I'll log this time entry:\n\n**Hours:** ${params.hours}\n**Order:** ${params.job_name || 'TBD'}\n**Task:** ${params.task || 'General work'}\n\nShould I log it?`,
-          actions: [
-            { id: 'assistant-confirm-log-time', label: 'Yes, log it', action: 'confirm', variant: 'default' },
-            { id: 'assistant-cancel-log-time', label: 'No, cancel', action: 'cancel', variant: 'outline' },
-          ],
+          previewCard: {
+            title: 'Log Time Entry',
+            fields: [
+              { label: 'Hours', value: params.hours },
+              { label: 'Job', value: params.job_name || 'TBD' },
+              { label: 'Task', value: params.task || 'General work' },
+              { label: 'Date', value: params.date || 'Today' },
+              { label: 'Billable', value: params.billable },
+            ],
+            warnings,
+            confirmLabel: 'Log It',
+            intent: 'log_time_entry',
+          },
         });
       }
 
       default:
-        return null; // Unknown intent — fall through to chat
+        return null;
     }
   };
 
@@ -684,6 +743,14 @@ What would you like to do?`,
           {/* Messages Area */}
           <ScrollArea className="flex-1 p-3">
             <div className="space-y-3">
+              {/* Phase 4 empty / idle state */}
+              {messages.length === 0 && !loading && (
+                <AssistantEmptyState
+                  pageContext={pageContext}
+                  recentCommands={recentCommands}
+                  onExampleClick={(text) => handleSend(text, 'text')}
+                />
+              )}
               {messages.map((message) => (
                 <div
                   key={message.id}
@@ -702,8 +769,25 @@ What would you like to do?`,
                       )}
                     </div>
                   )}
-                  <div className="flex flex-col gap-2 max-w-[80%]">
-                    {message.queryResult ? (
+                  <div className="flex flex-col gap-2 max-w-[85%]">
+                    {message.previewCard ? (
+                      <AssistantPreviewCard
+                        title={message.previewCard.title}
+                        fields={message.previewCard.fields}
+                        warnings={message.previewCard.warnings}
+                        confirmLabel={message.previewCard.confirmLabel}
+                        loading={loading && pendingAction?.type === message.previewCard.intent}
+                        onConfirm={() => handleActionButton('confirm')}
+                        onCancel={() => handleActionButton('cancel')}
+                      />
+                    ) : message.errorBlock ? (
+                      <AssistantErrorBlock
+                        title={message.errorBlock.title}
+                        message={message.errorBlock.message}
+                        errorType={message.errorBlock.errorType}
+                        onRetry={message.errorBlock.onRetry}
+                      />
+                    ) : message.queryResult ? (
                       <div className="rounded-xl px-3 py-2 text-sm bg-slate-100 text-slate-800">
                         <AssistantQueryResult data={message.queryResult} onActionClick={handleQueryActionClick} />
                       </div>
@@ -736,8 +820,8 @@ What would you like to do?`,
                       </div>
                     </div>
                     )}
-                    {/* Action buttons */}
-                    {message.actions && (
+                    {/* Action buttons (legacy — only for non-preview-card messages) */}
+                    {message.actions && !message.previewCard && (
                       <div className="flex gap-2">
                         {message.actions.map((action) => (
                           <Button

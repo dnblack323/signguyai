@@ -19,6 +19,52 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
+### Session: Feb 2026 — Business Assistant Phase 4 (Trust & UX Polish)
+
+**New audit log page:** `/settings/ai-audit` (`frontend/src/pages/settings/AIAuditLog.js`)
+- Admin-only (OWNER / ADMIN role gate on both backend and frontend).
+- KPI strip (Total / Executed / Failed / Cancelled / Pending).
+- Filter bar: action type, status, start/end date.
+- Table with expandable rows — parameters + result/error panes in pretty JSON.
+- Per-row "Open" button navigates to the affected record (order/invoice/etc).
+- Testids: `ai-audit-log-page`, `ai-audit-row-{id}`, `ai-audit-open-{id}`, `ai-audit-filter-*`.
+
+**Backend `/api/ai/assistant/actions/audit` enhanced:**
+- Filters: action_type, status, user_id, start_date, end_date.
+- Returns `user_name` (joined from `db.users`) + `totals` KPIs.
+- New endpoint `GET /api/ai/assistant/actions/audit/{audit_id}` for full detail. Both gated to OWNER/ADMIN.
+
+**New reusable component library** (`components/assistant/`):
+- `blocks/ResponseBlocks.js` — `MetricBlock`, `RecordChip`, `RecordChipList`, `WarningBlock`, `ActionRow`, `RowsTable`.
+- `AssistantPreviewCard.js` — structured action preview (title, fields with previous/new diff, warnings, Confirm/Edit/Cancel).
+- `AssistantErrorBlock.js` — typed error rendering (permission / parse / missing_data / system / not_found) with Retry.
+- `AssistantEmptyState.js` — idle state with example prompts + "Recent" list from localStorage + context-aware callout.
+
+**FloatingAssistant upgrades:**
+- Replaced 4 plain-text confirmation bubbles (create_order / create_calendar_event / create_invoice / log_time_entry) with `AssistantPreviewCard` — structured fields, voice-source warning pill, confirm button shows loading state.
+- Idle widget now renders `AssistantEmptyState` when `messages.length === 0`.
+- Recent commands persisted to `localStorage.assistant_recent_commands` (top 8, dedupe).
+- Wired `AssistantErrorBlock` rendering path for future error messages.
+
+**Route:** added `<Route path="/settings/ai-audit" element={<AIAuditLog />} />`.
+
+**Verified via curl:** audit list returns real rows with joined user_name and KPI totals (Total:5, Executed:4, Failed:1). Status filter narrows correctly. Detail endpoint returns full audit entry.
+
+### Phase 4 Non-Goals honored
+- No app-shell redesign.
+- No pinned automations / saved commands.
+- Structured blocks are real components — no string-formatted fake tables.
+- Audit page is admin-readable, not a JSON dump.
+- No backend-only or raw-debug surfaces exposed.
+
+### Remaining (Phase 5 candidates)
+- Pinned prompts + saved routines
+- Per-message speak button (voice out parity)
+- Bulk actions wired (send_overdue_reminders, export_ar_report)
+- Audit "Revert" action for reversible writes
+- Smart defaults / habit learning
+- Deep links `/customers/:id`, `/invoices/:id` (unlocks "open this customer" from anywhere)
+
 ### Session: Feb 2026 — Business Assistant Phase 3 (Context + Navigation)
 
 **New endpoint:** `POST /api/ai/assistant/resolve`
