@@ -7,7 +7,8 @@ import { ScrollArea } from './ui/scroll-area';
 import {
   Bot, Send, X, Minimize2, Maximize2, Loader2, User,
   Sparkles, CheckCircle2, AlertCircle, Briefcase, Calendar,
-  FileText, Clock, Users, DollarSign, Mic, MicOff, Volume2, Wand2
+  FileText, Clock, Users, DollarSign, Mic, MicOff, Volume2, Wand2,
+  Pin
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -16,8 +17,21 @@ import AssistantQueryResult from './assistant/AssistantQueryResult';
 import AssistantPreviewCard from './assistant/AssistantPreviewCard';
 import AssistantEmptyState from './assistant/AssistantEmptyState';
 import AssistantErrorBlock from './assistant/AssistantErrorBlock';
+import AssistantModeSwitcher from './assistant/AssistantModeSwitcher';
+import AssistantRoutinesModal from './assistant/AssistantRoutinesModal';
+import AssistantNextSteps from './assistant/AssistantNextSteps';
+import AssistantBulkActionCard from './assistant/AssistantBulkActionCard';
+import { createSavedCommand, getNextStepSuggestions } from '../utils/assistantPrefsApi';
 import { useNavigate } from 'react-router-dom';
 import { usePageContext } from '../context/PageContext';
+
+// Phrases that trigger the overdue-reminders bulk preview card.
+const BULK_OVERDUE_PATTERNS = [
+  /\bremind\b.*\boverdue\b/i,
+  /\boverdue\b.*\bremind/i,
+  /\bsend\s+(out\s+)?reminders?\b/i,
+  /\bchase\s+(all\s+)?overdue\b/i,
+];
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -55,19 +69,7 @@ export default function FloatingAssistant() {
   const pageContext = usePageContext();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [messages, setMessages] = useState([
-    createAssistantMessage({
-      role: 'assistant',
-      content: `Hi${user?.full_name ? ` ${user.full_name.split(' ')[0]}` : ''}! I'm your AI assistant. I can help you:
-
-• **Look up information** - customers, jobs, invoices, revenue
-• **Create things** - jobs, appointments, invoices, time entries
-• **Answer questions** - pricing, operations, best practices
-
-What would you like to do?`,
-      actions: null
-    })
-  ]);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
@@ -82,6 +84,9 @@ What would you like to do?`,
       return [];
     }
   });
+  const [mode, setMode] = useState('guided');
+  const [routinesOpen, setRoutinesOpen] = useState(false);
+  const [savedRefreshKey, setSavedRefreshKey] = useState(0);
 
   const pushRecentCommand = (text) => {
     setRecentCommands((prev) => {
@@ -266,6 +271,15 @@ What would you like to do?`,
     setLoading(true);
 
     try {
+      // Phase 5: detect bulk action trigger BEFORE LLM classification.
+      if (BULK_OVERDUE_PATTERNS.some((re) => re.test(messageText))) {
+        setMessages(prev => [...prev, createAssistantMessage({
+          role: 'assistant',
+          bulkAction: { kind: 'overdue_reminders' },
+        })]);
+        return;
+      }
+
       // Phase 3: try navigation/context resolver FIRST when the message looks
       // like a nav command. Falls through to parse-action if not navigational.
       const looksLikeNav = NAV_HINT_PATTERNS.some((re) => re.test(messageText));
@@ -406,6 +420,37 @@ What would you like to do?`,
       toast.info(`"${a.label}" is not wired up yet — I can show this data, but the follow-up action will land in a later phase.`);
       return;
     }
+  };
+
+  const handleNextStepClick = (s) => {
+    if (!s) return;
+    if (s.action === 'navigate' && s.target) {
+      setIsOpen(false);
+      navigate(s.target);
+      return;
+    }
+    if (s.action === 'rerun_command' && s.target) {
+      handleSend(s.target, 'text');
+    }
+  };
+
+  const handlePinCommand = async (text) => {
+    const trimmed = (text || '').trim();
+    if (!trimmed) return;
+    try {
+      await createSavedCommand(token, { command: trimmed, label: trimmed.slice(0, 60), pinned: true });
+      toast.success('Saved to pinned commands');
+      setSavedRefreshKey((k) => k + 1);
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || 'Could not save command');
+    }
+  };
+
+  const triggerBulkReminders = () => {
+    setMessages(prev => [...prev, createAssistantMessage({
+      role: 'assistant',
+      bulkAction: { kind: 'overdue_reminders' },
+    })]);
   };
 
   const routeClassifiedIntent = async (intent, classified, rawMessage, source) => {
@@ -606,10 +651,18 @@ What would you like to do?`,
         const result = response.data;
         
         if (result.status === 'executed') {
+          // Phase 5: fetch next-step suggestions for this action
+          let nextSteps = [];
+          try {
+            const ns = await getNextStepSuggestions(token, pendingAction.type, result.result || {});
+            nextSteps = ns?.suggestions || [];
+          } catch { /* non-critical */ }
+
           setMessages(prev => [...prev, createAssistantMessage({
             role: 'assistant',
             content: `Done! ${pendingAction.description}.\n\n${result.result?.message || 'Action completed successfully.'}`,
-            isSuccess: true
+            isSuccess: true,
+            nextSteps,
           })]);
           toast.success('Action completed');
         } else {
@@ -703,6 +756,9 @@ What would you like to do?`,
           </div>
         </div>
         <div className="flex items-center gap-1">
+          {!isMinimized && (
+            <AssistantModeSwitcher token={token} value={mode} onChange={setMode} />
+          )}
           <button
             onClick={(e) => { e.stopPropagation(); setIsMinimized(!isMinimized); }}
             className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
@@ -746,9 +802,13 @@ What would you like to do?`,
               {/* Phase 4 empty / idle state */}
               {messages.length === 0 && !loading && (
                 <AssistantEmptyState
+                  token={token}
                   pageContext={pageContext}
                   recentCommands={recentCommands}
+                  savedRefreshKey={savedRefreshKey}
                   onExampleClick={(text) => handleSend(text, 'text')}
+                  onOpenRoutines={() => setRoutinesOpen(true)}
+                  onTriggerBulkReminders={triggerBulkReminders}
                 />
               )}
               {messages.map((message) => (
@@ -770,7 +830,15 @@ What would you like to do?`,
                     </div>
                   )}
                   <div className="flex flex-col gap-2 max-w-[85%]">
-                    {message.previewCard ? (
+                    {message.bulkAction?.kind === 'overdue_reminders' ? (
+                      <AssistantBulkActionCard
+                        token={token}
+                        onDone={() => {}}
+                        onCancel={() => {
+                          setMessages((prev) => prev.filter((m) => m.id !== message.id));
+                        }}
+                      />
+                    ) : message.previewCard ? (
                       <AssistantPreviewCard
                         title={message.previewCard.title}
                         fields={message.previewCard.fields}
@@ -836,6 +904,25 @@ What would you like to do?`,
                           </Button>
                         ))}
                       </div>
+                    )}
+                    {/* Phase 5: next-step suggestions after successful action */}
+                    {message.nextSteps?.length > 0 && (
+                      <AssistantNextSteps
+                        suggestions={message.nextSteps}
+                        onAction={handleNextStepClick}
+                      />
+                    )}
+                    {/* Phase 5: "pin this command" for user messages */}
+                    {message.role === 'user' && (
+                      <button
+                        type="button"
+                        onClick={() => handlePinCommand(message.content)}
+                        className="self-end inline-flex items-center gap-1 text-[10px] text-slate-400 hover:text-violet-600 transition"
+                        data-testid={`assistant-pin-btn-${message.id}`}
+                        title="Save as pinned command"
+                      >
+                        <Pin className="h-2.5 w-2.5" /> Pin
+                      </button>
                     )}
                   </div>
                   {message.role === 'user' && (
@@ -936,6 +1023,12 @@ What would you like to do?`,
         </>
       )}
     </div>
+    <AssistantRoutinesModal
+      token={token}
+      open={routinesOpen}
+      onOpenChange={setRoutinesOpen}
+      onRunCommand={(cmd) => handleSend(cmd, 'text')}
+    />
     </>
   );
 }
