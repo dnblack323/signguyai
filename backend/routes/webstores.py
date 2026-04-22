@@ -74,6 +74,37 @@ APPAREL_SIZES = ["XS", "S", "M", "L", "XL", "2XL", "3XL"]
 DECAL_SIZES = ["Small (3\")", "Medium (6\")", "Large (12\")", "XL (18\")", "Custom"]
 
 
+# Webstore-order status lifecycle — used for validated status transitions.
+class WebstoreOrderStatus(str, Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    REFUNDED = "refunded"
+
+
+# Statuses at which the webstore owner is owed their payout cut.
+# Moving INTO any of these triggers payout_owed += commission_amount (idempotent).
+# Moving OUT of these (to cancelled/refunded) triggers the decrement.
+PAYOUT_OWED_STATUSES = {WebstoreOrderStatus.COMPLETED.value}
+
+
+def map_category_to_item_type(category: Optional[str]) -> JobItemType:
+    """Map a webstore product category to the nearest job item type.
+
+    Hoisted to module scope so create_webstore_order and create_job_from_order
+    share one source of truth.
+    """
+    category_map = {
+        "apparel": JobItemType.OTHER,   # No dedicated apparel type yet
+        "signs": JobItemType.BANNER,    # Closest match
+        "decals": JobItemType.DECAL,
+        "promotional": JobItemType.OTHER,
+        "other": JobItemType.OTHER,
+    }
+    return category_map.get(category or "other", JobItemType.OTHER)
+
+
 class ProductVariant(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
@@ -172,12 +203,12 @@ class WebstoreCreate(BaseModel):
     description: Optional[str] = None
     is_public: bool = True
     branding: Optional[Dict[str, Any]] = None
-    fundraiser_goal: Optional[float] = None
+    fundraiser_goal: Optional[float] = Field(default=None, ge=0)
     fundraiser_start_date: Optional[str] = None
     fundraiser_end_date: Optional[str] = None
-    fundraiser_profit_percent: float = 0
-    creator_commission_type: str = "percentage"
-    creator_commission_value: float = 0
+    fundraiser_profit_percent: float = Field(default=0, ge=0, le=100)
+    creator_commission_type: str = Field(default="percentage", pattern="^(percentage|flat)$")
+    creator_commission_value: float = Field(default=0, ge=0)
 
 
 class WebstoreUpdate(BaseModel):
@@ -189,12 +220,12 @@ class WebstoreUpdate(BaseModel):
     status: Optional[WebstoreStatus] = None
     is_public: Optional[bool] = None
     branding: Optional[Dict[str, Any]] = None
-    fundraiser_goal: Optional[float] = None
+    fundraiser_goal: Optional[float] = Field(default=None, ge=0)
     fundraiser_start_date: Optional[str] = None
     fundraiser_end_date: Optional[str] = None
-    fundraiser_profit_percent: Optional[float] = None
-    creator_commission_type: Optional[str] = None
-    creator_commission_value: Optional[float] = None
+    fundraiser_profit_percent: Optional[float] = Field(default=None, ge=0, le=100)
+    creator_commission_type: Optional[str] = Field(default=None, pattern="^(percentage|flat)$")
+    creator_commission_value: Optional[float] = Field(default=None, ge=0)
 
 
 class WebstoreProduct(BaseModel):
@@ -211,7 +242,24 @@ class AddProductToWebstoreRequest(BaseModel):
     """Request body for adding a product to a webstore"""
     product_id: str
     is_enabled: bool = True
-    price_override: Optional[float] = None
+    price_override: Optional[float] = Field(default=None, ge=0)
+
+
+class UpdateWebstoreProductStatusRequest(BaseModel):
+    """Body for PUT /webstores/v2/{id}/products/{pid}."""
+    is_enabled: bool = True
+
+
+class UpdateOrderStatusRequest(BaseModel):
+    """Body for PUT /webstores/v2/orders/{id}/status."""
+    status: WebstoreOrderStatus
+    job_id: Optional[str] = None
+
+
+class RecordPayoutRequest(BaseModel):
+    """Body for POST /webstores/v2/{id}/record-payout."""
+    amount: float = Field(gt=0)
+    notes: Optional[str] = Field(default=None, max_length=500)
 
 
 class WebstoreOrderItem(BaseModel):
@@ -653,28 +701,60 @@ async def get_webstore_order(
 @webstores_router.put("/orders/{order_id}/status")
 async def update_order_status(
     order_id: str,
-    status: str,
+    data: UpdateOrderStatusRequest,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Update order status"""
+    """Update order status.
+
+    Side-effect (W4): when transitioning INTO a status in PAYOUT_OWED_STATUSES,
+    increment the webstore's payout_owed by the order's commission_amount.
+    When leaving that set for cancelled/refunded, decrement it. Idempotent via
+    the `payout_recorded_at` sentinel on the order document.
+    """
     _require_permission(current_user, Permission.WEBSTORES_MANAGE)
-    # Verify access first
     order = await db.webstore_orders_v2.find_one({"id": order_id}, {"_id": 0})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    
+
     webstore = await db.webstores_v2.find_one(
         {"id": order["webstore_id"], "tenant_id": current_user.tenant_id},
         {"_id": 0}
     )
     if not webstore:
         raise HTTPException(status_code=404, detail="Order not found")
-    
-    await db.webstore_orders_v2.update_one(
-        {"id": order_id},
-        {"$set": {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}}
-    )
-    return {"message": "Status updated"}
+
+    now = datetime.now(timezone.utc).isoformat()
+    prev_status = order.get("status")
+    new_status = data.status.value
+    commission = float(order.get("commission_amount") or 0)
+    payout_recorded = bool(order.get("payout_recorded_at"))
+
+    update_set = {"status": new_status, "updated_at": now}
+    if data.job_id is not None:
+        update_set["job_id"] = data.job_id
+
+    # Transitioning INTO a payout-eligible status and we haven't recorded yet.
+    if new_status in PAYOUT_OWED_STATUSES and not payout_recorded and commission > 0:
+        await db.webstores_v2.update_one(
+            {"id": order["webstore_id"], "tenant_id": current_user.tenant_id},
+            {"$inc": {"payout_owed": commission}, "$set": {"updated_at": now}},
+        )
+        update_set["payout_recorded_at"] = now
+
+    # Leaving payout-eligible state via cancel/refund — reverse the increment.
+    elif (
+        new_status in {WebstoreOrderStatus.CANCELLED.value, WebstoreOrderStatus.REFUNDED.value}
+        and payout_recorded
+        and commission > 0
+    ):
+        await db.webstores_v2.update_one(
+            {"id": order["webstore_id"], "tenant_id": current_user.tenant_id},
+            {"$inc": {"payout_owed": -commission}, "$set": {"updated_at": now}},
+        )
+        update_set["payout_recorded_at"] = None
+
+    await db.webstore_orders_v2.update_one({"id": order_id}, {"$set": update_set})
+    return {"message": "Status updated", "status": new_status, "previous_status": prev_status}
 
 
 @webstores_router.get("/{webstore_id}", response_model=Webstore)
@@ -872,8 +952,7 @@ async def get_webstore_payouts(
 @webstores_router.post("/{webstore_id}/record-payout")
 async def record_webstore_payout(
     webstore_id: str,
-    amount: float,
-    notes: str = None,
+    data: RecordPayoutRequest,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """
@@ -893,21 +972,32 @@ async def record_webstore_payout(
     )
     if not webstore:
         raise HTTPException(status_code=404, detail="Webstore not found")
-    
-    if amount <= 0:
-        raise HTTPException(status_code=400, detail="Payout amount must be positive")
-    
-    # Calculate new totals
-    current_owed = webstore.get("payout_owed", 0)
+
+    amount = data.amount
+    notes = data.notes
+
+    # Atomic guard: only debit payout_owed if it covers the amount. This closes
+    # the TOCTOU race where two concurrent payouts each see the same balance.
     current_paid = webstore.get("payout_paid", 0)
-    
-    if amount > current_owed:
+    now = datetime.now(timezone.utc).isoformat()
+    guard = await db.webstores_v2.update_one(
+        {
+            "id": webstore_id,
+            "tenant_id": current_user.tenant_id,
+            "payout_owed": {"$gte": amount},
+        },
+        {
+            "$inc": {"payout_owed": -amount, "payout_paid": amount},
+            "$set": {"updated_at": now},
+        },
+    )
+    if guard.modified_count == 0:
+        current_owed = webstore.get("payout_owed", 0)
         raise HTTPException(
-            status_code=400, 
-            detail=f"Payout amount (${amount:.2f}) exceeds amount owed (${current_owed:.2f})"
+            status_code=400,
+            detail=f"Payout amount (${amount:.2f}) exceeds amount owed (${current_owed:.2f})",
         )
-    
-    # Create payout record
+
     payout = {
         "id": str(uuid.uuid4()),
         "webstore_id": webstore_id,
@@ -915,29 +1005,17 @@ async def record_webstore_payout(
         "amount": amount,
         "notes": notes,
         "recorded_by": current_user.email,
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "created_at": now,
     }
     await db.webstore_payouts.insert_one(payout)
-    
-    # Update webstore balances
-    await db.webstores_v2.update_one(
-        {"id": webstore_id},
-        {
-            "$set": {
-                "payout_owed": current_owed - amount,
-                "payout_paid": current_paid + amount,
-                "updated_at": datetime.now(timezone.utc).isoformat()
-            }
-        }
-    )
-    
+
     logger.info(f"Recorded payout of ${amount:.2f} for webstore {webstore_id}")
-    
+    new_owed = webstore.get("payout_owed", 0) - amount
     return {
         "message": "Payout recorded",
         "payout_id": payout["id"],
-        "new_balance_owed": current_owed - amount,
-        "total_paid": current_paid + amount
+        "new_balance_owed": new_owed,
+        "total_paid": current_paid + amount,
     }
 
 
@@ -1211,7 +1289,7 @@ async def remove_product_from_webstore(
 async def update_webstore_product_status(
     webstore_id: str,
     product_id: str,
-    is_enabled: bool = True,
+    data: UpdateWebstoreProductStatusRequest,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Update a product's enabled status in a webstore"""
@@ -1226,11 +1304,11 @@ async def update_webstore_product_status(
 
     result = await db.webstore_products.update_one(
         {"webstore_id": webstore_id, "product_id": product_id},
-        {"$set": {"is_enabled": is_enabled, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        {"$set": {"is_enabled": data.is_enabled, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Product assignment not found")
-    return {"message": "Product status updated", "is_enabled": is_enabled}
+    return {"message": "Product status updated", "is_enabled": data.is_enabled}
 
 
 # ============== WEBSTORE ORDERS ==============
@@ -1300,17 +1378,25 @@ async def create_webstore_order(input: WebstoreOrderCreate):
         
         # Validate variant if provided
         variant_id = item.get("variant_id")
-        if variant_id and product.get("variants"):
-            variant_found = False
-            for v in product["variants"]:
-                if v["id"] == variant_id:
-                    if not v.get("is_available", True):
-                        validation_errors.append(f"Variant '{v.get('name', variant_id)}' is not available")
-                    else:
-                        variant_found = True
-                    break
-            if not variant_found and variant_id not in [v["id"] for v in product["variants"]]:
-                validation_errors.append(f"Invalid variant '{variant_id}' for product '{product.get('name')}'")
+        if variant_id:
+            variants = product.get("variants") or []
+            if not variants:
+                # W6: caller supplied a variant_id but the product has no variants.
+                # Reject rather than silently dropping it.
+                validation_errors.append(
+                    f"Product '{product.get('name', product_id)}' has no variants "
+                    f"but variant_id '{variant_id}' was provided"
+                )
+                continue
+            matched = next((v for v in variants if v["id"] == variant_id), None)
+            if not matched:
+                validation_errors.append(
+                    f"Invalid variant '{variant_id}' for product '{product.get('name')}'"
+                )
+            elif not matched.get("is_available", True):
+                validation_errors.append(
+                    f"Variant '{matched.get('name', variant_id)}' is not available"
+                )
     
     # Return errors if any validation failed
     if invalid_items:
@@ -1428,18 +1514,6 @@ async def create_webstore_order(input: WebstoreOrderCreate):
     )
     await db.jobs.insert_one(job.model_dump())
     
-    # Helper to map product category to job item type
-    def map_category_to_item_type(category: str) -> JobItemType:
-        """Map webstore product category to job item type"""
-        category_map = {
-            "apparel": JobItemType.OTHER,  # No direct apparel type
-            "signs": JobItemType.BANNER,   # Use banner as closest match
-            "decals": JobItemType.DECAL,
-            "promotional": JobItemType.OTHER,
-            "other": JobItemType.OTHER,
-        }
-        return category_map.get(category, JobItemType.OTHER)
-    
     # Create job items from order with back-references
     for order_item in order_items:
         # Get the product to determine category
@@ -1497,14 +1571,15 @@ async def create_webstore_order(input: WebstoreOrderCreate):
         {"$set": {"webstore_order_id": order.id}}
     )
     
-    # Update webstore stats - increment payout_owed
+    # Update webstore stats. payout_owed is NOT incremented here — it's deferred
+    # to the status transition to "completed" (see update_order_status / W4) so
+    # phantom/unpaid orders don't inflate what the shop owes the owner.
     await db.webstores_v2.update_one(
         {"id": input.webstore_id},
         {"$inc": {
             "total_sales": subtotal,
             "total_orders": 1,
             "total_profit": total_profit,
-            "payout_owed": commission_amount
         }}
     )
     
@@ -1554,18 +1629,6 @@ async def create_job_from_order(
         )
         await db.customers.insert_one(customer.model_dump())
         customer = customer.model_dump()
-    
-    # Helper to map product category to job item type
-    def map_category_to_item_type(category: str) -> JobItemType:
-        """Map webstore product category to job item type"""
-        category_map = {
-            "apparel": JobItemType.OTHER,  # No direct apparel type
-            "signs": JobItemType.BANNER,   # Use banner as closest match
-            "decals": JobItemType.DECAL,
-            "promotional": JobItemType.OTHER,
-            "other": JobItemType.OTHER,
-        }
-        return category_map.get(category, JobItemType.OTHER)
     
     # Create job
     from models import Job, JobItem

@@ -553,9 +553,10 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateWebstoreProductStatus = async (webstoreId, productId, isEnabled) => {
-    const res = await api.put(`/webstores/v2/${webstoreId}/products/${productId}`, null, {
-      params: { is_enabled: isEnabled }
-    });
+    const res = await api.put(
+      `/webstores/v2/${webstoreId}/products/${productId}`,
+      { is_enabled: isEnabled }
+    );
     return res.data;
   };
 
@@ -576,9 +577,9 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateOrderStatus = async (orderId, status, jobId = null) => {
-    const res = await api.put(`/webstores/v2/orders/${orderId}/status`, null, {
-      params: { status, job_id: jobId }
-    });
+    const body = { status };
+    if (jobId !== null && jobId !== undefined) body.job_id = jobId;
+    const res = await api.put(`/webstores/v2/orders/${orderId}/status`, body);
     return res.data;
   };
 
@@ -589,9 +590,9 @@ export const AppProvider = ({ children }) => {
 
   // Payouts
   const recordPayout = async (webstoreId, amount, notes = null) => {
-    const res = await api.post(`/webstores/v2/${webstoreId}/record-payout`, null, {
-      params: { amount, notes }
-    });
+    const body = { amount };
+    if (notes) body.notes = notes;
+    const res = await api.post(`/webstores/v2/${webstoreId}/record-payout`, body);
     return res.data;
   };
 
