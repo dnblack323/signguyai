@@ -59,6 +59,7 @@ class PickupDeliveryMethod(str, Enum):
     DELIVERY = "delivery"
     INSTALL = "install"
     SHIP = "ship"
+    UNDECIDED = "undecided"
 
 
 class JobTicketStatus(str, Enum):

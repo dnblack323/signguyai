@@ -121,10 +121,17 @@ DEFAULT_TEMPLATES = [
 ]
 
 
+_seeded_tenants: set[str] = set()
+
+
 async def seed_default_templates(db, tenant_id: str):
-    """Seed default workflow templates for a tenant if none exist."""
+    """Seed default workflow templates for a tenant if none exist.
+    L2: cached per-process so repeat calls skip the DB roundtrip."""
+    if tenant_id in _seeded_tenants:
+        return
     existing = await db.workflow_templates.count_documents({"tenant_id": tenant_id})
     if existing > 0:
+        _seeded_tenants.add(tenant_id)
         return
 
     for tmpl in DEFAULT_TEMPLATES:
@@ -136,6 +143,7 @@ async def seed_default_templates(db, tenant_id: str):
             is_default=True,
         )
         await db.workflow_templates.insert_one(template.model_dump())
+    _seeded_tenants.add(tenant_id)
 
 
 async def generate_production_tasks(db, job_ticket: dict, tenant_id: str) -> List[dict]:

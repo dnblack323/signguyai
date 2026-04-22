@@ -7,7 +7,9 @@ import { Textarea } from '../ui/textarea';
  * Used by NewOrderForm and OrderDetail.
  */
 export default function SharedContextPanel({ order = {}, onChange, readOnly = false }) {
-  const update = (patch) => onChange?.({ ...order, ...patch });
+  // M4: emit ONLY the delta (patch), not the full merged order, so parents can
+  // do their own functional-state merge without risk of overwriting unrelated fields.
+  const update = (patch) => onChange?.(patch);
 
   return (
     <div className="border rounded-lg p-3 bg-white space-y-3" data-testid="shared-context-panel">

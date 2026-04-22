@@ -546,6 +546,26 @@ async def upload_order_file(
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
+    # L9: whitelist content types to prevent hostile uploads.
+    ALLOWED_MIME_PREFIXES = ("image/", "video/", "audio/")
+    ALLOWED_MIME_EXACT = {
+        "application/pdf", "application/postscript", "application/illustrator",
+        "application/x-photoshop", "application/vnd.adobe.photoshop",
+        "application/zip", "application/x-zip-compressed",
+        "application/octet-stream",  # generic binary (fonts, design files)
+        "text/plain", "text/csv",
+        "application/json", "application/xml",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-powerpoint",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    }
+    ct = (file.content_type or "").lower()
+    if not (any(ct.startswith(p) for p in ALLOWED_MIME_PREFIXES) or ct in ALLOWED_MIME_EXACT):
+        raise HTTPException(status_code=400, detail=f"Unsupported file type: {file.content_type or 'unknown'}")
+
     contents = await file.read()
     if len(contents) > 15 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large (max 15MB)")

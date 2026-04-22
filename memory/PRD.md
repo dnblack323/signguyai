@@ -19,18 +19,26 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
-### Session: Feb 2026 (New Order Code Review — C1/C2/C3 + H1–H5 Fixes)
-- Completed comprehensive code review of the New Order lifecycle (`NewOrderForm.js`, `AddOrderItemMenu.js`, `CloneItemDialog.js`, `SharedContextPanel.js`, `LivePricingPreview.js`, `orders.py`, `job_tickets.py`). Documented 3 Critical, 5 High, 7 Medium, 12 Low findings.
-- **C1 FIXED:** `OrderCreate` Pydantic model was silently dropping 8 shared-context fields on `POST /api/orders`. Added them to the schema.
-- **C2 FIXED:** `update_job_ticket` redundant `or pricing_mode != "manual"` clause was forcing recalc and overwriting manually-entered prices. Replaced with clean `effective_price <= 0` check. Verified via curl.
-- **C3 FIXED:** `CloneItemDialog.js` used `"promotional"` instead of `"promo_misc"` enum value → clones would be orphaned. Fixed value. Verified via curl.
-- **Jobs.js:2415 FIXED:** stray `}` at EOF broke ESLint parsing.
-- **H1 FIXED:** `AddOrderItemMenu.js` Duplicate / Variation / Shared-Artwork items are now disabled with "Save order first" hint when `orderId` is null (previously clicking them in NewOrderForm produced an error toast 100% of the time).
-- **H2 FIXED:** `NewOrderForm.handleSave` now creates tickets, uploads files, and posts sketches in parallel via `Promise.allSettled` (previously sequential `await` in `for` loops). Per-item failures are surfaced to the user with a toast listing failed item names.
-- **H3 FIXED:** Replaced native `window.confirm('send to production')` with Shadcn `AlertDialog`. New `pendingProduction` state + `finishProduction` handler. Test IDs: `send-to-production-dialog`, `send-to-production-cancel`, `send-to-production-confirm`.
-- **H4 FIXED:** Blank-name tickets used to be silently dropped. Now the form validates upfront: if all tickets lack a name the save is blocked with a toast; if some are blank, the user gets a warning toast with the skipped count.
-- **H5 FIXED:** `POST /api/orders` now whitelists `status` to `{"draft", "new_intake"}`. Other values return HTTP 400. Verified via curl: `status=completed` rejected (400), `status=draft` allowed, no status defaults to `new_intake`.
-- Remaining review action items: 7 Medium / 12 Low (awaiting user approval per-bucket).
+### Session: Feb 2026 (New Order Code Review — Full Sweep: C1–C3, H1–H5, M1/M2/M4/M6/M7, L1/L2/L9/L11/L12)
+- Completed comprehensive code review of the New Order lifecycle (`NewOrderForm.js`, `AddOrderItemMenu.js`, `CloneItemDialog.js`, `SharedContextPanel.js`, `LivePricingPreview.js`, `DynamicCategoryFields.js`, `orders.py`, `job_tickets.py`, `workflow_engine.py`). Documented 3 Critical, 5 High, 7 Medium, 12 Low findings and fixed 18 of them.
+- **Criticals:** C1 (shared-context fields added to `OrderCreate`), C2 (manual-price preservation on ticket update), C3 (category enum drift `promotional`→`promo_misc`), plus Jobs.js EOF syntax error.
+- **Highs:** H1 (clone menu disabled pre-save), H2 (parallel save with `Promise.allSettled`), H3 (AlertDialog replaces `window.confirm`), H4 (upfront blank-name validation), H5 (status whitelist on create).
+- **Mediums fixed:**
+  - M1 — `LivePricingPreview` uses `onPriceChangeRef` to avoid effect re-runs on every parent render.
+  - M2 — Removed redundant `formData.append('label', filename)` — backend already falls back to filename.
+  - M4 — `SharedContextPanel.onChange` now emits patch *delta* only; `NewOrderForm` does functional-state merge. Prevents accidental full-state clobber in future refactors.
+  - M6 — `_next_ticket_number` now probes for an unused ticket number with up to 50 offsets + UUID fallback, eliminating concurrent-creation race.
+  - M7 — New `frontend/src/lib/jobCategories.js` module — single source of truth; `NewOrderForm` and `CloneItemDialog` both import from it.
+- **Mediums deferred (documented):** M3 already mitigated by H2; M5 (UTC auto-name) blocked on per-tenant timezone data.
+- **Lows fixed:**
+  - L1 — Removed 2 redundant "Add Item" entry points (per-ticket "Add Item to Order" button and post-list Quick/Detailed strip). Reduced from 6 → 4 entry points.
+  - L2 — `seed_default_templates` now caches seeded tenant IDs in-process, skipping the DB roundtrip on subsequent calls.
+  - L3/L8 — Rolled into M6 fix (same ticket-number logic).
+  - L9 — `POST /api/orders/{id}/upload` now whitelists MIME types (image/*, video/*, audio/*, PDF, PS, PSD, zip, office, text). Unsupported types return HTTP 400.
+  - L11 — Added `"undecided"` / "Undecided / TBD" option to `PickupDeliveryMethod` enum + dropdown.
+  - L12 — `DynamicCategoryFields` schema-per-category now cached in a module-level `SCHEMA_CACHE` Map. Switching between tickets of the same category no longer refetches.
+- **Lows deferred:** L4 (silent NaN→0 is safer UX), L5 ("Use as new customer" customer creation is a scope change), L6 (intentional, documented), L7 (out of review scope), L10 (`navigate` handles it).
+- **Verified via curl:** M6 (5 parallel tickets → ORD-0012-T1..T5 unique), L9 (bad MIME 400 ✓, image/png 200 ✓), L11 (undecided pickup persisted ✓). Lint clean, webpack compiled successfully.
 
 ### Session: Apr 20, 2026 (Services Category — Pricing Foundation)
 - Implemented full Services pricing category matching exact user spec; extended existing Pricing Foundation (no parallel system).

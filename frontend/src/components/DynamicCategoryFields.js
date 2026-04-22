@@ -12,6 +12,8 @@ import { getAuthToken } from '../lib/authStorage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const hdr = () => ({ Authorization: `Bearer ${getAuthToken()}` });
+// L12: module-level schema cache — same category fetched once per session.
+const SCHEMA_CACHE = new Map();
 const SIZE_KEYS = ['size_xs', 'size_s', 'size_m', 'size_l', 'size_xl', 'size_2xl', 'size_3xl', 'size_4xl', 'size_5xl'];
 
 const GROUP_LABELS = {
@@ -210,11 +212,19 @@ export default function DynamicCategoryFields({ category, subtype, specs, onChan
 
   useEffect(() => {
     if (!category) return;
+    // L12: use cached schema if available; avoids refetch when switching between tickets of the same category.
+    if (SCHEMA_CACHE.has(category)) {
+      const cached = SCHEMA_CACHE.get(category);
+      setSchema(cached);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     let retries = 0;
     const fetchSchema = () => {
       axios.get(`${API}/job-tickets/schema/${category}`, { headers: hdr() })
         .then((response) => {
+          SCHEMA_CACHE.set(category, response.data);
           setSchema(response.data);
           if (response.data?.fields && onChangeRef.current) {
             const currentSpecs = specsRef.current || {};

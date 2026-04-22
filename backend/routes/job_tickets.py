@@ -1328,10 +1328,20 @@ async def get_category_field_schema(category: str, current_user: UserInDB = Depe
 
 
 async def _next_ticket_number(order_id: str, tenant_id: str) -> str:
+    import uuid as _uuid
     order = await db.orders.find_one({"id": order_id}, {"_id": 0, "order_number": 1})
     prefix = order.get("order_number", "ORD") if order else "ORD"
-    count = await db.job_tickets.count_documents({"order_id": order_id, "tenant_id": tenant_id})
-    return f"{prefix}-T{count + 1}"
+    base = await db.job_tickets.count_documents({"order_id": order_id, "tenant_id": tenant_id})
+    # M6/L8: guard against concurrent creation by probing for an unused number.
+    for offset in range(50):
+        candidate = f"{prefix}-T{base + 1 + offset}"
+        exists = await db.job_tickets.count_documents(
+            {"order_id": order_id, "ticket_number": candidate}, limit=1
+        )
+        if not exists:
+            return candidate
+    # Extremely unlikely fallback — append random suffix so uniqueness is guaranteed.
+    return f"{prefix}-T{base + 1}-{_uuid.uuid4().hex[:4]}"
 
 
 @router.get("")

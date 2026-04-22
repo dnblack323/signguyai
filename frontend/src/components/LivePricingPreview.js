@@ -41,6 +41,9 @@ export default function LivePricingPreview({ category, specs, quantity, onPriceC
   const debounceRef = useRef(null);
   const lastSentPrice = useRef(null);
   const lastError = useRef('');
+  // M1: stash latest onPriceChange in a ref so the effect doesn't re-run on every parent render.
+  const onPriceChangeRef = useRef(onPriceChange);
+  useEffect(() => { onPriceChangeRef.current = onPriceChange; }, [onPriceChange]);
 
   // Parse dimensions from specs
   const pricingInput = useMemo(() => {
@@ -107,6 +110,7 @@ export default function LivePricingPreview({ category, specs, quantity, onPriceC
       include_setup_fee: specs?.design_needed || specs?.setup_required || false,
       complexity: 1,
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, JSON.stringify(specs)]);
 
 
@@ -115,9 +119,9 @@ export default function LivePricingPreview({ category, specs, quantity, onPriceC
   useEffect(() => {
     if (!category || !pricingInput.category) {
       setCalc(null);
-      if (onPriceChange && lastSentPrice.current !== 0) {
+      if (onPriceChangeRef.current && lastSentPrice.current !== 0) {
         lastSentPrice.current = 0;
-        onPriceChange(0, null);
+        onPriceChangeRef.current(0, null);
       }
       return;
     }
@@ -125,9 +129,9 @@ export default function LivePricingPreview({ category, specs, quantity, onPriceC
     const hasInput = pricingInput.width_inches || pricingInput.apparel_type || pricingInput.vehicle_type || pricingInput.substrate_type || pricingInput.vinyl_type || pricingInput.service_type || pricingInput.estimated_hours;
     if (!hasInput) {
       setCalc(null);
-      if (onPriceChange && lastSentPrice.current !== 0) {
+      if (onPriceChangeRef.current && lastSentPrice.current !== 0) {
         lastSentPrice.current = 0;
-        onPriceChange(0, null);
+        onPriceChangeRef.current(0, null);
       }
       return;
     }
@@ -147,28 +151,28 @@ export default function LivePricingPreview({ category, specs, quantity, onPriceC
             lastError.current = res.data.error;
             toast.error(`Pricing needs more setup: ${res.data.error}`);
           }
-          if (onPriceChange && lastSentPrice.current !== 0) {
+          if (onPriceChangeRef.current && lastSentPrice.current !== 0) {
             lastSentPrice.current = 0;
-            onPriceChange(0, res.data);
+            onPriceChangeRef.current(0, res.data);
           }
           return;
         }
         setCalc(res.data);
-        if (onPriceChange && res.data?.selling_price !== lastSentPrice.current) {
+        if (onPriceChangeRef.current && res.data?.selling_price !== lastSentPrice.current) {
           lastSentPrice.current = res.data?.selling_price ?? 0;
-          onPriceChange(res.data?.selling_price ?? 0, res.data);
+          onPriceChangeRef.current(res.data?.selling_price ?? 0, res.data);
         }
       } catch {
         setCalc(null);
-        if (onPriceChange && lastSentPrice.current !== 0) {
+        if (onPriceChangeRef.current && lastSentPrice.current !== 0) {
           lastSentPrice.current = 0;
-          onPriceChange(0, null);
+          onPriceChangeRef.current(0, null);
         }
       } finally {
         setLoading(false);
       }
     }, 600);
-  }, [pricingInput, effectiveQuantity, category, onPriceChange]);
+  }, [pricingInput, effectiveQuantity, category]);
 
   if (!category) return null;
   // Quick-mode items never render the detailed live estimate — they use manual price only.

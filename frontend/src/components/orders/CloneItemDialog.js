@@ -7,6 +7,7 @@ import { Switch } from '../ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from 'sonner';
 import { getAuthToken } from '../../lib/authStorage';
+import { JOB_CATEGORIES as TARGET_CATEGORIES } from '../../lib/jobCategories';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -39,18 +40,6 @@ const CARRY_OVER_LABELS = {
   size_breakdown: 'Size breakdown',
   names_numbers: 'Names & numbers',
 };
-
-const TARGET_CATEGORIES = [
-  { value: 'banners', label: 'Banners' },
-  { value: 'rigid_signs', label: 'Rigid Signs' },
-  { value: 'digital_print', label: 'Digital Print' },
-  { value: 'cut_vinyl', label: 'Cut Vinyl' },
-  { value: 'vehicle_wrap', label: 'Vehicle Wraps' },
-  { value: 'apparel', label: 'Apparel' },
-  { value: 'services', label: 'Services' },
-  { value: 'promo_misc', label: 'Promotional Items' },
-  { value: 'custom', label: 'Custom' },
-];
 
 export default function CloneItemDialog({ open, onClose, orderId, sourceItemId, sourceItem, defaultMode = 'duplicate', onComplete }) {
   const [mode, setMode] = useState(defaultMode);

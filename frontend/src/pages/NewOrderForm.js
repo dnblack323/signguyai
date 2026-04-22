@@ -29,6 +29,7 @@ import AddOrderItemMenu from '../components/orders/AddOrderItemMenu';
 import SharedContextPanel from '../components/orders/SharedContextPanel';
 import OrderAssetsPanel from '../components/orders/OrderAssetsPanel';
 import { getAuthToken } from '../lib/authStorage';
+import { JOB_CATEGORIES } from '../lib/jobCategories';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const token = () => getAuthToken();
@@ -36,15 +37,7 @@ const hdrs = () => ({ Authorization: `Bearer ${token()}`, 'Content-Type': 'appli
 
 const CATEGORIES = [
   { value: '', label: 'Select Category...' },
-  { value: 'banners', label: 'Banners' },
-  { value: 'rigid_signs', label: 'Rigid Signs' },
-  { value: 'cut_vinyl', label: 'Cut Vinyl / Lettering' },
-  { value: 'digital_print', label: 'Digital Print' },
-  { value: 'vehicle_wrap', label: 'Vehicle Wrap' },
-  { value: 'apparel', label: 'Apparel' },
-  { value: 'services', label: 'Services' },
-  { value: 'promo_misc', label: 'Promotional / Misc' },
-  { value: 'custom', label: 'Custom' },
+  ...JOB_CATEGORIES,
 ];
 
 const SOURCES = [
@@ -209,7 +202,7 @@ export default function NewOrderForm() {
         orderFiles.map((f) => {
           const formData = new FormData();
           formData.append('file', f.file);
-          formData.append('label', f.file.name);
+          // M2: skip label — backend falls back to filename; we don't want the name twice.
           return axios.post(`${API}/orders/${orderId}/upload`, formData, {
             headers: { Authorization: `Bearer ${token()}` },
           });
@@ -364,7 +357,7 @@ export default function NewOrderForm() {
       </div>
 
       {/* Shared order-level context (inherited by all items) */}
-      <SharedContextPanel order={order} onChange={(patch) => setOrder(patch)} />
+      <SharedContextPanel order={order} onChange={(patch) => setOrder((prev) => ({ ...prev, ...patch }))} />
 
       {/* Order Items Header */}
       <div className="flex items-center justify-between">
@@ -480,14 +473,6 @@ export default function NewOrderForm() {
                           quantity: getDerivedQuantity(currentTicket.item_category, currentTicket.specs, currentTicket.quantity),
                         } : currentTicket))}
                       />
-                      <Button
-                        type="button"
-                        onClick={() => addTicket('detailed')}
-                        className="w-full bg-violet-600 hover:bg-violet-700 text-white gap-2"
-                        data-testid={`ticket-add-to-order-btn-${ticket.local_id}`}
-                      >
-                        <Plus className="h-4 w-4" /> Add Item to Order
-                      </Button>
                       <div className="grid gap-2 sm:grid-cols-2">
                         <Button type="button" variant="outline" size="sm" className="justify-start text-xs" onClick={() => navigate('/pricing-setup')} data-testid={`ticket-pricing-analysis-link-${ticket.local_id}`}>
                           <BarChart3 className="mr-1.5 h-3.5 w-3.5" /> Analysis
@@ -513,13 +498,7 @@ export default function NewOrderForm() {
         </Card>
       ))}
 
-      {/* Add more tickets + Save */}
-      {tickets.length > 0 && (
-        <div className="flex gap-2 justify-center">
-          <Button variant="outline" size="sm" onClick={() => addTicket('quick')} className="gap-2 bg-white"><Plus className="w-4 h-4" /> Quick Entry</Button>
-          <Button variant="outline" size="sm" className="bg-violet-50 text-violet-700 border-violet-300 gap-2" onClick={() => addTicket('detailed')}><Plus className="w-4 h-4" /> Detailed Entry</Button>
-        </div>
-      )}
+      {/* L1: Post-list quick/detailed strip removed — header AddOrderItemMenu + bottom "Add Another Item" cover this. */}
 
       {/* Sketches / Drawing Pad */}
       <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
@@ -568,6 +547,7 @@ export default function NewOrderForm() {
                   <SelectItem value="delivery">Delivery</SelectItem>
                   <SelectItem value="install">Install</SelectItem>
                   <SelectItem value="ship">Ship</SelectItem>
+                  <SelectItem value="undecided">Undecided / TBD</SelectItem>
                 </SelectContent>
               </Select>
             </div>
