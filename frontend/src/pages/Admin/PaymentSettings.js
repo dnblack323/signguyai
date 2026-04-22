@@ -92,7 +92,20 @@ export default function PaymentSettings() {
       window.location.href = response.data.url;
     } catch (err) {
       console.error('Failed to refresh onboarding:', err);
-      toast.error('Failed to continue setup');
+      const status = err.response?.status;
+      const detail = err.response?.data?.detail || '';
+      if (status === 409) {
+        // Stale / wrong-mode account was auto-scrubbed on the backend — refresh
+        // the status so the UI flips to "Connect Stripe" and the tenant can
+        // start fresh.
+        toast.error(
+          detail || 'Your previous Stripe link is no longer valid. Please reconnect.',
+          { duration: 8000 }
+        );
+        await fetchConnectStatus();
+      } else {
+        toast.error(detail || 'Failed to continue setup');
+      }
       setConnecting(false);
     }
   };

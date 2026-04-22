@@ -117,6 +117,38 @@ def get_stripe_mode() -> str:
     return "live" if api_key.startswith("sk_live_") else "test"
 
 
+async def _scrub_stale_connect_account(tenant_id: str, account_id: str, reason: str) -> None:
+    """Remove a stored Connect account ID that is no longer usable.
+
+    Used when Stripe reports the account was created in a different mode
+    (e.g., test-mode account lingering on a live-mode platform), or the
+    account has been deleted. Keeps a breadcrumb on the tenant doc so
+    support can trace why the record was cleared.
+    """
+    await db.tenants.update_one(
+        {"id": tenant_id},
+        {
+            "$unset": {
+                "stripe_connect_account_id": "",
+                "stripe_connect_created_at": "",
+            },
+            "$set": {
+                "stripe_connect_scrubbed_at": datetime.now(timezone.utc).isoformat(),
+                "stripe_connect_scrubbed_reason": reason,
+                "stripe_connect_scrubbed_account_id": account_id,
+            },
+        },
+    )
+
+
+def _is_wrong_mode_error(err: Exception) -> bool:
+    """Detect Stripe's cross-mode error ('test account...testmode keys')."""
+    msg = str(err or "").lower()
+    return ("testmode" in msg and "live" in msg) or (
+        "test account" in msg and "testmode keys" in msg
+    ) or ("livemode" in msg and "test" in msg)
+
+
 async def get_tenant_tier(tenant_id: str) -> str:
     """Get tenant's subscription tier from the plan system"""
     tenant = await db.tenants.find_one(
@@ -166,13 +198,38 @@ async def get_connect_status(current_user: UserInDB = Depends(get_current_active
         )
     
     account_id = tenant["stripe_connect_account_id"]
-    
+    stripe_mode = get_stripe_mode()
+
     try:
         account = stripe.Account.retrieve(account_id)
         tier = await get_tenant_tier(current_user.tenant_id)
-        stripe_mode = get_stripe_mode()
-        account_mode = "live" if getattr(account, "livemode", False) else "test"
-        
+
+        # `livemode` is True only once Stripe activates the account. Before
+        # activation it's None (unknown), and for actual test accounts it's
+        # False. We must distinguish those two cases, otherwise freshly-created
+        # but unactivated live accounts look like test accounts.
+        livemode_flag = getattr(account, "livemode", None)
+        if livemode_flag is True:
+            account_mode = "live"
+        elif livemode_flag is False:
+            account_mode = "test"
+        else:
+            # Unactivated — assume it matches the platform's key mode.
+            account_mode = stripe_mode
+
+        # Hard guard: a test-mode account must never linger on a live platform.
+        if stripe_mode == "live" and livemode_flag is False:
+            await _scrub_stale_connect_account(
+                current_user.tenant_id,
+                account_id,
+                "status_check_detected_test_account_on_live_platform",
+            )
+            return ConnectAccountResponse(
+                connected=False,
+                platform_fee_percent=get_platform_fee_percent(tier) * 100,
+                stripe_mode=stripe_mode,
+            )
+
         return ConnectAccountResponse(
             connected=True,
             account_id=account_id,
@@ -184,6 +241,24 @@ async def get_connect_status(current_user: UserInDB = Depends(get_current_active
             account_mode=account_mode,
             mode_mismatch=stripe_mode != account_mode,
         )
+    except stripe.error.InvalidRequestError as e:
+        # Stripe rejects the account: either it was deleted or it belongs to
+        # the other mode (classic "ghost test account on live platform" case).
+        # Either way, drop it and show the tenant an unconnected state so they
+        # can restart cleanly.
+        if _is_wrong_mode_error(e) or "No such account" in str(e):
+            await _scrub_stale_connect_account(
+                current_user.tenant_id,
+                account_id,
+                f"status_check_stripe_rejected: {str(e)[:200]}",
+            )
+            tier = await get_tenant_tier(current_user.tenant_id)
+            return ConnectAccountResponse(
+                connected=False,
+                platform_fee_percent=get_platform_fee_percent(tier) * 100,
+                stripe_mode=stripe_mode,
+            )
+        raise HTTPException(status_code=400, detail=str(e))
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -204,23 +279,38 @@ async def create_connect_account(
     
     # Check if already has an account
     existing_account_id = tenant.get("stripe_connect_account_id")
-    
+    stripe_mode = get_stripe_mode()
+
     try:
         if existing_account_id:
-            # Check if account exists and is valid
+            # Check if account exists and is valid for the current mode.
             try:
                 account = stripe.Account.retrieve(existing_account_id)
-                stripe_mode = get_stripe_mode()
-                account_mode = "live" if getattr(account, "livemode", False) else "test"
-                account_id = existing_account_id if stripe_mode == account_mode else None
-            except stripe.error.InvalidRequestError:
-                # Account doesn't exist, create new one
+                livemode_flag = getattr(account, "livemode", None)
+                # Scrub test-mode accounts when we're on a live platform.
+                if stripe_mode == "live" and livemode_flag is False:
+                    await _scrub_stale_connect_account(
+                        current_user.tenant_id,
+                        existing_account_id,
+                        "create_account_detected_test_account_on_live_platform",
+                    )
+                    account_id = None
+                else:
+                    account_id = existing_account_id
+            except stripe.error.InvalidRequestError as e:
+                # Either deleted, or the classic cross-mode ghost account.
+                if _is_wrong_mode_error(e) or "No such account" in str(e):
+                    await _scrub_stale_connect_account(
+                        current_user.tenant_id,
+                        existing_account_id,
+                        f"create_account_stripe_rejected: {str(e)[:200]}",
+                    )
                 account_id = None
         else:
             account_id = None
-        
+
         if not account_id:
-            # Create new Standard Connect account
+            # Create new Standard Connect account (bound to the current key's mode).
             account = stripe.Account.create(
                 type="standard",
                 country="US",
@@ -231,7 +321,21 @@ async def create_connect_account(
                 }
             )
             account_id = account.id
-            
+
+            # Defense in depth: if somehow Stripe returned a test account while
+            # we're on a live key, refuse to save it. This should never happen
+            # (Stripe binds the created account to the key's mode), but the
+            # safety check is cheap and catches mis-wired environments.
+            created_livemode = getattr(account, "livemode", None)
+            if stripe_mode == "live" and created_livemode is False:
+                raise HTTPException(
+                    status_code=500,
+                    detail=(
+                        "Stripe returned a test-mode account while the platform "
+                        "is running in live mode. Please contact support."
+                    ),
+                )
+
             # Save to tenant
             await db.tenants.update_one(
                 {"id": current_user.tenant_id},
@@ -242,7 +346,7 @@ async def create_connect_account(
                     }
                 }
             )
-        
+
         # Create account link for onboarding
         account_link = stripe.AccountLink.create(
             account=account_id,
@@ -250,9 +354,9 @@ async def create_connect_account(
             return_url=request.return_url,
             type="account_onboarding"
         )
-        
+
         return OnboardingLinkResponse(url=account_link.url, account_id=account_id)
-        
+
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -272,7 +376,43 @@ async def refresh_onboarding_link(
         raise HTTPException(status_code=400, detail="No Stripe account found")
     
     account_id = tenant["stripe_connect_account_id"]
-    
+    stripe_mode = get_stripe_mode()
+
+    # Verify the stored account is still usable with the current key mode.
+    try:
+        account = stripe.Account.retrieve(account_id)
+    except stripe.error.InvalidRequestError as e:
+        if _is_wrong_mode_error(e) or "No such account" in str(e):
+            await _scrub_stale_connect_account(
+                current_user.tenant_id,
+                account_id,
+                f"refresh_link_stripe_rejected: {str(e)[:200]}",
+            )
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "Your previously linked Stripe account is no longer valid. "
+                    "Please click Connect Stripe again to start fresh."
+                ),
+            )
+        raise HTTPException(status_code=400, detail=str(e))
+
+    livemode_flag = getattr(account, "livemode", None)
+    if stripe_mode == "live" and livemode_flag is False:
+        await _scrub_stale_connect_account(
+            current_user.tenant_id,
+            account_id,
+            "refresh_link_detected_test_account_on_live_platform",
+        )
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "The Stripe account on file is a test-mode account and cannot "
+                "be used on the live platform. Please click Connect Stripe "
+                "again to create a live account."
+            ),
+        )
+
     try:
         account_link = stripe.AccountLink.create(
             account=account_id,
@@ -280,9 +420,9 @@ async def refresh_onboarding_link(
             return_url=request.return_url,
             type="account_onboarding"
         )
-        
+
         return OnboardingLinkResponse(url=account_link.url, account_id=account_id)
-        
+
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
