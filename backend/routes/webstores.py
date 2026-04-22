@@ -9,11 +9,11 @@ This module contains all routes related to:
 """
 
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi.responses import Response
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field, ConfigDict
 import uuid
-import base64
 from enum import Enum
 import os
 import stripe
@@ -23,6 +23,24 @@ from server import db, logger, get_current_active_user
 
 from models import UserInDB, JobStatus, JobItemType, JobItemStatus
 from models.auth import Permission, user_has_permission
+from services.object_storage import put_object, get_object
+from services.storage_config import APP_NAME
+
+
+# Extensions we'll use per content-type for object-storage paths.
+_IMAGE_EXT = {
+    "image/png": ".png",
+    "image/jpeg": ".jpg",
+    "image/jpg": ".jpg",
+    "image/webp": ".webp",
+    "image/gif": ".gif",
+}
+
+
+def _webstore_asset_path(webstore_id: str, kind: str, content_type: str) -> str:
+    """Deterministic storage path for a webstore asset (logo/banner)."""
+    ext = _IMAGE_EXT.get(content_type, ".bin")
+    return f"{APP_NAME}/webstores/{webstore_id}/{kind}{ext}"
 
 
 def _require_permission(user: UserInDB, perm: Permission):
@@ -212,6 +230,10 @@ class ProductUpdate(BaseModel):
 
 
 class WebstoreBranding(BaseModel):
+    # Allow the storage_path / content_type metadata fields to flow through
+    # so internal handlers see them; response serialization will still emit
+    # the public logo_url/banner_url which is what the UI uses.
+    model_config = ConfigDict(extra="allow")
     logo_url: Optional[str] = None
     primary_color: str = "#0D9488"
     banner_url: Optional[str] = None
@@ -377,6 +399,38 @@ WEBSTORE_PUBLIC_FIELDS = [
 def sanitize_webstore_for_public(webstore: dict) -> dict:
     """Return only safe fields for public consumption"""
     return {k: webstore.get(k) for k in WEBSTORE_PUBLIC_FIELDS if k in webstore}
+
+
+@storefront_router.get("/{webstore_id}/asset/{kind}")
+async def get_public_webstore_asset(webstore_id: str, kind: str):
+    """Public fetch for a webstore logo/banner (W12).
+
+    Streams the bytes from object storage with long cache-control headers.
+    Returns 404 if the webstore has not uploaded the requested asset.
+    """
+    if kind not in ("logo", "banner"):
+        raise HTTPException(status_code=404, detail="Unknown asset")
+
+    webstore = await db.webstores_v2.find_one({"id": webstore_id}, {"_id": 0, "branding": 1, "is_public": 1})
+    if not webstore or not webstore.get("is_public", True):
+        raise HTTPException(status_code=404, detail="Webstore not found")
+
+    branding = webstore.get("branding") or {}
+    storage_path = branding.get(f"{kind}_storage_path")
+    if not storage_path:
+        raise HTTPException(status_code=404, detail=f"No {kind} set")
+
+    try:
+        data, content_type = get_object(storage_path)
+    except Exception:
+        # Don't expose storage errors to the public; just 404.
+        raise HTTPException(status_code=404, detail=f"{kind.capitalize()} unavailable")
+
+    return Response(
+        content=data,
+        media_type=branding.get(f"{kind}_content_type") or content_type or "application/octet-stream",
+        headers={"Cache-Control": "public, max-age=300"},
+    )
 
 
 @storefront_router.get("/{webstore_id}")
@@ -1106,50 +1160,52 @@ async def upload_webstore_logo(
     file: UploadFile = File(...),
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Upload a logo image for a webstore"""
+    """Upload a logo image for a webstore.
+
+    W12: file is pushed to object storage; the webstore doc only stores the
+    storage path + a short public URL pointing to our `/storefront/{id}/asset/logo`
+    route. Keeps Mongo docs small and avoids 16MB limit issues.
+    """
     _require_permission(current_user, Permission.WEBSTORES_MANAGE)
-    # Verify webstore exists and belongs to tenant
     webstore = await db.webstores_v2.find_one(
         {"id": webstore_id, "tenant_id": current_user.tenant_id},
         {"_id": 0}
     )
     if not webstore:
         raise HTTPException(status_code=404, detail="Webstore not found")
-    
-    # Validate file type
-    allowed_types = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"]
-    if file.content_type not in allowed_types:
+
+    if file.content_type not in _IMAGE_EXT:
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail="Invalid file type. Allowed: PNG, JPEG, WebP, GIF"
         )
-    
-    # Read and encode the file
+
     contents = await file.read()
-    
-    # Check file size (max 2MB)
     if len(contents) > 2 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large. Maximum size is 2MB")
-    
-    # Convert to base64 data URL
-    base64_encoded = base64.b64encode(contents).decode('utf-8')
-    logo_data_url = f"data:{file.content_type};base64,{base64_encoded}"
-    
-    # Update the webstore branding with the logo
-    current_branding = webstore.get("branding", {})
-    current_branding["logo_url"] = logo_data_url
-    
+
+    storage_path = _webstore_asset_path(webstore_id, "logo", file.content_type)
+    try:
+        put_object(storage_path, contents, file.content_type)
+    except Exception as exc:
+        logger.exception(f"Failed to upload logo for webstore {webstore_id}: {exc}")
+        raise HTTPException(status_code=502, detail="Storage upload failed; please retry.")
+
+    now = datetime.now(timezone.utc).isoformat()
+    # Append a cache-busting timestamp so browsers refresh after re-upload.
+    public_url = f"/api/storefront/{webstore_id}/asset/logo?v={int(datetime.now(timezone.utc).timestamp())}"
+    current_branding = webstore.get("branding") or {}
+    current_branding["logo_url"] = public_url
+    current_branding["logo_storage_path"] = storage_path
+    current_branding["logo_content_type"] = file.content_type
+
     await db.webstores_v2.update_one(
         {"id": webstore_id, "tenant_id": current_user.tenant_id},
-        {"$set": {
-            "branding": current_branding,
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        }}
+        {"$set": {"branding": current_branding, "updated_at": now}}
     )
-    
-    logger.info(f"Logo uploaded for webstore {webstore_id}")
-    
-    return {"message": "Logo uploaded successfully", "logo_url": logo_data_url}
+
+    logger.info(f"Logo uploaded to object storage for webstore {webstore_id}")
+    return {"message": "Logo uploaded successfully", "logo_url": public_url}
 
 
 @webstores_router.post("/{webstore_id}/upload-banner")
@@ -1158,50 +1214,47 @@ async def upload_webstore_banner(
     file: UploadFile = File(...),
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Upload a banner image for a webstore"""
+    """Upload a banner image for a webstore (object storage, see W12)."""
     _require_permission(current_user, Permission.WEBSTORES_MANAGE)
-    # Verify webstore exists and belongs to tenant
     webstore = await db.webstores_v2.find_one(
         {"id": webstore_id, "tenant_id": current_user.tenant_id},
         {"_id": 0}
     )
     if not webstore:
         raise HTTPException(status_code=404, detail="Webstore not found")
-    
-    # Validate file type
-    allowed_types = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"]
-    if file.content_type not in allowed_types:
+
+    if file.content_type not in _IMAGE_EXT:
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail="Invalid file type. Allowed: PNG, JPEG, WebP, GIF"
         )
-    
-    # Read and encode the file
+
     contents = await file.read()
-    
-    # Check file size (max 5MB for banners - they're typically larger)
+    # Banners are typically larger than logos.
     if len(contents) > 5 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large. Maximum size is 5MB")
-    
-    # Convert to base64 data URL
-    base64_encoded = base64.b64encode(contents).decode('utf-8')
-    banner_data_url = f"data:{file.content_type};base64,{base64_encoded}"
-    
-    # Update the webstore branding with the banner
-    current_branding = webstore.get("branding", {})
-    current_branding["banner_url"] = banner_data_url
-    
+
+    storage_path = _webstore_asset_path(webstore_id, "banner", file.content_type)
+    try:
+        put_object(storage_path, contents, file.content_type)
+    except Exception as exc:
+        logger.exception(f"Failed to upload banner for webstore {webstore_id}: {exc}")
+        raise HTTPException(status_code=502, detail="Storage upload failed; please retry.")
+
+    now = datetime.now(timezone.utc).isoformat()
+    public_url = f"/api/storefront/{webstore_id}/asset/banner?v={int(datetime.now(timezone.utc).timestamp())}"
+    current_branding = webstore.get("branding") or {}
+    current_branding["banner_url"] = public_url
+    current_branding["banner_storage_path"] = storage_path
+    current_branding["banner_content_type"] = file.content_type
+
     await db.webstores_v2.update_one(
         {"id": webstore_id, "tenant_id": current_user.tenant_id},
-        {"$set": {
-            "branding": current_branding,
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        }}
+        {"$set": {"branding": current_branding, "updated_at": now}}
     )
-    
-    logger.info(f"Banner uploaded for webstore {webstore_id}")
-    
-    return {"message": "Banner uploaded successfully", "banner_url": banner_data_url}
+
+    logger.info(f"Banner uploaded to object storage for webstore {webstore_id}")
+    return {"message": "Banner uploaded successfully", "banner_url": public_url}
 
 
 # ============== WEBSTORE PRODUCT ASSIGNMENTS ==============
