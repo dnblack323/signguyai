@@ -71,25 +71,25 @@ export default function AddOrderItemMenu({
               <span className="text-[10px] text-gray-500">Pick a category, fill full spec</span>
             </div>
           </DropdownMenuItem>
-          <DropdownMenuItem disabled={existingItems.length === 0} onClick={() => openPicker('duplicate')} data-testid="add-item-duplicate">
+          <DropdownMenuItem disabled={!orderId || existingItems.length === 0} onClick={() => openPicker('duplicate')} data-testid="add-item-duplicate">
             <Copy className="w-4 h-4 mr-2 text-blue-600" />
             <div className="flex flex-col">
               <span className="font-medium">Duplicate Existing Item</span>
-              <span className="text-[10px] text-gray-500">Clone exactly</span>
+              <span className="text-[10px] text-gray-500">{!orderId ? 'Save order first' : 'Clone exactly'}</span>
             </div>
           </DropdownMenuItem>
-          <DropdownMenuItem disabled={existingItems.length === 0} onClick={() => openPicker('variation')} data-testid="add-item-variation">
+          <DropdownMenuItem disabled={!orderId || existingItems.length === 0} onClick={() => openPicker('variation')} data-testid="add-item-variation">
             <Shuffle className="w-4 h-4 mr-2 text-emerald-600" />
             <div className="flex flex-col">
               <span className="font-medium">Create Variation From Existing</span>
-              <span className="text-[10px] text-gray-500">Clone + open to change one spec</span>
+              <span className="text-[10px] text-gray-500">{!orderId ? 'Save order first' : 'Clone + open to change one spec'}</span>
             </div>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setArtworkPickerOpen(true)} data-testid="add-item-shared-artwork">
+          <DropdownMenuItem disabled={!orderId} onClick={() => setArtworkPickerOpen(true)} data-testid="add-item-shared-artwork">
             <Image className="w-4 h-4 mr-2 text-pink-600" />
             <div className="flex flex-col">
               <span className="font-medium">Add Item Using Shared Artwork</span>
-              <span className="text-[10px] text-gray-500">Pre-link order-level artwork</span>
+              <span className="text-[10px] text-gray-500">{!orderId ? 'Save order first' : 'Pre-link order-level artwork'}</span>
             </div>
           </DropdownMenuItem>
         </DropdownMenuContent>

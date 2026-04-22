@@ -19,13 +19,18 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
-### Session: Feb 2026 (New Order Code Review — C1/C2/C3 Fixes)
+### Session: Feb 2026 (New Order Code Review — C1/C2/C3 + H1–H5 Fixes)
 - Completed comprehensive code review of the New Order lifecycle (`NewOrderForm.js`, `AddOrderItemMenu.js`, `CloneItemDialog.js`, `SharedContextPanel.js`, `LivePricingPreview.js`, `orders.py`, `job_tickets.py`). Documented 3 Critical, 5 High, 7 Medium, 12 Low findings.
-- **C1 FIXED:** `OrderCreate` Pydantic model (`backend/models/orders.py`) was silently dropping shared order context fields on `POST /api/orders` because Pydantic v2 ignores unknown fields by default. Added 8 fields to `OrderCreate`: `order_title`, `shared_production_notes`, `shared_design_notes`, `shared_install_notes`, `shared_color_brand_notes`, `shared_reference_links`, `default_item_category`, `shared_artwork_default_mode`. Verified via curl.
-- **C2 FIXED:** `update_job_ticket` in `backend/routes/job_tickets.py` had a redundant `or pricing_mode != "manual"` clause (line 1513) that forced pricing recalculation and overwrote manually-entered prices whenever specs/category/quantity changed. Replaced with a clean check on effective price — only auto-recalculate when no positive `estimated_price` is set. Verified via curl: manual $250 price preserved across spec updates; zero-price ticket still auto-calculates.
-- **C3 FIXED:** `CloneItemDialog.js` `TARGET_CATEGORIES` had `"promotional"` as a value, which doesn't match the `JobTicketCategory` enum (`"promo_misc"`). Cloning to Promotional would have created orphan records invisible to schema loaders, filters, and the pricing engine. Changed value to `"promo_misc"`. Verified via curl: clone now stores correct enum value.
-- **Also fixed:** stray closing brace at EOF in `/app/frontend/src/pages/Jobs.js:2415` that broke ESLint parsing.
-- Remaining review action items: 5 High / 7 Medium / 12 Low items (awaiting user approval per-bucket).
+- **C1 FIXED:** `OrderCreate` Pydantic model was silently dropping 8 shared-context fields on `POST /api/orders`. Added them to the schema.
+- **C2 FIXED:** `update_job_ticket` redundant `or pricing_mode != "manual"` clause was forcing recalc and overwriting manually-entered prices. Replaced with clean `effective_price <= 0` check. Verified via curl.
+- **C3 FIXED:** `CloneItemDialog.js` used `"promotional"` instead of `"promo_misc"` enum value → clones would be orphaned. Fixed value. Verified via curl.
+- **Jobs.js:2415 FIXED:** stray `}` at EOF broke ESLint parsing.
+- **H1 FIXED:** `AddOrderItemMenu.js` Duplicate / Variation / Shared-Artwork items are now disabled with "Save order first" hint when `orderId` is null (previously clicking them in NewOrderForm produced an error toast 100% of the time).
+- **H2 FIXED:** `NewOrderForm.handleSave` now creates tickets, uploads files, and posts sketches in parallel via `Promise.allSettled` (previously sequential `await` in `for` loops). Per-item failures are surfaced to the user with a toast listing failed item names.
+- **H3 FIXED:** Replaced native `window.confirm('send to production')` with Shadcn `AlertDialog`. New `pendingProduction` state + `finishProduction` handler. Test IDs: `send-to-production-dialog`, `send-to-production-cancel`, `send-to-production-confirm`.
+- **H4 FIXED:** Blank-name tickets used to be silently dropped. Now the form validates upfront: if all tickets lack a name the save is blocked with a toast; if some are blank, the user gets a warning toast with the skipped count.
+- **H5 FIXED:** `POST /api/orders` now whitelists `status` to `{"draft", "new_intake"}`. Other values return HTTP 400. Verified via curl: `status=completed` rejected (400), `status=draft` allowed, no status defaults to `new_intake`.
+- Remaining review action items: 7 Medium / 12 Low (awaiting user approval per-bucket).
 
 ### Session: Apr 20, 2026 (Services Category — Pricing Foundation)
 - Implemented full Services pricing category matching exact user spec; extended existing Pricing Foundation (no parallel system).

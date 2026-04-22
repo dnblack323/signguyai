@@ -115,6 +115,9 @@ async def get_order(order_id: str, current_user: UserInDB = Depends(get_current_
 @router.post("")
 async def create_order(data: OrderCreate, current_user: UserInDB = Depends(get_current_active_user)):
     payload = data.model_dump(exclude_none=True)
+    # H5: Restrict client-settable initial status to safe values only.
+    if payload.get("status") and payload["status"] not in {OrderStatus.DRAFT.value, OrderStatus.NEW_INTAKE.value}:
+        raise HTTPException(status_code=400, detail="Invalid initial status — only 'draft' or 'new_intake' allowed")
     order = Order(
         tenant_id=current_user.tenant_id,
         created_by=current_user.id,

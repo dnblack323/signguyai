@@ -9,6 +9,16 @@ import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Switch } from '../components/ui/switch';
 import { Textarea } from '../components/ui/textarea';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
 import { toast } from 'sonner';
 import axios from 'axios';
 import DynamicCategoryFields from '../components/DynamicCategoryFields';
@@ -97,6 +107,7 @@ export default function NewOrderForm() {
   const [showSketchModal, setShowSketchModal] = useState(false);
   const [orderSketches, setOrderSketches] = useState([]);
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [pendingProduction, setPendingProduction] = useState(null); // { orderId, ticketIds, saveAsDraft }
   const photoCameraRef = useRef(null);
   const photoGalleryRef = useRef(null);
 
@@ -144,6 +155,18 @@ export default function NewOrderForm() {
 
   const handleSave = async (saveAsDraft = false) => {
     if (!order.customer_name.trim()) { toast.error('Customer name is required'); return; }
+
+    // H4: Validate ticket names upfront instead of silently skipping blank ones.
+    const namedTickets = tickets.filter((t) => t.item_name.trim());
+    const skippedCount = tickets.length - namedTickets.length;
+    if (tickets.length > 0 && namedTickets.length === 0) {
+      toast.error('All items are missing names. Please name at least one item or remove them.');
+      return;
+    }
+    if (skippedCount > 0) {
+      toast.warning(`${skippedCount} item${skippedCount === 1 ? '' : 's'} will be skipped (no name)`);
+    }
+
     setSaving(true);
     try {
       const orderPayload = { ...order };
@@ -152,11 +175,10 @@ export default function NewOrderForm() {
       const orderRes = await axios.post(`${API}/orders`, orderPayload, { headers: hdrs() });
       const orderId = orderRes.data.id;
 
-      const createdTicketIds = [];
-      for (const t of tickets) {
-        if (!t.item_name.trim()) continue;
-        try {
-          const ticketRes = await axios.post(`${API}/job-tickets`, {
+      // H2: Create tickets in parallel; track per-ticket failures.
+      const ticketResults = await Promise.allSettled(
+        namedTickets.map((t) =>
+          axios.post(`${API}/job-tickets`, {
             order_id: orderId,
             item_name: t.item_name,
             item_category: t.item_category || 'custom',
@@ -169,41 +191,48 @@ export default function NewOrderForm() {
             estimated_price: t.estimated_price || 0,
             special_instructions: t.special_instructions || '',
             specs: t.specs || {},
-          }, { headers: hdrs() });
-          createdTicketIds.push(ticketRes.data.id);
-        } catch (ticketErr) {
-          console.error('Ticket creation error:', ticketErr);
-          toast.error(`Failed to create ticket: ${t.item_name}`);
-        }
+          }, { headers: hdrs() }).then((r) => ({ id: r.data.id, name: t.item_name }))
+        )
+      );
+      const createdTicketIds = [];
+      const failedTickets = [];
+      ticketResults.forEach((r, idx) => {
+        if (r.status === 'fulfilled') createdTicketIds.push(r.value.id);
+        else failedTickets.push(namedTickets[idx].item_name);
+      });
+      if (failedTickets.length) {
+        toast.error(`Failed to create ${failedTickets.length} item(s): ${failedTickets.join(', ')}`);
       }
 
-      if (createdTicketIds.length > 0 && window.confirm('Do you want to send these items to production now?')) {
-        for (const ticketId of createdTicketIds) {
-          await axios.put(`${API}/job-tickets/${ticketId}`, { production_flow_enabled: true }, { headers: hdrs() });
-        }
-        await axios.post(`${API}/orders/${orderId}/start-production`, {}, { headers: hdrs() });
-      }
+      // H2: Upload files and sketches in parallel.
+      const fileResults = await Promise.allSettled(
+        orderFiles.map((f) => {
+          const formData = new FormData();
+          formData.append('file', f.file);
+          formData.append('label', f.file.name);
+          return axios.post(`${API}/orders/${orderId}/upload`, formData, {
+            headers: { Authorization: `Bearer ${token()}` },
+          });
+        })
+      );
+      const failedFiles = fileResults.filter((r) => r.status === 'rejected').length;
+      if (failedFiles) toast.error(`${failedFiles} file(s) failed to upload`);
 
-      // Upload files
-      for (const f of orderFiles) {
-        const formData = new FormData();
-        formData.append('file', f.file);
-        formData.append('label', f.file.name);
-        await axios.post(`${API}/orders/${orderId}/upload`, formData, {
-          headers: { Authorization: `Bearer ${token()}` },
-        });
-      }
-
-      // Upload sketches as drawings
-      for (const sketch of orderSketches) {
-        try {
-          await axios.post(`${API}/order-drawings/`, {
+      await Promise.allSettled(
+        orderSketches.map((sketch) =>
+          axios.post(`${API}/order-drawings/`, {
             order_id: orderId,
             type: sketch.type || 'sketch',
             label: sketch.label || 'Order Sketch',
             image_data: sketch.image_data,
-          }, { headers: hdrs() });
-        } catch { console.error('Sketch upload failed'); }
+          }, { headers: hdrs() })
+        )
+      );
+
+      // H3: Replace window.confirm with an accessible AlertDialog.
+      if (createdTicketIds.length > 0) {
+        setPendingProduction({ orderId, ticketIds: createdTicketIds, saveAsDraft });
+        return; // finishProduction() will navigate
       }
 
       toast.success(saveAsDraft ? 'Order saved as draft!' : 'Order saved!');
@@ -211,6 +240,26 @@ export default function NewOrderForm() {
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Failed to create order');
     } finally { setSaving(false); }
+  };
+
+  const finishProduction = async (sendToProduction) => {
+    if (!pendingProduction) return;
+    const { orderId, ticketIds, saveAsDraft } = pendingProduction;
+    setPendingProduction(null);
+    if (sendToProduction) {
+      try {
+        await Promise.all(
+          ticketIds.map((tid) =>
+            axios.put(`${API}/job-tickets/${tid}`, { production_flow_enabled: true }, { headers: hdrs() })
+          )
+        );
+        await axios.post(`${API}/orders/${orderId}/start-production`, {}, { headers: hdrs() });
+      } catch {
+        toast.error('Order saved, but failed to start production. You can activate it from the order page.');
+      }
+    }
+    toast.success(saveAsDraft ? 'Order saved as draft!' : 'Order saved!');
+    navigate(`/orders/${orderId}`);
   };
 
   return (
@@ -578,6 +627,24 @@ export default function NewOrderForm() {
       </div>
 
       </div>
+
+      {/* H3: Send-to-Production confirmation dialog (replaces window.confirm) */}
+      <AlertDialog open={!!pendingProduction} onOpenChange={(v) => { if (!v) finishProduction(false); }}>
+        <AlertDialogContent data-testid="send-to-production-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send items to production now?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your order was saved. You can activate production workflows for these items now, or do it later from the order page.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => finishProduction(false)} data-testid="send-to-production-cancel">Not Yet</AlertDialogCancel>
+            <AlertDialogAction onClick={() => finishProduction(true)} data-testid="send-to-production-confirm" className="bg-violet-600 hover:bg-violet-700 text-white">
+              Send to Production
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Sketch Drawing Modal */}
       {showSketchModal && (
