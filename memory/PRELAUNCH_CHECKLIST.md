@@ -320,14 +320,14 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 - [x] **Delete webstore** → `/store/{slug}` now returns 404
 
 ### 2.8 Products Catalog (separate from Order line items)
-- [ ] Products page — list view with filters (by webstore, by type)
+- [x] Products page — list view with filters (by webstore, by type)
 - [ ] **Add product** → title, description, price, images
 - [ ] **Edit product** → changes persist
 - [ ] **Delete product** → with confirm
-- [ ] Assign a single product to **multiple webstores** — it shows up on all of them
+- [x] Assign a single product to **multiple webstores** — it shows up on all of them
 - [ ] `GET /api/products/defaults/apparel-options` returns the current brand/color list
 - [ ] Image from Object Storage renders in thumbnail
-- [ ] Inventory / stock toggle affects whether it’s orderable on storefront
+- [x] Inventory / stock toggle affects whether it’s orderable on storefront
 
 ### 2.9 Questionnaires / Public Intake Forms
 - [ ] Create a questionnaire (Questionnaires page)
@@ -757,7 +757,7 @@ For **each** category tab: edit one value, open `/pricing-calculator`, verify ch
 - [ ] `/docs/ai-tools`
 - [ ] `/docs/time-tracking`
 - [ ] `/docs/employees`
-- [ ] `/docs/webstores`
+- [x] `/docs/webstores`
 - [ ] `/docs/customer-portal`
 - [ ] `/docs/financials`
 - [ ] `/docs/productivity`
@@ -781,10 +781,10 @@ For **each** category tab: edit one value, open `/pricing-calculator`, verify ch
 - [ ] `/terms` — Terms of Service content present, contact email accurate
 - [ ] `/privacy` — Privacy Policy content present
 - [ ] `/platform` redirects to `/pricing-plans`
-- [ ] `/webstores-overview` redirects to `/pricing-plans`
+- [x] `/webstores-overview` redirects to `/pricing-plans`
 - [ ] `/ai-studio` redirects to `/pricing-plans`
 - [ ] `/starter`, `/pro`, `/business` redirect to `/pricing-plans`
-- [ ] `/webstore-launch`, `/webstore-growth`, `/webstore-scale` redirect to `/pricing-plans`
+- [x] `/webstore-launch`, `/webstore-growth`, `/webstore-scale` redirect to `/pricing-plans`
 - [ ] `/ai-basic`, `/ai-pro`, `/ai-max` redirect to `/pricing-plans`
 - [ ] `/pricing-plans-old` redirects to `/pricing-plans`
 - [ ] **Mobile** landing page not broken at 375px
@@ -800,7 +800,7 @@ For **each** category tab: edit one value, open `/pricing-calculator`, verify ch
 
 ### 9.1 Main Layout & Ribbon
 - [ ] `MainLayout` sidebar shows the correct items per role:
-  - [ ] Owner sees: Dashboard, Orders, Billing, Customers, Webstores, Documents, Team, AI Tools, Financials, Productivity, Reports, Community, Settings
+  - [x] Owner sees: Dashboard, Orders, Billing, Customers, Webstores, Documents, Team, AI Tools, Financials, Productivity, Reports, Community, Settings
   - [ ] Admin sees: same minus Billing/Settings high-risk areas (verify per your RBAC matrix)
   - [ ] Staff sees: limited subset
 - [ ] **Ribbon** (`/components/ribbon`) — user can pin / unpin favorite actions
@@ -900,7 +900,7 @@ Run the critical flow (login → create order → add detailed item → save):
   - Same for `sk_test`, `rk_live`, `AKIA` (AWS), `EMERGENT_LLM_KEY`
 - [ ] **HTTPS only** on production URL (HTTP redirects to HTTPS)
 - [ ] **Strict Transport Security (HSTS)** header present
-- [ ] `Authorization: Bearer <token>` header required on ALL `/api/*` endpoints (except genuinely public ones like `/storefront/*`, `/questionnaire/*`, `/customer-sign/*`)
+- [x] `Authorization: Bearer <token>` header required on ALL `/api/*` endpoints (except genuinely public ones like `/storefront/*`, `/questionnaire/*`, `/customer-sign/*`)
 - [ ] SQL / NoSQL injection attempts on search inputs → safely escaped (try `'; DROP TABLE orders;` and `{"$ne": null}` as customer name)
 - [ ] XSS attempts rendered as plain text (try `<script>alert(1)</script>` as a note)
 - [ ] Rate limiting on auth endpoints (see 11.4)
