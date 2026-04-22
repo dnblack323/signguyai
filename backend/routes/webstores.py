@@ -22,6 +22,17 @@ import stripe
 from server import db, logger, get_current_active_user
 
 from models import UserInDB, JobStatus, JobItemType, JobItemStatus
+from models.auth import Permission, user_has_permission
+
+
+def _require_permission(user: UserInDB, perm: Permission):
+    """Raise 403 if the user's role does not carry the given permission."""
+    if not user_has_permission(user.role, perm):
+        raise HTTPException(
+            status_code=403,
+            detail=f"You don't have permission to perform this action ({perm.value}).",
+        )
+
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 
@@ -389,6 +400,7 @@ async def create_product(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Create a new product in the master catalog"""
+    _require_permission(current_user, Permission.PRODUCTS_CREATE)
     variants = []
     if input.has_variants and input.variants:
         for v in input.variants:
@@ -474,6 +486,7 @@ async def update_product(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Update a product"""
+    _require_permission(current_user, Permission.PRODUCTS_MANAGE)
     # First verify the product belongs to this tenant
     existing = await db.products.find_one(
         {"id": product_id, "tenant_id": current_user.tenant_id},
@@ -523,6 +536,7 @@ async def delete_product(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Delete a product"""
+    _require_permission(current_user, Permission.PRODUCTS_MANAGE)
     result = await db.products.delete_one(
         {"id": product_id, "tenant_id": current_user.tenant_id}
     )
@@ -541,6 +555,7 @@ async def create_webstore(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Create a new webstore"""
+    _require_permission(current_user, Permission.WEBSTORES_CREATE)
     branding = WebstoreBranding(**(input.branding or {}))
     webstore = Webstore(
         tenant_id=current_user.tenant_id,
@@ -642,6 +657,7 @@ async def update_order_status(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Update order status"""
+    _require_permission(current_user, Permission.WEBSTORES_MANAGE)
     # Verify access first
     order = await db.webstore_orders_v2.find_one({"id": order_id}, {"_id": 0})
     if not order:
@@ -864,6 +880,12 @@ async def record_webstore_payout(
     Record a payout to the webstore owner.
     Updates the webstore's payout_owed and payout_paid fields.
     """
+    # Moving money — OWNER always has both; ADMIN has webstores:manage via role.
+    if not (
+        user_has_permission(current_user.role, Permission.FINANCIALS_MANAGE)
+        or user_has_permission(current_user.role, Permission.WEBSTORES_MANAGE)
+    ):
+        raise HTTPException(status_code=403, detail="You don't have permission to record payouts.")
     # Verify webstore exists and belongs to tenant
     webstore = await db.webstores_v2.find_one(
         {"id": webstore_id, "tenant_id": current_user.tenant_id},
@@ -926,6 +948,7 @@ async def update_webstore(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Update a webstore"""
+    _require_permission(current_user, Permission.WEBSTORES_MANAGE)
     update_data = {k: v for k, v in input.model_dump().items() if v is not None}
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     
@@ -945,6 +968,7 @@ async def delete_webstore(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Delete a webstore"""
+    _require_permission(current_user, Permission.WEBSTORES_MANAGE)
     result = await db.webstores_v2.delete_one(
         {"id": webstore_id, "tenant_id": current_user.tenant_id}
     )
@@ -962,6 +986,7 @@ async def upload_webstore_logo(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Upload a logo image for a webstore"""
+    _require_permission(current_user, Permission.WEBSTORES_MANAGE)
     # Verify webstore exists and belongs to tenant
     webstore = await db.webstores_v2.find_one(
         {"id": webstore_id, "tenant_id": current_user.tenant_id},
@@ -1013,6 +1038,7 @@ async def upload_webstore_banner(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Upload a banner image for a webstore"""
+    _require_permission(current_user, Permission.WEBSTORES_MANAGE)
     # Verify webstore exists and belongs to tenant
     webstore = await db.webstores_v2.find_one(
         {"id": webstore_id, "tenant_id": current_user.tenant_id},
@@ -1069,6 +1095,7 @@ async def add_product_to_webstore(
     Assign a product to a webstore.
     Validates that both webstore and product belong to the same tenant.
     """
+    _require_permission(current_user, Permission.WEBSTORES_MANAGE)
     # Verify webstore exists and belongs to tenant
     webstore = await db.webstores_v2.find_one(
         {"id": webstore_id, "tenant_id": current_user.tenant_id}, 
@@ -1138,10 +1165,13 @@ async def get_webstore_products(
     
     assignments = await db.webstore_products.find(query, {"_id": 0}).to_list(500)
     
-    # Enrich with product details
+    # Enrich with product details — tenant-scoped lookup (W3).
     products = []
     for a in assignments:
-        product = await db.products.find_one({"id": a["product_id"]}, {"_id": 0})
+        product = await db.products.find_one(
+            {"id": a["product_id"], "tenant_id": current_user.tenant_id},
+            {"_id": 0}
+        )
         if product:
             product["price_override"] = a.get("price_override")
             product["effective_price"] = a.get("price_override") or product["retail_price"]
@@ -1159,9 +1189,18 @@ async def remove_product_from_webstore(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Remove a product from a webstore"""
+    _require_permission(current_user, Permission.WEBSTORES_MANAGE)
+    # Verify webstore belongs to this tenant before mutating assignments (W1).
+    webstore = await db.webstores_v2.find_one(
+        {"id": webstore_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0, "id": 1},
+    )
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+
     result = await db.webstore_products.delete_one({
-        "webstore_id": webstore_id, 
-        "product_id": product_id
+        "webstore_id": webstore_id,
+        "product_id": product_id,
     })
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Product assignment not found")
@@ -1176,6 +1215,15 @@ async def update_webstore_product_status(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Update a product's enabled status in a webstore"""
+    _require_permission(current_user, Permission.WEBSTORES_MANAGE)
+    # Verify webstore belongs to this tenant before mutating assignments (W1).
+    webstore = await db.webstores_v2.find_one(
+        {"id": webstore_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0, "id": 1},
+    )
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+
     result = await db.webstore_products.update_one(
         {"webstore_id": webstore_id, "product_id": product_id},
         {"$set": {"is_enabled": is_enabled, "updated_at": datetime.now(timezone.utc).isoformat()}}
@@ -1570,3 +1618,4 @@ async def create_job_from_order(
     )
     
     return {"message": "Job created", "job_id": job.id}
+
