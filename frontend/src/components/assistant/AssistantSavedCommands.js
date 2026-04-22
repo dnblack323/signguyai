@@ -33,8 +33,9 @@ export default function AssistantSavedCommands({ token, refreshKey, onRunCommand
   useEffect(() => { load(); }, [token, refreshKey]); // eslint-disable-line
 
   const handleRun = async (cmd) => {
-    try { await recordSavedCommandRun(token, cmd.id); } catch {}
     onRunCommand?.(cmd.command);
+    // Fire-and-forget: don't block UI; failure of analytics shouldn't swallow clicks.
+    recordSavedCommandRun(token, cmd.id).catch(() => {});
   };
 
   const handleDelete = async (id) => {

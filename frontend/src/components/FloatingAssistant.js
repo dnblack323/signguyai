@@ -2,12 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import {
   Bot, Send, X, Minimize2, Maximize2, Loader2, User,
   Sparkles, CheckCircle2, AlertCircle, Briefcase, Calendar,
-  FileText, Clock, Users, DollarSign, Mic, MicOff, Volume2, Wand2,
+  FileText, Clock, Users, DollarSign, Mic, MicOff, Volume2,
   Pin
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -26,10 +25,12 @@ import { useNavigate } from 'react-router-dom';
 import { usePageContext } from '../context/PageContext';
 
 // Phrases that trigger the overdue-reminders bulk preview card.
+// Kept deliberately narrow — only matches when "overdue" is explicit
+// (avoids false positives like "send reminder to John").
 const BULK_OVERDUE_PATTERNS = [
   /\bremind\b.*\boverdue\b/i,
   /\boverdue\b.*\bremind/i,
-  /\bsend\s+(out\s+)?reminders?\b/i,
+  /\bsend\s+(out\s+)?(the\s+)?overdue\s+reminders?\b/i,
   /\bchase\s+(all\s+)?overdue\b/i,
 ];
 
@@ -63,7 +64,7 @@ let assistantMessageCounter = 0;
 const createAssistantMessage = (message) => ({ id: `assistant-message-${assistantMessageCounter += 1}`, ...message });
 
 export default function FloatingAssistant() {
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const { runGuardedAction, dialog: creditDialog } = useAICreditGuard();
   const navigate = useNavigate();
   const pageContext = usePageContext();
@@ -284,9 +285,10 @@ export default function FloatingAssistant() {
       // like a nav command. Falls through to parse-action if not navigational.
       const looksLikeNav = NAV_HINT_PATTERNS.some((re) => re.test(messageText));
       if (looksLikeNav) {
-        const navActions = await runResolveNavigation(messageText, pageContext);
-        if (navActions) {
-          setMessages(prev => [...prev, navActions]);
+        const navResult = await runResolveNavigation(messageText, pageContext);
+        if (navResult?.handled) return; // already navigated via toast
+        if (navResult?.message) {
+          setMessages(prev => [...prev, navResult.message]);
           return;
         }
       }
@@ -352,8 +354,7 @@ export default function FloatingAssistant() {
           { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
         );
         const actions = resp.data?.actions || [];
-        // If resolver returned no actions at all, don't create a message —
-        // let the outer flow fall through to parse-action/chat.
+        // If resolver returned no actions at all, fall through to parse-action/chat.
         if (!actions.length && !resp.data?.message) return null;
 
         // Auto-navigate for a single direct "kind=navigate" action.
@@ -361,31 +362,30 @@ export default function FloatingAssistant() {
         if (singleNavigate) {
           setIsOpen(false);
           navigate(actions[0].route);
-          return createAssistantMessage({
-            role: 'assistant',
-            content: `Opened: ${actions[0].label}`,
-            isSuccess: true,
-          });
+          toast.success(`Opened: ${actions[0].label}`);
+          return { handled: true };
         }
 
         // Otherwise render as a structured result (clarification / multiple candidates).
-        return createAssistantMessage({
-          role: 'assistant',
-          queryResult: {
-            query_type: 'navigation',
-            summary: resp.data.message || 'Pick one:',
-            metrics: [],
-            rows: [],
-            suggested_actions: actions.map((a, i) => ({
-              id: `nav-${i}`,
-              label: a.label,
-              action: 'navigate',
-              target: a.route,
-              record_id: a.record_id,
-              record_type: a.record_type,
-            })),
-          },
-        });
+        return {
+          message: createAssistantMessage({
+            role: 'assistant',
+            queryResult: {
+              query_type: 'navigation',
+              summary: resp.data.message || 'Pick one:',
+              metrics: [],
+              rows: [],
+              suggested_actions: actions.map((a, i) => ({
+                id: `nav-${i}`,
+                label: a.label,
+                action: 'navigate',
+                target: a.route,
+                record_id: a.record_id,
+                record_type: a.record_type,
+              })),
+            },
+          }),
+        };
       },
     });
   };
@@ -948,8 +948,8 @@ export default function FloatingAssistant() {
             </div>
           </ScrollArea>
 
-          {/* Quick Actions - Show when few messages */}
-          {messages.length <= 2 && (
+          {/* Quick Actions - redundant when the empty state is visible */}
+          {messages.length > 0 && messages.length <= 2 && (
             <div className="px-3 py-2 border-t bg-slate-50/80">
               <p className="text-xs text-slate-500 mb-2">Quick actions:</p>
               <div className="flex flex-wrap gap-1.5">

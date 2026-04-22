@@ -10,7 +10,7 @@ Lightweight per-user features:
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone, date, timedelta
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 import uuid
 
@@ -108,10 +108,6 @@ def _build_next_step_suggestions(action_type: str, result: Dict[str, Any]) -> Li
 # ============================================================================
 # Saved commands
 # ============================================================================
-def _saved_cmds(db):
-    return db.assistant_saved_commands
-
-
 @router.get("/saved-commands")
 async def list_saved_commands(
     current_user: UserInDB = Depends(get_current_active_user),

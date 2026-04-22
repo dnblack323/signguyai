@@ -49,7 +49,15 @@ export default function AssistantRoutinesModal({
     }
   };
 
-  useEffect(() => { if (open) load(); }, [token, open]); // eslint-disable-line
+  useEffect(() => {
+    if (open) {
+      load();
+    } else {
+      // Clear create-form state when modal closes so reopening is fresh.
+      setNewName('');
+      setNewCommands('');
+    }
+  }, [token, open]); // eslint-disable-line
 
   const handleCreate = async () => {
     const name = newName.trim();
@@ -91,15 +99,16 @@ export default function AssistantRoutinesModal({
   const handleRun = async (routine) => {
     if (!onRunCommand || runningId) return;
     setRunningId(routine.id);
+    // Close the modal immediately so the user can watch commands run
+    // in the assistant panel behind it.
+    onOpenChange?.(false);
     try {
-      // run commands sequentially; parent handleSend takes care of async UI
       for (const cmd of routine.commands) {
         // eslint-disable-next-line no-await-in-loop
         await onRunCommand(cmd);
       }
       try { await recordRoutineRun(token, routine.id); } catch {}
       toast.success(`Routine "${routine.name}" complete`);
-      onOpenChange?.(false);
     } catch (err) {
       toast.error('Routine stopped: ' + (err?.message || 'error'));
     } finally {
