@@ -170,8 +170,8 @@ export default function EmployeePortalDashboard() {
     setPunching(true);
     try {
       await axios.post(
-        `${API_URL}/api/employee-portal/time-clock/punch?action=${action}`,
-        {},
+        `${API_URL}/api/employee-portal/time-clock/punch`,
+        { action },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success(`${action.replace('_', ' ')} recorded!`);

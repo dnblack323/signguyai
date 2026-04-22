@@ -328,20 +328,24 @@ async def get_time_clock_status(authorization: str = Header(default="")):
     )
 
 
+class TimeClockPunchRequest(BaseModel):
+    """Body for POST /time-clock/punch — replaces the query-string action."""
+    action: str = Field(pattern="^(start_work|break_start|break_end|end_work)$")
+
+
 @router.post("/time-clock/punch")
-async def punch_time_clock(action: str, authorization: str = Header(default="")):
-    """Punch time clock (start_work, break_start, break_end, end_work)"""
+async def punch_time_clock(
+    data: TimeClockPunchRequest,
+    authorization: str = Header(default=""),
+):
+    """Punch time clock (start_work, break_start, break_end, end_work)."""
     token = extract_token(authorization)
     employee = await get_current_employee(token)
     await require_portal_setting(employee["tenant_id"], "can_view_time_clock")
-    
-    valid_actions = ["start_work", "break_start", "break_end", "end_work"]
-    if action not in valid_actions:
-        raise HTTPException(status_code=400, detail=f"Invalid action. Must be one of: {valid_actions}")
-    
+
     try:
-        log = await record_timeclock_action(db, employee["tenant_id"], employee["id"], action)
-        return {"message": f"Successfully recorded: {action.replace('_', ' ')}", "log": log}
+        log = await record_timeclock_action(db, employee["tenant_id"], employee["id"], data.action)
+        return {"message": f"Successfully recorded: {data.action.replace('_', ' ')}", "log": log}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

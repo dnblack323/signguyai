@@ -29,7 +29,14 @@ STALE_SHIFT_HOURS = 18
 
 async def _auto_close_stale_shift(db, shift: dict) -> bool:
     """If a shift has been open longer than STALE_SHIFT_HOURS, auto-close it.
-    Returns True if the shift was closed (i.e., was stale)."""
+    Returns True if the shift was closed (i.e., was stale).
+
+    Also emits a synthetic `end_work` timelog so that the `timelogs` and
+    `timeclock_shifts` stores don't drift out of sync. Downstream reports
+    (payroll, activity digests) rely on the timelog trail as a canonical
+    audit log; leaving closed shifts without a matching end_work silently
+    degrades those reports.
+    """
     if not shift:
         return False
     clock_in = _parse_iso(shift.get("clock_in"))
@@ -50,6 +57,18 @@ async def _auto_close_stale_shift(db, shift: dict) -> bool:
     }
     updated_shift.update(calculate_shift_metrics(updated_shift))
     await db.timeclock_shifts.update_one({"id": shift["id"]}, {"$set": updated_shift})
+
+    # Emit the matching end_work timelog so the audit trail isn't broken.
+    await db.timelogs.insert_one({
+        "id": str(uuid.uuid4()),
+        "tenant_id": shift.get("tenant_id"),
+        "employee_id": shift.get("employee_id"),
+        "action": "end_work",
+        "timestamp": synthetic_clock_out,
+        "shift_id": shift.get("id"),
+        "auto_closed": True,
+        "note": "Auto-closed after stale open shift (> 18h).",
+    })
     return True
 
 
