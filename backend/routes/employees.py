@@ -8,7 +8,7 @@ This module contains all routes related to:
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Query, Request
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta, date as date_type
 from pydantic import BaseModel, Field
@@ -93,19 +93,21 @@ class TimeLog(BaseModel):
 class PayrollTransactionCreate(BaseModel):
     employee_id: str
     type: PayrollTransactionType
-    amount: float
-    description: Optional[str] = None
-    date: Optional[str] = None
+    amount: float = Field(gt=0, description="Must be a positive magnitude. Sign is implied by `type`.")
+    description: Optional[str] = Field(default=None, max_length=500)
+    date: Optional[str] = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
 
 
 class PayrollTransactionUpdate(BaseModel):
     type: Optional[PayrollTransactionType] = None
-    amount: Optional[float] = None
-    description: Optional[str] = None
-    date: Optional[str] = None
+    amount: Optional[float] = Field(default=None, gt=0)
+    description: Optional[str] = Field(default=None, max_length=500)
+    date: Optional[str] = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+
 
 class PayrollTransaction(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: Optional[str] = None  # Optional for historical docs; set on all new writes.
     employee_id: str
     type: PayrollTransactionType
     amount: float
@@ -310,7 +312,10 @@ async def _get_employee_compensation_snapshot(tenant_id: str, employee: dict, st
         "task_type": "time_clock",
         "date": shift.get("date"),
         "hours": shift.get("net_hours", 0),
-        "minutes": int(round((shift.get("net_hours", 0) or 0) * 60)),
+        # Prefer the precise integer `net_minutes` field over `net_hours * 60`
+        # (which is already 2-decimal rounded, causing minute-level drift in
+        # long payroll ranges).
+        "minutes": int(shift.get("net_minutes") or round((shift.get("net_hours", 0) or 0) * 60)),
         "pay": round((shift.get("net_hours", 0) * hourly_rate), 2),
         "description": shift.get("notes", ""),
         "clock_in": shift.get("clock_in"),
@@ -455,8 +460,20 @@ def _serialize_legacy_manual_entry(entry: dict, resolution: Optional[dict], hour
     )
 
 
-async def _get_employee_transactions(employee_id: str, start_date: Optional[str] = None, end_date: Optional[str] = None) -> list[dict]:
-    query = {"employee_id": employee_id}
+async def _get_employee_transactions(
+    employee_id: str,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    tenant_id: Optional[str] = None,
+) -> list[dict]:
+    """Read payroll transactions for an employee. Tenant-scoped by default;
+    if `tenant_id` is provided, enforces it along with the legacy-doc fallback."""
+    query: Dict[str, Any] = {"employee_id": employee_id}
+    if tenant_id is not None:
+        query["$or"] = [
+            {"tenant_id": tenant_id},
+            {"tenant_id": {"$exists": False}},  # legacy docs w/o tenant_id
+        ]
     if start_date and end_date:
         query["date"] = {"$gte": start_date, "$lte": end_date}
     elif start_date:
@@ -584,7 +601,7 @@ async def _build_employee_payroll_snapshot(tenant_id: str, employee: dict, start
         key=lambda entry: (entry.get("date") or "", entry.get("clock_in") or ""),
     )
     current_pay = _summarize_entry_pay(current_entries, hourly_rate, overtime_rate, pay_week_start_day)
-    current_transactions = await _get_employee_transactions(employee["id"], start_date, end_date)
+    current_transactions = await _get_employee_transactions(employee["id"], start_date, end_date, tenant_id=tenant_id)
     current_transaction_summary = _summarize_transactions(current_transactions)
 
     previous_end_date = date_type.fromisoformat(start_date) - timedelta(days=1)
@@ -598,7 +615,7 @@ async def _build_employee_payroll_snapshot(tenant_id: str, employee: dict, start
         previous_snapshot = await _get_employee_compensation_snapshot(tenant_id, employee, "2000-01-01", previous_end_date.isoformat())
         previous_entries = previous_snapshot["job_details"] + previous_snapshot["manual_details"] + previous_snapshot["shift_details"]
         previous_pay = _summarize_entry_pay(previous_entries, hourly_rate, overtime_rate, pay_week_start_day)
-        previous_transactions = await _get_employee_transactions(employee["id"], end_date=previous_end_date.isoformat())
+        previous_transactions = await _get_employee_transactions(employee["id"], end_date=previous_end_date.isoformat(), tenant_id=tenant_id)
         previous_transaction_summary = _summarize_transactions(previous_transactions)
         carryover_balance = round(previous_pay["gross_pay"] + previous_transaction_summary["adjustments_total"], 2)
 
@@ -906,9 +923,16 @@ async def get_clock_status(employee_id: str, current_user: UserInDB = Depends(ge
 async def create_payroll_transaction(input: PayrollTransactionCreate, current_user: UserInDB = Depends(get_current_active_user)):
     """Create a payroll transaction (earnings, advance, payment)"""
     _require_payroll_edit_access(current_user)
-    # Filter out None values to allow defaults to work
+    # Verify the employee belongs to this tenant before writing.
+    employee = await db.employees.find_one(
+        {"id": input.employee_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0, "id": 1},
+    )
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
     input_data = {k: v for k, v in input.model_dump().items() if v is not None}
-    transaction = PayrollTransaction(**input_data)
+    transaction = PayrollTransaction(**input_data, tenant_id=current_user.tenant_id)
     doc = transaction.model_dump()
     await db.payroll_transactions.insert_one(doc)
     return transaction
@@ -950,6 +974,15 @@ async def create_timeclock_shift(
     return shift
 
 
+# ---------- Payroll transaction helpers ----------
+async def _tenant_employee_ids(tenant_id: str) -> List[str]:
+    """List of employee ids for this tenant — kept only for legacy
+    payroll_transactions docs written before the model carried tenant_id.
+    New code should filter by tenant_id directly."""
+    docs = await db.employees.find({"tenant_id": tenant_id}, {"_id": 0, "id": 1}).to_list(1000)
+    return [e["id"] for e in docs]
+
+
 @payroll_router.put("/transactions/{transaction_id}", response_model=PayrollTransaction)
 async def update_payroll_transaction(
     transaction_id: str,
@@ -958,13 +991,27 @@ async def update_payroll_transaction(
 ):
     _require_payroll_edit_access(current_user)
     update_data = {k: v for k, v in input.model_dump().items() if v is not None}
+    # Direct tenant_id filter — replaces the previous `$in` over all employees.
+    # Falls back to the legacy employee-list match for pre-migration docs that
+    # don't yet carry tenant_id.
+    tenant_filter = {
+        "$or": [
+            {"tenant_id": current_user.tenant_id},
+            {
+                "tenant_id": {"$exists": False},
+                "employee_id": {"$in": await _tenant_employee_ids(current_user.tenant_id)},
+            },
+        ],
+    }
     result = await db.payroll_transactions.update_one(
-        {"id": transaction_id, "employee_id": {"$in": [emp["id"] for emp in await db.employees.find({"tenant_id": current_user.tenant_id}, {"_id": 0, "id": 1}).to_list(1000)]}},
+        {"id": transaction_id, **tenant_filter},
         {"$set": update_data}
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Transaction not found")
-    updated = await db.payroll_transactions.find_one({"id": transaction_id}, {"_id": 0})
+    updated = await db.payroll_transactions.find_one(
+        {"id": transaction_id, **tenant_filter}, {"_id": 0}
+    )
     return updated
 
 
@@ -974,8 +1021,18 @@ async def delete_payroll_transaction(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     _require_payroll_edit_access(current_user)
-    tenant_employee_ids = [emp["id"] for emp in await db.employees.find({"tenant_id": current_user.tenant_id}, {"_id": 0, "id": 1}).to_list(1000)]
-    result = await db.payroll_transactions.delete_one({"id": transaction_id, "employee_id": {"$in": tenant_employee_ids}})
+    tenant_filter = {
+        "$or": [
+            {"tenant_id": current_user.tenant_id},
+            {
+                "tenant_id": {"$exists": False},
+                "employee_id": {"$in": await _tenant_employee_ids(current_user.tenant_id)},
+            },
+        ],
+    }
+    result = await db.payroll_transactions.delete_one(
+        {"id": transaction_id, **tenant_filter}
+    )
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Transaction not found")
     return {"message": "Transaction deleted"}
@@ -989,16 +1046,16 @@ async def get_payroll_transactions(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """List payroll transactions with optional filtering (tenant-scoped)"""
-    # First get employee IDs for this tenant
-    tenant_employees = await db.employees.find(
-        {"tenant_id": current_user.tenant_id}, 
-        {"id": 1, "_id": 0}
-    ).to_list(1000)
-    tenant_employee_ids = [e["id"] for e in tenant_employees]
-    
-    query = {"employee_id": {"$in": tenant_employee_ids}}
+    # Direct tenant_id filter + OR legacy employee-list match for pre-migration docs.
+    legacy_ids = await _tenant_employee_ids(current_user.tenant_id)
+    query: Dict[str, Any] = {
+        "$or": [
+            {"tenant_id": current_user.tenant_id},
+            {"tenant_id": {"$exists": False}, "employee_id": {"$in": legacy_ids}},
+        ]
+    }
     if employee_id:
-        if employee_id not in tenant_employee_ids:
+        if employee_id not in legacy_ids:
             return []
         query["employee_id"] = employee_id
     if start_date and end_date:
@@ -1007,7 +1064,7 @@ async def get_payroll_transactions(
         query["date"] = {"$gte": start_date}
     elif end_date:
         query["date"] = {"$lte": end_date}
-    
+
     transactions = await db.payroll_transactions.find(query, {"_id": 0}).to_list(1000)
     return transactions
 
@@ -1181,7 +1238,7 @@ async def get_payroll_balance(
     entries = snapshot["job_details"] + snapshot["manual_details"] + snapshot["shift_details"]
     payroll_settings = await _get_tenant_payroll_settings(current_user.tenant_id)
     pay_summary = _summarize_entry_pay(entries, float(employee.get("hourly_rate") or 0), employee.get("overtime_rate"), payroll_settings["pay_week_start_day"])
-    transaction_summary = _summarize_transactions(await _get_employee_transactions(employee_id))
+    transaction_summary = _summarize_transactions(await _get_employee_transactions(employee_id, tenant_id=current_user.tenant_id))
     total_earnings = round(pay_summary["gross_pay"] + transaction_summary["earnings"], 2)
     total_advances = transaction_summary["advances"]
     total_payments = transaction_summary["payments"]
