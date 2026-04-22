@@ -33,19 +33,26 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 **Frontend (NEW this session):** `/app/frontend/src/components/assistant/*`
 - `AssistantModeSwitcher.js` — Quick/Guided/Power pill in assistant header, reads & writes `/preferences`.
 - `AssistantSavedCommands.js` — pinned/saved commands list with inline rename, delete, run.
-- `AssistantRoutinesModal.js` — Dialog to create 1–8 step routines, list, delete, run sequentially through `handleSend`.
-- `AssistantNextSteps.js` — renders next-step chips after a successful AI action (fetched via `/next-step-suggestions`).
-- `AssistantBulkActionCard.js` — overdue-reminders preview with confirm/cancel; handles empty & done states.
+- `AssistantRoutinesModal.js` — Dialog to create 1–8 step routines, list, delete, run (parent-driven execution).
+- `AssistantNextSteps.js` — renders next-step chips after a successful AI action.
+- `AssistantBulkActionCard.js` — overdue-reminders preview with confirm/cancel; empty & done states.
 - `AssistantSmartDefault.js` — "Use {customer} again?" chip from `last-order-customer`.
-- `AssistantEmptyState.js` — now bundles smart default + Routines button + Remind overdue chip + Pinned + Recent + Try.
+- `AssistantEmptyState.js` — bundles smart default + Routines button + Remind overdue chip + Pinned + Recent + Try.
 - `utils/assistantPrefsApi.js` — thin axios wrapper for all Phase 5 endpoints.
-- `FloatingAssistant.js` wiring:
-  - Replaced seeded greeting with live empty state.
-  - Mode switcher in header (visible when expanded).
-  - Bulk-overdue trigger: typed commands (`remind overdue`, `send reminders`, `chase overdue`) OR the empty-state chip render the preview card.
-  - Pin button beside every user message → saves it via `createSavedCommand`.
-  - On action success: calls `getNextStepSuggestions` and attaches chips under the success bubble.
-  - Routines modal mounted at component root.
+
+**FloatingAssistant.js upgrades:**
+- Live empty state (removed the seeded greeting).
+- Mode switcher in header.
+- Routine execution lifted to parent with `activeRoutine` state + abort ref → surfaces a **sticky "Running X · step n/total [Abort]" pill** inside the panel while a routine is running.
+- `messagesRef` keeps chat history fresh for sequential commands (no stale closure).
+- Bulk-overdue trigger: narrowed regex + empty-state chip.
+- Pin button beside every user message → saves via `createSavedCommand`.
+- On action success: calls `getNextStepSuggestions` and attaches chips under the success bubble.
+- `singleNavigate` uses toast instead of leaving an unseen message.
+
+**Backend hardening (Phase 5 follow-up):** `/app/backend/routes/ai_assistant_prefs.py`
+- `bulk/overdue-reminders/send` now **dedupes on a 4-hour cooldown**: any invoice with `reminder_queued_at` within the last 4h is skipped. Response shape: `{ sent, skipped_cooldown, skipped_cap, message }`. Verified via integration test.
+- Removed dead code (`_saved_cmds` helper, unused `date`/`timedelta` imports after adding timedelta back where needed).
 
 **Testing (iteration_118.json):** Backend 15/15 pytest PASSED, Frontend 100% — all Phase 5 data-testids verified wired. No bugs. No regressions.
 

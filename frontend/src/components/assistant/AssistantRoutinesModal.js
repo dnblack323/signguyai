@@ -11,7 +11,6 @@ import {
   listRoutines,
   createRoutine,
   deleteRoutine,
-  recordRoutineRun,
 } from '../../utils/assistantPrefsApi';
 
 /**
@@ -19,19 +18,21 @@ import {
  * A routine = 1–8 commands run sequentially through the assistant.
  *
  * Parent provides:
- *  - onRunCommand(command)  runs a single command via handleSend
+ *  - onRunRoutine(routine)  fires the routine (parent handles sequential
+ *                           execution and abort). Modal closes immediately.
  *  - open / onOpenChange    controlled visibility
+ *  - disableRun             true while another routine is already running
  */
 export default function AssistantRoutinesModal({
   token,
   open,
   onOpenChange,
-  onRunCommand,
+  onRunRoutine,
+  disableRun = false,
 }) {
   const [routines, setRoutines] = useState([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [runningId, setRunningId] = useState(null);
 
   const [newName, setNewName] = useState('');
   const [newCommands, setNewCommands] = useState('');
@@ -53,7 +54,6 @@ export default function AssistantRoutinesModal({
     if (open) {
       load();
     } else {
-      // Clear create-form state when modal closes so reopening is fresh.
       setNewName('');
       setNewCommands('');
     }
@@ -96,24 +96,10 @@ export default function AssistantRoutinesModal({
     }
   };
 
-  const handleRun = async (routine) => {
-    if (!onRunCommand || runningId) return;
-    setRunningId(routine.id);
-    // Close the modal immediately so the user can watch commands run
-    // in the assistant panel behind it.
+  const handleRun = (routine) => {
+    if (!onRunRoutine || disableRun) return;
+    onRunRoutine(routine);
     onOpenChange?.(false);
-    try {
-      for (const cmd of routine.commands) {
-        // eslint-disable-next-line no-await-in-loop
-        await onRunCommand(cmd);
-      }
-      try { await recordRoutineRun(token, routine.id); } catch {}
-      toast.success(`Routine "${routine.name}" complete`);
-    } catch (err) {
-      toast.error('Routine stopped: ' + (err?.message || 'error'));
-    } finally {
-      setRunningId(null);
-    }
   };
 
   return (
@@ -157,11 +143,12 @@ export default function AssistantRoutinesModal({
                   <Button
                     size="sm"
                     onClick={() => handleRun(r)}
-                    disabled={runningId !== null}
+                    disabled={disableRun}
                     className="bg-violet-600 hover:bg-violet-700 h-7 px-2"
                     data-testid={`assistant-routine-run-${r.id}`}
+                    title={disableRun ? 'Another routine is running' : 'Run this routine'}
                   >
-                    {runningId === r.id ? (
+                    {disableRun ? (
                       <Loader2 className="h-3 w-3 animate-spin" />
                     ) : (
                       <Play className="h-3 w-3" />

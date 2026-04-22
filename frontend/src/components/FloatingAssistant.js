@@ -20,7 +20,7 @@ import AssistantModeSwitcher from './assistant/AssistantModeSwitcher';
 import AssistantRoutinesModal from './assistant/AssistantRoutinesModal';
 import AssistantNextSteps from './assistant/AssistantNextSteps';
 import AssistantBulkActionCard from './assistant/AssistantBulkActionCard';
-import { createSavedCommand, getNextStepSuggestions } from '../utils/assistantPrefsApi';
+import { createSavedCommand, getNextStepSuggestions, recordRoutineRun } from '../utils/assistantPrefsApi';
 import { useNavigate } from 'react-router-dom';
 import { usePageContext } from '../context/PageContext';
 
@@ -88,6 +88,8 @@ export default function FloatingAssistant() {
   const [mode, setMode] = useState('guided');
   const [routinesOpen, setRoutinesOpen] = useState(false);
   const [savedRefreshKey, setSavedRefreshKey] = useState(0);
+  const [activeRoutine, setActiveRoutine] = useState(null); // { id, name, step, total }
+  const routineAbortRef = useRef(false);
 
   const pushRecentCommand = (text) => {
     setRecentCommands((prev) => {
@@ -108,6 +110,11 @@ export default function FloatingAssistant() {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const streamRef = useRef(null);
+  const messagesRef = useRef([]);
+
+  // Keep a live ref of messages so async loops (e.g., routine runs) always
+  // read the latest conversation history instead of a stale closure.
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -324,7 +331,7 @@ export default function FloatingAssistant() {
             {
               message: messageText.trim(),
               session_id: sessionId,
-              conversation_history: messages.slice(-10),
+              conversation_history: messagesRef.current.slice(-10),
               context: pageContext,
             },
             { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
@@ -451,6 +458,36 @@ export default function FloatingAssistant() {
       role: 'assistant',
       bulkAction: { kind: 'overdue_reminders' },
     })]);
+  };
+
+  const runRoutine = async (routine) => {
+    if (!routine?.commands?.length || activeRoutine) return;
+    routineAbortRef.current = false;
+    const total = routine.commands.length;
+    setActiveRoutine({ id: routine.id, name: routine.name, step: 0, total });
+    try {
+      for (let i = 0; i < routine.commands.length; i += 1) {
+        if (routineAbortRef.current) break;
+        setActiveRoutine((prev) => prev ? { ...prev, step: i + 1 } : prev);
+        // eslint-disable-next-line no-await-in-loop
+        await handleSend(routine.commands[i], 'text');
+      }
+      if (routineAbortRef.current) {
+        toast.info(`Routine "${routine.name}" aborted`);
+      } else {
+        try { await recordRoutineRun(token, routine.id); } catch {}
+        toast.success(`Routine "${routine.name}" complete`);
+      }
+    } catch (err) {
+      toast.error(`Routine stopped: ${err?.message || 'error'}`);
+    } finally {
+      setActiveRoutine(null);
+      routineAbortRef.current = false;
+    }
+  };
+
+  const abortRoutine = () => {
+    routineAbortRef.current = true;
   };
 
   const routeClassifiedIntent = async (intent, classified, rawMessage, source) => {
@@ -776,6 +813,30 @@ export default function FloatingAssistant() {
 
       {!isMinimized && (
         <>
+          {/* Phase 5: running-routine pill with abort */}
+          {activeRoutine && (
+            <div
+              className="px-3 py-1.5 bg-indigo-50 border-b border-indigo-100 text-[11px] text-indigo-900 flex items-center justify-between gap-2"
+              data-testid="assistant-active-routine-pill"
+            >
+              <div className="flex items-center gap-1.5 truncate">
+                <Loader2 className="h-3 w-3 animate-spin flex-shrink-0" />
+                <span className="truncate">
+                  Running <span className="font-semibold">{activeRoutine.name}</span>
+                  <span className="text-indigo-500"> · step {activeRoutine.step}/{activeRoutine.total}</span>
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={abortRoutine}
+                className="rounded-full border border-indigo-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-indigo-700 hover:bg-indigo-100 flex-shrink-0"
+                data-testid="assistant-routine-abort"
+              >
+                Abort
+              </button>
+            </div>
+          )}
+
           {/* Phase 3: page-context chip so users trust what the assistant is acting on */}
           {(pageContext?.record_label || pageContext?.page) && (
             <div
@@ -1027,7 +1088,8 @@ export default function FloatingAssistant() {
       token={token}
       open={routinesOpen}
       onOpenChange={setRoutinesOpen}
-      onRunCommand={(cmd) => handleSend(cmd, 'text')}
+      onRunRoutine={runRoutine}
+      disableRun={!!activeRoutine}
     />
     </>
   );

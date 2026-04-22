@@ -10,7 +10,7 @@ Lightweight per-user features:
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 import uuid
 
@@ -412,7 +412,13 @@ async def overdue_reminders_send(
     """Send a reminder audit-log entry per invoice. Real email delivery is
     delegated to the Invoices reminders module if/when wired — this endpoint
     keeps the action visible and auditable.
+
+    Dedupe: an invoice that was already queued for a reminder within the last
+    `REMINDER_COOLDOWN_HOURS` is skipped. This prevents accidental spam from
+    a double-confirm or a retry.
     """
+    REMINDER_COOLDOWN_HOURS = 4
+
     if current_user.role not in (UserRole.OWNER, UserRole.ADMIN) and not user_has_permission(current_user.role, Permission.INVOICES_EDIT):
         raise HTTPException(status_code=403, detail="You don't have permission to send invoice reminders")
     from services.assistant_queries import query_overdue_invoices
@@ -423,12 +429,35 @@ async def overdue_reminders_send(
         target_ids = [r.get("invoice_id") for r in (preview.get("rows") or []) if r.get("invoice_id")]
 
     if not target_ids:
-        return {"sent": 0, "skipped": 0, "message": "No overdue invoices to remind."}
+        return {"sent": 0, "skipped_cooldown": 0, "skipped_cap": 0, "message": "No overdue invoices to remind."}
+
+    capped_ids = target_ids[:100]
+    over_cap = max(0, len(target_ids) - 100)
+
+    # Find invoices that are already within the cooldown window.
+    cooldown_threshold = (datetime.now(timezone.utc) - timedelta(hours=REMINDER_COOLDOWN_HOURS)).isoformat()
+    recent_cursor = db.invoices.find(
+        {
+            "id": {"$in": capped_ids},
+            "tenant_id": current_user.tenant_id,
+            "reminder_queued_at": {"$gte": cooldown_threshold},
+        },
+        {"_id": 0, "id": 1},
+    )
+    recent_ids = {doc["id"] async for doc in recent_cursor}
+    eligible_ids = [inv_id for inv_id in capped_ids if inv_id not in recent_ids]
+
+    if not eligible_ids:
+        return {
+            "sent": 0,
+            "skipped_cooldown": len(recent_ids),
+            "skipped_cap": over_cap,
+            "message": f"All {len(recent_ids)} invoice(s) already had a reminder queued within the last {REMINDER_COOLDOWN_HOURS} hours.",
+        }
 
     now = datetime.now(timezone.utc).isoformat()
-    audit_entries = []
-    for inv_id in target_ids[:100]:  # safety cap
-        audit_entries.append({
+    audit_entries = [
+        {
             "id": str(uuid.uuid4()),
             "tenant_id": current_user.tenant_id,
             "user_id": current_user.id,
@@ -438,18 +467,26 @@ async def overdue_reminders_send(
             "status": "executed",
             "source": "ai_assistant",
             "created_at": now,
-        })
-    if audit_entries:
-        await db.ai_action_audit.insert_many(audit_entries)
+        }
+        for inv_id in eligible_ids
+    ]
+    await db.ai_action_audit.insert_many(audit_entries)
 
     # Mark each invoice so downstream reminder systems can pick up.
     await db.invoices.update_many(
-        {"id": {"$in": target_ids[:100]}, "tenant_id": current_user.tenant_id},
+        {"id": {"$in": eligible_ids}, "tenant_id": current_user.tenant_id},
         {"$set": {"reminder_queued_at": now, "reminder_queued_by": current_user.id}},
     )
 
+    parts = [f"Queued {len(eligible_ids)} reminder(s)."]
+    if recent_ids:
+        parts.append(f"Skipped {len(recent_ids)} already queued in last {REMINDER_COOLDOWN_HOURS}h.")
+    if over_cap:
+        parts.append(f"{over_cap} more beyond the 100-per-request cap.")
+
     return {
-        "sent": len(audit_entries),
-        "skipped": max(0, len(target_ids) - 100),
-        "message": f"Queued {len(audit_entries)} reminders. Invoice reminder delivery will pick them up.",
+        "sent": len(eligible_ids),
+        "skipped_cooldown": len(recent_ids),
+        "skipped_cap": over_cap,
+        "message": " ".join(parts),
     }
