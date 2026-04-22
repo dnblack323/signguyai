@@ -1,7 +1,7 @@
 # SignGuy AI - Product Requirements Document
 
 > **Last Updated:** Feb, 2026
-> **Version:** 7.4
+> **Version:** 7.5
 
 ---
 
@@ -18,6 +18,41 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ---
 
 ## What's Been Implemented
+
+### Session: Feb 2026 — Business Assistant Phase 5 (Personalization & Convenience) — COMPLETE
+
+**Backend (already landed, curl-verified):** `/app/backend/routes/ai_assistant_prefs.py`
+- `GET/POST/PUT/DELETE /api/ai/assistant/saved-commands` (+ `record-run`)
+- `GET/POST/PUT/DELETE /api/ai/assistant/routines` (+ `record-run`, 1–8 cmds)
+- `GET/PUT /api/ai/assistant/preferences` (quick/guided/power)
+- `POST /api/ai/assistant/next-step-suggestions` (rule-based habits, dynamic template `{order_id}`)
+- `GET /api/ai/assistant/smart-defaults/last-order-customer`
+- `GET /api/ai/assistant/bulk/overdue-reminders/preview`
+- `POST /api/ai/assistant/bulk/overdue-reminders/send` (audit + invoice flag, 100-cap)
+
+**Frontend (NEW this session):** `/app/frontend/src/components/assistant/*`
+- `AssistantModeSwitcher.js` — Quick/Guided/Power pill in assistant header, reads & writes `/preferences`.
+- `AssistantSavedCommands.js` — pinned/saved commands list with inline rename, delete, run.
+- `AssistantRoutinesModal.js` — Dialog to create 1–8 step routines, list, delete, run sequentially through `handleSend`.
+- `AssistantNextSteps.js` — renders next-step chips after a successful AI action (fetched via `/next-step-suggestions`).
+- `AssistantBulkActionCard.js` — overdue-reminders preview with confirm/cancel; handles empty & done states.
+- `AssistantSmartDefault.js` — "Use {customer} again?" chip from `last-order-customer`.
+- `AssistantEmptyState.js` — now bundles smart default + Routines button + Remind overdue chip + Pinned + Recent + Try.
+- `utils/assistantPrefsApi.js` — thin axios wrapper for all Phase 5 endpoints.
+- `FloatingAssistant.js` wiring:
+  - Replaced seeded greeting with live empty state.
+  - Mode switcher in header (visible when expanded).
+  - Bulk-overdue trigger: typed commands (`remind overdue`, `send reminders`, `chase overdue`) OR the empty-state chip render the preview card.
+  - Pin button beside every user message → saves it via `createSavedCommand`.
+  - On action success: calls `getNextStepSuggestions` and attaches chips under the success bubble.
+  - Routines modal mounted at component root.
+
+**Testing (iteration_118.json):** Backend 15/15 pytest PASSED, Frontend 100% — all Phase 5 data-testids verified wired. No bugs. No regressions.
+
+**Known limitations / future polish (from testing agent code review):**
+- Bulk-send hard caps at 100 invoices (silently slices excess). Add cursor/pagination if tenants exceed.
+- No cooldown guard against duplicate reminder queueing on rapid double-confirm. Add dedupe window if this becomes a real issue.
+- Consider compound index `(tenant_id, user_id, pinned, updated_at)` on `assistant_saved_commands` once data grows.
 
 ### Session: Feb 2026 — Business Assistant Phase 4 (Trust & UX Polish)
 
