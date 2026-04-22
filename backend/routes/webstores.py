@@ -363,6 +363,11 @@ class WebstoreOrder(BaseModel):
     job_id: Optional[str] = None
     notes: Optional[str] = None
     idempotency_key: Optional[str] = None
+    # Stripe checkout fields (populated by finalize_webstore_stripe_checkout).
+    stripe_session_id: Optional[str] = None
+    payment_amount: Optional[float] = None
+    payment_platform_fee: Optional[float] = None
+    payout_recorded_at: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
@@ -797,19 +802,54 @@ async def get_webstore_order(
     return order
 
 
+async def _apply_order_status_transition(
+    order: dict,
+    new_status: str,
+    tenant_id: str,
+    job_id: Optional[str] = None,
+) -> dict:
+    """Internal: apply a webstore-order status transition + payout-book
+    side effects. Idempotent via `payout_recorded_at`. Safe to call from
+    both the HTTP endpoint and internal flows (e.g. Stripe webhook).
+    Returns an update-set dict that was applied.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    commission = float(order.get("commission_amount") or 0)
+    payout_recorded = bool(order.get("payout_recorded_at"))
+    update_set: Dict[str, Any] = {"status": new_status, "updated_at": now}
+    if job_id is not None:
+        update_set["job_id"] = job_id
+
+    # Transitioning INTO a payout-eligible status — credit once.
+    if new_status in PAYOUT_OWED_STATUSES and not payout_recorded and commission > 0:
+        await db.webstores_v2.update_one(
+            {"id": order["webstore_id"], "tenant_id": tenant_id},
+            {"$inc": {"payout_owed": commission}, "$set": {"updated_at": now}},
+        )
+        update_set["payout_recorded_at"] = now
+    # Leaving payout-eligible state via cancel/refund — reverse the credit.
+    elif (
+        new_status in {WebstoreOrderStatus.CANCELLED.value, WebstoreOrderStatus.REFUNDED.value}
+        and payout_recorded
+        and commission > 0
+    ):
+        await db.webstores_v2.update_one(
+            {"id": order["webstore_id"], "tenant_id": tenant_id},
+            {"$inc": {"payout_owed": -commission}, "$set": {"updated_at": now}},
+        )
+        update_set["payout_recorded_at"] = None
+
+    await db.webstore_orders_v2.update_one({"id": order["id"]}, {"$set": update_set})
+    return update_set
+
+
 @webstores_router.put("/orders/{order_id}/status")
 async def update_order_status(
     order_id: str,
     data: UpdateOrderStatusRequest,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Update order status.
-
-    Side-effect (W4): when transitioning INTO a status in PAYOUT_OWED_STATUSES,
-    increment the webstore's payout_owed by the order's commission_amount.
-    When leaving that set for cancelled/refunded, decrement it. Idempotent via
-    the `payout_recorded_at` sentinel on the order document.
-    """
+    """Update order status. See `_apply_order_status_transition` for side-effects."""
     _require_permission(current_user, Permission.WEBSTORES_MANAGE)
     order = await db.webstore_orders_v2.find_one({"id": order_id}, {"_id": 0})
     if not order:
@@ -822,37 +862,14 @@ async def update_order_status(
     if not webstore:
         raise HTTPException(status_code=404, detail="Order not found")
 
-    now = datetime.now(timezone.utc).isoformat()
     prev_status = order.get("status")
     new_status = data.status.value
-    commission = float(order.get("commission_amount") or 0)
-    payout_recorded = bool(order.get("payout_recorded_at"))
-
-    update_set = {"status": new_status, "updated_at": now}
-    if data.job_id is not None:
-        update_set["job_id"] = data.job_id
-
-    # Transitioning INTO a payout-eligible status and we haven't recorded yet.
-    if new_status in PAYOUT_OWED_STATUSES and not payout_recorded and commission > 0:
-        await db.webstores_v2.update_one(
-            {"id": order["webstore_id"], "tenant_id": current_user.tenant_id},
-            {"$inc": {"payout_owed": commission}, "$set": {"updated_at": now}},
-        )
-        update_set["payout_recorded_at"] = now
-
-    # Leaving payout-eligible state via cancel/refund — reverse the increment.
-    elif (
-        new_status in {WebstoreOrderStatus.CANCELLED.value, WebstoreOrderStatus.REFUNDED.value}
-        and payout_recorded
-        and commission > 0
-    ):
-        await db.webstores_v2.update_one(
-            {"id": order["webstore_id"], "tenant_id": current_user.tenant_id},
-            {"$inc": {"payout_owed": -commission}, "$set": {"updated_at": now}},
-        )
-        update_set["payout_recorded_at"] = None
-
-    await db.webstore_orders_v2.update_one({"id": order_id}, {"$set": update_set})
+    await _apply_order_status_transition(
+        order=order,
+        new_status=new_status,
+        tenant_id=current_user.tenant_id,
+        job_id=data.job_id,
+    )
     return {"message": "Status updated", "status": new_status, "previous_status": prev_status}
 
 
@@ -1805,4 +1822,126 @@ async def create_job_from_order(
     )
     
     return {"message": "Job created", "job_id": job.id}
+
+
+# ==================================================================================
+# Stripe checkout → webstore order finalization (W18 / Flow-B bug fixes)
+# ==================================================================================
+async def finalize_webstore_stripe_checkout(session_id: str) -> Optional[dict]:
+    """Idempotently turn a paid Stripe Checkout session into a proper
+    webstore_orders_v2 order and fire the W4 payout credit.
+
+    Called from BOTH the Stripe webhook (`checkout.session.completed`) and
+    from `get_payment_status` as a safety fallback for browsers that return
+    to the success URL before the webhook lands. If invoked twice for the
+    same session, the second call returns the existing order unchanged.
+    """
+    # Look up the payment attempt record. create_webstore_checkout persists
+    # server-validated items + tenant_id here; trust nothing else.
+    ptx = await db.payment_transactions.find_one(
+        {"stripe_session_id": session_id, "type": "webstore_order"},
+        {"_id": 0},
+    )
+    if not ptx:
+        logger.warning(f"finalize_webstore_stripe_checkout: no payment_transaction for {session_id}")
+        return None
+
+    tenant_id = ptx.get("tenant_id")
+    webstore_id = ptx.get("reference_id")
+    idempotency_key = f"stripe:{session_id}"
+
+    # Idempotency: has this session already produced an order?
+    existing = await db.webstore_orders_v2.find_one(
+        {"idempotency_key": idempotency_key},
+        {"_id": 0},
+    )
+    if existing:
+        # Ensure the existing order is in the completed state (webhook may
+        # land before the payment_transactions write finishes in rare races).
+        if existing.get("status") != WebstoreOrderStatus.COMPLETED.value:
+            await _apply_order_status_transition(
+                order=existing,
+                new_status=WebstoreOrderStatus.COMPLETED.value,
+                tenant_id=tenant_id,
+            )
+        return existing
+
+    customer_info = ptx.get("customer_info") or {}
+    validated_items = ptx.get("items") or []
+    if not validated_items:
+        logger.error(f"finalize_webstore_stripe_checkout: empty items for {session_id}")
+        return None
+
+    # Delegate order + job creation to the canonical path so we don't fork
+    # validation/pricing logic.
+    from pydantic import ValidationError
+    try:
+        create_payload = WebstoreOrderCreate(
+            webstore_id=webstore_id,
+            customer_name=customer_info.get("name") or customer_info.get("customer_name") or "Customer",
+            customer_email=customer_info.get("email") or customer_info.get("customer_email") or "no-email@webstore.local",
+            customer_phone=customer_info.get("phone") or customer_info.get("customer_phone"),
+            items=[
+                {
+                    "product_id": it["product_id"],
+                    "variant_id": it.get("variant_id"),
+                    "variant_name": it.get("variant_name"),
+                    "quantity": it.get("quantity", 1),
+                    "price": it.get("price"),
+                }
+                for it in validated_items
+            ],
+            notes=f"Paid via Stripe session {session_id}",
+            idempotency_key=idempotency_key,
+        )
+    except ValidationError as exc:
+        logger.error(f"finalize_webstore_stripe_checkout: invalid payload {exc}")
+        return None
+
+    try:
+        order = await create_webstore_order(create_payload)
+    except HTTPException as exc:
+        # If the canonical path rejects the items (e.g. product removed
+        # between checkout and webhook), still record the payment so an
+        # admin can reconcile manually. Don't crash the webhook.
+        logger.error(
+            f"finalize_webstore_stripe_checkout: create_webstore_order rejected session "
+            f"{session_id}: {exc.detail}"
+        )
+        return None
+
+    order_doc = order if isinstance(order, dict) else order.model_dump()
+
+    # Stamp the Stripe metadata on the order for reporting + flip to completed.
+    await db.webstore_orders_v2.update_one(
+        {"id": order_doc["id"]},
+        {"$set": {
+            "stripe_session_id": session_id,
+            "stripe_customer_id": ptx.get("customer_info", {}).get("stripe_customer_id"),
+            "payment_amount": ptx.get("amount"),
+            "payment_platform_fee": ptx.get("platform_fee"),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }},
+    )
+    refreshed = await db.webstore_orders_v2.find_one({"id": order_doc["id"]}, {"_id": 0})
+    await _apply_order_status_transition(
+        order=refreshed,
+        new_status=WebstoreOrderStatus.COMPLETED.value,
+        tenant_id=tenant_id,
+    )
+
+    # Mark the payment_transaction paid so repeated webhook deliveries
+    # bail early.
+    await db.payment_transactions.update_one(
+        {"stripe_session_id": session_id},
+        {"$set": {
+            "status": "paid",
+            "webstore_order_id": order_doc["id"],
+            "paid_at": datetime.now(timezone.utc).isoformat(),
+        }},
+    )
+    logger.info(
+        f"Stripe session {session_id} → webstore order {order_doc['id']} (completed)"
+    )
+    return await db.webstore_orders_v2.find_one({"id": order_doc["id"]}, {"_id": 0})
 
