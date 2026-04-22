@@ -10,7 +10,7 @@ This module contains all routes related to:
 
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from typing import List, Optional, Dict, Any
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field, ConfigDict
 import uuid
 import base64
@@ -35,6 +35,57 @@ def _require_permission(user: UserInDB, perm: Permission):
 
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
+
+
+# W15: Stripe Connect account status cache.
+# Each public storefront read used to call `stripe.Account.retrieve(...)`
+# synchronously. That's a ~200–600ms round-trip + quota burn per page view.
+# We cache the (charges_enabled, status, message) tuple in-process for 5 min.
+# On cache miss or expiry we refresh on-demand. Good enough without webhooks —
+# the worst case is a newly-onboarded shop has to wait ≤5 min for their store
+# to start accepting orders.
+_STRIPE_ACCOUNT_CACHE: Dict[str, Dict[str, Any]] = {}
+_STRIPE_ACCOUNT_TTL_SECONDS = 300
+
+
+def _get_stripe_checkout_status(account_id: Optional[str]) -> Dict[str, Any]:
+    """Return the cached {enabled, status, message} triple for a Stripe account.
+
+    Not async — `stripe.Account.retrieve` is synchronous. Called from public
+    endpoints; the first uncached call pays the Stripe latency, subsequent
+    calls within the TTL are free.
+    """
+    if not account_id:
+        return {
+            "enabled": False,
+            "status": "inactive",
+            "message": "Checkout is inactive until this shop connects Stripe through SignGuy AI.",
+        }
+    now_ts = datetime.now(timezone.utc).timestamp()
+    cached = _STRIPE_ACCOUNT_CACHE.get(account_id)
+    if cached and (now_ts - cached["fetched_at"]) < _STRIPE_ACCOUNT_TTL_SECONDS:
+        return cached["value"]
+
+    try:
+        account = stripe.Account.retrieve(account_id)
+        if account.charges_enabled:
+            value = {"enabled": True, "status": "active", "message": "Checkout is active"}
+        else:
+            value = {
+                "enabled": False,
+                "status": "setup_incomplete",
+                "message": "Checkout is inactive until Stripe Connect onboarding is fully completed.",
+            }
+    except stripe.error.StripeError:
+        # Do not cache failures — a transient Stripe blip shouldn't stick for 5 min.
+        return {
+            "enabled": False,
+            "status": "unavailable",
+            "message": "Checkout is temporarily unavailable while payment setup is being verified.",
+        }
+
+    _STRIPE_ACCOUNT_CACHE[account_id] = {"fetched_at": now_ts, "value": value}
+    return value
 
 
 # ============== LOCAL MODELS (to be moved to models/webstore.py) ==============
@@ -289,6 +340,7 @@ class WebstoreOrder(BaseModel):
     status: str = "pending"
     job_id: Optional[str] = None
     notes: Optional[str] = None
+    idempotency_key: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
@@ -299,6 +351,9 @@ class WebstoreOrderCreate(BaseModel):
     customer_phone: Optional[str] = None
     items: List[Dict[str, Any]]
     notes: Optional[str] = None
+    # W17: optional client-supplied key — a resubmit with the same key within
+    # the last hour returns the existing order instead of creating a duplicate.
+    idempotency_key: Optional[str] = Field(default=None, max_length=128)
 
 
 # ============== ROUTERS ==============
@@ -346,27 +401,10 @@ async def get_public_store(webstore_id: str):
     
     public_webstore = sanitize_webstore_for_public(webstore)
     tenant = await db.tenants.find_one({"id": webstore.get("tenant_id")}, {"_id": 0})
-    checkout_enabled = False
-    checkout_status = "inactive"
-    checkout_message = "Checkout is inactive until this shop connects Stripe through SignGuy AI."
-
-    if tenant and tenant.get("stripe_connect_account_id"):
-        try:
-            account = stripe.Account.retrieve(tenant["stripe_connect_account_id"])
-            if account.charges_enabled:
-                checkout_enabled = True
-                checkout_status = "active"
-                checkout_message = "Checkout is active"
-            else:
-                checkout_status = "setup_incomplete"
-                checkout_message = "Checkout is inactive until Stripe Connect onboarding is fully completed."
-        except stripe.error.StripeError:
-            checkout_status = "unavailable"
-            checkout_message = "Checkout is temporarily unavailable while payment setup is being verified."
-
-    public_webstore["checkout_enabled"] = checkout_enabled
-    public_webstore["checkout_status"] = checkout_status
-    public_webstore["checkout_message"] = checkout_message
+    checkout = _get_stripe_checkout_status(tenant.get("stripe_connect_account_id") if tenant else None)
+    public_webstore["checkout_enabled"] = checkout["enabled"]
+    public_webstore["checkout_status"] = checkout["status"]
+    public_webstore["checkout_message"] = checkout["message"]
     return public_webstore
 
 
@@ -397,47 +435,54 @@ async def get_public_store_products(webstore_id: str):
         {"webstore_id": webstore_id, "is_enabled": True}, 
         {"_id": 0}
     ).to_list(500)
-    
-    # Enrich with product details - TENANT SAFE
-    products = []
+
+    # W10: batch-fetch all products in a single $in query instead of one-per-assignment.
+    product_ids = [a["product_id"] for a in assignments]
+    if not product_ids:
+        return []
+    products_cursor = db.products.find(
+        {"id": {"$in": product_ids}, "tenant_id": tenant_id},
+        {"_id": 0},
+    )
+    products_by_id = {p["id"]: p async for p in products_cursor}
+
+    # Enrich, preserving the assignment order from above.
+    results = []
     for a in assignments:
-        # Ensure product belongs to same tenant as webstore
-        product = await db.products.find_one(
-            {"id": a["product_id"], "tenant_id": tenant_id}, 
-            {"_id": 0}
-        )
-        if product and product.get("is_active", True):
-            # Structure for storefront consumption - exclude sensitive fields
-            enriched = {
-                "product_id": product["id"],
-                "product": {
-                    "id": product["id"],
-                    "name": product["name"],
-                    "description": product.get("description"),
-                    "category": product.get("category"),
-                    "retail_price": product.get("retail_price"),
-                    "images": product.get("images", []),
-                    "image_url": product.get("image_url"),
-                    "has_variants": product.get("has_variants", False),
-                    "variants": [
-                        {
-                            "id": v.get("id"),
-                            "name": v.get("name"),
-                            "size": v.get("size"),
-                            "color": v.get("color"),
-                            "additional_cost": v.get("additional_cost", 0),
-                            "is_available": v.get("is_available", True)
-                        }
-                        for v in product.get("variants", [])
-                        if v.get("is_available", True)
-                    ]
-                },
-                "price_override": a.get("price_override"),
-                "effective_price": a.get("price_override") or product["retail_price"]
-            }
-            products.append(enriched)
-    
-    return products
+        product = products_by_id.get(a["product_id"])
+        if not product or not product.get("is_active", True):
+            continue
+        # Structure for storefront consumption - exclude sensitive fields
+        enriched = {
+            "product_id": product["id"],
+            "product": {
+                "id": product["id"],
+                "name": product["name"],
+                "description": product.get("description"),
+                "category": product.get("category"),
+                "retail_price": product.get("retail_price"),
+                "images": product.get("images", []),
+                "image_url": product.get("image_url"),
+                "has_variants": product.get("has_variants", False),
+                "variants": [
+                    {
+                        "id": v.get("id"),
+                        "name": v.get("name"),
+                        "size": v.get("size"),
+                        "color": v.get("color"),
+                        "additional_cost": v.get("additional_cost", 0),
+                        "is_available": v.get("is_available", True)
+                    }
+                    for v in product.get("variants", [])
+                    if v.get("is_available", True)
+                ]
+            },
+            "price_override": a.get("price_override"),
+            "effective_price": a.get("price_override") or product["retail_price"]
+        }
+        results.append(enriched)
+
+    return results
 
 
 # ============== PRODUCT ROUTES ==============
@@ -781,8 +826,6 @@ async def get_webstore_analytics(
     Get analytics data for a webstore.
     Returns summary stats, sales trends, top products, and fundraiser metrics if applicable.
     """
-    from datetime import timedelta
-    
     # Verify webstore exists and belongs to tenant
     webstore = await db.webstores_v2.find_one(
         {"id": webstore_id, "tenant_id": current_user.tenant_id},
@@ -1242,21 +1285,28 @@ async def get_webstore_products(
         query["is_enabled"] = True
     
     assignments = await db.webstore_products.find(query, {"_id": 0}).to_list(500)
-    
-    # Enrich with product details — tenant-scoped lookup (W3).
+
+    # W10: batch-fetch all products in one tenant-scoped $in query.
+    product_ids = [a["product_id"] for a in assignments]
+    if not product_ids:
+        return []
+    products_cursor = db.products.find(
+        {"id": {"$in": product_ids}, "tenant_id": current_user.tenant_id},
+        {"_id": 0},
+    )
+    products_by_id = {p["id"]: p async for p in products_cursor}
+
     products = []
     for a in assignments:
-        product = await db.products.find_one(
-            {"id": a["product_id"], "tenant_id": current_user.tenant_id},
-            {"_id": 0}
-        )
-        if product:
-            product["price_override"] = a.get("price_override")
-            product["effective_price"] = a.get("price_override") or product["retail_price"]
-            product["is_enabled"] = a.get("is_enabled", True)
-            product["webstore_product_id"] = a.get("id")
-            products.append(product)
-    
+        product = products_by_id.get(a["product_id"])
+        if not product:
+            continue
+        product["price_override"] = a.get("price_override")
+        product["effective_price"] = a.get("price_override") or product["retail_price"]
+        product["is_enabled"] = a.get("is_enabled", True)
+        product["webstore_product_id"] = a.get("id")
+        products.append(product)
+
     return products
 
 
@@ -1325,6 +1375,26 @@ async def create_webstore_order(input: WebstoreOrderCreate):
     - Quantities are >= 1
     - Prices are non-negative
     """
+    # W17: honor idempotency — if the same (webstore_id, idempotency_key) was
+    # submitted within the last hour, return the existing order. Guards against
+    # double-click submits and retried network requests.
+    if input.idempotency_key:
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+        existing = await db.webstore_orders_v2.find_one(
+            {
+                "webstore_id": input.webstore_id,
+                "idempotency_key": input.idempotency_key,
+                "created_at": {"$gte": cutoff},
+            },
+            {"_id": 0},
+        )
+        if existing:
+            logger.info(
+                f"Idempotent order replay matched key={input.idempotency_key[:8]}… "
+                f"returning existing order {existing.get('id')}"
+            )
+            return existing
+
     # Get webstore
     webstore = await db.webstores_v2.find_one({"id": input.webstore_id}, {"_id": 0})
     if not webstore:
@@ -1560,7 +1630,8 @@ async def create_webstore_order(input: WebstoreOrderCreate):
         commission_amount=commission_amount,
         notes=input.notes,
         job_id=job.id,  # Link to auto-created job
-        status="processing"  # Already in processing since job was created
+        status="processing",  # Already in processing since job was created
+        idempotency_key=input.idempotency_key,
     )
     
     await db.webstore_orders_v2.insert_one(order.model_dump())
