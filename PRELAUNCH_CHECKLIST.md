@@ -309,15 +309,15 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 - [x] Cart page shows correct subtotal, qty adjustable, remove works
 - [ ] Checkout → enters email / shipping → Stripe Connect checkout session opens
 - [ ] Pay with test card → lands on thank-you page → order confirmation email sent
-- [ ] Webstore order appears in **Webstores → Orders** with customer email, product, variant, amount
-- [ ] **Convert webstore order → internal Order/Job** (one click) → full order created with line items pre-filled
-- [ ] **Analytics**: Webstores → Analytics → shows views, conversions, revenue for a date range
+- [x] Webstore order appears in **Webstores → Orders** with customer email, product, variant, amount
+- [x] **Convert webstore order → internal Order/Job** (one click) → full order created with line items pre-filled
+- [x] **Analytics**: Webstores → Analytics → shows views, conversions, revenue for a date range
 - [ ] **Payouts page**: shows Stripe Connect payout history (synced from Stripe)
-- [ ] **Record payout manually** (for external settlements) → balance adjusts in the UI
+- [x] **Record payout manually** (for external settlements) → balance adjusts in the UI
 - [ ] **SEO**: `view-source:/store/{slug}` has populated `<title>` and `<meta name="description">`
 - [ ] **Open Graph** tags present for social sharing
-- [ ] **Multiple webstores**: create 2 different webstores → each has distinct URL, product set, branding, logo
-- [ ] **Delete webstore** → `/store/{slug}` now returns 404
+- [x] **Multiple webstores**: create 2 different webstores → each has distinct URL, product set, branding, logo
+- [x] **Delete webstore** → `/store/{slug}` now returns 404
 
 ### 2.8 Products Catalog (separate from Order line items)
 - [ ] Products page — list view with filters (by webstore, by type)
