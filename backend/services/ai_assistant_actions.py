@@ -60,6 +60,7 @@ class ActionRequest(BaseModel):
     parameters: Dict[str, Any]
     requires_confirmation: bool = True
     confirmation_message: Optional[str] = None
+    source: str = "text"  # "text" | "voice" — when "voice" all writes require confirmation
 
 
 class ActionResponse(BaseModel):
@@ -96,6 +97,20 @@ DESTRUCTIVE_ACTIONS = {
     ActionType.UPDATE_MATERIAL_COST,  # Financial impact
     ActionType.CREATE_INVOICE,  # Financial commitment
     ActionType.ASSIGN_EMPLOYEE,  # Workload change
+}
+
+# Any write action — always confirmation-gated when invoked via voice.
+WRITE_ACTIONS = {
+    ActionType.CREATE_ORDER,
+    ActionType.CREATE_JOB,
+    ActionType.UPDATE_JOB_STATUS,
+    ActionType.CREATE_CALENDAR_EVENT,
+    ActionType.ADD_MATERIAL,
+    ActionType.UPDATE_MATERIAL_COST,
+    ActionType.CREATE_INVOICE,
+    ActionType.ASSIGN_EMPLOYEE,
+    ActionType.LOG_TIME_ENTRY,
+    ActionType.CATEGORIZE_EXPENSE,
 }
 
 
@@ -167,9 +182,11 @@ class AIAssistantActions:
                 audit_id=audit_id
             )
         
-        # Check if confirmation required
+        # Check if confirmation required.
+        # Voice writes always require confirmation (can't undo a misheard command).
         is_destructive = action_type in DESTRUCTIVE_ACTIONS
-        if is_destructive and not confirmed:
+        is_voice_write = action_request.source == "voice" and action_type in WRITE_ACTIONS
+        if (is_destructive or is_voice_write) and not confirmed:
             confirmation_msg = self._get_confirmation_message(action_type, parameters)
             audit_id = await self.log_audit(
                 user.tenant_id, user.id, action_type, action_id,
@@ -245,46 +262,32 @@ class AIAssistantActions:
     # ============== ACTION HANDLERS ==============
     
     async def _handle_create_job(self, tenant_id: str, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a new job"""
-        job_id = str(uuid.uuid4())
-        now = datetime.now(timezone.utc).isoformat()
-        
-        job = {
-            "id": job_id,
-            "tenant_id": tenant_id,
-            "name": params.get("name", "Untitled Job"),
-            "description": params.get("description", ""),
-            "customer_id": params.get("customer_id"),
-            "customer_name": params.get("customer_name", ""),
-            "category": params.get("category", "Other"),
-            "status": "pending",
-            "priority": params.get("priority", "normal"),
-            "due_date": params.get("due_date"),
-            "estimated_hours": params.get("estimated_hours"),
-            "total": params.get("total", 0),
-            "notes": params.get("notes", ""),
-            "created_by": "ai_assistant",
-            "created_at": now,
-            "updated_at": now
-        }
-        
-        await self.db.jobs.insert_one(job)
-        
-        return {
-            "job_id": job_id,
-            "name": job["name"],
-            "status": job["status"],
-            "message": f"Job '{job['name']}' created successfully"
-        }
+        """DEPRECATED as a separate action. Phase 1 fix: the legacy create_job wrote
+        to `db.jobs`, orphaning records from the Order/JobTicket pipeline used by the
+        rest of the app. We now alias it to `create_order` so every AI-created job
+        lives in the same place as manually-created ones.
+        """
+        # Preserve any legacy name/description into the order's internal_notes field.
+        if params.get("name") and not params.get("description"):
+            params = {**params, "description": params["name"]}
+        return await self._handle_create_order(tenant_id, params)
 
     async def _handle_create_order(self, tenant_id: str, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a new order in the current order workflow."""
+        """Create a new order using the canonical Order pipeline (matches /api/orders).
+
+        Fixed in Phase 1: previously this wrote a hand-rolled document with fields
+        that didn't match the Order Pydantic model. Now aligned with
+        `backend/routes/orders.py` + `models.orders.Order`.
+        """
+        from models.orders import Order, OrderStatus, PaymentStatus, PickupDeliveryMethod
+
         now = datetime.now(timezone.utc).isoformat()
 
         customer_id = params.get("customer_id")
         customer_name = (params.get("customer_name") or "").strip()
         company_name = (params.get("company_name") or "").strip()
 
+        # Try to resolve customer by name/company.
         if not customer_id and customer_name:
             customer = await self.db.customers.find_one(
                 {
@@ -301,9 +304,10 @@ class AIAssistantActions:
                 customer_name = customer.get("name") or customer_name
                 company_name = company_name or customer.get("company") or ""
 
+        # Auto-create a minimal lead customer if name provided but no match.
         if not customer_id and customer_name:
             customer_id = str(uuid.uuid4())
-            customer_doc = {
+            await self.db.customers.insert_one({
                 "id": customer_id,
                 "tenant_id": tenant_id,
                 "name": customer_name,
@@ -311,63 +315,83 @@ class AIAssistantActions:
                 "phone": None,
                 "email": None,
                 "status": "lead",
-                "notes": "Created by AI assistant",
-                "profile_image_url": None,
-                "is_tax_exempt": False,
-                "tax_exempt_document_url": None,
-                "portal_password_hash": None,
+                "notes": "Auto-created by AI assistant",
                 "portal_enabled": False,
-                "notification_preferences": {
-                    "email_messages": True,
-                    "email_orders": True,
-                    "email_approvals": True,
-                    "email_payments": True,
-                },
+                "is_tax_exempt": False,
                 "created_at": now,
                 "updated_at": now,
-            }
-            await self.db.customers.insert_one(customer_doc)
+            })
 
-        last = await self.db.orders.find({"tenant_id": tenant_id}, {"_id": 0, "order_number": 1}).sort("date_created", -1).limit(1).to_list(1)
-        order_number = f"ORD-{(await self.db.orders.count_documents({'tenant_id': tenant_id})) + 1:04d}"
+        if not customer_name and not company_name:
+            raise ValueError("customer_name (or company_name) is required to create an order")
+
+        # Compute next order_number using the SAME algorithm as routes/orders.py
+        last = await self.db.orders.find(
+            {"tenant_id": tenant_id},
+            {"_id": 0, "order_number": 1}
+        ).sort("date_created", -1).limit(1).to_list(1)
+        order_number = None
         if last and last[0].get("order_number"):
             try:
                 num = int(last[0]["order_number"].split("-")[-1])
                 order_number = f"ORD-{num + 1:04d}"
             except (ValueError, IndexError):
                 pass
+        if not order_number:
+            count = await self.db.orders.count_documents({"tenant_id": tenant_id})
+            order_number = f"ORD-{count + 1:04d}"
 
-        order_id = str(uuid.uuid4())
-        order_doc = {
-            "id": order_id,
-            "order_number": order_number,
+        # Validate pickup method against enum.
+        pickup_method = params.get("pickup_delivery_method") or PickupDeliveryMethod.PICKUP.value
+        valid_pickups = {m.value for m in PickupDeliveryMethod}
+        if pickup_method not in valid_pickups:
+            pickup_method = PickupDeliveryMethod.PICKUP.value
+
+        order = Order(
+            tenant_id=tenant_id,
+            customer_id=customer_id or "",
+            customer_name=customer_name or company_name or "New Customer",
+            company_name=company_name,
+            contact_name=customer_name,
+            phone=params.get("phone", "") or "",
+            email=params.get("email", "") or "",
+            order_source="ai_assistant",
+            date_created=params.get("date_created") or now,
+            requested_due_date=params.get("requested_due_date"),
+            status=OrderStatus.NEW_INTAKE.value,
+            payment_status=PaymentStatus.UNPAID.value,
+            pickup_delivery_method=pickup_method,
+            pickup_delivery_notes=params.get("pickup_delivery_notes") or "",
+            internal_notes=params.get("description") or params.get("internal_notes") or "Created by AI assistant",
+            customer_notes=params.get("customer_notes") or "",
+            created_by="ai_assistant",
+        )
+        order.order_number = order_number
+
+        doc = order.model_dump()
+        await self.db.orders.insert_one(doc)
+
+        # Activity log — mirror routes/orders.create_order.
+        await self.db.order_activities.insert_one({
+            "id": str(uuid.uuid4()),
+            "order_id": order.id,
             "tenant_id": tenant_id,
-            "customer_id": customer_id,
-            "customer_name": customer_name or company_name or "New Customer",
-            "company_name": company_name,
-            "order_source": "ai_assistant",
-            "date_created": params.get("date_created") or now[:10],
-            "requested_due_date": params.get("requested_due_date"),
-            "event_date": None,
-            "status": "pending",
-            "payment_status": "unpaid",
-            "pickup_delivery_method": params.get("pickup_delivery_method") or "pickup",
-            "pickup_delivery_notes": params.get("pickup_delivery_notes") or "",
-            "internal_notes": params.get("description") or params.get("order_notes") or "Created by AI assistant",
-            "created_by": "ai_assistant",
+            "entity_type": "order",
+            "entity_id": order.id,
+            "action": "created",
+            "description": f"Order {order_number} created via AI assistant",
+            "user_id": "ai_assistant",
+            "user_name": "AI Assistant",
             "created_at": now,
-            "updated_at": now,
-            "is_archived": False,
-            "job_tickets": [],
-            "order_total": 0.0,
-        }
-        await self.db.orders.insert_one(order_doc)
+        })
 
         return {
-            "order_id": order_id,
+            "order_id": order.id,
             "order_number": order_number,
-            "customer_name": order_doc["customer_name"],
-            "message": f"Order {order_number} created successfully for {order_doc['customer_name']}",
+            "customer_id": customer_id,
+            "customer_name": doc.get("customer_name"),
+            "navigate_to": f"/orders/{order.id}",
+            "message": f"Order {order_number} created for {doc.get('customer_name')}",
         }
     
     async def _handle_update_job_status(self, tenant_id: str, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -416,37 +440,84 @@ class AIAssistantActions:
         }
     
     async def _handle_create_calendar_event(self, tenant_id: str, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a calendar event"""
+        """Create a calendar/appointment entry in the canonical `appointments`
+        collection (Phase 1 rewrite).
+
+        Previously wrote to `db.calendar_events`, an orphan collection nothing
+        else reads from. Now matches `models.customer.Appointment` shape so the
+        Schedule page, Customer portal, and productivity queries all see it.
+        """
+        from models.enums import AppointmentType, AppointmentStatus
+
         event_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc).isoformat()
-        
-        event = {
+
+        # Normalize scheduled_at: accept scheduled_at, or (date + time).
+        scheduled_at = params.get("scheduled_at") or params.get("start_time")
+        if not scheduled_at:
+            date_s = params.get("date")
+            time_s = params.get("time")
+            if date_s and time_s:
+                scheduled_at = f"{date_s}T{time_s}:00"
+            elif date_s:
+                scheduled_at = f"{date_s}T09:00:00"
+        if not scheduled_at:
+            raise ValueError("scheduled_at (or date + time) is required")
+
+        # Validate / default the enum-ish fields.
+        requested_type = (params.get("event_type") or params.get("appointment_type") or "other").lower()
+        valid_types = {t.value for t in AppointmentType}
+        appointment_type = requested_type if requested_type in valid_types else AppointmentType.OTHER.value
+
+        customer_id = params.get("customer_id")
+        customer_name = (params.get("customer_name") or "").strip()
+        if not customer_id and customer_name:
+            cust = await self.db.customers.find_one(
+                {
+                    "tenant_id": tenant_id,
+                    "$or": [
+                        {"name": {"$regex": f"^{customer_name}$", "$options": "i"}},
+                        {"company": {"$regex": f"^{customer_name}$", "$options": "i"}},
+                    ],
+                },
+                {"_id": 0, "id": 1},
+            )
+            if cust:
+                customer_id = cust["id"]
+
+        if not customer_id:
+            raise ValueError(
+                "customer_id or a resolvable customer_name is required to schedule an appointment"
+            )
+
+        appointment = {
             "id": event_id,
             "tenant_id": tenant_id,
-            "title": params.get("title", "Untitled Event"),
-            "description": params.get("description", ""),
-            "start_time": params.get("start_time"),
-            "end_time": params.get("end_time"),
-            "all_day": params.get("all_day", False),
-            "event_type": params.get("event_type", "general"),
-            "location": params.get("location", ""),
-            "attendees": params.get("attendees", []),
+            "customer_id": customer_id,
             "job_id": params.get("job_id"),
-            "customer_id": params.get("customer_id"),
-            "color": params.get("color", "#3B82F6"),
-            "reminder": params.get("reminder", True),
+            "order_id": params.get("order_id"),
+            "appointment_type": appointment_type,
+            "status": AppointmentStatus.SCHEDULED.value,
+            "title": params.get("title") or "Untitled Appointment",
+            "description": params.get("description", ""),
+            "scheduled_at": scheduled_at,
+            "duration_minutes": int(params.get("duration_minutes", 60) or 60),
+            "location": params.get("location") or "",
+            "notes": params.get("notes", ""),
             "created_by": "ai_assistant",
             "created_at": now,
-            "updated_at": now
+            "updated_at": now,
         }
-        
-        await self.db.calendar_events.insert_one(event)
-        
+
+        await self.db.appointments.insert_one(appointment)
+
         return {
-            "event_id": event_id,
-            "title": event["title"],
-            "start_time": event["start_time"],
-            "message": f"Calendar event '{event['title']}' created"
+            "appointment_id": event_id,
+            "title": appointment["title"],
+            "scheduled_at": scheduled_at,
+            "customer_id": customer_id,
+            "navigate_to": "/schedule",
+            "message": f"Appointment '{appointment['title']}' scheduled for {scheduled_at}",
         }
     
     async def _handle_add_material(self, tenant_id: str, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -532,53 +603,114 @@ class AIAssistantActions:
         }
     
     async def _handle_create_invoice(self, tenant_id: str, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a new invoice"""
-        invoice_id = str(uuid.uuid4())
+        """Create an invoice from an existing Order (Phase 1 rewrite).
+
+        Previously this handler fabricated a hand-rolled invoice doc with a
+        `line_items` shape that didn't link to `job_tickets`/`orders`. That meant
+        AI-created invoices never appeared in the order financials panel and
+        couldn't be reconciled with job tickets.
+
+        New behavior: require `order_id`, load the order + its tickets, and
+        generate an invoice using the exact same line-item shape as
+        `POST /api/orders/{order_id}/generate-invoice` in routes/orders.py.
+        """
+        order_id = params.get("order_id")
+        if not order_id:
+            raise ValueError(
+                "order_id is required. Invoices must be generated from an existing order — "
+                "create or pick an order first, then ask me to invoice it."
+            )
+
+        order = await self.db.orders.find_one(
+            {"id": order_id, "tenant_id": tenant_id}, {"_id": 0}
+        )
+        if not order:
+            raise ValueError(f"Order not found: {order_id}")
+
+        tickets = await self.db.job_tickets.find(
+            {"order_id": order_id, "tenant_id": tenant_id}, {"_id": 0}
+        ).to_list(200)
+
+        if not tickets:
+            raise ValueError(
+                f"Order {order.get('order_number', order_id)} has no items yet. "
+                "Add at least one item before generating an invoice."
+            )
+
+        line_items = []
+        subtotal = 0.0
+        for t in tickets:
+            snapshot = t.get("pricing_snapshot") or {}
+            price = snapshot.get("active_price") or t.get("estimated_price", 0) or 0
+            qty = t.get("quantity", 1) or 1
+            line_items.append({
+                "description": f"{t.get('item_name', 'Item')} — {t.get('item_category', '')} (Qty: {qty})",
+                "quantity": qty,
+                "unit_price": price / max(qty, 1),
+                "total": price,
+                "job_ticket_id": t["id"],
+                "job_item_id": t["id"],
+            })
+            subtotal += price
+
         now = datetime.now(timezone.utc).isoformat()
-        
-        # Generate invoice number
+        invoice_id = str(uuid.uuid4())
         count = await self.db.invoices.count_documents({"tenant_id": tenant_id})
         invoice_number = f"INV-{count + 1:05d}"
-        
-        # Calculate totals
-        line_items = params.get("line_items", [])
-        subtotal = sum(item.get("total", 0) for item in line_items)
-        tax_rate = float(params.get("tax_rate", 0))
-        tax = subtotal * (tax_rate / 100)
-        total = subtotal + tax
-        
-        invoice = {
+
+        invoice_doc = {
             "id": invoice_id,
-            "tenant_id": tenant_id,
             "invoice_number": invoice_number,
-            "customer_id": params.get("customer_id"),
-            "customer_name": params.get("customer_name", ""),
-            "job_id": params.get("job_id"),
-            "line_items": line_items,
-            "subtotal": round(subtotal, 2),
-            "tax_rate": tax_rate,
-            "tax": round(tax, 2),
-            "total": round(total, 2),
-            "grand_total": round(total, 2),
+            "tenant_id": tenant_id,
+            "order_id": order_id,
+            "customer_id": order.get("customer_id", ""),
+            "customer_name": order.get("customer_name", ""),
             "status": "draft",
-            "due_date": params.get("due_date"),
-            "notes": params.get("notes", ""),
-            "terms": params.get("terms", "Net 30"),
+            "total": subtotal,
+            "line_items": line_items,
+            "tax_amount": 0,
+            "discount_amount": 0,
+            "grand_total": subtotal,
             "amount_paid": 0,
+            "notes": params.get("notes", ""),
+            "due_date": params.get("due_date") or order.get("requested_due_date"),
             "created_by": "ai_assistant",
             "created_at": now,
-            "updated_at": now
+            "updated_at": now,
+            "source": "ai_assistant",
         }
-        
-        await self.db.invoices.insert_one(invoice)
-        
+        await self.db.invoices.insert_one(invoice_doc)
+
+        # Link invoice to order.
+        await self.db.orders.update_one(
+            {"id": order_id},
+            {"$push": {"linked_invoice_ids": invoice_id},
+             "$set": {"updated_at": now}},
+        )
+
+        # Activity log.
+        await self.db.order_activities.insert_one({
+            "id": str(uuid.uuid4()),
+            "order_id": order_id,
+            "tenant_id": tenant_id,
+            "entity_type": "invoice",
+            "entity_id": invoice_id,
+            "action": "created",
+            "description": f"Invoice {invoice_number} generated via AI assistant, total ${subtotal:.2f}",
+            "user_id": "ai_assistant",
+            "user_name": "AI Assistant",
+            "created_at": now,
+        })
+
         return {
             "invoice_id": invoice_id,
             "invoice_number": invoice_number,
-            "customer_name": invoice["customer_name"],
-            "total": invoice["total"],
-            "status": invoice["status"],
-            "message": f"Invoice {invoice_number} created for ${invoice['total']:.2f}"
+            "order_id": order_id,
+            "customer_name": invoice_doc["customer_name"],
+            "total": subtotal,
+            "status": "draft",
+            "navigate_to": f"/invoices/{invoice_id}",
+            "message": f"Invoice {invoice_number} created for ${subtotal:.2f}",
         }
     
     async def _handle_assign_employee(self, tenant_id: str, params: Dict[str, Any]) -> Dict[str, Any]:

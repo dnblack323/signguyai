@@ -217,7 +217,7 @@ What would you like to do?`,
     });
   };
 
-  const handleSend = async (messageText = input) => {
+  const handleSend = async (messageText = input, source = 'text') => {
     if (!messageText.trim() || loading) return;
 
     const userMessage = createAssistantMessage({ role: 'user', content: messageText.trim() });
@@ -226,38 +226,37 @@ What would you like to do?`,
     setLoading(true);
 
     try {
-      // First, try to detect if this is an action request
-      const actionResult = await detectAndExecuteAction(messageText);
-      
-      if (actionResult) {
-        setMessages(prev => [...prev, actionResult]);
-      } else {
-        // Fall back to regular assistant chat
-        await runGuardedAction({
-          actionType: 'assistant_chat',
-          featureName: 'Floating AI Assistant',
-          execute: async () => {
-            const response = await axios.post(
-              `${API_URL}/api/ai/assistant`,
-              {
-                message: messageText.trim(),
-                session_id: sessionId,
-                conversation_history: messages.slice(-10)
-              },
-              {
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json'
-                }
-              }
-            );
+      // Single brain: ask backend to classify intent. No frontend regex.
+      const classified = await runParseAction(messageText, 'auto');
+      const intent = classified?.intent || 'chat';
 
-            const assistantMessage = createAssistantMessage({ role: 'assistant', content: response.data.response });
-            setMessages(prev => [...prev, assistantMessage]);
-            return response.data;
-          }
-        });
+      if (intent !== 'chat') {
+        const actionResult = await routeClassifiedIntent(intent, classified, messageText, source);
+        if (actionResult) {
+          setMessages(prev => [...prev, actionResult]);
+          return;
+        }
       }
+
+      // Regular chat — general Q&A.
+      await runGuardedAction({
+        actionType: 'assistant_chat',
+        featureName: 'Floating AI Assistant',
+        execute: async () => {
+          const response = await axios.post(
+            `${API_URL}/api/ai/assistant`,
+            {
+              message: messageText.trim(),
+              session_id: sessionId,
+              conversation_history: messages.slice(-10),
+            },
+            { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
+          );
+          const assistantMessage = createAssistantMessage({ role: 'assistant', content: response.data.response });
+          setMessages(prev => [...prev, assistantMessage]);
+          return response.data;
+        }
+      });
     } catch (error) {
       console.error('Error:', error);
       const errorMsg = error.response?.data?.detail || 'Something went wrong. Please try again.';
@@ -267,37 +266,115 @@ What would you like to do?`,
     }
   };
 
-  const detectAndExecuteAction = async (message) => {
-    const lowerMsg = message.toLowerCase();
-    
-    // Detect create order intent first
-    if (lowerMsg.includes('create') && lowerMsg.includes('order')) {
-      return await handleCreateOrderIntent(message);
+  const routeClassifiedIntent = async (intent, classified, rawMessage, source) => {
+    // The backend returned a classified write intent. Build a preview for the user.
+    if (classified?.needs_more_info) {
+      return createAssistantMessage({
+        role: 'assistant',
+        content: classified.question || 'I need a bit more info — can you clarify?',
+      });
     }
 
-    // Detect create job intent
-    if (lowerMsg.includes('create') && (lowerMsg.includes('job') || lowerMsg.includes('work order') || lowerMsg.includes('order'))) {
-      return await handleCreateJobIntent(message);
+    const params = classified?.parameters || {};
+
+    switch (intent) {
+      case 'create_order':
+      case 'create_job': {
+        if (!params.customer_name && !params.company_name) {
+          return createAssistantMessage({
+            role: 'assistant',
+            content: 'Who is this order for? Please give me a customer name or company.',
+          });
+        }
+        setPendingAction({
+          type: 'create_order',
+          params,
+          source,
+          description: `Create order for ${params.customer_name || params.company_name}`,
+        });
+        return createAssistantMessage({
+          role: 'assistant',
+          content: `I'll create this order:\n\n**Customer:** ${params.customer_name || params.company_name}\n**Due Date:** ${params.requested_due_date || 'Not set'}\n**Notes:** ${params.description || 'None'}\n\nShould I create this order?`,
+          actions: [
+            { id: 'assistant-confirm-create-order', label: 'Yes, create it', action: 'confirm', variant: 'default' },
+            { id: 'assistant-cancel-create-order', label: 'No, cancel', action: 'cancel', variant: 'outline' },
+          ],
+        });
+      }
+
+      case 'create_calendar_event': {
+        if (!params.title || !params.date) {
+          return createAssistantMessage({
+            role: 'assistant',
+            content: 'What should the appointment be titled, and what date and time?',
+          });
+        }
+        setPendingAction({
+          type: 'create_calendar_event',
+          params,
+          source,
+          description: `Schedule "${params.title}" on ${params.date}`,
+        });
+        return createAssistantMessage({
+          role: 'assistant',
+          content: `I'll schedule this appointment:\n\n**Title:** ${params.title}\n**Date:** ${params.date}\n**Time:** ${params.time || 'TBD'}\n**Customer:** ${params.customer_name || 'N/A'}\n\nShould I create it?`,
+          actions: [
+            { id: 'assistant-confirm-create-event', label: 'Yes, schedule it', action: 'confirm', variant: 'default' },
+            { id: 'assistant-cancel-create-event', label: 'No, cancel', action: 'cancel', variant: 'outline' },
+          ],
+        });
+      }
+
+      case 'create_invoice': {
+        // Invoices now REQUIRE an order_id — cannot be fabricated from scratch.
+        if (!params.order_id && !params.order_number) {
+          return createAssistantMessage({
+            role: 'assistant',
+            content: 'To generate an invoice I need a specific order. Which order number should I invoice? (e.g., "invoice ORD-0042")',
+          });
+        }
+        setPendingAction({
+          type: 'create_invoice',
+          params,
+          source,
+          description: `Create invoice for order ${params.order_number || params.order_id}`,
+        });
+        return createAssistantMessage({
+          role: 'assistant',
+          content: `I'll create an invoice for **${params.order_number || params.order_id}**. This pulls in all the order's line items.\n\nConfirm?`,
+          actions: [
+            { id: 'assistant-confirm-create-invoice', label: 'Yes, create invoice', action: 'confirm', variant: 'default' },
+            { id: 'assistant-cancel-create-invoice', label: 'No, cancel', action: 'cancel', variant: 'outline' },
+          ],
+        });
+      }
+
+      case 'log_time_entry': {
+        if (!params.hours) {
+          return createAssistantMessage({
+            role: 'assistant',
+            content: 'How many hours should I log, and for which order?',
+          });
+        }
+        setPendingAction({
+          type: 'log_time_entry',
+          params,
+          source,
+          description: `Log ${params.hours} hours for ${params.job_name || 'job'}`,
+        });
+        return createAssistantMessage({
+          role: 'assistant',
+          content: `I'll log this time entry:\n\n**Hours:** ${params.hours}\n**Order:** ${params.job_name || 'TBD'}\n**Task:** ${params.task || 'General work'}\n\nShould I log it?`,
+          actions: [
+            { id: 'assistant-confirm-log-time', label: 'Yes, log it', action: 'confirm', variant: 'default' },
+            { id: 'assistant-cancel-log-time', label: 'No, cancel', action: 'cancel', variant: 'outline' },
+          ],
+        });
+      }
+
+      default:
+        return null; // Unknown intent — fall through to chat
     }
-    
-    // Detect create appointment/event intent
-    if ((lowerMsg.includes('schedule') || lowerMsg.includes('create') || lowerMsg.includes('add')) && 
-        (lowerMsg.includes('appointment') || lowerMsg.includes('meeting') || lowerMsg.includes('event'))) {
-      return await handleCreateAppointmentIntent(message);
-    }
-    
-    // Detect create invoice intent
-    if (lowerMsg.includes('create') && lowerMsg.includes('invoice')) {
-      return await handleCreateInvoiceIntent(message);
-    }
-    
-    // Detect log time intent
-    if ((lowerMsg.includes('log') || lowerMsg.includes('add') || lowerMsg.includes('record')) && 
-        (lowerMsg.includes('time') || lowerMsg.includes('hours'))) {
-      return await handleLogTimeIntent(message);
-    }
-    
-    return null; // No action detected, use regular chat
   };
 
   const runParseAction = async (message, actionType) => {
@@ -315,160 +392,11 @@ What would you like to do?`,
     });
   };
 
-  const handleCreateJobIntent = async (message) => {
-    try {
-      // Use AI to parse the job details
-      const parsed = await runParseAction(message, 'create_job');
-      if (!parsed) return null;
-      
-      if (parsed.needs_more_info) {
-        return {
-          role: 'assistant',
-          content: parsed.question || "I'd like to create an order for you. Could you tell me:\n• Customer name\n• Order name/description\n• Any specific details?"
-        };
-      }
-      
-      // We have enough info - ask for confirmation
-      setPendingAction({
-        type: 'create_job',
-        params: parsed.parameters,
-        description: `Create job "${parsed.parameters.name}" for ${parsed.parameters.customer_name || 'customer'}`
-      });
-      
-      return createAssistantMessage({
-        role: 'assistant',
-        content: `I'll create this order for you:\n\n**Order:** ${parsed.parameters.name}\n**Customer:** ${parsed.parameters.customer_name || 'TBD'}\n**Description:** ${parsed.parameters.description || 'N/A'}\n\nShould I create this order?`,
-        actions: [
-          { id: 'assistant-confirm-create-job', label: 'Yes, create it', action: 'confirm', variant: 'default' },
-          { id: 'assistant-cancel-create-job', label: 'No, cancel', action: 'cancel', variant: 'outline' }
-        ]
-      });
-    } catch (err) {
-      console.error('Error parsing job:', err);
-      return {
-        role: 'assistant',
-        content: "I'd like to create a job for you. Could you tell me the job name and customer?"
-      };
-    }
-  };
-
-  const handleCreateOrderIntent = async (message) => {
-    try {
-      const parsed = await runParseAction(message, 'create_order');
-      if (!parsed) return null;
-
-      if (parsed.needs_more_info) {
-        return {
-          role: 'assistant',
-          content: parsed.question || 'Who is this order for, and do you have a due date or any quick notes for it?'
-        };
-      }
-
-      setPendingAction({
-        type: 'create_order',
-        params: parsed.parameters,
-        description: `Create order for ${parsed.parameters.customer_name}`
-      });
-
-      return createAssistantMessage({
-        role: 'assistant',
-        content: `I'll create this order for you:\n\n**Customer:** ${parsed.parameters.customer_name}\n**Due Date:** ${parsed.parameters.requested_due_date || 'Not set'}\n**Notes:** ${parsed.parameters.description || 'None'}\n\nShould I create this order?`,
-        actions: [
-          { id: 'assistant-confirm-create-order', label: 'Yes, create it', action: 'confirm', variant: 'default' },
-          { id: 'assistant-cancel-create-order', label: 'No, cancel', action: 'cancel', variant: 'outline' }
-        ]
-      });
-    } catch (err) {
-      console.error('Error parsing order:', err);
-      return {
-        role: 'assistant',
-        content: 'I can create an order for you. Who is it for, and do you want to include a due date or short note?'
-      };
-    }
-  };
-
-  const handleCreateAppointmentIntent = async (message) => {
-    try {
-      const parsed = await runParseAction(message, 'create_calendar_event');
-      if (!parsed) return null;
-      
-      if (parsed.needs_more_info) {
-        return {
-          role: 'assistant',
-          content: parsed.question || "I can schedule an appointment. What details do you have?\n• Title/purpose\n• Date and time\n• Customer (optional)"
-        };
-      }
-      
-      setPendingAction({
-        type: 'create_calendar_event',
-        params: parsed.parameters,
-        description: `Schedule "${parsed.parameters.title}" on ${parsed.parameters.date}`
-      });
-      
-      return createAssistantMessage({
-        role: 'assistant',
-        content: `I'll schedule this appointment:\n\n**Title:** ${parsed.parameters.title}\n**Date:** ${parsed.parameters.date}\n**Time:** ${parsed.parameters.time || 'TBD'}\n\nShould I create this appointment?`,
-        actions: [
-          { id: 'assistant-confirm-create-event', label: 'Yes, schedule it', action: 'confirm', variant: 'default' },
-          { id: 'assistant-cancel-create-event', label: 'No, cancel', action: 'cancel', variant: 'outline' }
-        ]
-      });
-    } catch (err) {
-      console.error('Error parsing appointment:', err);
-      return {
-        role: 'assistant',
-        content: "I can schedule an appointment. What's it for and when would you like to schedule it?"
-      };
-    }
-  };
-
-  const handleCreateInvoiceIntent = async (message) => {
-    return {
-      role: 'assistant',
-      content: "To create an invoice, I need a bit more info:\n• Which customer is this for?\n• Is it for an existing job, or a new charge?\n\nOr you can go to **Invoices → New Invoice** for the full form."
-    };
-  };
-
-  const handleLogTimeIntent = async (message) => {
-    try {
-      const parsed = await runParseAction(message, 'log_time_entry');
-      if (!parsed) return null;
-      
-      if (parsed.needs_more_info) {
-        return {
-          role: 'assistant',
-          content: parsed.question || "I can log time for you. Tell me:\n• Which job?\n• How many hours?\n• What task?"
-        };
-      }
-      
-      setPendingAction({
-        type: 'log_time_entry',
-        params: parsed.parameters,
-        description: `Log ${parsed.parameters.hours} hours for ${parsed.parameters.job_name || 'job'}`
-      });
-      
-      return createAssistantMessage({
-        role: 'assistant',
-        content: `I'll log this time entry:\n\n**Hours:** ${parsed.parameters.hours}\n**Order:** ${parsed.parameters.job_name || 'TBD'}\n**Task:** ${parsed.parameters.task || 'General work'}\n\nShould I log this?`,
-        actions: [
-          { id: 'assistant-confirm-log-time', label: 'Yes, log it', action: 'confirm', variant: 'default' },
-          { id: 'assistant-cancel-log-time', label: 'No, cancel', action: 'cancel', variant: 'outline' }
-        ]
-      });
-    } catch (err) {
-      console.error('Error parsing time entry:', err);
-      return {
-        role: 'assistant',
-        content: "I can log time for you. Which job is it for and how many hours?"
-      };
-    }
-  };
-
   const handleActionButton = async (action) => {
     if (action === 'send_transcript' && pendingTranscript) {
       const transcript = pendingTranscript;
       setPendingTranscript(null);
-      handleSend(transcript);
+      handleSend(transcript, 'voice');
       return;
     }
     if (action === 'edit_transcript' && pendingTranscript) {
@@ -489,7 +417,8 @@ What would you like to do?`,
           {
             action_type: pendingAction.type,
             parameters: pendingAction.params,
-            confirmed: true
+            confirmed: true,
+            source: pendingAction.source || 'text',
           },
           { headers: { 'Authorization': `Bearer ${token}` } }
         );

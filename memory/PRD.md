@@ -19,6 +19,22 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
+### Session: Feb 2026 — Business Assistant Phase 1 (Dangerous Wiring & Safety)
+- **Schema-mismatch write handlers rewritten** in `backend/services/ai_assistant_actions.py`:
+  - `_handle_create_order` — now uses the canonical `Order` Pydantic model, runs the same `_next_order_number` logic as `routes/orders.py`, auto-creates leads when needed, writes to real `orders` + `order_activities` collections, validates `pickup_delivery_method` against the enum, and returns `navigate_to` path.
+  - `_handle_create_job` — **deprecated as separate path**; now an alias to `_handle_create_order`. Eliminates orphan records in `db.jobs` that were invisible to the Orders / Production / Invoicing pipeline.
+  - `_handle_create_invoice` — **now requires `order_id`**; pulls real `job_tickets`, builds `line_items` with `job_item_id` linkage, links invoice back to the order (`linked_invoice_ids`), writes `order_activities` log entry. Rejects fabricated no-order invoices with a clear error.
+  - `_handle_create_calendar_event` — rewritten to write to the canonical `db.appointments` collection (used by `/api/appointments` + Schedule), with `AppointmentType` / `AppointmentStatus` enum validation and customer resolution.
+- **Voice-safety rule**: new `WRITE_ACTIONS` set + `source` field on `ActionRequest` / `ExecuteActionRequest`. When `source == "voice"` ALL write actions require confirmation (not just the destructive subset). Prevents misheard voice commands from creating records silently.
+- **Frontend regex intent detection removed** (`FloatingAssistant.js`). `detectAndExecuteAction` and 5 per-intent handlers deleted. Single classifier path: `/assistant/parse-action?action_type=auto` → LLM returns `{intent, parameters, needs_more_info, question}`. Frontend routes to confirmation UI or chat based on intent.
+- **Auto-classify** added to `parse_action_intent` in `backend/routes/ai.py`. New branch handles `action_type == "auto"` with JSON-shaped output covering 6 intents.
+- **Verified via curl**:
+  - auto-classify extracts company_name/due_date from "create an order for Acme Corp due Friday"
+  - AI-created orders land in `/api/orders`, use real `ORD-####` numbers, match canonical schema
+  - `source="voice"` forces `pending_confirmation`, `source="text"` executes
+  - `create_invoice` without `order_id` → clear 400-style error
+  - `create_invoice` with real `order_id` + tickets → INV-##### at correct total, navigate_to populated
+
 ### Session: Feb 2026 (New Order Code Review — Full Sweep: C1–C3, H1–H5, M1/M2/M4/M6/M7, L1/L2/L9/L11/L12)
 - Completed comprehensive code review of the New Order lifecycle (`NewOrderForm.js`, `AddOrderItemMenu.js`, `CloneItemDialog.js`, `SharedContextPanel.js`, `LivePricingPreview.js`, `DynamicCategoryFields.js`, `orders.py`, `job_tickets.py`, `workflow_engine.py`). Documented 3 Critical, 5 High, 7 Medium, 12 Low findings and fixed 18 of them.
 - **Criticals:** C1 (shared-context fields added to `OrderCreate`), C2 (manual-price preservation on ticket update), C3 (category enum drift `promotional`→`promo_misc`), plus Jobs.js EOF syntax error.

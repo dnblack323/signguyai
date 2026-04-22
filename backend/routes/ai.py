@@ -1865,6 +1865,7 @@ class ExecuteActionRequest(BaseModel):
     action_type: str  # ActionType enum value
     parameters: Dict[str, Any]
     confirmed: bool = False  # Set to True to skip confirmation
+    source: str = "text"  # "text" | "voice" — voice writes always require confirmation
 
 
 class ConfirmActionRequest(BaseModel):
@@ -1912,7 +1913,8 @@ async def execute_assistant_action(
     
     action_request = ActionRequest(
         action_type=action_type,
-        parameters=data.parameters
+        parameters=data.parameters,
+        source=data.source,
     )
     
     response = await actions.execute_action(
@@ -2162,7 +2164,34 @@ async def parse_action_intent(
     job_names = [j['name'] for j in active_jobs]
     
     # Build parsing prompt based on action type
-    if data.action_type == "create_order":
+    if data.action_type == "auto":
+        system_prompt = f"""You classify a user's message into one of these intents and, where possible, extract parameters.
+
+Intents (return exactly one of these for `intent`):
+- chat — general question or advice (no DB write needed)
+- create_order — user wants to start a new order/job ticket (includes "create a job", "new order", "log a work order")
+- create_calendar_event — user wants to schedule an appointment / meeting / install / consultation
+- create_invoice — user wants to generate an invoice from an existing order
+- log_time_entry — user wants to log hours/time
+- update_job_status — user wants to mark a job or order as complete/in progress/etc.
+
+Known customers: {', '.join(customer_names[:10]) if customer_names else 'None yet'}
+
+Return JSON shaped like:
+{{"intent": "<intent>", "parameters": {{...extracted fields...}}, "needs_more_info": false, "question": null}}
+
+If a write intent is detected but required fields are missing, use:
+{{"intent": "<intent>", "needs_more_info": true, "question": "<one concise follow-up question>"}}
+
+For create_order parameters, try to extract: customer_name, company_name, description, requested_due_date (YYYY-MM-DD), pickup_delivery_method (pickup/delivery/install/ship/undecided).
+For create_calendar_event: title, date (YYYY-MM-DD), time (HH:MM), duration_minutes, location, event_type (appointment/meeting/installation/consultation/other), customer_name.
+For create_invoice: order_id (if the user named a specific order), order_number, customer_name, notes.
+For log_time_entry: hours, job_name, task, date (YYYY-MM-DD), billable.
+For update_job_status: job_name or order_number, status (pending/in_progress/production/completed/on_hold/cancelled).
+
+Respond ONLY with valid JSON, nothing else."""
+
+    elif data.action_type == "create_order":
         system_prompt = f"""You are a parsing assistant. Extract order details from the user's message.
 
 Known customers: {', '.join(customer_names[:10]) if customer_names else 'None yet'}
