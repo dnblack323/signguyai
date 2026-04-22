@@ -1510,7 +1510,10 @@ async def update_job_ticket(ticket_id: str, data: JobTicketUpdate, current_user:
     should_refresh_pricing = any(field in update_data for field in {"specs", "item_category", "quantity"}) and pricing_mode != "manual"
     if should_refresh_pricing:
         merged = {**existing, **update_data}
-        if update_data.get("estimated_price", merged.get("estimated_price", 0)) <= 0 or pricing_mode != "manual":
+        # Only auto-recalculate when no manual price is set. If the user (or
+        # existing record) already has a positive estimated_price, preserve it.
+        effective_price = update_data.get("estimated_price", merged.get("estimated_price", 0)) or 0
+        if effective_price <= 0:
             snapshot = await _calculate_ticket_snapshot(merged, current_user.tenant_id)
             if snapshot:
                 update_data.update(snapshot)

@@ -48,7 +48,7 @@ const TARGET_CATEGORIES = [
   { value: 'vehicle_wrap', label: 'Vehicle Wraps' },
   { value: 'apparel', label: 'Apparel' },
   { value: 'services', label: 'Services' },
-  { value: 'promotional', label: 'Promotional Items' },
+  { value: 'promo_misc', label: 'Promotional Items' },
   { value: 'custom', label: 'Custom' },
 ];
 
