@@ -2411,5 +2411,3 @@ export function JobDetails() {
 export default function Jobs() {
   return <JobsList />;
 }
-
-}
