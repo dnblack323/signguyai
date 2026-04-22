@@ -2165,29 +2165,43 @@ async def parse_action_intent(
     
     # Build parsing prompt based on action type
     if data.action_type == "auto":
-        system_prompt = f"""You classify a user's message into one of these intents and, where possible, extract parameters.
+        system_prompt = f"""You classify a sign-shop operator's message into ONE intent. Two families:
 
-Intents (return exactly one of these for `intent`):
+WRITE intents (modify data):
 - chat — general question or advice (no DB write needed)
-- create_order — user wants to start a new order/job ticket (includes "create a job", "new order", "log a work order")
+- create_order — user wants to start a new order/job ticket (includes "create a job", "new order")
 - create_calendar_event — user wants to schedule an appointment / meeting / install / consultation
 - create_invoice — user wants to generate an invoice from an existing order
 - log_time_entry — user wants to log hours/time
 - update_job_status — user wants to mark a job or order as complete/in progress/etc.
 
+QUERY intents (read live data — return current shop info):
+- overdue_invoices — "who owes me money", "show overdue invoices"
+- ar_by_customer — "which customers owe the most", "balances by customer"
+- jobs_due — "what's due today/tomorrow/this week/Friday"
+- artwork_pending — "what's waiting on artwork/proof/approval"
+- employee_hours — "who worked the most this week", "how many hours did John work last week"
+- production_load — "production load tomorrow", "how busy are we Friday"
+- jobs_in_production — "what's in production right now"
+- revenue — "how much did we make this week", "revenue last month" (set filters.comparison='prior' if comparing periods)
+- revenue_by_source — "webstore vs invoice revenue", "what came through Stripe"
+- top_categories — "top-selling categories this month", "order mix this quarter"
+
 Known customers: {', '.join(customer_names[:10]) if customer_names else 'None yet'}
 
-Return JSON shaped like:
-{{"intent": "<intent>", "parameters": {{...extracted fields...}}, "needs_more_info": false, "question": null}}
+Return JSON:
+{{"intent": "<intent>", "parameters": {{...write fields...}}, "filters": {{"date_phrase": "today|tomorrow|yesterday|this week|last week|next week|this month|last month|this quarter|<weekday>|next <weekday>|YYYY-MM-DD", "employee_name": null, "customer_name": null, "comparison": "prior" | null}}, "needs_more_info": false, "question": null}}
 
-If a write intent is detected but required fields are missing, use:
-{{"intent": "<intent>", "needs_more_info": true, "question": "<one concise follow-up question>"}}
-
-For create_order parameters, try to extract: customer_name, company_name, description, requested_due_date (YYYY-MM-DD), pickup_delivery_method (pickup/delivery/install/ship/undecided).
-For create_calendar_event: title, date (YYYY-MM-DD), time (HH:MM), duration_minutes, location, event_type (appointment/meeting/installation/consultation/other), customer_name.
-For create_invoice: order_id (if the user named a specific order), order_number, customer_name, notes.
-For log_time_entry: hours, job_name, task, date (YYYY-MM-DD), billable.
-For update_job_status: job_name or order_number, status (pending/in_progress/production/completed/on_hold/cancelled).
+Rules:
+- For QUERY intents, fill `filters` (leave `parameters` as {{}}).
+- For WRITE intents, fill `parameters` (leave `filters` as {{}}).
+- If a required field is missing or a date is ambiguous, set needs_more_info=true and question="<concise follow-up>".
+- WRITE parameter hints:
+  - create_order: customer_name, company_name, description, requested_due_date (YYYY-MM-DD), pickup_delivery_method (pickup/delivery/install/ship/undecided).
+  - create_calendar_event: title, date (YYYY-MM-DD), time (HH:MM), duration_minutes, location, event_type (appointment/meeting/installation/consultation/other), customer_name.
+  - create_invoice: order_id (if user named a specific order), order_number, customer_name, notes.
+  - log_time_entry: hours, job_name, task, date (YYYY-MM-DD), billable.
+  - update_job_status: job_name or order_number, status (pending/in_progress/production/completed/on_hold/cancelled).
 
 Respond ONLY with valid JSON, nothing else."""
 
@@ -2610,3 +2624,181 @@ async def services_ai_prefill(
         "reasoning": None,
     }
 
+
+
+# ============================================================================
+# Phase 2 — Business Assistant Live Queries
+# ============================================================================
+from services.assistant_queries import (  # noqa: E402
+    run_query as _run_assistant_query,
+    parse_date_phrase as _parse_date_phrase,
+    QUERY_PERMISSIONS,
+)
+from models.auth import user_has_permission  # noqa: E402
+
+SUPPORTED_QUERY_TYPES = set(QUERY_PERMISSIONS.keys())
+
+
+class AssistantQueryRequest(BaseModel):
+    """Live-query request. Either provide a `query_type` + `filters`, OR a
+    natural-language `message` that the LLM should classify into one of the
+    supported intents."""
+    message: Optional[str] = None
+    query_type: Optional[str] = None
+    filters: Dict[str, Any] = {}
+
+
+async def _classify_query_intent(message: str, tenant_id: str) -> Dict[str, Any]:
+    """LLM-classify a natural-language question into one of the supported
+    query types, extracting basic filters. Returns a dict shaped:
+
+    {"query_type": "...", "filters": {...}, "needs_more_info": bool, "question": "..."}
+
+    If the message is not a live-data question we mark query_type='chat'.
+    """
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    import json as _json
+    import re as _re
+
+    system_prompt = (
+        "You classify sign-shop operator questions into a live-data query intent. "
+        "Supported intents: overdue_invoices, ar_by_customer, jobs_due, "
+        "artwork_pending, employee_hours, production_load, jobs_in_production, "
+        "revenue, revenue_by_source, top_categories, chat.\n\n"
+        "Return ONLY valid JSON:\n"
+        "{\n"
+        "  \"query_type\": \"<one of above>\",\n"
+        "  \"filters\": {\"date_phrase\": \"today|tomorrow|yesterday|this week|last week|next week|this month|last month|this quarter|next friday|<weekday>|YYYY-MM-DD\", \"employee_id\": null, \"customer_id\": null, \"comparison\": \"prior\" | null},\n"
+        "  \"needs_more_info\": false,\n"
+        "  \"question\": null\n"
+        "}\n\n"
+        "Rules:\n"
+        "- If the question is unrelated to live business data (general advice, pricing how-tos, etc.) use query_type=chat.\n"
+        "- For revenue/comparison questions (‘this week vs last week’), set filters.comparison='prior'.\n"
+        "- For employee-specific hours, set employee_id=null and keep the name in filters.employee_name so the server can resolve it.\n"
+        "- If a date is required but missing/ambiguous, set needs_more_info=true and provide a concise question.\n"
+    )
+    try:
+        chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"query_classify_{uuid.uuid4()}", system_message=system_prompt)
+        chat.with_model("openai", "gpt-4o-mini")
+        resp = await chat.send_message(UserMessage(text=message))
+        raw = resp.strip()
+        m = _re.search(r"\{.*\}", raw, _re.DOTALL)
+        payload = _json.loads(m.group(0)) if m else _json.loads(raw)
+    except Exception as exc:
+        logger.warning("query classifier failed for tenant %s: %s", tenant_id, exc)
+        payload = {"query_type": "chat", "filters": {}, "needs_more_info": False, "question": None}
+    payload["filters"] = payload.get("filters") or {}
+    return payload
+
+
+@router.post("/assistant/query")
+async def assistant_query(
+    data: AssistantQueryRequest,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Run a typed live-data query for the Business Assistant.
+
+    Usage modes:
+      1) {"query_type": "overdue_invoices"} — direct typed query (no LLM cost).
+      2) {"message": "what jobs are due tomorrow?"} — LLM classifies, server runs.
+    """
+    # Mode 1: direct typed query
+    if data.query_type and data.query_type in SUPPORTED_QUERY_TYPES:
+        perm = QUERY_PERMISSIONS.get(data.query_type)
+        if perm and not user_has_permission(current_user.role, perm):
+            raise HTTPException(
+                status_code=403,
+                detail=f"Your role ({current_user.role.value}) cannot run '{data.query_type}'. Missing permission: {perm.value}.",
+            )
+        return await _run_assistant_query(db, current_user.tenant_id, data.query_type, data.filters or {})
+
+    # Mode 2: natural-language — classify first (costs a credit), then run.
+    if not data.message or not data.message.strip():
+        raise HTTPException(status_code=400, detail="Either `query_type` or `message` is required")
+
+    preview = await preview_credit_usage(db, current_user.tenant_id, "assistant_query_classify")
+    if not preview["sufficient_credits"]:
+        raise HTTPException(
+            status_code=402,
+            detail=f"Insufficient credits to classify query. Need {preview['credit_cost']}, have {preview['total_credits']}.",
+        )
+
+    classified = await _classify_query_intent(data.message, current_user.tenant_id)
+
+    await deduct_credits_after_success(
+        db,
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id,
+        action_type="assistant_query_classify",
+        module="Business Assistant",
+        feature_name="assistant_query_classify",
+        metadata={"intent": classified.get("query_type")},
+    )
+
+    query_type = classified.get("query_type") or "chat"
+
+    if query_type == "chat":
+        return {
+            "query_type": "chat",
+            "summary": "That looks like a general question rather than a live-data query. I'll answer it conversationally instead.",
+            "metrics": [],
+            "rows": [],
+            "suggested_actions": [],
+            "needs_more_info": False,
+            "classified": classified,
+        }
+
+    if classified.get("needs_more_info"):
+        return {
+            "query_type": query_type,
+            "summary": classified.get("question") or "Can you clarify which date range you mean?",
+            "metrics": [],
+            "rows": [],
+            "suggested_actions": [],
+            "needs_more_info": True,
+            "classified": classified,
+        }
+
+    if query_type not in SUPPORTED_QUERY_TYPES:
+        return {
+            "query_type": query_type,
+            "summary": f"I don't have a live-data query for '{query_type}' yet.",
+            "metrics": [],
+            "rows": [],
+            "suggested_actions": [],
+            "needs_more_info": False,
+            "classified": classified,
+        }
+
+    # Permission check.
+    perm = QUERY_PERMISSIONS.get(query_type)
+    if perm and not user_has_permission(current_user.role, perm):
+        return {
+            "query_type": query_type,
+            "summary": f"Your role ({current_user.role.value}) cannot view this data. Missing permission: {perm.value}.",
+            "metrics": [],
+            "rows": [],
+            "suggested_actions": [],
+            "needs_more_info": False,
+            "classified": classified,
+        }
+
+    # Resolve employee_name → employee_id if the classifier provided only a name.
+    filters = dict(classified.get("filters") or {})
+    emp_name = filters.pop("employee_name", None)
+    if emp_name and not filters.get("employee_id"):
+        emp = await db.employees.find_one(
+            {"tenant_id": current_user.tenant_id,
+             "$or": [
+                 {"name": {"$regex": f"^{emp_name}$", "$options": "i"}},
+                 {"first_name": {"$regex": f"^{emp_name}$", "$options": "i"}},
+             ]},
+            {"_id": 0, "id": 1},
+        )
+        if emp:
+            filters["employee_id"] = emp["id"]
+
+    result = await _run_assistant_query(db, current_user.tenant_id, query_type, filters)
+    result["classified"] = classified
+    return result

@@ -12,8 +12,16 @@ import {
 import { toast } from 'sonner';
 import axios from 'axios';
 import { useAICreditGuard } from './credits/AICreditConfirmationDialog';
+import AssistantQueryResult from './assistant/AssistantQueryResult';
+import { useNavigate } from 'react-router-dom';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+const QUERY_INTENTS = new Set([
+  'overdue_invoices', 'ar_by_customer', 'jobs_due', 'artwork_pending',
+  'employee_hours', 'production_load', 'jobs_in_production',
+  'revenue', 'revenue_by_source', 'top_categories',
+]);
 
 // Quick action suggestions based on context
 const quickActions = [
@@ -31,6 +39,7 @@ const createAssistantMessage = (message) => ({ id: `assistant-message-${assistan
 export default function FloatingAssistant() {
   const { token, user } = useAuth();
   const { runGuardedAction, dialog: creditDialog } = useAICreditGuard();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState([
@@ -230,7 +239,16 @@ What would you like to do?`,
       const classified = await runParseAction(messageText, 'auto');
       const intent = classified?.intent || 'chat';
 
-      if (intent !== 'chat') {
+      // Phase 2: query intents (read live data) route to /assistant/query.
+      if (QUERY_INTENTS.has(intent)) {
+        const queryResult = await runQueryIntent(intent, classified?.filters || {});
+        if (queryResult) {
+          setMessages(prev => [...prev, queryResult]);
+          return;
+        }
+      }
+
+      if (intent !== 'chat' && !QUERY_INTENTS.has(intent)) {
         const actionResult = await routeClassifiedIntent(intent, classified, messageText, source);
         if (actionResult) {
           setMessages(prev => [...prev, actionResult]);
@@ -263,6 +281,38 @@ What would you like to do?`,
       setMessages(prev => [...prev, createAssistantMessage({ role: 'assistant', content: `Sorry, ${errorMsg}`, isError: true })]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const runQueryIntent = async (queryType, filters) => {
+    return await runGuardedAction({
+      actionType: 'assistant_query',
+      featureName: `Business Assistant live query: ${queryType}`,
+      execute: async () => {
+        const resp = await axios.post(
+          `${API_URL}/api/ai/assistant/query`,
+          { query_type: queryType, filters: filters || {} },
+          { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
+        );
+        return createAssistantMessage({
+          role: 'assistant',
+          queryResult: resp.data,
+        });
+      },
+    });
+  };
+
+  const handleQueryActionClick = (a) => {
+    if (!a) return;
+    if (a.action === 'navigate' && a.target) {
+      setIsOpen(false);
+      navigate(a.target);
+      return;
+    }
+    if (a.action === 'assistant_action') {
+      // Phase 2: surface that follow-up actions aren't wired yet; don't fake success.
+      toast.info(`"${a.label}" is not wired up yet — I can show this data, but the follow-up action will land in a later phase.`);
+      return;
     }
   };
 
@@ -562,6 +612,11 @@ What would you like to do?`,
                     </div>
                   )}
                   <div className="flex flex-col gap-2 max-w-[80%]">
+                    {message.queryResult ? (
+                      <div className="rounded-xl px-3 py-2 text-sm bg-slate-100 text-slate-800">
+                        <AssistantQueryResult data={message.queryResult} onActionClick={handleQueryActionClick} />
+                      </div>
+                    ) : (
                     <div
                       className={`rounded-xl px-3 py-2 text-sm ${
                         message.role === 'user'
@@ -589,6 +644,7 @@ What would you like to do?`,
                         })}
                       </div>
                     </div>
+                    )}
                     {/* Action buttons */}
                     {message.actions && (
                       <div className="flex gap-2">

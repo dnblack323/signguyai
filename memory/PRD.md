@@ -19,6 +19,46 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
+### Session: Feb 2026 — Business Assistant Phase 2 (Live Query Capability)
+
+**New endpoint:** `POST /api/ai/assistant/query`
+- Mode 1: `{query_type, filters}` → direct typed query, no LLM cost.
+- Mode 2: `{message}` → LLM classifies (gpt-4o-mini), then runs.
+
+**New service:** `backend/services/assistant_queries.py`
+- `parse_date_phrase()` — natural date parser (today / tomorrow / yesterday / this week / last week / next week / this month / last month / this quarter / weekday / next weekday / YYYY-MM-DD / range). Fixed "next Friday" semantics (always a week+ out).
+- 10 typed query functions, all tenant-scoped, all using the same collections the rest of the app uses:
+  - `query_overdue_invoices` — `db.invoices` filtered by status + due_date + balance.
+  - `query_ar_by_customer` — aggregates overdue by customer.
+  - `query_jobs_due(start, end)` — `db.orders.requested_due_date`, excluding completed/cancelled.
+  - `query_artwork_pending` — `db.job_tickets.status ∈ {awaiting_proof, awaiting_approval, awaiting_info}`.
+  - `query_employee_hours(start, end, employee_id=None)` — `db.payroll_hours`, tenant-scoped through employees list.
+  - `query_production_load(start, end)` — `db.job_tickets` active items grouped by stage + category + unassigned count.
+  - `query_jobs_in_production` — active `db.job_tickets.status=in_production`.
+  - `query_revenue(start, end, comparison)` — paid `db.invoices.amount_paid` (matches dashboard). Optional prior-period comparison with % change.
+  - `query_revenue_by_source(start, end)` — splits by `invoice.source` (webstore/invoice/stripe/...).
+  - `query_top_categories(start, end)` — aggregates `db.job_tickets.item_category` + `estimated_price`.
+
+**Uniform response shape:** `{query_type, summary, metrics, rows, suggested_actions, filters_used}`.
+
+**Permissions:** `QUERY_PERMISSIONS` maps each query to a `Permission` enum; `/assistant/query` checks via `user_has_permission(role, perm)`. Financial queries require `FINANCIALS_VIEW`, hours require `TIME_CLOCK_VIEW_ALL`, invoices require `INVOICES_VIEW`, jobs require `JOBS_VIEW`. STAFF role returns a permission-denied summary instead of the data (does not 500).
+
+**LLM classifier extension:** `parse-action?action_type=auto` now recognizes both write intents and all 10 query intents in a single call, returning `{intent, parameters, filters, needs_more_info, question}`.
+
+**Frontend wiring:**
+- `frontend/src/components/assistant/AssistantQueryResult.js` — new component rendering summary + KPI metric grid + compact rows table + suggested-action pill buttons.
+- `FloatingAssistant.js`: new `QUERY_INTENTS` set; `handleSend` routes query intents to `runQueryIntent` → `/assistant/query` → message with `queryResult` shape. Query "navigate" actions call `useNavigate` and close the widget; "assistant_action" items (bulk ops) show a "not wired yet" toast honestly instead of faking success.
+
+**End-to-end verified via curl:**
+- Direct typed: overdue_invoices, ar_by_customer, artwork_pending, jobs_in_production, jobs_due(this week), employee_hours(this month), revenue(this month + prior comparison), revenue_by_source, top_categories (returned real data: vehicle_wrap $5,695.94), production_load(today).
+- Natural-language classification: "Who owes me money?" → overdue_invoices ✓. "What jobs are due tomorrow?" → jobs_due with correct range. "What is waiting on artwork approval?" → artwork_pending. "Who worked the most hours this week?" → employee_hours. "How much did we make this month?" → revenue. "What were our top-selling categories this month?" → top_categories. "Show production load for next monday" → production_load with correct date.
+- Missing-filters: jobs_due with no dates returns the honest clarification question; empty request returns 400.
+
+**Unsupported queries still remaining:**
+- Stripe-specific query (the stub maps to `revenue_by_source` today because `invoice.source` is the best available field; a dedicated Stripe payouts query would require the payouts collection).
+- "Payouts that hit" — no current data source wired; intentionally excluded.
+- Bulk follow-up actions (send reminders, export report) — frontend now surfaces these as pills, but clicking says "not wired yet" (future phase).
+
 ### Session: Feb 2026 — Business Assistant Phase 1 (Dangerous Wiring & Safety)
 - **Schema-mismatch write handlers rewritten** in `backend/services/ai_assistant_actions.py`:
   - `_handle_create_order` — now uses the canonical `Order` Pydantic model, runs the same `_next_order_number` logic as `routes/orders.py`, auto-creates leads when needed, writes to real `orders` + `order_activities` collections, validates `pickup_delivery_method` against the enum, and returns `navigate_to` path.
