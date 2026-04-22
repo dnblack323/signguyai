@@ -1,7 +1,7 @@
 # SignGuy AI - Product Requirements Document
 
-> **Last Updated:** April 20, 2026
-> **Version:** 7.3
+> **Last Updated:** Feb, 2026
+> **Version:** 7.4
 
 ---
 
@@ -18,6 +18,12 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 ---
 
 ## What's Been Implemented
+
+### Session: Feb 2026 (New Order Code Review — C1 Fix)
+- Completed comprehensive code review of the New Order lifecycle (`NewOrderForm.js`, `AddOrderItemMenu.js`, `CloneItemDialog.js`, `SharedContextPanel.js`, `LivePricingPreview.js`, `orders.py`, `job_tickets.py`). Documented 3 Critical, 5 High, 7 Medium, 12 Low findings.
+- **C1 FIXED:** `OrderCreate` Pydantic model (`backend/models/orders.py`) was silently dropping shared order context fields on `POST /api/orders` because Pydantic v2 ignores unknown fields by default. Added 8 fields to `OrderCreate`: `order_title`, `shared_production_notes`, `shared_design_notes`, `shared_install_notes`, `shared_color_brand_notes`, `shared_reference_links`, `default_item_category`, `shared_artwork_default_mode`.
+- Verified via curl: all 8 fields now round-trip correctly on order creation.
+- Remaining review action items pending user approval: C2 (price overwrite in update_job_ticket), C3 (category enum drift in CloneItemDialog), plus 5 High / 7 Medium / 12 Low items.
 
 ### Session: Apr 20, 2026 (Services Category — Pricing Foundation)
 - Implemented full Services pricing category matching exact user spec; extended existing Pricing Foundation (no parallel system).

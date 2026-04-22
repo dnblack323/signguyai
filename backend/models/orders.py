@@ -207,6 +207,15 @@ class OrderCreate(BaseModel):
     pickup_delivery_notes: str = ""
     internal_notes: str = ""
     customer_notes: str = ""
+    # ===== Shared Order-Level Context (inherited by items) =====
+    order_title: str = ""
+    shared_production_notes: str = ""
+    shared_design_notes: str = ""
+    shared_install_notes: str = ""
+    shared_color_brand_notes: str = ""
+    shared_reference_links: List[str] = Field(default_factory=list)
+    default_item_category: Optional[str] = None
+    shared_artwork_default_mode: str = "ask"
 
 
 class OrderUpdate(BaseModel):
