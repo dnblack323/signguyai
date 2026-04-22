@@ -295,18 +295,18 @@ Test **every** scenario; each one exercises a different calculation branch.
 ### 2.7 Webstores / Public Storefront
 _You specifically called this out as missed from V1 — test it thoroughly._
 
-- [ ] **Create a Webstore**: Webstores → + New → name, slug, logo, banner, tagline → saves
+- [x] **Create a Webstore**: Webstores → + New → name, slug, logo, banner, tagline → saves
 - [ ] Slug is **unique** per tenant (try creating two with same slug → second rejected)
-- [ ] **Add products** to the store (at least one from each category: apparel, print, rigid sign)
+- [x] **Add products** to the store (at least one from each category: apparel, print, rigid sign)
 - [ ] For each product, confirm: title, description, price, images, size options, color options, stock on/off, featured flag
-- [ ] **Product image upload** — try a large PNG (8MB) → uploads, displays
-- [ ] **Public storefront URL** `/store/{slug}` loads **without login** (test in incognito mode)
-- [ ] Hero banner + logo + product grid render on **mobile** (375px width)
-- [ ] Hero banner + product grid render on **desktop** (1440px width)
-- [ ] Hero banner + product grid render on **tablet** (768px width)
-- [ ] Click a product → product detail page → variant selectors (size / color) present
-- [ ] Add to cart → cart icon updates with item count
-- [ ] Cart page shows correct subtotal, qty adjustable, remove works
+- [x] **Product image upload** — try a large PNG (8MB) → uploads, displays
+- [x] **Public storefront URL** `/store/{slug}` loads **without login** (test in incognito mode)
+- [x] Hero banner + logo + product grid render on **mobile** (375px width)
+- [x] Hero banner + product grid render on **desktop** (1440px width)
+- [x] Hero banner + product grid render on **tablet** (768px width)
+- [x] Click a product → product detail page → variant selectors (size / color) present
+- [x] Add to cart → cart icon updates with item count
+- [x] Cart page shows correct subtotal, qty adjustable, remove works
 - [ ] Checkout → enters email / shipping → Stripe Connect checkout session opens
 - [ ] Pay with test card → lands on thank-you page → order confirmation email sent
 - [ ] Webstore order appears in **Webstores → Orders** with customer email, product, variant, amount
