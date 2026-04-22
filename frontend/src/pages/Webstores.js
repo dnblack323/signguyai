@@ -180,17 +180,31 @@ export default function Webstores() {
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    try {
-      const [storesData, ordersData, productsData] = await Promise.all([
-        apiRef.current.getWebstores(),
-        apiRef.current.getWebstoreOrdersV2(),
-        apiRef.current.getProducts()
-      ]);
-      setWebstores(storesData);
-      setOrders(ordersData);
-      setProducts(productsData);
-    } catch (err) {
-      console.error('Error loading data:', err);
+    // Fetch each resource independently. Previously a single failed request
+    // (e.g. /products timing out) short-circuited Promise.all and the entire
+    // try/catch bailed — leaving `webstores` stale so a just-created store
+    // appeared to "not show up in the list" even though the POST succeeded.
+    const [storesResult, ordersResult, productsResult] = await Promise.allSettled([
+      apiRef.current.getWebstores(),
+      apiRef.current.getWebstoreOrdersV2(),
+      apiRef.current.getProducts(),
+    ]);
+
+    if (storesResult.status === 'fulfilled') {
+      setWebstores(storesResult.value || []);
+    } else {
+      console.error('Error loading webstores:', storesResult.reason);
+      toast.error('Could not refresh webstore list');
+    }
+    if (ordersResult.status === 'fulfilled') {
+      setOrders(ordersResult.value || []);
+    } else {
+      console.error('Error loading orders:', ordersResult.reason);
+    }
+    if (productsResult.status === 'fulfilled') {
+      setProducts(productsResult.value || []);
+    } else {
+      console.error('Error loading products:', productsResult.reason);
     }
     setLoading(false);
   }, []);
@@ -406,6 +420,12 @@ export default function Webstores() {
       toast.success('Webstore created');
       setIsCreateDialogOpen(false);
       resetForm();
+      // Ensure the freshly-created store is visible: clear any filter/search
+      // that would otherwise hide it from the list view.
+      if (newStore?.store_type && newStore.store_type !== selectedType) {
+        setSelectedType('all');
+      }
+      setStoreSearch('');
       await loadData();
     } catch (err) {
       console.error('Failed to create webstore:', err);
@@ -1067,10 +1087,30 @@ export default function Webstores() {
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
               </div>
             ) : filteredStores.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-gray-500" data-testid="webstores-empty-state">
                 <Store className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No webstores yet</p>
-                <p className="text-sm mt-1">Create your first webstore to get started</p>
+                {webstores.length === 0 ? (
+                  <>
+                    <p>No webstores yet</p>
+                    <p className="text-sm mt-1">Create your first webstore to get started</p>
+                  </>
+                ) : (
+                  <>
+                    <p>No stores match this filter</p>
+                    <p className="text-sm mt-1">
+                      You have {webstores.length} store{webstores.length === 1 ? '' : 's'} —{' '}
+                      <button
+                        type="button"
+                        className="underline text-blue-600 hover:text-blue-800"
+                        onClick={() => { setSelectedType('all'); setStoreSearch(''); }}
+                        data-testid="webstores-clear-filter"
+                      >
+                        clear filters
+                      </button>
+                      {' '}to see them all.
+                    </p>
+                  </>
+                )}
               </div>
             ) : (
               <Table>
