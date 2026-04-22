@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { PageContextProvider } from "./context/PageContext";
 import { AppProvider } from "./context/AppContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -234,6 +235,7 @@ function App() {
           <PlanProvider>
           <AppProvider>
             <BrowserRouter>
+              <PageContextProvider>
               <ScrollToTop />
               <Routes>
                 {/* Public Landing Page - ROOT URL shows marketing site */}
@@ -335,6 +337,7 @@ function App() {
               </Routes>
               <UpgradeModal />
               <Toaster position="top-right" richColors />
+              </PageContextProvider>
             </BrowserRouter>
           </AppProvider>
         </PlanProvider>

@@ -24,6 +24,7 @@ import AddOrderItemMenu from '../components/orders/AddOrderItemMenu';
 import SharedContextPanel from '../components/orders/SharedContextPanel';
 import OrderAssetsPanel from '../components/orders/OrderAssetsPanel';
 import { getAuthToken } from '../lib/authStorage';
+import { useSetPageContext } from '../context/PageContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -51,6 +52,14 @@ export default function OrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
+
+  // Phase 3: declare context so assistant knows "this order".
+  useSetPageContext({
+    page: 'order_detail',
+    recordType: 'order',
+    recordId: id,
+    recordLabel: order?.order_number || id,
+  });
   const [activities, setActivities] = useState([]);
   const [financials, setFinancials] = useState({ quotes: [], invoices: [], work_orders: [] });
   const [prodSummary, setProdSummary] = useState(null);

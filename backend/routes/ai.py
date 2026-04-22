@@ -1293,6 +1293,7 @@ class AIAssistantRequest(BaseModel):
     message: str
     session_id: str
     conversation_history: Optional[List[Dict[str, str]]] = None
+    context: Optional[Dict[str, Any]] = None  # Phase 3: current page / record context
 
 
 class VoiceSpeakRequest(BaseModel):
@@ -2802,3 +2803,325 @@ async def assistant_query(
     result = await _run_assistant_query(db, current_user.tenant_id, query_type, filters)
     result["classified"] = classified
     return result
+
+# ============================================================================
+# Phase 3 — Business Assistant Navigation & Context
+# ============================================================================
+from services.assistant_navigation import (  # noqa: E402
+    NAV_TARGETS,
+    build_safe_route,
+    get_permission_for_target,
+    resolve_related_record,
+    lookup_customers_by_name,
+    lookup_order_by_number,
+    lookup_employees_by_name,
+)
+from models.auth import Permission as _NavPermission  # noqa: E402
+Permission = _NavPermission  # alias for this module scope
+
+
+class AssistantPageContext(BaseModel):
+    page: Optional[str] = None
+    route: Optional[str] = None
+    record_type: Optional[str] = None
+    record_id: Optional[str] = None
+    record_label: Optional[str] = None
+
+
+class AssistantResolveRequest(BaseModel):
+    message: str
+    context: Optional[AssistantPageContext] = None
+
+
+async def _classify_navigation_intent(message: str, context: Optional[AssistantPageContext]) -> Dict[str, Any]:
+    """LLM classifier — navigation + related-record intents only."""
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    import json as _json
+    import re as _re
+
+    nav_keys = ", ".join(sorted(NAV_TARGETS.keys()))
+    ctx_summary = "None"
+    if context and (context.page or context.record_type):
+        ctx_summary = (
+            f"page={context.page or '?'} route={context.route or '?'} "
+            f"record_type={context.record_type or '?'} record_id={context.record_id or '?'} "
+            f"record_label={context.record_label or '?'}"
+        )
+
+    system_prompt = (
+        "Classify a user's request into a navigation intent for a sign-shop app.\n"
+        f"Current page context: {ctx_summary}\n\n"
+        "KINDS: navigate | related_record | lookup | none\n"
+        f"Allowed navigate targets: {nav_keys}\n"
+        "Filters: status, due_from, due_to, customer_id, employee_id, period.\n"
+        "related_record source_type in {order, invoice, job_ticket, customer, employee}. "
+        "target_type in {customer, order, invoice, documents, invoices, orders, time_entries}.\n\n"
+        "Rules:\n"
+        "- 'this/that/current/here' → use current record_type from context.\n"
+        "- 'open this order' w/ order context → navigate, order_detail, use_current_record=true.\n"
+        "- 'create an order' or 'new order for this customer' w/ customer context → navigate, new_order, use_current_record=true. "
+        "(This is NAVIGATION to a prefilled create form; NOT a write intent.)\n"
+        "- 'show related customer' w/ order context → related_record, source_type=order, target_type=customer.\n"
+        "- 'show this order's invoice' w/ order context → related_record, source_type=order, target_type=invoice.\n"
+        "- If user says 'open invoices', 'show invoices' → navigate, invoices_list.\n"
+        "- If user says 'open unpaid invoices' or 'overdue invoices' → navigate, invoices_list, filters.status=overdue.\n"
+        "- 'reschedule this' w/ order context → navigate, production_board (selection is up to user once there).\n"
+        "- If user says 'open <ORD-xxxx>' or 'show order <ORD-xxxx>' (matches pattern ORD-\\d+) → kind=lookup, lookup_type=order, lookup_query=<the ORD-xxxx value>.\n"
+        "- If user says 'open <person or company name>' without a clear page keyword → kind=lookup. "
+        "Default lookup_type=customer unless the phrase is clearly about time/schedule (then lookup_type=employee).\n"
+        "- Aliases: 'revenue report' / 'financials' / 'financial dashboard' → navigate, financials. "
+        "'smart document library' / 'documents' / 'document library' → navigate, documents. "
+        "'team' / 'employees' / 'workforce' → navigate, employee_schedule. "
+        "'production schedule' / 'production board' / 'production' → navigate, production_board. "
+        "'approvals' / 'proof approvals' / 'artwork approvals' → navigate, approvals. "
+        "'webstores' / 'webstore orders' → navigate, webstores. "
+        "'time clock' / 'timeclock' → navigate, timeclock. "
+        "'payroll' / 'pay period' → navigate, payroll. "
+        "'dashboard' / 'home' → navigate, dashboard.\n\n"
+        "Return ONLY JSON:\n"
+        "{\"kind\":\"navigate|related_record|lookup|none\",\n"
+        " \"target\":null, \"filters\":{}, \"use_current_record\":false,\n"
+        " \"source_type\":null,\"target_type\":null,\n"
+        " \"lookup_type\":null,\"lookup_query\":null,\n"
+        " \"needs_more_info\":false,\"question\":null}"
+    )
+    try:
+        chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"nav_classify_{uuid.uuid4()}", system_message=system_prompt)
+        chat.with_model("openai", "gpt-4o-mini")
+        resp = await chat.send_message(UserMessage(text=message))
+        raw = resp.strip()
+        m = _re.search(r"\{.*\}", raw, _re.DOTALL)
+        payload = _json.loads(m.group(0)) if m else _json.loads(raw)
+    except Exception as exc:
+        logger.warning("nav classifier failed: %s", exc)
+        payload = {"kind": "none", "needs_more_info": False}
+    return payload
+
+
+def _label_for_target(target: str, filters: Dict[str, Any], params: Dict[str, str]) -> str:
+    if target == "invoices_list":
+        if filters.get("status") == "overdue":
+            return "Open Overdue Invoices"
+        return "Open Invoices"
+    if target == "orders_list":
+        if filters.get("due_from") or filters.get("due_to"):
+            return "View Orders (due filter)"
+        if filters.get("status") == "overdue":
+            return "View Overdue Orders"
+        return "Open Orders"
+    if target == "order_detail":
+        return f"Open Order {params.get('id', '')}".strip()
+    if target == "job_ticket_detail":
+        return f"Open Ticket {params.get('ticket_id', '')}".strip()
+    if target == "new_order":
+        if filters.get("customer_name"):
+            return f"New Order for {filters['customer_name']}"
+        return "New Order"
+    if target == "customers_list":
+        return "Open Customers"
+    if target == "production_board":
+        return "Open Production Board"
+    if target == "approvals":
+        return "Open Approvals"
+    if target == "financials":
+        return "Open Financials"
+    if target == "payroll":
+        return "Open Payroll"
+    if target == "timesheets":
+        return "Open Timesheets"
+    if target == "timeclock":
+        return "Open Time Clock"
+    if target == "employee_schedule":
+        return "Open Employee Schedule"
+    if target == "webstores":
+        return "Open Webstores"
+    if target == "documents":
+        return "Open Smart Document Library"
+    if target == "dashboard":
+        return "Open Dashboard"
+    return f"Open {target.replace('_', ' ').title()}"
+
+
+@router.post("/assistant/resolve")
+async def assistant_resolve(
+    data: AssistantResolveRequest,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Resolve a user message into safe navigation actions."""
+    preview = await preview_credit_usage(db, current_user.tenant_id, "assistant_nav_classify")
+    if not preview["sufficient_credits"]:
+        raise HTTPException(
+            status_code=402,
+            detail=f"Insufficient credits. Need {preview['credit_cost']}, have {preview['total_credits']}.",
+        )
+
+    classified = await _classify_navigation_intent(data.message, data.context)
+
+    await deduct_credits_after_success(
+        db,
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id,
+        action_type="assistant_nav_classify",
+        module="Business Assistant",
+        feature_name="assistant_nav_classify",
+        metadata={"kind": classified.get("kind")},
+    )
+
+    kind = (classified.get("kind") or "none").lower()
+    actions: List[Dict[str, Any]] = []
+    clarification: Optional[str] = None
+
+    if kind == "navigate":
+        target = classified.get("target")
+        filters = classified.get("filters") or {}
+        params: Dict[str, str] = {}
+        if classified.get("use_current_record") and data.context:
+            ctx = data.context
+            if target == "order_detail" and ctx.record_type == "order" and ctx.record_id:
+                params["id"] = ctx.record_id
+            elif target == "job_ticket_detail" and ctx.record_type == "job_ticket" and ctx.record_id:
+                params["ticket_id"] = ctx.record_id
+            elif target == "new_order" and ctx.record_type == "customer" and ctx.record_id:
+                filters = {**filters, "customer_id": ctx.record_id}
+                if ctx.record_label:
+                    filters["customer_name"] = ctx.record_label
+        perm = get_permission_for_target(target) if target else None
+        if perm and not user_has_permission(current_user.role, perm):
+            return {
+                "actions": [],
+                "classified": classified,
+                "message": f"Your role ({current_user.role.value}) can't open that page. Missing: {perm.value}.",
+            }
+        route = build_safe_route(target, params=params, filters=filters) if target else None
+        if route:
+            actions.append({
+                "kind": "navigate",
+                "target": target,
+                "label": _label_for_target(target, filters, params),
+                "route": route,
+                "reason": "direct_navigation",
+            })
+        else:
+            clarification = f"I couldn't build a valid route for '{target or 'unknown'}'."
+
+    elif kind == "related_record":
+        source_type = classified.get("source_type")
+        target_type = classified.get("target_type")
+        if not source_type and data.context and data.context.record_type:
+            source_type = data.context.record_type
+        source_id = data.context.record_id if data.context else None
+        if not source_type or not source_id or not target_type:
+            clarification = (
+                "I need to know which record to follow from. "
+                "Open the record first and ask again."
+            )
+        else:
+            related = await resolve_related_record(db, current_user.tenant_id, source_type, source_id, target_type)
+            if related and related.get("route"):
+                dest_perm_map = {
+                    "customer": Permission.CUSTOMERS_VIEW,
+                    "order": Permission.JOBS_VIEW,
+                    "invoice": Permission.INVOICES_VIEW,
+                    "invoices_list": Permission.INVOICES_VIEW,
+                    "orders_list": Permission.JOBS_VIEW,
+                    "timesheets": Permission.PAYROLL_VIEW,
+                }
+                perm = dest_perm_map.get(related.get("target_type"))
+                if perm and not user_has_permission(current_user.role, perm):
+                    return {
+                        "actions": [],
+                        "classified": classified,
+                        "message": f"Your role ({current_user.role.value}) can't view this related record.",
+                    }
+                actions.append({
+                    "kind": "navigate",
+                    "label": f"Open {related['label']}",
+                    "route": related["route"],
+                    "record_id": related.get("record_id"),
+                    "record_type": related.get("target_type"),
+                    "reason": "related_record",
+                })
+            else:
+                clarification = f"I couldn't find a related {target_type} for this {source_type}."
+
+    elif kind == "lookup":
+        lookup_type = classified.get("lookup_type")
+        q = (classified.get("lookup_query") or "").strip()
+        if lookup_type == "order":
+            order = await lookup_order_by_number(db, current_user.tenant_id, q)
+            if order:
+                route = build_safe_route("order_detail", params={"id": order["id"]})
+                actions.append({
+                    "kind": "navigate",
+                    "label": f"Open {order['order_number']}",
+                    "route": route,
+                    "record_id": order["id"],
+                    "record_type": "order",
+                    "reason": "lookup_order",
+                })
+            else:
+                clarification = f"I couldn't find an order matching '{q}'."
+        elif lookup_type == "customer":
+            candidates = await lookup_customers_by_name(db, current_user.tenant_id, q, limit=5)
+            if len(candidates) == 1:
+                c = candidates[0]
+                actions.append({
+                    "kind": "navigate",
+                    "label": f"Open customer {c.get('name') or c.get('company')}",
+                    "route": "/customers",
+                    "record_id": c["id"],
+                    "record_type": "customer",
+                    "reason": "lookup_customer",
+                })
+            elif len(candidates) > 1:
+                clarification = f"I found {len(candidates)} customers matching '{q}'. Which one?"
+                for c in candidates:
+                    actions.append({
+                        "kind": "clarify",
+                        "label": f"{c.get('name')}{' — ' + c['company'] if c.get('company') else ''}",
+                        "route": "/customers",
+                        "record_id": c["id"],
+                        "record_type": "customer",
+                        "reason": "ambiguous_customer",
+                    })
+            else:
+                clarification = f"I couldn't find a customer matching '{q}'."
+        elif lookup_type == "employee":
+            candidates = await lookup_employees_by_name(db, current_user.tenant_id, q, limit=5)
+            if len(candidates) == 1:
+                e = candidates[0]
+                actions.append({
+                    "kind": "navigate",
+                    "label": f"Open employee schedule: {e.get('name') or e.get('first_name')}",
+                    "route": build_safe_route("employee_schedule", filters={"employee_id": e["id"]}),
+                    "record_id": e["id"],
+                    "record_type": "employee",
+                    "reason": "lookup_employee",
+                })
+            elif len(candidates) > 1:
+                clarification = f"I found {len(candidates)} employees matching '{q}'. Which one?"
+                for e in candidates:
+                    full = e.get("name") or f"{e.get('first_name', '')} {e.get('last_name', '')}".strip()
+                    actions.append({
+                        "kind": "clarify",
+                        "label": full or e["id"],
+                        "route": build_safe_route("employee_schedule", filters={"employee_id": e["id"]}),
+                        "record_id": e["id"],
+                        "record_type": "employee",
+                        "reason": "ambiguous_employee",
+                    })
+            else:
+                clarification = f"I couldn't find an employee matching '{q}'."
+
+    if not actions and not clarification:
+        clarification = (
+            "That doesn't look like a navigation request. "
+            "Try: 'open overdue invoices', 'take me to production', 'show this customer'."
+        )
+
+    return {
+        "actions": actions,
+        "message": clarification,
+        "classified": classified,
+    }
+

@@ -20,6 +20,7 @@ import { TicketWorkflowShortcutDialog } from '../components/TicketWorkflowShortc
 import DrawingModal from './DrawingModal';
 import DrawingPreviewModal from './DrawingPreviewModal';
 import { getAuthToken } from '../lib/authStorage';
+import { useSetPageContext } from '../context/PageContext';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const hdr = () => ({ Authorization: `Bearer ${getAuthToken()}`, 'Content-Type': 'application/json' });
@@ -44,6 +45,13 @@ export default function JobTicketDetail() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [ticket, setTicket] = useState(null);
+
+  useSetPageContext({
+    page: 'job_ticket_detail',
+    recordType: 'job_ticket',
+    recordId: ticketId,
+    recordLabel: ticket?.ticket_number || ticket?.item_name || ticketId,
+  });
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState(() => searchParams.get('tab') || 'specs');
   const [taskLoading, setTaskLoading] = useState('');

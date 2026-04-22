@@ -19,6 +19,62 @@ Build a comprehensive multi-tenant SaaS operating system for sign shops, print s
 
 ## What's Been Implemented
 
+### Session: Feb 2026 — Business Assistant Phase 3 (Context + Navigation)
+
+**New endpoint:** `POST /api/ai/assistant/resolve`
+- Accepts `{message, context}` and returns `{actions[], message, classified}`.
+- LLM classifier recognizes 4 kinds: `navigate`, `related_record`, `lookup`, `none`.
+
+**New service:** `backend/services/assistant_navigation.py`
+- `NAV_TARGETS` whitelist (23 destinations mapped to real app routes, each with required `Permission` and allowed filter keys).
+- `build_safe_route(target, params, filters)` — validates placeholders, drops unsafe filter keys, URL-encodes. LLM-provided routes can NEVER reach the browser unvalidated.
+- `resolve_related_record(db, source_type, source_id, target_type)` supports: order→customer, order→invoice, invoice→order, invoice→customer, job_ticket→order, customer→invoices (filtered list), customer→orders (filtered list), employee→time_entries.
+- `lookup_customers_by_name` / `lookup_order_by_number` / `lookup_employees_by_name` with ambiguity handling (returns multiple candidates as `kind=clarify` rows).
+
+**Permissions:** every navigate target has a required `Permission`. `/assistant/resolve` returns a polite deny message instead of the action when the user's role lacks it. Same for related-record destinations.
+
+**New frontend:** `frontend/src/context/PageContext.js`
+- `PageContextProvider` wrapping `BrowserRouter` in `App.js`.
+- `useSetPageContext({page, recordType, recordId, recordLabel})` hook pushes context on mount, pops on unmount — supports nested components (stack-based).
+- `usePageContext()` returns the active context (falls back to `{page:null, route:currentPath}`).
+
+**Pages wired:**
+- `OrderDetail.js` → `page='order_detail', recordType='order', recordId=id, recordLabel=order_number`.
+- `JobTicketDetail.js` → `page='job_ticket_detail', recordType='job_ticket'`.
+- `Financials.js` → `page='financials'`.
+- `Customers.js` → declares `customer_detail` context only when the detail modal is open; falls back to `customers_list` otherwise.
+
+**FloatingAssistant integration:**
+- Reads `usePageContext()`; sends it in `/assistant/resolve`, `/assistant/query`, `/assistant` chat.
+- New `NAV_HINT_PATTERNS` regex triggers the resolver BEFORE parse-action (avoids extra LLM round-trip for clearly-navigational messages).
+- Single-action navigate results **auto-navigate** (close widget + `useNavigate(route)`).
+- Multi-candidate / clarification results render in the existing `AssistantQueryResult` component as pill buttons the user can click.
+- **Context chip** above the message list: "Acting on: ORD-0042" with record type subtitle. Testid `floating-assistant-context-chip`.
+
+**Verified via curl:**
+- "open overdue invoices" → `/invoices?status=overdue` ✓
+- "show the revenue report" → `/financials` ✓
+- "open smart document library" → `/documents` ✓
+- "go to team" → `/employee-schedule` ✓
+- "take me to production" → `/production-board` ✓
+- "reschedule this" w/ order context → `/production-board` ✓
+- "open this order" w/ order context → `/orders/{id}` (params injected from context) ✓
+- "create an order for this customer" w/ customer context → `/orders/new?customer_id=X&customer_name=Y` ✓
+- "show related customer" w/ order context → resolves via DB + navigates ✓
+- "open ORD-0012" → lookup → navigate ✓
+- "open John" (multi-match) → returns candidate clarify rows ✓
+- "open Phase3 Lookup" → single-match → direct navigate ✓
+- "navigate to /admin/database?drop=all" → rejected (not in whitelist) ✓
+
+### Phase 3 Non-Goals honored
+- No major UI redesign (context chip + existing pill renderer only).
+- No new write-action types (create-order context flow routes to navigation-prefill, not auto-create).
+- No fragile frontend string matching — `NAV_HINT_PATTERNS` is a hint to try resolver first; routing decisions still come from the backend whitelist.
+
+### Remaining not wired (future polish)
+- Customer detail / Invoice detail don't have their own routes (they're modals), so "open this customer" from outside Customers page can only navigate to the list. Fixing this requires adding `/customers/:id` and `/invoices/:id` routes — not in Phase 3 scope.
+- Employee detail + ProductionBoard pages don't yet declare `useSetPageContext` — can be added incrementally.
+
 ### Session: Feb 2026 — Business Assistant Phase 2 (Live Query Capability)
 
 **New endpoint:** `POST /api/ai/assistant/query`

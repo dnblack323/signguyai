@@ -14,6 +14,7 @@ import axios from 'axios';
 import { useAICreditGuard } from './credits/AICreditConfirmationDialog';
 import AssistantQueryResult from './assistant/AssistantQueryResult';
 import { useNavigate } from 'react-router-dom';
+import { usePageContext } from '../context/PageContext';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -22,6 +23,14 @@ const QUERY_INTENTS = new Set([
   'employee_hours', 'production_load', 'jobs_in_production',
   'revenue', 'revenue_by_source', 'top_categories',
 ]);
+
+// Phrases that strongly suggest navigation/context commands.
+// We send them through /assistant/resolve FIRST before the generic auto-classifier.
+const NAV_HINT_PATTERNS = [
+  /\b(open|show|take me to|go to|view|navigate|display)\b/i,
+  /\b(this|that|current|related|linked|the)\s+(order|customer|invoice|ticket|employee|job|schedule)\b/i,
+  /\bORD-\d+\b/i,
+];
 
 // Quick action suggestions based on context
 const quickActions = [
@@ -40,6 +49,7 @@ export default function FloatingAssistant() {
   const { token, user } = useAuth();
   const { runGuardedAction, dialog: creditDialog } = useAICreditGuard();
   const navigate = useNavigate();
+  const pageContext = usePageContext();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState([
@@ -235,6 +245,17 @@ What would you like to do?`,
     setLoading(true);
 
     try {
+      // Phase 3: try navigation/context resolver FIRST when the message looks
+      // like a nav command. Falls through to parse-action if not navigational.
+      const looksLikeNav = NAV_HINT_PATTERNS.some((re) => re.test(messageText));
+      if (looksLikeNav) {
+        const navActions = await runResolveNavigation(messageText, pageContext);
+        if (navActions) {
+          setMessages(prev => [...prev, navActions]);
+          return;
+        }
+      }
+
       // Single brain: ask backend to classify intent. No frontend regex.
       const classified = await runParseAction(messageText, 'auto');
       const intent = classified?.intent || 'chat';
@@ -256,7 +277,7 @@ What would you like to do?`,
         }
       }
 
-      // Regular chat — general Q&A.
+      // Regular chat — general Q&A. Include context so chat knows where user is.
       await runGuardedAction({
         actionType: 'assistant_chat',
         featureName: 'Floating AI Assistant',
@@ -267,6 +288,7 @@ What would you like to do?`,
               message: messageText.trim(),
               session_id: sessionId,
               conversation_history: messages.slice(-10),
+              context: pageContext,
             },
             { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
           );
@@ -282,6 +304,55 @@ What would you like to do?`,
     } finally {
       setLoading(false);
     }
+  };
+
+  const runResolveNavigation = async (message, context) => {
+    return await runGuardedAction({
+      actionType: 'assistant_nav_classify',
+      featureName: 'Business Assistant navigation',
+      execute: async () => {
+        const resp = await axios.post(
+          `${API_URL}/api/ai/assistant/resolve`,
+          { message, context: context || null },
+          { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
+        );
+        const actions = resp.data?.actions || [];
+        // If resolver returned no actions at all, don't create a message —
+        // let the outer flow fall through to parse-action/chat.
+        if (!actions.length && !resp.data?.message) return null;
+
+        // Auto-navigate for a single direct "kind=navigate" action.
+        const singleNavigate = actions.length === 1 && actions[0].kind === 'navigate';
+        if (singleNavigate) {
+          setIsOpen(false);
+          navigate(actions[0].route);
+          return createAssistantMessage({
+            role: 'assistant',
+            content: `Opened: ${actions[0].label}`,
+            isSuccess: true,
+          });
+        }
+
+        // Otherwise render as a structured result (clarification / multiple candidates).
+        return createAssistantMessage({
+          role: 'assistant',
+          queryResult: {
+            query_type: 'navigation',
+            summary: resp.data.message || 'Pick one:',
+            metrics: [],
+            rows: [],
+            suggested_actions: actions.map((a, i) => ({
+              id: `nav-${i}`,
+              label: a.label,
+              action: 'navigate',
+              target: a.route,
+              record_id: a.record_id,
+              record_type: a.record_type,
+            })),
+          },
+        });
+      },
+    });
   };
 
   const runQueryIntent = async (queryType, filters) => {
@@ -590,6 +661,26 @@ What would you like to do?`,
 
       {!isMinimized && (
         <>
+          {/* Phase 3: page-context chip so users trust what the assistant is acting on */}
+          {(pageContext?.record_label || pageContext?.page) && (
+            <div
+              className="px-3 py-1.5 bg-violet-50 border-b border-violet-100 text-[11px] text-violet-800 flex items-center gap-1.5"
+              data-testid="floating-assistant-context-chip"
+            >
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-violet-400" />
+              {pageContext.record_label ? (
+                <>
+                  Acting on: <span className="font-semibold">{pageContext.record_label}</span>
+                  {pageContext.record_type && (
+                    <span className="text-violet-500"> · {pageContext.record_type}</span>
+                  )}
+                </>
+              ) : (
+                <>Viewing: <span className="font-semibold">{pageContext.page.replace(/_/g, ' ')}</span></>
+              )}
+            </div>
+          )}
+
           {/* Messages Area */}
           <ScrollArea className="flex-1 p-3">
             <div className="space-y-3">

@@ -44,6 +44,7 @@ import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { getAuthToken } from '../lib/authStorage';
+import { useSetPageContext } from '../context/PageContext';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -84,6 +85,18 @@ export default function Customers() {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [detailTab, setDetailTab] = useState('overview');
   const [invitingPortal, setInvitingPortal] = useState(false);
+
+  // Phase 3: declare context so "create an order for this customer" works.
+  useSetPageContext(
+    selectedCustomer && isDetailOpen
+      ? {
+          page: 'customer_detail',
+          recordType: 'customer',
+          recordId: selectedCustomer.id,
+          recordLabel: selectedCustomer.company || selectedCustomer.name,
+        }
+      : { page: 'customers_list' },
+  );
 
   // CSV Import state
   const [isImportOpen, setIsImportOpen] = useState(false);

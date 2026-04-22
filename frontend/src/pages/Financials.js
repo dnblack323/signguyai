@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { formatCurrency, formatDate } from '../lib/utils';
 import { Plus, TrendingUp, TrendingDown, Receipt, DollarSign, Wallet, CreditCard, Mail, Banknote, AlertTriangle, Camera, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { useSetPageContext } from '../context/PageContext';
 
 const expenseCategories = [
   { value: 'materials', label: 'Materials' },
@@ -73,6 +74,8 @@ export default function Financials() {
   const { hasPermission } = useAuth();
   const canViewFinancials = hasPermission(Permission.FINANCIALS_VIEW);
   const canEditFinancials = hasPermission(Permission.FINANCIALS_CREATE);
+
+  useSetPageContext({ page: 'financials' });
   
   const { 
     createSalesEntry, getSalesEntries, 
