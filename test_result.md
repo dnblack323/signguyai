@@ -1424,3 +1424,21 @@ agent_communication:
   - agent: "testing"
     message: "FEATURES PAGE SCREENSHOT LIGHTBOX TESTING COMPLETE - Comprehensive verification of new screenshot lightbox behavior completed successfully at https://prod-key-update.preview.emergentagent.com/features. ALL 6 VALIDATION REQUIREMENTS PASSED: (1) First 6 feature screenshots are clickable (customers, jobs, quotes, invoicing, platform-payments, time-tracking all have working click handlers), (2) Clicking image opens full-screen lightbox overlay with proper z-index and bg-black/85 backdrop, (3) Lightbox shows enlarged image + title correctly (verified with Customer Management screenshot), (4) Close button works and successfully closes lightbox, (5) Clicking outside content closes overlay (tested by clicking overlay background), (6) No layout regressions on desktop (1920x1080) and mobile (390x844) - no horizontal overflow, all 17 features visible on both viewports, mobile lightbox also working correctly. Implementation uses React state management with expandedScreenshot state, proper event handlers, stopPropagation on content wrapper, and comprehensive data-testid attributes for testing. No critical issues found. No console errors. Screenshot lightbox feature is fully functional and production-ready."
 
+
+
+
+  - task: "Webstores Create-and-Refresh Bug Fix"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Webstores.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - Webstores create-and-refresh bug fix working correctly. Tested complete flow: (1) Login successful, (2) Webstores page loaded, (3) Create Webstore dialog opened, (4) Form filled with unique timestamp data (store name: 'Toast Test Store 1776988518', owner name: 'Toast Owner 1776988518'), (5) Form submitted, (6) Success toast 'Webstore created' appeared (type: success), (7) NO error toast about 'webstore list refresh failed'. Store appeared immediately in table (count increased from 6 to 7) and persisted after page refresh (count remained 7). Bug fix implementation verified: loadData function uses Promise.allSettled to handle webstores/orders/products API calls independently (lines 194-229), retry logic for failed webstore requests (lines 206-216), suppressStoreErrorToast flag prevents error toast during create flow (line 463), optimistic insert adds new store to UI immediately (lines 444-453). No critical issues found."
+
+
+  - agent: "testing"
+    message: "WEBSTORES CREATE-AND-REFRESH BUG FIX VERIFICATION COMPLETE - Comprehensive testing of webstore creation flow at https://prod-key-update.preview.emergentagent.com/webstores completed successfully. ALL 7 TEST STEPS PASSED: (1) Login with credentials signguypa@gmail.com / Billnel323 successful, (2) Webstores tab opened successfully, (3) Create Webstore dialog opened, (4) Required fields filled with unique timestamp (store name: 'Toast Test Store 1776988518', owner name: 'Toast Owner 1776988518', business type: default), (5) Form submitted successfully, (6) SUCCESS TOAST VERIFIED: 'Webstore created' (type: success) appeared immediately after submission, (7) NO ERROR TOAST about 'webstore list refresh failed' detected. IMMEDIATE DISPLAY VERIFIED: Store count increased from 6 to 7 immediately after creation, new store 'Toast Test Store 1776988518' appeared in table without manual refresh. PERSISTENCE VERIFIED: After page refresh, store count remained at 7, new store still visible in table. BUG FIX CONFIRMED WORKING: The implementation successfully uses Promise.allSettled to handle API calls independently, preventing failed /products requests from blocking webstore list refresh. Optimistic insert ensures immediate UI update, retry logic handles transient failures, and suppressStoreErrorToast flag prevents confusing error messages during create flow. No critical issues found."

@@ -82,6 +82,13 @@ const getStatusBadge = (status) => {
   return colors[status] || colors.pending;
 };
 
+const normalizeWebstoreList = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.webstores)) return payload.webstores;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
+};
+
 const DEV_BYPASS_STRIPE = true;
 
 export default function Webstores() {
@@ -178,7 +185,7 @@ export default function Webstores() {
     };
   }, [getWebstores, getWebstoreOrdersV2, getProducts, getStripeConnectStatus, createStripeConnectAccount]);
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async ({ suppressStoreErrorToast = false } = {}) => {
     setLoading(true);
     // Fetch each resource independently. Previously a single failed request
     // (e.g. /products timing out) short-circuited Promise.all and the entire
@@ -190,11 +197,23 @@ export default function Webstores() {
       apiRef.current.getProducts(),
     ]);
 
+    let storesLoaded = false;
     if (storesResult.status === 'fulfilled') {
-      setWebstores(storesResult.value || []);
+      setWebstores(normalizeWebstoreList(storesResult.value));
+      storesLoaded = true;
     } else {
       console.error('Error loading webstores:', storesResult.reason);
-      toast.error('Could not refresh webstore list');
+      try {
+        // Retry once: the create flow can race with transient API/network hiccups.
+        const retryStores = await apiRef.current.getWebstores();
+        setWebstores(normalizeWebstoreList(retryStores));
+        storesLoaded = true;
+      } catch (retryErr) {
+        console.error('Webstore retry failed:', retryErr);
+        if (!suppressStoreErrorToast) {
+          toast.error('Could not refresh webstore list');
+        }
+      }
     }
     if (ordersResult.status === 'fulfilled') {
       setOrders(ordersResult.value || []);
@@ -207,6 +226,7 @@ export default function Webstores() {
       console.error('Error loading products:', productsResult.reason);
     }
     setLoading(false);
+    return { storesLoaded };
   }, []);
   
   const checkStripeStatus = useCallback(async () => {
@@ -418,6 +438,20 @@ export default function Webstores() {
       }
       
       toast.success('Webstore created');
+
+      // Optimistic insert so the new store appears immediately even if
+      // background refresh has a transient failure.
+      if (newStore?.id) {
+        setWebstores((current) => {
+          const safeCurrent = Array.isArray(current) ? current : [];
+          const exists = safeCurrent.some((store) => store.id === newStore.id);
+          if (exists) {
+            return safeCurrent.map((store) => (store.id === newStore.id ? newStore : store));
+          }
+          return [newStore, ...safeCurrent];
+        });
+      }
+
       setIsCreateDialogOpen(false);
       resetForm();
       // Ensure the freshly-created store is visible: clear any filter/search
@@ -426,7 +460,10 @@ export default function Webstores() {
         setSelectedType('all');
       }
       setStoreSearch('');
-      await loadData();
+      const refreshResult = await loadData({ suppressStoreErrorToast: true });
+      if (!refreshResult?.storesLoaded) {
+        toast.warning('Store created. Auto-refresh failed, but your new store was added locally.');
+      }
     } catch (err) {
       console.error('Failed to create webstore:', err);
       toast.error(err.response?.data?.detail || 'Failed to create webstore');
