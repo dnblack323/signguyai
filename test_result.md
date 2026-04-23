@@ -509,6 +509,8 @@ agent_communication:
     message: "FINAL STORAGE MIGRATION SPOT-CHECK COMPLETE - All 5 production-facing storage flows verified successfully: (1) POST /api/documents upload working with object storage, (2) GET /api/documents/{id}/download returns proper file_data for frontend compatibility, (3) POST /api/pricing-setup/imports stores files in object storage correctly, (4) POST /api/pricing-setup/imports/migrate-storage returns valid migration stats, (5) POST /api/orders/{id}/upload and GET /api/orders/{id}/files/{file_id}/content working properly. All endpoints using emergent_object_storage backend. No critical issues found. Storage migration is production-ready."
   - agent: "testing"
     message: "CONSOLIDATION PASS TESTING COMPLETE - Comprehensive verification of 9 consolidation flows completed. PASSED: (1) Login from landing page lands on unified productivity dashboard, (2) /dashboard redirects to /productivity?view=dashboard correctly, (3) No old /jobs links in main navigation, (4a) /jobs redirects to /orders, (4b) /jobs?new=true redirects to /orders/new, (4c) /jobs/:id redirects to /productivity/legacy-jobs/:id, (6a) Legacy job detail page route exists, (6b) Appointment detail page route exists, (7) Dashboard consolidation working - /dashboard and /productivity?view=dashboard are same unified experience, (8) Public signature route accessible at /customer-sign/:token, (9) Order detail page has drawing/file features. COVERAGE GAP: (5) Productivity shared dialog could not be tested - no productivity items (tasks/appointments/shifts) exist in test data to open dialog and verify editable fields. Dialog code review confirms appointments have editable status/start inputs and schedule shifts have editable start/end inputs as required. No critical issues found."
+  - agent: "testing"
+    message: "TIER 2 SECTION 2.3a DIGITAL PRINT PRICING TESTING COMPLETE - Tested 6 specific checklist items for Digital Print pricing behavior. RESULTS: 3 PASSED, 3 FAILED. PASSED: (2.3aC) Quantity tier pricing working correctly - per-unit price decreases at tiers 50->250->500, (2.3aD) Rush order increases price by $27.12 (25% adder), (2.3aE) Design Complexity field is visible when Artwork Ready=No. FAILED: (2.3aA-width) Width scaling only 1.55x instead of expected 2x when doubling width from 24 to 48 inches, (2.3aA-qty) Quantity scaling not working - price stayed at $108.50 when changing from qty 1 to qty 5 (expected 5x increase), (2.3aB) Lamination toggle did not increase price. CRITICAL ISSUES: Quantity scaling appears broken - total price does not multiply by quantity, though per-unit pricing in quantity tiers works correctly (contradiction suggests possible UI bug or incorrect price field being read). Lamination toggle has no price impact. Width/area scaling is less than expected (may be due to fixed costs not scaling). Recommend main agent investigate: (1) Why total price doesn't scale with quantity in basic test but per-unit pricing works in tier test, (2) Why lamination toggle has zero price impact, (3) Whether 1.55x scaling for 2x area is intentional due to fixed costs."
 
 
   - task: "Quotes Page - /quotes Route and UI Display"
@@ -806,14 +808,86 @@ agent_communication:
     file: "/app/frontend/src/components/payroll/PayrollWorksheetToolbar.js"
     stuck_count: 0
     priority: "high"
-  - agent: "testing"
-    message: "PAYROLL SIGN-OFF STRIP TESTING COMPLETE - Comprehensive verification of updated payroll worksheet with new sign-off features completed successfully at https://prod-key-update.preview.emergentagent.com/payroll. ALL 8 VERIFICATION POINTS PASSED: (1) Compact payroll worksheet layout intact - verified narrow left Adjustments panel + wide right worksheet section, no extra cards/panels/clutter introduced, no old payroll UI elements found, (2) New compact sign-off strip is present inline within worksheet (data-testid='payroll-signoff-strip'), NOT in a modal or separate page - DOM inspection confirmed, (3) All 5 sign-off fields present and editable: reviewed_by, review_date, approved_by, approval_date, payroll_notes, (4) Sign-off fields save and persist after reload - tested with values 'QA Reviewer Test', '2026-04-15', 'QA Approver Test', '2026-04-16', 'QA Test Sign-off Notes' - all persisted correctly, (5) Legacy review for week 2026-04-13 shows clean-state message correctly: 'Current payroll records for this employee/week map cleanly into the worksheet rows', (6) Legacy review for week 2026-04-06 shows warning with counts correctly: '2 manual or timer entries, 0 extra same-day shift rows, 13.75 off-grid hours', (7) Existing worksheet save flow still works after adding sign-off - Employee name persisted correctly, (8) Export CSV and Print buttons remain available and enabled. COVERAGE GAP: Read-only lock state cannot be tested with provided credentials (signguypa@gmail.com is admin/owner with edit permissions) - code review confirms implementation is correct with disabled={readOnlyLocked} on all sign-off fields. No critical issues found. No UI clutter regressions. No sign-off persistence bugs. No legacy review bugs. No save regressions. Payroll sign-off feature is fully functional and production-ready."
-
     needs_retesting: false
     status_history:
       - working: true
         agent: "testing"
         comment: "✅ VERIFIED - Export CSV button (payroll-worksheet-export-csv-button) and Print button (payroll-worksheet-print-button) remain available and enabled after sign-off feature addition. Both buttons are present in the toolbar and not disabled. No regression detected in export/print functionality."
+
+  - task: "Digital Print Pricing - Area-Based Scaling (Width × Height)"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/components/PricingCalculator.js"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "testing"
+        comment: "❌ FAILED - Test 2.3aA (Width scaling): When doubling width from 24 to 48 inches (2x area), price only increased from $108.50 to $168.50 (1.55x scale factor instead of expected ~2x). This suggests either: (1) Fixed costs that don't scale with area, (2) Non-linear pricing formula, or (3) Pricing calculation bug. Expected behavior: Price should scale proportionally with area (width × height)."
+
+  - task: "Digital Print Pricing - Quantity Scaling"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/components/PricingCalculator.js"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL FAILURE - Test 2.3aA (Quantity scaling): When changing quantity from 1 to 5, total price remained at $108.50 (1.00x scale factor instead of expected 5x). This is a critical bug - total price should multiply by quantity. CONTRADICTION: Quantity tier pricing (test 2.3aC) works correctly with per-unit prices decreasing at higher quantities, suggesting quantity field IS functional but total price calculation is broken. Possible causes: (1) Reading per-unit price instead of total price, (2) Calculation not triggered after quantity change, (3) Total price calculation bug."
+
+  - task: "Digital Print Pricing - Lamination Add-on"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/components/PricingCalculator.js"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "testing"
+        comment: "❌ FAILED - Test 2.3aB (Lamination): Toggling Lamination Required from OFF to ON had zero price impact (price remained $108.50). Expected behavior: Lamination should add material cost for laminate to the total price. Lamination toggle (data-testid='digital-print-laminate-toggle') is present and clickable, but price calculation does not reflect the change."
+
+  - task: "Digital Print Pricing - Quantity Tier Discounts"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/PricingCalculator.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ PASSED - Test 2.3aC (Quantity tiers): Per-unit price correctly decreases at each quantity tier. Qty 50: $2.17/unit, Qty 250: $0.43/unit (80% reduction), Qty 500: $0.22/unit (49% reduction from 250). Quantity tier discount logic is working as expected with progressive per-unit price reductions at higher volumes."
+
+  - task: "Digital Print Pricing - Rush Order Adder"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/PricingCalculator.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ PASSED - Test 2.3aD (Rush order): Toggling Rush Order from OFF to ON increased price from $108.50 to $135.62 (+$27.12, 25% increase). Rush order adder is working correctly and applying the expected premium to the final suggested sell price."
+
+  - task: "Digital Print Pricing - Design Complexity Field Visibility"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/PricingCalculator.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ PASSED - Test 2.3aE (Design complexity visibility): Design Complexity field (data-testid='digital-print-design-complexity') is visible when Artwork Ready checkbox is unchecked (Artwork Ready=No). Field remains visible when Artwork Ready=Yes as well, which is acceptable for user flexibility. Core requirement met: field is accessible when artwork is not ready."
+
+  - agent: "testing"
+    message: "PAYROLL SIGN-OFF STRIP TESTING COMPLETE - Comprehensive verification of updated payroll worksheet with new sign-off features completed successfully at https://prod-key-update.preview.emergentagent.com/payroll. ALL 8 VERIFICATION POINTS PASSED: (1) Compact payroll worksheet layout intact - verified narrow left Adjustments panel + wide right worksheet section, no extra cards/panels/clutter introduced, no old payroll UI elements found, (2) New compact sign-off strip is present inline within worksheet (data-testid='payroll-signoff-strip'), NOT in a modal or separate page - DOM inspection confirmed, (3) All 5 sign-off fields present and editable: reviewed_by, review_date, approved_by, approval_date, payroll_notes, (4) Sign-off fields save and persist after reload - tested with values 'QA Reviewer Test', '2026-04-15', 'QA Approver Test', '2026-04-16', 'QA Test Sign-off Notes' - all persisted correctly, (5) Legacy review for week 2026-04-13 shows clean-state message correctly: 'Current payroll records for this employee/week map cleanly into the worksheet rows', (6) Legacy review for week 2026-04-06 shows warning with counts correctly: '2 manual or timer entries, 0 extra same-day shift rows, 13.75 off-grid hours', (7) Existing worksheet save flow still works after adding sign-off - Employee name persisted correctly, (8) Export CSV and Print buttons remain available and enabled. COVERAGE GAP: Read-only lock state cannot be tested with provided credentials (signguypa@gmail.com is admin/owner with edit permissions) - code review confirms implementation is correct with disabled={readOnlyLocked} on all sign-off fields. No critical issues found. No UI clutter regressions. No sign-off persistence bugs. No legacy review bugs. No save regressions. Payroll sign-off feature is fully functional and production-ready."
 
   - task: "Payroll Worksheet - Read-only Lock State"
     implemented: true
