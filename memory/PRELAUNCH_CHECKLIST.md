@@ -10,6 +10,11 @@
 > **Reference numbering.** Each section has a stable `X.Y` number. When we discuss an item, refer to it like **“2.3c”** or **“4.2 #5”** and we’ll both know exactly what you mean.
 >
 > **Validation sync note (2026-04-23):** `[x]` is used only for items that were verified as passed in execution/retest reports. Failed or blocked items remain unchecked.
+>
+> **Testing source-of-truth files (consolidated):**
+> - Pretesting log: `/app/memory/PRELAUNCH_PRETEST_RESULTS.md`
+> - Post-fix retests: `/app/memory/PRELAUNCH_POSTFIX_RETEST_RESULTS.md`
+> - Open/blocked tracker: `/app/memory/PRELAUNCH_OPEN_ITEMS_TRACKER.md`
 
 ---
 
