@@ -866,6 +866,18 @@ agent_communication:
         agent: "testing"
         comment: "✅ VERIFIED - All 5 verification checks passed for /features page: (1) All 17 feature cards render actual screenshot images with 0 placeholder text instances, (2) Context-matching screenshots verified for all 5 key features: Platform Billing + Stripe Connect shows payment settings UI (/screenshots/feature_payments.jpeg), Payroll & Financials shows payroll dashboard with financial metrics (/screenshots/feature_payroll.jpeg), Customer Portal shows customer portal dashboard with orders (/screenshots/feature_customer_portal.jpeg), Employee Portal shows employee portal interface with clock in/out (/screenshots/feature_employee_portal.jpeg), Scheduling & Calendar shows productivity calendar view (/screenshots/feature_productivity.jpeg), (3) Removed terms 'Channel letter' and 'Monument sign' confirmed absent, (4) No broken image links - all 16 screenshot requests returned HTTP 200, (5) Desktop (1920x1080) and mobile (390x844) viewports tested with no horizontal overflow, all 17 features visible on both viewports. All screenshots display appropriate UI context matching their feature descriptions."
 
+  - task: "Features Page - Screenshot Lightbox Behavior"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/FeaturesPage.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - All 6 lightbox validation requirements passed for /features page at https://prod-key-update.preview.emergentagent.com/features: (1) First 6 feature screenshots are clickable (6/6 passed: customers, jobs, quotes, invoicing, platform-payments, time-tracking), (2) Clicking image opens full-screen lightbox overlay successfully (data-testid='feature-screenshot-lightbox-overlay'), (3) Lightbox shows enlarged image + title correctly (image src: /screenshots/feature_customers.jpeg, title: 'Customer Management'), (4) Close button works and successfully closes lightbox (data-testid='feature-screenshot-lightbox-close'), (5) Clicking outside content closes overlay (tested by clicking overlay at position x:10, y:10), (6) No layout regressions on desktop (1920x1080) and mobile (390x844) - no horizontal overflow detected, all 17 feature screenshots visible on both viewports. Mobile lightbox also tested and working correctly. Lightbox implementation uses state management with expandedScreenshot state, proper event handlers for open/close, and stopPropagation on content to prevent accidental closes. All data-testid attributes present for testing. No critical issues found. Screenshot lightbox feature is fully functional and production-ready."
+
   - task: "Digital Print Pricing - Area-Based Scaling (Width × Height)"
     implemented: true
     working: false
@@ -1387,7 +1399,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Features page public content verification complete - All tests passed"
+    - "Features page screenshot lightbox testing complete - All 6 validation requirements passed"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -1395,4 +1407,6 @@ test_plan:
 agent_communication:
   - agent: "testing"
     message: "FEATURES PAGE TESTING COMPLETE - Comprehensive verification of public Features page completed successfully at https://prod-key-update.preview.emergentagent.com/features. ALL 9 TESTS PASSED with zero failures: Page loads correctly with hero section, all 5 category filters functional (All Features, Core Business, AI Tools, Portals, Financial), Smart Pricing card has all required product types and pricing modes, Channel Letters and Monument Signs correctly excluded, all 4 new feature cards visible (Platform Billing + Stripe Connect, Questionnaires & Intake Forms, Reports/Productivity/Margin Analytics, Admin Controls/Team Access/Onboarding), all 4 coverage highlight cards present (Commerce, Operations, Portal, Admin Coverage), first 10 feature cards all have actual screenshots (no placeholders), no UI regressions at 1920x800 desktop viewport (no overflow, no overlaps), mobile viewport 390x844 renders correctly. No critical issues found. No console errors. Features page is fully functional and production-ready."
+  - agent: "testing"
+    message: "FEATURES PAGE SCREENSHOT LIGHTBOX TESTING COMPLETE - Comprehensive verification of new screenshot lightbox behavior completed successfully at https://prod-key-update.preview.emergentagent.com/features. ALL 6 VALIDATION REQUIREMENTS PASSED: (1) First 6 feature screenshots are clickable (customers, jobs, quotes, invoicing, platform-payments, time-tracking all have working click handlers), (2) Clicking image opens full-screen lightbox overlay with proper z-index and bg-black/85 backdrop, (3) Lightbox shows enlarged image + title correctly (verified with Customer Management screenshot), (4) Close button works and successfully closes lightbox, (5) Clicking outside content closes overlay (tested by clicking overlay background), (6) No layout regressions on desktop (1920x1080) and mobile (390x844) - no horizontal overflow, all 17 features visible on both viewports, mobile lightbox also working correctly. Implementation uses React state management with expandedScreenshot state, proper event handlers, stopPropagation on content wrapper, and comprehensive data-testid attributes for testing. No critical issues found. No console errors. Screenshot lightbox feature is fully functional and production-ready."
 

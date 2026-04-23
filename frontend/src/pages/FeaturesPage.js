@@ -34,6 +34,7 @@ const featureScreenshots = {
 
 export default function FeaturesPage() {
   const [activeCategory, setActiveCategory] = useState('all');
+  const [expandedScreenshot, setExpandedScreenshot] = useState(null);
 
   const categories = [
     { id: 'all', name: 'All Features' },
@@ -517,12 +518,25 @@ export default function FeaturesPage() {
               <div className={`${index % 2 === 1 ? 'lg:order-1' : ''}`}>
                 <div className={`bg-gradient-to-br ${feature.color} p-1 rounded-2xl`}>
                   {featureScreenshots[feature.id] ? (
-                    <img 
-                      src={featureScreenshots[feature.id]} 
-                      alt={`${feature.title} screenshot`}
-                      data-testid={`feature-screenshot-${feature.id}`}
-                      className="w-full h-auto rounded-xl"
-                    />
+                    <button
+                      type="button"
+                      onClick={() => setExpandedScreenshot({
+                        src: featureScreenshots[feature.id],
+                        title: feature.title,
+                      })}
+                      className="group block w-full rounded-xl text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2F8BFB]"
+                      data-testid={`feature-screenshot-open-${feature.id}`}
+                    >
+                      <img
+                        src={featureScreenshots[feature.id]}
+                        alt={`${feature.title} screenshot`}
+                        data-testid={`feature-screenshot-${feature.id}`}
+                        className="w-full h-auto rounded-xl transition-transform duration-300 group-hover:scale-[1.01]"
+                      />
+                      <p className="mt-2 text-xs uppercase tracking-[0.16em] text-gray-400" data-testid={`feature-screenshot-hint-${feature.id}`}>
+                        Click to enlarge
+                      </p>
+                    </button>
                   ) : (
                     <div className="bg-[#111826] rounded-xl p-8 h-full min-h-[300px] flex items-center justify-center">
                       <div className="text-center">
@@ -537,6 +551,38 @@ export default function FeaturesPage() {
           ))}
         </div>
       </section>
+
+      {expandedScreenshot ? (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-black/85 p-4"
+          onClick={() => setExpandedScreenshot(null)}
+          data-testid="feature-screenshot-lightbox-overlay"
+        >
+          <div
+            className="relative w-full max-w-[1500px]"
+            onClick={(event) => event.stopPropagation()}
+            data-testid="feature-screenshot-lightbox-content"
+          >
+            <button
+              type="button"
+              onClick={() => setExpandedScreenshot(null)}
+              className="absolute right-3 top-3 z-10 rounded-full bg-black/70 px-3 py-1 text-sm font-semibold text-white hover:bg-black/90"
+              data-testid="feature-screenshot-lightbox-close"
+            >
+              Close
+            </button>
+            <img
+              src={expandedScreenshot.src}
+              alt={`${expandedScreenshot.title} enlarged screenshot`}
+              className="max-h-[88vh] w-full rounded-2xl object-contain"
+              data-testid="feature-screenshot-lightbox-image"
+            />
+            <p className="mt-3 text-center text-sm font-medium text-white" data-testid="feature-screenshot-lightbox-title">
+              {expandedScreenshot.title}
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       {/* CTA Section */}
       <section className="py-20 px-4 bg-[#111826]">
