@@ -15,6 +15,7 @@ const hdr = () => ({ Authorization: `Bearer ${getAuthToken()}` });
 // L12: module-level schema cache — same category fetched once per session.
 const SCHEMA_CACHE = new Map();
 const SIZE_KEYS = ['size_xs', 'size_s', 'size_m', 'size_l', 'size_xl', 'size_2xl', 'size_3xl', 'size_4xl', 'size_5xl'];
+const HAT_PRODUCT_TYPES = ['hat_standard', 'hat_premium', 'visor'];
 
 const GROUP_LABELS = {
   size_material: 'Size & Material',
@@ -216,10 +217,29 @@ const renderStandardField = (field, specs, updateField, sqFootage) => {
   }
 
   if (field.type === 'number') {
+    const currentValue = specs[field.key];
+    const hasValue = currentValue !== undefined && currentValue !== null && currentValue !== '';
+
     return (
       <div key={field.key}>
         <Label className="text-gray-500 text-xs">{field.label}</Label>
-        <Input type="number" min={0} value={specs[field.key] || field.default || ''} onChange={(event) => updateField(field.key, parseInt(event.target.value, 10) || 0)} placeholder={field.placeholder || ''} className="bg-gray-50 border-gray-300 text-gray-900 h-9 text-sm mt-1" data-testid={`field-${field.key}-number`} />
+        <Input
+          type="number"
+          min={0}
+          value={hasValue ? currentValue : ''}
+          onChange={(event) => {
+            const raw = event.target.value;
+            if (raw === '') {
+              updateField(field.key, '');
+              return;
+            }
+            const parsed = Number(raw);
+            updateField(field.key, Number.isNaN(parsed) ? '' : parsed);
+          }}
+          placeholder={field.placeholder || ''}
+          className="bg-gray-50 border-gray-300 text-gray-900 h-9 text-sm mt-1"
+          data-testid={`field-${field.key}-number`}
+        />
       </div>
     );
   }
@@ -330,8 +350,26 @@ export default function DynamicCategoryFields({ category, subtype, specs, onChan
     if (!f.visible_when) return true;
     return evalCondition(f.visible_when, specs);
   });
+
+  const isApparelHat = category === 'apparel' && HAT_PRODUCT_TYPES.includes(specs.apparel_product_type);
+  const categoryFilteredFields = visibleFields.filter((field) => {
+    if (category !== 'apparel') return true;
+
+    if (isApparelHat) {
+      if (SIZE_KEYS.includes(field.key)) return false;
+      if (field.key === 'apparel_plus_size_count') return false;
+      if (field.key === 'apparel_placement_set') return false;
+    } else {
+      if (field.key === 'apparel_placement_set_hat') return false;
+      if (field.key === 'apparel_two_tone_hat_finish') return false;
+      if (field.key === 'apparel_leather_patch') return false;
+    }
+
+    return true;
+  });
+
   // Sort: core fields first within their group
-  const sortedFields = [...visibleFields].sort((a, b) => (b.core ? 1 : 0) - (a.core ? 1 : 0));
+  const sortedFields = [...categoryFilteredFields].sort((a, b) => (b.core ? 1 : 0) - (a.core ? 1 : 0));
   const groups = buildGroups(sortedFields);
   const updateField = (key, value) => {
     const next = { ...specs, [key]: value };
@@ -341,6 +379,17 @@ export default function DynamicCategoryFields({ category, subtype, specs, onChan
       const brandOptions = (brandField?.options || []).filter((option) => !option.parent_product_type || option.parent_product_type === value);
       if (brandOptions.length > 0 && !brandOptions.some((option) => option.value === next.apparel_brand_style_key)) {
         next.apparel_brand_style_key = brandOptions[0].value;
+      }
+
+      const isHat = HAT_PRODUCT_TYPES.includes(value);
+      if (isHat) {
+        for (const sizeKey of SIZE_KEYS) {
+          next[sizeKey] = '';
+        }
+        next.apparel_plus_size_count = '';
+      } else {
+        next.apparel_two_tone_hat_finish = false;
+        next.apparel_leather_patch = false;
       }
     }
 
@@ -411,7 +460,23 @@ export default function DynamicCategoryFields({ category, subtype, specs, onChan
                 {groupFields.map((field) => (
                   <div key={field.key} className="text-center">
                     <Label className="text-gray-500 text-xs block mb-1">{field.label}</Label>
-                    <Input type="number" min={0} value={specs[field.key] || 0} onChange={(event) => updateField(field.key, parseInt(event.target.value, 10) || 0)} className="bg-gray-50 border-gray-300 text-gray-900 h-9 text-center text-sm" data-testid={`size-${field.key}-input`} />
+                    <Input
+                      type="number"
+                      min={0}
+                      value={specs[field.key] === '' || specs[field.key] === undefined || specs[field.key] === null ? '' : specs[field.key]}
+                      onChange={(event) => {
+                        const raw = event.target.value;
+                        if (raw === '') {
+                          updateField(field.key, '');
+                          return;
+                        }
+                        const parsed = Number(raw);
+                        updateField(field.key, Number.isNaN(parsed) ? '' : parsed);
+                      }}
+                      placeholder="0"
+                      className="bg-gray-50 border-gray-300 text-gray-900 h-9 text-center text-sm"
+                      data-testid={`size-${field.key}-input`}
+                    />
                   </div>
                 ))}
               </div>

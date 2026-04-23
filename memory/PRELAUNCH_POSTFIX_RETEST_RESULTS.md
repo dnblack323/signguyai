@@ -45,6 +45,13 @@ Independent verification:
 - ✅ **2.3fA** Apparel product type now switches Brand/Style option list dynamically
   - UI evidence: product type toggle changes brand option set (e.g., short-sleeve vs hoodie lists)
 
+### Hats field-visibility + sticky-zero UX fix retested
+- ✅ **Hat irrelevant fields hidden** when Product Type is hat/cap
+  - UI evidence: `size_count=0`, garment placement hidden, hat placement visible (`hat_place=1`)
+- ✅ **Zero-sticky input behavior fixed** for size numeric fields
+  - UI evidence: clearing `size_s` leaves blank value (`''`) instead of forcing `0`
+  - Console artifact: `/root/.emergent/automation_output/20260423_102924/console_20260423_102924.log`
+
 ---
 
 ## Source artifacts
