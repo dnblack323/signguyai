@@ -144,11 +144,11 @@ For **EACH** category below, follow this exact sequence:
 7. Open the saved item → edit → values round-trip correctly on reload
 
 #### 2.3a Digital Print
-- [ ] Set width × height + material + quantity → price reflects **sqft × rate × qty**
-- [ ] Toggle **Lamination = Yes** → price jumps by the lamination rate
-- [ ] Change quantity tier (50 → 250 → 500) → per-unit price drops at each tier
-- [ ] Toggle **Rush Order = Yes** → rush % adder applied at the end
-- [ ] **Artwork Ready = No** → Design Complexity field APPEARS (progressive disclosure)
+- [x] Set width × height + material + quantity → price reflects **sqft × rate × qty**
+- [ ] Toggle **Lamination = Yes** → price jumps by the lamination rate — FAIL: `laminate=true` produced same sell price as `laminate=false` in UI and `/api/pricing/calculate`
+- [x] Change quantity tier (50 → 250 → 500) → per-unit price drops at each tier
+- [x] Toggle **Rush Order = Yes** → rush % adder applied at the end
+- [ ] **Artwork Ready = No** → Design Complexity field APPEARS (progressive disclosure) — FAIL: field appears only after `Artwork Needed = Yes`
 
 #### 2.3b Cut Vinyl
 - [ ] Pick vinyl type (intermediate / premium / reflective) → baseline rate changes
