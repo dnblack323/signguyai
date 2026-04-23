@@ -608,10 +608,17 @@ def _apparel_schema(defaults, garment_opts, decoration_opts):
     avail_methods = cat.get("available_decoration_methods", []) or []
 
     product_type_options = [{"value": p["key"], "label": p["label"]} for p in product_types]
-    # For initial schema we return brand options for the first product type; UI will filter by selected product type.
+    # Return brand options for all product types; UI filters by selected product type.
     default_product = cat.get("default_product_type") or (product_types[0]["key"] if product_types else "short_sleeve_tee")
-    default_brand_styles = brand_styles_map.get(default_product, [])
-    brand_style_options = [{"value": b["key"], "label": b["label"]} for b in default_brand_styles]
+    brand_style_options = []
+    for product in product_types:
+        p_key = product.get("key")
+        for style in (brand_styles_map.get(p_key, []) or []):
+            brand_style_options.append({
+                "value": style.get("key"),
+                "label": style.get("label"),
+                "parent_product_type": p_key,
+            })
 
     # Placement set options (garment + hat) — UI switches based on product type
     garment_placement = [{"value": "front", "label": "Front Small"}, {"value": "back", "label": "Back Large"}, {"value": "front_back", "label": "Front + Back"}]
@@ -1026,12 +1033,31 @@ def _vehicle_wrap_schema(defaults, vinyl_opts, vehicle_type_opts):
     default_perf_scope = cat.get("default_window_perf_scope", "rear")
     default_install_required = bool(cat.get("default_install_required", True))
 
+    make_options = cat.get("vehicle_make_options") or [
+        {"value": "Ford", "label": "Ford"},
+        {"value": "Chevrolet", "label": "Chevrolet"},
+        {"value": "Ram", "label": "Ram"},
+        {"value": "Mercedes-Benz", "label": "Mercedes-Benz"},
+        {"value": "Toyota", "label": "Toyota"},
+    ]
+
+    model_options = cat.get("vehicle_model_options") or [
+        {"value": "Transit", "label": "Transit", "parent_make": "Ford"},
+        {"value": "F-150", "label": "F-150", "parent_make": "Ford"},
+        {"value": "Express", "label": "Express", "parent_make": "Chevrolet"},
+        {"value": "Silverado", "label": "Silverado", "parent_make": "Chevrolet"},
+        {"value": "ProMaster", "label": "ProMaster", "parent_make": "Ram"},
+        {"value": "Sprinter", "label": "Sprinter", "parent_make": "Mercedes-Benz"},
+        {"value": "Tacoma", "label": "Tacoma", "parent_make": "Toyota"},
+        {"value": "Tundra", "label": "Tundra", "parent_make": "Toyota"},
+    ]
+
     return [
         # Vehicle Info
         {"key": "vehicle_type", "label": "Vehicle Type", "type": "select", "options": vehicle_options, "default": default_vehicle, "group": "vehicle_info", "required": True, "pricing": True},
         {"key": "vehicle_year", "label": "Year", "type": "text", "placeholder": "2024", "group": "vehicle_info"},
-        {"key": "vehicle_make", "label": "Make", "type": "text", "placeholder": "Ford, Chevy, Ram", "group": "vehicle_info"},
-        {"key": "vehicle_model", "label": "Model", "type": "text", "placeholder": "Transit, Silverado", "group": "vehicle_info"},
+        {"key": "vehicle_make", "label": "Make", "type": "autocomplete", "options": make_options, "placeholder": "Ford, Chevrolet, Ram", "group": "vehicle_info"},
+        {"key": "vehicle_model", "label": "Model", "type": "autocomplete", "options": model_options, "placeholder": "Transit, Silverado", "group": "vehicle_info"},
         # Coverage
         {"key": "coverage_type", "label": "Coverage Type", "type": "select", "options": coverage_opts, "default": default_coverage, "group": "coverage", "required": True, "pricing": True},
         {"key": "custom_coverage_percent", "label": "Custom Coverage % (if custom)", "type": "number", "placeholder": "e.g. 65", "group": "coverage", "pricing": True},

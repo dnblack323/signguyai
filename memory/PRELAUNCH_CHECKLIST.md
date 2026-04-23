@@ -187,33 +187,33 @@ For **EACH** category below, follow this exact sequence:
 - [x] **Install Required = Yes** → Install Complexity APPEARS
 
 #### 2.3e Vehicle Graphics / Wraps
-- [ ] Vehicle type (sedan / van / truck / trailer / motorcycle) → install hours baseline reflects
-- [ ] Coverage (partial / half / full) → package baseline changes
-- [ ] **Coverage = Custom** → Custom % input APPEARS → interpolates between partial and full
-- [ ] Make + Model autocomplete works
-- [ ] Change wrap material (calendered / cast / reflective / etched) → cost math updates
-- [ ] **Lamination = Yes** → laminate type selector APPEARS → adds laminate cost
-- [ ] **Window Perf = Yes** → scope selector APPEARS (rear only / sides only / both) → perf sqft × rate
-- [ ] **Install Required = Yes** → Install Difficulty + Seam Complexity APPEAR
-- [ ] **Second Installer = Yes** → helper labor added
-- [ ] **Surface Prep = Yes** → prep hours added
-- [ ] **Removal Required = Yes** → removal hours added
-- [ ] Rush % applied at end if Rush = Yes
+- [x] Vehicle type (sedan / van / truck / trailer / motorcycle) → install hours baseline reflects
+- [x] Coverage (partial / half / full) → package baseline changes
+- [x] **Coverage = Custom** → Custom % input APPEARS → interpolates between partial and full
+- [x] Make + Model autocomplete works
+- [x] Change wrap material (calendered / cast / reflective / etched) → cost math updates
+- [x] **Lamination = Yes** → laminate type selector APPEARS → adds laminate cost
+- [x] **Window Perf = Yes** → scope selector APPEARS (rear only / sides only / both) → perf sqft × rate
+- [x] **Install Required = Yes** → Install Difficulty + Seam Complexity APPEAR
+- [x] **Second Installer = Yes** → helper labor added
+- [x] **Surface Prep = Yes** → prep hours added
+- [x] **Removal Required = Yes** → removal hours added
+- [x] Rush % applied at end if Rush = Yes
 
 #### 2.3f Apparel
-- [ ] Product Type (tee / hoodie / cap / visor / bag) switches the Brand Style list
-- [ ] Brand Style + Blank Color + Quantity → shop-table sell-price per piece
-- [ ] Decoration Method dropdown includes HTV, DTF, Screen Print Transfer, Direct Screen Print, Embroidery, DTG, Patch, Sublimation, Specialty
-- [ ] **Shop-table methods** (HTV / Screen Print Transfer / DTF) pull exact per-piece sell from the shop_pricing_table
-- [ ] **Cost-plus methods** (Direct Screen / Embroidery / DTG / Sublimation) use method_config rules
-- [ ] **Size Breakdown** entry — enter S=5 M=5 L=10 XL=5 2XL=2 3XL=1 4XL=1 — quantity auto-sums to 29
-- [ ] Plus-size upcharge auto-applied starting at 2XL (2XL = 1× adder, 3XL = 2× adder, 4XL = 3× adder, 5XL = 4× adder)
-- [ ] **Custom Names/Numbers = Yes** → per-piece upcharge added
-- [ ] **Two-tone Hat = Yes** (cap product only) → $1.50 adder per piece
-- [ ] **Leather Patch = Yes** (cap only) → $2.50 adder per piece
-- [ ] **Bag & Fold = Yes** → $1 adder per piece
-- [ ] **Setup Fee** charged **once per order item**, not per piece
-- [ ] Rush % applied at end if Rush = Yes
+- [x] Product Type (tee / hoodie / cap / visor / bag) switches the Brand Style list
+- [x] Brand Style + Blank Color + Quantity → shop-table sell-price per piece
+- [x] Decoration Method dropdown includes HTV, DTF, Screen Print Transfer, Direct Screen Print, Embroidery, DTG, Patch, Sublimation, Specialty
+- [x] **Shop-table methods** (HTV / Screen Print Transfer / DTF) pull exact per-piece sell from the shop_pricing_table
+- [x] **Cost-plus methods** (Direct Screen / Embroidery / DTG / Sublimation) use method_config rules
+- [x] **Size Breakdown** entry — enter S=5 M=5 L=10 XL=5 2XL=2 3XL=1 4XL=1 — quantity auto-sums to 29
+- [x] Plus-size upcharge auto-applied starting at 2XL (2XL = 1× adder, 3XL = 2× adder, 4XL = 3× adder, 5XL = 4× adder)
+- [x] **Custom Names/Numbers = Yes** → per-piece upcharge added
+- [x] **Two-tone Hat = Yes** (cap product only) → $1.50 adder per piece
+- [x] **Leather Patch = Yes** (cap only) → $2.50 adder per piece
+- [x] **Bag & Fold = Yes** → $1 adder per piece
+- [x] **Setup Fee** charged **once per order item**, not per piece
+- [x] Rush % applied at end if Rush = Yes
 
 #### 2.3g Services (deepest — newest build)
 Test **every** scenario; each one exercises a different calculation branch.

@@ -96,6 +96,24 @@ const FieldGridView = ({ groupFields, specs, groupKey, sqFootage }) => (
 );
 
 const renderStandardField = (field, specs, updateField, sqFootage) => {
+  const resolveOptions = () => {
+    const options = field.options || [];
+
+    if (field.key === 'apparel_brand_style_key') {
+      const selectedType = specs.apparel_product_type;
+      const filtered = options.filter((option) => !option.parent_product_type || option.parent_product_type === selectedType);
+      return filtered.length > 0 ? filtered : options;
+    }
+
+    if (field.key === 'vehicle_model') {
+      const selectedMake = specs.vehicle_make;
+      const filtered = options.filter((option) => !option.parent_make || option.parent_make === selectedMake);
+      return filtered.length > 0 ? filtered : options;
+    }
+
+    return options;
+  };
+
   if (field.type === 'calculated') {
     return (
       <div key={field.key} className="bg-violet-50 rounded-lg p-3 border border-violet-200" data-testid={`field-${field.key}-calculated`}>
@@ -115,13 +133,40 @@ const renderStandardField = (field, specs, updateField, sqFootage) => {
   }
 
   if (field.type === 'select') {
+    const selectOptions = resolveOptions();
     return (
       <div key={field.key}>
         <Label className="text-gray-500 text-xs">{field.label}{field.required && ' *'}</Label>
         <Select value={specs[field.key] || field.default || ''} onValueChange={(value) => updateField(field.key, value)}>
           <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900 h-9 text-sm mt-1" data-testid={`field-${field.key}-select`}><SelectValue placeholder={`Select ${field.label}`} /></SelectTrigger>
-          <SelectContent>{(field.options || []).map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
+          <SelectContent>{selectOptions.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
         </Select>
+      </div>
+    );
+  }
+
+  if (field.type === 'autocomplete') {
+    const autoOptions = resolveOptions();
+    const listId = `field-${field.key}-list`;
+
+    return (
+      <div key={field.key}>
+        <Label className="text-gray-500 text-xs">{field.label}{field.required && ' *'}</Label>
+        <Input
+          value={specs[field.key] || ''}
+          onChange={(event) => updateField(field.key, event.target.value)}
+          list={listId}
+          placeholder={field.placeholder || ''}
+          className="bg-gray-50 border-gray-300 text-gray-900 h-9 text-sm mt-1"
+          data-testid={`field-${field.key}-input`}
+        />
+        <datalist id={listId}>
+          {autoOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </datalist>
       </div>
     );
   }
@@ -288,7 +333,27 @@ export default function DynamicCategoryFields({ category, subtype, specs, onChan
   // Sort: core fields first within their group
   const sortedFields = [...visibleFields].sort((a, b) => (b.core ? 1 : 0) - (a.core ? 1 : 0));
   const groups = buildGroups(sortedFields);
-  const updateField = (key, value) => onChange({ ...specs, [key]: value });
+  const updateField = (key, value) => {
+    const next = { ...specs, [key]: value };
+
+    if (key === 'apparel_product_type') {
+      const brandField = (schema?.fields || []).find((field) => field.key === 'apparel_brand_style_key');
+      const brandOptions = (brandField?.options || []).filter((option) => !option.parent_product_type || option.parent_product_type === value);
+      if (brandOptions.length > 0 && !brandOptions.some((option) => option.value === next.apparel_brand_style_key)) {
+        next.apparel_brand_style_key = brandOptions[0].value;
+      }
+    }
+
+    if (key === 'vehicle_make') {
+      const modelField = (schema?.fields || []).find((field) => field.key === 'vehicle_model');
+      const modelOptions = (modelField?.options || []).filter((option) => !option.parent_make || option.parent_make === value);
+      if (modelOptions.length > 0 && !modelOptions.some((option) => option.value === next.vehicle_model)) {
+        next.vehicle_model = modelOptions[0].value;
+      }
+    }
+
+    onChange(next);
+  };
   const toggleLocation = (location) => {
     const current = specs.print_locations || [];
     const updated = current.includes(location) ? current.filter((item) => item !== location) : [...current, location];

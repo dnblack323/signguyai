@@ -39,6 +39,12 @@ Independent verification:
 - ✅ **2.3bF** Duplicate now resets quantity to 1 and preserves category
   - API evidence: source qty `5` -> dup qty `1`, dup category `cut_vinyl`, dup name `Copy of Vinyl Source`
 
+### 2.3e / 2.3f UX schema fixes retested
+- ✅ **2.3eD** Vehicle Make/Model autocomplete now supported in dynamic schema UI
+  - UI evidence: datalist options rendered for make/model and model suggestions respond to selected make
+- ✅ **2.3fA** Apparel product type now switches Brand/Style option list dynamically
+  - UI evidence: product type toggle changes brand option set (e.g., short-sleeve vs hoodie lists)
+
 ---
 
 ## Source artifacts

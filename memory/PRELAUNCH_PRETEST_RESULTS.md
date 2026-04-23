@@ -127,6 +127,41 @@ Last updated: 2026-04-23
 - ✅ **2.3dG** Install required shows Install Complexity and increases price
   - Evidence (UI/API): install complexity visible + `install_no=257.0`, `install_yes=395.7`
 
+### 2.3e Vehicle Graphics / Wraps (first pass)
+- ✅ **2.3eA** Vehicle type affects baseline install hours
+  - Evidence: sedan/van/trailer install-hours `15.0 / 22.5 / 25.0`
+- ✅ **2.3eB** Coverage tiers change package baseline
+  - Evidence: `partial=2653.94`, `half=4583.17`, `full=9281.29`
+- ✅ **2.3eC** Custom coverage interpolation works
+  - Evidence: `custom65=6302.84` lies between half/full
+- ✅ **2.3eD** Make/Model autocomplete works
+  - Evidence (UI): make datalist options present; model suggestions shown and `Transit` offered for `Ford`
+- ✅ **2.3eE** Wrap material selection updates pricing
+  - Evidence: standard vs premium cast pricing differs
+- ✅ **2.3eF** Lamination toggle reveals selector and adds cost
+- ✅ **2.3eG** Window perf scope increases sell by scope level
+- ✅ **2.3eH** Install-required shows Install Difficulty + Seam Complexity and increases sell
+- ✅ **2.3eI** Second installer adds helper labor cost
+- ✅ **2.3eJ** Surface prep level adds prep labor cost
+- ✅ **2.3eK** Removal scope adds removal labor cost
+- ✅ **2.3eL** Rush percent applied at end
+
+### 2.3f Apparel (first pass)
+- ✅ **2.3fA** Product type switches Brand/Style list
+  - Evidence (UI): short-sleeve options differ from hoodie options
+- ✅ **2.3fB** Brand style + qty returns valid shop-table pricing path
+- ✅ **2.3fC** Decoration method list includes all required methods
+- ✅ **2.3fD** Shop-table methods pull exact per-piece sell from table
+- ✅ **2.3fE** Cost-plus methods resolve through method config path
+- ✅ **2.3fF** Size breakdown sums to quantity on ticket create (`29`)
+- ✅ **2.3fG** Plus-size upcharge math verified
+- ✅ **2.3fH** Custom names/numbers upcharge verified
+- ✅ **2.3fI** Two-tone hat adder verified (`$1.50/pc`)
+- ✅ **2.3fJ** Leather patch adder verified (`$2.50/pc`)
+- ✅ **2.3fK** Bag & fold adder verified (`$1.00/pc`)
+- ✅ **2.3fL** Setup fee remains once-per-item (not per piece)
+- ✅ **2.3fM** Rush percent applied at end
+
 ---
 
 ## Source artifacts
@@ -139,3 +174,5 @@ Last updated: 2026-04-23
 - `/root/.emergent/automation_output/20260423_092005/console_20260423_092005.log`
 - `/app/memory/TIER2_SECTION_2_3CD_API_RESULTS.json`
 - `/root/.emergent/automation_output/20260423_094031/console_20260423_094031.log`
+- `/tmp/tier2_23ef_api_results.json`
+- `/root/.emergent/automation_output/20260423_102048/console_20260423_102048.log`

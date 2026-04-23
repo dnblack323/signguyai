@@ -56,5 +56,6 @@ Last updated: 2026-04-23
 ---
 
 ## Source references
-- `/app/memory/PRELAUNCH_SECTION1_USER_PERSONAL_CHECKLIST.md`
-- `/app/memory/PRELAUNCH_SECTION1_LATER_TESTING.md`
+- `/app/memory/PRELAUNCH_CHECKLIST.md`
+- `/app/memory/PRELAUNCH_PRETEST_RESULTS.md`
+- `/app/memory/PRELAUNCH_POSTFIX_RETEST_RESULTS.md`
