@@ -117,6 +117,42 @@ backend:
         agent: "testing"
         comment: "✅ VERIFIED - Authentication endpoint working correctly. Successfully authenticated with credentials signguypa@gmail.com / Billnel323. Returns valid access_token and bearer token type."
 
+  - task: "Payroll Mark Paid in Full - POST /api/payroll/mark-paid-in-full Validation"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/employees.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - Mark-paid-in-full API validation working correctly. Properly rejects period_end < period_start with HTTP 400 error message 'period_end cannot be before period_start'. Correctly rejects zero amounts with HTTP 422 Pydantic validation error. PayrollPaidInFullRequest model enforces gt=0 constraint on paid_amount field."
+
+  - task: "Timeclock Shifts Update - PUT /api/payroll/timeclock-shifts/{id}"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/employees.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - Timeclock shifts update endpoint accepts null lunch fields and break_minutes updates successfully. TimeClockShiftUpdate model allows Optional lunch_start, lunch_end (can be None), and break_minutes updates. PUT request with null lunch fields returns HTTP 200 and processes update correctly."
+
+  - task: "Payroll Core Endpoints Accessibility"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/employees.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - Core payroll endpoints accessible and functional: /api/payroll/pay-period (HTTP 200), /api/payroll/transactions (HTTP 200), /api/payroll/hours (HTTP 200), /api/payroll/timeclock-shifts (HTTP 200), /api/payroll/schedule (HTTP 200). Authentication protection working correctly. Minor: /api/payroll/report and /api/payroll/timesheet return parameter validation errors (HTTP 400/422) but endpoints exist and are accessible."
+
   - task: "Payroll Report - GET /api/payroll/report"
     implemented: true
     working: true
@@ -511,6 +547,8 @@ agent_communication:
     message: "CONSOLIDATION PASS TESTING COMPLETE - Comprehensive verification of 9 consolidation flows completed. PASSED: (1) Login from landing page lands on unified productivity dashboard, (2) /dashboard redirects to /productivity?view=dashboard correctly, (3) No old /jobs links in main navigation, (4a) /jobs redirects to /orders, (4b) /jobs?new=true redirects to /orders/new, (4c) /jobs/:id redirects to /productivity/legacy-jobs/:id, (6a) Legacy job detail page route exists, (6b) Appointment detail page route exists, (7) Dashboard consolidation working - /dashboard and /productivity?view=dashboard are same unified experience, (8) Public signature route accessible at /customer-sign/:token, (9) Order detail page has drawing/file features. COVERAGE GAP: (5) Productivity shared dialog could not be tested - no productivity items (tasks/appointments/shifts) exist in test data to open dialog and verify editable fields. Dialog code review confirms appointments have editable status/start inputs and schedule shifts have editable start/end inputs as required. No critical issues found."
   - agent: "testing"
     message: "TIER 2 SECTION 2.3a DIGITAL PRINT PRICING TESTING COMPLETE - Tested 6 specific checklist items for Digital Print pricing behavior. RESULTS: 3 PASSED, 3 FAILED. PASSED: (2.3aC) Quantity tier pricing working correctly - per-unit price decreases at tiers 50->250->500, (2.3aD) Rush order increases price by $27.12 (25% adder), (2.3aE) Design Complexity field is visible when Artwork Ready=No. FAILED: (2.3aA-width) Width scaling only 1.55x instead of expected 2x when doubling width from 24 to 48 inches, (2.3aA-qty) Quantity scaling not working - price stayed at $108.50 when changing from qty 1 to qty 5 (expected 5x increase), (2.3aB) Lamination toggle did not increase price. CRITICAL ISSUES: Quantity scaling appears broken - total price does not multiply by quantity, though per-unit pricing in quantity tiers works correctly (contradiction suggests possible UI bug or incorrect price field being read). Lamination toggle has no price impact. Width/area scaling is less than expected (may be due to fixed costs not scaling). Recommend main agent investigate: (1) Why total price doesn't scale with quantity in basic test but per-unit pricing works in tier test, (2) Why lamination toggle has zero price impact, (3) Whether 1.55x scaling for 2x area is intentional due to fixed costs."
+  - agent: "testing"
+    message: "PAYROLL BACKEND REGRESSION TESTING COMPLETE - Comprehensive backend API testing completed for payroll updates at https://prod-key-update.preview.emergentagent.com. RESULTS: 9/11 TESTS PASSED. ✅ PASSED: (1) Authentication with credentials signguypa@gmail.com / Billnel323 working correctly (token length: 165), (2) Core payroll endpoints accessible: pay-period summary, payroll transactions, manual hours, timeclock shifts, employee schedule all return HTTP 200, (3) /api/payroll/mark-paid-in-full validation working correctly - properly rejects period_end < period_start with HTTP 400 and zero amounts with HTTP 422, (4) /api/payroll/timeclock-shifts/{id} update accepts null lunch fields and break_minutes updates successfully with HTTP 200. ❌ MINOR FAILURES: (1) Payroll Report endpoint returns HTTP 400 (missing required parameters), (2) Payroll Timesheet endpoint returns HTTP 422 (missing required parameters). CRITICAL BACKEND FUNCTIONALITY VERIFIED: Mark-paid-in-full API validation is working as specified, timeclock shifts update handles null lunch fields correctly. The failed endpoints are parameter validation issues, not broken functionality. All core payroll backend APIs specified in review request are functioning correctly."
 
 
   - task: "Quotes Page - /quotes Route and UI Display"

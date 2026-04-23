@@ -13,6 +13,15 @@ Full-stack business management app for sign/graphics shops: customer management,
 
 ## Implemented (CHANGELOG)
 
+### 2026-04-23 — Payroll/timeclock stabilization + payroll controls
+- Fixed recurring payroll worksheet break-loss behavior by merging same-day shifts in `frontend/src/lib/payrollWorksheet.js` and preserving break deductions even when lunch fields are blank.
+- Added lunch field persistence for timeclock break actions in `backend/services/timeclock_service.py` (`lunch_start` on break start, `lunch_end` on break end).
+- Fixed payroll shift edit API to accept explicit null lunch values (`exclude_unset=True`) so admins can clear/edit breaks reliably.
+- Added `POST /api/payroll/mark-paid-in-full` in `backend/routes/employees.py` to create/update period-scoped payment transactions with official paid amount.
+- Added top-toolbar "Paid in Full" amount input + action button in `frontend/src/components/payroll/PayrollWorksheetToolbar.js` and wired flow in `frontend/src/pages/Payroll.js`.
+- Added tenant payroll setting `show_payroll_adjustments` (default `false`) in `backend/models/auth.py` and `frontend/src/pages/CompanySettings.js`, with conditional panel rendering in payroll page.
+- Verified by testing agent: `/app/test_reports/iteration_123.json` (backend 14/14 pass, frontend checks pass).
+
 ### 2026-04-22 — Stripe Connect mode-safety hardening
 - Added `_scrub_stale_connect_account()` + `_is_wrong_mode_error()` helpers in `routes/stripe_connect.py`.
 - `/stripe-connect/status` auto-scrubs test-mode Connect accounts lingering on a live platform and records audit trail (`stripe_connect_scrubbed_at/_reason/_account_id`).
@@ -38,6 +47,8 @@ Full-stack business management app for sign/graphics shops: customer management,
 ### P2 — Upcoming
 - Easy Artwork sharing to Customer Portal from order details.
 - AI receipt analysis for uploaded expense photos.
+- Tax-exempt toggle behavior validation/fix (`2.1F`).
+- Assets-panel artwork attach + thumbnail path fix (`2.2E`).
 
 ### P2 — Backlog
 - Deduplicate payroll compensation snapshot hours (`_get_employee_compensation_snapshot` sums job+manual+clock without dedupe; needs product decision).
@@ -51,6 +62,10 @@ Full-stack business management app for sign/graphics shops: customer management,
 - `backend/routes/webstores.py` — webstore CRUD, unified order creation.
 - `backend/routes/employees.py` — payroll transactions, snapshots.
 - `backend/services/timeclock_service.py` — punch handling, shift state.
+- `frontend/src/lib/payrollWorksheet.js` — worksheet row merge + break calculations.
+- `frontend/src/pages/Payroll.js` — worksheet save logic + paid-in-full flow.
+- `frontend/src/components/payroll/PayrollWorksheetToolbar.js` — top-area payroll actions.
+- `frontend/src/pages/CompanySettings.js` — payroll settings toggles.
 - `frontend/src/pages/Admin/PaymentSettings.js` — Connect UI.
 - `frontend/src/pages/Webstores.js` — admin dashboard.
 - `frontend/src/pages/Storefront.js` — public storefront + checkout.

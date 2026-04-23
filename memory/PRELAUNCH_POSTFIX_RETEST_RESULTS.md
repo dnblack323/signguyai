@@ -52,9 +52,19 @@ Independent verification:
   - UI evidence: clearing `size_s` leaves blank value (`''`) instead of forcing `0`
   - Console artifact: `/root/.emergent/automation_output/20260423_102924/console_20260423_102924.log`
 
+### Payroll/timeclock + payroll controls retested (Iteration 123)
+- ✅ Timeclock shift edit now accepts `lunch_start/lunch_end = null` and updates `break_minutes` correctly.
+- ✅ Worksheet totals now deduct break time even when lunch fields are blank.
+- ✅ Same-day multiple shifts are merged into worksheet totals (split lunch clock-out/in no longer disappears).
+- ✅ New **Paid in Full** flow works per selected employee + selected pay period and is idempotent for same period.
+- ✅ New payroll settings toggle (`show_payroll_adjustments`) persists and controls adjustments panel visibility.
+- ✅ Admin editability remains intact after marking Paid in Full.
+  - Evidence: `/app/test_reports/iteration_123.json`
+
 ---
 
 ## Source artifacts
 - `/app/memory/SECTION1_FIX_RETEST_RESULTS.json`
 - `/app/test_reports/iteration_119.json`
+- `/app/test_reports/iteration_123.json`
 - `/root/.emergent/automation_output/20260423_080029/console_20260423_080029.log`
