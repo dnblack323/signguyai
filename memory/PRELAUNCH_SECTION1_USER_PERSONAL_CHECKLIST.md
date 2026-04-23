@@ -1,4 +1,4 @@
-# Prelaunch — User Personal Checklist (Section 1 Only)
+# Prelaunch — User Personal Checklist (Section 1 + Personal-Only Tier 2)
 
 This file contains only the Section 1 items that require **your personal verification** (email inbox, Stripe dashboard actions, long-duration checks, or clean-tenant/live-production actions).
 
@@ -64,3 +64,28 @@ Numbering format is preserved as requested: `Tier.SectionLetter` (example: `1.1A
 ## Tier 1 → Section 1.6 CSV Customer Import
 
 - [ ] **1.6R** Export customers CSV, re-import into a clean tenant, and confirm round-trip integrity (no duplicates/data loss)
+
+---
+
+## Tier 2 → Items requiring your personal verification (cannot be fully completed by agent alone)
+
+### 2.1 Customers CRUD
+- [ ] **2.1G** Portal invite email arrives and customer can set password/log in (requires inbox verification)
+
+### 2.5 Quote → Order → Invoice → Payment
+- [ ] **2.5C** Quote email delivery arrives in customer inbox
+- [ ] **2.5I** Invoice email delivery arrives with PDF/pay link
+- [ ] **2.5J** Customer pays via Stripe checkout test card and status updates end-to-end
+- [ ] **2.5K** Partial payment flow validates remaining balance
+- [ ] **2.5L** Second payment closes invoice to paid
+- [ ] **2.5M** Refund from Stripe dashboard syncs invoice to refunded
+
+### 2.7 Webstores / Public Storefront
+- [ ] **2.7N** Checkout payment with Stripe test card and confirmation email delivery
+- [ ] **2.7R** Payouts page Stripe-synced payout history (depends on live Stripe payout data)
+
+### 2.9 Questionnaires / Public Intake Forms
+- [ ] **2.9L** Admin email notification on new submission (SendGrid log/inbox verification)
+
+### 2.10 Public Customer Signature Page
+- [ ] **2.10E** Signature with finger on real mobile device

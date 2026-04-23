@@ -16,27 +16,27 @@
 ### 1.1 Backup & Restore — **DO THIS FIRST**
 _Why this is first: if anything else goes wrong, backup is the only thing that keeps you whole._
 
-- [ ] Settings → Backup → **Export All Data** downloads a `.json` file
-- [ ] Downloaded file size is **> 50 KB** (not an empty `{}`)
-- [ ] Open the file in a text editor — confirm it contains all of: `customers`, `orders`, `order_items`, `employees`, `payroll_transactions`, `invoices`, `quotes`, `timeclock_shifts`
+- [x] Settings → Backup → **Export All Data** downloads a `.json` file
+- [x] Downloaded file size is **> 50 KB** (not an empty `{}`)
+- [x] Open the file in a text editor — confirm it contains all of: `customers`, `orders`, `order_items`, `employees`, `payroll_transactions`, `invoices`, `quotes`, `timeclock_shifts`
 - [ ] On a clean test tenant, upload the backup → **Preview Restore** shows row counts (`"12 customers, 8 orders…"`) **without writing**
 - [ ] On the test tenant, click **Restore** → toast confirms completion
 - [ ] Log out → log back in → all data visible
 - [ ] Refresh the Orders page → all orders render
 - [ ] Open a restored Order → the attached artwork / drawing previews still resolve (Object Storage URLs valid)
-- [ ] `GET /api/backup/status` returns a recent `last_backup_at` timestamp
-- [ ] Scheduled digest scheduler still running post-restore (`tail -n 50 /var/log/supervisor/backend.err.log` shows `INFO: check_and_send_digests`)
-- [ ] Backup file does **not** contain plaintext passwords (only bcrypt hashes — search for `$2b$` to confirm)
+- [x] `GET /api/backup/status` returns a recent `last_backup_at` timestamp
+- [x] Scheduled digest scheduler still running post-restore (`tail -n 50 /var/log/supervisor/backend.err.log` shows `INFO: check_and_send_digests`)
+- [x] Backup file does **not** contain plaintext passwords (only bcrypt hashes — search for `$2b$` to confirm)
 - [ ] **Take a live production backup NOW** before doing any of the tests below
 
 ### 1.2 Authentication & Multi-Tenant Isolation
 - [ ] **Sign-up** with a brand-new email → verification email arrives within 60s
 - [ ] Verification email link works → account activated
-- [ ] **Login** with correct credentials lands on Dashboard
-- [ ] **Login with wrong password 5 times** → user sees a sensible error (wrong password) but the account is **not permanently locked** inappropriately
+- [x] **Login** with correct credentials lands on Dashboard
+- [x] **Login with wrong password 5 times** → user sees a sensible error (wrong password) but the account is **not permanently locked** inappropriately
 - [ ] **Forgot Password** → reset email arrives → click link → set new password
 - [ ] Old password **rejected** after reset; new password accepted
-- [ ] **Logout** clears the session → visiting `/orders` redirects to `/login`
+- [x] **Logout** clears the session → visiting `/orders` redirects to `/login`
 - [ ] **Tenant isolation (critical):**
   - [ ] Create a second tenant using a different email
   - [ ] Login as Tenant B → `GET /api/customers` via browser dev-tools / curl returns **empty array** (not Tenant A’s customers)
@@ -48,7 +48,7 @@ _Why this is first: if anything else goes wrong, backup is the only thing that k
 - [ ] **Email change** flow (if exposed) requires verification of the new email
 
 ### 1.3 Stripe Billing (Platform Subscriptions)
-- [ ] Settings → Billing shows the current plan and next renewal date
+- [x] Settings → Billing shows the current plan and next renewal date
 - [ ] **Upgrade** via Stripe checkout (`4242 4242 4242 4242`, any future expiry, any CVC) → redirect returns to `/billing/success` → new plan displayed in UI and in Stripe dashboard
 - [ ] **Declined card** (`4000 0000 0000 0002`) → graceful error page → plan **not** upgraded
 - [ ] **3DS required card** (`4000 0025 0000 3155`) → 3DS prompt appears → after approval, plan upgrades
@@ -71,34 +71,34 @@ _Different from 1.3 — this is the merchant (you) receiving customer payments, 
 - [ ] Re-connect works without duplicate-account errors
 
 ### 1.5 Credits System (AI Metering)
-- [ ] Navbar shows the current **credit balance**
+- [x] Navbar shows the current **credit balance**
 - [ ] Buy the **100 / 300 / 1000** credit packs one at a time (test cards) → each balance update reflects after the Stripe webhook
-- [ ] Every successful AI call **decrements** the balance by the published credit cost (hover the tool card to see the cost)
+- [x] Every successful AI call **decrements** the balance by the published credit cost (hover the tool card to see the cost)
 - [ ] **Exhaustion**: burn balance to 0 → next AI call returns **HTTP 402 Insufficient Credits** with a friendly upgrade prompt in the UI
 - [ ] **Auto top-up** toggle (if enabled) triggers a recharge when balance dips below the threshold
-- [ ] **Credit History** page shows every charge (+) and every consumption (−) with the action name (`ai_business_assistant`, `ai_services_prefill`, etc.)
+- [x] **Credit History** page shows every charge (+) and every consumption (−) with the action name (`ai_business_assistant`, `ai_services_prefill`, etc.)
 - [ ] **Founders Edition monthly allotment** refills on the billing anniversary date
 - [ ] Free-tier users cannot bypass credit gating (check Network tab — no orphaned `X-Skip-Credits` header)
 
 ### 1.6 CSV Customer Import
-- [ ] **Minimal CSV** (`name,email,phone` header + 10 rows): Customers → Import → preview shows first 5 rows correctly → click Import → toast `✓ 10 customers imported` → all 10 appear in the Customers list
-- [ ] **Full CSV** with all columns (`name,email,phone,address,city,state,zip,notes,tax_exempt,business_name`): every field lands in the correct place on each customer record
-- [ ] **Duplicate detection**: re-upload the same CSV → either skips or flags duplicates. Document the actual behavior here: `______________________`
-- [ ] **Malformed CSV** (headers only, no data rows) → clear error, nothing imported
-- [ ] **Missing required column** (no `name`) → clear error message naming the missing column → nothing imported
-- [ ] **Unicode names** — include these rows and verify they render perfectly (no garbling):
-  - [ ] `José García`
-  - [ ] `北京客户`
-  - [ ] `O'Brien`
-  - [ ] `Müller & Söhne`
-- [ ] **Large CSV** with 500+ rows → completes in **< 30 seconds**, UI does not hang
-- [ ] **Phone format variants** — all of these should be saved and searchable:
-  - [ ] `(415) 555-1234`
-  - [ ] `415.555.1234`
-  - [ ] `415-555-1234`
-  - [ ] `+1 415 555 1234`
-  - [ ] `+14155551234`
-- [ ] **Email validation**: row with invalid email (`not-an-email`) → that row skipped, rest imported, **error count** displayed at the end
+- [x] **Minimal CSV** (`name,email,phone` header + 10 rows): Customers → Import → preview shows first 5 rows correctly → click Import → toast `✓ 10 customers imported` → all 10 appear in the Customers list
+- [x] **Full CSV** with all columns (`name,email,phone,address,city,state,zip,notes,tax_exempt,business_name`): every field lands in the correct place on each customer record
+- [x] **Duplicate detection**: re-upload the same CSV → either skips or flags duplicates. Document the actual behavior here: `updates existing rows when email matches`
+- [x] **Malformed CSV** (headers only, no data rows) → clear error, nothing imported
+- [x] **Missing required column** (no `name`) → clear error message naming the missing column → nothing imported
+- [x] **Unicode names** — include these rows and verify they render perfectly (no garbling):
+  - [x] `José García`
+  - [x] `北京客户`
+  - [x] `O'Brien`
+  - [x] `Müller & Söhne`
+- [x] **Large CSV** with 500+ rows → completes in **< 30 seconds**, UI does not hang
+- [x] **Phone format variants** — all of these should be saved and searchable:
+  - [x] `(415) 555-1234`
+  - [x] `415.555.1234`
+  - [x] `415-555-1234`
+  - [x] `+1 415 555 1234`
+  - [x] `+14155551234`
+- [x] **Email validation**: row with invalid email (`not-an-email`) → that row skipped, rest imported, **error count** displayed at the end
 - [ ] **Rollback**: if import fails mid-way, **no partial data** is left in the DB (search for any ghost records)
 - [ ] **CSV export** of customers → download → re-import the export into a clean tenant → round-trip integrity: no duplicates, no data loss, all fields match original
 
