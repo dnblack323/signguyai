@@ -1,0 +1,186 @@
+{
+  "base_url": "https://prod-key-update.preview.emergentagent.com",
+  "timestamp": "2026-04-23T03:36:57.297671+00:00",
+  "results": [
+    {
+      "id": "1.2C",
+      "item": "Login with correct credentials lands on Dashboard",
+      "status": "PASS",
+      "details": "login status=200"
+    },
+    {
+      "id": "1.1A",
+      "item": "Export All Data downloads a .json file",
+      "status": "PASS",
+      "details": "GET /api/backup/export returned JSON 200"
+    },
+    {
+      "id": "1.1B",
+      "item": "Downloaded file size is > 50 KB",
+      "status": "FAIL",
+      "details": "size_bytes=32944"
+    },
+    {
+      "id": "1.1C",
+      "item": "Backup contains required collections list",
+      "status": "FAIL",
+      "details": "missing=['order_items', 'orders', 'payroll_transactions', 'timeclock_shifts']; available_sample=['artwork_proofs', 'customers', 'documents', 'employees', 'invoices', 'jobs', 'payment_transactions', 'products', 'quotes', 'tasks', 'webstores_v2']"
+    },
+    {
+      "id": "1.1K",
+      "item": "Backup file does not contain plaintext passwords",
+      "status": "PASS",
+      "details": "no plaintext password fields found; bcrypt_hash_count=0"
+    },
+    {
+      "id": "1.1I",
+      "item": "GET /api/backup/status returns recent last_backup_at",
+      "status": "PASS",
+      "details": "last_backup_at=2026-04-23T03:36:27.955150+00:00 age_seconds=0"
+    },
+    {
+      "id": "1.2D",
+      "item": "Wrong password 5 times shows sensible error and no permanent lock",
+      "status": "PASS",
+      "details": "wrong_statuses=[401, 401, 401, 401, 401]; final_login=200"
+    },
+    {
+      "id": "1.3A",
+      "item": "Billing shows current plan and renewal date",
+      "status": "FAIL",
+      "details": "plan=free_trial current_period_end=None trial_end=None"
+    },
+    {
+      "id": "1.4B",
+      "item": "Stripe Connect status connected+charges_enabled+payouts_enabled",
+      "status": "FAIL",
+      "details": "{'connected': True, 'account_id': 'acct_1TP6XF1JC1SdQUDo', 'charges_enabled': False, 'payouts_enabled': False, 'onboarding_complete': False, 'platform_fee_percent': 2.1999999999999997, 'stripe_mode': 'live', 'account_mode': 'live', 'mode_mismatch': False}"
+    },
+    {
+      "id": "1.5A",
+      "item": "Credit balance is available",
+      "status": "PASS",
+      "details": "balance=1999880"
+    },
+    {
+      "id": "1.5C",
+      "item": "Successful AI call decrements credit balance",
+      "status": "PASS",
+      "details": "before=1999880 after=1999879 used=1"
+    },
+    {
+      "id": "1.5F",
+      "item": "Credit history shows charge/consumption entries with action names",
+      "status": "PASS",
+      "details": "transactions_returned=20 contains_ai_business_assistant=True"
+    },
+    {
+      "id": "1.6A",
+      "item": "Minimal CSV equivalent import (10 rows)",
+      "status": "PASS",
+      "details": "{'created': 10, 'updated': 0, 'errors': []}"
+    },
+    {
+      "id": "1.6B",
+      "item": "Full CSV equivalent column mapping import",
+      "status": "PASS",
+      "details": "{'created': 2, 'updated': 0, 'errors': []}"
+    },
+    {
+      "id": "1.6C",
+      "item": "Duplicate detection on re-import",
+      "status": "PASS",
+      "details": "{'created': 0, 'updated': 10, 'errors': []}"
+    },
+    {
+      "id": "1.6D",
+      "item": "Malformed CSV equivalent (headers only/no rows) should error and import nothing",
+      "status": "FAIL",
+      "details": "status=200 body={\"created\":0,\"updated\":0,\"errors\":[]}"
+    },
+    {
+      "id": "1.6E",
+      "item": "Missing required name column/field shows clear error",
+      "status": "PASS",
+      "details": "{'created': 0, 'updated': 0, 'errors': ['Row 1: Name or Company is required']}"
+    },
+    {
+      "id": "1.6F",
+      "item": "Unicode name renders/searches: José García",
+      "status": "PASS",
+      "details": "found_count=1"
+    },
+    {
+      "id": "1.6G",
+      "item": "Unicode name renders/searches: 北京客户",
+      "status": "PASS",
+      "details": "found_count=1"
+    },
+    {
+      "id": "1.6H",
+      "item": "Unicode name renders/searches: O'Brien",
+      "status": "PASS",
+      "details": "found_count=1"
+    },
+    {
+      "id": "1.6I",
+      "item": "Unicode name renders/searches: Müller & Söhne",
+      "status": "PASS",
+      "details": "found_count=1"
+    },
+    {
+      "id": "1.6J",
+      "item": "Large CSV equivalent 500+ rows in <30s",
+      "status": "PASS",
+      "details": "created=501 duration_s=0.40"
+    },
+    {
+      "id": "1.6K",
+      "item": "Phone variant searchable: (415) 555-1234",
+      "status": "FAIL",
+      "details": "search_results=0"
+    },
+    {
+      "id": "1.6L",
+      "item": "Phone variant searchable: 415.555.1234",
+      "status": "FAIL",
+      "details": "search_results=0"
+    },
+    {
+      "id": "1.6M",
+      "item": "Phone variant searchable: 415-555-1234",
+      "status": "FAIL",
+      "details": "search_results=0"
+    },
+    {
+      "id": "1.6N",
+      "item": "Phone variant searchable: +1 415 555 1234",
+      "status": "FAIL",
+      "details": "search_results=None"
+    },
+    {
+      "id": "1.6O",
+      "item": "Phone variant searchable: +14155551234",
+      "status": "FAIL",
+      "details": "search_results=None"
+    },
+    {
+      "id": "1.6P",
+      "item": "Invalid email row skipped; rest imported with error count",
+      "status": "FAIL",
+      "details": "{'created': 2, 'updated': 0, 'errors': []}"
+    },
+    {
+      "id": "1.6Q",
+      "item": "Rollback on mid-way failure leaves no partial data",
+      "status": "FAIL",
+      "details": "{'created': 2, 'updated': 0, 'errors': ['Row 2: Name or Company is required']}"
+    },
+    {
+      "id": "cleanup",
+      "item": "Cleanup test customers with prefix S1CHK_1776915390",
+      "status": "PASS",
+      "details": "deleted=526"
+    }
+  ]
+}
