@@ -8,6 +8,8 @@
 > **Preview URL pattern:** `https://prod-key-update.preview.emergentagent.com` (read actual value from `REACT_APP_BACKEND_URL`)
 >
 > **Reference numbering.** Each section has a stable `X.Y` number. When we discuss an item, refer to it like **“2.3c”** or **“4.2 #5”** and we’ll both know exactly what you mean.
+>
+> **Validation sync note (2026-04-23):** `[x]` is used only for items that were verified as passed in execution/retest reports. Failed or blocked items remain unchecked.
 
 ---
 
