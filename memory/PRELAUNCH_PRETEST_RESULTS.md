@@ -99,6 +99,34 @@ Last updated: 2026-04-23
 - ❌ **2.3bF** Duplicate item behavior mismatch
   - Evidence (API `/job-tickets/{id}/duplicate`): source qty `5` duplicated as qty `5` (expected reset to `1`); duplicate name unchanged (expected `Copy of ...`)
 
+### 2.3c Rigid Signs (first pass)
+- ✅ **2.3cA** Material + thickness changes baseline pricing
+  - Evidence (API): `coroplast_4mm=128.5`, `acm_dibond_3mm_4mm=240.5`, `acm_dibond_3mm_1/2=278.9`
+- ✅ **2.3cB** Sidedness single hides double-sided art field
+- ✅ **2.3cC** Sidedness double shows double-sided art field
+- ✅ **2.3cD** Hardware off hides Hardware Type + Drill Prep fields
+- ✅ **2.3cE** Hardware on shows both fields
+- ✅ **2.3cF** Install off hides Install Complexity
+- ✅ **2.3cG** Install on shows Install Complexity
+- ✅ **2.3cH** Protective finish off hides Finish Type
+- ✅ **2.3cI** Protective finish on shows Finish Type
+- ✅ **2.3cJ** Artwork Ready = No shows Design Complexity
+
+### 2.3d Banners (first pass)
+- ✅ **2.3dA** Banner material selection changes baseline pricing
+  - Evidence (API): `banner_13oz=257.0`, `banner_18oz=305.0`
+- ✅ **2.3dB** Grommets=None hides custom grommet count field
+- ✅ **2.3dC** Grommet standard option adds grommet charge
+  - Evidence (API): `none=257.0`, `corners=261.0`
+- ✅ **2.3dD** Custom grommet count scales pricing
+  - Evidence (API): `custom4=261.0`, `custom20=272.0`
+- ✅ **2.3dE** Pole pockets option adds charge
+  - Evidence (API): `none=257.0`, `top_and_bottom=313.0`
+- ✅ **2.3dF** Wind slits option adds charge
+  - Evidence (API): `wind_no=257.0`, `wind_yes=259.0`
+- ✅ **2.3dG** Install required shows Install Complexity and increases price
+  - Evidence (UI/API): install complexity visible + `install_no=257.0`, `install_yes=395.7`
+
 ---
 
 ## Source artifacts
@@ -109,3 +137,5 @@ Last updated: 2026-04-23
 - `/app/memory/TIER2_SECTION_2_3B_API_RESULTS.json`
 - `/app/memory/TIER2_SECTION_2_3B_DUPLICATE_RESULTS.json`
 - `/root/.emergent/automation_output/20260423_092005/console_20260423_092005.log`
+- `/app/memory/TIER2_SECTION_2_3CD_API_RESULTS.json`
+- `/root/.emergent/automation_output/20260423_094031/console_20260423_094031.log`

@@ -1667,7 +1667,14 @@ async def clone_job_ticket(ticket_id: str, payload: Dict[str, Any], current_user
 
 @router.post("/{ticket_id}/duplicate")
 async def duplicate_job_ticket(ticket_id: str, current_user: UserInDB = Depends(get_current_active_user)):
-    """Duplicate a job ticket within the same order."""
+    """Duplicate a job ticket within the same order.
+
+    Contract (checklist-aligned):
+    - Name prefixed with "Copy of "
+    - Quantity reset to 1
+    - Entry mode reset to quick
+    - Category preserved
+    """
     import uuid as uuid_mod
     existing = await db.job_tickets.find_one(
         {"id": ticket_id, "tenant_id": current_user.tenant_id}, {"_id": 0}
@@ -1681,6 +1688,9 @@ async def duplicate_job_ticket(ticket_id: str, current_user: UserInDB = Depends(
     dup = {**existing}
     dup["id"] = new_id
     dup["ticket_number"] = new_number
+    dup["item_name"] = f"Copy of {existing.get('item_name') or 'Item'}"
+    dup["quantity"] = 1
+    dup["entry_mode"] = "quick"
     dup["status"] = "new"
     dup["progress"] = 0.0
     dup["started_date"] = None

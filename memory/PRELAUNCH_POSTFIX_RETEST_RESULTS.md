@@ -35,6 +35,10 @@ Independent verification:
 - ✅ **2.3aE** Design Complexity now appears when `Artwork Ready = No`
   - UI evidence: `design_visible_with_artwork_ready_false=true`
 
+### 2.3b Cut Vinyl fix retested
+- ✅ **2.3bF** Duplicate now resets quantity to 1 and preserves category
+  - API evidence: source qty `5` -> dup qty `1`, dup category `cut_vinyl`, dup name `Copy of Vinyl Source`
+
 ---
 
 ## Source artifacts

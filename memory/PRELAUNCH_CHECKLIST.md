@@ -163,28 +163,28 @@ For **EACH** category below, follow this exact sequence:
 - [x] **Install Required = No** → Install Complexity field is **HIDDEN**
 - [x] **Install Required = Yes** → Install Complexity APPEARS → price jumps
 - [x] **Artwork Ready = No** → Design Complexity APPEARS
-- [ ] Duplicate this item → Quantity resets to 1, category stays Cut Vinyl — FAIL: current `/api/job-tickets/{id}/duplicate` preserves original quantity and name; does not reset to qty=1/copy naming
+- [x] Duplicate this item → Quantity resets to 1, category stays Cut Vinyl
 
 #### 2.3c Rigid Signs (most progressive-disclosure tests)
-- [ ] Pick material (coroplast / aluminum / PVC / MDO) and thickness → price baseline changes
-- [ ] **Sidedness = Single** → Double-Sided Art field is **HIDDEN**
-- [ ] **Sidedness = Double** → Double-Sided Art APPEARS
-- [ ] **Hardware Included = No** → Hardware Type AND Drill Prep Required are both **HIDDEN**
-- [ ] **Hardware Included = Yes** → both fields APPEAR
-- [ ] **Install Required = No** → Install Complexity **HIDDEN**
-- [ ] **Install Required = Yes** → Install Complexity APPEARS
-- [ ] **Protective Finish = No** → Finish Type **HIDDEN**
-- [ ] **Protective Finish = Yes** → Finish Type APPEARS
-- [ ] **Artwork Ready = No** → Design Complexity APPEARS
+- [x] Pick material (coroplast / aluminum / PVC / MDO) and thickness → price baseline changes
+- [x] **Sidedness = Single** → Double-Sided Art field is **HIDDEN**
+- [x] **Sidedness = Double** → Double-Sided Art APPEARS
+- [x] **Hardware Included = No** → Hardware Type AND Drill Prep Required are both **HIDDEN**
+- [x] **Hardware Included = Yes** → both fields APPEAR
+- [x] **Install Required = No** → Install Complexity **HIDDEN**
+- [x] **Install Required = Yes** → Install Complexity APPEARS
+- [x] **Protective Finish = No** → Finish Type **HIDDEN**
+- [x] **Protective Finish = Yes** → Finish Type APPEARS
+- [x] **Artwork Ready = No** → Design Complexity APPEARS
 
 #### 2.3d Banners
-- [ ] Pick banner type (indoor / outdoor / fabric / mesh / step-and-repeat) → baseline set
-- [ ] **Grommets = None** → grommet sub-fields hidden
-- [ ] **Grommets = Standard** → standard per-piece grommet charge added
-- [ ] **Grommets = Custom** → Grommet Count field APPEARS → count × per-grommet charge
-- [ ] **Pole Pockets = Yes** → per-side charge applied
-- [ ] **Wind Slits = Yes** → per-slit charge applied
-- [ ] **Install Required = Yes** → Install Complexity APPEARS
+- [x] Pick banner type (indoor / outdoor / fabric / mesh / step-and-repeat) → baseline set
+- [x] **Grommets = None** → grommet sub-fields hidden
+- [x] **Grommets = Standard** → standard per-piece grommet charge added
+- [x] **Grommets = Custom** → Grommet Count field APPEARS → count × per-grommet charge
+- [x] **Pole Pockets = Yes** → per-side charge applied
+- [x] **Wind Slits = Yes** → per-slit charge applied
+- [x] **Install Required = Yes** → Install Complexity APPEARS
 
 #### 2.3e Vehicle Graphics / Wraps
 - [ ] Vehicle type (sedan / van / truck / trailer / motorcycle) → install hours baseline reflects

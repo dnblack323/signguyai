@@ -1,0 +1,40 @@
+{
+  "base_url": "https://prod-key-update.preview.emergentagent.com",
+  "results": [
+    {
+      "id": "2.3cA",
+      "status": "PASS",
+      "details": "coroplast_4mm=128.5,acm_dibond_3mm_4mm=240.5,acm_dibond_3mm_1/2=278.9"
+    },
+    {
+      "id": "2.3dA",
+      "status": "PASS",
+      "details": "banner_13oz=257.0,banner_18oz=305.0"
+    },
+    {
+      "id": "2.3dC",
+      "status": "PASS",
+      "details": "grom_none=257.0,grom_corners=261.0"
+    },
+    {
+      "id": "2.3dD",
+      "status": "PASS",
+      "details": "custom4=261.0,custom20=272.0"
+    },
+    {
+      "id": "2.3dE",
+      "status": "PASS",
+      "details": "pole_none=257.0,pole_top_bottom=313.0"
+    },
+    {
+      "id": "2.3dF",
+      "status": "PASS",
+      "details": "wind_no=257.0,wind_yes=259.0"
+    },
+    {
+      "id": "2.3dG_price",
+      "status": "PASS",
+      "details": "install_no=257.0,install_yes=395.7"
+    }
+  ]
+}
