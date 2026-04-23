@@ -13,6 +13,15 @@ Full-stack business management app for sign/graphics shops: customer management,
 
 ## Implemented (CHANGELOG)
 
+### 2026-04-23 — Webstores create flow: "created but failed to refresh list"
+- Fixed `frontend/src/pages/Webstores.js` list-refresh resilience after create:
+  - Added `normalizeWebstoreList(...)` to handle variable response shapes safely.
+  - Upgraded `loadData(...)` with one-shot retry for webstore fetch failures.
+  - Added optional `suppressStoreErrorToast` mode for create flow to avoid false-negative UX.
+  - Added optimistic insert of newly created store into local list so it appears immediately even if background refresh is flaky.
+- Create flow now shows success and keeps the store visible immediately + after hard refresh.
+- Verified with frontend automation using tenant owner credentials: create succeeds, no "failed to refresh list" toast, store count increments instantly, and persists after page reload.
+
 ### 2026-04-23 — Features page screenshot lightbox
 - Added click-to-enlarge behavior for feature screenshots on `/features` in `frontend/src/pages/FeaturesPage.js`.
 - Each screenshot card now shows a "Click to enlarge" hint and opens a full-screen modal with enlarged image + feature title.
