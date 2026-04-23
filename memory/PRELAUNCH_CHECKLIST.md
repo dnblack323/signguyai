@@ -116,22 +116,22 @@ _Different from 1.3 — this is the merchant (you) receiving customer payments, 
 - [ ] **Portal invite** from the customer detail page → invite email arrives, customer can set password and log in to portal (verified in 4.4)
 
 ### 2.2 Orders — Quick Entry
-- [ ] `/orders/new` loads, customer autocomplete shows suggestions as you type
-- [ ] Select a customer — their info populates the order header
-- [ ] **Quick item mode**: click + Add Order Item → Quick Manual Item → enter item name + price → total updates
-- [ ] **Shared context panel** renders (Production Notes, Color Notes, Location Notes, Artwork Notes) — all four fields save with the order
-- [ ] **Attach artwork**: drag-and-drop a PNG onto the assets panel → appears in Order Assets list with thumbnail
-- [ ] **Save as Draft** → order saved with status=draft → appears in Drafts filter on OrdersPage
-- [ ] **Save Order** (non-draft) → order gets assigned an ORD-XXXX number
-- [ ] Re-open the saved order → all fields round-trip correctly
-- [ ] **Delete order** → confirmation → removed
-- [ ] Verify no right-side duplicate “Live Estimate” sidebar exists (this was explicitly removed)
-- [ ] **Add Order Item** dropdown exposes exactly these 5 options:
-  - [ ] Quick Manual Item
-  - [ ] Detailed Item From Scratch
-  - [ ] Duplicate Existing Item (disabled when there are 0 items)
-  - [ ] Create Variation From Existing (disabled when there are 0 items)
-  - [ ] Add Item Using Shared Artwork
+- [x] `/orders/new` loads, customer autocomplete shows suggestions as you type
+- [x] Select a customer — their info populates the order header
+- [x] **Quick item mode**: click + Add Order Item → Quick Manual Item → enter item name + price → total updates
+- [x] **Shared context panel** renders (Production Notes, Color Notes, Location Notes, Artwork Notes) — all four fields save with the order
+- [ ] **Attach artwork**: drag-and-drop a PNG onto the assets panel → appears in Order Assets list with thumbnail — FAIL: assets panel upload path did not produce an asset row/thumbnail in this run
+- [x] **Save as Draft** → order saved with status=draft → appears in Drafts filter on OrdersPage
+- [x] **Save Order** (non-draft) → order gets assigned an ORD-XXXX number
+- [x] Re-open the saved order → all fields round-trip correctly
+- [x] **Delete order** → confirmation → removed
+- [x] Verify no right-side duplicate “Live Estimate” sidebar exists (this was explicitly removed)
+- [x] **Add Order Item** dropdown exposes exactly these 5 options:
+  - [x] Quick Manual Item
+  - [x] Detailed Item From Scratch
+  - [x] Duplicate Existing Item (disabled when there are 0 items)
+  - [x] Create Variation From Existing (disabled when there are 0 items)
+  - [x] Add Item Using Shared Artwork
 
 ### 2.3 Orders — Detailed Item Per Category (the big one)
 For **EACH** category below, follow this exact sequence:
