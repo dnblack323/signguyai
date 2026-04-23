@@ -204,6 +204,80 @@ export default function PortalDashboard() {
   }
 
   const { stats, upcoming_appointments, recent_jobs, recent_invoices, recent_documents, pending_forms, awaiting_approval } = dashboard || {};
+  const statCards = [
+    {
+      key: 'active-orders',
+      count: stats?.active_jobs || 0,
+      label: 'Active Orders',
+      icon: Briefcase,
+      iconBg: 'bg-blue-100',
+      iconColor: 'text-blue-600',
+      path: '/customer-portal/orders',
+    },
+    {
+      key: 'quotes',
+      count: stats?.total_quotes || 0,
+      label: 'Quotes',
+      icon: FileText,
+      iconBg: 'bg-purple-100',
+      iconColor: 'text-purple-600',
+      path: '/customer-portal/quotes',
+    },
+    {
+      key: 'pending-invoices',
+      count: stats?.pending_invoices || 0,
+      label: 'Pending Invoices',
+      icon: Receipt,
+      iconBg: 'bg-amber-100',
+      iconColor: 'text-amber-600',
+      path: '/customer-portal/invoices',
+    },
+    {
+      key: 'proofs-awaiting',
+      count: stats?.pending_proofs || 0,
+      label: 'Proofs Awaiting',
+      icon: Image,
+      iconBg: 'bg-teal-100',
+      iconColor: 'text-teal-600',
+      path: '/customer-portal/proofs',
+    },
+    {
+      key: 'new-messages',
+      count: stats?.unread_messages || 0,
+      label: 'New Messages',
+      icon: MessageSquare,
+      iconBg: 'bg-green-100',
+      iconColor: 'text-green-600',
+      path: '/customer-portal/messages',
+    },
+    {
+      key: 'notifications',
+      count: stats?.unread_notifications || 0,
+      label: 'Notifications',
+      icon: Bell,
+      iconBg: 'bg-red-100',
+      iconColor: 'text-red-600',
+      path: '/customer-portal',
+    },
+    {
+      key: 'pending-forms',
+      count: stats?.pending_forms || 0,
+      label: 'Pending Forms',
+      icon: FileText,
+      iconBg: 'bg-cyan-100',
+      iconColor: 'text-cyan-600',
+      path: '/customer-portal/forms',
+    },
+    {
+      key: 'new-docs',
+      count: stats?.recent_documents || 0,
+      label: 'New Docs',
+      icon: FileText,
+      iconBg: 'bg-indigo-100',
+      iconColor: 'text-indigo-600',
+      path: '/customer-portal/documents',
+    },
+  ];
 
   return (
     <PortalLayout activeNav="dashboard" customerName={customerName}>
@@ -216,117 +290,26 @@ export default function PortalDashboard() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4" data-testid="portal-stats-grid">
-          <Card className="border-slate-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <Briefcase className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-900">{stats?.active_jobs || 0}</p>
-                  <p className="text-xs text-slate-500">Active Orders</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-slate-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-900">{stats?.total_quotes || 0}</p>
-                  <p className="text-xs text-slate-500">Quotes</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-slate-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                  <Receipt className="h-5 w-5 text-amber-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-900">{stats?.pending_invoices || 0}</p>
-                  <p className="text-xs text-slate-500">Pending Invoices</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-slate-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
-                  <Image className="h-5 w-5 text-teal-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-900">{stats?.pending_proofs || 0}</p>
-                  <p className="text-xs text-slate-500">Proofs Awaiting</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-slate-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                  <MessageSquare className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-900">{stats?.unread_messages || 0}</p>
-                  <p className="text-xs text-slate-500">New Messages</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-slate-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
-                  <Bell className="h-5 w-5 text-red-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-900">{stats?.unread_notifications || 0}</p>
-                  <p className="text-xs text-slate-500">Notifications</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-slate-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-cyan-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-900">{stats?.pending_forms || 0}</p>
-                  <p className="text-xs text-slate-500">Pending Forms</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-slate-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-indigo-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-900">{stats?.recent_documents || 0}</p>
-                  <p className="text-xs text-slate-500">New Docs</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {statCards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <Link key={card.key} to={card.path} data-testid={`portal-stat-card-${card.key}`}>
+                <Card className="border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${card.iconBg}`}>
+                        <Icon className={`h-5 w-5 ${card.iconColor}`} />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-slate-900">{card.count}</p>
+                        <p className="text-xs text-slate-500">{card.label}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
 
         {/* Quick Actions */}

@@ -47,6 +47,188 @@ from server import (
 router = APIRouter(prefix="/portal", tags=["Customer Portal"])
 
 
+def _normalize_order_status(raw_status: Optional[str]) -> str:
+    if not raw_status:
+        return "pending"
+    status = str(raw_status).lower()
+    mapping = {
+        "new_intake": "pending",
+        "awaiting_review": "pending",
+        "awaiting_quote": "quoted",
+        "quote_sent": "quoted",
+        "awaiting_approval": "approved",
+        "approved": "approved",
+        "ready_for_pickup": "installed",
+        "out_for_delivery": "installed",
+        "completed": "complete",
+        "cancelled": "archived",
+    }
+    return mapping.get(status, status)
+
+
+def _normalize_order_document(doc: Dict[str, Any], source: str) -> Dict[str, Any]:
+    normalized_status = _normalize_order_status(doc.get("status"))
+    created_at = doc.get("created_at") or doc.get("date_created")
+    due_date = doc.get("due_date") or doc.get("requested_due_date")
+    subtotal = doc.get("subtotal")
+    if subtotal is None:
+        subtotal = doc.get("total", 0)
+
+    return {
+        **doc,
+        "status": normalized_status,
+        "created_at": created_at,
+        "due_date": due_date,
+        "subtotal": subtotal,
+        "source_type": source,
+    }
+
+
+def _order_matches_filter(doc: Dict[str, Any], status: Optional[str]) -> bool:
+    if not status:
+        return True
+
+    normalized = _normalize_order_status(doc.get("status"))
+    if status == "active":
+        return normalized not in ["complete", "archived"]
+    if status == "awaiting_approval":
+        return normalized in ["approved", "quoted", "awaiting_approval"]
+    if status == "completed":
+        return normalized == "complete"
+    if status == "archived":
+        return normalized == "archived" or bool(doc.get("is_archived"))
+
+    return normalized == status
+
+
+async def _fetch_portal_orders_combined(customer: Dict[str, Any], status: Optional[str] = None, limit: int = 100) -> List[Dict[str, Any]]:
+    customer_id = customer["id"]
+    tenant_id = customer.get("tenant_id")
+
+    orders_query: Dict[str, Any] = {"customer_id": customer_id}
+    jobs_query: Dict[str, Any] = {"customer_id": customer_id}
+    if tenant_id:
+        orders_query["tenant_id"] = tenant_id
+        jobs_query["tenant_id"] = tenant_id
+
+    order_rows = await db.orders.find(orders_query, {"_id": 0}).sort("created_at", -1).to_list(limit)
+    job_rows = await db.jobs.find(jobs_query, {"_id": 0}).sort("created_at", -1).to_list(limit)
+
+    merged: Dict[str, Dict[str, Any]] = {}
+    for row in order_rows:
+        normalized = _normalize_order_document(row, "orders")
+        if _order_matches_filter(normalized, status):
+            merged[normalized["id"]] = normalized
+
+    for row in job_rows:
+        normalized = _normalize_order_document(row, "jobs")
+        if _order_matches_filter(normalized, status) and normalized["id"] not in merged:
+            merged[normalized["id"]] = normalized
+
+    return sorted(
+        merged.values(),
+        key=lambda row: row.get("created_at") or "",
+        reverse=True,
+    )[:limit]
+
+
+def _normalize_quote_document(doc: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        **doc,
+        "status": (doc.get("status") or "draft").lower(),
+        "total": doc.get("total", 0),
+        "created_at": doc.get("created_at") or doc.get("updated_at"),
+    }
+
+
+async def _fetch_portal_quotes_combined(customer: Dict[str, Any], status: Optional[str] = None, limit: int = 100) -> List[Dict[str, Any]]:
+    customer_id = customer["id"]
+    tenant_id = customer.get("tenant_id")
+
+    q1: Dict[str, Any] = {"customer_id": customer_id}
+    q2: Dict[str, Any] = {"customer_id": customer_id, "type": "quote"}
+    if tenant_id:
+        q1["tenant_id"] = tenant_id
+        q2["tenant_id"] = tenant_id
+
+    quotes = await db.quotes.find(q1, {"_id": 0}).sort("created_at", -1).to_list(limit)
+    legacy_quotes = await db.order_quotes.find(q2, {"_id": 0}).sort("created_at", -1).to_list(limit)
+
+    merged: Dict[str, Dict[str, Any]] = {}
+    for row in quotes + legacy_quotes:
+        normalized = _normalize_quote_document(row)
+        if status and normalized.get("status") != status:
+            continue
+        merged[normalized["id"]] = normalized
+
+    return sorted(
+        merged.values(),
+        key=lambda row: row.get("created_at") or "",
+        reverse=True,
+    )[:limit]
+
+
+def _normalize_invoice_document(doc: Dict[str, Any]) -> Dict[str, Any]:
+    total = float(doc.get("grand_total", doc.get("total", 0)) or 0)
+    amount_paid = float(doc.get("amount_paid", 0) or 0)
+    status = (doc.get("status") or "draft").lower()
+
+    if amount_paid >= total and total > 0:
+        status = "paid"
+
+    return {
+        **doc,
+        "status": status,
+        "total": total,
+        "amount_paid": amount_paid,
+        "created_at": doc.get("created_at") or doc.get("updated_at"),
+    }
+
+
+async def _fetch_portal_invoices_combined(customer: Dict[str, Any], status: Optional[str] = None, limit: int = 100) -> List[Dict[str, Any]]:
+    customer_id = customer["id"]
+    tenant_id = customer.get("tenant_id")
+
+    q1: Dict[str, Any] = {"customer_id": customer_id}
+    q2: Dict[str, Any] = {"customer_id": customer_id, "type": "invoice"}
+    if tenant_id:
+        q1["tenant_id"] = tenant_id
+        q2["tenant_id"] = tenant_id
+
+    invoices = await db.invoices.find(q1, {"_id": 0}).sort("created_at", -1).to_list(limit)
+    legacy_invoices = await db.order_quotes.find(q2, {"_id": 0}).sort("created_at", -1).to_list(limit)
+
+    merged: Dict[str, Dict[str, Any]] = {}
+    for row in invoices + legacy_invoices:
+        normalized = _normalize_invoice_document(row)
+        if status and normalized.get("status") != status:
+            continue
+        merged[normalized["id"]] = normalized
+
+    return sorted(
+        merged.values(),
+        key=lambda row: row.get("created_at") or "",
+        reverse=True,
+    )[:limit]
+
+
+async def _find_portal_invoice_document(invoice_id: str, tenant_id: Optional[str]) -> Optional[Dict[str, Any]]:
+    query: Dict[str, Any] = {"id": invoice_id}
+    if tenant_id:
+        query["tenant_id"] = tenant_id
+
+    invoice = await db.invoices.find_one(query, {"_id": 0})
+    if invoice:
+        return _normalize_invoice_document(invoice)
+
+    legacy_query = {**query, "type": "invoice"}
+    legacy = await db.order_quotes.find_one(legacy_query, {"_id": 0})
+    if legacy:
+        return _normalize_invoice_document(legacy)
+
+    return None
+
+
 def build_customer_status_timeline(job: dict, proofs: List[dict], form_requests: List[dict], invoice: Optional[dict]) -> List[dict]:
     timeline = []
     timeline.append({"label": "Quote Approved" if job.get("status") != "quoted" else "Quote Sent", "status": "complete" if job.get("status") != "quoted" else "current"})
@@ -240,11 +422,18 @@ async def change_portal_password(
 async def get_portal_dashboard(customer: dict = Depends(get_current_portal_customer)):
     """Get customer portal dashboard data"""
     customer_id = customer["id"]
-    
-    # Get counts
-    total_quotes = await db.quotes.count_documents({"customer_id": customer_id})
-    active_jobs = await db.jobs.count_documents({"customer_id": customer_id, "status": {"$nin": ["complete", "archived"]}})
-    pending_invoices = await db.invoices.count_documents({"customer_id": customer_id, "status": {"$in": ["sent", "draft"]}})
+
+    # Unified data sources (orders/jobs + quotes + invoices + legacy order_quotes)
+    combined_orders = await _fetch_portal_orders_combined(customer, limit=300)
+    combined_quotes = await _fetch_portal_quotes_combined(customer, limit=300)
+    combined_invoices = await _fetch_portal_invoices_combined(customer, limit=300)
+
+    total_quotes = len(combined_quotes)
+    active_jobs = len([row for row in combined_orders if row.get("status") not in ["complete", "archived"]])
+    pending_invoices = len([
+        row for row in combined_invoices
+        if row.get("status") in ["sent", "draft", "pending", "unpaid", "partially_paid", "deposit_paid"]
+    ])
     pending_proofs = await db.artwork_proofs.count_documents({"customer_id": customer_id, "status": "pending"})
     
     # Get unread message count
@@ -271,17 +460,8 @@ async def get_portal_dashboard(customer: dict = Depends(get_current_portal_custo
         {"_id": 0}
     ).sort("scheduled_date", 1).limit(5).to_list(5)
     
-    # Get recent jobs
-    recent_jobs = await db.jobs.find(
-        {"customer_id": customer_id},
-        {"_id": 0}
-    ).sort("created_at", -1).limit(5).to_list(5)
-    
-    # Get recent invoices
-    recent_invoices = await db.invoices.find(
-        {"customer_id": customer_id},
-        {"_id": 0}
-    ).sort("created_at", -1).limit(5).to_list(5)
+    recent_jobs = combined_orders[:5]
+    recent_invoices = combined_invoices[:5]
 
     recent_documents = await db.portal_documents.find(
         {"customer_id": customer_id},
@@ -308,8 +488,8 @@ async def get_portal_dashboard(customer: dict = Depends(get_current_portal_custo
             "unread_notifications": unread_notifications,
             "pending_forms": pending_forms,
             "recent_documents": unread_docs,
-            "overdue_invoices": len([inv for inv in recent_invoices if inv.get("status") == "overdue"]),
-            "paid_invoices": len([inv for inv in recent_invoices if inv.get("status") == "paid"])
+            "overdue_invoices": len([inv for inv in combined_invoices if inv.get("status") == "overdue"]),
+            "paid_invoices": len([inv for inv in combined_invoices if inv.get("status") == "paid"])
         },
         "upcoming_appointments": upcoming_appointments,
         "recent_jobs": recent_jobs,
@@ -328,37 +508,31 @@ async def get_portal_orders(
     customer: dict = Depends(get_current_portal_customer)
 ):
     """Get customer's orders (jobs)"""
-    query = {"customer_id": customer["id"]}
-    if status and status not in ["active", "awaiting_approval", "completed", "archived"]:
-        query["status"] = status
-    
-    jobs = await db.jobs.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
-    
-    # Enrich with items
-    for job in jobs:
-        items = await db.job_items.find({"job_id": job["id"]}, {"_id": 0}).to_list(50)
-        job["items"] = items
-        proofs = await db.artwork_proofs.find({"job_id": job["id"], "customer_id": customer["id"]}, {"_id": 0}).to_list(20)
-        invoice = await db.invoices.find_one({"id": job.get("invoice_id")}, {"_id": 0}) if job.get("invoice_id") else None
-        job["approval_status"] = "awaiting_approval" if any(proof.get("status") == "pending" for proof in proofs) else ("approved" if any(proof.get("status") == "approved" for proof in proofs) else "not_required")
-        job["invoice_status"] = invoice.get("status") if invoice else None
-        if status == "active" and job.get("status") in ["complete", "archived"]:
-            continue
-        if status == "awaiting_approval" and job["approval_status"] != "awaiting_approval":
-            continue
-        if status == "completed" and job.get("status") != "complete":
-            continue
-        if status == "archived" and job.get("status") != "archived":
-            continue
-    
-    if status in ["active", "awaiting_approval", "completed", "archived"]:
-        jobs = [job for job in jobs if not (
-            (status == "active" and job.get("status") in ["complete", "archived"]) or
-            (status == "awaiting_approval" and job.get("approval_status") != "awaiting_approval") or
-            (status == "completed" and job.get("status") != "complete") or
-            (status == "archived" and job.get("status") != "archived")
-        )]
-    return jobs
+    orders = await _fetch_portal_orders_combined(customer, status=status, limit=120)
+
+    # Enrich with item/proof/invoice snapshots used by portal UI cards
+    for order in orders:
+        order_id = order["id"]
+        if order.get("source_type") == "orders":
+            items = await db.job_tickets.find({"order_id": order_id}, {"_id": 0}).to_list(80)
+        else:
+            items = await db.job_items.find({"job_id": order_id}, {"_id": 0}).to_list(80)
+        order["items"] = items
+
+        proofs = await db.artwork_proofs.find(
+            {"customer_id": customer["id"], "$or": [{"job_id": order_id}, {"order_id": order_id}]},
+            {"_id": 0},
+        ).to_list(25)
+        order["approval_status"] = "awaiting_approval" if any(proof.get("status") == "pending" for proof in proofs) else "approved"
+
+        linked_invoice_ids = order.get("linked_invoice_ids") or []
+        invoice_id = linked_invoice_ids[0] if linked_invoice_ids else order.get("invoice_id")
+        invoice_doc = None
+        if invoice_id:
+            invoice_doc = await _find_portal_invoice_document(invoice_id, customer.get("tenant_id"))
+        order["invoice_status"] = (invoice_doc or {}).get("status")
+
+    return orders
 
 
 @router.get("/orders/{job_id}")
@@ -367,22 +541,39 @@ async def get_portal_order_detail(
     customer: dict = Depends(get_current_portal_customer)
 ):
     """Get single order detail"""
-    job = await db.jobs.find_one({"id": job_id, "customer_id": customer["id"]}, {"_id": 0})
+    tenant_filter = {"tenant_id": customer.get("tenant_id")} if customer.get("tenant_id") else {}
+    order = await db.orders.find_one({"id": job_id, "customer_id": customer["id"], **tenant_filter}, {"_id": 0})
+    source_type = "orders"
+    if order:
+        job = _normalize_order_document(order, "orders")
+    else:
+        job = await db.jobs.find_one({"id": job_id, "customer_id": customer["id"], **tenant_filter}, {"_id": 0})
+        source_type = "jobs"
+
     if not job:
         raise HTTPException(status_code=404, detail="Order not found")
-    
-    # Get items
-    items = await db.job_items.find({"job_id": job_id}, {"_id": 0}).to_list(50)
+
+    if source_type == "orders":
+        items = await db.job_tickets.find({"order_id": job_id}, {"_id": 0}).to_list(120)
+    else:
+        items = await db.job_items.find({"job_id": job_id}, {"_id": 0}).to_list(120)
     job["items"] = items
-    
+
     # Get associated quote if any
-    if job.get("quote_id"):
-        quote = await db.quotes.find_one({"id": job["quote_id"]}, {"_id": 0})
+    quote = None
+    quote_id = (job.get("linked_quote_ids") or [None])[0] or job.get("quote_id")
+    if quote_id:
+        quote = await db.quotes.find_one({"id": quote_id, **tenant_filter}, {"_id": 0})
+        if not quote:
+            quote = await db.order_quotes.find({"id": quote_id, "type": "quote", **tenant_filter}, {"_id": 0}).to_list(1)
+            quote = quote[0] if quote else None
+    if quote:
         job["quote"] = quote
     
     # Get associated invoice if any
-    if job.get("invoice_id"):
-        invoice = await db.invoices.find_one({"id": job["invoice_id"]}, {"_id": 0})
+    invoice_id = (job.get("linked_invoice_ids") or [None])[0] or job.get("invoice_id")
+    if invoice_id:
+        invoice = await _find_portal_invoice_document(invoice_id, customer.get("tenant_id"))
         job["invoice"] = invoice
     
     # Get artwork proofs
@@ -420,12 +611,7 @@ async def get_portal_quotes(
     customer: dict = Depends(get_current_portal_customer)
 ):
     """Get customer's quotes"""
-    query = {"customer_id": customer["id"]}
-    if status:
-        query["status"] = status
-    
-    quotes = await db.quotes.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
-    return quotes
+    return await _fetch_portal_quotes_combined(customer, status=status, limit=150)
 
 
 # ============== PORTAL INVOICES ==============
@@ -436,12 +622,7 @@ async def get_portal_invoices(
     customer: dict = Depends(get_current_portal_customer)
 ):
     """Get customer's invoices"""
-    query = {"customer_id": customer["id"]}
-    if status:
-        query["status"] = status
-    
-    invoices = await db.invoices.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
-    return invoices
+    return await _fetch_portal_invoices_combined(customer, status=status, limit=150)
 
 
 # ============== PORTAL MESSAGING ==============
@@ -532,14 +713,18 @@ async def send_portal_message(
     if conv.get("is_closed"):
         raise HTTPException(status_code=400, detail="This conversation is closed")
     
+    content = (input.content or "").strip()
+    if not content:
+        raise HTTPException(status_code=400, detail="Message content is required")
+
     # Create message
     message = ConversationMessage(
         conversation_id=conversation_id,
         sender_type="customer",
         sender_id=customer["id"],
         sender_name=customer["name"],
-        content=input.content,
-        message_type=MessageType.TEXT
+        content=content,
+        message_type=input.message_type or MessageType.TEXT
     )
     await db.conversation_messages.insert_one(message.model_dump())
     
@@ -548,7 +733,7 @@ async def send_portal_message(
         {"id": conversation_id},
         {"$set": {
             "last_message_at": datetime.now(timezone.utc).isoformat(),
-            "last_message_preview": input.content[:100]
+            "last_message_preview": content[:100]
         }, "$inc": {"unread_shop": 1}}
     )
     

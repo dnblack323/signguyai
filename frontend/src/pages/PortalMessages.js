@@ -295,7 +295,7 @@ export function PortalConversation() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ content: newMessage })
+        body: JSON.stringify({ conversation_id: conversationId, content: newMessage })
       });
 
       if (response.ok) {
@@ -303,8 +303,19 @@ export function PortalConversation() {
         setMessages([...messages, msg]);
         setNewMessage('');
       } else {
-        const err = await response.json();
-        toast.error(err.detail || 'Failed to send message');
+        let message = 'Failed to send message';
+        try {
+          const err = await response.json();
+          if (Array.isArray(err?.detail)) {
+            message = err.detail.map((item) => item?.msg).filter(Boolean).join(', ') || message;
+          } else if (typeof err?.detail === 'string') {
+            message = err.detail;
+          }
+        } catch {
+          const text = await response.text();
+          if (text) message = text;
+        }
+        toast.error(message);
       }
     } catch (err) {
       toast.error('Network error. Please try again.');

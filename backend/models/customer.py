@@ -162,7 +162,7 @@ class ConversationCreate(BaseModel):
     related_quote_id: Optional[str] = None
 
 class MessageCreate(BaseModel):
-    conversation_id: str
+    conversation_id: Optional[str] = None
     content: str
     message_type: MessageType = MessageType.TEXT
 

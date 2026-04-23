@@ -1,0 +1,87 @@
+{
+  "summary": "Iteration 122: Portal Regressions Testing - ALL TESTS PASSED. Backend: 19/19 tests passed. Frontend: All UI flows verified working. All reported portal regressions have been fixed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration122_portal_regressions.py",
+    "/app/test_reports/pytest/iteration122_portal_regressions_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "portal.py: _normalize_invoice_document() correctly sets status='paid' when amount_paid >= total",
+    "portal.py: _fetch_portal_orders_combined() merges orders and jobs collections correctly",
+    "portal.py: _fetch_portal_quotes_combined() merges quotes and order_quotes collections",
+    "portal.py: _fetch_portal_invoices_combined() merges invoices and order_quotes collections",
+    "portal.py: send_portal_message validates content is not empty/whitespace",
+    "PortalDashboard.js: All 8 stat cards are wrapped in Link components with correct hrefs",
+    "PortalDashboard.js: recent_jobs displayed in Recent Orders section",
+    "PortalMessages.js: Message send handles errors properly with toast notifications",
+    "Customers.js: Customer detail modal has only ONE 'New Order' button (data-testid='customer-popup-new-order-btn')",
+    "Customers.js: Secondary action is 'View Quotes' button (data-testid='customer-popup-view-quotes-btn')"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration122_portal_regressions.py"
+  ],
+  "success_rate": {
+    "backend": "100% (19/19 tests passed)",
+    "frontend": "100% (All UI flows verified)"
+  },
+  "test_credentials": {
+    "owner": "signguypa@gmail.com / Billnel323",
+    "portal_user": "portalreg_1776974524@example.com / 123456"
+  },
+  "seed_data_creation": "Used existing seeded data: customer_id=a5023d21-2b6c-4480-9b00-f1adb8d53b3d, order_id=c4f00d92-c7d1-4a83-af96-f74adf7d5e4d, quote_id=56c2c9c5-f89e-44e3-9fc1-f80ed55594d1, invoice_id=810e9945-b706-46d4-9665-53215370765e",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Portal regressions all fixed and verified. Key endpoints tested: /api/portal/dashboard, /api/portal/orders, /api/portal/quotes, /api/portal/invoices, /api/portal/conversations, /api/portal/conversations/{id}/messages. Customer detail modal in Customers.js has only one New Order button.",
+  "features_verified": {
+    "Portal dashboard stat cards clickable": "PASS - All 8 stat cards are <a> tags with correct hrefs",
+    "Portal dashboard shows recent orders": "PASS - Recent Orders section shows 'Portal Sample Order' with pending status",
+    "Portal Orders page lists orders": "PASS - Shows order with status and View Details link",
+    "Portal Quotes page lists quotes": "PASS - Shows Quote #56C2C9C5 with 'sent' status, $30.00",
+    "Portal Invoices page lists invoices": "PASS - Shows Invoice #810E9945 with 'sent' status, $60.00, Pay Now button",
+    "Portal message send works": "PASS - Created conversation and sent follow-up message without network error",
+    "Customer detail popup single New Order button": "PASS - Only 1 'New Order' button found (no duplicate)",
+    "Invoices reconcile endpoint": "PASS - POST /api/stripe-connect/reconcile-invoices returns 200"
+  },
+  "test_results_detail": {
+    "backend_tests": {
+      "TestPortalAuthentication::test_portal_login_success": "PASS",
+      "TestPortalDashboard::test_dashboard_returns_stats": "PASS",
+      "TestPortalDashboard::test_dashboard_returns_recent_jobs": "PASS",
+      "TestPortalDashboard::test_dashboard_returns_recent_invoices": "PASS",
+      "TestPortalOrders::test_orders_list_returns_data": "PASS",
+      "TestPortalOrders::test_orders_list_with_status_filter": "PASS",
+      "TestPortalQuotes::test_quotes_list_returns_data": "PASS",
+      "TestPortalInvoices::test_invoices_list_returns_data": "PASS",
+      "TestPortalInvoices::test_invoice_status_normalization": "PASS",
+      "TestPortalMessaging::test_conversations_list": "PASS",
+      "TestPortalMessaging::test_create_conversation": "PASS",
+      "TestPortalMessaging::test_send_message_in_conversation": "PASS",
+      "TestPortalMessaging::test_send_message_empty_content_rejected": "PASS",
+      "TestAdminCustomersPage::test_customers_list": "PASS",
+      "TestAdminCustomersPage::test_customer_detail": "PASS",
+      "TestInvoicesReconciliation::test_reconcile_invoices_endpoint": "PASS",
+      "TestInvoicesReconciliation::test_invoices_list_admin": "PASS",
+      "TestSeededDataVerification::test_seeded_customer_exists": "PASS",
+      "TestSeededDataVerification::test_seeded_order_in_portal_orders": "PASS"
+    },
+    "frontend_tests": {
+      "Portal login": "PASS - Logged in with portal test user",
+      "Portal dashboard stat cards": "PASS - 8 clickable stat cards with correct navigation",
+      "Portal dashboard recent orders": "PASS - Shows 'Portal Sample Order'",
+      "Portal orders page": "PASS - Lists orders with status filters",
+      "Portal quotes page": "PASS - Shows quote with status and total",
+      "Portal invoices page": "PASS - Shows invoice with Pay Now button",
+      "Portal messaging": "PASS - Created conversation and sent messages without error",
+      "Admin customers page": "PASS - Customer detail modal has single New Order button"
+    }
+  }
+}
