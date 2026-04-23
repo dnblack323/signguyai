@@ -14,13 +14,18 @@ export const PayrollWorksheetToolbar = ({
   employeeId,
   endDate,
   exporting,
+  markPaidDisabled,
+  markingPaidInFull,
+  onMarkPaidInFull,
   onEmployeeChange,
   onEndDateChange,
   onExportCsv,
+  onPaidInFullAmountChange,
   onPresetChange,
   onPrint,
   onSave,
   onStartDateChange,
+  paidInFullAmount,
   saveDisabled,
   saving,
   startDate,
@@ -65,7 +70,31 @@ export const PayrollWorksheetToolbar = ({
       </div>
     </div>
 
-    <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+    <div className="flex flex-wrap items-end gap-2 xl:justify-end">
+      <div className="min-w-[250px] space-y-1">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500" data-testid="payroll-paid-in-full-label">Paid in Full</p>
+        <div className="flex items-center gap-2">
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            value={paidInFullAmount}
+            onChange={(event) => onPaidInFullAmountChange(event.target.value)}
+            placeholder="Official payday amount"
+            data-testid="payroll-paid-in-full-amount-input"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onMarkPaidInFull}
+            disabled={markPaidDisabled}
+            data-testid="payroll-paid-in-full-button"
+          >
+            {markingPaidInFull ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Paid
+          </Button>
+        </div>
+      </div>
       <Button variant="outline" onClick={onExportCsv} disabled={exporting !== ''} data-testid="payroll-worksheet-export-csv-button">
         {exporting === 'csv' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}Export CSV
       </Button>

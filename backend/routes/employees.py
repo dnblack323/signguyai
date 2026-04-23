@@ -116,6 +116,15 @@ class PayrollTransaction(BaseModel):
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
+class PayrollPaidInFullRequest(BaseModel):
+    employee_id: str
+    period_start: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    period_end: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    paid_amount: float = Field(gt=0)
+    paid_date: Optional[str] = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    notes: Optional[str] = Field(default=None, max_length=500)
+
+
 class PayrollSignoff(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     employee_id: str
@@ -427,6 +436,7 @@ async def _get_tenant_payroll_settings(tenant_id: str) -> dict:
     return {
         "default_cycle": settings.get("default_cycle") or "weekly",
         "pay_week_start_day": settings.get("pay_week_start_day") or "monday",
+        "show_payroll_adjustments": bool(settings.get("show_payroll_adjustments", False)),
     }
 
 
@@ -937,6 +947,81 @@ async def create_payroll_transaction(input: PayrollTransactionCreate, current_us
     doc = transaction.model_dump()
     await db.payroll_transactions.insert_one(doc)
     return transaction
+
+
+@payroll_router.post("/mark-paid-in-full")
+async def mark_payroll_paid_in_full(
+    payload: PayrollPaidInFullRequest,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Create or update a period-specific payroll payment transaction."""
+    _require_payroll_edit_access(current_user)
+    if payload.period_end < payload.period_start:
+        raise HTTPException(status_code=400, detail="period_end cannot be before period_start")
+
+    employee = await db.employees.find_one(
+        {"id": payload.employee_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0, "id": 1, "name": 1},
+    )
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    now = datetime.now(timezone.utc).isoformat()
+    paid_date = payload.paid_date or payload.period_end
+    description = (payload.notes or "").strip() or f"Paid in full for {payload.period_start} to {payload.period_end}"
+
+    existing = await db.payroll_transactions.find_one(
+        {
+            "tenant_id": current_user.tenant_id,
+            "employee_id": payload.employee_id,
+            "type": "payment",
+            "paid_in_full": True,
+            "period_start": payload.period_start,
+            "period_end": payload.period_end,
+        },
+        {"_id": 0, "id": 1},
+    )
+
+    if existing:
+        transaction_id = existing["id"]
+        await db.payroll_transactions.update_one(
+            {"id": transaction_id, "tenant_id": current_user.tenant_id},
+            {"$set": {
+                "amount": round(float(payload.paid_amount), 2),
+                "date": paid_date,
+                "description": description,
+                "updated_at": now,
+            }},
+        )
+    else:
+        transaction = PayrollTransaction(
+            employee_id=payload.employee_id,
+            tenant_id=current_user.tenant_id,
+            type=PayrollTransactionType.PAYMENT,
+            amount=round(float(payload.paid_amount), 2),
+            description=description,
+            date=paid_date,
+        )
+        transaction_doc = transaction.model_dump()
+        transaction_doc.update({
+            "period_start": payload.period_start,
+            "period_end": payload.period_end,
+            "paid_in_full": True,
+            "updated_at": now,
+        })
+        await db.payroll_transactions.insert_one(transaction_doc)
+        transaction_id = transaction_doc["id"]
+
+    return {
+        "message": "Payroll marked paid in full",
+        "employee_id": payload.employee_id,
+        "employee_name": employee.get("name", ""),
+        "period_start": payload.period_start,
+        "period_end": payload.period_end,
+        "payment_transaction_id": transaction_id,
+        "paid_amount": round(float(payload.paid_amount), 2),
+        "paid_date": paid_date,
+    }
 
 
 @payroll_router.post("/timeclock-shifts")
@@ -1470,7 +1555,8 @@ async def edit_timeclock_shift(
 ):
     _require_payroll_edit_access(current_user)
     try:
-        updated = await update_timeclock_shift(db, current_user.tenant_id, shift_id, {k: v for k, v in input.model_dump().items() if v is not None})
+        updates = input.model_dump(exclude_unset=True)
+        updated = await update_timeclock_shift(db, current_user.tenant_id, shift_id, updates)
         return updated
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

@@ -24,6 +24,7 @@ class PayrollSettings(BaseModel):
     """Payroll configuration for worksheet defaults and pay-week boundaries"""
     default_cycle: str = "weekly"
     pay_week_start_day: str = "monday"
+    show_payroll_adjustments: bool = False
 
 
 class TenantBase(BaseModel):

@@ -42,6 +42,7 @@ const normalizeEmployeeDraft = (employee) => ({
 const getPayrollSettings = (tenant) => ({
   defaultCycle: tenant?.payroll_settings?.default_cycle || 'weekly',
   payWeekStartDay: tenant?.payroll_settings?.pay_week_start_day || 'monday',
+  showPayrollAdjustments: tenant?.payroll_settings?.show_payroll_adjustments === true,
 });
 
 const createEmptyAdjustmentRow = () => ({ id: null, date: '', notes: '', amount: '', type: 'advance' });
@@ -138,6 +139,8 @@ export default function Payroll() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState('');
+  const [paidInFullAmount, setPaidInFullAmount] = useState('');
+  const [markingPaidInFull, setMarkingPaidInFull] = useState(false);
   const baselineSnapshotRef = useRef('');
   const baselineLegacyRef = useRef('');
   const loadVersionRef = useRef(0);
@@ -191,6 +194,8 @@ export default function Payroll() {
       setReport(reportRes.data);
       setTimesheet(timesheetRes.data);
       setLegacyEntries(legacyRes.data || []);
+      const suggestedPaidAmount = Number(timesheetRes.data?.employees?.[0]?.final_owed ?? reportRes.data?.employees?.[0]?.final_owed ?? 0);
+      setPaidInFullAmount(suggestedPaidAmount > 0 ? suggestedPaidAmount.toFixed(2) : '');
       const nextSignoff = {
         reviewed_by: signoffRes.data.reviewed_by || '',
         review_date: signoffRes.data.review_date || '',
@@ -294,9 +299,45 @@ export default function Payroll() {
         const matched = getDateRangeDates(value, value)[0];
         nextRow.dayLabel = matched?.dayLabel || row.dayLabel;
       }
+      if (field === 'lunchStart' || field === 'lunchEnd') {
+        nextRow.breakMinutes = calculateBreakMinutes(nextRow.lunchStart, nextRow.lunchEnd);
+      }
       return nextRow;
     }));
   };
+
+  const handleMarkPaidInFull = useCallback(async () => {
+    if (!canEditPayroll) {
+      toast.error('You do not have permission to edit payroll');
+      return;
+    }
+    if (!selectedEmployeeId || !startDate || !endDate) {
+      toast.error('Select employee and pay period first');
+      return;
+    }
+    const paidAmount = Number(paidInFullAmount || 0);
+    if (!paidAmount || paidAmount <= 0) {
+      toast.error('Enter a valid paid amount greater than zero');
+      return;
+    }
+
+    setMarkingPaidInFull(true);
+    try {
+      await apiRef.current.post('/payroll/mark-paid-in-full', {
+        employee_id: selectedEmployeeId,
+        period_start: startDate,
+        period_end: endDate,
+        paid_amount: paidAmount,
+        paid_date: endDate,
+      });
+      toast.success('Marked as paid in full for this employee and period');
+      await doLoadWorksheet(selectedEmployeeId, startDate, endDate);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to mark paid in full');
+    } finally {
+      setMarkingPaidInFull(false);
+    }
+  }, [canEditPayroll, endDate, paidInFullAmount, selectedEmployeeId, startDate]);
 
   const handleAdjustmentChange = (index, field, value) => {
     setAdjustmentRows((currentRows) => currentRows.map((row, rowIndex) => (
@@ -409,19 +450,36 @@ export default function Payroll() {
     // Section 2: Shift rows
     for (const row of worksheetRows) {
       try {
+        const rowShiftIds = Array.isArray(row.sourceShiftIds)
+          ? row.sourceShiftIds.filter(Boolean)
+          : (row.id ? [row.id] : []);
         const hasTimeFields = [row.startTime, row.lunchStart, row.lunchEnd, row.endTime].some(Boolean);
-        if (!hasTimeFields && row.id) { await currentApi.delete(`/payroll/timeclock-shifts/${row.id}`); continue; }
+        if (!hasTimeFields && rowShiftIds.length > 0) {
+          await Promise.all(rowShiftIds.map((shiftId) => currentApi.delete(`/payroll/timeclock-shifts/${shiftId}`)));
+          continue;
+        }
         if (!hasTimeFields) continue;
         const isActiveShift = row.shiftStatus === 'working' || row.shiftStatus === 'on_break';
         if (isActiveShift && row.startTime && !row.endTime) continue;
+        const explicitBreakMinutes = calculateBreakMinutes(row.lunchStart, row.lunchEnd);
+        const breakMinutes = (row.lunchStart || row.lunchEnd)
+          ? explicitBreakMinutes
+          : Number(row.breakMinutes || 0);
         const payload = {
           employee_id: selectedEmployeeId, date: row.date,
           clock_in: toIsoDateTime(row.date, row.startTime), clock_out: toIsoDateTime(row.date, row.endTime),
           lunch_start: toIsoDateTime(row.date, row.lunchStart), lunch_end: toIsoDateTime(row.date, row.lunchEnd),
-          break_minutes: calculateBreakMinutes(row.lunchStart, row.lunchEnd), notes: row.notes,
+          break_minutes: breakMinutes, notes: row.notes,
         };
-        if (row.id) { await currentApi.put(`/payroll/timeclock-shifts/${row.id}`, payload); }
-        else { await currentApi.post('/payroll/timeclock-shifts', payload); }
+        if (row.id) {
+          await currentApi.put(`/payroll/timeclock-shifts/${row.id}`, payload);
+          const extraShiftIds = rowShiftIds.filter((shiftId) => shiftId !== row.id);
+          if (extraShiftIds.length > 0) {
+            await Promise.all(extraShiftIds.map((shiftId) => currentApi.delete(`/payroll/timeclock-shifts/${shiftId}`)));
+          }
+        } else {
+          await currentApi.post('/payroll/timeclock-shifts', payload);
+        }
       } catch (e) { errors.push(`Shift ${row.dayLabel}: ${e.response?.data?.detail || e.message}`); }
     }
 
@@ -524,20 +582,27 @@ export default function Payroll() {
           employeeId={selectedEmployeeId}
           endDate={endDate}
           exporting={exporting}
+          markPaidDisabled={!canEditPayroll || saving || loading || markingPaidInFull || !selectedEmployeeId || !startDate || !endDate}
+          markingPaidInFull={markingPaidInFull}
+          onMarkPaidInFull={handleMarkPaidInFull}
           onEmployeeChange={setSelectedEmployeeId}
           onEndDateChange={setEndDate}
           onExportCsv={handleExportCsv}
+          onPaidInFullAmountChange={setPaidInFullAmount}
           onPresetChange={handlePresetChange}
           onPrint={handlePrint}
           onSave={handleSaveWorksheet}
           onStartDateChange={setStartDate}
+          paidInFullAmount={paidInFullAmount}
           saveDisabled={!canEditPayroll || saving || loading || !startDate || !endDate}
           saving={saving}
           startDate={startDate}
         />
 
-        <div className="grid min-h-[880px] lg:grid-cols-[320px_1fr]">
-          <PayrollAdjustmentsPanel rows={adjustmentRows} onAddRow={handleAddAdjustmentRow} onChange={handleAdjustmentChange} readOnlyLocked={readOnlyLocked} total={adjustmentTotal} />
+        <div className={`grid min-h-[880px] ${payrollSettings.showPayrollAdjustments ? 'lg:grid-cols-[320px_1fr]' : 'lg:grid-cols-1'}`}>
+          {payrollSettings.showPayrollAdjustments ? (
+            <PayrollAdjustmentsPanel rows={adjustmentRows} onAddRow={handleAddAdjustmentRow} onChange={handleAdjustmentChange} readOnlyLocked={readOnlyLocked} total={adjustmentTotal} />
+          ) : null}
 
           <section className="bg-[#f8fbfb] p-5 lg:p-7" data-testid="payroll-worksheet-main">
             <div className="space-y-5 rounded-[30px] border border-slate-300 bg-white p-5 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.16)] lg:p-7">

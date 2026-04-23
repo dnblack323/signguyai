@@ -100,35 +100,96 @@ export const calculateBreakMinutes = (lunchStart, lunchEnd) => {
   return Math.max(end - start, 0);
 };
 
+const getIsoLocalMinutes = (isoValue) => {
+  const hhmm = isoToLocalHHMM(isoValue);
+  return timeToMinutes(hhmm);
+};
+
+const sortShiftsByClockIn = (shifts) => shifts.slice().sort((left, right) => {
+  const leftMinutes = getIsoLocalMinutes(left.clock_in);
+  const rightMinutes = getIsoLocalMinutes(right.clock_in);
+  if (leftMinutes === null && rightMinutes === null) return 0;
+  if (leftMinutes === null) return 1;
+  if (rightMinutes === null) return -1;
+  return leftMinutes - rightMinutes;
+});
+
+const mergeDateShifts = (date, dayLabel, shiftsForDate = []) => {
+  if (!shiftsForDate.length) {
+    return {
+      id: null,
+      date,
+      dayLabel,
+      startTime: '',
+      lunchStart: '',
+      lunchEnd: '',
+      endTime: '',
+      breakMinutes: 0,
+      notes: '',
+      source: 'worksheet',
+      shiftStatus: null,
+      sourceShiftIds: [],
+    };
+  }
+
+  const sorted = sortShiftsByClockIn(shiftsForDate);
+  const firstWithClockIn = sorted.find((shift) => !!shift.clock_in);
+  const lastWithClockOut = sorted.slice().reverse().find((shift) => !!shift.clock_out);
+  const firstLunchStart = sorted.find((shift) => !!shift.lunch_start)?.lunch_start;
+  const lastLunchEnd = sorted.slice().reverse().find((shift) => !!shift.lunch_end)?.lunch_end;
+  const explicitBreakMinutes = sorted.reduce((sum, shift) => sum + Number(shift.break_minutes || 0), 0);
+  const gapBreakMinutes = sorted.reduce((sum, shift, index) => {
+    if (index === sorted.length - 1) return sum;
+    const thisEnd = getIsoLocalMinutes(shift.clock_out);
+    const nextStart = getIsoLocalMinutes(sorted[index + 1].clock_in);
+    if (thisEnd === null || nextStart === null) return sum;
+    return sum + Math.max(nextStart - thisEnd, 0);
+  }, 0);
+  const mergedBreakMinutes = Number((explicitBreakMinutes + gapBreakMinutes).toFixed(2));
+  const mergedNotes = sorted.map((shift) => (shift.notes || '').trim()).filter(Boolean).join(' | ');
+  const hasOnBreak = sorted.some((shift) => shift.status === 'on_break');
+  const hasWorking = sorted.some((shift) => shift.status === 'working');
+
+  return {
+    id: sorted[0]?.id || null,
+    date,
+    dayLabel,
+    startTime: isoToLocalHHMM(firstWithClockIn?.clock_in),
+    lunchStart: isoToLocalHHMM(firstLunchStart),
+    lunchEnd: isoToLocalHHMM(lastLunchEnd),
+    endTime: isoToLocalHHMM(lastWithClockOut?.clock_out),
+    breakMinutes: mergedBreakMinutes,
+    notes: mergedNotes,
+    source: sorted.some((shift) => shift.source === 'time_clock') ? 'time_clock' : (sorted[0]?.source || 'worksheet'),
+    shiftStatus: hasOnBreak ? 'on_break' : (hasWorking ? 'working' : (sorted[0]?.status || null)),
+    sourceShiftIds: sorted.map((shift) => shift.id).filter(Boolean),
+  };
+};
+
 export const calculateRowMinutes = (row) => {
   const start = timeToMinutes(row.startTime);
   const end = timeToMinutes(row.endTime);
   if (start === null || end === null || end <= start) return 0;
-  return Math.max(end - start - calculateBreakMinutes(row.lunchStart, row.lunchEnd), 0);
+  const explicitBreakMinutes = calculateBreakMinutes(row.lunchStart, row.lunchEnd);
+  const fallbackBreakMinutes = Number(row.breakMinutes || 0);
+  const breakMinutes = (row.lunchStart || row.lunchEnd) ? explicitBreakMinutes : fallbackBreakMinutes;
+  return Math.max(end - start - breakMinutes, 0);
 };
 
 export const buildWorksheetRows = (startDate, endDate, shifts = []) => {
   const shiftMap = new Map();
   shifts.forEach((shift) => {
-    if (!shiftMap.has(shift.date)) {
-      shiftMap.set(shift.date, shift);
+    const shiftDate = shift?.date;
+    if (!shiftDate) return;
+    if (!shiftMap.has(shiftDate)) {
+      shiftMap.set(shiftDate, []);
     }
+    shiftMap.get(shiftDate).push(shift);
   });
 
   return getDateRangeDates(startDate, endDate).map(({ date, dayLabel }) => {
-    const shift = shiftMap.get(date);
-    return {
-      id: shift?.id || null,
-      date,
-      dayLabel,
-      startTime: isoToLocalHHMM(shift?.clock_in),
-      lunchStart: isoToLocalHHMM(shift?.lunch_start),
-      lunchEnd: isoToLocalHHMM(shift?.lunch_end),
-      endTime: isoToLocalHHMM(shift?.clock_out),
-      notes: shift?.notes || '',
-      source: shift?.source || 'worksheet',
-      shiftStatus: shift?.status || null,
-    };
+    const shiftsForDate = shiftMap.get(date) || [];
+    return mergeDateShifts(date, dayLabel, shiftsForDate);
   });
 };
 

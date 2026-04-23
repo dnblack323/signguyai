@@ -68,6 +68,7 @@ export default function CompanySettings() {
   const [payrollSettings, setPayrollSettings] = useState({
     default_cycle: 'weekly',
     pay_week_start_day: 'monday',
+    show_payroll_adjustments: false,
   });
   const [savingPayrollSettings, setSavingPayrollSettings] = useState(false);
 
@@ -139,6 +140,7 @@ export default function CompanySettings() {
       setPayrollSettings({
         default_cycle: data.payroll_settings?.default_cycle ?? 'weekly',
         pay_week_start_day: data.payroll_settings?.pay_week_start_day ?? 'monday',
+        show_payroll_adjustments: data.payroll_settings?.show_payroll_adjustments ?? false,
       });
     } catch (err) {
       console.error('Error loading tenant:', err);
@@ -652,6 +654,21 @@ export default function CompanySettings() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          <div className="rounded-lg border p-4" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <Label className="text-gray-900">Show Payroll Adjustments Panel</Label>
+                <p className="text-sm text-gray-500">Toggle the left-side Adjustments panel in Payroll worksheet.</p>
+              </div>
+              <Switch
+                checked={payrollSettings.show_payroll_adjustments}
+                onCheckedChange={(checked) => setPayrollSettings({ ...payrollSettings, show_payroll_adjustments: checked })}
+                disabled={!canEditSettings}
+                data-testid="company-payroll-show-adjustments-toggle"
+              />
             </div>
           </div>
 

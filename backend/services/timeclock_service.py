@@ -184,6 +184,8 @@ async def backfill_timeclock_shifts(db, tenant_id: str, employee_id: str, start_
                     "clock_in": timestamp,
                     "clock_out": None,
                     "break_minutes": 0.0,
+                    "lunch_start": None,
+                    "lunch_end": None,
                     "status": "working",
                     "notes": "",
                     "source": "time_clock",
@@ -193,12 +195,14 @@ async def backfill_timeclock_shifts(db, tenant_id: str, employee_id: str, start_
                 current_break_start = None
             elif action == "break_start" and current_shift:
                 current_break_start = timestamp
+                current_shift["lunch_start"] = timestamp
                 current_shift["status"] = "on_break"
             elif action == "break_end" and current_shift and current_break_start:
                 break_start = _parse_iso(current_break_start)
                 break_end = _parse_iso(timestamp)
                 if break_start and break_end:
                     current_shift["break_minutes"] = float(current_shift.get("break_minutes", 0)) + max((break_end - break_start).total_seconds() / 60, 0)
+                current_shift["lunch_end"] = timestamp
                 current_break_start = None
                 current_shift["status"] = "working"
             elif action == "end_work" and current_shift:
@@ -309,6 +313,8 @@ async def record_timeclock_action(db, tenant_id: str, employee_id: str, action: 
             "clock_in": timestamp,
             "clock_out": None,
             "break_minutes": 0.0,
+            "lunch_start": None,
+            "lunch_end": None,
             "status": "working",
             "notes": "",
             "source": "time_clock",
@@ -317,14 +323,31 @@ async def record_timeclock_action(db, tenant_id: str, employee_id: str, action: 
         }
         await db.timeclock_shifts.insert_one(shift)
     elif action == "break_start" and open_shift:
-        await db.timeclock_shifts.update_one({"id": open_shift["id"]}, {"$set": {"status": "on_break", "current_break_start": timestamp, "updated_at": timestamp}})
+        await db.timeclock_shifts.update_one(
+            {"id": open_shift["id"]},
+            {"$set": {
+                "status": "on_break",
+                "current_break_start": timestamp,
+                "lunch_start": timestamp,
+                "updated_at": timestamp,
+            }},
+        )
     elif action == "break_end" and open_shift:
         break_start = _parse_iso(open_shift.get("current_break_start"))
         break_end = _parse_iso(timestamp)
         break_minutes = float(open_shift.get("break_minutes", 0) or 0)
         if break_start and break_end:
             break_minutes += max((break_end - break_start).total_seconds() / 60, 0)
-        await db.timeclock_shifts.update_one({"id": open_shift["id"]}, {"$set": {"status": "working", "current_break_start": None, "break_minutes": round(break_minutes, 2), "updated_at": timestamp}})
+        await db.timeclock_shifts.update_one(
+            {"id": open_shift["id"]},
+            {"$set": {
+                "status": "working",
+                "current_break_start": None,
+                "break_minutes": round(break_minutes, 2),
+                "lunch_end": timestamp,
+                "updated_at": timestamp,
+            }},
+        )
     elif action == "end_work" and open_shift:
         updated_shift = {**open_shift, "clock_out": timestamp, "status": "finished", "updated_at": timestamp, "current_break_start": None}
         metrics = calculate_shift_metrics(updated_shift)
