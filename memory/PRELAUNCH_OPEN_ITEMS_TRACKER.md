@@ -34,6 +34,11 @@ Last updated: 2026-04-23
   - Evidence: `asset_row_count=0`, `thumbnail_images=0`
   - Next: verify assets panel upload + listing wiring
 
+#### 2.3b Cut Vinyl
+- **2.3bF** Duplicate item should reset quantity to 1 and keep category as Cut Vinyl
+  - Evidence: current `/api/job-tickets/{id}/duplicate` preserves original quantity and name
+  - Next: align duplicate flow to checklist contract (qty reset=1 + `Copy of ...` naming), or update checklist contract to current behavior
+
 ---
 
 ## ⛔ Cannot fully test without user/external actions

@@ -158,12 +158,12 @@ For **EACH** category below, follow this exact sequence:
 - [x] **Artwork Ready = No** → Design Complexity field APPEARS (progressive disclosure)
 
 #### 2.3b Cut Vinyl
-- [ ] Pick vinyl type (intermediate / premium / reflective) → baseline rate changes
-- [ ] Set size + color count → price updates
-- [ ] **Install Required = No** → Install Complexity field is **HIDDEN**
-- [ ] **Install Required = Yes** → Install Complexity APPEARS → price jumps
-- [ ] **Artwork Ready = No** → Design Complexity APPEARS
-- [ ] Duplicate this item → Quantity resets to 1, category stays Cut Vinyl
+- [x] Pick vinyl type (intermediate / premium / reflective) → baseline rate changes
+- [x] Set size + color count → price updates
+- [x] **Install Required = No** → Install Complexity field is **HIDDEN**
+- [x] **Install Required = Yes** → Install Complexity APPEARS → price jumps
+- [x] **Artwork Ready = No** → Design Complexity APPEARS
+- [ ] Duplicate this item → Quantity resets to 1, category stays Cut Vinyl — FAIL: current `/api/job-tickets/{id}/duplicate` preserves original quantity and name; does not reset to qty=1/copy naming
 
 #### 2.3c Rigid Signs (most progressive-disclosure tests)
 - [ ] Pick material (coroplast / aluminum / PVC / MDO) and thickness → price baseline changes

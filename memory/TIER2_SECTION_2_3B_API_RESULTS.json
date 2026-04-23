@@ -1,0 +1,20 @@
+{
+  "base_url": "https://prod-key-update.preview.emergentagent.com",
+  "results": [
+    {
+      "id": "2.3bA",
+      "status": "PASS",
+      "details": "oracal_651=24.0, oracal_751=30.0, reflective=44.0"
+    },
+    {
+      "id": "2.3bB",
+      "status": "PASS",
+      "details": "small_1color=24.0, big_1color=96.0, big_3color=192.0"
+    },
+    {
+      "id": "2.3bD_price",
+      "status": "PASS",
+      "details": "install_no=144.0, install_yes=294.0"
+    }
+  ]
+}

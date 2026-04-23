@@ -85,6 +85,20 @@ Last updated: 2026-04-23
 - ✅ **2.3aD** Rush adder behavior
 - ❌ **2.3aE** Design complexity visibility condition differed from checklist on first pass
 
+### 2.3b Cut Vinyl (first pass)
+- ✅ **2.3bA** Vinyl type changes baseline pricing
+  - Evidence (API): `oracal_651=24.0`, `oracal_751=30.0`, `reflective_vinyl=44.0`
+- ✅ **2.3bB** Size + color count increases price
+  - Evidence (API): `24x12,1color=24.0` → `48x24,1color=96.0` → `48x24,3color=192.0`
+- ✅ **2.3bC** `Install Required = No` hides Install Complexity
+  - Evidence (UI): `install_complexity_visible_count=0`
+- ✅ **2.3bD** `Install Required = Yes` shows Install Complexity and increases sell
+  - Evidence (UI): `before=96.0`, `after=246.0`, `install_complexity_visible_count=1`
+- ✅ **2.3bE** `Artwork Ready = No` shows Design Complexity
+  - Evidence (UI): `design_complexity_visible_count=1`
+- ❌ **2.3bF** Duplicate item behavior mismatch
+  - Evidence (API `/job-tickets/{id}/duplicate`): source qty `5` duplicated as qty `5` (expected reset to `1`); duplicate name unchanged (expected `Copy of ...`)
+
 ---
 
 ## Source artifacts
@@ -92,3 +106,6 @@ Last updated: 2026-04-23
 - `/app/memory/PRELAUNCH_TIER2_SECTION_2_1_RESULTS.md`
 - `/app/memory/PRELAUNCH_TIER2_SECTION_2_2_RESULTS.md`
 - `/app/memory/PRELAUNCH_TIER2_SECTION_2_3A_RESULTS.md`
+- `/app/memory/TIER2_SECTION_2_3B_API_RESULTS.json`
+- `/app/memory/TIER2_SECTION_2_3B_DUPLICATE_RESULTS.json`
+- `/root/.emergent/automation_output/20260423_092005/console_20260423_092005.log`
