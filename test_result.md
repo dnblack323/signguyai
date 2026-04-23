@@ -1351,3 +1351,34 @@ backend:
         agent: "testing"
         comment: "✅ VERIFIED - Regression testing for existing categories passed. POST /api/pricing/calculate still works correctly for: (1) Digital Print: selling_price=$168.50, (2) Cut Vinyl: selling_price=$72.50, (3) Rigid Signs: selling_price=$78.50. All categories return proper response structure with material_cost, labor_cost, selling_price, breakdown fields. No regressions detected from banners implementation or hardware_accessories merge changes."
 
+
+  - task: "Features Page - Public Content Verification"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/FeaturesPage.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - Comprehensive testing of Features page at https://prod-key-update.preview.emergentagent.com/features completed successfully. ALL 9 VERIFICATION POINTS PASSED: (1) Page loads with no blank states and hero appears with all elements visible (badge, title, subtitle), (2) All 5 category filters work correctly (All Features: 17 cards, Core Business: 8 cards, AI Tools: 1 card, Portals: 4 cards, Financial: 4 cards), (3) Smart Pricing & Detailed Order Items card contains all required content: Digital Print, Cut Vinyl, Rigid Signs, Banners, Vehicle Graphics, Apparel + Services, Promotional, Custom pricing modes + Progressive field reveal logic mention, (4) Channel Letters and Monument Signs are NOT present anywhere on the page, (5) All 4 new feature cards exist and are visible: Platform Billing + Stripe Connect, Questionnaires & Intake Forms, Reports/Productivity/Margin Analytics, Admin Controls/Team Access/Onboarding, (6) All 4 coverage highlight cards exist near top: Commerce Coverage, Operations Coverage, Portal Coverage, Admin Coverage, (7) All first 10 feature cards show actual screenshots (not 'Screenshot coming soon'): Customer Management, Order & Production Tracking, Smart Pricing, Professional Invoicing, Platform Billing, Time Tracking, Payroll & Financials, AI Tools Suite, Customer Portal, Employee Portal, (8) No UI regressions at 1920x800 desktop viewport: no horizontal overflow, no element overlaps detected, (9) Mobile viewport (390x844) renders correctly: hero visible, category filters visible, no horizontal overflow. Screenshots captured for desktop hero, coverage highlights section, full page desktop, and mobile viewport. No console errors detected. Features page is production-ready."
+
+metadata:
+  created_by: "testing_agent"
+  version: "1.0"
+  test_sequence: 9
+  run_ui: false
+  last_test_date: "2026-04-20"
+
+test_plan:
+  current_focus:
+    - "Features page public content verification complete - All tests passed"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "testing"
+    message: "FEATURES PAGE TESTING COMPLETE - Comprehensive verification of public Features page completed successfully at https://prod-key-update.preview.emergentagent.com/features. ALL 9 TESTS PASSED with zero failures: Page loads correctly with hero section, all 5 category filters functional (All Features, Core Business, AI Tools, Portals, Financial), Smart Pricing card has all required product types and pricing modes, Channel Letters and Monument Signs correctly excluded, all 4 new feature cards visible (Platform Billing + Stripe Connect, Questionnaires & Intake Forms, Reports/Productivity/Margin Analytics, Admin Controls/Team Access/Onboarding), all 4 coverage highlight cards present (Commerce, Operations, Portal, Admin Coverage), first 10 feature cards all have actual screenshots (no placeholders), no UI regressions at 1920x800 desktop viewport (no overflow, no overlaps), mobile viewport 390x844 renders correctly. No critical issues found. No console errors. Features page is fully functional and production-ready."
+

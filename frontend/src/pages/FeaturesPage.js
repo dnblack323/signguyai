@@ -1,16 +1,14 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { PublicNav, PublicFooter } from '../components/PublicNav';
 import {
   Users, FileText, Calculator, Receipt, Clock, DollarSign,
-  Sparkles, BarChart3, Store, Shield, Zap, CheckCircle2,
-  ChevronRight, ArrowRight, Menu, X, Briefcase, Calendar,
-  MessageSquare, Palette, Image, Type, Target, TrendingUp,
-  ClipboardList, Truck, Settings, Bell, Search, Filter,
-  PieChart, CreditCard, UserCheck, Building2, Layers
+  Sparkles, BarChart3, Store, Shield, CheckCircle2,
+  ArrowRight, Briefcase, Calendar,
+  MessageSquare, ClipboardList, Settings,
+  CreditCard, UserCheck, Layers
 } from 'lucide-react';
 
 // Feature screenshots mapping
@@ -19,10 +17,19 @@ const featureScreenshots = {
   'jobs': '/screenshots/feature_jobs.jpeg',
   'quotes': '/screenshots/feature_quotes.jpeg',
   'invoicing': '/screenshots/feature_invoices.jpeg',
+  'platform-payments': '/screenshots/feature_invoices.jpeg',
+  'time-tracking': '/screenshots/feature_time_clock.jpeg',
+  'payroll': '/screenshots/feature_dashboard.jpeg',
+  'ai-tools': '/screenshots/feature_ai_tools.jpeg',
+  'customer-portal': '/screenshots/feature_dashboard.jpeg',
+  'employee-portal': '/screenshots/feature_time_clock.jpeg',
   'webstores': '/screenshots/feature_webstores.jpeg',
-  'ai': '/screenshots/feature_ai_tools.jpeg',
-  'settings': '/screenshots/feature_settings.jpeg',
-  'dashboard': '/screenshots/feature_dashboard.jpeg',
+  'scheduling': '/screenshots/feature_dashboard.jpeg',
+  'signatures': '/screenshots/feature_jobs.jpeg',
+  'messaging': '/screenshots/feature_dashboard.jpeg',
+  'intake-forms': '/screenshots/feature_customers.jpeg',
+  'reporting': '/screenshots/feature_dashboard.jpeg',
+  'admin-controls': '/screenshots/feature_settings.jpeg',
 };
 
 export default function FeaturesPage() {
@@ -78,19 +85,15 @@ export default function FeaturesPage() {
       id: 'quotes',
       category: 'core',
       icon: Calculator,
-      title: 'Smart Pricing & Quotes',
-      tagline: '8 specialized calculators for accurate pricing',
-      description: 'Stop guessing on prices. Our calculators factor in materials, labor, complexity, and setup fees to give you profitable quotes every time.',
+      title: 'Smart Pricing & Detailed Order Items',
+      tagline: 'Category calculators built for real sign shop quoting',
+      description: 'Quote confidently with detailed category logic and live estimate updates that react instantly as specs change.',
       capabilities: [
-        'Vinyl graphics calculator',
-        'Vehicle wrap calculator',
-        'Banner & large format calculator',
-        'Channel letter calculator',
-        'Monument sign calculator',
-        'A-frame & yard sign calculator',
-        'Window graphics calculator',
-        'Custom product calculator',
-        'Complexity multipliers',
+        'Digital Print, Cut Vinyl, Rigid Signs, Banners, Vehicle Graphics, Apparel',
+        'Services, Promotional, and Custom pricing modes',
+        'Live estimate panel with rush, setup, labor, and material impacts',
+        'Progressive field reveal logic so only relevant controls are shown',
+        'Duplicate, variation, and cross-category conversion workflow',
         'Setup fee handling',
         'AI pricing suggestions',
       ],
@@ -116,6 +119,23 @@ export default function FeaturesPage() {
       color: 'from-yellow-500 to-orange-500',
     },
     {
+      id: 'platform-payments',
+      category: 'financial',
+      icon: CreditCard,
+      title: 'Platform Billing + Stripe Connect',
+      tagline: 'Subscriptions, customer payments, and payout operations',
+      description: 'Run SaaS billing and merchant payment flows in one system with clear status visibility and reconciliation coverage.',
+      capabilities: [
+        'Plan checkout, trial handling, and billing state visibility',
+        'Stripe Connect onboarding for merchant payout readiness',
+        'Connect status monitoring and recovery paths',
+        'Invoice payment reconciliation via webhook and fallback polling',
+        'Refund-aware invoice state synchronization',
+        'Credit pack purchases for AI usage',
+      ],
+      color: 'from-orange-500 to-amber-500',
+    },
+    {
       id: 'time-tracking',
       category: 'core',
       icon: Clock,
@@ -124,11 +144,12 @@ export default function FeaturesPage() {
       description: 'Track time per job, per employee, per task. See real labor costs and improve your estimates with actual data.',
       capabilities: [
         'Start/stop timer on any job',
-        'Task type categorization',
-        'Employee time logs',
+        'Timeclock with working / lunch / clock-out states',
+        'Task type categorization and employee time logs',
         'Labor cost calculations',
         'Time summaries per job',
-        'Billable vs non-billable tracking',
+        'Timezone-aware shift rendering',
+        'Stale shift protection and cleanup',
         'Export time reports',
         'Integration with payroll',
       ],
@@ -144,11 +165,13 @@ export default function FeaturesPage() {
       capabilities: [
         'Employee pay tracking',
         'Hourly rate management',
-        'Pay period summaries',
+        'Pay period summaries with worksheet editing',
+        'Paid in Full action by employee and pay period',
+        'Configurable adjustments panel visibility from settings',
         'Profit margin reports',
         'Revenue tracking',
         'Expense categorization',
-        'Financial dashboard',
+        'Financial dashboard and exports',
         'Export to accounting software',
       ],
       color: 'from-emerald-500 to-teal-500',
@@ -159,7 +182,7 @@ export default function FeaturesPage() {
       icon: Sparkles,
       title: 'AI Tools Suite',
       tagline: '15+ AI-powered tools no other software has',
-      description: 'Generate logos, design signs, write copy, get pricing suggestions - all powered by cutting-edge AI built right into your workflow.',
+      description: 'Generate assets, draft content, assist with operational tasks, and speed up quoting with AI embedded directly in workflow screens.',
       capabilities: [
         'Logo Creator - generate logo concepts',
         'Sign Designer - AI sign mockups',
@@ -169,7 +192,9 @@ export default function FeaturesPage() {
         'Business Copywriter - marketing copy',
         'Pricing Advisor - AI pricing suggestions',
         'Brand Color Advisor - color palettes',
-        'Photo Enhancer - image improvements',
+        'AI business assistant with multi-turn chat',
+        'AI services prefill for structured estimates',
+        'Voice transcription and document extraction workflows',
         'Font Identifier - identify fonts from images',
         'And more tools added regularly',
       ],
@@ -181,17 +206,19 @@ export default function FeaturesPage() {
       icon: Shield,
       title: 'Customer Portal',
       tagline: 'Let customers help themselves',
-      description: 'Give your customers 24/7 access to view orders, approve artwork, make payments, and communicate with your shop.',
+      description: 'Give customers 24/7 self-service for approvals, payments, status visibility, and communication without back-and-forth chaos.',
       capabilities: [
         'Branded portal with your logo',
         'Order status visibility',
-        'Artwork approval workflow',
+        'Artwork and proof approval workflow',
         'Review-and-sign customer signature links',
         'Online payment processing',
         'Message your team directly',
-        'Download invoices and receipts',
+        'Documents, invoices, and receipts access',
+        'Appointments and profile management',
+        'Questionnaire/form history visibility',
         'Request new quotes',
-        'View job history',
+        'View order history',
       ],
       color: 'from-blue-500 to-indigo-500',
     },
@@ -203,10 +230,11 @@ export default function FeaturesPage() {
       tagline: 'Mobile-friendly for your team',
       description: 'Your employees get their own simple interface to clock in/out, view tasks, check pay stubs, and stay productive.',
       capabilities: [
-        'Simple clock in/out',
+        'Simple clock in/out + lunch states',
         'View assigned jobs and tasks',
-        'Time clock history',
-        'Pay stub access',
+        'Task completion synced to admin workflow',
+        'Time clock history and schedule visibility',
+        'Pay period and pay stub access',
         'Profile management',
         'Mobile-optimized design',
         'Separate login system',
@@ -226,8 +254,10 @@ export default function FeaturesPage() {
         'B2B customer ordering portals',
         'Product catalog pages',
         'Custom pricing per store',
-        'Order management',
+        'Order management and checkout flow',
         'Inventory tracking',
+        'Convert webstore orders into internal production orders',
+        'Store analytics and payout tracking tools',
         'Branded storefronts',
         'Easy setup wizard',
       ],
@@ -239,7 +269,7 @@ export default function FeaturesPage() {
       icon: Calendar,
       title: 'Scheduling & Calendar',
       tagline: 'Never miss a deadline',
-      description: 'See all your jobs on a calendar, schedule installations, and manage your shop\'s capacity.',
+      description: 'Coordinate production timelines, appointments, and team schedules in one connected planning view.',
       capabilities: [
         'Unified Month / Week / Day calendar views',
         'Large planning calendar with multiple visible items per day',
@@ -266,6 +296,7 @@ export default function FeaturesPage() {
         'Order-level and item-level drawing storage',
         'Markup mode on uploaded images',
         'Autosave drafts, undo, pen size, and color controls',
+        'Public secure signature links for customer approvals',
         'Parent-order visibility without duplicating the true approval record',
       ],
       color: 'from-cyan-500 to-blue-500',
@@ -288,6 +319,104 @@ export default function FeaturesPage() {
         'Email notifications',
       ],
       color: 'from-indigo-500 to-blue-500',
+    },
+    {
+      id: 'intake-forms',
+      category: 'portals',
+      icon: FileText,
+      title: 'Questionnaires & Intake Forms',
+      tagline: 'Capture better requirements before work starts',
+      description: 'Collect structured customer intake with public forms and keep submissions tied to the right records.',
+      capabilities: [
+        'Public questionnaire links for new requests',
+        'Custom field types with required-field validation',
+        'Submission tracking in admin workflow',
+        'File upload support in intake forms',
+        'Portal-side form history visibility',
+        'Faster handoff from intake to quoting',
+      ],
+      color: 'from-fuchsia-500 to-purple-500',
+    },
+    {
+      id: 'reporting',
+      category: 'financial',
+      icon: BarChart3,
+      title: 'Reports, Productivity & Margin Analytics',
+      tagline: 'See what is profitable and where operations are stuck',
+      description: 'Understand performance across orders, labor, cash flow, and margins with drill-down reporting views.',
+      capabilities: [
+        'Profit margin analytics by order and category',
+        'Revenue, expenses, and aging visibility',
+        'Productivity board linking jobs, appointments, and tasks',
+        'Payroll and time exports for reconciliation',
+        'Dashboard widgets for due-today and waiting approvals',
+        'CSV exports for external analysis',
+      ],
+      color: 'from-sky-500 to-cyan-500',
+    },
+    {
+      id: 'admin-controls',
+      category: 'core',
+      icon: Settings,
+      title: 'Admin Controls, Team Access & Onboarding',
+      tagline: 'Set rules once, keep the shop aligned',
+      description: 'Control permissions, branding, defaults, and onboarding flows so your team can work consistently at scale.',
+      capabilities: [
+        'Team invites, role-based permissions, and access control',
+        'Company settings, branding, and operational defaults',
+        'Pricing foundation and materials configuration',
+        'Email template and digest settings',
+        'Guided onboarding checklist and setup flows',
+        'Customer and employee portal permission controls',
+      ],
+      color: 'from-slate-500 to-blue-500',
+    },
+  ];
+
+  const coverageHighlights = [
+    {
+      id: 'coverage-commerce',
+      icon: CreditCard,
+      title: 'Commerce Coverage',
+      items: [
+        'Quote → Order → Invoice flow',
+        'Stripe billing and trials',
+        'Stripe Connect payout operations',
+        'Refund-aware reconciliation',
+      ],
+    },
+    {
+      id: 'coverage-ops',
+      icon: Briefcase,
+      title: 'Operations Coverage',
+      items: [
+        'Production board and task execution',
+        'Scheduling and workforce views',
+        'Timeclock + payroll worksheets',
+        'Approvals, proofs, and signatures',
+      ],
+    },
+    {
+      id: 'coverage-portals',
+      icon: UserCheck,
+      title: 'Portal Coverage',
+      items: [
+        'Customer portal modules',
+        'Employee portal modules',
+        'Public intake forms',
+        'Branded webstores',
+      ],
+    },
+    {
+      id: 'coverage-admin',
+      icon: ClipboardList,
+      title: 'Admin Coverage',
+      items: [
+        'Team roles and permissions',
+        'Company and pricing settings',
+        'Onboarding workflows',
+        'Financial and productivity reporting',
+      ],
     },
   ];
 
@@ -325,6 +454,7 @@ export default function FeaturesPage() {
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
+                data-testid={`features-category-${cat.id}`}
                 className={`px-4 py-2 rounded-full font-medium transition ${
                   activeCategory === cat.id
                     ? 'bg-[#2F8BFB] text-black'
@@ -335,6 +465,24 @@ export default function FeaturesPage() {
               </button>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="px-4 pb-14" data-testid="features-coverage-highlights">
+        <div className="max-w-7xl mx-auto grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {coverageHighlights.map((highlight) => (
+            <div key={highlight.id} className="rounded-2xl border border-white/10 bg-white/5 p-5" data-testid={highlight.id}>
+              <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#2F8BFB]/20 text-[#2F8BFB]">
+                <highlight.icon className="h-5 w-5" />
+              </div>
+              <h3 className="mb-3 text-lg font-semibold text-white">{highlight.title}</h3>
+              <ul className="space-y-2">
+                {highlight.items.map((item) => (
+                  <li key={item} className="text-sm text-gray-300">• {item}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -372,6 +520,7 @@ export default function FeaturesPage() {
                     <img 
                       src={featureScreenshots[feature.id]} 
                       alt={`${feature.title} screenshot`}
+                      data-testid={`feature-screenshot-${feature.id}`}
                       className="w-full h-auto rounded-xl"
                     />
                   ) : (
