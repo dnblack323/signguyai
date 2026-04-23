@@ -19,6 +19,11 @@ Full-stack business management app for sign/graphics shops: customer management,
 - Lightbox supports both close button and click-outside-to-close interactions.
 - Verified desktop + mobile behavior via frontend test agent; no layout regressions.
 
+### 2026-04-23 — Default feature screenshots made taller/readable
+- Recaptured all `frontend/public/screenshots/feature_*.jpeg` marketing assets at **1920x1200 (16:10)** instead of short wide-strip framing.
+- This increases default on-page screenshot height and improves text readability before opening lightbox.
+- Re-verified: all feature images load successfully, lightbox still works, and no desktop/mobile overflow regressions.
+
 ### 2026-04-23 — Features page screenshot refresh with real data states
 - Replaced/recaptured marketing feature screenshots using live preview tenant data for core admin modules (dashboard, customers, orders, pricing, invoices, payroll, payments, reporting, settings, productivity, webstores, AI tools, intake forms).
 - Added dedicated portal screenshots with real account states:
