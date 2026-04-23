@@ -13,6 +13,12 @@ Full-stack business management app for sign/graphics shops: customer management,
 
 ## Implemented (CHANGELOG)
 
+### 2026-04-23 — Features page screenshot lightbox
+- Added click-to-enlarge behavior for feature screenshots on `/features` in `frontend/src/pages/FeaturesPage.js`.
+- Each screenshot card now shows a "Click to enlarge" hint and opens a full-screen modal with enlarged image + feature title.
+- Lightbox supports both close button and click-outside-to-close interactions.
+- Verified desktop + mobile behavior via frontend test agent; no layout regressions.
+
 ### 2026-04-23 — Features page screenshot refresh with real data states
 - Replaced/recaptured marketing feature screenshots using live preview tenant data for core admin modules (dashboard, customers, orders, pricing, invoices, payroll, payments, reporting, settings, productivity, webstores, AI tools, intake forms).
 - Added dedicated portal screenshots with real account states:
