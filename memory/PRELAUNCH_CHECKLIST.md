@@ -107,11 +107,11 @@ _Different from 1.3 — this is the merchant (you) receiving customer payments, 
 ## 🟠 TIER 2 — CORE COMMERCE
 
 ### 2.1 Customers CRUD (beyond import)
-- [ ] **Create customer manually** → appears in list
-- [ ] **Search** by name, email, phone — all three work independently
-- [ ] **Edit** a customer (change email, add note) → changes persist after page refresh
-- [ ] **Delete** customer → confirmation prompt → customer removed but any **associated orders still display the customer name** (historical integrity)
-- [ ] **Customer detail page** shows: all their orders, all their invoices, total spent, portal-invite status
+- [x] **Create customer manually** → appears in list
+- [x] **Search** by name, email, phone — all three work independently
+- [x] **Edit** a customer (change email, add note) → changes persist after page refresh
+- [x] **Delete** customer → confirmation prompt → customer removed but any **associated orders still display the customer name** (historical integrity)
+- [x] **Customer detail page** shows: all their orders, all their invoices, total spent, portal-invite status
 - [ ] **Tax-exempt toggle** → flip ON → create a new invoice for this customer → tax line is zero
 - [ ] **Portal invite** from the customer detail page → invite email arrives, customer can set password and log in to portal (verified in 4.4)
 

@@ -1,0 +1,48 @@
+{
+  "base_url": "https://prod-key-update.preview.emergentagent.com",
+  "timestamp": "2026-04-23T06:44:39.905879+00:00",
+  "results": [
+    {
+      "id": "2.1A",
+      "title": "Create customer manually appears in list",
+      "status": "PASS",
+      "details": "create_status=200 list_status=200"
+    },
+    {
+      "id": "2.1B",
+      "title": "Search by name/email/phone independently",
+      "status": "PASS",
+      "details": "[('name', True, 200, 1), ('email', True, 200, 1), ('phone', True, 200, 1)]"
+    },
+    {
+      "id": "2.1C",
+      "title": "Edit customer persists after refresh",
+      "status": "PASS",
+      "details": "update_status=200 get_status=200 email=s21_1776926677_alice_updated@example.com"
+    },
+    {
+      "id": "2.1D",
+      "title": "Delete customer while associated orders keep customer name",
+      "status": "PASS",
+      "details": "delete_status=200 order_get=200 preserved_name=S21_1776926677_DeleteCase"
+    },
+    {
+      "id": "2.1E",
+      "title": "Customer detail data: orders/jobs, invoices, totals, portal invite status",
+      "status": "PASS",
+      "details": "jobs=1 invoices=1 summary_status=200 total_invoiced=220.0 invite_status=200"
+    },
+    {
+      "id": "2.1F",
+      "title": "Tax-exempt toggle causes new invoice tax line to zero",
+      "status": "FAIL",
+      "details": "both paths tax=0 (non_exempt_tax=0, exempt_tax=0); tax engine not customer-dependent in tested flow"
+    },
+    {
+      "id": "2.1G",
+      "title": "Portal invite email arrives and customer sets password/logs in",
+      "status": "BLOCKED",
+      "details": "Requires inbox access + end-user portal login verification by owner"
+    }
+  ]
+}

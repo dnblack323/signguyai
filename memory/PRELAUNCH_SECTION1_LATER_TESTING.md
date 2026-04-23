@@ -16,3 +16,9 @@ Numbering preserves original Tier/Section/Letter format.
 - [ ] **1.6Q** Mid-batch failure leaves partial data (no atomic rollback)
   - Current state: runtime-exception rollback is implemented; validation-row errors still use skip-and-continue behavior
   - Next test focus: decide desired product behavior between strict all-or-nothing vs partial import with row errors
+
+## Tier 2 → Section 2.1 Customers CRUD
+
+- [ ] **2.1F** Tax-exempt toggle should affect invoice tax calculation
+  - Evidence: non-exempt and exempt invoice-generation paths both produced `tax_amount=0`
+  - Next test focus: implement customer-aware tax calculation (or document global zero-tax policy)
