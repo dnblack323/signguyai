@@ -1,0 +1,35 @@
+{
+  "base_url": "https://prod-key-update.preview.emergentagent.com",
+  "results": [
+    {
+      "check": "initial-status-not-started",
+      "status": "PASS",
+      "detail": "{\"status\":\"not_started\",\"last_action\":null}"
+    },
+    {
+      "check": "clock-in-working",
+      "status": "PASS",
+      "detail": "clock=200,status={\"status\":\"working\",\"last_action\":\"start_work\",\"last_timestamp\":\"2026-04-23T10:42:56.756641+00:00\",\"clocked_in_at\":\"2026-04-23T10:42:56.756641+00:00\",\"last_action_at\":\"2026-04-23T10:42:56.756641+00:00\",\"shift_id\":\"29bc31ca-6ead-43a9-8a0b-d92c62d7e9a5\"}"
+    },
+    {
+      "check": "clock-out-not-working",
+      "status": "PASS",
+      "detail": "clock=200,status={\"status\":\"finished\",\"last_action\":\"end_work\",\"last_timestamp\":\"2026-04-23T10:42:57.012348+00:00\",\"derived_from_logs_only\":true}"
+    },
+    {
+      "check": "worksheet-close-not-working",
+      "status": "PASS",
+      "detail": "update=200,status={\"status\":\"not_started\",\"last_action\":\"start_work\",\"last_timestamp\":\"2026-04-23T10:42:57.245743+00:00\",\"derived_from_logs_only\":true}"
+    },
+    {
+      "check": "cleanup-employee",
+      "status": "PASS",
+      "detail": "delete_status=200"
+    },
+    {
+      "check": "status-endpoint-smoke-existing-employees",
+      "status": "PASS",
+      "detail": "checked=1,working_count=0"
+    }
+  ]
+}

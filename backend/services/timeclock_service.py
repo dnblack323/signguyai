@@ -27,6 +27,15 @@ def _date_bounds(day_str: str) -> tuple[str, str]:
 STALE_SHIFT_HOURS = 18
 
 
+OPEN_SHIFT_FILTER = {
+    "$or": [
+        {"clock_out": None},
+        {"clock_out": ""},
+        {"clock_out": {"$exists": False}},
+    ]
+}
+
+
 async def _auto_close_stale_shift(db, shift: dict) -> bool:
     """If a shift has been open longer than STALE_SHIFT_HOURS, auto-close it.
     Returns True if the shift was closed (i.e., was stale).
@@ -75,11 +84,44 @@ async def _auto_close_stale_shift(db, shift: dict) -> bool:
 async def _cleanup_stale_open_shifts(db, tenant_id: str, employee_id: str) -> None:
     """Auto-close all stale open shifts for this employee."""
     cursor = db.timeclock_shifts.find(
-        {"tenant_id": tenant_id, "employee_id": employee_id, "status": {"$in": ["working", "on_break"]}},
+        {
+            "tenant_id": tenant_id,
+            "employee_id": employee_id,
+            "status": {"$in": ["working", "on_break"]},
+            **OPEN_SHIFT_FILTER,
+        },
         {"_id": 0}
     )
     async for shift in cursor:
         await _auto_close_stale_shift(db, shift)
+
+
+async def _normalize_inconsistent_shift_statuses(db, tenant_id: str, employee_id: str) -> None:
+    """Repair shifts marked as open but already carrying a clock_out value.
+
+    Historical payroll edits and previous bugs could leave rows with:
+      status in (working/on_break) + clock_out present
+    Those rows must never be treated as actively clocked-in shifts.
+    """
+    cursor = db.timeclock_shifts.find(
+        {
+            "tenant_id": tenant_id,
+            "employee_id": employee_id,
+            "status": {"$in": ["working", "on_break"]},
+            "clock_out": {"$nin": [None, ""]},
+        },
+        {"_id": 0},
+    )
+    async for shift in cursor:
+        repaired = {
+            **shift,
+            "status": "finished",
+            "current_break_start": None,
+            "updated_at": _now_iso(),
+            "status_repaired": True,
+        }
+        repaired.update(calculate_shift_metrics(repaired))
+        await db.timeclock_shifts.update_one({"id": shift["id"]}, {"$set": repaired})
 
 
 def calculate_shift_metrics(shift: dict) -> dict:
@@ -105,7 +147,11 @@ async def backfill_timeclock_shifts(db, tenant_id: str, employee_id: str, start_
     existing_dates = {shift["date"] for shift in existing}
 
     logs = await db.timelogs.find(
-        {"employee_id": employee_id, "timestamp": {"$gte": f"{start_date}T00:00:00", "$lte": f"{end_date}T23:59:59"}},
+        {
+            "tenant_id": tenant_id,
+            "employee_id": employee_id,
+            "timestamp": {"$gte": f"{start_date}T00:00:00", "$lte": f"{end_date}T23:59:59"},
+        },
         {"_id": 0}
     ).sort("timestamp", 1).to_list(5000)
 
@@ -196,12 +242,19 @@ async def record_timeclock_action(db, tenant_id: str, employee_id: str, action: 
     if action not in valid_actions:
         raise ValueError(f"Invalid action: {action}")
 
+    # Defensive repairs before evaluating state
+    await _normalize_inconsistent_shift_statuses(db, tenant_id, employee_id)
     # Defensive: auto-close any stale open shifts from prior days before evaluating state
     await _cleanup_stale_open_shifts(db, tenant_id, employee_id)
 
     # Find any open shift for this employee (regardless of date) to handle timezone boundary
     open_shift = await db.timeclock_shifts.find_one(
-        {"tenant_id": tenant_id, "employee_id": employee_id, "status": {"$in": ["working", "on_break"]}},
+        {
+            "tenant_id": tenant_id,
+            "employee_id": employee_id,
+            "status": {"$in": ["working", "on_break"]},
+            **OPEN_SHIFT_FILTER,
+        },
         {"_id": 0},
         sort=[("clock_in", -1)]
     )
@@ -214,7 +267,7 @@ async def record_timeclock_action(db, tenant_id: str, employee_id: str, action: 
         # Fallback: check recent timelogs (last 48h window) for sequence validation
         cutoff = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat()
         recent_logs = await db.timelogs.find(
-            {"employee_id": employee_id, "timestamp": {"$gte": cutoff}},
+            {"tenant_id": tenant_id, "employee_id": employee_id, "timestamp": {"$gte": cutoff}},
             {"_id": 0}
         ).sort("timestamp", -1).to_list(1)
         if recent_logs:
@@ -282,12 +335,18 @@ async def record_timeclock_action(db, tenant_id: str, employee_id: str, action: 
 
 
 async def get_timeclock_status(db, tenant_id: str, employee_id: str) -> dict:
+    await _normalize_inconsistent_shift_statuses(db, tenant_id, employee_id)
     # Defensive: auto-close any stale open shifts from prior days
     await _cleanup_stale_open_shifts(db, tenant_id, employee_id)
 
     # Primary: check for any open shift (survives timezone boundary)
     open_shift = await db.timeclock_shifts.find_one(
-        {"tenant_id": tenant_id, "employee_id": employee_id, "status": {"$in": ["working", "on_break"]}},
+        {
+            "tenant_id": tenant_id,
+            "employee_id": employee_id,
+            "status": {"$in": ["working", "on_break"]},
+            **OPEN_SHIFT_FILTER,
+        },
         {"_id": 0},
         sort=[("clock_in", -1)]
     )
@@ -310,23 +369,22 @@ async def get_timeclock_status(db, tenant_id: str, employee_id: str) -> dict:
     # Fallback: check recent timelogs (48h window covers timezone edge cases)
     cutoff = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat()
     logs = await db.timelogs.find(
-        {"employee_id": employee_id, "timestamp": {"$gte": cutoff}},
+        {"tenant_id": tenant_id, "employee_id": employee_id, "timestamp": {"$gte": cutoff}},
         {"_id": 0}
     ).sort("timestamp", -1).to_list(1)
     if not logs:
         return {"status": "not_started", "last_action": None}
 
     last_log = logs[0]
-    status_map = {
-        "start_work": "working",
-        "break_start": "on_break",
-        "break_end": "working",
-        "end_work": "finished",
-    }
+
+    # No open shift exists at this point, so the employee must be treated as
+    # not currently clocked-in. We still expose last action/timestamp context.
+    fallback_status = "finished" if last_log.get("action") == "end_work" else "not_started"
     return {
-        "status": status_map.get(last_log["action"], "unknown"),
+        "status": fallback_status,
         "last_action": last_log["action"],
         "last_timestamp": last_log["timestamp"],
+        "derived_from_logs_only": True,
     }
 
 
@@ -353,6 +411,17 @@ async def update_timeclock_shift(db, tenant_id: str, shift_id: str, updates: dic
     next_shift = {**shift, **updates, "updated_at": _now_iso()}
     if next_shift.get("clock_in"):
         next_shift["date"] = str(next_shift["clock_in"])[:10]
+
+    # Keep status consistent with clock-in/clock-out truth.
+    if next_shift.get("clock_out"):
+        next_shift["status"] = "finished"
+        next_shift["current_break_start"] = None
+    elif not next_shift.get("clock_in"):
+        next_shift["status"] = "draft"
+        next_shift["current_break_start"] = None
+    elif next_shift.get("status") not in ["working", "on_break", "finished", "draft"]:
+        next_shift["status"] = "working"
+
     next_shift.update(calculate_shift_metrics(next_shift))
     await db.timeclock_shifts.update_one({"id": shift_id}, {"$set": next_shift})
     return next_shift

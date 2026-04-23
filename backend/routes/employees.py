@@ -891,6 +891,7 @@ async def get_today_logs(employee_id: str, current_user: UserInDB = Depends(get_
     # Use a 36h window to cover all timezone offsets from UTC
     cutoff = (datetime.now(timezone.utc) - timedelta(hours=36)).isoformat()
     logs = await db.timelogs.find({
+        "tenant_id": current_user.tenant_id,
         "employee_id": employee_id,
         "timestamp": {"$gte": cutoff}
     }, {"_id": 0}).sort("timestamp", 1).to_list(200)
