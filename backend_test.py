@@ -10,7 +10,7 @@ import os
 from datetime import datetime
 
 # Production URL from review request
-BASE_URL = "https://dynamic-order-form-2.preview.emergentagent.com"
+BASE_URL = "https://prod-key-update.preview.emergentagent.com"
 
 # Production credentials from review request
 TEST_EMAIL = "signguypa@gmail.com"

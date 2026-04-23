@@ -1,112 +1,119 @@
 <analysis>**original_problem_statement**: 
-The user requested the build-out of a Pricing Foundation to act as the single source of truth for production cost defaults, material costs, labor rates, and AI prefill behavior. Following the foundation phase, specific pricing categories were requested sequentially: Digital Print, Cut Vinyl, and Rigid Signs. A critical, overarching requirement is that all order-item inputs and dropdowns on the actual New Order Form must dynamically populate their options from this Pricing Foundation, rather than just functioning within the standalone pricing calculator. 
+The user was troubleshooting a critical issue where a tenant (signguypa@gmail.com) was attempting to complete Stripe Connect onboarding but was continually forced into a test account with test data loop. The agent investigated and found two issues: first, a backend misconfiguration temporarily used a test key to create the connect link, and second (currently pending), the user is testing on their deployed production application which is still running on outdated Test Stripe environment variables, contrary to the preview environment which is correctly configured with Live keys.
 
-**PRODUCT REQUIREMENTS**:
-- **Pricing Foundation**: Single source of truth for all pricing rules, material costs, and labor rates. Eliminate overlapping/conflicting pricing settings.
-- **Rigid Signs Implementation**: Support substrates (coroplast, PVC, aluminum), thickness multipliers, protective finishes, sidedness (same/diff art), shape complexities, hardware, and drill/prep charges.
-- **New Order Form Integration**: All category-specific dropdowns inside  (via ) MUST pull options directly from the Pricing Foundation defaults (via backend schemas in ).
+PRODUCT REQUIREMENTS:
+- Ensure Stripe Connect correctly handles and strictly segregates Live vs Test accounts.
+- Guide the user to successfully switch their production deployment to Live Stripe keys.
+- Continue addressing backlog features (Payroll/Artwork) once the deployment is stable.
 
-**User's preferred language**: English
-(INSTRUCT next agent to respond in English only)
+**User's preferred language**: English (INSTRUCT next agent to respond in English only)
 
 **what currently exists?** 
-A fully functioning unified Pricing Foundation. Categories for Digital Print, Cut Vinyl, and now Rigid Signs are completely implemented. These categories are active in the backend calculator (), the standalone quoting UI (), and the admin settings UI (). Crucially, the New Order Form schemas dynamically fetch material and hardware options directly from the Pricing Foundation via updated backend logic.
+- AI Business Assistant Phase 5 is 100% complete (Backend + Frontend UI).
+- Webstore Backend is heavily hardened: Fixed 17+ critical/high bugs including cross-tenant leaks, permission gaps, payout inflation, idempotency, Stripe caching, and migrated base64 images to object storage.
+- Stripe Connect safeguard implemented: The backend now actively detects if a Stripe Connect account has a  mismatch with the platform. If a test account is detected on a live platform, it auto-scrubs the ghost account from the DB with a full audit trail and forces a clean reconnection. Frontend handles the resulting 409 conflict gracefully.
 
 **Last working item**: 
-    - Last item agent was working: Completing the Rigid Signs category pricing implementation and linking the backend schema generation () to the Pricing Foundation defaults so that  in the New Order Form populates dynamic options (substrates, finishes, hardware).
+    - Last item agent was working: Instructing the user on how to manually update Environment Variables (specifically Stripe Secret/Publishable keys and 19 Stripe Price IDs) in the Emergent Deployment Dashboard for their production site.
     - Status: USER VERIFICATION PENDING
-    - Agent Testing Done: Y
-    - Which testing method agent to use? NA (testing is already done via  and Python scripts)
+    - Agent Testing Done: Y (Agent verified the preview environment is functioning correctly with Live keys and actively probed the production API to confirm it is still running on Test keys).
+    - Which testing method agent to use? manual testing by curl
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:  
-None
+  - Issue 1: Production Deployment running on Test Stripe Keys (P0)
+     - Attempted fixes: Agent verified the preview  has the correct  keys. The user attempted to redeploy, but Emergent deployments do not auto-sync  files. 
+     - Next debug checklist: Await user confirmation that they have manually updated the Stripe keys and 19  variables in their Emergent deployment settings UI and redeployed. Once done, probe the production  endpoint to verify . Guide the user to click Disconnect and reconnect Stripe in their admin panel.
+     - Why fix this issue and what will be achieved with the fix? It is physically impossible for the user's tenants to process real payments or complete live onboarding until the production environment variables are updated.
+     - Status: USER VERIFICATION PENDING
+     - Is recurring issue? Y (User confusion over environment variables vs deployment variables).
+     - Should Test frontend/backend/both after fix? Backend (via curl) and manual frontend verification by user.
+     - Blocked on other issue: None.
+
+  - Issue 2: Payroll compensation snapshot double-counting hours (P2)
+     - Attempted fixes: None. Identified during previous code review.
+     - Next debug checklist:  sums  without deduplication. If an employee uses both the timeclock and job timers concurrently, hours inflate. 
+     - Why fix this issue and what will be achieved with the fix? Requires a product/business logic decision on whether to deduplicate or enforce a single tracking method.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Backend
+     - Blocked on other issue: User clarification needed.
 
 **In progress Task List**: 
-None
+None currently.
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
-    - P1: Vehicle Graphics / Wraps Implementation (Spec pending from user, next logical category).
-    - P1: Banners Implementation.
-    - P1: Apparel Implementation.
-    - P1: Services Implementation.
-    - P1: Custom / Misc Implementation.
     - P2: Easy Artwork sharing to Customer Portal (Streamlined way to send art from order details).
-    - P2: AI Estimate Support for Pricing Foundation (Auto-fill missing item fields based on defaults).
     - P2: AI receipt analysis for expense photos (Extract data from uploaded receipt photos).
     
     Future Tasks:
-    - P3: Business Assistant Enhancements Phases 1-5.
     - P3: Team / Workforce Ribbon Rebuild (ON HOLD).
 
 **Completed work in this session**
-- Rigid Signs calculation logic implemented in backend () (DONE)
-- Rigid Signs UI added to Admin () and Calculator () (DONE)
--  schemas updated to map all Dynamic Category dropdowns (Substrates, Hardware, Finishes) to real Pricing Foundation defaults (DONE)
--  refactored to handle dynamic option payloads seamlessly (DONE)
-- Fixed backend calculation route error by adding missing  stub mapping (DONE)
+- Stripe Connect Safeguards: Added strict  validation to , , and  to prevent test accounts from being saved on a live platform. (DONE)
+- Stripe Audit Trail: Added , , and  to the  collection when a mismatched account is purged. (DONE)
+- Stripe Key Resolution Bug: Fixed an issue where the backend accidentally prioritized a system environment test key over the  live key. (DONE)
+- Frontend 409 Handling: Updated  to automatically refresh status upon hitting a 409 conflict, seamlessly recovering from ghost accounts without a page reload. (DONE)
 
 **Earlier issues found/mentioned but not fixed**
 None.
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: None.
+  - Issue recurrence in previous fork: None
   - Recurrence count: 0
   - Status: RESOLVED
 
 **Code Architecture**
-
+- : Handles checking Connect account statuses, generating onboarding URLs, and catching  mismatches to auto-scrub invalid accounts.
+- : Connects to backend to show Stripe status and handles automatic state recovery.
 
 **Key Technical Concepts**
-- **Single Source of Truth**: All pricing multipliers, base rates, material lists, and AI prefill behaviors are retrieved from  via . 
-- **Calculator vs. Order Form Parity**:  handles quoting manually, while  handles the actual internal Order Form creation. Both now successfully read their options from the exact same backend pricing objects.
+- **Emergent Deployment Environment Variables**: Deployment environment variables do NOT auto-sync from the workspace  file. They must be manually entered into the platform's deployment settings UI.
+- **Stripe Connect strict modes**: Standard Stripe Connect accounts are strictly bound to either Test or Live mode. Attempting to use a test-created account with a live key throws an .
 
 **key DB schema**
-  - : Document holding , encompassing labor rates, , , and .
+  - : Stores . Now includes audit fields (, ) for auto-scrubbed ghost accounts.
 
 **changes in tech stack**
   - None
 
 **All files of reference** 
-  -  (Updated to handle )
-  -  (Contains extended category default models)
-  -  (Updated to dynamically inject Pricing Foundation values into generated schemas)
-  -  (Updated for Rigid Signs fields)
-  -  (Updated for Rigid Signs defaults)
-  -  (Updated to properly map and render the dynamic schema values)
-  -  (Updated)
+  -  (Added robust validation and scrubbing logic).
+  -  (Added UX recovery logic for scrubbed accounts).
 
 **Areas that need refactoring**: 
--  remains massive and should be split into  and  (deferred).
+-  could have  split into its own component for maintainability.
 
 **key api endpoints**
 - 
 - 
--  (Critical endpoint linking pricing to dynamic forms)
+- 
 
 **Critical Info for New Agent** 
-- **New Order Form Integrity:** The latest integration ensures that New Order inputs strictly pull from Pricing defaults (e.g., rigid signs substrates, digital print laminates). If you add the next category (like Vehicle Wraps or Banners), you MUST follow this pattern: add defaults to , logic to , quoting UI to , and finally map the schema in  so the Order Form inherits those options dynamically. 
-- Do NOT rewrite or overwrite the pricing logic already established for Digital Print, Cut Vinyl, or Rigid Signs.
+- **DO NOT alter the  file.** It is already correct and contains the Live keys. The current issue is strictly that the user's *deployed production application* is using outdated Test keys. 
+- You are waiting for the user to confirm they have updated the environment variables in the Emergent UI and redeployed. Once they confirm, use  to hit the *production*  endpoint to verify  returns . (Do not ask the user for their keys, just guide them through the UI).
 
 **documents and test reports created in this job** 
-  -  (Updated)
+  - 
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - *User*: continue (Triggered agent to proceed with finalizing the Rigid Signs and Dynamic dropdown integration) (Completed)
+- *User*: YES DO IT
+- *Agent*: [Implements Connect safeguards across backend and frontend, tests, finishes task]
+- *User*: THIS IS WHAT I GET (Uploads screenshot showing test mode error)
+- *Agent*: [Discovers user is on the production deployed site which is using test keys. Instructs user to redeploy.]
+- *User*: STILL GETTING SAME TEST ACCOUNT AND TEST DATA MESSAGE
+- *Agent*: [Confirms production is still using test keys via API probe. Explains Emergent doesn't auto-sync .env on deploy. Provides step-by-step instructions for the user to manually update Env Vars (Stripe keys + 19 price IDs) in the Emergent deployment UI.] -> **ACTION REQUIRED: Await user confirmation that they have updated the deployment variables.**
 
 **Project Health Check:**
-- Broken: None
-- Mocked: None
+- Broken: Production deployment environment variables (currently using Test instead of Live).
+- Mocked: None.
 
 **3rd Party Integrations** 
-  - OpenAI GPT-5.2 (Text) — uses Emergent LLM Key
-  - OpenAI Whisper (STT) & TTS — uses Emergent LLM Key
-  - Emergent Object Storage — uses Emergent LLM Key
-  - Stripe (Payments) — requires User API Key
+  - Stripe (Payments) — requires User API Key.
 
 **Testing status**
-  - Testing agent used after significant changes: YES (Successfully used  to verify all 20 Rigid Signs fields in Pricing Foundation and 18 fields in Pricing Calculator without errors).
+  - Testing agent used after significant changes: NO (Testing was isolated to Stripe mode mismatches; handled via  and manual script validation).
   - Troubleshoot agent used after agent stuck in loop: NO
   - Test files created: None
   - Known regressions: None
@@ -115,4 +122,11 @@ None.
 -  / 
 
 **What agent forgot to execute**
-Nothing. The task was fully completed according to instructions. The agent correctly finalized the New Order Form dynamic schema mappings and Rigid Signs implementation.</analysis>
+None. Agent successfully diagnosed the core infrastructure disconnect. 
+
+**Debugging checklist for current issue**
+    Issue: Production Deployment Running on Test Stripe Keys
+    - Wait for user to confirm they followed the instructions to update Environment Variables in the Emergent Deployment Dashboard.
+    - Run a  against the production API endpoint () using the tenant's token to verify that  now returns .
+    - If it still says , the user has not updated the variables correctly. Re-explain or ask for a screenshot of their Emergent Deployment Config page.
+    - Once  is confirmed, instruct the user to go to Admin -> Payment Settings on their production site, click Disconnect (to flush the zombie test account), and click Connect Stripe again.</analysis>

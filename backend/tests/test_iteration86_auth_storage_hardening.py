@@ -16,7 +16,7 @@ import sys
 # Add backend to path for imports
 sys.path.insert(0, '/app/backend')
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://dynamic-order-form-2.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://prod-key-update.preview.emergentagent.com')
 
 # Import test credentials helper
 try:
