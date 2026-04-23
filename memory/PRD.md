@@ -13,6 +13,14 @@ Full-stack business management app for sign/graphics shops: customer management,
 
 ## Implemented (CHANGELOG)
 
+### 2026-04-23 — Features page screenshot refresh with real data states
+- Replaced/recaptured marketing feature screenshots using live preview tenant data for core admin modules (dashboard, customers, orders, pricing, invoices, payroll, payments, reporting, settings, productivity, webstores, AI tools, intake forms).
+- Added dedicated portal screenshots with real account states:
+  - `feature_customer_portal.jpeg` from active customer portal dashboard (orders/invoices visible)
+  - `feature_employee_portal.jpeg` from active employee portal dashboard (clock/pay/tasks visible)
+- Updated `frontend/src/pages/FeaturesPage.js` image mapping to use new context-specific assets (`feature_payments`, `feature_payroll`, `feature_customer_portal`, `feature_employee_portal`, `feature_productivity`, `feature_reporting`, `feature_intake_forms`).
+- Verified by frontend test agent: all 17 cards render real images (no placeholders), no broken links, removed legacy terms absent, and responsive layout passes desktop/mobile.
+
 ### 2026-04-23 — Marketing Features page coverage refresh
 - Updated `frontend/src/pages/FeaturesPage.js` content while preserving existing layout and flow (hero, filters, alternating feature cards, CTA).
 - Removed outdated pricing bullets (`Channel letter calculator`, `Monument sign calculator`) and aligned pricing coverage to active categories (digital print, cut vinyl, rigid signs, banners, vehicle graphics, apparel, services, promotional, custom).
