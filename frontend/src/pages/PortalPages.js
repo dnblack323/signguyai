@@ -174,6 +174,7 @@ export function PortalInvoices() {
   const [invoices, setInvoices] = useState([]);
   const [filter, setFilter] = useState('all');
   const [payingInvoiceId, setPayingInvoiceId] = useState('');
+  const [verifyingSessionId, setVerifyingSessionId] = useState('');
   const customerName = getPortalCustomerName() || 'Customer';
 
   const fetchInvoices = useCallback(async () => {
@@ -218,6 +219,70 @@ export function PortalInvoices() {
 
   useEffect(() => {
     fetchInvoices();
+  }, [fetchInvoices]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment');
+    const sessionId = params.get('session_id');
+    if (!paymentStatus) return;
+
+    const clearUrlParams = () => {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    };
+
+    if (paymentStatus === 'cancelled') {
+      clearUrlParams();
+      return;
+    }
+
+    if (paymentStatus !== 'success' || !sessionId) {
+      clearUrlParams();
+      return;
+    }
+
+    let cancelled = false;
+    const verifySession = async () => {
+      setVerifyingSessionId(sessionId);
+      let paid = false;
+
+      try {
+        for (let attempt = 0; attempt < 6; attempt += 1) {
+          if (cancelled) return;
+          try {
+            const response = await fetch(`${API_URL}/api/stripe-connect/payment-status/${sessionId}`);
+            if (response.ok) {
+              const data = await response.json();
+              if (data?.payment_status === 'paid') {
+                paid = true;
+                break;
+              }
+            }
+          } catch (error) {
+            if (attempt === 5) {
+              console.error('Portal payment verification failed:', error);
+            }
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
+
+        await fetchInvoices();
+        if (!cancelled && !paid) {
+          console.warn('Stripe checkout returned but payment not yet marked paid. Waiting on webhook reconciliation.');
+        }
+      } finally {
+        if (!cancelled) {
+          setVerifyingSessionId('');
+          clearUrlParams();
+        }
+      }
+    };
+
+    verifySession();
+    return () => {
+      cancelled = true;
+    };
   }, [fetchInvoices]);
 
   const formatDate = (dateStr) => {
@@ -278,6 +343,14 @@ export function PortalInvoices() {
           <h2 className="text-2xl font-bold text-slate-900">Your Invoices</h2>
           <p className="text-slate-600 mt-1">View and track your invoices</p>
         </div>
+
+        {verifyingSessionId && (
+          <Card className="border-blue-200 bg-blue-50" data-testid="portal-invoice-payment-verification-banner">
+            <CardContent className="py-3 text-sm text-blue-800">
+              Confirming payment status with Stripe… ({verifyingSessionId.slice(0, 18)}...)
+            </CardContent>
+          </Card>
+        )}
 
         <div className="flex gap-2 flex-wrap">
           {filters.map((f) => (

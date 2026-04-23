@@ -54,6 +54,7 @@ export default function Invoices() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);
+  const [verifyingSessionId, setVerifyingSessionId] = useState('');
   const [formData, setFormData] = useState({
     customer_id: '',
     job_id: '',
@@ -73,12 +74,97 @@ export default function Invoices() {
     }
   }, [statusFilter, canViewInvoices]);
 
+  useEffect(() => {
+    if (!canViewInvoices) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment');
+    const sessionId = params.get('session_id');
+    if (!paymentStatus) return;
+
+    const clearUrlParams = () => {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    };
+
+    if (paymentStatus === 'cancelled') {
+      toast.warning('Payment was cancelled');
+      clearUrlParams();
+      return;
+    }
+
+    if (paymentStatus !== 'success' || !sessionId) {
+      clearUrlParams();
+      return;
+    }
+
+    let cancelled = false;
+    const verifySession = async () => {
+      setVerifyingSessionId(sessionId);
+      try {
+        const token = getAuthToken();
+        let paid = false;
+
+        for (let attempt = 0; attempt < 6; attempt += 1) {
+          if (cancelled) return;
+          try {
+            const response = await axios.get(`${API_URL}/api/stripe-connect/payment-status/${sessionId}`, {
+              headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+            });
+
+            if (response.data?.payment_status === 'paid') {
+              paid = true;
+              break;
+            }
+          } catch (error) {
+            if (attempt === 5) {
+              console.error('Invoice payment verification failed:', error);
+            }
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
+
+        await loadData();
+        if (!cancelled) {
+          if (paid) {
+            toast.success('Payment confirmed and invoice status refreshed');
+          } else {
+            toast.warning('Payment is still processing. It will appear once Stripe confirms it.');
+          }
+        }
+      } finally {
+        if (!cancelled) {
+          setVerifyingSessionId('');
+          clearUrlParams();
+        }
+      }
+    };
+
+    verifySession();
+    return () => {
+      cancelled = true;
+    };
+  }, [canViewInvoices]);
+
   const loadData = async () => {
     setLoading(true);
-    const params = {};
-    if (statusFilter !== 'all') params.status = statusFilter;
-    await Promise.all([fetchInvoices(params), fetchCustomers(), fetchJobs()]);
-    setLoading(false);
+    try {
+      const params = {};
+      if (statusFilter !== 'all') params.status = statusFilter;
+
+      const token = getAuthToken();
+      try {
+        await axios.post(`${API_URL}/api/stripe-connect/reconcile-invoices`, {}, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
+      } catch (reconcileErr) {
+        console.warn('Stripe invoice reconciliation skipped:', reconcileErr?.response?.data || reconcileErr?.message);
+      }
+
+      await Promise.all([fetchInvoices(params), fetchCustomers(), fetchJobs()]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Permission denied view
@@ -326,6 +412,14 @@ export default function Invoices() {
       </div>
 
       {/* Summary Cards */}
+      {verifyingSessionId && (
+        <Card className="bg-blue-50 border-blue-200" data-testid="invoice-payment-verification-banner">
+          <CardContent className="py-3 text-sm text-blue-800">
+            Verifying Stripe payment status for session <span className="font-mono">{verifyingSessionId.slice(0, 18)}...</span>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <CardContent className="p-4">

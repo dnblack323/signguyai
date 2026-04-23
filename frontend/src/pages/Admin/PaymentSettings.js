@@ -17,17 +17,26 @@ export default function PaymentSettings() {
   const [loading, setLoading] = useState(true);
   const [connectStatus, setConnectStatus] = useState(null);
   const [connecting, setConnecting] = useState(false);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
+  const [dashboardData, setDashboardData] = useState(null);
 
   useEffect(() => {
-    fetchConnectStatus();
-    
-    // Check for return from Stripe onboarding
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('stripe_return') === 'true') {
-      toast.success('Stripe account setup updated');
-      // Clean URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
+    const initialize = async () => {
+      const status = await fetchConnectStatus();
+      if (status?.connected) {
+        await fetchTenantDashboard();
+      }
+
+      // Check for return from Stripe onboarding
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('stripe_return') === 'true') {
+        toast.success('Stripe account setup updated');
+        // Clean URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    };
+
+    initialize();
   }, []);
 
   const fetchConnectStatus = async () => {
@@ -37,12 +46,42 @@ export default function PaymentSettings() {
         headers: { Authorization: `Bearer ${token}` }
       });
       setConnectStatus(response.data);
+      return response.data;
     } catch (err) {
       console.error('Failed to fetch Stripe status:', err);
       toast.error('Failed to load payment settings');
+      return null;
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchTenantDashboard = async () => {
+    setDashboardLoading(true);
+    try {
+      const token = getAuthToken();
+      const response = await axios.get(`${API_URL}/api/stripe-connect/tenant-dashboard`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setDashboardData(response.data);
+      return response.data;
+    } catch (err) {
+      console.error('Failed to fetch Stripe dashboard data:', err);
+      toast.error('Failed to load Stripe operations dashboard');
+      return null;
+    } finally {
+      setDashboardLoading(false);
+    }
+  };
+
+  const handleRefreshAll = async () => {
+    const status = await fetchConnectStatus();
+    if (status?.connected) {
+      await fetchTenantDashboard();
+    } else {
+      setDashboardData(null);
+    }
+    toast.success('Stripe status refreshed');
   };
 
   const handleConnectStripe = async () => {
@@ -250,6 +289,10 @@ export default function PaymentSettings() {
 
               {/* Actions */}
               <div className="flex gap-3 pt-2">
+                <Button variant="outline" onClick={handleRefreshAll} data-testid="stripe-refresh-all-button">
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Refresh
+                </Button>
                 {connectStatus.mode_mismatch && (
                   <Button onClick={handleConnectStripe} disabled={connecting} data-testid="reconnect-stripe-live-button">
                     {connecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -320,6 +363,142 @@ export default function PaymentSettings() {
           )}
         </CardContent>
       </Card>
+
+      {connectStatus?.connected && (
+        <Card data-testid="stripe-tenant-operations-dashboard-card">
+          <CardHeader>
+            <CardTitle className="text-lg">Tenant Stripe Operations Dashboard</CardTitle>
+            <CardDescription>
+              Live reconciliation for payments, payouts, failures, disputes, and invoice sync.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {dashboardLoading ? (
+              <div className="flex items-center gap-2 text-sm text-gray-500" data-testid="stripe-dashboard-loading-state">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading Stripe operations…
+              </div>
+            ) : (
+              <>
+                <div className="grid md:grid-cols-4 gap-3">
+                  <div className="p-3 rounded-lg bg-gray-50" data-testid="stripe-summary-paid-total">
+                    <p className="text-xs text-gray-500">Total Paid</p>
+                    <p className="text-lg font-semibold">${dashboardData?.payments_summary?.paid_total?.toFixed?.(2) || '0.00'}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-gray-50" data-testid="stripe-summary-pending-total">
+                    <p className="text-xs text-gray-500">Pending</p>
+                    <p className="text-lg font-semibold">${dashboardData?.payments_summary?.pending_total?.toFixed?.(2) || '0.00'}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-gray-50" data-testid="stripe-summary-available-balance">
+                    <p className="text-xs text-gray-500">Available Balance</p>
+                    <p className="text-lg font-semibold">${dashboardData?.balances?.available_usd?.toFixed?.(2) || '0.00'}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-gray-50" data-testid="stripe-summary-pending-balance">
+                    <p className="text-xs text-gray-500">Pending Balance</p>
+                    <p className="text-lg font-semibold">${dashboardData?.balances?.pending_usd?.toFixed?.(2) || '0.00'}</p>
+                  </div>
+                </div>
+
+                <div className="grid lg:grid-cols-2 gap-4">
+                  <div className="space-y-2" data-testid="stripe-recent-payments-table">
+                    <h4 className="font-medium">Recent Payments</h4>
+                    <div className="max-h-64 overflow-auto rounded-lg border">
+                      {(dashboardData?.recent_payments || []).slice(0, 20).map((payment) => (
+                        <div key={payment.session_id} className="grid grid-cols-4 gap-2 p-2 text-xs border-b">
+                          <span className="font-mono">{payment.session_id?.slice(0, 10)}...</span>
+                          <span>${Number(payment.amount || 0).toFixed(2)}</span>
+                          <span className={payment.status === 'paid' ? 'text-green-600' : 'text-amber-600'}>{payment.status}</span>
+                          <span>{payment.invoice_status || '-'}</span>
+                        </div>
+                      ))}
+                      {(dashboardData?.recent_payments || []).length === 0 && (
+                        <div className="p-3 text-sm text-gray-500">No payment records yet.</div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2" data-testid="stripe-recent-payouts-table">
+                    <h4 className="font-medium">Recent Payouts</h4>
+                    <div className="max-h-64 overflow-auto rounded-lg border">
+                      {(dashboardData?.recent_payouts || []).slice(0, 20).map((payout) => (
+                        <div key={payout.id} className="grid grid-cols-4 gap-2 p-2 text-xs border-b">
+                          <span className="font-mono">{payout.id?.slice(0, 10)}...</span>
+                          <span>${Number(payout.amount || 0).toFixed(2)}</span>
+                          <span className={payout.status === 'paid' ? 'text-green-600' : 'text-amber-600'}>{payout.status}</span>
+                          <span>{payout.arrival_date?.slice(0, 10) || '-'}</span>
+                        </div>
+                      ))}
+                      {(dashboardData?.recent_payouts || []).length === 0 && (
+                        <div className="p-3 text-sm text-gray-500">No payouts yet.</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid lg:grid-cols-2 gap-4">
+                  <div className="space-y-2" data-testid="stripe-recent-failed-payments-table">
+                    <h4 className="font-medium">Failed / Expired Payments</h4>
+                    <div className="max-h-52 overflow-auto rounded-lg border">
+                      {(dashboardData?.recent_failed_payments || []).slice(0, 20).map((payment) => (
+                        <div key={payment.session_id} className="grid grid-cols-3 gap-2 p-2 text-xs border-b">
+                          <span className="font-mono">{payment.session_id?.slice(0, 10)}...</span>
+                          <span>${Number(payment.amount || 0).toFixed(2)}</span>
+                          <span className="text-red-600">{payment.status}</span>
+                        </div>
+                      ))}
+                      {(dashboardData?.recent_failed_payments || []).length === 0 && (
+                        <div className="p-3 text-sm text-gray-500">No failed payments recorded.</div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2" data-testid="stripe-recent-disputes-table">
+                    <h4 className="font-medium">Recent Disputes</h4>
+                    <div className="max-h-52 overflow-auto rounded-lg border">
+                      {(dashboardData?.recent_disputes || []).slice(0, 20).map((dispute) => (
+                        <div key={dispute.id} className="grid grid-cols-3 gap-2 p-2 text-xs border-b">
+                          <span className="font-mono">{dispute.id?.slice(0, 10)}...</span>
+                          <span>${Number(dispute.amount || 0).toFixed(2)}</span>
+                          <span className="text-red-600">{dispute.status}</span>
+                        </div>
+                      ))}
+                      {(dashboardData?.recent_disputes || []).length === 0 && (
+                        <div className="p-3 text-sm text-gray-500">No disputes found.</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div data-testid="stripe-recent-events-table">
+                  <h4 className="font-medium mb-2">Recent Stripe Events</h4>
+                  <div className="max-h-56 overflow-auto rounded-lg border">
+                    {(dashboardData?.recent_events || []).slice(0, 30).map((evt, idx) => (
+                      <div key={`${evt.created_at}-${idx}`} className="grid grid-cols-4 gap-2 p-2 text-xs border-b">
+                        <span>{evt.event_type}</span>
+                        <span className={evt.status === 'paid' ? 'text-green-600' : 'text-amber-600'}>{evt.status}</span>
+                        <span>{evt.reference_id || '-'}</span>
+                        <span>{evt.created_at?.slice(0, 19)?.replace('T', ' ') || '-'}</span>
+                      </div>
+                    ))}
+                    {(dashboardData?.recent_events || []).length === 0 && (
+                      <div className="p-3 text-sm text-gray-500">No events captured yet.</div>
+                    )}
+                  </div>
+                </div>
+
+                {(dashboardData?.stripe_errors || []).length > 0 && (
+                  <Alert className="border-amber-200 bg-amber-50" data-testid="stripe-dashboard-stripe-errors-alert">
+                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                    <AlertDescription className="text-amber-800">
+                      Stripe data warning: {(dashboardData.stripe_errors || []).join(' | ')}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* How it works */}
       <Card>

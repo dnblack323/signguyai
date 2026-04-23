@@ -83,6 +83,116 @@ class PaymentResponse(BaseModel):
     session_id: str
 
 
+def _extract_metadata(stripe_obj: Any) -> Dict[str, Any]:
+    if isinstance(stripe_obj, dict):
+        return stripe_obj.get("metadata") or {}
+    return getattr(stripe_obj, "metadata", {}) or {}
+
+
+async def _find_invoice_document(reference_id: str, tenant_id: Optional[str]) -> tuple[Optional[Dict[str, Any]], Optional[Any]]:
+    if tenant_id:
+        invoice = await db.invoices.find_one({"id": reference_id, "tenant_id": tenant_id}, {"_id": 0})
+        if invoice:
+            return invoice, db.invoices
+
+        legacy = await db.order_quotes.find_one(
+            {"id": reference_id, "tenant_id": tenant_id, "type": "invoice"},
+            {"_id": 0},
+        )
+        if legacy:
+            return legacy, db.order_quotes
+
+    invoice = await db.invoices.find_one({"id": reference_id}, {"_id": 0})
+    if invoice:
+        return invoice, db.invoices
+
+    legacy = await db.order_quotes.find_one({"id": reference_id, "type": "invoice"}, {"_id": 0})
+    if legacy:
+        return legacy, db.order_quotes
+
+    return None, None
+
+
+async def _record_stripe_event(
+    tenant_id: Optional[str],
+    event_type: str,
+    status: str,
+    session_id: Optional[str] = None,
+    reference_id: Optional[str] = None,
+    amount: Optional[float] = None,
+    currency: Optional[str] = None,
+    message: Optional[str] = None,
+    raw: Optional[Dict[str, Any]] = None,
+) -> None:
+    if not tenant_id:
+        return
+    doc = {
+        "tenant_id": tenant_id,
+        "event_type": event_type,
+        "status": status,
+        "session_id": session_id,
+        "reference_id": reference_id,
+        "amount": amount,
+        "currency": currency,
+        "message": message,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if raw:
+        doc["raw"] = raw
+    await db.stripe_connect_events.insert_one(doc)
+
+
+async def _mark_invoice_paid(
+    reference_id: str,
+    tenant_id: Optional[str],
+    session_id: str,
+    amount: Optional[float],
+    currency: Optional[str],
+) -> None:
+    invoice, collection = await _find_invoice_document(reference_id, tenant_id)
+    if not invoice or collection is None:
+        return
+
+    grand_total = float(invoice.get("grand_total", invoice.get("total", 0)) or 0)
+    current_paid = float(invoice.get("amount_paid", 0) or 0)
+    paid_value = max(current_paid, grand_total, float(amount or 0))
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    await collection.update_one(
+        {"id": reference_id, **({"tenant_id": tenant_id} if tenant_id else {})},
+        {
+            "$set": {
+                "status": "paid",
+                "paid_at": now_iso,
+                "paid_date": now_iso,
+                "payment_method": "stripe",
+                "stripe_session_id": session_id,
+                "amount_paid": paid_value,
+                "updated_at": now_iso,
+            }
+        },
+    )
+
+    payment_exists = await db.payments.find_one(
+        {"stripe_session_id": session_id, "invoice_id": reference_id},
+        {"_id": 0, "stripe_session_id": 1},
+    )
+    if not payment_exists:
+        await db.payments.insert_one(
+            {
+                "invoice_id": reference_id,
+                "tenant_id": tenant_id,
+                "amount": float(amount or grand_total or 0),
+                "platform_fee": None,
+                "payment_method": "stripe",
+                "payment_type": "stripe_connect_checkout",
+                "currency": currency or "usd",
+                "stripe_session_id": session_id,
+                "created_at": now_iso,
+            }
+        )
+
+
 class WebstoreCheckoutItem(BaseModel):
     """Item in webstore checkout"""
     product_id: str
@@ -763,30 +873,50 @@ async def get_payment_status(session_id: str):
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+    metadata = _extract_metadata(session)
+    tenant_id_from_session = metadata.get("tenant_id")
+    invoice_id_from_session = metadata.get("invoice_id")
+
     if session.payment_status == "paid":
+        now_iso = datetime.now(timezone.utc).isoformat()
         # Update our ledger row idempotently.
         await db.payment_transactions.update_one(
             {"stripe_session_id": session_id, "status": {"$ne": "paid"}},
             {"$set": {
                 "status": "paid",
-                "paid_at": datetime.now(timezone.utc).isoformat(),
+                "paid_at": now_iso,
+                "updated_at": now_iso,
+                "stripe_payment_intent": getattr(session, "payment_intent", None),
             }},
         )
         transaction = await db.payment_transactions.find_one(
             {"stripe_session_id": session_id}, {"_id": 0}
         )
+        tenant_id = (transaction or {}).get("tenant_id") or tenant_id_from_session
+        reference_id = (transaction or {}).get("reference_id") or invoice_id_from_session
+
+        if reference_id and ((transaction or {}).get("type") == "invoice" or metadata.get("type") == "invoice"):
+            await _mark_invoice_paid(
+                reference_id=reference_id,
+                tenant_id=tenant_id,
+                session_id=session_id,
+                amount=(session.amount_total / 100 if getattr(session, "amount_total", None) else None),
+                currency=getattr(session, "currency", None),
+            )
+
+        await _record_stripe_event(
+            tenant_id=tenant_id,
+            event_type="payment_status_check",
+            status="paid",
+            session_id=session_id,
+            reference_id=reference_id,
+            amount=(session.amount_total / 100 if getattr(session, "amount_total", None) else None),
+            currency=getattr(session, "currency", None),
+            message="payment-status endpoint confirmed paid",
+        )
+
         if transaction:
-            if transaction.get("type") == "invoice":
-                await db.invoices.update_one(
-                    {"id": transaction.get("reference_id")},
-                    {"$set": {
-                        "status": "paid",
-                        "paid_at": datetime.now(timezone.utc).isoformat(),
-                        "payment_method": "stripe",
-                        "stripe_session_id": session_id,
-                    }},
-                )
-            elif transaction.get("type") == "webstore_order":
+            if transaction.get("type") == "webstore_order":
                 # Fixes Flow-B bugs #1–#4: finalize into webstore_orders_v2
                 # via the canonical path (job creation, commission calc,
                 # payout credit all flow through).
@@ -795,6 +925,27 @@ async def get_payment_status(session_id: str):
                     await finalize_webstore_stripe_checkout(session_id)
                 except Exception as exc:
                     logger.exception(f"finalize_webstore_stripe_checkout failed for {session_id}: {exc}")
+    elif session.status in ["expired", "canceled"] or session.payment_status in ["unpaid", "no_payment_required"]:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        await db.payment_transactions.update_one(
+            {"stripe_session_id": session_id, "status": {"$nin": ["paid", "failed", "expired", "cancelled"]}},
+            {
+                "$set": {
+                    "status": "expired" if session.status == "expired" else "cancelled",
+                    "updated_at": now_iso,
+                }
+            },
+        )
+        await _record_stripe_event(
+            tenant_id=tenant_id_from_session,
+            event_type="payment_status_check",
+            status="expired" if session.status == "expired" else "cancelled",
+            session_id=session_id,
+            reference_id=invoice_id_from_session,
+            amount=(session.amount_total / 100 if getattr(session, "amount_total", None) else None),
+            currency=getattr(session, "currency", None),
+            message="payment-status endpoint found non-paid checkout session",
+        )
 
     return {
         "status": session.status,
@@ -837,11 +988,18 @@ async def stripe_connect_webhook(request: Request):
 
     if event.type == "checkout.session.completed":
         session = event.data.object
+        metadata = _extract_metadata(session)
+        tenant_id = metadata.get("tenant_id")
+        reference_id = metadata.get("invoice_id")
+        now_iso = datetime.now(timezone.utc).isoformat()
+
         await db.payment_transactions.update_one(
             {"stripe_session_id": session.id},
             {"$set": {
                 "status": "paid" if session.payment_status == "paid" else "pending",
-                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": now_iso,
+                "paid_at": now_iso if session.payment_status == "paid" else None,
+                "stripe_payment_intent": getattr(session, "payment_intent", None),
             }},
         )
 
@@ -849,16 +1007,19 @@ async def stripe_connect_webhook(request: Request):
             {"stripe_session_id": session.id}, {"_id": 0}
         )
 
-        if transaction and session.payment_status == "paid":
-            if transaction.get("type") == "invoice":
-                await db.invoices.update_one(
-                    {"id": transaction.get("reference_id")},
-                    {"$set": {
-                        "status": "paid",
-                        "paid_at": datetime.now(timezone.utc).isoformat(),
-                    }},
+        transaction_tenant = (transaction or {}).get("tenant_id") or tenant_id
+        transaction_reference = (transaction or {}).get("reference_id") or reference_id
+
+        if session.payment_status == "paid":
+            if (transaction and transaction.get("type") == "invoice") or metadata.get("type") == "invoice":
+                await _mark_invoice_paid(
+                    reference_id=transaction_reference,
+                    tenant_id=transaction_tenant,
+                    session_id=session.id,
+                    amount=(session.amount_total / 100 if getattr(session, "amount_total", None) else None),
+                    currency=getattr(session, "currency", None),
                 )
-            elif transaction.get("type") == "webstore_order":
+            elif transaction and transaction.get("type") == "webstore_order":
                 # Fixes Flow-B bugs #1–#5: finalize into the canonical
                 # webstore_orders_v2 collection via the webstores helper.
                 from routes.webstores import finalize_webstore_stripe_checkout
@@ -866,6 +1027,73 @@ async def stripe_connect_webhook(request: Request):
                     await finalize_webstore_stripe_checkout(session.id)
                 except Exception as exc:
                     logger.exception(f"webhook finalize failed for {session.id}: {exc}")
+
+            await _record_stripe_event(
+                tenant_id=transaction_tenant,
+                event_type=event.type,
+                status="paid",
+                session_id=session.id,
+                reference_id=transaction_reference,
+                amount=(session.amount_total / 100 if getattr(session, "amount_total", None) else None),
+                currency=getattr(session, "currency", None),
+                message="checkout.session.completed processed",
+            )
+
+    elif event.type == "checkout.session.expired":
+        session = event.data.object
+        metadata = _extract_metadata(session)
+        tenant_id = metadata.get("tenant_id")
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        await db.payment_transactions.update_one(
+            {"stripe_session_id": session.id, "status": {"$ne": "paid"}},
+            {"$set": {"status": "expired", "updated_at": now_iso}},
+        )
+
+        await _record_stripe_event(
+            tenant_id=tenant_id,
+            event_type=event.type,
+            status="expired",
+            session_id=session.id,
+            reference_id=metadata.get("invoice_id"),
+            amount=(session.amount_total / 100 if getattr(session, "amount_total", None) else None),
+            currency=getattr(session, "currency", None),
+            message="checkout.session.expired received",
+        )
+
+    elif event.type == "payment_intent.payment_failed":
+        payment_intent = event.data.object
+        metadata = _extract_metadata(payment_intent)
+        tenant_id = metadata.get("tenant_id")
+        now_iso = datetime.now(timezone.utc).isoformat()
+        await db.payment_transactions.update_many(
+            {
+                "$or": [
+                    {"stripe_payment_intent": payment_intent.id},
+                    {"stripe_session_id": metadata.get("session_id")},
+                ]
+            },
+            {
+                "$set": {
+                    "status": "failed",
+                    "updated_at": now_iso,
+                    "failure_message": getattr(payment_intent, "last_payment_error", {}).get("message")
+                    if isinstance(getattr(payment_intent, "last_payment_error", None), dict)
+                    else None,
+                }
+            },
+        )
+
+        await _record_stripe_event(
+            tenant_id=tenant_id,
+            event_type=event.type,
+            status="failed",
+            session_id=metadata.get("session_id"),
+            reference_id=metadata.get("invoice_id"),
+            amount=(payment_intent.amount / 100 if getattr(payment_intent, "amount", None) else None),
+            currency=getattr(payment_intent, "currency", None),
+            message="payment_intent.payment_failed received",
+        )
 
     elif event.type == "account.updated":
         account = event.data.object
@@ -878,4 +1106,265 @@ async def stripe_connect_webhook(request: Request):
             }},
         )
 
+    elif event.type == "charge.dispute.created":
+        dispute = event.data.object
+        metadata = _extract_metadata(dispute)
+        await _record_stripe_event(
+            tenant_id=metadata.get("tenant_id"),
+            event_type=event.type,
+            status="open",
+            session_id=metadata.get("session_id"),
+            reference_id=metadata.get("invoice_id"),
+            amount=(dispute.amount / 100 if getattr(dispute, "amount", None) else None),
+            currency=getattr(dispute, "currency", None),
+            message=f"Dispute opened: {getattr(dispute, 'reason', 'unknown')}",
+        )
+
     return {"received": True}
+
+
+@router.get("/tenant-dashboard")
+async def get_tenant_stripe_dashboard(current_user: UserInDB = Depends(get_current_active_user)):
+    """Tenant-visible Stripe operations dashboard.
+
+    Includes transaction ledger, payouts, balances, disputes/failures, and
+    recent webhook/status events for reconciliation.
+    """
+    tenant = await db.tenants.find_one(
+        {"id": current_user.tenant_id},
+        {"_id": 0, "stripe_connect_account_id": 1},
+    )
+    account_id = (tenant or {}).get("stripe_connect_account_id")
+    connect_status = await get_connect_status(current_user)
+
+    if not account_id:
+        return {
+            "connected": False,
+            "connect_status": connect_status.model_dump() if hasattr(connect_status, "model_dump") else connect_status,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "payments_summary": {
+                "paid_count": 0,
+                "pending_count": 0,
+                "failed_count": 0,
+                "paid_total": 0,
+                "pending_total": 0,
+            },
+            "recent_payments": [],
+            "recent_failed_payments": [],
+            "recent_payouts": [],
+            "recent_disputes": [],
+            "recent_events": [],
+        }
+
+    transactions = await db.payment_transactions.find(
+        {"tenant_id": current_user.tenant_id},
+        {"_id": 0},
+    ).sort("created_at", -1).to_list(300)
+
+    invoice_reference_ids = [
+        tx.get("reference_id")
+        for tx in transactions
+        if tx.get("type") == "invoice" and tx.get("reference_id")
+    ]
+    invoice_status_map: Dict[str, str] = {}
+    if invoice_reference_ids:
+        invoices = await db.invoices.find(
+            {"tenant_id": current_user.tenant_id, "id": {"$in": invoice_reference_ids}},
+            {"_id": 0, "id": 1, "status": 1},
+        ).to_list(500)
+        invoice_status_map.update({doc["id"]: doc.get("status", "unknown") for doc in invoices})
+
+        unresolved = [ref for ref in invoice_reference_ids if ref not in invoice_status_map]
+        if unresolved:
+            legacy_invoices = await db.order_quotes.find(
+                {
+                    "tenant_id": current_user.tenant_id,
+                    "type": "invoice",
+                    "id": {"$in": unresolved},
+                },
+                {"_id": 0, "id": 1, "status": 1},
+            ).to_list(500)
+            invoice_status_map.update({doc["id"]: doc.get("status", "unknown") for doc in legacy_invoices})
+
+    paid_transactions = [tx for tx in transactions if tx.get("status") == "paid"]
+    pending_transactions = [tx for tx in transactions if tx.get("status") == "pending"]
+    failed_transactions = [tx for tx in transactions if tx.get("status") in ["failed", "expired", "cancelled"]]
+
+    recent_payments = []
+    for tx in transactions[:40]:
+        item = {
+            "session_id": tx.get("stripe_session_id") or tx.get("id"),
+            "type": tx.get("type"),
+            "reference_id": tx.get("reference_id"),
+            "status": tx.get("status"),
+            "amount": float(tx.get("amount", 0) or 0),
+            "currency": tx.get("currency", "usd"),
+            "platform_fee": tx.get("platform_fee"),
+            "created_at": tx.get("created_at"),
+            "paid_at": tx.get("paid_at"),
+        }
+        if tx.get("type") == "invoice":
+            item["invoice_status"] = invoice_status_map.get(tx.get("reference_id"), "unknown")
+        recent_payments.append(item)
+
+    payouts: List[Dict[str, Any]] = []
+    balances = {"available_usd": 0.0, "pending_usd": 0.0}
+    disputes: List[Dict[str, Any]] = []
+    stripe_errors: List[str] = []
+
+    try:
+        balance_obj = stripe.Balance.retrieve(stripe_account=account_id)
+        balances["available_usd"] = sum((entry.amount or 0) for entry in (balance_obj.available or []) if entry.currency == "usd") / 100
+        balances["pending_usd"] = sum((entry.amount or 0) for entry in (balance_obj.pending or []) if entry.currency == "usd") / 100
+    except Exception as exc:
+        stripe_errors.append(f"balance: {str(exc)}")
+
+    try:
+        payout_obj = stripe.Payout.list(stripe_account=account_id, limit=25)
+        for payout in payout_obj.data:
+            payouts.append(
+                {
+                    "id": payout.id,
+                    "amount": (payout.amount or 0) / 100,
+                    "currency": payout.currency,
+                    "status": payout.status,
+                    "arrival_date": datetime.fromtimestamp(payout.arrival_date, tz=timezone.utc).isoformat()
+                    if getattr(payout, "arrival_date", None)
+                    else None,
+                    "created": datetime.fromtimestamp(payout.created, tz=timezone.utc).isoformat()
+                    if getattr(payout, "created", None)
+                    else None,
+                    "method": payout.method,
+                }
+            )
+    except Exception as exc:
+        stripe_errors.append(f"payouts: {str(exc)}")
+
+    try:
+        dispute_obj = stripe.Dispute.list(limit=20)
+        for dispute in dispute_obj.data:
+            include = False
+            transfer_destination = None
+            if getattr(dispute, "charge", None):
+                try:
+                    charge = stripe.Charge.retrieve(dispute.charge)
+                    transfer_destination = (charge.get("transfer_data") or {}).get("destination") if isinstance(charge, dict) else None
+                    include = transfer_destination == account_id
+                except Exception:
+                    include = False
+
+            if include:
+                disputes.append(
+                    {
+                        "id": dispute.id,
+                        "amount": (dispute.amount or 0) / 100,
+                        "currency": dispute.currency,
+                        "status": dispute.status,
+                        "reason": dispute.reason,
+                        "created": datetime.fromtimestamp(dispute.created, tz=timezone.utc).isoformat()
+                        if getattr(dispute, "created", None)
+                        else None,
+                        "charge_id": dispute.charge,
+                        "transfer_destination": transfer_destination,
+                    }
+                )
+    except Exception as exc:
+        stripe_errors.append(f"disputes: {str(exc)}")
+
+    recent_events = await db.stripe_connect_events.find(
+        {"tenant_id": current_user.tenant_id},
+        {"_id": 0, "raw": 0},
+    ).sort("created_at", -1).to_list(60)
+
+    payouts_total = sum(item.get("amount", 0) for item in payouts)
+    payouts_paid_total = sum(item.get("amount", 0) for item in payouts if item.get("status") == "paid")
+
+    return {
+        "connected": True,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "stripe_account_id": account_id,
+        "connect_status": connect_status.model_dump() if hasattr(connect_status, "model_dump") else connect_status,
+        "balances": balances,
+        "payments_summary": {
+            "paid_count": len(paid_transactions),
+            "pending_count": len(pending_transactions),
+            "failed_count": len(failed_transactions),
+            "paid_total": round(sum(float(tx.get("amount", 0) or 0) for tx in paid_transactions), 2),
+            "pending_total": round(sum(float(tx.get("amount", 0) or 0) for tx in pending_transactions), 2),
+        },
+        "payouts_summary": {
+            "count": len(payouts),
+            "total": round(payouts_total, 2),
+            "paid_total": round(payouts_paid_total, 2),
+            "in_transit_total": round(sum(item.get("amount", 0) for item in payouts if item.get("status") in ["pending", "in_transit"]), 2),
+        },
+        "recent_payments": recent_payments,
+        "recent_failed_payments": [
+            {
+                "session_id": tx.get("stripe_session_id") or tx.get("id"),
+                "type": tx.get("type"),
+                "reference_id": tx.get("reference_id"),
+                "status": tx.get("status"),
+                "amount": float(tx.get("amount", 0) or 0),
+                "created_at": tx.get("created_at"),
+                "updated_at": tx.get("updated_at"),
+                "failure_message": tx.get("failure_message"),
+            }
+            for tx in failed_transactions[:25]
+        ],
+        "recent_payouts": payouts,
+        "recent_disputes": disputes,
+        "recent_events": recent_events,
+        "stripe_errors": stripe_errors,
+    }
+
+
+@router.post("/reconcile-invoices")
+async def reconcile_invoice_payments(current_user: UserInDB = Depends(get_current_active_user)):
+    """Best-effort reconciliation for paid Stripe invoice transactions.
+
+    Use this when tenants open invoice views to recover from delayed/missed webhook
+    deliveries. It only touches transactions already marked `paid` in our ledger.
+    """
+    transactions = await db.payment_transactions.find(
+        {
+            "tenant_id": current_user.tenant_id,
+            "type": "invoice",
+            "status": "paid",
+        },
+        {"_id": 0},
+    ).sort("created_at", -1).to_list(200)
+
+    fixed = 0
+    checked = 0
+    for tx in transactions:
+        reference_id = tx.get("reference_id")
+        session_id = tx.get("stripe_session_id")
+        if not reference_id or not session_id:
+            continue
+
+        checked += 1
+        invoice, _ = await _find_invoice_document(reference_id, current_user.tenant_id)
+        if not invoice or invoice.get("status") == "paid":
+            continue
+
+        await _mark_invoice_paid(
+            reference_id=reference_id,
+            tenant_id=current_user.tenant_id,
+            session_id=session_id,
+            amount=float(tx.get("amount", 0) or 0),
+            currency=tx.get("currency", "usd"),
+        )
+        fixed += 1
+
+    await _record_stripe_event(
+        tenant_id=current_user.tenant_id,
+        event_type="manual_reconcile",
+        status="completed",
+        message=f"Checked {checked} paid invoice transactions; fixed {fixed} invoice rows",
+    )
+
+    return {
+        "checked_paid_transactions": checked,
+        "fixed_invoices": fixed,
+    }
