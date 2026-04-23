@@ -13,6 +13,14 @@ Full-stack business management app for sign/graphics shops: customer management,
 
 ## Implemented (CHANGELOG)
 
+### 2026-04-23 — Marketing Features page coverage refresh
+- Updated `frontend/src/pages/FeaturesPage.js` content while preserving existing layout and flow (hero, filters, alternating feature cards, CTA).
+- Removed outdated pricing bullets (`Channel letter calculator`, `Monument sign calculator`) and aligned pricing coverage to active categories (digital print, cut vinyl, rigid signs, banners, vehicle graphics, apparel, services, promotional, custom).
+- Expanded high-level feature coverage with concise, non-overwhelming additions: Stripe billing/connect, intake forms, reporting/productivity analytics, admin/team/onboarding controls.
+- Added compact “Coverage Highlights” cards to represent broader platform capability without excessive detail.
+- Reused existing screenshots and mapped them across all added/updated cards to avoid placeholder-heavy sections.
+- Verified via UI automation: category filters, new cards, removed terms, screenshot presence, desktop/mobile layout integrity all passing.
+
 ### 2026-04-23 — Payroll/timeclock stabilization + payroll controls
 - Fixed recurring payroll worksheet break-loss behavior by merging same-day shifts in `frontend/src/lib/payrollWorksheet.js` and preserving break deductions even when lunch fields are blank.
 - Added lunch field persistence for timeclock break actions in `backend/services/timeclock_service.py` (`lunch_start` on break start, `lunch_end` on break end).
