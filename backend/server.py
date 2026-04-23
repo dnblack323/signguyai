@@ -721,12 +721,30 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
     laminate_required = bool(data.laminate)
     laminate_key = data.laminate_material_key or data.laminate_type or category_config.get("default_laminate_key", "laminate_gloss")
     laminate_cost = 0
+    laminate_sell_addon = 0
     laminate_warning = ""
     if laminate_required:
         laminate_cost_per_sqft = get_material_cost_per_sqft(defaults, laminate_key)
         if laminate_cost_per_sqft <= 0:
             laminate_warning = f"Missing laminate type: {laminate_key}."
         laminate_cost = waste_adjusted_area * laminate_cost_per_sqft
+
+        laminate_sell_rate = get_material_sell_rate(defaults, laminate_key)
+        if laminate_sell_rate <= 0:
+            # Fallback when laminate rows don't define explicit sell rates.
+            # Keep behavior deterministic and tied to tenant's category markup settings.
+            laminate_markup = float(
+                category_config.get(
+                    "laminate_sell_markup_multiplier",
+                    category_config.get(
+                        "default_markup_multiplier",
+                        defaults.get("default_markup_multiplier", 2.5),
+                    ),
+                ) or 0
+            )
+            laminate_sell_rate = laminate_cost_per_sqft * max(laminate_markup, 1.0)
+
+        laminate_sell_addon = waste_adjusted_area * laminate_sell_rate
 
     substrate_cost = 0
     mounting_hours = 0
@@ -841,6 +859,7 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
 
     base_sell_rate = float(media_sell_rate or category_config.get("sell_rate_defaults", {}).get("base_rate", 0) or 0)
     sell_base = base_sell_rate * total_billable_area * quality_mult * contour_mult
+    sell_base += laminate_sell_addon
     min_sell = float(category_config.get("default_minimum_sell_price", category_config.get("minimum_charge", 0)) or 0)
     sell_base = max(sell_base, min_sell)
 
@@ -882,6 +901,7 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
             "laminate_key": laminate_key,
             "laminate_warning": laminate_warning,
             "laminate_cost_per_sqft": get_material_cost_per_sqft(defaults, laminate_key),
+            "laminate_sell_addon": round(laminate_sell_addon, 2),
             "substrate_key": data.substrate_material_key or (data.substrate_type.value if data.substrate_type else ""),
             "substrate_warning": substrate_warning,
             "substrate_cost": round(substrate_cost, 2),

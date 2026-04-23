@@ -1107,7 +1107,7 @@ _VISIBLE_WHEN_RULES = {
     "banners": {
         "banner_grommet_count": {"banner_grommets": "custom"},
         "install_complexity": {"install_required": True},
-        "design_complexity": {"artwork_needed": True},
+        "design_complexity": {"any": [{"artwork_needed": True}, {"artwork_ready": False}]},
     },
     "apparel": {
         "apparel_custom_name_number_count": {"apparel_custom_name_number": True},
@@ -1146,17 +1146,17 @@ _VISIBLE_WHEN_RULES = {
         "custom_coverage_percent": {"coverage_type": "custom"},
         "wrap_laminate_type_key": {"wrap_laminate_required": True},
         "window_perf_scope": {"window_perf_included": True},
-        "design_complexity": {"artwork_needed": True},
+        "design_complexity": {"any": [{"artwork_needed": True}, {"artwork_ready": False}]},
         "install_difficulty_level": {"install_required": True},
         "seam_complexity": {"install_required": True},
         "second_installer_required": {"install_required": True},
     },
     "digital_print": {
         "laminate_material_key": {"laminate": True},
-        "design_complexity": {"artwork_needed": True},
+        "design_complexity": {"any": [{"artwork_needed": True}, {"artwork_ready": False}]},
     },
     "rigid_signs": {
-        "design_complexity": {"artwork_needed": True},
+        "design_complexity": {"any": [{"artwork_needed": True}, {"artwork_ready": False}]},
         "install_complexity": {"install_required": True},
         "hardware_type": {"hardware_included": True},
         "drill_prep_required": {"hardware_included": True},
@@ -1164,7 +1164,7 @@ _VISIBLE_WHEN_RULES = {
         "protective_finish_type": {"protective_finish": True},
     },
     "cut_vinyl": {
-        "design_complexity": {"artwork_needed": True},
+        "design_complexity": {"any": [{"artwork_needed": True}, {"artwork_ready": False}]},
         "install_complexity": {"install_required": True},
     },
 }
