@@ -101,6 +101,15 @@ def get_pricing_config(is_founder: bool):
     return FOUNDER_PRICING if is_founder else STANDARD_PRICING
 
 
+def parse_iso_datetime(value: Optional[str]) -> Optional[datetime]:
+    if not value or not isinstance(value, str):
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
 # ============== PRICING PAGE (PUBLIC) ==============
 
 @router.get("/pricing", response_model=PricingResponse)
@@ -898,19 +907,35 @@ async def get_subscription(
         # Return default trial info
         tenant = await db.tenants.find_one(
             {"id": current_user.tenant_id},
-            {"_id": 0, "created_at": 1}
+            {"_id": 0, "created_at": 1, "updated_at": 1, "trial_end": 1}
         )
         
         trial_end = None
         status = "locked"
+        now = datetime.now(timezone.utc)
+
+        trial_end_dt = parse_iso_datetime(tenant.get("trial_end") if tenant else None)
+
+        if trial_end_dt is None:
+            trial_anchor = None
+            if tenant:
+                trial_anchor = tenant.get("created_at") or tenant.get("updated_at")
+
+            if not trial_anchor:
+                user_doc = await db.users.find_one(
+                    {"id": current_user.id},
+                    {"_id": 0, "created_at": 1, "updated_at": 1}
+                )
+                if user_doc:
+                    trial_anchor = user_doc.get("created_at") or user_doc.get("updated_at")
+
+            anchor_dt = parse_iso_datetime(trial_anchor)
+            if anchor_dt is not None:
+                trial_end_dt = anchor_dt + timedelta(hours=24)
         
-        if tenant and tenant.get("created_at"):
-            created_at = datetime.fromisoformat(tenant["created_at"].replace("Z", "+00:00"))
-            trial_end_dt = created_at + timedelta(hours=24)
-            now = datetime.now(timezone.utc)
-            
+        if trial_end_dt is not None:
+            trial_end = trial_end_dt.isoformat()
             if now < trial_end_dt:
-                trial_end = trial_end_dt.isoformat()
                 status = "trialing"
         
         return SubscriptionResponse(

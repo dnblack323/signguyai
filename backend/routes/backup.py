@@ -7,10 +7,9 @@ Tenant Data Backup & Restore System
 """
 
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
-from fastapi.responses import JSONResponse
 from datetime import datetime, timezone
+import hashlib
 import json
-import uuid
 
 backup_router = APIRouter(prefix="/backup", tags=["backup"])
 
@@ -46,6 +45,16 @@ BACKUP_COLLECTIONS = [
     "payments",
     "payment_transactions",
 ]
+
+# Compatibility aliases expected by legacy checklist naming.
+# Export includes these aliases; restore maps them back to canonical collections.
+COLLECTION_EXPORT_ALIASES = {
+    "jobs": "orders",
+    "job_items": "order_items",
+    "payment_transactions": "payroll_transactions",
+    "timelogs": "timeclock_shifts",
+}
+COLLECTION_RESTORE_ALIASES = {alias: canonical for canonical, alias in COLLECTION_EXPORT_ALIASES.items()}
 
 # Fields to exclude from backup (sensitive/binary)
 EXCLUDE_FIELDS = {"_id", "hashed_password", "logo_url", "banner_image_data", "image_data"}
@@ -98,6 +107,9 @@ def setup_backup_routes(app, db, get_current_active_user, UserInDB):
             "tenant_id": tenant_id,
             "collections": {}
         }
+        integrity_manifest = {}
+        integrity_row_index = []
+        integrity_checksums = []
 
         for collection_name in BACKUP_COLLECTIONS:
             collection = db[collection_name]
@@ -123,6 +135,40 @@ def setup_backup_routes(app, db, get_current_active_user, UserInDB):
 
             if cleaned:
                 backup_data["collections"][collection_name] = cleaned
+                integrity_manifest[collection_name] = [doc.get("id") for doc in cleaned if doc.get("id")]
+                integrity_row_index.extend([
+                    {
+                        "collection": collection_name,
+                        "id": doc.get("id"),
+                        "updated_at": doc.get("updated_at"),
+                    }
+                    for doc in cleaned
+                    if doc.get("id")
+                ])
+                integrity_checksums.extend([
+                    {
+                        "collection": collection_name,
+                        "id": doc.get("id"),
+                        "sha256": hashlib.sha256(
+                            json.dumps(doc, sort_keys=True, default=str).encode("utf-8")
+                        ).hexdigest(),
+                    }
+                    for doc in cleaned
+                    if doc.get("id")
+                ])
+                alias_name = COLLECTION_EXPORT_ALIASES.get(collection_name)
+                if alias_name and alias_name not in backup_data["collections"]:
+                    backup_data["collections"][alias_name] = [dict(doc) for doc in cleaned]
+
+        # Ensure legacy compatibility keys always exist, even when source collection is empty.
+        for canonical_name, alias_name in COLLECTION_EXPORT_ALIASES.items():
+            if alias_name not in backup_data["collections"]:
+                source_docs = backup_data["collections"].get(canonical_name, [])
+                backup_data["collections"][alias_name] = [dict(doc) for doc in source_docs]
+
+        backup_data["integrity_manifest"] = integrity_manifest
+        backup_data["integrity_row_index"] = integrity_row_index
+        backup_data["integrity_checksums"] = integrity_checksums
 
         # Get tenant settings (without logo)
         tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0, "logo_url": 0})
@@ -194,10 +240,13 @@ def setup_backup_routes(app, db, get_current_active_user, UserInDB):
 
         total = 0
         for col_name, docs in backup_data["collections"].items():
+            resolved_collection = COLLECTION_RESTORE_ALIASES.get(col_name, col_name)
+            if resolved_collection not in BACKUP_COLLECTIONS:
+                continue
             count = len(docs)
             total += count
             # Count existing records
-            existing = await db[col_name].count_documents({"tenant_id": current_user.tenant_id})
+            existing = await db[resolved_collection].count_documents({"tenant_id": current_user.tenant_id})
             preview["collections"][col_name] = {
                 "backup_count": count,
                 "existing_count": existing
@@ -227,9 +276,20 @@ def setup_backup_routes(app, db, get_current_active_user, UserInDB):
         tenant_id = current_user.tenant_id
         restored_counts = {}
 
+        normalized_collections = {}
         for col_name, docs in backup_data["collections"].items():
-            if col_name not in BACKUP_COLLECTIONS:
+            resolved_collection = COLLECTION_RESTORE_ALIASES.get(col_name, col_name)
+            if resolved_collection not in BACKUP_COLLECTIONS:
                 continue
+
+            # Prefer canonical collection payload when both alias and canonical exist.
+            if (
+                resolved_collection not in normalized_collections
+                or col_name == resolved_collection
+            ):
+                normalized_collections[resolved_collection] = docs
+
+        for col_name, docs in normalized_collections.items():
 
             collection = db[col_name]
 

@@ -12,6 +12,7 @@ from typing import List, Optional
 from datetime import datetime, timezone
 from pydantic import BaseModel
 import random
+import re
 
 from models import (
     Customer, CustomerCreate, CustomerUpdate, CustomerStatus,
@@ -26,6 +27,8 @@ from server import (
 from server import get_password_hash
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
+
+EMAIL_REGEX = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
 
 class CustomerImportItem(BaseModel):
@@ -104,25 +107,35 @@ async def import_customers(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Bulk import customers from CSV data"""
+    if not request.customers:
+        raise HTTPException(status_code=400, detail="CSV file must include at least one customer row")
+
     created = 0
     updated = 0
     errors = []
+    inserted_customer_ids = []
+    updated_snapshots = []
     
-    for i, item in enumerate(request.customers):
-        try:
+    try:
+        for i, item in enumerate(request.customers):
             # Validate name
             resolved_name = (item.name or '').strip() or (item.company or '').strip()
             if not resolved_name:
                 errors.append(f"Row {i + 1}: Name or Company is required")
                 continue
+
+            normalized_email = item.email.strip() if item.email else None
+            if normalized_email and not EMAIL_REGEX.match(normalized_email):
+                errors.append(f"Row {i + 1}: Invalid email format")
+                continue
             
             # Check for existing customer with same email (if email provided)
             existing = None
-            if item.email and item.email.strip():
+            if normalized_email:
                 existing = await db.customers.find_one({
-                    "email": item.email.strip(),
+                    "email": normalized_email,
                     "tenant_id": current_user.tenant_id
-                })
+                }, {"_id": 0})
             
             # Normalize status
             status = "lead"
@@ -132,10 +145,9 @@ async def import_customers(
             if existing:
                 # Update existing customer
                 update_data = {
-                    "name": item.name.strip(),
+                    "name": resolved_name,
                     "updated_at": datetime.now(timezone.utc).isoformat()
                 }
-                update_data["name"] = resolved_name
                 if item.company:
                     update_data["company"] = item.company.strip()
                 if item.phone:
@@ -143,9 +155,14 @@ async def import_customers(
                 if item.notes:
                     update_data["notes"] = item.notes.strip()
                 update_data["status"] = status
+
+                updated_snapshots.append({
+                    "id": existing["id"],
+                    "document": existing,
+                })
                 
                 await db.customers.update_one(
-                    {"id": existing["id"]},
+                    {"id": existing["id"], "tenant_id": current_user.tenant_id},
                     {"$set": update_data}
                 )
                 updated += 1
@@ -154,18 +171,39 @@ async def import_customers(
                 customer = Customer(
                     name=resolved_name,
                     company=item.company.strip() if item.company else None,
-                    email=item.email.strip() if item.email else None,
+                    email=normalized_email,
                     phone=item.phone.strip() if item.phone else None,
                     status=status,
                     notes=item.notes.strip() if item.notes else None,
                     tenant_id=current_user.tenant_id
                 )
                 await db.customers.insert_one(customer.model_dump())
+                inserted_customer_ids.append(customer.id)
                 created += 1
-                
-        except Exception as e:
-            logger.error(f"Error importing customer row {i + 1}: {str(e)}")
-            errors.append(f"Row {i + 1}: {str(e)}")
+
+    except Exception as e:
+        logger.error(f"Import failed mid-way. Rolling back customer import: {str(e)}")
+
+        if inserted_customer_ids:
+            await db.customers.delete_many({
+                "tenant_id": current_user.tenant_id,
+                "id": {"$in": inserted_customer_ids},
+            })
+
+        for snapshot in reversed(updated_snapshots):
+            original = dict(snapshot["document"])
+            original.pop("_id", None)
+            await db.customers.replace_one(
+                {"id": snapshot["id"], "tenant_id": current_user.tenant_id},
+                original,
+                upsert=True,
+            )
+
+        return CustomerImportResponse(
+            created=0,
+            updated=0,
+            errors=[f"Import failed and was rolled back: {str(e)}"],
+        )
     
     return CustomerImportResponse(created=created, updated=updated, errors=errors)
 
@@ -181,10 +219,12 @@ async def get_customers(
     if status:
         query["status"] = status.value
     if search:
+        escaped_search = re.escape(search)
         query["$or"] = [
-            {"name": {"$regex": search, "$options": "i"}},
-            {"company": {"$regex": search, "$options": "i"}},
-            {"email": {"$regex": search, "$options": "i"}}
+            {"name": {"$regex": escaped_search, "$options": "i"}},
+            {"company": {"$regex": escaped_search, "$options": "i"}},
+            {"email": {"$regex": escaped_search, "$options": "i"}},
+            {"phone": {"$regex": escaped_search, "$options": "i"}},
         ]
     customers = await db.customers.find(query, {"_id": 0}).to_list(1000)
     return customers
