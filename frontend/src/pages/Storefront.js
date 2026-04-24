@@ -41,6 +41,8 @@ export default function Storefront() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [processingCheckout, setProcessingCheckout] = useState(false);
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
   
   const [customerInfo, setCustomerInfo] = useState({
     name: '',
@@ -53,17 +55,67 @@ export default function Storefront() {
   useEffect(() => {
     loadStore();
     
-    // Handle payment success/cancel from URL params
+    // Handle payment success/cancel from URL params.
+    // IMPORTANT: never trust URL flag alone; verify with backend Stripe status.
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('payment') === 'success') {
-      setOrderPlaced(true);
-      setCart([]);
-      toast.success('Payment successful! Thank you for your order.');
-      // Clean URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-    } else if (urlParams.get('payment') === 'cancelled') {
+    const paymentResult = urlParams.get('payment');
+    const sessionId = urlParams.get('session_id');
+
+    const verifyPayment = async () => {
+      if (paymentResult !== 'success') return;
+
+      if (!sessionId) {
+        toast.error('Payment session missing. Please contact support if you were charged.');
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return;
+      }
+
+      setVerifyingPayment(true);
+      const maxAttempts = 6;
+
+      try {
+        for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+          const statusRes = await fetch(`${API}/api/stripe-connect/payment-status/${sessionId}`);
+          const statusData = await statusRes.json();
+
+          if (!statusRes.ok) {
+            throw new Error(statusData?.detail || 'Unable to verify payment');
+          }
+
+          if (statusData.payment_status === 'paid') {
+            setOrderPlaced(true);
+            setCart([]);
+            toast.success('Payment successful! Thank you for your order.');
+            window.history.replaceState({}, document.title, window.location.pathname);
+            return;
+          }
+
+          const finalFailure = ['expired', 'canceled'].includes(statusData.status)
+            || ['failed', 'unpaid'].includes(statusData.payment_status);
+
+          if (finalFailure) {
+            toast.error('Payment was not completed. Please try checkout again.');
+            window.history.replaceState({}, document.title, window.location.pathname);
+            return;
+          }
+
+          // Poll briefly while Stripe/webhook settles.
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+
+        toast.error('Payment confirmation is taking longer than expected. Please refresh in a moment.');
+      } catch (err) {
+        toast.error(err.message || 'Failed to verify payment status');
+      } finally {
+        setVerifyingPayment(false);
+      }
+    };
+
+    if (paymentResult === 'cancelled') {
       toast.info('Payment cancelled. Your cart is still saved.');
       window.history.replaceState({}, document.title, window.location.pathname);
+    } else {
+      verifyPayment();
     }
   }, [storeId]);
 
@@ -132,6 +184,7 @@ export default function Storefront() {
 
   const handleCheckout = async (e) => {
     e.preventDefault();
+    if (processingCheckout) return;
     if (!customerInfo.name || !customerInfo.email) {
       toast.error('Name and email are required');
       return;
@@ -141,6 +194,7 @@ export default function Storefront() {
       return;
     }
 
+    setProcessingCheckout(true);
     try {
       // Create Stripe checkout session
       const checkoutPayload = {
@@ -187,6 +241,8 @@ export default function Storefront() {
     } catch (err) {
       console.error('Checkout error:', err);
       toast.error(err.message || 'Failed to process checkout. Please try again.');
+    } finally {
+      setProcessingCheckout(false);
     }
   };
 
@@ -354,6 +410,14 @@ export default function Storefront() {
           <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col gap-1 text-sm text-amber-900">
             <p className="font-semibold">Checkout inactive</p>
             <p>{store.checkout_message || 'Checkout is inactive until this shop connects Stripe through SignGuy AI.'}</p>
+          </div>
+        </div>
+      )}
+
+      {verifyingPayment && (
+        <div className="border-b border-border bg-blue-50" data-testid="store-payment-verifying-banner">
+          <div className="max-w-6xl mx-auto px-4 py-3 text-sm font-medium text-blue-800">
+            Verifying payment… please wait.
           </div>
         </div>
       )}
@@ -547,10 +611,12 @@ export default function Storefront() {
                 type="submit" 
                 className="flex-1"
                 style={{ backgroundColor: primaryColor }}
-                disabled={!checkoutEnabled}
+                disabled={!checkoutEnabled || processingCheckout}
                 data-testid="place-order-button"
               >
-                {checkoutEnabled ? 'Place Order' : 'Checkout Inactive'}
+                {!checkoutEnabled
+                  ? 'Checkout Inactive'
+                  : (processingCheckout ? 'Redirecting to Stripe…' : 'Continue to Secure Payment')}
               </Button>
             </div>
           </form>

@@ -1544,22 +1544,50 @@ async def create_webstore_order(input: WebstoreOrderCreate):
     - Quantities are >= 1
     - Prices are non-negative
     """
+    # SECURITY: Public webstore orders must be finalized from a real paid
+    # Stripe checkout session recorded in payment_transactions.
+    idempotency_key = (input.idempotency_key or "").strip()
+    if not idempotency_key.startswith("stripe:"):
+        raise HTTPException(
+            status_code=402,
+            detail="Stripe checkout is required before creating a webstore order",
+        )
+
+    session_id = idempotency_key.replace("stripe:", "", 1).strip()
+    if not session_id:
+        raise HTTPException(status_code=402, detail="Missing Stripe session")
+
+    payment_tx = await db.payment_transactions.find_one(
+        {"stripe_session_id": session_id, "type": "webstore_order"},
+        {"_id": 0, "status": 1, "reference_id": 1},
+    )
+    if not payment_tx or payment_tx.get("reference_id") != input.webstore_id:
+        raise HTTPException(
+            status_code=402,
+            detail="Valid paid Stripe checkout session is required",
+        )
+    if payment_tx.get("status") != "paid":
+        raise HTTPException(
+            status_code=402,
+            detail="Stripe payment is not completed yet",
+        )
+
     # W17: honor idempotency — if the same (webstore_id, idempotency_key) was
     # submitted within the last hour, return the existing order. Guards against
     # double-click submits and retried network requests.
-    if input.idempotency_key:
+    if idempotency_key:
         cutoff = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
         existing = await db.webstore_orders_v2.find_one(
             {
                 "webstore_id": input.webstore_id,
-                "idempotency_key": input.idempotency_key,
+                "idempotency_key": idempotency_key,
                 "created_at": {"$gte": cutoff},
             },
             {"_id": 0},
         )
         if existing:
             logger.info(
-                f"Idempotent order replay matched key={input.idempotency_key[:8]}… "
+                f"Idempotent order replay matched key={idempotency_key[:8]}… "
                 f"returning existing order {existing.get('id')}"
             )
             return existing
@@ -1800,7 +1828,7 @@ async def create_webstore_order(input: WebstoreOrderCreate):
         notes=input.notes,
         job_id=job.id,  # Link to auto-created job
         status="processing",  # Already in processing since job was created
-        idempotency_key=input.idempotency_key,
+        idempotency_key=idempotency_key,
     )
     
     await db.webstore_orders_v2.insert_one(order.model_dump())

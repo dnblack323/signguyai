@@ -1457,3 +1457,55 @@ agent_communication:
 
   - agent: "testing"
     message: "WEBSTORES PAGE LOAD ERROR TOAST VERIFICATION COMPLETE - Comprehensive testing of Webstores page immediate load behavior completed successfully at https://prod-key-update.preview.emergentagent.com/webstores using credentials signguypa@gmail.com / Billnel323. TEST RESULT: PASS - All verification points passed with zero failures. INITIAL LOAD: (1) Login successful, (2) Navigated to /webstores, (3) NO error toast detected (0 toast messages found), (4) Stores table populated with 7 rows immediately, (5) All API calls successful: GET /api/webstores/v2 -> 200, GET /api/webstores/v2/orders -> 200, GET /api/products -> 200. HARD REFRESH: (1) Page reloaded successfully, (2) NO error toast detected after refresh (0 toast messages found), (3) Stores table still populated with 7 rows, (4) All API calls successful after refresh. EXACT TOASTS OBSERVED: None. The specific error toast 'Could not refresh webstore list' (line 214 in Webstores.js) did NOT appear in either scenario. Network monitoring confirmed 0 webstore-related network errors. Console logs clean. The page loads reliably without the refresh-list error on both initial load and hard refresh. No critical issues found. Webstores page is functioning correctly."
+
+
+  - task: "Storefront Checkout Inactive Banner Display"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Storefront.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - Checkout inactive banner displays correctly on storefront page when store is not payment-ready. Banner visible at top of page (data-testid='store-checkout-inactive-banner') with amber background showing message: 'Checkout inactive - Checkout is inactive until Stripe Connect onboarding is fully completed.' Banner appears prominently below store header as expected."
+
+  - task: "Storefront Checkout Dialog Submit Button Text"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Storefront.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - Checkout dialog submit button text correctly reflects payment readiness state. When checkout is inactive (store not payment-ready), button shows 'Checkout Inactive' and is disabled. Checkout dialog also displays warning message: 'Checkout is inactive until Stripe Connect onboarding is fully completed.' Button behavior matches specification: shows 'Checkout Inactive' when !checkoutEnabled, would show 'Continue to Secure Payment' when checkoutEnabled=true."
+
+  - task: "Storefront Payment Success URL Verification"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Storefront.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - Payment success URL verification working correctly. Tested with fake payment success URL (/store/fc0bad7e-9040-477e-93b9-a3f0b1a2df90?payment=success&session_id=fake_session_123). App DOES NOT show paid success state without backend payment confirmation. Implementation correctly calls backend API /api/stripe-connect/payment-status/{sessionId} to verify payment status before showing success screen. App does not trust URL params alone - this is correct security behavior. Fake session_id properly fails backend verification and no success screen is shown."
+
+  - task: "Storefront Page Layout and Stability"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Storefront.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - No crash or layout regression detected on storefront page. All critical UI elements present and functional: header with store branding, cart button (data-testid='cart-button'), products section with 'Add to Cart' functionality, checkout inactive banner, cart dialog, checkout dialog. Page loads successfully at /store/fc0bad7e-9040-477e-93b9-a3f0b1a2df90. Minor: Console shows expected 400 errors from fake payment session verification (expected behavior) and accessibility warnings about missing DialogContent descriptions (non-critical). Network errors limited to Cloudflare CDN RUM endpoints (not affecting functionality). Overall page stability is good."
+
+  - agent: "testing"
+    message: "STOREFRONT CHECKOUT BEHAVIOR TESTING COMPLETE - Comprehensive verification of storefront checkout behavior completed successfully at https://prod-key-update.preview.emergentagent.com for store ID fc0bad7e-9040-477e-93b9-a3f0b1a2df90. ALL 4 VERIFICATION CHECKS PASSED: (1) Checkout inactive banner appears correctly when store is not payment-ready - amber banner with message 'Checkout is inactive until Stripe Connect onboarding is fully completed' visible at top of storefront (data-testid='store-checkout-inactive-banner'), (2) Submit button text in checkout dialog correctly shows 'Checkout Inactive' when payment not ready and button is disabled - would show 'Continue to Secure Payment' when payment ready, (3) Payment success URL verification working correctly - app DOES NOT show paid success state without backend confirmation when visiting /store/fc0bad7e-9040-477e-93b9-a3f0b1a2df90?payment=success&session_id=fake_session_123 - properly calls backend API to verify payment status before showing success, (4) No crash or layout regression - all UI elements present and functional (header, cart, products, dialogs). SECURITY VERIFICATION PASSED: App correctly implements backend payment verification and does not trust URL params alone. Minor console warnings about DialogContent accessibility (non-critical) and expected 400 errors from fake session verification. No critical issues found. Storefront checkout behavior is production-ready and secure."
