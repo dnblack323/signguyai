@@ -13,6 +13,13 @@ Full-stack business management app for sign/graphics shops: customer management,
 
 ## Implemented (CHANGELOG)
 
+### 2026-04-24 — Webstore checkout enforced to Stripe-only paid flow
+- Hardened backend `POST /api/webstores/v2/orders` (`backend/routes/webstores.py`) to **block unpaid/direct order creation**.
+- Route now requires a real Stripe session-backed idempotency key (`stripe:{session_id}`) and validates against `payment_transactions` with matching `reference_id` + `status=paid`.
+- This prevents legacy “customer info only” submissions from creating unpaid orders.
+- Updated storefront payment return handling (`frontend/src/pages/Storefront.js`) to verify `session_id` via `/api/stripe-connect/payment-status/{session_id}` before showing success.
+- Added short polling for payment verification and clearer checkout CTA text (`Continue to Secure Payment` / `Redirecting to Stripe…`).
+
 ### 2026-04-23 — Webstores create flow: "created but failed to refresh list"
 - Fixed `frontend/src/pages/Webstores.js` list-refresh resilience after create:
   - Added `normalizeWebstoreList(...)` to handle variable response shapes safely.
