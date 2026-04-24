@@ -13,6 +13,19 @@ Full-stack business management app for sign/graphics shops: customer management,
 
 ## Implemented (CHANGELOG)
 
+### 2026-04-24 — Webstore orders now auto-appear in main Orders list
+- Added automatic bridge creation from webstore checkout orders into `orders` collection in `backend/routes/webstores.py`.
+- New helper flow:
+  - `_next_order_number_for_tenant(...)` to generate standard `ORD-####` numbering.
+  - `_ensure_main_order_bridge(...)` to insert a main order record with marker fields (`is_webstore_order`, `webstore_order_id`, `webstore_id`, `webstore_name`, `webstore_job_id`).
+- `create_webstore_order(...)` now creates/links `main_order_id` immediately after webstore order creation and updates job with `order_id` linkage.
+- Updated `frontend/src/pages/OrdersPage.js` to visibly mark these rows with a **Webstore** badge.
+- Verified with simulated paid checkout in `signguypa@gmail.com` tenant:
+  - webstore order created,
+  - corresponding main order created,
+  - marker fields present,
+  - UI shows `Webstore` badge and row remains clickable.
+
 ### 2026-04-24 — Webstore checkout enforced to Stripe-only paid flow
 - Hardened backend `POST /api/webstores/v2/orders` (`backend/routes/webstores.py`) to **block unpaid/direct order creation**.
 - Route now requires a real Stripe session-backed idempotency key (`stripe:{session_id}`) and validates against `payment_transactions` with matching `reference_id` + `status=paid`.
