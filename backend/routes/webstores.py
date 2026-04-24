@@ -464,6 +464,108 @@ def _normalize_webstore_doc(raw: Dict[str, Any], tenant_id: str) -> Dict[str, An
     return doc
 
 
+async def _next_order_number_for_tenant(tenant_id: str) -> str:
+    last = await db.orders.find(
+        {"tenant_id": tenant_id},
+        {"_id": 0, "order_number": 1},
+    ).sort("date_created", -1).limit(1).to_list(1)
+    if last and last[0].get("order_number"):
+        try:
+            num = int(last[0]["order_number"].split("-")[-1])
+            return f"ORD-{num + 1:04d}"
+        except (ValueError, IndexError):
+            pass
+    count = await db.orders.count_documents({"tenant_id": tenant_id})
+    return f"ORD-{count + 1:04d}"
+
+
+async def _ensure_main_order_bridge(
+    *,
+    webstore_order_doc: Dict[str, Any],
+    webstore_doc: Dict[str, Any],
+    customer_doc: Dict[str, Any],
+    tenant_id: str,
+    job_id: str,
+) -> str:
+    """Ensure a webstore checkout appears in the main Orders list."""
+    existing = await db.orders.find_one(
+        {"tenant_id": tenant_id, "webstore_order_id": webstore_order_doc["id"]},
+        {"_id": 0, "id": 1},
+    )
+    if existing:
+        return existing["id"]
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    order_number = await _next_order_number_for_tenant(tenant_id)
+    customer_name = webstore_order_doc.get("customer_name") or customer_doc.get("name") or "Webstore Customer"
+    company_name = (
+        customer_doc.get("company")
+        or customer_doc.get("display_name")
+        or webstore_doc.get("name")
+        or ""
+    )
+
+    order_id = str(uuid.uuid4())
+    order_doc = {
+        "id": order_id,
+        "order_number": order_number,
+        "name": f"WEBSTORE-{order_number}",
+        "tenant_id": tenant_id,
+        "customer_id": customer_doc.get("id", ""),
+        "customer_name": customer_name,
+        "contact_name": customer_name,
+        "phone": webstore_order_doc.get("customer_phone") or customer_doc.get("phone") or "",
+        "email": webstore_order_doc.get("customer_email") or customer_doc.get("email") or "",
+        "company_name": company_name,
+        "order_source": "website",
+        "date_created": now_iso,
+        "created_by": "webstore_checkout",
+        "requested_due_date": None,
+        "event_date": None,
+        "status": "approved",
+        "payment_status": "paid",
+        "approval_status": "approved",
+        "pickup_delivery_method": "ship",
+        "pickup_delivery_notes": webstore_order_doc.get("shipping_address") or "",
+        "internal_notes": (
+            f"Auto-created from webstore checkout. "
+            f"Store: {webstore_doc.get('name', 'Unknown')}"
+        ),
+        "customer_notes": webstore_order_doc.get("notes") or "",
+        "linked_quote_ids": [],
+        "linked_invoice_ids": [],
+        "job_ticket_count": len(webstore_order_doc.get("items") or []),
+        "overall_progress": 0.0,
+        "final_completion_date": None,
+        "is_archived": False,
+        "is_active": True,
+        "order_title": f"Webstore - {webstore_doc.get('name', 'Store')}",
+        "shared_production_notes": "",
+        "shared_design_notes": "",
+        "shared_install_notes": "",
+        "shared_color_brand_notes": "",
+        "shared_reference_links": [],
+        "default_item_category": None,
+        "shared_artwork_default_mode": "ask",
+        "updated_at": now_iso,
+        "order_total": float(webstore_order_doc.get("total", 0) or 0),
+        # Marker fields for UI + traceability
+        "is_webstore_order": True,
+        "webstore_order_id": webstore_order_doc.get("id"),
+        "webstore_id": webstore_doc.get("id"),
+        "webstore_name": webstore_doc.get("name"),
+        "webstore_job_id": job_id,
+        "stripe_session_id": webstore_order_doc.get("stripe_session_id"),
+    }
+
+    await db.orders.insert_one(order_doc)
+    await db.jobs.update_one(
+        {"id": job_id, "tenant_id": tenant_id},
+        {"$set": {"order_id": order_id, "updated_at": now_iso}},
+    )
+    return order_id
+
+
 # ============== ROUTERS ==============
 
 products_router = APIRouter(prefix="/products", tags=["Products"])
@@ -1844,6 +1946,23 @@ async def create_webstore_order(input: WebstoreOrderCreate):
     )
     
     await db.webstore_orders_v2.insert_one(order.model_dump())
+
+    order_doc = order.model_dump()
+
+    # Ensure the checkout order appears in the main Orders list and is marked
+    # as a webstore-origin order for filtering/visibility.
+    main_order_id = await _ensure_main_order_bridge(
+        webstore_order_doc=order_doc,
+        webstore_doc=webstore,
+        customer_doc=customer,
+        tenant_id=tenant_id,
+        job_id=job.id,
+    )
+    await db.webstore_orders_v2.update_one(
+        {"id": order.id},
+        {"$set": {"main_order_id": main_order_id}},
+    )
+    order_doc["main_order_id"] = main_order_id
     
     # Update job items with back-reference to order ID
     await db.job_items.update_many(
@@ -1865,7 +1984,7 @@ async def create_webstore_order(input: WebstoreOrderCreate):
     
     logger.info(f"Order {order.id} created with auto-created job {job.id}")
     
-    return order
+    return order_doc
 
 
 @webstores_router.post("/orders/{order_id}/create-job")

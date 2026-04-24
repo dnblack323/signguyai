@@ -301,9 +301,14 @@ export default function OrdersPage() {
                         <Badge variant="outline" className={STATUS_COLORS[order.status] || STATUS_COLORS.new_intake}>
                           {formatStatus(order.status)}
                         </Badge>
+                        {(order.is_webstore_order || order.webstore_order_id || order.order_source === 'website') && (
+                          <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700" data-testid={`order-webstore-badge-${order.id}`}>
+                            Webstore
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-gray-900 font-medium mt-0.5 truncate">{order.customer_name || 'No customer'}</p>
-                      <p className="text-gray-500 text-xs mt-0.5">{order.company_name}</p>
+                      <p className="text-gray-500 text-xs mt-0.5">{order.company_name || order.webstore_name || ''}</p>
                     </div>
                   </div>
 

@@ -522,8 +522,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Rigid Signs pricing flow testing complete - All scenarios passed"
-    - "New Order Form category dropdowns verified - All three categories working"
+    - "Order ORD-0013 Webstore badge verification complete - All checks passed"
   stuck_tasks:
     - "Pricing Settings Compatibility Page - Route and Message"
     - "Materials Admin Compatibility Page - Route and Message"
@@ -553,6 +552,8 @@ agent_communication:
     message: "FEATURES PAGE SCREENSHOT VERIFICATION COMPLETE - Comprehensive testing of /features page screenshot quality and content alignment completed at https://prod-key-update.preview.emergentagent.com/features. ALL 5 CHECKS PASSED: (1) All 17 feature cards render actual screenshot images - 0 placeholder text instances found, (2) All 5 key feature screenshots verified with correct context-matching content: Platform Billing + Stripe Connect shows payment settings UI with Stripe Connect configuration, Payroll & Financials shows payroll dashboard with financial metrics and summary cards, Customer Portal shows customer portal dashboard with order status and recent orders, Employee Portal shows employee portal interface with clock in/out and timesheet, Scheduling & Calendar shows productivity calendar view with scheduling interface, (3) Removed terms 'Channel letter' and 'Monument sign' confirmed absent from page content, (4) No broken image links - all 16 screenshot requests returned HTTP 200 status, (5) Layout tested on desktop (1920x1080) and mobile (390x844) viewports - no horizontal overflow detected, all 17 features visible on both viewports. No critical issues found. Screenshots are production-ready with appropriate UI context for each feature."
   - agent: "testing"
     message: "SCREENSHOT HEIGHT/READABILITY UPDATE VERIFICATION COMPLETE - Comprehensive testing of updated screenshot dimensions at https://prod-key-update.preview.emergentagent.com/features. ALL 4 CHECKS PASSED: (1) Default inline images confirmed at 1920x1200 natural resolution with 1.6 aspect ratio (16:10), which is visibly taller than prior wide-strip 16:9 style (1.78 ratio) - displayed at 616x385px in responsive layout, (2) Image assets load with exact 1920x1200 ratio behavior confirmed for first 3 features (customers, jobs, quotes) - all show 1.60 aspect ratio providing taller, more readable screenshots, (3) Click-to-enlarge lightbox functionality verified working correctly - opens on click, displays enlarged image, shows title, close button works, (4) No broken image links detected (17/17 actual feature images loaded successfully) and no layout regressions on desktop (1920x1080) or mobile (390x844) - no horizontal overflow, all features visible. CONCLUSION: Default images now appear taller/more readable with 1920x1200 ratio as requested. Screenshots provide better readability compared to wide letterbox format."
+  - agent: "testing"
+    message: "ORDER ORD-0013 WEBSTORE BADGE VERIFICATION COMPLETE - Comprehensive UI verification completed for newly created order ORD-0013 at https://prod-key-update.preview.emergentagent.com/orders. ALL 5 CHECKS PASSED: (1) ✅ Orders page (/orders) opened successfully with proper authentication, (2) ✅ Order row for ORD-0013 EXISTS and is visible at the top of the orders list, (3) ✅ Webstore badge marker is VISIBLE - observed teal/cyan colored badge with text 'Webstore' displayed next to 'Approved' status badge, (4) ✅ Order row is CLICKABLE - successfully navigated to order detail page at /orders/5ed64a49-8661-4044-8fb1-8b5b1130f637 when clicked, (5) ✅ No layout regressions detected - order card has proper dimensions, is visible, and positioned correctly within viewport. Order details: Customer 'Sim Buyer', Preview Storefront QA, Total $0.00, 1 item, 0% progress. Order detail page shows SOURCE field displaying 'Website' confirming webstore origin. No console errors detected. All functionality working as expected."
 
 
   - task: "Quotes Page - /quotes Route and UI Display"
@@ -891,6 +892,18 @@ agent_communication:
       - working: true
         agent: "testing"
         comment: "✅ VERIFIED - Updated screenshot height/readability verification completed at https://prod-key-update.preview.emergentagent.com/features. ALL 4 REVIEW CHECKS PASSED: (1) First 3 feature cards (customers, jobs, quotes) confirmed with default inline images at 1920x1200 natural resolution displaying at 616x385px in responsive layout - visibly taller than prior wide-strip style with 1.6 aspect ratio (16:10) vs old 16:9 (1.78), (2) Image assets confirmed loading with 1920x1200 ratio behavior - all first 3 features show exact 1.60 aspect ratio providing taller, more readable screenshots, (3) Click-to-enlarge lightbox verified working correctly after screenshot refresh - opens on click, displays enlarged 1920x1200 image, shows title 'Customer Management', close button functional, (4) No broken image links detected (17/17 actual feature screenshot images loaded successfully with HTTP 200) and no layout regressions on desktop (1920x1080) or mobile (390x844) viewports - no horizontal overflow, all features visible on both viewports. MEASUREMENTS: Natural size 1920x1200px, displayed size 616x385px, aspect ratio 1.60 (16:10 format). CONCLUSION: Default images now appear taller/more readable with 1920x1200 ratio as requested. The 16:10 aspect ratio (1.6) is significantly taller than the previous 16:9 wide-strip format (1.78), providing better readability for UI screenshots. Lightbox functionality remains intact after screenshot refresh. No broken links or layout issues detected."
+
+  - task: "Orders Page - Webstore Badge Marker Display for Order ORD-0013"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Orders.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED - Comprehensive UI verification completed for newly created order ORD-0013 at https://prod-key-update.preview.emergentagent.com/orders. ALL 5 VERIFICATION CHECKS PASSED: (1) Orders page (/orders) opened successfully with proper authentication using credentials signguypa@gmail.com / Billnel323, (2) Order row for ORD-0013 EXISTS and is visible at the top of the orders list in card-based layout, (3) Webstore badge marker is VISIBLE - observed teal/cyan colored badge with text 'Webstore' displayed prominently next to 'Approved' status badge on the order card, (4) Order row is CLICKABLE - successfully navigated to order detail page at /orders/5ed64a49-8661-4044-8fb1-8b5b1130f637 when clicked, cursor style is 'pointer' indicating clickability, (5) No layout regressions detected - order card has proper dimensions (visible and positioned correctly within viewport), no console errors detected. Order details verified: Customer 'Sim Buyer', Preview Storefront QA, Total $0.00, 1 item, 0% progress. Order detail page displays SOURCE field showing 'Website' confirming webstore origin. Card-based layout uses proper styling with badges, customer info, and order metrics all clearly visible. All functionality working as expected for webstore order display and interaction."
 
   - task: "Digital Print Pricing - Area-Based Scaling (Width × Height)"
     implemented: true
