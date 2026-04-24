@@ -383,6 +383,87 @@ class WebstoreOrderCreate(BaseModel):
     idempotency_key: Optional[str] = Field(default=None, max_length=128)
 
 
+def _coerce_float(value: Any, default: float = 0.0) -> float:
+    try:
+        if value is None:
+            return default
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _coerce_int(value: Any, default: int = 0) -> int:
+    try:
+        if value is None:
+            return default
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _normalize_webstore_doc(raw: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
+    """Normalize legacy/malformed webstore records to avoid list endpoint 500s."""
+    now_iso = datetime.now(timezone.utc).isoformat()
+    doc = dict(raw or {})
+
+    if not doc.get("id"):
+        doc["id"] = str(uuid.uuid4())
+
+    if not doc.get("tenant_id"):
+        doc["tenant_id"] = tenant_id
+
+    store_type = str(doc.get("store_type") or "business").lower()
+    legacy_type_map = {
+        "b2b": "business",
+        "corporate": "business",
+    }
+    store_type = legacy_type_map.get(store_type, store_type)
+    if store_type not in {WebstoreType.BUSINESS.value, WebstoreType.FUNDRAISER.value, WebstoreType.CREATOR.value}:
+        store_type = WebstoreType.BUSINESS.value
+    doc["store_type"] = store_type
+
+    status = str(doc.get("status") or WebstoreStatus.ACTIVE.value).lower()
+    if status not in {WebstoreStatus.ACTIVE.value, WebstoreStatus.DISABLED.value, WebstoreStatus.PENDING.value}:
+        status = WebstoreStatus.ACTIVE.value
+    doc["status"] = status
+
+    if not doc.get("name"):
+        doc["name"] = "Untitled Store"
+    if not doc.get("owner_name"):
+        doc["owner_name"] = "Unknown Owner"
+
+    branding_raw = doc.get("branding")
+    if not isinstance(branding_raw, dict):
+        branding_raw = {}
+    doc["branding"] = {
+        "logo_url": branding_raw.get("logo_url"),
+        "primary_color": branding_raw.get("primary_color") or "#0D9488",
+        "banner_url": branding_raw.get("banner_url"),
+    }
+
+    doc["total_sales"] = _coerce_float(doc.get("total_sales"), 0.0)
+    doc["total_profit"] = _coerce_float(doc.get("total_profit"), 0.0)
+    doc["payout_owed"] = _coerce_float(doc.get("payout_owed"), 0.0)
+    doc["payout_paid"] = _coerce_float(doc.get("payout_paid"), 0.0)
+    doc["total_orders"] = _coerce_int(doc.get("total_orders"), 0)
+    doc["fundraiser_goal"] = _coerce_float(doc.get("fundraiser_goal"), 0.0) if doc.get("fundraiser_goal") is not None else None
+    doc["fundraiser_profit_percent"] = _coerce_float(doc.get("fundraiser_profit_percent"), 0.0)
+
+    commission_type = str(doc.get("creator_commission_type") or "percentage").lower()
+    if commission_type == "fixed":
+        commission_type = "flat"
+    if commission_type not in {"percentage", "flat"}:
+        commission_type = "percentage"
+    doc["creator_commission_type"] = commission_type
+    doc["creator_commission_value"] = _coerce_float(doc.get("creator_commission_value"), 0.0)
+
+    doc["is_public"] = bool(doc.get("is_public", True))
+    doc["created_at"] = doc.get("created_at") or now_iso
+    doc["updated_at"] = doc.get("updated_at") or doc["created_at"]
+
+    return doc
+
+
 # ============== ROUTERS ==============
 
 products_router = APIRouter(prefix="/products", tags=["Products"])
@@ -746,8 +827,26 @@ async def get_webstores(
         query["status"] = status.value
     if is_public is not None:
         query["is_public"] = is_public
-    webstores = await db.webstores_v2.find(query, {"_id": 0}).to_list(500)
-    return webstores
+    raw_webstores = await db.webstores_v2.find(query, {"_id": 0}).to_list(500)
+
+    sanitized: List[Dict[str, Any]] = []
+    skipped = 0
+    for raw in raw_webstores:
+        try:
+            normalized = _normalize_webstore_doc(raw, current_user.tenant_id)
+            sanitized.append(Webstore(**normalized).model_dump())
+        except Exception as exc:
+            skipped += 1
+            logger.warning(
+                f"Skipping invalid webstore record id={raw.get('id')} tenant={current_user.tenant_id}: {exc}"
+            )
+
+    if skipped:
+        logger.warning(
+            f"get_webstores sanitized response for tenant={current_user.tenant_id}; skipped_invalid={skipped}"
+        )
+
+    return sanitized
 
 
 # ============== WEBSTORE ORDERS (defined early to prevent route conflict) ==============
