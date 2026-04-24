@@ -314,8 +314,14 @@ export default function Storefront() {
 
   const StoreIcon = getStoreTypeIcon(store.store_type);
   const primaryColor = store.branding?.primary_color || '#0D9488';
-  const bannerUrl = store.branding?.banner_url || store.banner_image_data;
-  const logoUrl = store.branding?.logo_url || store.logo_image_data;
+  const bannerUrl = store.branding?.banner_url
+    || store.banner_url
+    || store.banner_image_url
+    || store.banner_image_data;
+  const logoUrl = store.branding?.logo_url
+    || store.logo_url
+    || store.logo_image_url
+    || store.logo_image_data;
 
   return (
     <div className="min-h-screen bg-background">

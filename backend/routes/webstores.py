@@ -436,9 +436,9 @@ def _normalize_webstore_doc(raw: Dict[str, Any], tenant_id: str) -> Dict[str, An
     if not isinstance(branding_raw, dict):
         branding_raw = {}
     doc["branding"] = {
-        "logo_url": branding_raw.get("logo_url"),
+        "logo_url": branding_raw.get("logo_url") or doc.get("logo_url") or doc.get("logo_image_data"),
         "primary_color": branding_raw.get("primary_color") or "#0D9488",
-        "banner_url": branding_raw.get("banner_url"),
+        "banner_url": branding_raw.get("banner_url") or doc.get("banner_url") or doc.get("banner_image_data"),
     }
 
     doc["total_sales"] = _coerce_float(doc.get("total_sales"), 0.0)
@@ -484,7 +484,19 @@ WEBSTORE_PUBLIC_FIELDS = [
 
 def sanitize_webstore_for_public(webstore: dict) -> dict:
     """Return only safe fields for public consumption"""
-    return {k: webstore.get(k) for k in WEBSTORE_PUBLIC_FIELDS if k in webstore}
+    safe = {k: webstore.get(k) for k in WEBSTORE_PUBLIC_FIELDS if k in webstore}
+
+    # Backward compatibility: older docs may store banner/logo on top-level
+    # keys (banner_url/logo_url or *_image_data) instead of branding.
+    branding_raw = safe.get("branding")
+    if not isinstance(branding_raw, dict):
+        branding_raw = {}
+    safe["branding"] = {
+        "logo_url": branding_raw.get("logo_url") or webstore.get("logo_url") or webstore.get("logo_image_data"),
+        "primary_color": branding_raw.get("primary_color") or "#0D9488",
+        "banner_url": branding_raw.get("banner_url") or webstore.get("banner_url") or webstore.get("banner_image_data"),
+    }
+    return safe
 
 
 @storefront_router.get("/{webstore_id}/asset/{kind}")
