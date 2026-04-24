@@ -20,6 +20,12 @@ Full-stack business management app for sign/graphics shops: customer management,
 - Updated storefront payment return handling (`frontend/src/pages/Storefront.js`) to verify `session_id` via `/api/stripe-connect/payment-status/{session_id}` before showing success.
 - Added short polling for payment verification and clearer checkout CTA text (`Continue to Secure Payment` / `Redirecting to Stripe…`).
 
+### 2026-04-24 — Webstore banner visibility compatibility fix
+- Fixed storefront banner/logo rendering compatibility for legacy store docs where media URLs may be stored on top-level keys (`banner_url`, `logo_url`, `*_image_data`) instead of nested `branding`.
+- Backend: updated `sanitize_webstore_for_public(...)` and `_normalize_webstore_doc(...)` in `backend/routes/webstores.py` to map legacy media fields into `branding.banner_url` / `branding.logo_url`.
+- Frontend: updated `frontend/src/pages/Storefront.js` to use robust fallback chain for banner/logo source selection.
+- Verified banner asset rendering + no 404 + no layout regressions on desktop/mobile via frontend test agent.
+
 ### 2026-04-23 — Webstores create flow: "created but failed to refresh list"
 - Fixed `frontend/src/pages/Webstores.js` list-refresh resilience after create:
   - Added `normalizeWebstoreList(...)` to handle variable response shapes safely.
