@@ -497,6 +497,184 @@ async def create_invoice_payment(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+class SendPaymentLinkRequest(BaseModel):
+    """Optional override email when sending a payment link"""
+    customer_email: Optional[str] = None
+
+
+@router.post("/invoice/{invoice_id}/send-payment-link")
+async def send_invoice_payment_link(
+    invoice_id: str,
+    body: SendPaymentLinkRequest,
+    origin_url: str,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Generate a Stripe Checkout link for an invoice and email it to the customer.
+
+    Returns the checkout URL plus whether the email was successfully dispatched.
+    The URL can also be copied and shared manually.
+    """
+    invoice = await db.invoices.find_one(
+        {"id": invoice_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0},
+    )
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    if invoice.get("status") == "paid":
+        raise HTTPException(status_code=400, detail="Invoice is already paid")
+
+    tenant = await db.tenants.find_one(
+        {"id": current_user.tenant_id},
+        {"_id": 0},
+    )
+    if not tenant or not tenant.get("stripe_connect_account_id"):
+        raise HTTPException(status_code=400, detail="Stripe account not connected")
+
+    account_id = tenant["stripe_connect_account_id"]
+    tier = await get_tenant_tier(current_user.tenant_id)
+    fee_percent = get_platform_fee_percent(tier)
+
+    amount = float(invoice.get("grand_total") or invoice.get("total") or 0)
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Invalid invoice amount")
+
+    amount_cents = int(amount * 100)
+    platform_fee_cents = int(amount_cents * fee_percent)
+
+    # Determine destination email: use override → invoice customer → fallback
+    customer_email = (body.customer_email or "").strip()
+    if not customer_email and invoice.get("customer_id"):
+        customer = await db.customers.find_one(
+            {"id": invoice["customer_id"], "tenant_id": current_user.tenant_id},
+            {"_id": 0, "email": 1, "name": 1},
+        )
+        if customer:
+            customer_email = customer.get("email", "").strip()
+
+    invoice_number = invoice.get("invoice_number") or invoice_id[:8].upper()
+    company_name = tenant.get("company_name") or "Your Service Provider"
+
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[{
+                "price_data": {
+                    "currency": "usd",
+                    "unit_amount": amount_cents,
+                    "product_data": {
+                        "name": f"Invoice #{invoice_number}",
+                        "description": f"Payment to {company_name}",
+                    },
+                },
+                "quantity": 1,
+            }],
+            mode="payment",
+            success_url=f"{origin_url}/invoices?payment=success&session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{origin_url}/invoices?payment=cancelled",
+            customer_email=customer_email or None,
+            payment_intent_data={
+                "application_fee_amount": platform_fee_cents,
+                "transfer_data": {"destination": account_id},
+            },
+            metadata={
+                "type": "invoice",
+                "invoice_id": invoice_id,
+                "tenant_id": current_user.tenant_id,
+                "platform_fee_percent": str(fee_percent * 100),
+            },
+        )
+
+        await db.payment_transactions.insert_one({
+            "id": session.id,
+            "tenant_id": current_user.tenant_id,
+            "type": "invoice",
+            "reference_id": invoice_id,
+            "amount": amount,
+            "platform_fee": platform_fee_cents / 100,
+            "currency": "usd",
+            "status": "pending",
+            "stripe_session_id": session.id,
+            "connected_account_id": account_id,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Send email if we have an address
+    email_sent = False
+    email_error = None
+    if customer_email:
+        from services.email_service import email_service
+        customer_name = (
+            invoice.get("customer_name")
+            or (customer.get("name") if "customer" in dir() else None)
+            or "Valued Customer"
+        )
+        html_body = f"""
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family:Arial,sans-serif;background:#f4f4f4;padding:30px 0;">
+  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+    <div style="background:#0D9488;padding:28px 32px;">
+      <h1 style="color:#ffffff;margin:0;font-size:22px;">{company_name}</h1>
+    </div>
+    <div style="padding:32px;">
+      <h2 style="margin:0 0 12px;font-size:20px;color:#111;">Invoice #{invoice_number} — Payment Request</h2>
+      <p style="color:#555;margin:0 0 20px;">Hi {customer_name},</p>
+      <p style="color:#555;margin:0 0 20px;">
+        You have an invoice from <strong>{company_name}</strong> for
+        <strong>${amount:,.2f}</strong> that is ready for payment.
+      </p>
+      <div style="text-align:center;margin:28px 0;">
+        <a href="{session.url}"
+           style="display:inline-block;background:#0D9488;color:#ffffff;text-decoration:none;
+                  padding:14px 32px;border-radius:6px;font-weight:bold;font-size:16px;">
+          Pay Invoice — ${amount:,.2f}
+        </a>
+      </div>
+      <p style="color:#888;font-size:13px;margin:0 0 8px;">
+        Or copy this link into your browser:
+      </p>
+      <p style="background:#f4f4f4;padding:10px 14px;border-radius:4px;font-size:12px;
+                word-break:break-all;color:#333;margin:0 0 24px;">
+        {session.url}
+      </p>
+      <p style="color:#aaa;font-size:12px;margin:0;">
+        This payment link is secure and powered by Stripe. You do not need to create an account.
+      </p>
+    </div>
+  </div>
+</body>
+</html>"""
+        result = await email_service.send_email(
+            to_email=customer_email,
+            subject=f"Invoice #{invoice_number} — Payment of ${amount:,.2f} from {company_name}",
+            html_content=html_body,
+            plain_content=(
+                f"Hi {customer_name},\n\n"
+                f"Please pay Invoice #{invoice_number} (${amount:,.2f}) using the link below:\n\n"
+                f"{session.url}\n\n"
+                f"Powered by Stripe — no account required."
+            ),
+            tenant_id=current_user.tenant_id,
+        )
+        email_sent = result.get("success", False)
+        if not email_sent:
+            email_error = result.get("error")
+
+    return {
+        "url": session.url,
+        "session_id": session.id,
+        "customer_email": customer_email,
+        "email_sent": email_sent,
+        "email_error": email_error,
+        "amount": amount,
+        "invoice_number": invoice_number,
+    }
+
+
 # ============== WEBSTORE PAYMENTS ==============
 
 @router.post("/webstore/{webstore_id}/checkout", response_model=PaymentResponse)

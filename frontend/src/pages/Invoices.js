@@ -30,7 +30,7 @@ import {
   TableRow,
 } from '../components/ui/table';
 import { formatCurrency, formatDate, getStatusColor } from '../lib/utils';
-import { Plus, Edit2, CheckCircle, AlertTriangle, Eye, CreditCard, Send, Search } from 'lucide-react';
+import { Plus, Edit2, CheckCircle, AlertTriangle, Eye, CreditCard, Send, Search, Copy, ExternalLink, Mail, Loader2, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
 import axios from 'axios';
@@ -67,6 +67,15 @@ export default function Invoices() {
   // Invoice preview modal state
   const [previewInvoiceId, setPreviewInvoiceId] = useState(null);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+
+  // Payment link modal state
+  const [payLinkModalOpen, setPayLinkModalOpen] = useState(false);
+  const [payLinkInvoice, setPayLinkInvoice] = useState(null);
+  const [payLinkData, setPayLinkData] = useState(null); // { url, customer_email, ... }
+  const [payLinkEmail, setPayLinkEmail] = useState('');
+  const [payLinkLoading, setPayLinkLoading] = useState(false);
+  const [payLinkSending, setPayLinkSending] = useState(false);
+  const [copied, setCopied] = useState(false);
   
   useEffect(() => {
     if (canViewInvoices) {
@@ -254,27 +263,71 @@ export default function Invoices() {
     return job?.name || 'Unknown';
   };
 
-  const handleCreatePaymentLink = async (invoiceId) => {
+  const handleOpenPayLinkModal = async (invoice) => {
+    // Look up customer email from customers list
+    const customer = customers.find(c => c.id === invoice.customer_id);
+    setPayLinkInvoice(invoice);
+    setPayLinkEmail(customer?.email || '');
+    setPayLinkData(null);
+    setCopied(false);
+    setPayLinkModalOpen(true);
+
+    // Auto-generate the link when the modal opens
+    await generatePaymentLink(invoice, customer?.email || '');
+  };
+
+  const generatePaymentLink = async (invoice, email) => {
+    setPayLinkLoading(true);
     try {
       const token = getAuthToken();
       const response = await axios.post(
-        `${API_URL}/api/stripe-connect/invoice/${invoiceId}/pay`,
-        null,
-        {
-          params: { origin_url: window.location.origin },
-          headers: { Authorization: `Bearer ${token}` }
-        }
+        `${API_URL}/api/stripe-connect/invoice/${invoice.id}/send-payment-link`,
+        { customer_email: email || null },
+        { params: { origin_url: window.location.origin }, headers: { Authorization: `Bearer ${token}` } }
       );
-      
-      // Open payment page in new tab
-      window.open(response.data.url, '_blank');
-      toast.success('Payment link opened');
+      setPayLinkData(response.data);
+      setPayLinkEmail(response.data.customer_email || email || '');
     } catch (err) {
-      if (err.response?.data?.detail?.includes('not connected')) {
-        toast.error('Please connect your Stripe account in Payment Settings');
+      const msg = err.response?.data?.detail || 'Failed to generate payment link';
+      if (msg.includes('not connected')) {
+        toast.error('Connect your Stripe account in Payment Settings first');
       } else {
-        toast.error(err.response?.data?.detail || 'Failed to create payment link');
+        toast.error(msg);
       }
+      setPayLinkModalOpen(false);
+    } finally {
+      setPayLinkLoading(false);
+    }
+  };
+
+  const handleCopyLink = () => {
+    if (!payLinkData?.url) return;
+    navigator.clipboard.writeText(payLinkData.url);
+    setCopied(true);
+    toast.success('Payment link copied!');
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  const handleSendEmail = async () => {
+    if (!payLinkInvoice || !payLinkEmail) return;
+    setPayLinkSending(true);
+    try {
+      const token = getAuthToken();
+      const response = await axios.post(
+        `${API_URL}/api/stripe-connect/invoice/${payLinkInvoice.id}/send-payment-link`,
+        { customer_email: payLinkEmail },
+        { params: { origin_url: window.location.origin }, headers: { Authorization: `Bearer ${token}` } }
+      );
+      setPayLinkData(response.data);
+      if (response.data.email_sent) {
+        toast.success(`Payment link sent to ${payLinkEmail}`);
+      } else {
+        toast.warning('Email service not configured — link generated but not sent. Copy and share manually.');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to send payment link');
+    } finally {
+      setPayLinkSending(false);
     }
   };
 
@@ -559,11 +612,11 @@ export default function Invoices() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleCreatePaymentLink(invoice.id)}
+                              onClick={() => handleOpenPayLinkModal(invoice)}
                               data-testid={`pay-invoice-${invoice.id}`}
                               className="text-primary border-primary/50"
                             >
-                              <CreditCard className="h-4 w-4 mr-1" /> Pay Link
+                              <Send className="h-4 w-4 mr-1" /> Send Pay Link
                             </Button>
                             <Button
                               variant="outline"
@@ -603,6 +656,103 @@ export default function Invoices() {
           setPreviewInvoiceId(null);
         }}
       />
+
+      {/* Send Payment Link Modal */}
+      <Dialog open={payLinkModalOpen} onOpenChange={setPayLinkModalOpen}>
+        <DialogContent className="max-w-md" data-testid="payment-link-modal">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-primary" />
+              Send Payment Link
+            </DialogTitle>
+          </DialogHeader>
+
+          {payLinkLoading ? (
+            <div className="flex flex-col items-center py-10 gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-gray-500">Generating secure payment link…</p>
+            </div>
+          ) : payLinkData ? (
+            <div className="space-y-5">
+              {/* Amount chip */}
+              <div className="rounded-lg bg-primary/10 border border-primary/20 px-4 py-3 text-center">
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Amount Due</p>
+                <p className="text-2xl font-bold text-primary" data-testid="pay-link-amount">
+                  {formatCurrency(payLinkData.amount)}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">Invoice #{payLinkData.invoice_number}</p>
+              </div>
+
+              {/* Copy link row */}
+              <div>
+                <Label className="text-xs text-gray-500 mb-1.5 block">Payment Link</Label>
+                <div className="flex gap-2">
+                  <Input
+                    readOnly
+                    value={payLinkData.url}
+                    className="text-xs font-mono bg-gray-50"
+                    data-testid="pay-link-url-input"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleCopyLink}
+                    data-testid="pay-link-copy-btn"
+                    className={copied ? 'text-green-600 border-green-400' : ''}
+                  >
+                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => window.open(payLinkData.url, '_blank')}
+                    data-testid="pay-link-open-btn"
+                    title="Open in new tab"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Email row */}
+              <div>
+                <Label className="text-xs text-gray-500 mb-1.5 block">Send to Customer Email</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="email"
+                    placeholder="customer@example.com"
+                    value={payLinkEmail}
+                    onChange={e => setPayLinkEmail(e.target.value)}
+                    data-testid="pay-link-email-input"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleSendEmail}
+                    disabled={payLinkSending || !payLinkEmail}
+                    data-testid="pay-link-send-btn"
+                    className="shrink-0"
+                  >
+                    {payLinkSending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <><Mail className="h-4 w-4 mr-1" /> Send</>
+                    )}
+                  </Button>
+                </div>
+                {payLinkData.email_sent && (
+                  <p className="text-xs text-green-600 mt-1.5 flex items-center gap-1" data-testid="pay-link-email-sent">
+                    <Check className="h-3 w-3" /> Email sent to {payLinkData.customer_email}
+                  </p>
+                )}
+              </div>
+
+              <p className="text-xs text-gray-400 border-t pt-3">
+                Your customer does not need an account to pay — the link goes directly to a secure Stripe checkout page.
+              </p>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
