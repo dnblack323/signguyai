@@ -1,0 +1,101 @@
+{
+  "summary": "Iteration 126: Meta/Facebook Messenger Integration — 24-point verification pass. All 33 backend tests passed. All frontend verification points passed. 2 bugs confirmed and fixed in oauth_callback route. Frontend pages render correctly with all data-testid elements present.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/integrations/meta/pages",
+        "issue": "FINDING (non-blocking): Returns raw access_token in page listing response to frontend. This is intentional for the OAuth connect flow (frontend needs to pass it back when calling /pages/connect), but represents a potential security concern. The token is only stored encrypted in DB. Review for production hardening.",
+        "priority": "LOW"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "bugs_fixed": [
+    {
+      "bug": "6a/6b: oauth_callback 422 on Meta denial",
+      "root_cause": "code: str = Query(...) and state: str = Query(...) were REQUIRED params. When Meta sends error=access_denied without a code param, FastAPI returned 422 Unprocessable Entity before the handler ran.",
+      "fix": "Changed code and state to Optional[str] = Query(None). Added explicit guards: if not code -> redirect with error=missing_code, if not state -> redirect with error=missing_state.",
+      "file": "/app/backend/routes/meta_integration.py",
+      "lines": "127-170"
+    }
+  ],
+  "verification_results": {
+    "1_env_vars": "PASS - META_APP_ID, META_APP_SECRET, META_WEBHOOK_VERIFY_TOKEN, META_TOKEN_ENCRYPTION_KEY all safely read in meta_service.py",
+    "2_missing_config_503": "PASS - POST /connect/start returns 503 with 'META_APP_ID...not configured' message",
+    "3_settings_page_loads": "PASS - /settings/meta-integration loads without runtime errors, all content renders",
+    "4_setup_guide_urls": "PASS - Redirect URI and Webhook URL both use REACT_APP_BACKEND_URL correctly",
+    "5_oauth_start_503": "PASS - Returns 503 when META_APP_ID is empty (current state)",
+    "6a_oauth_denied_no_code": "PASS (FIXED) - Previously 422, now redirects gracefully with error=access_denied",
+    "6b_oauth_missing_code": "PASS (FIXED) - Redirects with error=missing_code instead of 422",
+    "6c_oauth_invalid_state": "PASS - Redirects with error=invalid_state",
+    "7_pages_tenant_isolation": "PASS - Invalid/cross-tenant tmp returns 404",
+    "8_connect_page_encrypted_token": "PASS - page_access_token_encrypted confirmed in DB, raw token NOT stored",
+    "9_token_not_exposed_in_status": "PASS - /status response excludes page_access_token_encrypted field",
+    "10_disconnect_soft_delete": "PASS - Sets status=disconnected, record preserved, disconnected_at set",
+    "10_tenant_isolation_disconnect": "PASS - Cross-tenant disconnect returns 404",
+    "11_webhook_get_correct_token": "PASS - Returns challenge string verbatim",
+    "11b_webhook_get_wrong_token": "PASS - Returns 403",
+    "12a_webhook_post_ingestion": "PASS - Returns {status: ok}, stores message in DB",
+    "12b_webhook_post_idempotency": "PASS - Duplicate message_id stored exactly once",
+    "12c_webhook_unknown_page_ignored": "PASS - Silently ignored, no record stored, no error",
+    "13_messages_inbox_tenant_isolation": "PASS - Tenant A and B messages completely isolated, no overlap",
+    "14_ai_reprocess": "PASS - Updates classification and confidence_score fields",
+    "15_ai_extraction_fields": "PASS - extracted_fields contains product_type, vehicle fields for vehicle wrap messages",
+    "16_suggested_reply": "PASS - Returns non-empty suggested_reply string",
+    "17_create_lead": "PASS - Creates lead in db.leads with source=Facebook Messenger",
+    "18_create_draft_order": "PASS - Creates order in db.orders with status=draft",
+    "19_lead_order_metadata": "PASS - review_status=Needs Review and facebook_message_id in both lead and order",
+    "20_mark_reviewed": "PASS - Sets review_status=reviewed",
+    "20b_mark_spam": "PASS - Sets review_status=spam, classification=spam_or_unrelated",
+    "21_stats_summary": "PASS - Returns total, new, needs_review, high_urgency as integers",
+    "22a_isolation_pages": "PASS - Tenant B cannot see Tenant A pages in /status",
+    "22b_isolation_messages": "PASS - Tenant B cannot see Tenant A messages",
+    "22c_isolation_create_lead": "PASS - Cross-tenant create-lead returns 404",
+    "22d_isolation_webhook_routing": "PASS - Webhook for TEST_PAGE_12345 (Tenant A) only appears in Tenant A inbox",
+    "23_backend_pytest": "PASS - 33/33 tests passed",
+    "24_frontend_render": "PASS - MetaIntegration.js and FacebookLeads.js load, all data-testid elements present, message detail modal works"
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration126_meta_24points.py",
+    "/app/test_reports/pytest/iteration126_meta_24points.xml"
+  ],
+  "action_items": [
+    "OPTIONAL: Review /api/integrations/meta/pages returning raw access_token to frontend — intentional for connect flow but worth adding server-side token validation before returning. Consider accepting token from a separate secure call instead of having frontend pass it back.",
+    "OPTIONAL: Consider setting REACT_APP_FRONTEND_URL in backend/.env for explicit OAuth redirect URL (currently uses empty string which works via relative redirect since frontend/backend share same domain in this deployment, but could break in split-domain deployments).",
+    "INFO: Seeded test data (TEST Connect Page, Disconnect Test Page) from iteration 126 tests shows in Disconnected Pages section. Run cleanup if desired."
+  ],
+  "critical_code_review_comments": [
+    "oauth_callback had code+state as required Query params — FIXED in this iteration. Meta does not send code when user denies OAuth, causing 422 before error handler ran.",
+    "REACT_APP_FRONTEND_URL not present in backend/.env — frontend_origin defaults to empty string. The redirect works in this single-domain deployment but is fragile. Add REACT_APP_FRONTEND_URL to backend/.env.",
+    "/pages endpoint intentionally returns raw access_token so frontend can pass it back to /pages/connect. This is architecturally fine for the demo but would require server-side token exchange for production-grade security.",
+    "Multiple standalone Motor clients in meta_integration.py, facebook_messages.py, and meta_service.py (3 separate AsyncIOMotorClient() instances for same MongoDB) — noted from iteration 125 review, still present, not a functional bug but wastes connection pool."
+  ],
+  "updated_files": [
+    "/app/backend/routes/meta_integration.py"
+  ],
+  "success_rate": {
+    "backend": "100% (33/33 tests passed)",
+    "frontend": "100% (all pages load, all data-testid elements present, no console errors)"
+  },
+  "test_credentials": {
+    "tenant_a": "signguypa@gmail.com / Billnel323",
+    "tenant_b": "tenant_b_isolation_test@example.com / IsolationTest@2026! (created in iteration 126)"
+  },
+  "seed_data_creation": "Created Tenant B account (tenant_b_isolation_test@example.com) for isolation tests. Test pages CONNECT_TEST_PAGE_9999 and DISCONNECT_TEST_PAGE_8888 created and disconnected during testing. Multiple webhook test messages created (unique UUIDs, can be cleaned up).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 24 verification points pass. Key fix in this iteration: oauth_callback code/state made Optional to handle Meta's denial flow without 422. Backend 33/33 tests pass. Frontend both pages render correctly. Seeded page TEST_PAGE_12345 is active for Tenant A (d9c5507b-879c-4bec-9736-1dc841334719). Tenant B isolation tester account created. The /pages endpoint returns raw access_token (noted as design finding, not a bug). META_APP_ID/META_APP_SECRET remain empty strings in .env (expected for dev mode).",
+  "rca_of_issue": {
+    "bug": "OAuth callback 422 on Meta denial (Points 6a/6b)",
+    "reproduction": "GET /api/integrations/meta/oauth/callback?error=access_denied (no code param) → FastAPI returned 422 Unprocessable Entity before the handler body executed",
+    "root_cause": "FastAPI's Query(...) with no default makes parameters required. When Meta sends oauth denial without code, the validation fails at the FastAPI routing layer, not in handler code.",
+    "mitigation": "Changed code: str = Query(...) to code: Optional[str] = Query(None) and state: str = Query(...) to state: Optional[str] = Query(None). Added explicit None guards with redirect responses.",
+    "file": "/app/backend/routes/meta_integration.py",
+    "lines_changed": "127-165"
+  }
+}

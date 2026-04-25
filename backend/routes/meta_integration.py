@@ -125,8 +125,8 @@ async def start_oauth(
 # ── OAuth callback ────────────────────────────────────────────────────────────
 @router.get("/oauth/callback")
 async def oauth_callback(
-    code: str = Query(...),
-    state: str = Query(...),
+    code: Optional[str] = Query(None),
+    state: Optional[str] = Query(None),
     error: Optional[str] = Query(None),
     error_description: Optional[str] = Query(None),
 ):
@@ -146,6 +146,20 @@ async def oauth_callback(
         logger.warning(f"Meta OAuth error: {error} — {error_description}")
         return RedirectResponse(
             url=f"{frontend_origin}/settings/meta-integration?error={error}&error_desc={error_description or ''}"
+        )
+
+    # Guard: code is required for successful flow
+    if not code:
+        logger.warning("Meta OAuth callback received without code and without error")
+        return RedirectResponse(
+            url=f"{frontend_origin}/settings/meta-integration?error=missing_code"
+        )
+
+    # Guard: state is required
+    if not state:
+        logger.warning("Meta OAuth callback received without state")
+        return RedirectResponse(
+            url=f"{frontend_origin}/settings/meta-integration?error=missing_state"
         )
 
     # Validate state
