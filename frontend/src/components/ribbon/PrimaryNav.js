@@ -5,7 +5,7 @@ import {
   Store, Sparkles, BarChart3, Settings, MessageCircle,
   Clock, DollarSign, FileCheck, Package, Tag, Calendar,
   ClipboardList, BookOpen, HelpCircle, UserCog, Wallet, Send,
-  Shield, Wrench, Mail, FolderOpen, Clipboard
+  Shield, Wrench, Mail, FolderOpen, Clipboard, Facebook
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -42,6 +42,7 @@ export const tabSubItems = {
   customers: [
     { label: 'All Customers', icon: Users, path: '/customers' },
     { label: 'Admin Portal', icon: Send, path: '/admin-portal' },
+    { label: 'Facebook Leads', icon: Facebook, path: '/facebook-leads' },
   ],
   webstores: [
     { label: 'Stores', icon: Store, path: '/webstores' },
@@ -90,6 +91,7 @@ export const tabSubItems = {
     { label: 'Production', icon: Wrench, path: '/settings/production' },
     { label: 'Backup', icon: Shield, path: '/settings/backup' },
     { label: 'Users', icon: Users, path: '/users' },
+    { label: 'Meta / Facebook', icon: Facebook, path: '/settings/meta-integration' },
   ],
 };
 
@@ -131,6 +133,8 @@ const routeToNavItem = {
   '/docs': 'community',
   '/settings': 'settings',
   '/settings/digest': 'settings',
+  '/settings/meta-integration': 'settings',
+  '/facebook-leads': 'customers',
 };
 
 export const PrimaryNav = ({ activeTab, onTabChange }) => {

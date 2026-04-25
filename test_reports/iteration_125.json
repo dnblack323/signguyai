@@ -1,0 +1,67 @@
+{
+  "summary": "Iteration 125: Meta/Facebook Messenger Integration — Full backend + frontend testing. Backend: 50/50 tests passed. Frontend: FacebookLeads page had a critical runtime crash (SelectItem empty value) which was fixed. Both /facebook-leads and /settings/meta-integration pages load and function correctly after the fix.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "FacebookLeads.js — StatusFilter Select",
+        "issue": "FIXED: STATUS_FILTERS had { value: '' } as the 'All' option, which caused a React runtime crash: 'A <Select.Item /> must have a value prop that is not an empty string'. Changed to value: 'all' with updated filter condition.",
+        "selector": "[data-testid='status-filter-select']",
+        "priority": "CRITICAL — was crashing the entire page",
+        "fix_applied": true,
+        "fix_files": ["/app/frontend/src/pages/FacebookLeads.js"]
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration125_meta_facebook_integration.py",
+    "/app/test_reports/pytest/iteration125_meta_facebook.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "meta_integration.py + facebook_messages.py each create their own AsyncIOMotorClient() — this results in 3 separate Motor clients (including meta_service.py) for the same MongoDB. Not a functional bug but wastes connection pool resources. Consider using a shared db instance.",
+    "verify_webhook_signature() in meta_service.py skips validation when META_APP_SECRET is empty (line 141-143): `if not META_APP_SECRET: return True`. This is documented as 'dev only' but the backend .env has META_APP_SECRET= (empty) in production-like env — ensure this is intentional.",
+    "The _process_webhook_payload / _handle_messaging_event are background tasks via asyncio.create_task(). If the server restarts mid-processing, those tasks are lost. For production robustness, consider a persistent task queue. Low priority for MVP.",
+    "facebook_messages.py /messages/summary/stats route is registered AFTER /messages/{message_id} in the file. FastAPI route priority: exact paths win over parameterized paths for equal-segment-count paths, so /messages/summary/stats (3 segments) won't conflict with /messages/{id} (2 segments). This is safe but worth documenting.",
+    "The STATUS_FILTERS empty string value crash has been fixed in this iteration."
+  ],
+  "updated_files": [
+    "/app/frontend/src/pages/FacebookLeads.js"
+  ],
+  "success_rate": {
+    "backend": "100% (50/50 tests passed)",
+    "frontend": "100% after fix (0 errors, all pages load, all interactions work)"
+  },
+  "test_credentials": {
+    "admin": "signguypa@gmail.com / Billnel323"
+  },
+  "seed_data_creation": "No new seed data. Used existing seeded data: tenant_id=d9c5507b-879c-4bec-9736-1dc841334719, page_id=TEST_PAGE_12345, message_id=031fd852-c017-4ab9-8e6d-81d44c4e9335. Backend tests created additional test messages via webhook endpoint (auto-cleaned on next test run since they use unique UUIDs). Mark-spam/mark-reviewed tests modified the seeded message review_status (now 'spam' from last test run).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Facebook Messenger integration is fully functional. Critical bug was fixed: FacebookLeads.js STATUS_FILTERS had value:'' which crashed the Select component — changed to value:'all'. Backend: all 50 tests pass including webhook GET verification, webhook POST ingestion, idempotency, AI classification via Claude Sonnet, create-lead, create-draft-order, mark-reviewed, mark-spam. The seeded message (031fd852-...) was used for all CRUD tests and its review_status is now 'spam' (marked by last test run). META_APP_ID/META_APP_SECRET are empty (expected) — connect/start returns 503 as designed. Webhook signature validation is skipped when META_APP_SECRET is empty. AI classification is working via Emergent LLM key with Claude Sonnet model.",
+  "features_verified": {
+    "GET /api/integrations/meta/status": "PASS — returns {configured:false, app_configured:false, pages:[seeded page], total_connected:1}",
+    "GET /api/integrations/meta/webhook correct token": "PASS — returns challenge string",
+    "GET /api/integrations/meta/webhook wrong token": "PASS — returns 403",
+    "POST /api/integrations/meta/webhook valid payload": "PASS — returns {status:ok}, stores message",
+    "POST /api/integrations/meta/webhook idempotency": "PASS — duplicate mid not stored twice",
+    "GET /api/facebook/messages": "PASS — paginated inbox with seeded message",
+    "GET /api/facebook/messages/summary/stats": "PASS — returns {total, new, needs_review, high_urgency}",
+    "GET /api/facebook/messages/{id}": "PASS — full message detail, no raw_payload",
+    "POST /api/facebook/messages/{id}/process": "PASS — Claude Sonnet classification returns valid label",
+    "POST /api/facebook/messages/{id}/create-lead": "PASS — creates lead in db.leads, updates review_status=lead_created",
+    "POST /api/facebook/messages/{id}/create-draft-order": "PASS — creates order in db.orders, sets linked_order_id",
+    "POST /api/facebook/messages/{id}/mark-reviewed": "PASS — sets review_status=reviewed",
+    "POST /api/facebook/messages/{id}/mark-spam": "PASS — sets review_status=spam",
+    "POST /api/integrations/meta/connect/start (no app configured)": "PASS — returns 503",
+    "Frontend /facebook-leads": "PASS — after SelectItem fix; stats, messages list, detail modal, action buttons all working",
+    "Frontend /settings/meta-integration": "PASS — Meta App Not Configured warning shown, connected page displayed, Connect btn disabled",
+    "Navigation Facebook Leads under Customers": "PASS — confirmed in sub-nav",
+    "Navigation Meta/Facebook under Settings": "PASS — confirmed in sub-nav"
+  }
+}

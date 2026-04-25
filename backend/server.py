@@ -2757,6 +2757,8 @@ from routes.order_drawings import router as order_drawings_router
 from routes.signatures import router as signatures_router
 from routes.productivity import router as productivity_router
 from routes.appointments import router as appointments_router
+from routes.meta_integration import router as meta_integration_router
+from routes.facebook_messages import router as facebook_messages_router
 
 # Include all routers in the api_router
 api_router.include_router(auth_router)
@@ -2809,6 +2811,8 @@ api_router.include_router(order_drawings_router)  # Order Drawings/Signatures
 api_router.include_router(signatures_router)  # Structured Signature Requests
 api_router.include_router(productivity_router)  # Unified Productivity Layer
 api_router.include_router(appointments_router)  # Appointment detail routes
+api_router.include_router(meta_integration_router)  # Meta/Facebook Messenger integration
+api_router.include_router(facebook_messages_router)  # Facebook Leads inbox
 
 # Backup & Restore
 from routes.backup import setup_backup_routes

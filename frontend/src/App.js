@@ -53,6 +53,8 @@ import MaterialsAdmin from "./pages/MaterialsAdmin";
 import CompanySettings from "./pages/CompanySettings";
 import ProductionSettings from "./pages/settings/ProductionSettings";
 import BackupRestore from "./pages/settings/BackupRestore";
+import MetaIntegration from "./pages/MetaIntegration";
+import FacebookLeads from "./pages/FacebookLeads";
 import DigestSettings from "./pages/settings/DigestSettings";
 import AIAuditLog from "./pages/settings/AIAuditLog";
 import CommunityHub from "./pages/CommunityHub";
@@ -222,6 +224,8 @@ function ProtectedRoutes() {
           <Route path="/materials" element={<Navigate to="/pricing-foundation" replace />} />
           <Route path="/billing" element={<BillingManagement />} />
           <Route path="/questionnaires" element={<Questionnaires />} />
+          <Route path="/settings/meta-integration" element={<MetaIntegration />} />
+          <Route path="/facebook-leads" element={<FacebookLeads />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </MainLayout>
