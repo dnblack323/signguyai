@@ -543,13 +543,14 @@ async def send_invoice_payment_link(
 
     # Determine destination email: use override → invoice customer → fallback
     customer_email = (body.customer_email or "").strip()
+    customer_doc = None
     if not customer_email and invoice.get("customer_id"):
-        customer = await db.customers.find_one(
+        customer_doc = await db.customers.find_one(
             {"id": invoice["customer_id"], "tenant_id": current_user.tenant_id},
             {"_id": 0, "email": 1, "name": 1},
         )
-        if customer:
-            customer_email = customer.get("email", "").strip()
+        if customer_doc:
+            customer_email = customer_doc.get("email", "").strip()
 
     invoice_number = invoice.get("invoice_number") or invoice_id[:8].upper()
     company_name = tenant.get("company_name") or "Your Service Provider"
@@ -608,7 +609,7 @@ async def send_invoice_payment_link(
         from services.email_service import email_service
         customer_name = (
             invoice.get("customer_name")
-            or (customer.get("name") if "customer" in dir() else None)
+            or (customer_doc.get("name") if customer_doc else None)
             or "Valued Customer"
         )
         html_body = f"""

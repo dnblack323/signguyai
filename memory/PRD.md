@@ -23,7 +23,10 @@ Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independen
 
 ## Implemented (CHANGELOG)
 
-### 2026-04-25 — Stripe dedicated service refactor
+### 2026-04-25 — Send Payment Link Enhancement
+- New `POST /api/stripe-connect/invoice/{id}/send-payment-link` endpoint — generates a Stripe Checkout URL for any invoice and optionally emails it directly to the customer.
+- Frontend modal on Invoices page: shows amount, read-only URL, Copy (with check animation), Open-in-new-tab, editable email input, and Send button.
+- Customer email auto-filled from the customers DB; the customer needs no account to pay (Stripe-hosted checkout page).
 - Extracted all Stripe business logic out of `routes/webstores.py` and `routes/stripe_connect.py` into `services/stripe_service.py`.
 - `webstores.py`: 2205 → 2034 lines (-171 lines).
 - `stripe_connect.py`: 1371 → 1190 lines (-181 lines).
