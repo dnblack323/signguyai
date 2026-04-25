@@ -23,7 +23,28 @@ Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independen
 
 ## Implemented (CHANGELOG)
 
-### 2026-04-25 — Send Payment Link Enhancement
+### 2026-04-25 — Facebook/Meta Messenger Integration (Phase 1)
+**Backend files created:**
+- `services/meta_service.py` — Fernet token encryption, Meta Graph API helpers, audit logging
+- `services/facebook_ai.py` — Claude Sonnet AI classification + structured order extraction (12 classification labels, 30+ extraction fields)
+- `routes/meta_integration.py` — OAuth flow, webhook GET/POST, page connect/disconnect/settings
+- `routes/facebook_messages.py` — Message inbox, AI processing, lead/order creation, review actions
+
+**Frontend files created:**
+- `pages/MetaIntegration.js` — Settings > Meta/Facebook page with OAuth connect flow, page management, AI settings
+- `pages/FacebookLeads.js` — Leads inbox with stats, message list, search/filter, AI review modal
+
+**Features working:**
+- Webhook verification (GET challenge/response) ✅
+- Multi-tenant webhook ingestion mapped by Page ID ✅
+- Idempotency (duplicate message IDs ignored) ✅
+- Claude Sonnet AI classification (12 labels) + structured order extraction ✅
+- Auto-create draft lead/order when confidence ≥ threshold ✅
+- Audit logs for all actions ✅
+- Page access tokens encrypted at rest (Fernet) ✅
+- 50/50 backend tests pass ✅
+
+**Phase 2 (not built):** Dashboard widgets, auto-reply sending, advanced customer matching, notification system.
 - New `POST /api/stripe-connect/invoice/{id}/send-payment-link` endpoint — generates a Stripe Checkout URL for any invoice and optionally emails it directly to the customer.
 - Frontend modal on Invoices page: shows amount, read-only URL, Copy (with check animation), Open-in-new-tab, editable email input, and Send button.
 - Customer email auto-filled from the customers DB; the customer needs no account to pay (Stripe-hosted checkout page).
