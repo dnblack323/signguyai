@@ -1,43 +1,46 @@
 <analysis>**original_problem_statement**: 
-The user was troubleshooting a critical issue where a tenant (signguypa@gmail.com) was attempting to complete Stripe Connect onboarding but was continually forced into a test account with test data loop. The agent investigated and found two issues: first, a backend misconfiguration temporarily used a test key to create the connect link, and second (currently pending), the user is testing on their deployed production application which is still running on outdated Test Stripe environment variables, contrary to the preview environment which is correctly configured with Live keys.
+The user is working through a massive Prelaunch Checklist. They initially required urgent fixes to the Timeclock/Payroll system (lunch breaks disappearing, Paid in Full button, adjustments toggle). After those were resolved, the focus shifted to the public-facing marketing Features page (updating descriptions, adding a lightbox, replacing fake screenshots with real-data 16:10 screenshots) and then to the Webstores module (fixing corrupt list loading, enforcing Stripe checkout for orders, fixing missing banner images, and automatically syncing webstore orders into the main internal Orders dashboard).
 
 PRODUCT REQUIREMENTS:
-- Ensure Stripe Connect correctly handles and strictly segregates Live vs Test accounts.
-- Guide the user to successfully switch their production deployment to Live Stripe keys.
-- Continue addressing backlog features (Payroll/Artwork) once the deployment is stable.
+1. Payroll: Fix Timeclock lunch breaks to correctly deduct from total hours; add a Paid in Full button; add a toggle to hide/show the Adjustments panel.
+2. Marketing: Update Features page to reflect actual app capabilities (from the prelaunch checklist) without being overwhelming. Use real-data screenshots (16:10 ratio) with a click-to-enlarge lightbox.
+3. Webstores: Fix the Failed to refresh list bug upon creating or viewing stores.
+4. Webstores: Enforce secure Stripe checkout (block unpaid direct order creation).
+5. Webstores: Ensure uploaded banners display properly (handling legacy data fallbacks).
+6. Webstores: Ensure webstore orders automatically generate a corresponding order in the main  list with a visual badge.
 
 **User's preferred language**: English (INSTRUCT next agent to respond in English only)
 
 **what currently exists?** 
-- AI Business Assistant Phase 5 is 100% complete (Backend + Frontend UI).
-- Webstore Backend is heavily hardened: Fixed 17+ critical/high bugs including cross-tenant leaks, permission gaps, payout inflation, idempotency, Stripe caching, and migrated base64 images to object storage.
-- Stripe Connect safeguard implemented: The backend now actively detects if a Stripe Connect account has a  mismatch with the platform. If a test account is detected on a live platform, it auto-scrubs the ghost account from the DB with a full audit trail and forces a clean reconnection. Frontend handles the resulting 409 conflict gracefully.
+- Timeclock/Payroll logic is hardened: Lunch breaks accurately deduct hours, manual edits recalculate totals, the Paid in Full marker is functional, and the Adjustments panel is cleanly toggleable via Company Settings.
+- Marketing Features page () is overhauled with comprehensive, checklist-aligned capabilities, featuring real 1920x1200 screenshots and a click-to-enlarge lightbox.
+- Webstores are fully functional: List view correctly bypasses legacy/corrupt records, Stripe Checkout is strictly enforced to create an order, uploaded banners display gracefully with fallbacks, and paid storefront orders automatically sync to the internal  dashboard with an  badge and linking IDs.
 
 **Last working item**: 
-    - Last item agent was working: Instructing the user on how to manually update Environment Variables (specifically Stripe Secret/Publishable keys and 19 Stripe Price IDs) in the Emergent Deployment Dashboard for their production site.
+    - Last item agent was working: Bridging Webstore Orders to the Main Orders list so shop owners can manage all orders (both internal and storefront) from one central dashboard.
     - Status: USER VERIFICATION PENDING
-    - Agent Testing Done: Y (Agent verified the preview environment is functioning correctly with Live keys and actively probed the production API to confirm it is still running on Test keys).
-    - Which testing method agent to use? manual testing by curl
+    - Agent Testing Done: Y (Ran bash curl simulations for Stripe checkout and verified UI rendering via auto_frontend_testing_agent).
+    - Which testing method agent to use? Frontend testing agent / backend testing agent
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:  
-  - Issue 1: Production Deployment running on Test Stripe Keys (P0)
-     - Attempted fixes: Agent verified the preview  has the correct  keys. The user attempted to redeploy, but Emergent deployments do not auto-sync  files. 
-     - Next debug checklist: Await user confirmation that they have manually updated the Stripe keys and 19  variables in their Emergent deployment settings UI and redeployed. Once done, probe the production  endpoint to verify . Guide the user to click Disconnect and reconnect Stripe in their admin panel.
-     - Why fix this issue and what will be achieved with the fix? It is physically impossible for the user's tenants to process real payments or complete live onboarding until the production environment variables are updated.
-     - Status: USER VERIFICATION PENDING
-     - Is recurring issue? Y (User confusion over environment variables vs deployment variables).
-     - Should Test frontend/backend/both after fix? Backend (via curl) and manual frontend verification by user.
-     - Blocked on other issue: None.
-
-  - Issue 2: Payroll compensation snapshot double-counting hours (P2)
-     - Attempted fixes: None. Identified during previous code review.
-     - Next debug checklist:  sums  without deduplication. If an employee uses both the timeclock and job timers concurrently, hours inflate. 
-     - Why fix this issue and what will be achieved with the fix? Requires a product/business logic decision on whether to deduplicate or enforce a single tracking method.
+  - Issue 1: Tax-exempt toggle behavior not reflecting zero tax (P2)
+     - Attempted fixes: None in this session. (Found during Prelaunch Checklist 2.1F).
+     - Next debug checklist: Review invoice tax calculation logic when  is true on the customer profile.
+     - Why fix this issue and what will be achieved with the fix? Essential for wholesale/B2B customer quoting and invoicing.
      - Status: NOT STARTED
      - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? Backend
-     - Blocked on other issue: User clarification needed.
+     - Should Test frontend/backend/both after fix? backend
+     - Blocked on other issue: None
+
+  - Issue 2: Artwork attach via assets-panel path failing (P2)
+     - Attempted fixes: None in this session. (Found during Prelaunch Checklist 2.2E).
+     - Next debug checklist: Check  and the backend upload handler for missing file references or database insertion failures.
+     - Why fix this issue and what will be achieved with the fix? Ensures order context is complete with design assets.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? both
+     - Blocked on other issue: None
 
 **In progress Task List**: 
 None currently.
@@ -51,82 +54,105 @@ None currently.
     - P3: Team / Workforce Ribbon Rebuild (ON HOLD).
 
 **Completed work in this session**
-- Stripe Connect Safeguards: Added strict  validation to , , and  to prevent test accounts from being saved on a live platform. (DONE)
-- Stripe Audit Trail: Added , , and  to the  collection when a mismatched account is purged. (DONE)
-- Stripe Key Resolution Bug: Fixed an issue where the backend accidentally prioritized a system environment test key over the  live key. (DONE)
-- Frontend 409 Handling: Updated  to automatically refresh status upon hitting a 409 conflict, seamlessly recovering from ghost accounts without a page reload. (DONE)
+- Timeclock lunch breaks disappearing & manual edits failing to update totals (DONE)
+- Payroll Paid in Full button & Adjustments Settings Toggle (DONE)
+- Rewrite of  marketing page content + Click-to-enlarge Lightbox implementation (DONE)
+- Complete recapture of 14+ real-data screenshots at 16:10 ratio for marketing pages (DONE)
+- Webstores UI optimistic insert and backend legacy-record resilient parsing (Fixed Failed to refresh list bug) (DONE)
+- Webstores Stripe Checkout enforcement (Blocked unpaid API submissions) (DONE)
+- Webstores Banner Image fallback logic implementation (DONE)
+- Webstore Orders auto-sync creation mapping to  collection (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-None.
+   - Issue 1: Tax-exempt toggle behavior not validated (Checklist 2.1F)
+   - Issue 2: Artwork attach via assets-panel path failing (Checklist 2.2E)
+   *(See Pending Issues list for details)*
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: None
-  - Recurrence count: 0
+  - Issue recurrence in previous fork: Timeclock tracking logic.
+  - Recurrence count: 1 
   - Status: RESOLVED
 
 **Code Architecture**
-- : Handles checking Connect account statuses, generating onboarding URLs, and catching  mismatches to auto-scrub invalid accounts.
-- : Connects to backend to show Stripe status and handles automatic state recovery.
+- : Heavy lifting for storefront creation, Stripe webhooks, catalog mapping, and newly added syncing to .
+- : Public marketing page using a dynamic grid mapping  to .
+-  & : Timeclock, shift states, and manual compensation adjustments.
 
 **Key Technical Concepts**
-- **Emergent Deployment Environment Variables**: Deployment environment variables do NOT auto-sync from the workspace  file. They must be manually entered into the platform's deployment settings UI.
-- **Stripe Connect strict modes**: Standard Stripe Connect accounts are strictly bound to either Test or Live mode. Attempting to use a test-created account with a live key throws an .
+- **Prelaunch Checklist Tracking**: Use the 3 markdown files (, , ) to log test scenarios and verify issues.
+- **Webstore Order Sync**: Webstore orders now create a shadow  document in the  collection with  and . 
+- **Stripe Checkout Validation**: Direct submissions to webstore orders are blocked unless they map to a valid  record from a Stripe Checkout session.
 
 **key DB schema**
-  - : Stores . Now includes audit fields (, ) for auto-scrubbed ghost accounts.
+  - : Has  (bool),  (linking ID).
+  - : The standalone webstore order record that maps back to the main  DB.
+  - : Explicit fields for  and  to ensure accurate minute deductions.
 
 **changes in tech stack**
   - None
 
 **All files of reference** 
-  -  (Added robust validation and scrubbing logic).
-  -  (Added UX recovery logic for scrubbed accounts).
+  -  (Updated)
+  -  (Updated)
+  -  (Updated)
+  -  (Updated - handles sync, Stripe, list parsing)
+  -  (Updated)
+  -  (Updated)
+  -  (Updated test logs)
 
 **Areas that need refactoring**: 
--  could have  split into its own component for maintainability.
+-  is getting very large (2200+ lines). The webhook/Stripe finalization functions might be better suited in a dedicated service file.
 
 **key api endpoints**
 - 
 - 
 - 
+-  (Now strictly validates Stripe checkout status)
 
 **Critical Info for New Agent** 
-- **DO NOT alter the  file.** It is already correct and contains the Live keys. The current issue is strictly that the user's *deployed production application* is using outdated Test keys. 
-- You are waiting for the user to confirm they have updated the environment variables in the Emergent UI and redeployed. Once they confirm, use  to hit the *production*  endpoint to verify  returns . (Do not ask the user for their keys, just guide them through the UI).
+- **Timeclock Data**: Do not modify timeclock calculations without running deep regression tests. It is highly sensitive.
+- **Testing Credentials**:  /  is the main live testing account. Employee Portal testing user:  /  or  / . Customer Portal:  / .
+- **Image Captures**: The screenshots in  are intentionally captured at 1920x1200 via  automation to ensure tall readability on the Marketing page.
 
 **documents and test reports created in this job** 
   - 
+  - 
+  - 
 
 **Last 10 User Messages and any pending HUMAN messages** 
-- *User*: YES DO IT
-- *Agent*: [Implements Connect safeguards across backend and frontend, tests, finishes task]
-- *User*: THIS IS WHAT I GET (Uploads screenshot showing test mode error)
-- *Agent*: [Discovers user is on the production deployed site which is using test keys. Instructs user to redeploy.]
-- *User*: STILL GETTING SAME TEST ACCOUNT AND TEST DATA MESSAGE
-- *Agent*: [Confirms production is still using test keys via API probe. Explains Emergent doesn't auto-sync .env on deploy. Provides step-by-step instructions for the user to manually update Env Vars (Stripe keys + 19 price IDs) in the Emergent deployment UI.] -> **ACTION REQUIRED: Await user confirmation that they have updated the deployment variables.**
+1. *User*: i need stripe enabled on checkout for webstores right now it just takes customer info.
+2. *Agent*: [Enforces Stripe checkout requirement for webstores]
+3. *User*: also the uploaded banner image is not showing in the store
+4. *User*: i just noticed the dunbar 250 store in signguypa@gmail.com but it is probably all of them just check it out it let me uppload it then it just didnt show up yes it originally said successful i think png
+5. *Agent*: [Fixes banner legacy compatibility mapping]
+6. *User*: test that store orders are automatically added to main order list and marked as webstore order
+7. *User*: test signguypa@gmail.com stimulate checkout and fix immediately
+8. *Agent*: [Implements bridge logic where paid webstore orders automatically generate a shadow document in the main orders list] -> *Session Finished. User verification pending.*
 
 **Project Health Check:**
-- Broken: Production deployment environment variables (currently using Test instead of Live).
+- Broken: None at the moment. (Tax-exempt UI and Artwork Attach from Prelaunch Checklist are pending).
 - Mocked: None.
 
 **3rd Party Integrations** 
-  - Stripe (Payments) — requires User API Key.
+- Stripe (Payments) — requires User API Key. Used heavily in this session for Webstores.
+- Emergent LLM Key — Used for internal generation tasks.
 
 **Testing status**
-  - Testing agent used after significant changes: NO (Testing was isolated to Stripe mode mismatches; handled via  and manual script validation).
+  - Testing agent used after significant changes: YES (Both Auto-Frontend and Deep-Testing-Backend used heavily).
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: None
-  - Known regressions: None
+  - Test files created: 
+  - Known regressions: None currently.
 
 **Credentials to test flow:**
--  / 
+- Main Admin:  / 
+- Employee Portal:  / 
 
 **What agent forgot to execute**
-None. Agent successfully diagnosed the core infrastructure disconnect. 
+- The agent addressed all immediate user prompts thoroughly. The Prelaunch checklist issues  (Tax exempt) and  (Assets panel) are safely documented for the next agent to pick up.
 
 **Debugging checklist for current issue**
-    Issue: Production Deployment Running on Test Stripe Keys
-    - Wait for user to confirm they followed the instructions to update Environment Variables in the Emergent Deployment Dashboard.
-    - Run a  against the production API endpoint () using the tenant's token to verify that  now returns .
-    - If it still says , the user has not updated the variables correctly. Re-explain or ask for a screenshot of their Emergent Deployment Config page.
-    - Once  is confirmed, instruct the user to go to Admin -> Payment Settings on their production site, click Disconnect (to flush the zombie test account), and click Connect Stripe again.</analysis>
+    Issue: Verification of Webstore-to-Orders Sync (Last worked item)
+    - Navigate to  -> Open any Webstore -> Purchase an item using the Stripe test flow.
+    - Go back to  as the Admin. 
+    - Verify the newly created order appears in the list with an  indicator or badge.
+    - If verifying next pending issue (Tax Exempt 2.1F), check  and  for tax calculation when  is true.</analysis>

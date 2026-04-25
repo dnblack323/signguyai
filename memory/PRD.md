@@ -11,6 +11,26 @@ Full-stack business management app for sign/graphics shops: customer management,
 - **AI Business Assistant** — Phase 5 (saved commands, routines, modes, bulk action previews).
 - **Stripe Connect (platform-owned) + Stripe Connect (tenant onboarding)** — platform billing + tenant payouts.
 
+## Architecture — Stripe Service Layer
+As of 2026-04-25, all Stripe business logic is centralised in `backend/services/stripe_service.py`:
+- Platform fee schedule, `get_stripe_mode()`, `get_tenant_tier()`
+- Connect account checkout-status cache (`get_stripe_account_checkout_status`)
+- DB helpers: `find_invoice_document`, `record_stripe_event`, `mark_invoice_paid`
+- Webstore finalization: `finalize_webstore_stripe_checkout` (lazy-imports webstore types to avoid circular dep)
+
+`routes/stripe_connect.py` and `routes/webstores.py` are thin consumers of this service.
+Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
+
+## Implemented (CHANGELOG)
+
+### 2026-04-25 — Stripe dedicated service refactor
+- Extracted all Stripe business logic out of `routes/webstores.py` and `routes/stripe_connect.py` into `services/stripe_service.py`.
+- `webstores.py`: 2205 → 2034 lines (-171 lines).
+- `stripe_connect.py`: 1371 → 1190 lines (-181 lines).
+- New `stripe_service.py`: 410 lines, single source of truth.
+- All existing endpoints and webhook flows verified working after refactor.
+- Both files use standalone Motor clients to avoid circular import through `server.py`.
+
 ## Implemented (CHANGELOG)
 
 ### 2026-04-24 — Webstore orders now auto-appear in main Orders list

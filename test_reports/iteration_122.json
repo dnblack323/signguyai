@@ -37,7 +37,7 @@
     "owner": "signguypa@gmail.com / Billnel323",
     "portal_user": "portalreg_1776974524@example.com / 123456"
   },
-  "seed_data_creation": "Used existing seeded data: customer_id=a5023d21-2b6c-4480-9b00-f1adb8d53b3d, order_id=c4f00d92-c7d1-4a83-af96-f74adf7d5e4d, quote_id=56c2c9c5-f89e-44e3-9fc1-f80ed55594d1, invoice_id=810e9945-b706-46d4-9665-53215370765e",
+  "seed_data_creation": "Used existing seeded data: customer_id=prelaunch-checklist, order_id=prelaunch-checklist, quote_id=prelaunch-checklist, invoice_id=prelaunch-checklist",
   "retest_needed": false,
   "main_agent_can_self_test": true,
   "context_for_next_testing_agent": "Portal regressions all fixed and verified. Key endpoints tested: /api/portal/dashboard, /api/portal/orders, /api/portal/quotes, /api/portal/invoices, /api/portal/conversations, /api/portal/conversations/{id}/messages. Customer detail modal in Customers.js has only one New Order button.",

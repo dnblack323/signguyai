@@ -1,48 +1,53 @@
 """
-Stripe Connect Routes
+Stripe Connect Routes — API Layer
 
-Enables tenants to connect their own Stripe accounts to accept payments
-for invoices and webstore orders.
+Route handlers for Stripe Connect account management, invoice payments,
+webstore payments, webhooks, and the tenant Stripe dashboard.
 
-Platform fee structure:
-- Tier 1 (Starter): 3%
-- Tier 2 (Growth): 2%
-- Tier 3 (Pro/Business): 1%
+All Stripe business logic (platform fees, account caching, event helpers,
+finalization) lives in services/stripe_service.py. This module is a thin
+HTTP layer that delegates to that service.
 """
 
 import os
 import stripe
-import logging
 import json
+import logging
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel, Field
 from motor.motor_asyncio import AsyncIOMotorClient
 
-# Database connection
-MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
-DB_NAME = os.environ.get('DB_NAME', 'signage_erp')
-client = AsyncIOMotorClient(MONGO_URL)
-db = client[DB_NAME]
+# Standalone DB connection (avoids circular import through server.py).
+MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
+DB_NAME = os.environ.get("DB_NAME", "signguy_ai")
+_client = AsyncIOMotorClient(MONGO_URL)
+db = _client[DB_NAME]
+logger = logging.getLogger(__name__)
 
-# Import auth dependencies
 from models import UserInDB
 from core.auth_deps import get_current_active_user
 
+# Stripe service — all business logic lives here
+from services.stripe_service import (
+    PLATFORM_FEES,
+    get_platform_fee_percent,
+    get_stripe_mode,
+    get_tenant_tier,
+    is_wrong_mode_error,
+    scrub_stale_connect_account,
+    extract_metadata,
+    find_invoice_document,
+    record_stripe_event,
+    mark_invoice_paid,
+    finalize_webstore_stripe_checkout,
+)
+
 router = APIRouter(prefix="/stripe-connect", tags=["Stripe Connect"])
-logger = logging.getLogger(__name__)
 
-# Initialize Stripe
-stripe.api_key = os.environ.get('STRIPE_SECRET_KEY') or os.environ.get('STRIPE_API_KEY')
-
-# Platform fee percentages by tier
-PLATFORM_FEES = {
-    "starter": 0.022,    # All Founders: 2.2% platform processing
-    "pro": 0.022,        # All Founders: 2.2% platform processing
-    "business": 0.022,   # All Founders: 2.2% platform processing
-    "founders_edition": 0.022,  # 2.2% platform processing
-}
+# Ensure Stripe key is set for any direct stripe.* calls in route handlers.
+stripe.api_key = os.environ.get("STRIPE_SECRET_KEY") or os.environ.get("STRIPE_API_KEY")
 
 
 class ConnectAccountResponse(BaseModel):
@@ -83,114 +88,7 @@ class PaymentResponse(BaseModel):
     session_id: str
 
 
-def _extract_metadata(stripe_obj: Any) -> Dict[str, Any]:
-    if isinstance(stripe_obj, dict):
-        return stripe_obj.get("metadata") or {}
-    return getattr(stripe_obj, "metadata", {}) or {}
-
-
-async def _find_invoice_document(reference_id: str, tenant_id: Optional[str]) -> tuple[Optional[Dict[str, Any]], Optional[Any]]:
-    if tenant_id:
-        invoice = await db.invoices.find_one({"id": reference_id, "tenant_id": tenant_id}, {"_id": 0})
-        if invoice:
-            return invoice, db.invoices
-
-        legacy = await db.order_quotes.find_one(
-            {"id": reference_id, "tenant_id": tenant_id, "type": "invoice"},
-            {"_id": 0},
-        )
-        if legacy:
-            return legacy, db.order_quotes
-
-    invoice = await db.invoices.find_one({"id": reference_id}, {"_id": 0})
-    if invoice:
-        return invoice, db.invoices
-
-    legacy = await db.order_quotes.find_one({"id": reference_id, "type": "invoice"}, {"_id": 0})
-    if legacy:
-        return legacy, db.order_quotes
-
-    return None, None
-
-
-async def _record_stripe_event(
-    tenant_id: Optional[str],
-    event_type: str,
-    status: str,
-    session_id: Optional[str] = None,
-    reference_id: Optional[str] = None,
-    amount: Optional[float] = None,
-    currency: Optional[str] = None,
-    message: Optional[str] = None,
-    raw: Optional[Dict[str, Any]] = None,
-) -> None:
-    if not tenant_id:
-        return
-    doc = {
-        "tenant_id": tenant_id,
-        "event_type": event_type,
-        "status": status,
-        "session_id": session_id,
-        "reference_id": reference_id,
-        "amount": amount,
-        "currency": currency,
-        "message": message,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    }
-    if raw:
-        doc["raw"] = raw
-    await db.stripe_connect_events.insert_one(doc)
-
-
-async def _mark_invoice_paid(
-    reference_id: str,
-    tenant_id: Optional[str],
-    session_id: str,
-    amount: Optional[float],
-    currency: Optional[str],
-) -> None:
-    invoice, collection = await _find_invoice_document(reference_id, tenant_id)
-    if not invoice or collection is None:
-        return
-
-    grand_total = float(invoice.get("grand_total", invoice.get("total", 0)) or 0)
-    current_paid = float(invoice.get("amount_paid", 0) or 0)
-    paid_value = max(current_paid, grand_total, float(amount or 0))
-    now_iso = datetime.now(timezone.utc).isoformat()
-
-    await collection.update_one(
-        {"id": reference_id, **({"tenant_id": tenant_id} if tenant_id else {})},
-        {
-            "$set": {
-                "status": "paid",
-                "paid_at": now_iso,
-                "paid_date": now_iso,
-                "payment_method": "stripe",
-                "stripe_session_id": session_id,
-                "amount_paid": paid_value,
-                "updated_at": now_iso,
-            }
-        },
-    )
-
-    payment_exists = await db.payments.find_one(
-        {"stripe_session_id": session_id, "invoice_id": reference_id},
-        {"_id": 0, "stripe_session_id": 1},
-    )
-    if not payment_exists:
-        await db.payments.insert_one(
-            {
-                "invoice_id": reference_id,
-                "tenant_id": tenant_id,
-                "amount": float(amount or grand_total or 0),
-                "platform_fee": None,
-                "payment_method": "stripe",
-                "payment_type": "stripe_connect_checkout",
-                "currency": currency or "usd",
-                "stripe_session_id": session_id,
-                "created_at": now_iso,
-            }
-        )
+# Utility functions are imported from services.stripe_service above.
 
 
 class WebstoreCheckoutItem(BaseModel):
@@ -217,78 +115,7 @@ class WebstoreCheckoutRequest(BaseModel):
     customer_info: WebstoreCustomerInfo
 
 
-def get_platform_fee_percent(tier: str) -> float:
-    """Get platform fee percentage for a tier"""
-    return PLATFORM_FEES.get(tier, 0.022)  # Default to 2.2% (Founders)
 
-
-def get_stripe_mode() -> str:
-    api_key = stripe.api_key or ""
-    return "live" if api_key.startswith("sk_live_") else "test"
-
-
-async def _scrub_stale_connect_account(tenant_id: str, account_id: str, reason: str) -> None:
-    """Remove a stored Connect account ID that is no longer usable.
-
-    Used when Stripe reports the account was created in a different mode
-    (e.g., test-mode account lingering on a live-mode platform), or the
-    account has been deleted. Keeps a breadcrumb on the tenant doc so
-    support can trace why the record was cleared.
-    """
-    await db.tenants.update_one(
-        {"id": tenant_id},
-        {
-            "$unset": {
-                "stripe_connect_account_id": "",
-                "stripe_connect_created_at": "",
-            },
-            "$set": {
-                "stripe_connect_scrubbed_at": datetime.now(timezone.utc).isoformat(),
-                "stripe_connect_scrubbed_reason": reason,
-                "stripe_connect_scrubbed_account_id": account_id,
-            },
-        },
-    )
-
-
-def _is_wrong_mode_error(err: Exception) -> bool:
-    """Detect Stripe's cross-mode error ('test account...testmode keys')."""
-    msg = str(err or "").lower()
-    return ("testmode" in msg and "live" in msg) or (
-        "test account" in msg and "testmode keys" in msg
-    ) or ("livemode" in msg and "test" in msg)
-
-
-async def get_tenant_tier(tenant_id: str) -> str:
-    """Get tenant's subscription tier from the plan system"""
-    tenant = await db.tenants.find_one(
-        {"id": tenant_id},
-        {"_id": 0, "plan": 1, "is_founder": 1}
-    )
-    if not tenant:
-        return "starter"
-    
-    plan = tenant.get("plan", "")
-    is_founder = tenant.get("is_founder", False)
-    
-    # Map plan to tier for fee calculation
-    if plan in ("os_business", "founders_edition") or (is_founder and plan == "founders_edition"):
-        return "business"
-    elif plan in ("os_pro",):
-        return "pro"
-    elif plan in ("business", "tier_3"):
-        return "business"
-    elif plan in ("pro", "tier_2"):
-        return "pro"
-    
-    # Check subscriptions collection as fallback
-    subscription = await db.subscriptions.find_one(
-        {"tenant_id": tenant_id},
-        {"_id": 0, "tier": 1}
-    )
-    if subscription:
-        return subscription.get("tier", "starter")
-    return "starter"
 
 
 @router.get("/status", response_model=ConnectAccountResponse)
@@ -329,7 +156,7 @@ async def get_connect_status(current_user: UserInDB = Depends(get_current_active
 
         # Hard guard: a test-mode account must never linger on a live platform.
         if stripe_mode == "live" and livemode_flag is False:
-            await _scrub_stale_connect_account(
+            await scrub_stale_connect_account(
                 current_user.tenant_id,
                 account_id,
                 "status_check_detected_test_account_on_live_platform",
@@ -356,8 +183,8 @@ async def get_connect_status(current_user: UserInDB = Depends(get_current_active
         # the other mode (classic "ghost test account on live platform" case).
         # Either way, drop it and show the tenant an unconnected state so they
         # can restart cleanly.
-        if _is_wrong_mode_error(e) or "No such account" in str(e):
-            await _scrub_stale_connect_account(
+        if is_wrong_mode_error(e) or "No such account" in str(e):
+            await scrub_stale_connect_account(
                 current_user.tenant_id,
                 account_id,
                 f"status_check_stripe_rejected: {str(e)[:200]}",
@@ -399,7 +226,7 @@ async def create_connect_account(
                 livemode_flag = getattr(account, "livemode", None)
                 # Scrub test-mode accounts when we're on a live platform.
                 if stripe_mode == "live" and livemode_flag is False:
-                    await _scrub_stale_connect_account(
+                    await scrub_stale_connect_account(
                         current_user.tenant_id,
                         existing_account_id,
                         "create_account_detected_test_account_on_live_platform",
@@ -409,8 +236,8 @@ async def create_connect_account(
                     account_id = existing_account_id
             except stripe.error.InvalidRequestError as e:
                 # Either deleted, or the classic cross-mode ghost account.
-                if _is_wrong_mode_error(e) or "No such account" in str(e):
-                    await _scrub_stale_connect_account(
+                if is_wrong_mode_error(e) or "No such account" in str(e):
+                    await scrub_stale_connect_account(
                         current_user.tenant_id,
                         existing_account_id,
                         f"create_account_stripe_rejected: {str(e)[:200]}",
@@ -492,8 +319,8 @@ async def refresh_onboarding_link(
     try:
         account = stripe.Account.retrieve(account_id)
     except stripe.error.InvalidRequestError as e:
-        if _is_wrong_mode_error(e) or "No such account" in str(e):
-            await _scrub_stale_connect_account(
+        if is_wrong_mode_error(e) or "No such account" in str(e):
+            await scrub_stale_connect_account(
                 current_user.tenant_id,
                 account_id,
                 f"refresh_link_stripe_rejected: {str(e)[:200]}",
@@ -509,7 +336,7 @@ async def refresh_onboarding_link(
 
     livemode_flag = getattr(account, "livemode", None)
     if stripe_mode == "live" and livemode_flag is False:
-        await _scrub_stale_connect_account(
+        await scrub_stale_connect_account(
             current_user.tenant_id,
             account_id,
             "refresh_link_detected_test_account_on_live_platform",
@@ -873,7 +700,7 @@ async def get_payment_status(session_id: str):
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    metadata = _extract_metadata(session)
+    metadata = extract_metadata(session)
     tenant_id_from_session = metadata.get("tenant_id")
     invoice_id_from_session = metadata.get("invoice_id")
 
@@ -896,7 +723,7 @@ async def get_payment_status(session_id: str):
         reference_id = (transaction or {}).get("reference_id") or invoice_id_from_session
 
         if reference_id and ((transaction or {}).get("type") == "invoice" or metadata.get("type") == "invoice"):
-            await _mark_invoice_paid(
+            await mark_invoice_paid(
                 reference_id=reference_id,
                 tenant_id=tenant_id,
                 session_id=session_id,
@@ -904,7 +731,7 @@ async def get_payment_status(session_id: str):
                 currency=getattr(session, "currency", None),
             )
 
-        await _record_stripe_event(
+        await record_stripe_event(
             tenant_id=tenant_id,
             event_type="payment_status_check",
             status="paid",
@@ -917,10 +744,6 @@ async def get_payment_status(session_id: str):
 
         if transaction:
             if transaction.get("type") == "webstore_order":
-                # Fixes Flow-B bugs #1–#4: finalize into webstore_orders_v2
-                # via the canonical path (job creation, commission calc,
-                # payout credit all flow through).
-                from routes.webstores import finalize_webstore_stripe_checkout
                 try:
                     await finalize_webstore_stripe_checkout(session_id)
                 except Exception as exc:
@@ -936,7 +759,7 @@ async def get_payment_status(session_id: str):
                 }
             },
         )
-        await _record_stripe_event(
+        await record_stripe_event(
             tenant_id=tenant_id_from_session,
             event_type="payment_status_check",
             status="expired" if session.status == "expired" else "cancelled",
@@ -988,7 +811,7 @@ async def stripe_connect_webhook(request: Request):
 
     if event.type == "checkout.session.completed":
         session = event.data.object
-        metadata = _extract_metadata(session)
+        metadata = extract_metadata(session)
         tenant_id = metadata.get("tenant_id")
         reference_id = metadata.get("invoice_id")
         now_iso = datetime.now(timezone.utc).isoformat()
@@ -1012,7 +835,7 @@ async def stripe_connect_webhook(request: Request):
 
         if session.payment_status == "paid":
             if (transaction and transaction.get("type") == "invoice") or metadata.get("type") == "invoice":
-                await _mark_invoice_paid(
+                await mark_invoice_paid(
                     reference_id=transaction_reference,
                     tenant_id=transaction_tenant,
                     session_id=session.id,
@@ -1020,15 +843,12 @@ async def stripe_connect_webhook(request: Request):
                     currency=getattr(session, "currency", None),
                 )
             elif transaction and transaction.get("type") == "webstore_order":
-                # Fixes Flow-B bugs #1–#5: finalize into the canonical
-                # webstore_orders_v2 collection via the webstores helper.
-                from routes.webstores import finalize_webstore_stripe_checkout
                 try:
                     await finalize_webstore_stripe_checkout(session.id)
                 except Exception as exc:
                     logger.exception(f"webhook finalize failed for {session.id}: {exc}")
 
-            await _record_stripe_event(
+            await record_stripe_event(
                 tenant_id=transaction_tenant,
                 event_type=event.type,
                 status="paid",
@@ -1041,7 +861,7 @@ async def stripe_connect_webhook(request: Request):
 
     elif event.type == "checkout.session.expired":
         session = event.data.object
-        metadata = _extract_metadata(session)
+        metadata = extract_metadata(session)
         tenant_id = metadata.get("tenant_id")
         now_iso = datetime.now(timezone.utc).isoformat()
 
@@ -1050,7 +870,7 @@ async def stripe_connect_webhook(request: Request):
             {"$set": {"status": "expired", "updated_at": now_iso}},
         )
 
-        await _record_stripe_event(
+        await record_stripe_event(
             tenant_id=tenant_id,
             event_type=event.type,
             status="expired",
@@ -1063,7 +883,7 @@ async def stripe_connect_webhook(request: Request):
 
     elif event.type == "payment_intent.payment_failed":
         payment_intent = event.data.object
-        metadata = _extract_metadata(payment_intent)
+        metadata = extract_metadata(payment_intent)
         tenant_id = metadata.get("tenant_id")
         now_iso = datetime.now(timezone.utc).isoformat()
         await db.payment_transactions.update_many(
@@ -1084,7 +904,7 @@ async def stripe_connect_webhook(request: Request):
             },
         )
 
-        await _record_stripe_event(
+        await record_stripe_event(
             tenant_id=tenant_id,
             event_type=event.type,
             status="failed",
@@ -1108,8 +928,8 @@ async def stripe_connect_webhook(request: Request):
 
     elif event.type == "charge.dispute.created":
         dispute = event.data.object
-        metadata = _extract_metadata(dispute)
-        await _record_stripe_event(
+        metadata = extract_metadata(dispute)
+        await record_stripe_event(
             tenant_id=metadata.get("tenant_id"),
             event_type=event.type,
             status="open",
@@ -1344,11 +1164,11 @@ async def reconcile_invoice_payments(current_user: UserInDB = Depends(get_curren
             continue
 
         checked += 1
-        invoice, _ = await _find_invoice_document(reference_id, current_user.tenant_id)
+        invoice, _ = await find_invoice_document(reference_id, current_user.tenant_id)
         if not invoice or invoice.get("status") == "paid":
             continue
 
-        await _mark_invoice_paid(
+        await mark_invoice_paid(
             reference_id=reference_id,
             tenant_id=current_user.tenant_id,
             session_id=session_id,
@@ -1357,7 +1177,7 @@ async def reconcile_invoice_payments(current_user: UserInDB = Depends(get_curren
         )
         fixed += 1
 
-    await _record_stripe_event(
+    await record_stripe_event(
         tenant_id=current_user.tenant_id,
         event_type="manual_reconcile",
         status="completed",
