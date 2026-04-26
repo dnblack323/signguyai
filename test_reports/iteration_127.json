@@ -1,0 +1,59 @@
+{
+  "summary": "Iteration 127: Testing of Bug 2.1F (tax-exempt toggle) and Bug 2.2E (assets panel upload/thumbnail). All 8 backend tests passed. All frontend tests passed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Company Settings route",
+        "issues": ["Review request referenced '/settings/company' but actual React Router route is '/settings'. The CompanySettings component is rendered at /settings. Minor documentation mismatch — no functional bug."]
+      }
+    ]
+  },
+  "verification_results": {
+    "backend_tenant_tax_rate_set": "PASS — PUT /api/tenant with default_tax_rate=6.0 returns 200 with correct value",
+    "backend_tenant_tax_rate_persists": "PASS — GET /api/tenant returns persisted default_tax_rate=6.0",
+    "backend_non_exempt_tax_applied": "PASS — Non-exempt customer ($100 order): tax_amount=6.0, grand_total=106.0, tax_rate=6.0, is_tax_exempt=False",
+    "backend_non_exempt_tax_applied_200": "PASS — Non-exempt customer ($200 order): tax_amount=12.0, grand_total=212.0",
+    "backend_exempt_zero_tax": "PASS — Tax-exempt customer ($100 order): tax_amount=0.0, grand_total=100.0, tax_rate=0.0, is_tax_exempt=True",
+    "backend_exempt_grand_total_equals_subtotal": "PASS — Tax-exempt customer ($250 order): grand_total==subtotal=250.0, tax_amount=0.0",
+    "backend_existing_non_exempt_customer": "PASS — Pre-existing customer 1eaeec1d confirmed is_tax_exempt=False",
+    "backend_existing_exempt_customer": "PASS — Pre-existing customer 1a72666e confirmed is_tax_exempt=True",
+    "frontend_company_settings_page_loads": "PASS — Company Settings page loads at /settings with data-testid='company-settings-page'",
+    "frontend_tax_rate_input_exists": "PASS — data-testid='company-tax-rate-input' found, showing current value '6'",
+    "frontend_tax_rate_save_persists": "PASS — Changed to 8.5, saved, reloaded — value persisted as 8.5. Toast 'Company settings updated successfully' shown.",
+    "frontend_assets_panel_renders": "PASS — data-testid='order-assets-panel' found on Notes tab of ORD-0013",
+    "frontend_drop_zone_exists": "PASS — data-testid='asset-drop-zone' found with 'or drag & drop here' text",
+    "frontend_upload_button_exists": "PASS — data-testid='asset-upload-button' (Upload Files) found and clickable",
+    "frontend_file_upload_works": "PASS — Uploaded test_asset.png via file input; asset-row-{id} appeared in asset list",
+    "frontend_thumbnail_renders": "PASS — data-testid='asset-thumbnail-{id}' found showing actual image (red 1x1 PNG), not static icon"
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration127_tax_exempt_assets.py",
+    "/app/test_reports/pytest/iteration127_tax_exempt_assets.xml"
+  ],
+  "action_items": [
+    "MINOR: Update review_request or docs to reflect that CompanySettings is at /settings (not /settings/company) — no functional change needed, just documentation.",
+    "CLEANUP: A test file 'test_asset.png' was uploaded to order ORD-0013 during testing — delete if desired."
+  ],
+  "critical_code_review_comments": [
+    "Tax logic in generate_invoice_from_order (orders.py:349-356) is correctly implemented: fetches tenant default_tax_rate, checks customer is_tax_exempt, applies 0 rate for exempt customers. No issues found.",
+    "OrderAssetsPanel correctly implements drag-and-drop (handleDrop/handleDragOver/handleDragLeave) and AssetThumbnail component fetches actual image blob for real thumbnails. No issues found.",
+    "CompanySettings correctly loads default_tax_rate from tenant data (line 99) and sends it as parseFloat on save (line 168). Includes proper null/empty checks. No issues found."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration127_tax_exempt_assets.py"
+  ],
+  "success_rate": {
+    "backend": "100% (8/8 tests passed)",
+    "frontend": "100% (all key elements found, upload works, tax rate persists)"
+  },
+  "seed_data_creation": "Uploaded test_asset.png to ORD-0013 (order aa583c33-8c17-4c14-96ee-56cce7971754) during assets panel testing. Tax rate temporarily set to 8.5 then reset to 6. TEST_TaxCustomer_ prefixed customers created and cleaned up.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Both Bug 2.1F and 2.2E fully verified. Backend: 8/8 tests pass. Frontend: Company Settings at /settings (NOT /settings/company — route in App.js is /settings). Tax rate input has data-testid='company-tax-rate-input', currently set to 6. Assets panel on Notes tab of order detail page works fully — drag-and-drop zone present, upload working, real thumbnails rendering. Tenant default_tax_rate=6.0 in DB. Pre-existing test customers still valid: non-exempt 1eaeec1d, exempt 1a72666e."
+}

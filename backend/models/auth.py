@@ -49,6 +49,7 @@ class TenantBase(BaseModel):
     payroll_settings: Optional[PayrollSettings] = None
     employee_portal_settings: Optional[Dict[str, bool]] = None
     signature_settings: Optional[Dict[str, Any]] = None
+    default_tax_rate: Optional[float] = 0.0
 
 class TenantCreate(BaseModel):
     name: str
@@ -71,6 +72,7 @@ class TenantUpdate(BaseModel):
     employee_portal_settings: Optional[Dict[str, bool]] = None
     customer_portal_settings: Optional[Dict[str, bool]] = None
     signature_settings: Optional[Dict[str, Any]] = None
+    default_tax_rate: Optional[float] = None
 
 class Tenant(TenantBase):
     model_config = ConfigDict(extra="ignore")

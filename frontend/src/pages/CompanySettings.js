@@ -35,7 +35,8 @@ export default function CompanySettings() {
     zip_code: '',
     country: 'USA',
     website: '',
-    logo_url: ''
+    logo_url: '',
+    default_tax_rate: ''
   });
   
   // Time tracking settings
@@ -94,7 +95,8 @@ export default function CompanySettings() {
         zip_code: data.zip_code || '',
         country: data.country || 'USA',
         website: data.website || '',
-        logo_url: ''
+        logo_url: '',
+        default_tax_rate: data.default_tax_rate != null ? String(data.default_tax_rate) : ''
       });
       // Fetch logo separately if tenant has one
       if (data.has_logo) {
@@ -161,7 +163,11 @@ export default function CompanySettings() {
       // Only send non-empty fields
       const updateData = {};
       Object.entries(formData).forEach(([key, value]) => {
-        if (value && value.trim() !== '') {
+        if (key === 'default_tax_rate') {
+          if (value !== '' && value != null) {
+            updateData[key] = parseFloat(value) || 0;
+          }
+        } else if (key !== 'logo_url' && value && value.trim() !== '') {
           updateData[key] = value.trim();
         }
       });
@@ -520,6 +526,25 @@ export default function CompanySettings() {
                     style={{ background: '#FFFFFF', borderColor: '#D7DCE2' }}
                   />
                 </div>
+              </div>
+
+              {/* Default Tax Rate */}
+              <div className="space-y-2">
+                <Label htmlFor="default_tax_rate" className="text-gray-900">Default Tax Rate (%)</Label>
+                <p className="text-xs text-gray-500">Applied to invoices for non-tax-exempt customers.</p>
+                <Input
+                  id="default_tax_rate"
+                  type="number"
+                  step="0.001"
+                  min="0"
+                  max="100"
+                  data-testid="company-tax-rate-input"
+                  value={formData.default_tax_rate}
+                  onChange={(e) => setFormData({...formData, default_tax_rate: e.target.value})}
+                  placeholder="e.g. 6 or 8.5"
+                  disabled={!canEditSettings}
+                  style={{ background: '#FFFFFF', borderColor: '#D7DCE2' }}
+                />
               </div>
             </div>
 

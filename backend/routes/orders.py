@@ -346,6 +346,15 @@ async def generate_invoice_from_order(order_id: str, current_user: UserInDB = De
         })
         subtotal += price
 
+    # Fetch tenant default tax rate and customer tax-exempt status
+    tenant_doc = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0, "default_tax_rate": 1})
+    default_tax_rate = float(tenant_doc.get("default_tax_rate") or 0) if tenant_doc else 0.0
+    customer_doc = await db.customers.find_one({"id": order.get("customer_id", ""), "tenant_id": current_user.tenant_id}, {"_id": 0, "is_tax_exempt": 1})
+    is_tax_exempt = bool((customer_doc or {}).get("is_tax_exempt", False))
+    tax_rate_applied = 0.0 if is_tax_exempt else default_tax_rate
+    tax_amount = round(subtotal * (tax_rate_applied / 100), 2)
+    grand_total = round(subtotal + tax_amount, 2)
+
     invoice_id = str(uuid.uuid4())
     invoice_doc = {
         "id": invoice_id,
@@ -362,9 +371,11 @@ async def generate_invoice_from_order(order_id: str, current_user: UserInDB = De
             }
             for item in line_items
         ],
-        "tax_amount": 0,
+        "tax_amount": tax_amount,
+        "tax_rate": tax_rate_applied,
+        "is_tax_exempt": is_tax_exempt,
         "discount_amount": 0,
-        "grand_total": subtotal,
+        "grand_total": grand_total,
         "amount_paid": 0,
         "notes": "",
         "due_date": order.get("requested_due_date"),
