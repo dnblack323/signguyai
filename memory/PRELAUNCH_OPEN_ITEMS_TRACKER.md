@@ -25,14 +25,14 @@ Last updated: 2026-04-23
 ### Tier 2
 
 #### 2.1 Customers CRUD
-- **2.1F** Tax-exempt toggle not reflected in tested invoice tax behavior
+- ~~**2.1F**~~ Tax-exempt toggle not reflected in tested invoice tax behavior
   - Evidence: non-exempt and exempt paths both produced tax=0 in tested flow
-  - Next: implement or document customer-aware tax policy
+  - Next: FIXED — default_tax_rate added to tenant, applied on invoice generation per customer is_tax_exempt flag
 
 #### 2.2 Orders Quick Entry
-- **2.2E** Assets-panel upload/thumbnail path failed in tested run
+- ~~**2.2E**~~ Assets-panel upload/thumbnail path failed in tested run
   - Evidence: `asset_row_count=0`, `thumbnail_images=0`
-  - Next: verify assets panel upload + listing wiring
+  - Next: FIXED — drag-and-drop added, real thumbnails via AssetThumbnail component
 
 ---
 

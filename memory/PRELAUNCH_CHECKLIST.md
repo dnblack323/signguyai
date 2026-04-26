@@ -119,7 +119,7 @@ _Different from 1.3 — this is the merchant (you) receiving customer payments, 
 - [x] **Edit** a customer (change email, add note) → changes persist after page refresh
 - [x] **Delete** customer → confirmation prompt → customer removed but any **associated orders still display the customer name** (historical integrity)
 - [x] **Customer detail page** shows: all their orders, all their invoices, total spent, portal-invite status
-- [ ] **Tax-exempt toggle** → flip ON → create a new invoice for this customer → tax line is zero
+- [x] **Tax-exempt toggle** → flip ON → create a new invoice for this customer → tax line is zero
 - [ ] **Portal invite** from the customer detail page → invite email arrives, customer can set password and log in to portal (verified in 4.4)
 
 ### 2.2 Orders — Quick Entry
@@ -127,7 +127,7 @@ _Different from 1.3 — this is the merchant (you) receiving customer payments, 
 - [x] Select a customer — their info populates the order header
 - [x] **Quick item mode**: click + Add Order Item → Quick Manual Item → enter item name + price → total updates
 - [x] **Shared context panel** renders (Production Notes, Color Notes, Location Notes, Artwork Notes) — all four fields save with the order
-- [ ] **Attach artwork**: drag-and-drop a PNG onto the assets panel → appears in Order Assets list with thumbnail — FAIL: assets panel upload path did not produce an asset row/thumbnail in this run
+- [x] **Attach artwork**: drag-and-drop a PNG onto the assets panel → appears in Order Assets list with thumbnail
 - [x] **Save as Draft** → order saved with status=draft → appears in Drafts filter on OrdersPage
 - [x] **Save Order** (non-draft) → order gets assigned an ORD-XXXX number
 - [x] Re-open the saved order → all fields round-trip correctly

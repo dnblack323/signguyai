@@ -164,6 +164,22 @@ Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independen
 
 ## Roadmap (P0 → P3)
 
+### 2026-04-26 — Prelaunch Checklist 2.1F + 2.2E Fixed
+
+#### 2.1F — Tax-Exempt Toggle
+- Added `default_tax_rate: Optional[float]` to `TenantBase` and `TenantUpdate` models (`models/auth.py`)
+- Updated `generate_invoice_from_order` (`routes/orders.py`) to fetch tenant's `default_tax_rate` and customer's `is_tax_exempt` flag; applies `tax_rate=0` for exempt customers, full rate for others
+- Added "Default Tax Rate (%)" input to `CompanySettings.js` with data-testid `company-tax-rate-input`
+- Verified: non-exempt customer ($100 order, 6% rate) → `tax_amount=6.0, grand_total=106.0`; exempt customer → `tax_amount=0.0, grand_total=100.0`
+
+#### 2.2E — Assets Panel Upload / Drag-and-Drop / Thumbnails
+- Rewrote `components/orders/OrderAssetsPanel.js` to add:
+  - Drag-and-drop zone (`data-testid="asset-drop-zone"`) with visual feedback on hover
+  - `AssetThumbnail` component: fetches actual image blob from `/api/orders/{id}/files/{file_id}/content`, displays real thumbnail; falls back to `FileIcon` for non-images
+- Verified: file upload works, `asset-row-{id}` appears, `asset-thumbnail-{id}` shows real image
+
+---
+
 ### 🟡 IN PROGRESS — Meta Messenger Phase 1 End-to-End Verification
 **Status (paused 2026-04-25):**
 - ✅ Backend: webhook GET/POST verified, OAuth start/callback fixed, env vars set
