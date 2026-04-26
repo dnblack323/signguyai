@@ -1010,7 +1010,7 @@ async def request_portal_appointment(
     await db.appointments.insert_one(doc)
     doc.pop("_id", None)
 
-    # Notify shop staff
+    # Notify shop staff (in-app)
     notification = CustomerNotification(
         tenant_id=customer.get("tenant_id"),
         customer_id=customer["id"],
@@ -1020,6 +1020,43 @@ async def request_portal_appointment(
         related_id=doc["id"],
     )
     await db.customer_notifications.insert_one(notification.model_dump())
+
+    # Email the shop owner so they don't miss the request
+    try:
+        from services.email_service import email_service
+        tenant = await db.tenants.find_one({"id": customer.get("tenant_id")}, {"_id": 0})
+        owner_email = (tenant or {}).get("owner_email")
+        if owner_email and email_service.is_configured():
+            type_pretty = (payload.appointment_type or "Appointment").replace("_", " ").title()
+            customer_name = customer.get("name", "A customer")
+            customer_email = customer.get("email", "")
+            location_block = f"<p><strong>Location:</strong> {payload.location}</p>" if payload.location else ""
+            description_block = f"<p><strong>Notes from customer:</strong><br/>{payload.description}</p>" if payload.description else ""
+            html = f"""
+            <h2>New Appointment Request</h2>
+            <p><strong>{customer_name}</strong> just submitted a request through your customer portal.</p>
+            <table style="margin: 16px 0; border-collapse: collapse;">
+              <tr><td style="padding: 4px 12px;"><strong>Type</strong></td><td style="padding: 4px 12px;">{type_pretty}</td></tr>
+              <tr><td style="padding: 4px 12px;"><strong>Preferred Date</strong></td><td style="padding: 4px 12px;">{payload.preferred_date}</td></tr>
+              <tr><td style="padding: 4px 12px;"><strong>Preferred Time</strong></td><td style="padding: 4px 12px;">{payload.preferred_time or 'Any'}</td></tr>
+              <tr><td style="padding: 4px 12px;"><strong>Duration</strong></td><td style="padding: 4px 12px;">{payload.duration_minutes or 60} minutes</td></tr>
+              <tr><td style="padding: 4px 12px;"><strong>Customer Email</strong></td><td style="padding: 4px 12px;">{customer_email}</td></tr>
+            </table>
+            {location_block}
+            {description_block}
+            <p style="margin-top: 24px;">
+              Confirm or reschedule from your <a href="{(tenant or {}).get('portal_url', '')}/appointments">Appointments dashboard</a>.
+            </p>
+            """
+            await email_service.send_email(
+                to_email=owner_email,
+                subject=f"New appointment request from {customer_name}",
+                html_content=html,
+                tenant_id=customer.get("tenant_id"),
+            )
+    except Exception as exc:
+        # Don't fail the request if email send fails
+        logger.warning(f"Failed to send appointment-request email to shop owner: {exc}")
 
     return doc
 
