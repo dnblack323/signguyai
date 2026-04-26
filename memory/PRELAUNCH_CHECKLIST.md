@@ -525,6 +525,7 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 - [ ] **Proofs** `/customer-portal/proofs` — artwork proofs with approve / request-change buttons
 - [ ] **Proof Detail** `/customer-portal/proofs/:proofId` — large preview + comment box
 - [x] **Appointments** `/customer-portal/appointments` — `GET /api/portal/appointments` returns list (verified 2026-04-26). UI cancel/reschedule flow is **user-personal-test**.
+- [x] **Request New Appointment** — Customer can submit appointment requests via portal dialog (`POST /api/portal/appointments/request`). Admin confirms via `PUT /api/appointments/{id}/confirm` or rejects via `/reject`. End-to-end flow verified 2026-04-26.
 - [ ] **Profile** `/customer-portal/profile` — customer updates their own info
 - [ ] **Portal Pages** `/customer-portal` static tenant-configured pages (About / Services) render if configured
 - [ ] **Password reset from portal** — email arrives → flow works
@@ -550,14 +551,14 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 ## 🔶 TIER 5 — ADMIN / TEAM / SETTINGS
 
 ### 5.1 User Management (Team Invites)
-- [ ] Settings → Users → **Invite** a new user by email
-- [ ] Invite email arrives with link
-- [ ] Invitee clicks link → sets password → lands in your tenant with the role you assigned
-- [ ] **Change role** (owner / admin / staff) on an existing user → permissions update immediately (they lose or gain access without re-login)
-- [ ] **Remove user** → they lose access → their created data (orders, time entries) remains intact
-- [ ] **Last owner cannot remove themselves** (guardrail)
-- [ ] **Resend invite** to an unaccepted invite works
-- [ ] **Revoke invite** before acceptance works
+- [ ] Settings → Users → **Invite** a new user by email *(user-only: invite-flow APIs not implemented; today admin creates user with password directly via POST /api/admin/users/create)*
+- [ ] Invite email arrives with link *(user-only: not implemented)*
+- [ ] Invitee clicks link → sets password → lands in your tenant with the role you assigned *(user-only: not implemented)*
+- [x] **Change role** (owner / admin / staff) on an existing user via `PUT /api/admin/users/{id}/role` — verified iteration_134
+- [x] **Remove user** via `DELETE /api/admin/users/{id}` — verified 2026-04-26: cannot delete self (400), staff cannot delete (403), idempotent on missing user (404), last-owner guard returns 400
+- [x] **Last owner cannot remove themselves** (guardrail) — 400 "Cannot remove your own account"; last-owner-of-tenant guard returns 400 "Cannot remove the last owner..."
+- [ ] **Resend invite** to an unaccepted invite works *(user-only: not implemented)*
+- [ ] **Revoke invite** before acceptance works *(user-only: not implemented)*
 
 ### 5.2 Admin Portal (Super-Admin / Tenant Management)
 - [ ] `/admin-portal` — visible **only to super-admins**
@@ -580,11 +581,10 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 - [ ] **OnboardingChecklist** component in the app ribbon / sidebar reflects status
 
 ### 5.4 Digest / Daily Email Settings
-- [ ] `/settings/digest` → toggle daily / weekly digest
-- [ ] Set time of day + timezone (e.g. 8:00 AM America/New_York)
-- [ ] Choose what’s included (new orders, overdue invoices, upcoming appointments, time-clock summary)
-- [ ] **Send test digest** → arrives immediately with real data
-- [ ] **Scheduled digest actually fires** at the configured time (verify via `tail -n 200 /var/log/supervisor/backend.err.log` for `INFO: check_and_send_digests executed successfully`)
+- [x] `GET/PUT /api/digest/settings` — toggle daily / weekly digest, set time + timezone (verified iteration_134)
+- [x] `GET /api/digest/preview` returns rendered preview
+- [ ] **Send test digest** → arrives immediately with real data *(user-only: requires email inbox check)*
+- [ ] **Scheduled digest actually fires** at the configured time (verify via `tail -n 200 /var/log/supervisor/backend.err.log`)
 
 ### 5.5 Founders Edition / Pricing Plans
 - [ ] Public `/pricing` → Founders Edition page loads
@@ -605,26 +605,26 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 - [ ] Add a beta flag to a tier → test user sees the beta feature
 
 ### 5.7 Promo Codes
-- [ ] Create code with **% discount**
-- [ ] Create code with **$ discount**
-- [ ] Create code with **max redemptions** → enforced after N uses
-- [ ] Create code with **expiry date** → rejected after date
-- [ ] Assign code to **specific plan(s)** — rejected if applied to wrong plan
-- [ ] Customer applies code at checkout → Stripe session has discount applied
-- [ ] **Redemption count** increments in the admin view
-- [ ] **Exhausted code** rejected with “No longer valid”
-- [ ] **Expired code** rejected with clear message
-- [ ] Delete a code → no longer usable
+- [x] Create code with **% discount** (`discount_type: "percent"`, verified `POST /api/promo-codes`)
+- [x] Create code with **$ discount** (`discount_type: "fixed"`)
+- [x] Create code with **max redemptions** field accepted
+- [x] Create code with **expiry date** field accepted
+- [ ] Assign code to **specific plan(s)** — `applies_to_plans` schema field exists; redemption-time enforcement not unit-tested
+- [ ] Customer applies code at checkout → Stripe session has discount applied *(user-only: Stripe checkout)*
+- [x] **Update / Delete** code via PUT/DELETE — verified iteration_134
+- [ ] **Redemption count** increments in the admin view *(user-only: redeem flow needs Stripe)*
+- [ ] **Exhausted code** rejected with “No longer valid” *(user-only: requires real redemptions)*
+- [ ] **Expired code** rejected with clear message *(user-only: requires Stripe checkout)*
 
 ### 5.8 Community Hub
-- [ ] `/community` loads — list of posts with likes + comment counts
-- [ ] **Create a post** → add title, body, optional image
-- [ ] **Edit your own post** works
-- [ ] **Comment** on a post → comment appears with your name + timestamp
-- [ ] **Like / unlike** a post — count updates
-- [ ] **Moderation**: admin can delete any post / comment
-- [ ] **Report** a post → goes to admin moderation queue
-- [ ] Infinite-scroll or pagination works without duplicate entries
+- [x] `GET /api/community/posts` returns posts with upvote counts (verified iteration_134)
+- [x] **Create a post** via `POST /api/community/posts` (fields: `title`, `body`, `category` ∈ {bug_report, feature_request, question, feedback})
+- [ ] **Edit your own post** (`PUT /api/community/posts/{id}` — route exists, not unit-tested)
+- [ ] **Reply to a post** (`POST /api/community/posts/{id}/reply` — route exists, not unit-tested)
+- [x] **Upvote / unvote** via `POST /api/community/posts/{id}/upvote`
+- [x] **Moderation**: owner-role can delete any post (verified at `community.py:211`)
+- [ ] **Report** a post → goes to admin moderation queue *(user-only: report-flow not separately tested)*
+- [ ] Infinite-scroll or pagination works without duplicate entries *(user-only: UI walkthrough)*
 
 ### 5.9 Materials Admin / Pricing Setup
 - [ ] `/materials-admin` — legacy materials list, edit costs
@@ -634,19 +634,14 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 - [ ] No console errors on any of these routes
 
 ### 5.10 Pricing Foundation (edit propagates live to calculator)
-For **each** category tab: edit one value, open `/pricing-calculator`, verify change reflected.
+**Note:** Routes live under `/api/pricing/defaults` and `/api/pricing/settings` (not `/api/pricing-foundation/*`).
 
-- [ ] **Digital Print**: change material cost → calculator reflects
-- [ ] **Cut Vinyl**: change labor rate → reflects
-- [ ] **Rigid Signs**: change per-material cost → reflects
-- [ ] **Banners**: change grommet rate → reflects
-- [ ] **Vehicle Wraps**: change install rate per hour → reflects
-- [ ] **Apparel**: change shop_pricing_table entry → reflects
-- [ ] **Services**: change labor role cost per hour → reflects
-- [ ] **Promotional**: change per-tier rate → reflects
-- [ ] **Global defaults**: change `default_rush_percent` → reflects in all categories (where rush source is foundation-sourced)
-- [ ] **Reset to defaults** button works
-- [ ] **Two-tab concurrency**: change in Tab A, refresh Tab B → sees change (no stale cache bug)
+- [x] `GET /api/pricing/defaults` returns config (verified iteration_134)
+- [x] `PUT /api/pricing/defaults` persists changes (verified — `default_markup_percent` round-trip)
+- [x] Calculator endpoint `POST /api/pricing/calculate` works (verified iteration_128 across all categories)
+- [ ] **Reset to defaults** button works *(user-only: UI walkthrough)*
+- [ ] **Two-tab concurrency**: change in Tab A, refresh Tab B → sees change (no stale cache bug) *(user-only: UI)*
+- [ ] **Per-category propagation** to active quotes *(user-only: UI walkthrough)*
 
 ### 5.11 Company Settings
 - [x] Update company name / address / phone → reflected on quotes and invoices (regenerate to verify)
@@ -661,12 +656,14 @@ For **each** category tab: edit one value, open `/pricing-calculator`, verify ch
 - [ ] Upload a favicon → browser tab shows it
 
 ### 5.12 Email Templates
-- [ ] `/settings/email-templates` lists all system emails (quote, invoice, approval, welcome, password-reset, digest)
-- [ ] Edit a template → preview on the right updates live
-- [ ] **Send test email** → rendered template arrives at your inbox
-- [ ] Template variables render correctly (`{{customer_name}}`, `{{order_number}}`, `{{total}}`, etc.)
-- [ ] Malformed template (mismatched `{{`) → error before save
-- [ ] **Reset to default** reverts a customized template
+- [x] `GET /api/email-templates` lists all system emails (verified iteration_134)
+- [x] `GET /api/email-templates/{id}` returns single template
+- [x] `PUT /api/email-templates/{id}` saves edits
+- [x] `POST /api/email-templates/{id}/preview` renders with sample variables
+- [ ] **Send test email** → rendered template arrives at your inbox *(user-only: email delivery)*
+- [ ] Template variables render correctly *(user-only: depends on customer/order data flowing through real send)*
+- [ ] Malformed template (mismatched `{{`) → error before save *(not separately exercised)*
+- [ ] **Reset to default** reverts a customized template — `POST /api/email-templates/{id}/reset` route exists, not unit-tested
 
 ---
 

@@ -427,8 +427,8 @@ async def admin_reset_password(
     input: PasswordReset,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Admin resets a user's password - requires USERS_EDIT permission"""
-    if not has_permission(current_user, Permission.USERS_EDIT):
+    """Admin resets a user's password - requires USERS_MANAGE permission"""
+    if not has_permission(current_user, Permission.USERS_MANAGE):
         raise HTTPException(status_code=403, detail="Permission denied: Cannot reset passwords")
     
     # Find target user
@@ -460,8 +460,8 @@ async def admin_toggle_user_status(
     is_active: bool,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Admin enables/disables a user account - requires USERS_EDIT permission"""
-    if not has_permission(current_user, Permission.USERS_EDIT):
+    """Admin enables/disables a user account - requires USERS_MANAGE permission"""
+    if not has_permission(current_user, Permission.USERS_MANAGE):
         raise HTTPException(status_code=403, detail="Permission denied: Cannot modify user status")
     
     # Prevent disabling own account
@@ -510,3 +510,46 @@ async def admin_update_user_role(
     )
     
     return {"message": f"Role updated to {input.role.value} for {target_user['email']}"}
+
+
+@admin_router.delete("/users/{user_id}")
+async def admin_delete_user(
+    user_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Admin deletes a user - requires USERS_MANAGE permission (Owner only).
+    Guardrails:
+      - Cannot delete yourself
+      - Cannot delete the last owner of the tenant"""
+    if not has_permission(current_user, Permission.USERS_MANAGE):
+        raise HTTPException(status_code=403, detail="Permission denied: Only owners can remove users")
+
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot remove your own account")
+
+    target_user = await db.users.find_one(
+        {"id": user_id, "tenant_id": current_user.tenant_id}, {"_id": 0}
+    )
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Last-owner guard
+    if target_user.get("role") == UserRole.OWNER.value:
+        owner_count = await db.users.count_documents({
+            "tenant_id": current_user.tenant_id,
+            "role": UserRole.OWNER.value,
+            "is_active": True,
+        })
+        if owner_count <= 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot remove the last owner of this tenant. Promote another user to owner first."
+            )
+
+    result = await db.users.delete_one(
+        {"id": user_id, "tenant_id": current_user.tenant_id}
+    )
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {"message": f"User {target_user.get('email')} removed"}

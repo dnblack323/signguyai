@@ -262,3 +262,35 @@ These items had backend endpoints implemented + verified, but UI / round-trip ch
 - [ ] **15.5 Workflow template apply UX** — From an order, click "Apply Workflow Template" → select template → confirm tasks appear in production Kanban under the order.
 - [ ] **15.6 Staff-role UI guards** — Login as staff user (e.g. `staff_payroll_test@test.com / StaffTest123!`); confirm Payroll/Settings/Billing/Users nav links are hidden or guarded with friendly toast (not raw 403).
 - [ ] **15.7 Tenant isolation UI walkthrough** — Login as Tenant B user, attempt URL manipulation to reach Tenant A's `/orders/<id>` → confirm friendly 404 page (not raw API JSON).
+
+---
+
+## Section 16 — Tier 5 Manual Verifications (added 2026-04-26)
+
+Tier 5 backend audit complete (iteration_134, 28/29 PASS). These items remain **user-personal**:
+
+- [ ] **16.1 User invites** — Today admin creates users with passwords directly via UI (no email-link invite/accept flow). If you want a true email invite flow with one-time tokens + accept page, file as Phase-2 enhancement (not blocking prelaunch).
+- [ ] **16.2 Role change applied without re-login** — UI walkthrough: change a user's role in Settings → Users → confirm their nav links update on next page navigation (no logout required).
+- [ ] **16.3 Last-owner UI guard** — Try to delete yourself as the only owner from Settings → Users → confirm friendly toast appears (not raw 400 JSON).
+- [ ] **16.4 Super-admin pages hidden** — Login as a non-super-admin → confirm Manage Tenants / Tenant Plans / Platform Settings pages are not visible in nav.
+- [ ] **16.5 Onboarding hub** — Brand-new tenant signup → confirm onboarding checklist auto-marks done as you complete actions; Skip / Complete buttons work.
+- [ ] **16.6 Trial countdown banner** — Verify banner shows correct days-remaining on a tenant in trial mode.
+- [ ] **16.7 TrialLockout screen** — Verify locked tenant sees lockout screen (not raw 403 errors).
+- [ ] **16.8 UpgradeModal** — Try to add an 11th employee on a 10-employee plan → confirm UpgradeModal triggers (not raw 403 toast).
+- [ ] **16.9 UpgradePrompt banner** — Verify it dismisses + reappears after 7 days for approaching limits.
+- [ ] **16.10 Tier feature gating UI** — Login as Starter-tier user → confirm Pro features hidden or labelled "Pro" with upsell.
+- [ ] **16.11 Promo code at Stripe checkout** — Apply a `% discount` code at the Stripe-hosted checkout page → confirm Stripe shows the discount line item; redemption_count increments.
+- [ ] **16.12 Promo code expired/exhausted** — Use an expired or maxed-out code → confirm friendly rejection message.
+- [ ] **16.13 Send test digest email** — Hit "Send test digest" in `/settings/digest` → confirm email arrives at your inbox with real data.
+- [ ] **16.14 Scheduled digest fires at configured time** — Verify via `tail /var/log/supervisor/backend.err.log` for `INFO: check_and_send_digests executed successfully`.
+- [ ] **16.15 Email template send-test** — Edit a template → click "Send test email" → confirm rendered email arrives in inbox + renders cleanly in Gmail/Outlook/Apple Mail.
+- [ ] **16.16 Email template variable substitution** — Verify `{{customer_name}}`, `{{order_number}}`, `{{total}}` render with real data.
+- [ ] **16.17 Email template malformed save guard** — Save a template with mismatched `{{` → confirm save is blocked with clear error.
+- [ ] **16.18 Reset email template to default** — Hit reset on a customized template → confirm reverts to original system-provided text.
+- [ ] **16.19 Pricing-foundation UI Reset** — Click "Reset to defaults" in `/pricing-foundation` → confirm fields revert.
+- [ ] **16.20 Pricing-foundation two-tab concurrency** — Change a value in Tab A → refresh Tab B → confirm Tab B sees the change.
+- [ ] **16.21 Per-category pricing propagation** — Edit a category in pricing foundation → open existing quote → confirm new quote shows updated price (existing quotes unchanged).
+- [ ] **16.22 Logo / favicon upload** — Upload company logo + favicon in Company Settings → confirm appears on PDFs (quote/invoice/payroll), transactional emails, customer portal header, browser tab.
+- [ ] **16.23 Timezone change affects scheduled emails** — Change tenant timezone → confirm scheduled digests fire at new local time.
+- [ ] **16.24 Community moderation walkthrough** — Pin a post, mark answered, soft-delete via UI → confirm UX makes sense to end users.
+- [ ] **16.25 25-hour session expiry** — Leave a tab idle 25+ hours → next action re-prompts login.

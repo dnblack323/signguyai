@@ -6,7 +6,7 @@ Use categories:
 - ❌ Failed and still open
 - ⛔ Cannot fully test without user/external actions
 
-Last updated: 2026-04-26 (post iteration_132 mop-up)
+Last updated: 2026-04-26 (post Tier 5 sweep + Request Appointment feature)
 
 ---
 
@@ -22,6 +22,9 @@ Last updated: 2026-04-26 (post iteration_132 mop-up)
 | **T4-PORTAL-C** Portal appointments | Added `GET /api/portal/appointments` for customer portal | 2026-04-26 |
 | **T4-PAYROLL-A** Payroll CSV export | Added `format=csv` query param to `GET /api/payroll/report` | 2026-04-26 |
 | **T4-EMP-PORTAL-A** Employee dashboard alias | Added `GET /api/employee-portal/dashboard` (alias of `/work-summary`) | 2026-04-26 |
+| **5.1 Customer Request Appointment** (NEW FEATURE) | `POST /api/portal/appointments/request` + admin `PUT /confirm` & `/reject` + portal UI dialog with "Pending Confirmation" badge | 2026-04-26 |
+| **5.1 DELETE user endpoint** | Added `DELETE /api/admin/users/{id}` with self / staff-perm / last-owner guards | 2026-04-26 |
+| **Auth permission bug** | Fixed `Permission.USERS_EDIT` → `USERS_MANAGE` in `routes/auth.py` (status + reset-password) | 2026-04-26 |
 
 ---
 

@@ -223,6 +223,64 @@ Independent verification:
   - Fix: Added `_require_payroll_view_access()` helper to `routes/employees.py` and wired into all GET payroll routes
   - Verified: Admin (owner) still gets `200`, Staff returns `403` for `/report`, `/transactions`, `/hours`
 - ✅ **T1-CSV** Customer CSV export: `GET /api/customers/export` returns `200 text/csv` with header `name,email,phone,company,status,notes,created_at`
+- ✅ **T3-WF-A** Workflow template apply: `POST /api/workflow-templates/{id}/apply` creates production tasks per stage; supports `replace_existing=true`. Bonus: `POST /{id}/duplicate`.
+- ✅ **T4-PORTAL-C** Customer portal appointments: `GET /api/portal/appointments` returns appointment list filtered by current customer
+- ✅ **T4-PAYROLL-A** Payroll CSV export: `GET /api/payroll/report?format=csv` streams CSV with employee-level columns
+- ✅ **T4-EMP-PORTAL-A** `/api/employee-portal/dashboard` alias added (returns same payload as `/work-summary`)
+
+**Test verification:** 29/29 pytest tests passed (`/app/test_reports/iteration_133.json`)
+
+---
+
+## Tier 5 Backend Audit + Customer Request Appointment Feature (2026-04-26)
+
+### Customer Request Appointment Flow (NEW FEATURE)
+
+- ✅ **POST /api/portal/appointments/request** — customer creates appointment with `status="requested"`, `requested_by_customer=true`; default duration 60min; customer notification row created
+- ✅ **GET /api/portal/appointments?upcoming_only=true** — `requested` status entries now included in upcoming filter
+- ✅ **GET /api/appointments?status=requested** (admin) — admin sees all customer requests scoped to tenant
+- ✅ **PUT /api/appointments/{id}/confirm** — flips status to `confirmed`; supports overriding `scheduled_start`, `scheduled_end`, `employee_id`, `notes`
+- ✅ **PUT /api/appointments/{id}/reject** — flips status to `cancelled`, appends reason to notes
+- ✅ **Frontend `/customer-portal/appointments`** — Request Appointment dialog with type, date, time, location, description fields. "Pending Confirmation" badge for `status="requested"`. Toast on submit. Verified via testing agent (iteration_134).
+- Test report: `/app/test_reports/iteration_134.json`
+
+### Tier 5 Backend Sweep (28/29 PASS)
+
+**5.1 User Management:**
+- ✅ POST `/api/admin/users/create` (field: `full_name`)
+- ✅ PUT `/api/admin/users/{id}/role`
+- ✅ PUT `/api/admin/users/{id}/status` (RBAC permission fixed: `USERS_MANAGE` instead of broken `USERS_EDIT`)
+- ✅ POST `/api/admin/users/{id}/reset-password` (RBAC permission fixed)
+- ✅ **NEW** DELETE `/api/admin/users/{id}` — implemented 2026-04-26 with last-owner guard
+  - Cannot delete self → 400
+  - Staff cannot delete → 403
+  - Last-owner-of-tenant guard → 400 "Cannot remove the last owner..."
+  - Idempotent on missing user → 404
+- ⛔ Email-link invite/accept flow not implemented (user-only Section 16.1)
+
+**5.4 Digest:** ✅ GET/PUT `/api/digest/settings`, GET `/api/digest/preview` — all PASS
+
+**5.7 Promo Codes:** ✅ Full CRUD — note: `discount_type` valid values are `percent` / `fixed` / `free_trial` / `free_days`
+
+**5.8 Community Hub:** ✅ Create post (field `body` not `content`; categories: `bug_report`/`feature_request`/`question`/`feedback`), list, upvote, delete; owner-role moderation works
+
+**5.10 Pricing Foundation:** ✅ GET/PUT `/api/pricing/defaults` (NOT `/pricing-foundation` — checklist wording corrected)
+
+**5.11 Company Settings:** ✅ GET/PUT `/api/tenant` — phone update round-trip verified
+
+**5.12 Email Templates:** ✅ GET (list + single), PUT, POST `/preview` — all PASS
+
+### Bugs uncovered + fixed in this run
+
+- 🔧 `routes/auth.py`: Fixed `Permission.USERS_EDIT` references (enum doesn't exist) → changed to `Permission.USERS_MANAGE`. This would have caused `AttributeError` on first call to admin reset-password / status routes.
+- 🔧 `routes/auth.py`: Added `DELETE /api/admin/users/{id}` with three guardrails (self / staff-perm / last-owner).
+
+### Iteration 132 follow-up — 4 missing endpoints + 1 security bug
+
+- ✅ **T1-ISO-E** Payroll READ security: Staff role now returns `403 "You do not have permission to view payroll data"` on `GET /api/payroll/{report,balance,transactions,hours,signoff,timesheet,pay-period,timeclock-shifts,legacy-manual-entries,schedule}`
+  - Fix: Added `_require_payroll_view_access()` helper to `routes/employees.py` and wired into all GET payroll routes
+  - Verified: Admin (owner) still gets `200`, Staff returns `403` for `/report`, `/transactions`, `/hours`
+- ✅ **T1-CSV** Customer CSV export: `GET /api/customers/export` returns `200 text/csv` with header `name,email,phone,company,status,notes,created_at`
   - Fix: New endpoint added to `routes/customers.py`
 - ✅ **T3-WF-A** Workflow template apply: `POST /api/workflow-templates/{id}/apply` creates production tasks per stage for each ticket on the order; supports `replace_existing=true`
   - Verified: Applied "Apparel" template (11 stages) to order with 2 tickets → `tasks_created: 22`, `tickets_updated: [..2 ids..]`

@@ -1,5 +1,16 @@
 # SignGuy AI - Changelog
 
+## April 26, 2026 (later)
+- **Customer Request Appointment Feature (NEW) + Tier 5 Backend Sweep**
+- New: `POST /api/portal/appointments/request` — customer-initiated appointment requests with `status="requested"`. Notification row auto-created for shop staff.
+- New: `PUT /api/appointments/{id}/confirm` — admin confirms request, supports time/employee override. Flips status to `confirmed`.
+- New: `PUT /api/appointments/{id}/reject` — admin rejects, sets status to `cancelled` and appends reason to notes.
+- New UI: Portal Appointments page now has "Request Appointment" button + dialog (type / date / time / location / notes). New "Pending Confirmation" amber badge for `requested` status. Toast feedback on submit.
+- New: `DELETE /api/admin/users/{id}` with three guardrails (self / staff-perm / last-owner-of-tenant).
+- Bug fix: `routes/auth.py` had broken references to `Permission.USERS_EDIT` (enum doesn't exist). Fixed to `USERS_MANAGE` — would have caused `AttributeError` on first call to admin reset-password / status routes.
+- Tier 5 backend audit: 28/29 PASS via testing agent (iteration_134). Sections 5.1, 5.4, 5.7, 5.8, 5.10, 5.11, 5.12 verified working. Manual UI/Stripe/email items migrated to Section 16 of personal checklist.
+- Trackers updated: PRELAUNCH_CHECKLIST.md, OPEN_ITEMS_TRACKER.md, POSTFIX_RETEST_RESULTS.md, SECTION1_USER_PERSONAL_CHECKLIST.md (Section 16 added with 25 items).
+
 ## April 26, 2026
 - **Prelaunch Tier 1–4 Final Mop-Up Complete (iteration_132 follow-up)**
 - Security fix: Added `_require_payroll_view_access()` guard to all GET payroll endpoints (`/report`, `/balance`, `/transactions`, `/hours`, `/signoff`, `/timesheet`, `/pay-period`, `/timeclock-shifts`, `/legacy-manual-entries`, `/schedule`) — staff role now correctly receives `403`.

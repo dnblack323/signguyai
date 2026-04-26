@@ -23,6 +23,18 @@ Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independen
 
 ## Implemented (CHANGELOG)
 
+### 2026-04-26 (later) — Customer Request Appointment Feature + Tier 5 Backend Sweep
+- **NEW FEATURE:** Customer-initiated appointment requests via portal:
+  - `POST /api/portal/appointments/request` (customer) — creates appointment with `status="requested"`, notifies shop
+  - `PUT /api/appointments/{id}/confirm` (admin) — confirms request, supports time/employee override
+  - `PUT /api/appointments/{id}/reject` (admin) — cancels request with reason
+  - Portal UI: "Request Appointment" button + dialog on `/customer-portal/appointments` with type/date/time/location/notes fields and "Pending Confirmation" amber badge
+- **Tier 5 backend sweep:** 28/29 PASS. Sections 5.1 (Users), 5.4 (Digest), 5.7 (Promo Codes), 5.8 (Community), 5.10 (Pricing Foundation), 5.11 (Tenant), 5.12 (Email Templates) all verified.
+- **Bug fixes uncovered:**
+  - Added missing `DELETE /api/admin/users/{id}` with three guardrails (self / permission / last-owner)
+  - Fixed broken `Permission.USERS_EDIT` references in `routes/auth.py` (enum doesn't exist) → changed to `USERS_MANAGE` — would have caused AttributeError on first admin reset-password/status call
+- Trackers updated: `PRELAUNCH_CHECKLIST.md` Tier 5 sections + Section 16 added to user personal checklist (25 manual UI/Stripe/email verifications).
+
 ### 2026-04-26 — Prelaunch Tier 1–4 Final Mop-Up Closeout (iteration_132 follow-up)
 Addressed all 4 missing endpoints and 1 security bug discovered in iteration_132:
 - **Security:** Added `_require_payroll_view_access()` guard to all GET payroll routes — staff role now correctly returns `403`. Previously, staff could read all payroll data because GET routes had no permission check.
