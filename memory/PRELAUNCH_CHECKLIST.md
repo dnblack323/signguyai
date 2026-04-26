@@ -251,35 +251,35 @@ Test **every** scenario; each one exercises a different calculation branch.
 - [x] No progressive-disclosure fields appear (Custom has none)
 
 ### 2.4 Order Item — Duplicate / Variant / Copy-to-Category
-- [ ] On an existing order item, click the kebab menu → **Duplicate**
+- [x] On an existing order item, click the kebab menu → **Duplicate**
   - [ ] New item named **“Copy of X”**
-  - [ ] Same category
-  - [ ] Quantity reset to 1
-  - [ ] Entry mode = **quick**
-- [ ] Click **Create Variation**
+  - [x] Same category
+  - [x] Quantity reset to 1
+  - [x] Entry mode = **quick**
+- [x] Click **Create Variation**
   - [ ] New item named **“Variant — X”**
-  - [ ] Same category
-  - [ ] Entry mode = **detailed**
-  - [ ] Quantity reset to 1
-  - [ ] Carry-over toggles (artwork / notes / due date) work as set
-- [ ] Click **Copy to Different Category** (e.g. rigid_signs → banners)
+  - [x] Same category
+  - [x] Entry mode = **detailed**
+  - [x] Quantity reset to 1
+  - [x] Carry-over toggles (artwork / notes / due date) work as set
+- [x] Click **Copy to Different Category** (e.g. rigid_signs → banners)
   - [ ] New item named **“Converted — X”**
-  - [ ] `converted_from_category` = `rigid_signs` in the DB record
-  - [ ] Universal fields preserved (artwork_ready, rush_order, quantity)
-  - [ ] Category-specific fields **dropped** (e.g. `hardware_included`, `double_sided_art`) because they don’t apply to banners
-- [ ] **Carry-over toggle test**: duplicate with Artwork = OFF → new item has no file links
-- [ ] **Carry-over toggle test**: duplicate with Production Notes = OFF → all note fields cleared on new item
-- [ ] **Carry-over toggle test**: duplicate with Due Date = OFF → due date reset to null
+  - [x] `converted_from_category` = `rigid_signs` in the DB record
+  - [x] Universal fields preserved (artwork_ready, rush_order, quantity)
+  - [x] Category-specific fields **dropped** (e.g. `hardware_included`, `double_sided_art`) because they don’t apply to banners
+- [x] **Carry-over toggle test**: duplicate with Artwork = OFF → new item has no file links
+- [x] **Carry-over toggle test**: duplicate with Production Notes = OFF → all note fields cleared on new item
+- [x] **Carry-over toggle test**: duplicate with Due Date = OFF → due date reset to null
 
 ### 2.5 Quote → Order → Invoice → Payment (full commerce loop)
-- [ ] Create a **Quote** for a customer → save
-- [ ] Download the Quote PDF → logo, customer info, line items, tax line, totals all correct
+- [x] Create a **Quote** for a customer → save
+- [x] Download the Quote PDF → logo, customer info, line items, tax line, totals all correct
 - [ ] **Email the quote** to the customer → message arrives (check spam folder too)
 - [ ] Customer opens the quote link → logs into portal → **Approves** → triggers signature capture
 - [ ] Signature saved to the quote/order record with timestamp
-- [ ] Convert approved quote → **Order** (one click) — all line items carry over
-- [ ] Order → **Generate Invoice** → invoice has correct totals including tax
-- [ ] Invoice PDF matches the UI totals **to the cent**
+- [x] Convert approved quote → **Order** (one click) — all line items carry over
+- [x] Order → **Generate Invoice** → invoice has correct totals including tax
+- [x] Invoice PDF matches the UI totals **to the cent**
 - [ ] Email the invoice → arrives with PDF attachment and a pay link
 - [ ] Customer clicks pay link → Stripe checkout → pays with test card → invoice marked **paid** → order status updates
 - [ ] **Partial payment**: customer pays less than full → invoice shows remaining balance

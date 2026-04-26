@@ -78,6 +78,7 @@ Numbering format is preserved as requested: `Tier.SectionLetter` (example: `1.1A
 
 ### 2.5 Quote → Order → Invoice → Payment
 - [ ] **2.5C** Quote email **arrives in inbox** (check spam too)
+- [ ] **2.5-QuotePDF** Quote PDF download — **not yet implemented** in backend; endpoint `GET /api/quotes/{id}/pdf` returns 404. This needs to be built before launch if you want customers to download quotes directly.
 - [ ] **2.5I** Invoice email arrives with **PDF attachment** and a pay link
 - [ ] **2.5J** Customer clicks pay link → Stripe checkout → pays with test card `4242 4242 4242 4242` → invoice marked **paid** → order status updates
 - [ ] **2.5K** Partial payment: customer pays less than full → invoice shows remaining balance

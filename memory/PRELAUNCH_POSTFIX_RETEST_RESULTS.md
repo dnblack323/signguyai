@@ -80,7 +80,37 @@ Independent verification:
 - ✅ Admin editability remains intact after marking Paid in Full.
   - Evidence: `/app/test_reports/iteration_123.json`
 
-### 2.3g / 2.3h / 2.3i Services, Promotional, Custom pricing (2026-04-26)
+### 2.4 / 2.5 Clone, Quotes, Invoices (2026-04-26)
+**31/32 tests passed; 2 model bugs found and immediately fixed**
+
+**2.4 Order Item Clone:**
+- ✅ **2.4-A** Duplicate: `name='Copy of Source Sign'`, `category=rigid_signs`, `qty=1`, `entry_mode=quick`
+- ✅ **2.4-B** Variation: `name='Variant — Source Sign'`, `entry_mode=detailed`, `qty=1`
+- ✅ **2.4-C** Copy-to-category (rigid_signs→banners): `name='Converted — Source Sign'`, `item_category=banners`, `converted_from_category=rigid_signs`, universal fields preserved
+- ✅ **2.4-D** Category-specific field dropping: `hardware_included`, `protective_finish`, `double_sided_art` absent after copy; `width/height/unit_of_measure` preserved
+- ✅ **2.4-E** Artwork carry-over OFF: `linked_order_file_ids=[]`, `item_artwork_file_ids=[]`
+- ✅ **2.4-F** Production notes carry-over OFF: `production_notes=''` ✓; install_notes requires separate `install_location_notes=false` key (documented)
+- ✅ **2.4-G** Due date carry-over OFF: `due_date=None`
+- ✅ Legacy `/duplicate` endpoint also functional
+
+**2.5 Quote → Invoice:**
+- ✅ **2.5-A** Quote create: `total=320.0` (2×85+1×150), `status=draft`
+- ✅ **2.5-B** List/retrieve round-trips correctly
+- ⚠️ **2.5-C** Quote PDF: `GET /api/quotes/{id}/pdf` → 404 — **NOT IMPLEMENTED**
+- ✅ **2.5-D** Quote send: `status=sent`, `sent_at` now returned (after model fix)
+- ✅ **2.5-E** Convert-to-job: `job_id` set, `quote.status=approved`, double-convert → 400
+- ✅ **2.5-F** Invoice from order: `tax_amount=21.0`, `grand_total=371.0`, `tax_rate=6.0` (re-confirmed)
+- ✅ **2.5-G** Invoice structure: all required fields present; `tax_rate`/`is_tax_exempt` now returned (after model fix)
+- ✅ **2.5-H** Invoice send: `status=sent`
+- ✅ **2.5-I** Partial payment: `amount_paid=185.5`, balance tracked
+- ✅ **2.5-J** Mark paid: `status=paid`
+
+**2 bugs fixed immediately:**
+- `models/jobs.py Quote`: Added `sent_at`, `approved_at` fields (were written to DB but stripped by response model)
+- `models/jobs.py Invoice`: Added `grand_total`, `tax_rate`, `is_tax_exempt` fields (were written to DB but stripped by response model)
+- Test report: `/app/test_reports/iteration_129.json`
+
+---
 **23/25 tests passed (2 bugs found and immediately fixed)**
 
 **2.3g Services pricing:**

@@ -45,6 +45,8 @@ class Quote(QuoteBase):
     order_id: Optional[str] = None  # Link to order if generated from order
     source: Optional[str] = None  # "order" if generated from order
     customer_name: Optional[str] = None  # Denormalized for display
+    sent_at: Optional[str] = None
+    approved_at: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
@@ -268,5 +270,8 @@ class Invoice(InvoiceBase):
     order_id: Optional[str] = None  # Link to order if generated from order
     source: Optional[str] = None  # "order" if generated from order
     customer_name: Optional[str] = None  # Denormalized for display
+    grand_total: Optional[float] = None
+    tax_rate: Optional[float] = None
+    is_tax_exempt: Optional[bool] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
