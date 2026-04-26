@@ -105,6 +105,7 @@ import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import DataDeletion from "./pages/DataDeletion";
 import ProductionSetup from "./pages/ProductionSetup";
 import PublicSignaturePage from "./pages/PublicSignaturePage";
 
@@ -256,6 +257,7 @@ function App() {
                 <Route path="/contact" element={<ContactPage />} />
                 <Route path="/terms" element={<TermsOfService />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/data-deletion" element={<DataDeletion />} />
                 <Route path="/setup" element={<ProductionSetup />} />
                 
                 {/* Marketing - Archived Tier Pages (redirect to Founders pricing) */}
