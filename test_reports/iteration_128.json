@@ -1,0 +1,108 @@
+{
+  "summary": "Iteration 128: Prelaunch checklist sections 2.3g (Services pricing), 2.3h (Promotional Items pricing), 2.3i (Custom/Other pricing). 23 tests passed, 2 xfailed (documented bugs). 3 confirmed bugs found.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/pricing/calculate",
+        "issue": "BUG 2.3g-2: ServiceType enum lacks 'graphic_design' value. Config available_service_types uses key 'graphic_design' but enum only has 'design'. Passing service_type='graphic_design' causes HTTP 500 (Pydantic validation error). Additionally, the valid enum value 'design' doesn't match any key in the config → silently falls back to general_labor, so graphic_design billing rates/minimums are NEVER used.",
+        "priority": "HIGH",
+        "file": "/app/backend/models/enums.py (ServiceType enum) and /app/backend/models/pricing.py",
+        "fix": "Add GRAPHIC_DESIGN = 'graphic_design' to ServiceType enum (and similarly verify all other enum values match config keys). Remove now-unused DESIGN='design' or map it. Check all ServiceType values against available_service_types keys in pricing config."
+      },
+      {
+        "endpoint": "POST /api/job-tickets",
+        "issue": "BUG 2.3i-2: create_job_ticket() handler does NOT copy data.description into the JobTicket model constructor (job_tickets.py lines 1430-1454). The description field is silently dropped when creating a job ticket. Similarly, entry_mode, manual_quote_override, linked_order_file_ids, item_artwork_file_ids are all missing from the JobTicket() constructor call.",
+        "priority": "HIGH",
+        "file": "/app/backend/routes/job_tickets.py lines 1430-1454",
+        "fix": "Add description=data.description, entry_mode=data.entry_mode, manual_quote_override=data.manual_quote_override, linked_order_file_ids=data.linked_order_file_ids, item_artwork_file_ids=data.item_artwork_file_ids to the JobTicket() constructor call at line ~1430."
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "POST /api/pricing/calculate (category=promotional)",
+        "issue": "BUG 2.3h-5: calculate_promotional() does NOT implement double-sided upcharge. The double_sided_art field in JobItemPricingData is present but never read by the promotional calculator. Sending double_sided_art='different' has zero effect on price.",
+        "priority": "MEDIUM",
+        "file": "/app/backend/server.py lines 445-504 (calculate_promotional function)",
+        "fix": "Add double-sided multiplier logic to calculate_promotional(). If data.double_sided_art is 'different' or 'same', apply an upcharge multiplier (e.g., 1.5x for 'different', 1.2x for 'same') to suggested_price."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verification_results": {
+    "2.3g-1_hourly_installation": "PASS — sell_price > $200, profit > 0, margin > 0 (with travel, scissor_lift, rush)",
+    "2.3g-2_flat_fee_graphic_design": "PASS (bug documented) — 'graphic_design' → 500 (enum mismatch confirmed). Workaround with 'design' → sell_price=$250.00 via flat_fee",
+    "2.3g-3_consultation_minimum": "PASS — 0.25h consultation → sell_price >= $50 (minimum enforced via per_service_min=50.0)",
+    "2.3g-4_delivery_per_mile": "PASS — 25 miles billing → sell_price > 0, >= $31.25 (mile rate)",
+    "2.3g-5_delivery_per_trip": "PASS — 2 trips billing → sell_price >= $45",
+    "2.3g-6_subcontracted_permit": "PASS — flat_fee=$150 + sub_cost=$100 * 1.2 = $120 → subcontract_sell=$120, sell_price ≈ $270",
+    "2.3g-7_equipment_rental_standalone": "PASS — boom_lift 2 days → equipment_sell=$950, sell_price >= $950",
+    "2.3g-8_file_cleanup_flat_fee": "PASS — flat_fee=$35 → sell_price >= $35",
+    "2.3g-9_site_survey_with_travel": "PASS — flat_fee=$75 + travel → sell_price > $75, travel_sell > 0",
+    "2.3g-10_wrap_install_complexity": "PASS — difficult/medium price ratio ≈ 1.2 (1.5/1.25 multipliers)",
+    "2.3g-11_rush_from_foundation": "PASS — default_rush_percent=17.5 → rush_source='foundation', rush_percent_applied=17.5",
+    "2.3g-12_rush_fallback_services_category": "PASS — default_rush_percent=null → rush_source='services_category', pct≈25.0",
+    "2.3g-13_explicit_zero_percent_rush": "PASS — default_rush_percent=0 → rush_source='foundation', rush_percent_applied=0, price unchanged",
+    "2.3g-14_breakdown_spec_fields": "PASS — total_labor_cost, total_travel_cost, total_equipment_cost, total_subcontract_cost, rush_percent_source all present in breakdown",
+    "2.3h-1_magnets_qty50": "PASS — sell_price=$1934.49 > 0",
+    "2.3h-2_yard_signs_qty100": "PASS — sell_price > 0",
+    "2.3h-3_stickers_qty250": "PASS — sell_price > 0",
+    "2.3h-4_quantity_tier_discounts": "PASS — per-unit price decreases: qty50(15% disc) > qty100(20% disc) = qty250 = qty500",
+    "2.3h-5_double_sided_upcharge": "XFAIL (BUG) — single=$1934.49, double_sided=$1934.49 (same). calculate_promotional() never reads double_sided_art",
+    "2.3h-6_rush_upcharge": "PASS — rush=true promotional price > rush=false",
+    "2.3i-1_manual_price_override": "PASS — custom category with price_override=150 → sell_price=$150.00 exactly",
+    "2.3i-2_job_ticket_description": "XFAIL (BUG) — description='' after create (not persisted). create_job_ticket() missing description=data.description in JobTicket constructor",
+    "2.3i-3_custom_schema_no_progressive_disclosure": "PASS — both 'custom' and 'custom_other' schemas return 0 visible_when fields",
+    "2.3i_bonus_custom_other_alias": "PASS — custom category with price_override=$200 → sell_price=$200.00 exactly",
+    "services_schema_visible_when": "PASS — services schema has >0 visible_when progressive disclosure rules"
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration128_pricing_sections_g_h_i.py",
+    "/app/test_reports/pytest/iteration128_pricing_g_h_i.xml"
+  ],
+  "action_items": [
+    "BUG FIX HIGH 2.3g-2: Add GRAPHIC_DESIGN='graphic_design' to ServiceType enum in /app/backend/models/enums.py. Audit ALL ServiceType enum values against available_service_types config keys — 'design' vs 'graphic_design' gap may indicate other mismatches too.",
+    "BUG FIX HIGH 2.3i-2: In create_job_ticket() (job_tickets.py ~line 1430-1454), add missing fields to JobTicket() constructor: description=data.description, entry_mode=data.entry_mode, manual_quote_override=data.manual_quote_override, linked_order_file_ids=data.linked_order_file_ids, item_artwork_file_ids=data.item_artwork_file_ids.",
+    "BUG FIX MEDIUM 2.3h-5: Add double-sided upcharge logic to calculate_promotional() in server.py. When double_sided_art is set to 'different' or 'same', apply a cost multiplier (e.g., 1.5x material cost for different-art double-sided).",
+    "CLEANUP: Test job ticket TEST_Custom Acrylic Award was created and deleted during testing (id=a1387de7-3adb-411e-bb68-a627c9b1ff70). Verify deletion succeeded."
+  ],
+  "critical_code_review_comments": [
+    "CRITICAL: ServiceType enum (enums.py) uses 'design' but available_service_types config uses 'graphic_design' as key. The calculate_services() function matches st_key against config keys, so enum value 'design' will ALWAYS fall back to general_labor — the graphic_design billing rates ($95/hr, min $25) are completely unreachable. This affects all service types: audit the full enum-to-config key mapping.",
+    "CRITICAL: create_job_ticket() handler does not persist description, entry_mode, manual_quote_override, linked_order_file_ids, item_artwork_file_ids. These are all defined in JobTicketCreate but not copied to the JobTicket model. Any client sending these fields will lose the data silently.",
+    "MEDIUM: calculate_promotional() at line 447 uses get_category_pricing_config(defaults, 'custom') — it should use 'promotional' or 'promo_misc' category config, not 'custom'. This means promotional pricing uses custom category markup/margin defaults instead of promotional-specific ones.",
+    "LOW: POST /api/pricing/calculate returns 500 for invalid enum values (e.g., service_type='graphic_design') instead of 422. The try/except at line 103 of pricing.py catches Pydantic ValidationError and re-raises as 500 with 'Calculation error:' prefix. It should catch ValidationError separately and return 422."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration128_pricing_sections_g_h_i.py"
+  ],
+  "success_rate": {
+    "backend": "92% (23/25 tests pass; 2 xfailed = known bugs documented)"
+  },
+  "seed_data_creation": "Test job ticket 'TEST_Custom Acrylic Award' created on ORD-0018 (id a1387de7-3adb-411e-bb68-a627c9b1ff70) and deleted during 2.3i-2 test. Rush defaults were temporarily modified (17.5, null, 0) and reset to null after each test.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Sections 2.3g/2.3h/2.3i fully tested. 3 bugs found: (1) ServiceType enum 'design' doesn't match config key 'graphic_design' → all graphic_design pricing broken; (2) create_job_ticket() drops description field (and entry_mode, manual_quote_override, linked files); (3) calculate_promotional() ignores double_sided_art field. All Services pricing math (hourly, flat, trip, mile, equipment, subcontract, rush from foundation) verified correct. Foundation rush percent (set/clear/zero) works correctly. Promotional rush and tier discounts work. Custom price_override works exactly. Schema for custom shows no progressive disclosure. Test file at /app/backend/tests/test_iteration128_pricing_sections_g_h_i.py with 25 tests.",
+  "rca_of_issues": {
+    "bug_2.3g-2": {
+      "issue": "ServiceType enum-config mismatch",
+      "root_cause": "ServiceType enum in enums.py uses abbreviated values (e.g., 'design') while available_service_types config in pricing defaults uses descriptive keys (e.g., 'graphic_design'). calculate_services() matches data.service_type.value against config keys — since 'design' ≠ 'graphic_design', it falls back to general_labor. Also, passing 'graphic_design' directly causes Pydantic ValidationError → 500.",
+      "fix": "In models/enums.py: rename DESIGN='design' to GRAPHIC_DESIGN='graphic_design'. Audit all 18 ServiceType values against config keys.",
+      "reproduction": "POST /api/pricing/calculate {category:services, pricing_data:{service_type:'graphic_design'}} → HTTP 500"
+    },
+    "bug_2.3i-2": {
+      "issue": "Job ticket description field dropped on create",
+      "root_cause": "create_job_ticket() in routes/job_tickets.py lines 1430-1454 constructs JobTicket(...) object but omits description=data.description from the constructor kwargs. The field exists in both JobTicketCreate (line 382) and JobTicket (line 343) models but the bridge is missing.",
+      "fix": "Add description=data.description to JobTicket() constructor at line ~1454. Also add entry_mode=data.entry_mode, manual_quote_override=data.manual_quote_override.",
+      "reproduction": "POST /api/job-tickets {description: 'test'} → create succeeds → GET /api/job-tickets/{id} returns description=''"
+    },
+    "bug_2.3h-5": {
+      "issue": "Promotional double-sided upcharge not implemented",
+      "root_cause": "calculate_promotional() in server.py lines 445-504 never reads double_sided_art or any double-sided field. The field exists in JobItemPricingData but the function only uses unit_cost, promo_product_type, markup_percent, rush_order, and quantity.",
+      "fix": "In calculate_promotional(), check data.double_sided_art: if 'different', apply ~1.5x material cost multiplier; if 'same', apply ~1.2x.",
+      "reproduction": "POST /api/pricing/calculate {category:promotional, pricing_data:{double_sided_art:'different'}} vs same without → identical prices"
+    }
+  }
+}
