@@ -1,5 +1,5 @@
 {
-  "base_url": "https://prelaunch-checklist.preview.emergentagent.com",
+  "base_url": "https://meta-webhook-setup.preview.emergentagent.com",
   "results": [
     {
       "check": "initial-status-not-started",

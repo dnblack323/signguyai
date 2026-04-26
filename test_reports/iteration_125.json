@@ -40,7 +40,7 @@
   "test_credentials": {
     "admin": "signguypa@gmail.com / Billnel323"
   },
-  "seed_data_creation": "No new seed data. Used existing seeded data: tenant_id=d9c5507b-879c-4bec-9736-1dc841334719, page_id=TEST_PAGE_12345, message_id=031fd852-c017-4ab9-8e6d-81d44c4e9335. Backend tests created additional test messages via webhook endpoint (auto-cleaned on next test run since they use unique UUIDs). Mark-spam/mark-reviewed tests modified the seeded message review_status (now 'spam' from last test run).",
+  "seed_data_creation": "No new seed data. Used existing seeded data: tenant_id=meta-webhook-setup, page_id=TEST_PAGE_12345, message_id=meta-webhook-setup. Backend tests created additional test messages via webhook endpoint (auto-cleaned on next test run since they use unique UUIDs). Mark-spam/mark-reviewed tests modified the seeded message review_status (now 'spam' from last test run).",
   "retest_needed": false,
   "main_agent_can_self_test": true,
   "context_for_next_testing_agent": "Facebook Messenger integration is fully functional. Critical bug was fixed: FacebookLeads.js STATUS_FILTERS had value:'' which crashed the Select component — changed to value:'all'. Backend: all 50 tests pass including webhook GET verification, webhook POST ingestion, idempotency, AI classification via Claude Sonnet, create-lead, create-draft-order, mark-reviewed, mark-spam. The seeded message (031fd852-...) was used for all CRUD tests and its review_status is now 'spam' (marked by last test run). META_APP_ID/META_APP_SECRET are empty (expected) — connect/start returns 503 as designed. Webhook signature validation is skipped when META_APP_SECRET is empty. AI classification is working via Emergent LLM key with Claude Sonnet model.",

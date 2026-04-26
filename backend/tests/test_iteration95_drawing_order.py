@@ -9,7 +9,7 @@ import os
 import struct
 import zlib
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://prelaunch-checklist.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://meta-webhook-setup.preview.emergentagent.com')
 
 
 class TestAuth:

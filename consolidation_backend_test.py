@@ -8,7 +8,7 @@ import json
 from datetime import datetime
 
 # Production URL from review request
-BASE_URL = "https://prelaunch-checklist.preview.emergentagent.com"
+BASE_URL = "https://meta-webhook-setup.preview.emergentagent.com"
 
 # Production credentials from review request
 TEST_EMAIL = "signguypa@gmail.com"
