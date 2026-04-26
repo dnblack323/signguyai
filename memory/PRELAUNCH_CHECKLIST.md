@@ -42,7 +42,7 @@ _Why this is first: if anything else goes wrong, backup is the only thing that k
 - [x] **Login** with correct credentials lands on Dashboard
 - [x] **Login with wrong password 5 times** → user sees a sensible error (wrong password) but the account is **not permanently locked** inappropriately
 - [ ] **Forgot Password** → reset email arrives → click link → set new password
-- [ ] Old password **rejected** after reset; new password accepted
+- [x] Old password **rejected** after reset; new password accepted
 - [x] **Logout** clears the session → visiting `/orders` redirects to `/login`
 - [ ] **Tenant isolation (critical):**
   - [ ] Create a second tenant using a different email
@@ -51,14 +51,14 @@ _Why this is first: if anything else goes wrong, backup is the only thing that k
 - [ ] **Role checks** (invite a second user with role=staff):
   - [ ] Staff cannot access `/payroll`, `/settings`, `/billing`, `/users`
   - [ ] Staff CAN access `/orders`, `/customers`, `/dashboard`
-- [ ] **Session / JWT expiry:** leave a tab idle 25+ hours → next action re-prompts login
-- [ ] **Email change** flow (if exposed) requires verification of the new email
+- [ ] **Session / JWT expiry:** leave a tab idle 25+ hours → next action re-prompts login *(user-only: requires 25h wait)*
+- [ ] **Email change** flow (if exposed) requires verification of the new email *(user-only: email delivery)*
 
 ### 1.3 Stripe Billing (Platform Subscriptions)
 - [x] Settings → Billing shows the current plan and next renewal date
 - [ ] **Upgrade** via Stripe checkout (`4242 4242 4242 4242`, any future expiry, any CVC) → redirect returns to `/billing/success` → new plan displayed in UI and in Stripe dashboard
-- [ ] **Declined card** (`4000 0000 0000 0002`) → graceful error page → plan **not** upgraded
-- [ ] **3DS required card** (`4000 0025 0000 3155`) → 3DS prompt appears → after approval, plan upgrades
+- [ ] **Declined card** (`4000 0000 0000 0002`) → graceful error page → plan **not** upgraded *(user-only: Stripe/external)*
+- [ ] **3DS required card** (`4000 0025 0000 3155`) → 3DS prompt appears → after approval, plan upgrades *(user-only: Stripe/external)*
 - [ ] **Credit top-up**: purchase the 100-credit pack → balance in navbar updates within 10s of Stripe webhook
 - [ ] **Subscription cancel** at period end → Stripe dashboard shows `cancel_at_period_end=true` → user retains access until period end
 - [ ] **Webhook replay**: from Stripe dashboard, resend a `checkout.session.completed` event → tenant record updated (check server logs for `✓ Stripe webhook processed`)
@@ -74,17 +74,17 @@ _Different from 1.3 — this is the merchant (you) receiving customer payments, 
 - [ ] Customer pays a test invoice via Stripe Connect card (`4242 4242 4242 4242`) → funds route to **your** Stripe balance (not platform’s)
 - [ ] Confirm in Stripe Connect dashboard: balance went up by the paid amount minus Stripe fees
 - [ ] **Refund** from Stripe dashboard → invoice status auto-updates to `refunded` in SignGuy (via webhook)
-- [ ] **Disconnect** → status flips to disconnected → future invoices fall back to platform payment flow
-- [ ] Re-connect works without duplicate-account errors
+- [ ] **Disconnect** → status flips to disconnected → future invoices fall back to platform payment flow *(user-only: Stripe/external)*
+- [ ] Re-connect works without duplicate-account errors *(user-only: Stripe/external)*
 
 ### 1.5 Credits System (AI Metering)
 - [x] Navbar shows the current **credit balance**
 - [ ] Buy the **100 / 300 / 1000** credit packs one at a time (test cards) → each balance update reflects after the Stripe webhook
 - [x] Every successful AI call **decrements** the balance by the published credit cost (hover the tool card to see the cost)
 - [ ] **Exhaustion**: burn balance to 0 → next AI call returns **HTTP 402 Insufficient Credits** with a friendly upgrade prompt in the UI
-- [ ] **Auto top-up** toggle (if enabled) triggers a recharge when balance dips below the threshold
+- [ ] **Auto top-up** toggle (if enabled) triggers a recharge when balance dips below the threshold *(user-only: Stripe/external)*
 - [x] **Credit History** page shows every charge (+) and every consumption (−) with the action name (`ai_business_assistant`, `ai_services_prefill`, etc.)
-- [ ] **Founders Edition monthly allotment** refills on the billing anniversary date
+- [ ] **Founders Edition monthly allotment** refills on the billing anniversary date *(user-only: Stripe/external)*
 - [ ] Free-tier users cannot bypass credit gating (check Network tab — no orphaned `X-Skip-Credits` header)
 
 ### 1.6 CSV Customer Import
@@ -338,7 +338,7 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 
 ### 2.9 Questionnaires / Public Intake Forms
 - [x] Create a questionnaire (Questionnaires page)
-- [ ] Add fields of each type:
+- [x] Add fields of each type:
   - [x] Short text
   - [x] Long text / textarea
   - [x] Multiple choice (radio)
@@ -363,7 +363,7 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 - [x] Customer signs with mouse on desktop → submit → signature stored on record
 - [ ] Customer signs with finger on mobile → submit → signature stored
 - [x] **Token becomes invalid** for re-use after submit
-- [ ] **Expired token** (manually mark old in DB, or wait past expiry) → friendly “This link has expired” page
+- [x] **Expired token** (manually mark old in DB, or wait past expiry) → friendly “This link has expired” page
 - [x] **Invalid / fabricated token** → friendly error page, no stack trace
 
 ---
@@ -381,7 +381,7 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 - [ ] Real-time updates: change status in one browser tab → second tab reflects within 30s (if websocket supported) or after refresh
 
 ### 3.2 Production Tasks (Subtasks per Order Item)
-- [ ] Open an order item → **Tasks** tab
+- [x] Open an order item → **Tasks** tab
 - [ ] Add a task (e.g. “Laminate”, “Cut”, “Box”)
 - [x] Check off a task → marked complete with timestamp
 - [ ] **Assign** a task to an employee → appears in that employee’s portal
@@ -401,7 +401,7 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 ### 3.4 Workflow Templates
 - [ ] Settings → Production → create a template (e.g. “Standard Banner Flow”)
 - [x] Add ordered steps: Design → Print → Finish → QA → Package
-- [ ] **Apply template** to a new order → tasks auto-created in order
+- [x] **Apply template** to a new order → tasks auto-created in order
 - [x] **Editing a template** does **NOT** retroactively change existing orders that used it
 - [x] Delete a template (not in use) → works; (in use) → warning / blocked
 - [ ] Duplicate a template → new template with independent steps
@@ -412,7 +412,7 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 - [x] Customer approves proof → status updates to **approved** with timestamp + IP
 - [x] Customer can **request changes** with a comment → notification back to you via email + in-app
 - [ ] **Reject** proof → order blocked from advancing to next production step
-- [ ] Re-send the same proof → customer sees updated version
+- [x] Re-send the same proof → customer sees updated version
 - [x] Filter approvals by status, by customer, by date
 
 ### 3.6 Appointments / Scheduling

@@ -24,11 +24,12 @@
 - Note: This account is in test_database, NOT the production signguy_ai database
 
 ## Employee Portal Test Accounts
-- Email: DNBLACK323@GMAIL.COM / Password: 1234
-- Email: preview-payroll@example.com / Password: 1234
+- Email: preview-payroll@example.com / PIN: 1234 (QA Test Employee - Iteration 104, employee_id=18eed187-1a90-4bf8-b233-dc47b44c9579)
+- Email: DNBLACK323@GMAIL.COM / Password: 1234 (Note: DNBLACK323 not in employees collection; use preview-payroll for portal)
 
 ## Customer Portal Test Account
-- Email: dklayb@gmail.com / Password: 123456
+- Email: taxtest_non@example.com / Password: portal123 (dklayb@gmail.com does NOT exist in production DB)
+- Customer ID: 1eaeec1d-6fbb-48fa-aa96-ecc4298bdb8b (Tax Test Customer Non-Exempt)
 
 ## Meta/Facebook Integration — Tenant Isolation Test Account
 - Email: tenant_b_isolation_test@example.com
