@@ -40,3 +40,10 @@
 ## Meta/Facebook — Seeded Test Data
 - Test Page ID: TEST_PAGE_12345
 - Linked Tenant: d9c5507b-879c-4bec-9736-1dc841334719 (signguypa@gmail.com)
+
+## Staff Role User (for Payroll RBAC negative tests)
+- Email: staff_payroll_test@test.com
+- Password: StaffTest123!
+- Role: staff (limited)
+- Tenant: d9c5507b-879c-4bec-9736-1dc841334719 (Signtists Lab)
+- Used for: verifying GET `/api/payroll/*` returns 403 for staff (security fix 2026-04-26)

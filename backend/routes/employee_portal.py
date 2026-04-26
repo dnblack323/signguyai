@@ -553,6 +553,12 @@ async def get_employee_work_summary(authorization: str = Header(default="")):
     )
 
 
+@router.get("/dashboard", response_model=EmployeeWorkSummary)
+async def get_employee_dashboard(authorization: str = Header(default="")):
+    """Alias for /work-summary — returns today/week hours and assigned jobs count."""
+    return await get_employee_work_summary(authorization)
+
+
 @router.post("/jobs/{job_id}/timeline/{timeline_id}/stage/{stage_order}")
 async def act_on_stage(
     job_id: str,

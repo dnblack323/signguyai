@@ -23,6 +23,17 @@ Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independen
 
 ## Implemented (CHANGELOG)
 
+### 2026-04-26 — Prelaunch Tier 1–4 Final Mop-Up Closeout (iteration_132 follow-up)
+Addressed all 4 missing endpoints and 1 security bug discovered in iteration_132:
+- **Security:** Added `_require_payroll_view_access()` guard to all GET payroll routes — staff role now correctly returns `403`. Previously, staff could read all payroll data because GET routes had no permission check.
+- **CSV Export — Customers:** New `GET /api/customers/export` endpoint streams CSV (name, email, phone, company, status, notes, created_at).
+- **CSV Export — Payroll:** Added `format=csv` query param to `GET /api/payroll/report`. Returns streaming CSV with employee-level columns.
+- **Workflow Templates:** New `POST /api/workflow-templates/{id}/apply` (creates production tasks per stage for each ticket on an order; supports `replace_existing=true`) and `POST /{id}/duplicate` endpoints.
+- **Customer Portal Appointments:** New `GET /api/portal/appointments` returns customer's scheduled appointments with optional `upcoming_only` and `status` filters.
+- **Employee Portal Dashboard:** Added `GET /api/employee-portal/dashboard` as alias of `/work-summary` (matches frontend spec which referenced `/dashboard` URL).
+- All 6 fixes verified via curl smoke tests with admin/staff/portal/employee tokens.
+- Trackers updated: `PRELAUNCH_CHECKLIST.md`, `PRELAUNCH_OPEN_ITEMS_TRACKER.md`, `PRELAUNCH_POSTFIX_RETEST_RESULTS.md`, `PRELAUNCH_SECTION1_USER_PERSONAL_CHECKLIST.md` (Section 15 added with manual UI verifications).
+
 ### 2026-04-25 — Public `/data-deletion` static page (Meta App compliance fix)
 - Created `/app/frontend/public/data-deletion.html` and `/app/frontend/public/data-deletion/index.html` so the URL is served as raw HTML (Meta crawler does not run JS).
 - Wrapped `mailto:` links in `<!--email_off-->...<!--/email_off-->` to disable Cloudflare's Email Address Obfuscation, which was rewriting `support@signguy-ai.com` to `[email&nbsp;protected]` mid-flight.

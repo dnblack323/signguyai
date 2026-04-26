@@ -101,6 +101,41 @@ async def create_customer(
     return customer
 
 
+@router.get("/export")
+async def export_customers(
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Export all customers to CSV (name, email, phone, company, status)."""
+    import csv
+    from io import StringIO
+    from fastapi.responses import StreamingResponse
+
+    customers = await db.customers.find(
+        {"tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(10000)
+
+    buffer = StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(["name", "email", "phone", "company", "status", "notes", "created_at"])
+    for c in customers:
+        writer.writerow([
+            c.get("name") or "",
+            c.get("email") or "",
+            c.get("phone") or "",
+            c.get("company") or "",
+            c.get("status") or "",
+            c.get("notes") or "",
+            c.get("created_at") or "",
+        ])
+    buffer.seek(0)
+    return StreamingResponse(
+        iter([buffer.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=customers_export.csv"}
+    )
+
+
 @router.post("/import", response_model=CustomerImportResponse)
 async def import_customers(
     request: CustomerImportRequest,

@@ -6,7 +6,7 @@ Use categories:
 - ❌ Failed and still open
 - ⛔ Cannot fully test without user/external actions
 
-Last updated: 2026-04-26
+Last updated: 2026-04-26 (post iteration_132 mop-up)
 
 ---
 
@@ -16,6 +16,12 @@ Last updated: 2026-04-26
 |------|-----|------|
 | **2.1F** Tax-exempt toggle | Added `default_tax_rate` to tenant model + CompanySettings UI; invoice generation now checks `is_tax_exempt` flag per customer | 2026-04-26 |
 | **2.2E** Assets-panel upload/thumbnail | Rewrote `OrderAssetsPanel.js` — drag-and-drop zone + `AssetThumbnail` component shows real image blobs | 2026-04-26 |
+| **T1-ISO-E** Payroll READ security bug | Added `_require_payroll_view_access()` to all GET payroll routes — staff now `403` | 2026-04-26 |
+| **T1-CSV** Customer CSV export | Added `GET /api/customers/export` (name, email, phone, company, status, notes, created_at) | 2026-04-26 |
+| **T3-WF-A** Workflow template apply | Added `POST /api/workflow-templates/{id}/apply` + `/duplicate` — generates production tasks per stage | 2026-04-26 |
+| **T4-PORTAL-C** Portal appointments | Added `GET /api/portal/appointments` for customer portal | 2026-04-26 |
+| **T4-PAYROLL-A** Payroll CSV export | Added `format=csv` query param to `GET /api/payroll/report` | 2026-04-26 |
+| **T4-EMP-PORTAL-A** Employee dashboard alias | Added `GET /api/employee-portal/dashboard` (alias of `/work-summary`) | 2026-04-26 |
 
 ---
 

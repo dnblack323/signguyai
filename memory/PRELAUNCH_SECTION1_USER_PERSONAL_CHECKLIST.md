@@ -248,3 +248,17 @@ Test each on **iPhone** (Safari) and **Android** (Chrome):
 - [ ] **E2E-8** Tonight's digest email mentions the completed job
 - [ ] **E2E-9** Payroll worksheet shows employee time clocked against the order
 - [ ] **E2E-10** Customer sees completed order + invoice in their portal
+
+---
+
+## Section 15 — Iteration 132 Mop-Up Manual Verifications (added 2026-04-26)
+
+These items had backend endpoints implemented + verified, but UI / round-trip checks remain personal:
+
+- [ ] **15.1 Customer CSV round-trip** — Hit `/api/customers/export` (or UI download), open CSV in Excel/Numbers, then re-import via Customers → Import on a clean tenant. Confirm zero duplicates, all rows present, special chars (é, ñ, &) survive UTF-8 roundtrip.
+- [ ] **15.2 Payroll CSV in spreadsheet** — Download `/api/payroll/report?format=csv&start_date=...&end_date=...`, open in Excel/Numbers/Google Sheets. Confirm columns align, decimals preserved (e.g. `25.00` not `25`), no broken cells.
+- [ ] **15.3 Portal appointments UI** — Customer logs into `/customer-portal/appointments`, sees scheduled appointments. Confirm cancel button works, reschedule (if implemented in UI) propagates back to admin schedule.
+- [ ] **15.4 Employee portal dashboard UI** — Employee logs into `/employee-portal`, sees today's hours / week's hours / assigned jobs count. Confirm clock-in/out badges + tappable buttons render on mobile.
+- [ ] **15.5 Workflow template apply UX** — From an order, click "Apply Workflow Template" → select template → confirm tasks appear in production Kanban under the order.
+- [ ] **15.6 Staff-role UI guards** — Login as staff user (e.g. `staff_payroll_test@test.com / StaffTest123!`); confirm Payroll/Settings/Billing/Users nav links are hidden or guarded with friendly toast (not raw 403).
+- [ ] **15.7 Tenant isolation UI walkthrough** — Login as Tenant B user, attempt URL manipulation to reach Tenant A's `/orders/<id>` → confirm friendly 404 page (not raw API JSON).

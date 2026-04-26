@@ -1,0 +1,99 @@
+{
+  "summary": "Iteration 133: Closeout of iteration_132 action items. All 4 previously-skipped endpoints implemented + 1 security bug fixed. 29/29 tests pass (100%).",
+
+  "context": "Followup to iteration_132. Implemented 4 missing endpoints + fixed 1 HIGH severity security bug.",
+
+  "fixes_applied": [
+    {
+      "id": "T1-ISO-E-FIX",
+      "priority": "HIGH",
+      "description": "Added _require_payroll_view_access() guard to all 10 GET payroll routes (report, balance, transactions, hours, signoff, timesheet, pay-period, timeclock-shifts, legacy-manual-entries, schedule)",
+      "file": "/app/backend/routes/employees.py",
+      "verified": "Staff role 403 on /api/payroll/report, /transactions, /hours; admin 200"
+    },
+    {
+      "id": "T1-CSV-FIX",
+      "priority": "MEDIUM",
+      "description": "Added GET /api/customers/export — streams CSV with name,email,phone,company,status,notes,created_at columns",
+      "file": "/app/backend/routes/customers.py",
+      "verified": "200 text/csv with header row + customer rows"
+    },
+    {
+      "id": "T3-WF-A-FIX",
+      "priority": "MEDIUM",
+      "description": "Added POST /api/workflow-templates/{id}/apply (creates production tasks per stage for each ticket on order, supports replace_existing) + POST /{id}/duplicate",
+      "file": "/app/backend/routes/workflow_templates.py",
+      "verified": "Apply Apparel template (11 stages) to order with 2 tickets created 22 tasks. Duplicate creates new template with (Copy) suffix."
+    },
+    {
+      "id": "T4-PORTAL-C-FIX",
+      "priority": "LOW",
+      "description": "Added GET /api/portal/appointments — list customer's appointments with optional status, upcoming_only filters",
+      "file": "/app/backend/routes/portal.py",
+      "verified": "200 with empty list for test customer (no appointments seeded)"
+    },
+    {
+      "id": "T4-PAYROLL-A-FIX",
+      "priority": "LOW",
+      "description": "Added format=csv query param to GET /api/payroll/report — returns streaming CSV",
+      "file": "/app/backend/routes/employees.py",
+      "verified": "200 text/csv with employee-level columns"
+    },
+    {
+      "id": "T4-EMP-PORTAL-A-FIX",
+      "priority": "LOW",
+      "description": "Added GET /api/employee-portal/dashboard as alias of /work-summary",
+      "file": "/app/backend/routes/employee_portal.py",
+      "verified": "Returns same payload as /work-summary (today_hours_worked, week_hours_worked, completed_stages_today, assigned_jobs_count)"
+    }
+  ],
+
+  "test_run": {
+    "command": "REACT_APP_BACKEND_URL=<preview> python -m pytest tests/test_iteration132_t1_t3_t4_remaining.py -v",
+    "result": "29/29 PASSED (100%)",
+    "duration": "9.92s",
+    "previous_iteration": "iteration_132 was 25/29 (4 skipped due to missing endpoints)"
+  },
+
+  "regression_check": {
+    "appointments_crud": "PASS (GET /api/appointments → 200)",
+    "invoice_aging": "PASS (GET /api/financials/invoice-aging → 200)",
+    "quotes_list": "PASS (GET /api/quotes → 200)",
+    "workflow_templates_list": "PASS (7 templates returned)",
+    "payroll_admin_access": "PASS (admin still 200 on all GET payroll)",
+    "portal_login": "PASS (taxtest_non@example.com/portal123 works)",
+    "employee_portal_login": "PASS (preview-payroll@example.com/PIN:1234 works)"
+  },
+
+  "documents_updated": [
+    "/app/memory/PRELAUNCH_CHECKLIST.md (5 sections updated with backend-verified checks)",
+    "/app/memory/PRELAUNCH_OPEN_ITEMS_TRACKER.md (added 6 resolved items to Recently Resolved table)",
+    "/app/memory/PRELAUNCH_POSTFIX_RETEST_RESULTS.md (added Iteration 132 follow-up section)",
+    "/app/memory/PRELAUNCH_SECTION1_USER_PERSONAL_CHECKLIST.md (added Section 15: 7 manual UI verifications for the new endpoints)",
+    "/app/memory/test_credentials.md (added staff_payroll_test@test.com / StaffTest123! for RBAC testing)",
+    "/app/memory/CHANGELOG.md (added 2026-04-26 mop-up entry)",
+    "/app/memory/PRD.md (added 2026-04-26 closeout section)"
+  ],
+
+  "test_credentials": {
+    "admin": "thesigntistslab@gmail.com / password123",
+    "staff_for_rbac_tests": "staff_payroll_test@test.com / StaffTest123!",
+    "tenant_b": "tenanttwo_isolation@test.com / IsolationTest123!",
+    "customer_portal": "taxtest_non@example.com / portal123",
+    "employee_portal": "preview-payroll@example.com / PIN: 1234"
+  },
+
+  "tier_1_4_audit_status": {
+    "agent_testable_items": "100% covered",
+    "agent_test_iterations": ["iteration_127", "iteration_128", "iteration_129", "iteration_130", "iteration_131", "iteration_132", "iteration_133"],
+    "ui_only_items_migrated": "Yes — Section 15 of PRELAUNCH_SECTION1_USER_PERSONAL_CHECKLIST.md captures the 7 manual UI verifications for the newly-implemented endpoints",
+    "remaining_blockers": [
+      "1.4B Stripe Connect — pending user onboarding completion",
+      "1.6Q Mid-batch CSV import partial-insert — pending product decision",
+      "Meta OAuth Phase 1 — pending user permission grants in Meta App settings"
+    ]
+  },
+
+  "retest_needed": false,
+  "main_agent_can_self_test": true
+}

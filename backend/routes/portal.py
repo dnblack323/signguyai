@@ -926,6 +926,29 @@ async def create_portal_invoice_payment(
         raise HTTPException(status_code=400, detail=str(exc))
 
 
+# ============== PORTAL APPOINTMENTS ==============
+
+@router.get("/appointments")
+async def get_portal_appointments(
+    status: Optional[str] = None,
+    upcoming_only: bool = False,
+    customer: dict = Depends(get_current_portal_customer)
+):
+    """Get the customer's appointments (scheduled site surveys, installs, etc.)."""
+    query: Dict[str, Any] = {"customer_id": customer["id"]}
+    if customer.get("tenant_id"):
+        query["tenant_id"] = customer["tenant_id"]
+    if status:
+        query["status"] = status
+    if upcoming_only:
+        today = datetime.now(timezone.utc).date().isoformat()
+        query["scheduled_date"] = {"$gte": today}
+        query.setdefault("status", {"$in": ["scheduled", "confirmed"]} if not status else status)
+
+    appointments = await db.appointments.find(query, {"_id": 0}).sort("scheduled_start", 1).to_list(200)
+    return appointments
+
+
 # ============== PORTAL DOCUMENTS ==============
 
 @router.get("/documents")

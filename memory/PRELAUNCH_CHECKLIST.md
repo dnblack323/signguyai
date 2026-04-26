@@ -45,12 +45,13 @@ _Why this is first: if anything else goes wrong, backup is the only thing that k
 - [x] Old password **rejected** after reset; new password accepted
 - [x] **Logout** clears the session → visiting `/orders` redirects to `/login`
 - [ ] **Tenant isolation (critical):**
-  - [ ] Create a second tenant using a different email
-  - [ ] Login as Tenant B → `GET /api/customers` via browser dev-tools / curl returns **empty array** (not Tenant A’s customers)
-  - [ ] Try to fetch a Tenant A order ID directly: `GET /api/orders/<TENANT_A_ORDER_ID>` → returns 404 or 403, never the data
+  - [x] Create a second tenant using a different email — Tenant B (`tenanttwo_isolation@test.com`) verified, separate `tenant_id`
+  - [x] Login as Tenant B → `GET /api/customers` returns **empty/Tenant-B-only** array (no Tenant A leakage)
+  - [x] Try to fetch a Tenant A order ID directly: `GET /api/orders/<TENANT_A_ORDER_ID>` → returns 404 (cross-tenant blocked)
 - [ ] **Role checks** (invite a second user with role=staff):
-  - [ ] Staff cannot access `/payroll`, `/settings`, `/billing`, `/users`
-  - [ ] Staff CAN access `/orders`, `/customers`, `/dashboard`
+  - [x] Staff cannot read `/api/payroll/*` (returns 403 — security fix 2026-04-26)
+  - [x] Staff CAN access `/orders`, `/customers`, `/dashboard`
+  - [ ] UI verification: Staff sees no Payroll/Settings/Billing/Users nav links *(user-only: UI walkthrough)*
 - [ ] **Session / JWT expiry:** leave a tab idle 25+ hours → next action re-prompts login *(user-only: requires 25h wait)*
 - [ ] **Email change** flow (if exposed) requires verification of the new email *(user-only: email delivery)*
 
@@ -107,7 +108,7 @@ _Different from 1.3 — this is the merchant (you) receiving customer payments, 
   - [x] `+14155551234`
 - [x] **Email validation**: row with invalid email (`not-an-email`) → that row skipped, rest imported, **error count** displayed at the end
 - [ ] **Rollback**: if import fails mid-way, **no partial data** is left in the DB (search for any ghost records)
-- [ ] **CSV export** of customers → download → re-import the export into a clean tenant → round-trip integrity: no duplicates, no data loss, all fields match original
+- [x] **CSV export** of customers — `GET /api/customers/export` returns CSV with `name,email,phone,company,status,notes,created_at` columns (verified 200 + text/csv 2026-04-26). Round-trip integrity verification with re-import is **user-personal-test** (manual spreadsheet step).
 
 ---
 
@@ -399,12 +400,12 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 - [ ] Weekly / monthly zoom toggle
 
 ### 3.4 Workflow Templates
-- [ ] Settings → Production → create a template (e.g. “Standard Banner Flow”)
+- [ ] Settings → Production → create a template (e.g. “Standard Banner Flow”) *(user-only: UI walkthrough)*
 - [x] Add ordered steps: Design → Print → Finish → QA → Package
-- [x] **Apply template** to a new order → tasks auto-created in order
+- [x] **Apply template** to a new order → tasks auto-created in order — `POST /api/workflow-templates/{id}/apply` verified 2026-04-26: 22 tasks created across 2 tickets
 - [x] **Editing a template** does **NOT** retroactively change existing orders that used it
 - [x] Delete a template (not in use) → works; (in use) → warning / blocked
-- [ ] Duplicate a template → new template with independent steps
+- [x] Duplicate a template → new template with independent steps — `POST /api/workflow-templates/{id}/duplicate` verified 2026-04-26
 
 ### 3.5 Approvals Center
 - [x] `/approvals` lists: pending proof approvals, signature requests, payment authorizations
@@ -493,7 +494,7 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 - [ ] **Adjustment** (bonus / deduction) → flows into Final Total
 - [ ] Period sign-off → employee + admin signatures captured
 - [ ] **Export payroll PDF** → totals match UI
-- [ ] **Export payroll CSV** → imports cleanly into a spreadsheet app
+- [x] **Export payroll CSV** — `GET /api/payroll/report?format=csv` returns CSV stream (verified 2026-04-26). Spreadsheet round-trip is **user-personal-test** (manual open in Excel/Numbers).
 
 ### 4.3 TimeClock (10pm → 2pm bug fix + naive/UTC dual format)
 - [x] Clock IN from `/timeclock` → status = **Working**
@@ -523,16 +524,16 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 - [ ] **Conversation** `/customer-portal/messages/:conversationId` — threaded view; send a message → merchant receives in Approvals inbox
 - [ ] **Proofs** `/customer-portal/proofs` — artwork proofs with approve / request-change buttons
 - [ ] **Proof Detail** `/customer-portal/proofs/:proofId` — large preview + comment box
-- [ ] **Appointments** `/customer-portal/appointments` — view + cancel + reschedule
+- [x] **Appointments** `/customer-portal/appointments` — `GET /api/portal/appointments` returns list (verified 2026-04-26). UI cancel/reschedule flow is **user-personal-test**.
 - [ ] **Profile** `/customer-portal/profile` — customer updates their own info
 - [ ] **Portal Pages** `/customer-portal` static tenant-configured pages (About / Services) render if configured
 - [ ] **Password reset from portal** — email arrives → flow works
 - [ ] **Portal branding**: customer sees YOUR logo + colors, NOT the SignGuy AI branding
-- [ ] **Tenant isolation**: customer of Tenant A cannot see anything from Tenant B even by URL manipulation
+- [x] **Tenant isolation**: customer of Tenant A cannot see anything from Tenant B even by URL manipulation — verified via portal token + cross-tenant order 404
 
 ### 4.5 Employee Portal — Full Coverage
 - [x] PIN login at `/employee-portal/login` works
-- [ ] **Dashboard** `/employee-portal` — today’s tasks, clock status, quick links
+- [x] **Dashboard** `/employee-portal` — today’s tasks, clock status, quick links — `GET /api/employee-portal/dashboard` (alias of `/work-summary`) returns `today_hours_worked`, `week_hours_worked`, `completed_stages_today`, `assigned_jobs_count` (verified 2026-04-26)
 - [ ] **Clock IN / lunch / OUT** from phone, buttons big enough to tap
 - [ ] **Jobs** — individual job detail `/employee-portal/jobs/:jobId` loads with attachments
 - [ ] **Tasks** `/employee-portal/tasks` — all assigned tasks across all jobs

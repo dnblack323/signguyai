@@ -212,3 +212,30 @@ Independent verification:
 - `/app/test_reports/iteration_119.json`
 - `/app/test_reports/iteration_123.json`
 - `/root/.emergent/automation_output/20260423_080029/console_20260423_080029.log`
+
+---
+
+## Tier 1+3+4 Final Mop-Up Retests (2026-04-26)
+
+### Iteration 132 follow-up — 4 missing endpoints + 1 security bug
+
+- ✅ **T1-ISO-E** Payroll READ security: Staff role now returns `403 "You do not have permission to view payroll data"` on `GET /api/payroll/{report,balance,transactions,hours,signoff,timesheet,pay-period,timeclock-shifts,legacy-manual-entries,schedule}`
+  - Fix: Added `_require_payroll_view_access()` helper to `routes/employees.py` and wired into all GET payroll routes
+  - Verified: Admin (owner) still gets `200`, Staff returns `403` for `/report`, `/transactions`, `/hours`
+- ✅ **T1-CSV** Customer CSV export: `GET /api/customers/export` returns `200 text/csv` with header `name,email,phone,company,status,notes,created_at`
+  - Fix: New endpoint added to `routes/customers.py`
+- ✅ **T3-WF-A** Workflow template apply: `POST /api/workflow-templates/{id}/apply` creates production tasks per stage for each ticket on the order; supports `replace_existing=true`
+  - Verified: Applied "Apparel" template (11 stages) to order with 2 tickets → `tasks_created: 22`, `tickets_updated: [..2 ids..]`
+  - Bonus: Added `POST /api/workflow-templates/{id}/duplicate` for explicit copy
+  - Fix: New endpoints in `routes/workflow_templates.py`
+- ✅ **T4-PORTAL-C** Customer portal appointments: `GET /api/portal/appointments?upcoming_only=&status=` returns appointment list filtered by current customer
+  - Fix: New endpoint in `routes/portal.py`
+- ✅ **T4-PAYROLL-A** Payroll CSV export: `GET /api/payroll/report?format=csv&start_date=...&end_date=...` streams CSV with employee-level columns
+  - Fix: Added `format` query param to existing `/payroll/report` route
+- ✅ **T4-EMP-PORTAL-A** `/api/employee-portal/dashboard` alias added (returns same payload as `/work-summary`)
+  - Fix: Alias route added to `routes/employee_portal.py`
+
+**Test verification:**
+- ✅ All 6 endpoints tested via curl with admin + staff + portal + employee tokens
+- ✅ Existing endpoints unaffected (regression spot-check: appointments, invoice-aging, quotes, workflow-templates list — all `200`)
+- Test report: `/app/test_reports/iteration_132.json` (action items resolved)

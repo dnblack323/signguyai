@@ -259,6 +259,12 @@ def _require_payroll_edit_access(current_user: UserInDB):
         raise HTTPException(status_code=403, detail="Only admin-level users can edit payroll data")
 
 
+def _require_payroll_view_access(current_user: UserInDB):
+    """Owner/admin can read payroll. Staff role is denied (no PAYROLL_VIEW)."""
+    if current_user.role not in ["owner", "admin", "superadmin"]:
+        raise HTTPException(status_code=403, detail="You do not have permission to view payroll data")
+
+
 async def _get_employee_compensation_snapshot(tenant_id: str, employee: dict, start_date: Optional[str] = None, end_date: Optional[str] = None):
     emp_id = employee["id"]
     hourly_rate = employee.get("hourly_rate", 0)
@@ -1132,6 +1138,7 @@ async def get_payroll_transactions(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """List payroll transactions with optional filtering (tenant-scoped)"""
+    _require_payroll_view_access(current_user)
     # Direct tenant_id filter + OR legacy employee-list match for pre-migration docs.
     legacy_ids = await _tenant_employee_ids(current_user.tenant_id)
     query: Dict[str, Any] = {
@@ -1162,6 +1169,7 @@ async def get_payroll_signoff(
     period_end: Optional[str] = None,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
+    _require_payroll_view_access(current_user)
     signoff = await db.payroll_signoffs.find_one(
         {"tenant_id": current_user.tenant_id, "employee_id": employee_id, "week_start": week_start, "period_end": period_end},
         {"_id": 0},
@@ -1222,6 +1230,7 @@ async def get_legacy_manual_entries(
     end_date: Optional[str] = None,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
+    _require_payroll_view_access(current_user)
     period_start = start_date or week_start
     period_end = end_date or (_get_week_end(week_start) if week_start else None)
     if not period_start or not period_end:
@@ -1313,6 +1322,7 @@ async def get_payroll_balance(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Get payroll balance for an employee (tenant-scoped)"""
+    _require_payroll_view_access(current_user)
     employee = await db.employees.find_one({
         "id": employee_id,
         "tenant_id": current_user.tenant_id
@@ -1347,9 +1357,11 @@ async def get_payroll_report(
     employee_id: Optional[str] = None,
     period_type: str = Query("custom", pattern="^(custom|weekly|biweekly)$"),
     reference_date: Optional[str] = None,
+    format: str = Query("json", pattern="^(json|csv)$"),
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Get payroll report for all employees in a date range (tenant-scoped)"""
+    _require_payroll_view_access(current_user)
     payroll_settings = await _get_tenant_payroll_settings(current_user.tenant_id)
     start_date, end_date = _resolve_report_date_range(start_date, end_date, period_type, reference_date, payroll_settings["pay_week_start_day"])
 
@@ -1396,7 +1408,7 @@ async def get_payroll_report(
             "daily_breakdown": payroll_snapshot["daily_breakdown"],
         })
     
-    return {
+    result = {
         "period_type": period_type,
         "start_date": start_date,
         "end_date": end_date,
@@ -1422,6 +1434,36 @@ async def get_payroll_report(
             "final_owed": sum(r["final_owed"] for r in report),
         }
     }
+
+    if format == "csv":
+        import csv
+        from io import StringIO
+        from fastapi.responses import StreamingResponse
+
+        buffer = StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow([
+            "Employee ID", "Employee Name", "Hourly Rate", "Overtime Rate",
+            "Total Hours", "Regular Hours", "Overtime Hours",
+            "Gross Pay", "Carryover Balance", "Earnings Adjustments",
+            "Advances", "Payments", "Adjustments Total", "Final Owed"
+        ])
+        for r in report:
+            writer.writerow([
+                r["employee_id"], r["employee_name"], r["hourly_rate"], r["overtime_rate"],
+                r["hours"], r["regular_hours"], r["overtime_hours"],
+                r["gross_pay"], r["carryover_balance"], r["earnings_adjustments"],
+                r["advances"], r["payments"], r["adjustments_total"], r["final_owed"]
+            ])
+        buffer.seek(0)
+        filename = f"payroll_report_{start_date}_to_{end_date}.csv"
+        return StreamingResponse(
+            iter([buffer.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+
+    return result
 
 
 # ============== MANUAL HOURS ROUTES ==============
@@ -1518,6 +1560,7 @@ async def get_manual_hours(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Get manual hours entries"""
+    _require_payroll_view_access(current_user)
     query = {"tenant_id": current_user.tenant_id}
     if employee_id:
         query["employee_id"] = employee_id
@@ -1539,6 +1582,7 @@ async def get_saved_timeclock_shifts(
     end_date: Optional[str] = None,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
+    _require_payroll_view_access(current_user)
     target_employee_ids = [employee_id] if employee_id else [emp["id"] for emp in await db.employees.find({"tenant_id": current_user.tenant_id}, {"_id": 0, "id": 1}).to_list(1000)]
     if start_date and end_date:
         for emp_id in target_employee_ids:
@@ -1599,6 +1643,7 @@ async def get_timesheet(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Get consolidated timesheet - combines job time entries + manual hours"""
+    _require_payroll_view_access(current_user)
     payroll_settings = await _get_tenant_payroll_settings(current_user.tenant_id)
     emp_query = {"tenant_id": current_user.tenant_id}
     if employee_id:
@@ -1671,6 +1716,7 @@ async def get_pay_period_summary(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Get pay period summary with overtime calculations"""
+    _require_payroll_view_access(current_user)
     payroll_settings = await _get_tenant_payroll_settings(current_user.tenant_id)
     start_str, end_str = _get_period_bounds(period_type, reference_date, payroll_settings["pay_week_start_day"])
     
@@ -1743,6 +1789,7 @@ async def get_schedule(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Get employee schedule for a week."""
+    _require_payroll_view_access(current_user)
     if not week_start:
         from datetime import date
         today = date.today()
