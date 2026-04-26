@@ -6,7 +6,16 @@ Use categories:
 - ❌ Failed and still open
 - ⛔ Cannot fully test without user/external actions
 
-Last updated: 2026-04-23
+Last updated: 2026-04-26
+
+---
+
+## ✅ Recently Resolved
+
+| Item | Fix | Date |
+|------|-----|------|
+| **2.1F** Tax-exempt toggle | Added `default_tax_rate` to tenant model + CompanySettings UI; invoice generation now checks `is_tax_exempt` flag per customer | 2026-04-26 |
+| **2.2E** Assets-panel upload/thumbnail | Rewrote `OrderAssetsPanel.js` — drag-and-drop zone + `AssetThumbnail` component shows real image blobs | 2026-04-26 |
 
 ---
 
@@ -21,18 +30,6 @@ Last updated: 2026-04-23
 #### 1.6 CSV Import
 - **1.6Q** Mid-batch validation failure still leaves partial inserts by design (runtime exceptions rollback; row-validation remains partial-skip)
   - Next: product decision required (strict atomic import vs row-level partial import)
-
-### Tier 2
-
-#### 2.1 Customers CRUD
-- ~~**2.1F**~~ Tax-exempt toggle not reflected in tested invoice tax behavior
-  - Evidence: non-exempt and exempt paths both produced tax=0 in tested flow
-  - Next: FIXED — default_tax_rate added to tenant, applied on invoice generation per customer is_tax_exempt flag
-
-#### 2.2 Orders Quick Entry
-- ~~**2.2E**~~ Assets-panel upload/thumbnail path failed in tested run
-  - Evidence: `asset_row_count=0`, `thumbnail_images=0`
-  - Next: FIXED — drag-and-drop added, real thumbnails via AssetThumbnail component
 
 ---
 

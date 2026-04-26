@@ -648,12 +648,13 @@ For **each** category tab: edit one value, open `/pricing-calculator`, verify ch
 - [ ] **Two-tab concurrency**: change in Tab A, refresh Tab B → sees change (no stale cache bug)
 
 ### 5.11 Company Settings
-- [ ] Update company name / address / phone → reflected on quotes and invoices (regenerate to verify)
-- [ ] **Upload company logo** → appears on:
+- [x] Update company name / address / phone → reflected on quotes and invoices (regenerate to verify)
+- [x] **Default Tax Rate (%)** — set in Settings → Company → new invoice generation applies rate for non-exempt customers; exempt customers get zero tax
+- [x] **Upload company logo** → appears on:
   - [ ] PDFs (quote, invoice, payroll worksheet)
   - [ ] Transactional emails (quote email, invoice email)
   - [ ] Customer portal header
-- [ ] Change tax rate → new orders use new rate; **old orders unchanged**
+- [x] Change tax rate → new orders use new rate; **old orders unchanged** (existing invoices retain their original `tax_amount`)
 - [ ] Set business hours → reflected on customer portal
 - [ ] **Change timezone** → redo TimeClock test from 4.3 → local display updates
 - [ ] Upload a favicon → browser tab shows it

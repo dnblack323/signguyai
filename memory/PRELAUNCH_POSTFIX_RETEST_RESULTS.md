@@ -2,7 +2,26 @@
 
 This is the **single running retest file** for checks executed **after code fixes**.
 
-Last updated: 2026-04-23
+Last updated: 2026-04-26
+
+---
+
+## Tier 2 Retests (2026-04-26)
+
+### 2.1F Tax-Exempt Toggle fix retested
+- ✅ **2.1F** Tax-exempt flag now correctly reflected in invoice tax calculation
+  - Backend evidence: `default_tax_rate=6.0` persists on tenant (PUT `/api/tenant`)
+  - Non-exempt customer ($100 order): `tax_amount=6.0`, `grand_total=106.0`, `tax_rate=6.0`, `is_tax_exempt=False`
+  - Tax-exempt customer ($100 order): `tax_amount=0.0`, `grand_total=100.0`, `tax_rate=0.0`, `is_tax_exempt=True`
+  - Frontend evidence: `data-testid="company-tax-rate-input"` present on `/settings`; value persists after save (tested 6.0 → 8.5 → confirmed via reload)
+  - Test report: `/app/test_reports/iteration_127.json`
+
+### 2.2E Assets Panel Upload/Thumbnail fix retested
+- ✅ **2.2E** Assets panel now supports drag-and-drop and shows real thumbnails
+  - Frontend evidence: `data-testid="asset-drop-zone"` found with "drag & drop here" text
+  - Upload via button: file input triggers, file appears as `data-testid="asset-row-{id}"`
+  - Thumbnail: `data-testid="asset-thumbnail-{id}"` renders actual image (red 1×1 PNG blob — not static icon)
+  - Test report: `/app/test_reports/iteration_127.json`
 
 ---
 
