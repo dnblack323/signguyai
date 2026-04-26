@@ -529,3 +529,59 @@ async def get_financial_summary(start_date: str = None, end_date: str = None, cu
         "sales_count": len(sales),
         "expense_count": len(expenses),
     }
+
+
+@financials_router.get("/invoice-aging")
+async def get_invoice_aging(current_user: UserInDB = Depends(get_current_active_user)):
+    """Return outstanding invoices bucketed into 0-30, 31-60, 61-90, 90+ day aging groups."""
+    db = _get_db()
+    today = datetime.now(timezone.utc).date()
+
+    # Fetch all unpaid/partial invoices with a due_date
+    invoices = await db.invoices.find(
+        {"tenant_id": current_user.tenant_id, "status": {"$in": ["sent", "partial", "overdue"]}},
+        {"_id": 0, "id": 1, "customer_name": 1, "grand_total": 1, "amount_paid": 1, "due_date": 1, "status": 1}
+    ).to_list(1000)
+
+    buckets = {
+        "current": {"label": "0-30 days", "count": 0, "total": 0.0, "invoices": []},
+        "31_60":   {"label": "31-60 days", "count": 0, "total": 0.0, "invoices": []},
+        "61_90":   {"label": "61-90 days", "count": 0, "total": 0.0, "invoices": []},
+        "over_90": {"label": "90+ days", "count": 0, "total": 0.0, "invoices": []},
+        "no_due_date": {"label": "No due date", "count": 0, "total": 0.0, "invoices": []},
+    }
+
+    for inv in invoices:
+        balance = round(float(inv.get("grand_total") or 0) - float(inv.get("amount_paid") or 0), 2)
+        if balance <= 0:
+            continue
+        due_raw = inv.get("due_date")
+        item = {"id": inv["id"], "customer": inv.get("customer_name"), "balance": balance, "status": inv.get("status")}
+        if not due_raw:
+            buckets["no_due_date"]["count"] += 1
+            buckets["no_due_date"]["total"] += balance
+            buckets["no_due_date"]["invoices"].append(item)
+            continue
+        try:
+            due_date = datetime.fromisoformat(str(due_raw).rstrip("Z").split("T")[0]).date()
+            days_past = (today - due_date).days
+        except Exception:
+            buckets["no_due_date"]["count"] += 1
+            buckets["no_due_date"]["total"] += balance
+            buckets["no_due_date"]["invoices"].append(item)
+            continue
+
+        if days_past <= 30:
+            key = "current"
+        elif days_past <= 60:
+            key = "31_60"
+        elif days_past <= 90:
+            key = "61_90"
+        else:
+            key = "over_90"
+        buckets[key]["count"] += 1
+        buckets[key]["total"] = round(buckets[key]["total"] + balance, 2)
+        buckets[key]["invoices"].append(item)
+
+    total_outstanding = round(sum(b["total"] for b in buckets.values()), 2)
+    return {"buckets": buckets, "total_outstanding": total_outstanding, "as_of": today.isoformat()}

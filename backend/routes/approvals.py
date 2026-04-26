@@ -44,6 +44,8 @@ class ProofUpdate(BaseModel):
     file_url: Optional[str] = None
     thumbnail_url: Optional[str] = None
     watermarked_url: Optional[str] = None
+    status: Optional[str] = None         # Admin can set: pending, approved, changes_requested, rejected
+    admin_notes: Optional[str] = None
 
 
 class ProofResponse(BaseModel):
@@ -240,6 +242,15 @@ async def update_approval(
         raise HTTPException(status_code=404, detail="Proof not found")
     
     update_data = {k: v for k, v in input.model_dump().items() if v is not None}
+
+    # Add timestamps for status transitions
+    if "status" in update_data:
+        now = datetime.now(timezone.utc).isoformat()
+        if update_data["status"] == "approved":
+            update_data.setdefault("approved_at", now)
+        elif update_data["status"] in ("changes_requested", "rejected"):
+            update_data.setdefault("rejected_at", now)
+        update_data["updated_at"] = now
     
     if update_data:
         await db.artwork_proofs.update_one(

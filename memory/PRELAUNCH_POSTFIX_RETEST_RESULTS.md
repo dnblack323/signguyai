@@ -80,7 +80,34 @@ Independent verification:
 - ✅ Admin editability remains intact after marking Paid in Full.
   - Evidence: `/app/test_reports/iteration_123.json`
 
-### 2.6 / 2.7 / 2.8 / 2.9 / 2.10 — Files, Webstores, Products, Questionnaires, Signatures (2026-04-26)
+### Tier 3 + Tier 4 — Production, Analytics, Employees, Portals (2026-04-26)
+**52/55 passed. 3 missing features implemented and re-tested.**
+
+**Tier 3:**
+- ✅ **3.1** Production board API: board endpoint, stages config, category filter all return 200
+- ✅ **3.2** Task CRUD: add, check-off (timestamp), assign to employee, delete
+- ✅ **3.3** Timeline settings + templates: both endpoints return without error
+- ✅ **3.4** Workflow templates: full CRUD + seed-defaults (all pass)
+- ✅ **3.5** Approvals: send proof, list, stats, approve (status transition + timestamps), request changes, resend (after adding `status` + `admin_notes` to `ProofUpdate` and timestamp logic to PUT handler)
+- ✅ **3.6** Appointments: full CRUD verified (after full rewrite of `routes/appointments.py` — was skeleton-only)
+- ✅ **3.8** Productivity feed: returns 200 with combined feed
+- ✅ **3.9** Profit analytics: dashboard (margin data), filter, CSV export
+- ✅ **3.10** Financials: revenue/expense/profit, expense create, invoice aging buckets (added `GET /api/financials/invoice-aging` with 0-30/31-60/61-90/90+ bucketing)
+
+**Tier 4:**
+- ✅ **4.1** Employees: create, list, edit rate, deactivate, reset PIN
+- ✅ **4.2** Payroll: worksheet with hours + gross, carryover override set/clear, manual time entry
+- ✅ **4.3** TimeClock: clock in → start lunch → end lunch → clock out (full shift lifecycle)
+- ✅ **4.4** Customer portal: auth, dashboard, orders, quotes, invoices
+- ✅ **4.5** Employee portal: PIN login, clock status, pay summary, profile
+
+**3 gaps filled:**
+- `routes/appointments.py`: Full rewrite — was a 72-line skeleton with no CRUD. Now has create/list/get/update/delete with customer/employee name resolution, all field aliases, and date-range filters
+- `routes/approvals.py ProofUpdate`: Added `status` + `admin_notes` fields; PUT handler now sets `approved_at`/`rejected_at` timestamps on status transitions
+- `routes/profit_analytics.py`: Added `GET /api/financials/invoice-aging` endpoint with 5 aging buckets
+- Test report: `/app/test_reports/iteration_131.json`
+
+---
 **37/37 tests passed (100%). 4 bugs found and immediately fixed.**
 
 **2.6 Artwork, Files & Drawings (14/14 PASS):**

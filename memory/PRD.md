@@ -164,7 +164,13 @@ Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independen
 
 ## Roadmap (P0 → P3)
 
-### 2026-04-26 — Prelaunch Checklist Sections 2.6-2.10 — 37/37 PASS + 4 Bugs Fixed
+### 2026-04-26 — Tier 3 + Tier 4 — 52/55 Pass + 3 Features Built
+
+- **Tier 3** (Production Lifecycle): Board, tasks, timeline, workflow templates, approvals (with status transitions), appointments (full CRUD built), productivity feed, profit analytics, invoice aging endpoint added
+- **Tier 4** (People & Portals): Employees CRUD, payroll worksheet, TimeClock full lifecycle, customer portal, employee portal all verified
+- **Checklist progress: 257 checked / ~800 total items (including sub-items)**
+
+---
 
 - **2.6 Files & Drawings**: PNG/JPG/PDF/SVG/AI upload, content fetch, promote-to-shared, delete, drawing CRUD — all pass
 - **2.7 Webstores**: Products CRUD with new `size_options/color_options/is_featured/in_stock`, webstore name uniqueness (409), SEO fields `seo_title/seo_description/og_image` added to model

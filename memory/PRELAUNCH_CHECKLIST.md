@@ -371,11 +371,11 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 ## 🔵 TIER 3 — EXTENDED ORDER LIFECYCLE
 
 ### 3.1 Production Board (Kanban)
-- [ ] `/production-board` loads without errors
-- [ ] Columns are configured per your workflow (e.g. Queued / In Progress / Done)
+- [x] `/production-board` loads without errors
+- [x] Columns are configured per your workflow (e.g. Queued / In Progress / Done)
 - [ ] **Drag a card** between columns → status updates → **persists on refresh**
 - [ ] Cards color-coded by status OR due date (confirm which)
-- [ ] **Filters** work: by category, by assignee, by due date range
+- [x] **Filters** work: by category, by assignee, by due date range
 - [ ] Click a card → deep-links to `/orders/{id}` detail
 - [ ] Overdue items visually highlighted (red border or similar)
 - [ ] Real-time updates: change status in one browser tab → second tab reflects within 30s (if websocket supported) or after refresh
@@ -383,15 +383,15 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 ### 3.2 Production Tasks (Subtasks per Order Item)
 - [ ] Open an order item → **Tasks** tab
 - [ ] Add a task (e.g. “Laminate”, “Cut”, “Box”)
-- [ ] Check off a task → marked complete with timestamp
+- [x] Check off a task → marked complete with timestamp
 - [ ] **Assign** a task to an employee → appears in that employee’s portal
 - [ ] **Start / stop timer** on a task → time logged against the order → flows to payroll
 - [ ] Reorder tasks via drag (if supported)
-- [ ] Delete a task → with confirm
+- [x] Delete a task → with confirm
 - [ ] All tasks completed → order item shows “Production Complete” status
 
 ### 3.3 Production Timeline / Gantt
-- [ ] Timeline view shows all active orders plotted by **due date**
+- [x] Timeline view shows all active orders plotted by **due date**
 - [ ] **Overdue items** highlighted in red
 - [ ] **Today** vertical line visible
 - [ ] **Drag** a bar to reschedule (if supported) → due date updated
@@ -400,24 +400,24 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 
 ### 3.4 Workflow Templates
 - [ ] Settings → Production → create a template (e.g. “Standard Banner Flow”)
-- [ ] Add ordered steps: Design → Print → Finish → QA → Package
+- [x] Add ordered steps: Design → Print → Finish → QA → Package
 - [ ] **Apply template** to a new order → tasks auto-created in order
-- [ ] **Editing a template** does **NOT** retroactively change existing orders that used it
-- [ ] Delete a template (not in use) → works; (in use) → warning / blocked
+- [x] **Editing a template** does **NOT** retroactively change existing orders that used it
+- [x] Delete a template (not in use) → works; (in use) → warning / blocked
 - [ ] Duplicate a template → new template with independent steps
 
 ### 3.5 Approvals Center
-- [ ] `/approvals` lists: pending proof approvals, signature requests, payment authorizations
-- [ ] Send a proof for approval → status = pending → customer portal shows it
-- [ ] Customer approves proof → status updates to **approved** with timestamp + IP
-- [ ] Customer can **request changes** with a comment → notification back to you via email + in-app
+- [x] `/approvals` lists: pending proof approvals, signature requests, payment authorizations
+- [x] Send a proof for approval → status = pending → customer portal shows it
+- [x] Customer approves proof → status updates to **approved** with timestamp + IP
+- [x] Customer can **request changes** with a comment → notification back to you via email + in-app
 - [ ] **Reject** proof → order blocked from advancing to next production step
 - [ ] Re-send the same proof → customer sees updated version
-- [ ] Filter approvals by status, by customer, by date
+- [x] Filter approvals by status, by customer, by date
 
 ### 3.6 Appointments / Scheduling
-- [ ] Create an appointment (site survey, install visit, consultation)
-- [ ] Associate with a customer + optionally an order
+- [x] Create an appointment (site survey, install visit, consultation)
+- [x] Associate with a customer + optionally an order
 - [ ] Appointment appears on:
   - [ ] `/employee-schedule`
   - [ ] `/productivity`
@@ -426,7 +426,7 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 - [ ] **Reminder email** sent **24h before** the appointment
 - [ ] **Reschedule** from admin side → customer notified via email
 - [ ] **Reschedule** from customer portal → admin notified
-- [ ] **Cancel** from either side → status updates on both sides
+- [x] **Cancel** from either side → status updates on both sides
 - [ ] Calendar invite (.ics) attachment works if implemented
 
 ### 3.7 Employee Schedule
@@ -439,27 +439,27 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 - [ ] Switch between week / day / month views (if available)
 
 ### 3.8 Productivity Dashboard
-- [ ] `/productivity` shows a combined feed of orders, appointments, legacy jobs
-- [ ] Filter by date range, assignee, customer, status
+- [x] `/productivity` shows a combined feed of orders, appointments, legacy jobs
+- [x] Filter by date range, assignee, customer, status
 - [ ] Click through to each source entity (order / appointment / legacy job) — deep links work
 - [ ] Legacy job detail page `/productivity/legacy-jobs/{jobId}` renders without errors
 - [ ] Appointment detail page `/productivity/appointments/{appointmentId}` renders
 
 ### 3.9 Profit Margin Analytics
-- [ ] `/reports/profit-margin` loads
-- [ ] **Top 10 most profitable** orders listed with margin %
+- [x] `/reports/profit-margin` loads
+- [x] **Top 10 most profitable** orders listed with margin %
 - [ ] **Top 10 least profitable** orders listed
-- [ ] Filter by category (Digital Print, Banners, etc.), date range, customer
+- [x] Filter by category (Digital Print, Banners, etc.), date range, customer
 - [ ] **Drill-down**: click a bar → list of orders in that bucket
-- [ ] **Export to CSV** works → opens in spreadsheet cleanly
+- [x] **Export to CSV** works → opens in spreadsheet cleanly
 - [ ] **Sanity reconciliation**: pick one specific order from the report, manually open it, compare profit_amount + margin to the report — **must match to the cent**
 
 ### 3.10 Financials Page
-- [ ] `/financials` shows current-month revenue, expenses, profit
+- [x] `/financials` shows current-month revenue, expenses, profit
 - [ ] Toggle year view → YTD numbers
-- [ ] **Expense entry**: add a receipt with photo, vendor, amount, category, date → saved
+- [x] **Expense entry**: add a receipt with photo, vendor, amount, category, date → saved
 - [ ] Expense photo preview renders
-- [ ] **Invoice aging** buckets: 0-30 / 31-60 / 61-90 / 90+ days — counts correct
+- [x] **Invoice aging** buckets: 0-30 / 31-60 / 61-90 / 90+ days — counts correct
 - [ ] **Unpaid invoices summary** → click through → Invoices page filtered to unpaid
 - [ ] Charts / graphs render without errors on mobile + desktop
 
@@ -468,15 +468,15 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 ## 🟢 TIER 4 — PEOPLE & PORTALS
 
 ### 4.1 Employees CRUD
-- [ ] Create employee → appears in roster immediately
-- [ ] Assign a **4-6 digit PIN** → employee can log into Employee Portal with that PIN
-- [ ] Set **hourly rate + overtime rate** → reflected in payroll calcs
-- [ ] Set **title / manager / role**
+- [x] Create employee → appears in roster immediately
+- [x] Assign a **4-6 digit PIN** → employee can log into Employee Portal with that PIN
+- [x] Set **hourly rate + overtime rate** → reflected in payroll calcs
+- [x] Set **title / manager / role**
 - [ ] **Upload profile image** → shows on employee card
 - [ ] **Link employee to user account** → employee can now access their own portal with that login
 - [ ] Employee ↔ User link visible in admin UI
-- [ ] **Deactivate employee** → `is_active = false` → no longer appears in payroll list for new periods but historic data preserved
-- [ ] **Reset PIN** → old PIN invalidated, new PIN works
+- [x] **Deactivate employee** → `is_active = false` → no longer appears in payroll list for new periods but historic data preserved
+- [x] **Reset PIN** → old PIN invalidated, new PIN works
 
 ### 4.2 Payroll (your original carryover bug)
 - [ ] Navigate to Team → **Timesheets** (at `/timesheets`, not `/payroll`)
@@ -487,20 +487,20 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 - [ ] Type **0** → click ✓ → toast `Carryover balance updated` → value shows `$0.00`
 - [ ] **Re-open the page** — carryover stays at $0
 - [ ] Set override to **$500** → reflects; re-open page → still $500
-- [ ] Set override to **null** via PUT `/api/employees/{id}` with `{"carryover_override": null}` → reverts to computed carryover from historical data
+- [x] Set override to **null** via PUT `/api/employees/{id}` with `{"carryover_override": null}` → reverts to computed carryover from historical data
 - [ ] **Final Total block** at the bottom of the worksheet is a big dark rectangle with 4xl font showing the sum
-- [ ] **Manual time entry** row added → totals update
+- [x] **Manual time entry** row added → totals update
 - [ ] **Adjustment** (bonus / deduction) → flows into Final Total
 - [ ] Period sign-off → employee + admin signatures captured
 - [ ] **Export payroll PDF** → totals match UI
 - [ ] **Export payroll CSV** → imports cleanly into a spreadsheet app
 
 ### 4.3 TimeClock (10pm → 2pm bug fix + naive/UTC dual format)
-- [ ] Clock IN from `/timeclock` → status = **Working**
+- [x] Clock IN from `/timeclock` → status = **Working**
 - [ ] Refresh → still Working, clock-in time shows in **America/New_York** local time (NOT UTC)
-- [ ] **Start lunch** → status = On Lunch; lunch_start saved
-- [ ] **End lunch** → status = Working; lunch duration logged
-- [ ] Clock OUT → shift closes; total hours correct (accounts for lunch)
+- [x] **Start lunch** → status = On Lunch; lunch_start saved
+- [x] **End lunch** → status = Working; lunch duration logged
+- [x] Clock OUT → shift closes; total hours correct (accounts for lunch)
 - [ ] **Stale shift cleanup**: leave a shift open > 18 hours → next clock action auto-closes the stale shift at `clock_in + 8h`
 - [ ] Payroll worksheet shows shifts in **local time** (clock_in 10:00 PM displays as `22:00`, not `14:00` or `02:00`)
 - [ ] **Manually edit a shift time** in the worksheet (type `22:00` / `10:00 PM`) → save → re-open → still shows `22:00` (round-trip without drift)
@@ -511,13 +511,13 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 ### 4.4 Customer Portal — Full Coverage
 - [ ] Send portal invite to a customer → email arrives
 - [ ] Customer sets password → logs in at `/customer-portal/login`
-- [ ] Dashboard `/customer-portal` loads with their activity summary
-- [ ] **Orders** `/customer-portal/orders` — lists all their orders with status, total, due date
+- [x] Dashboard `/customer-portal` loads with their activity summary
+- [x] **Orders** `/customer-portal/orders` — lists all their orders with status, total, due date
 - [ ] **Order Detail** `/customer-portal/orders/:orderId` — line items, artwork previews, payment status visible
 - [ ] **Forms** `/customer-portal/forms` — lists past questionnaire submissions
 - [ ] **Form Detail** `/customer-portal/forms/:requestId` — full submission + attachments
-- [ ] **Quotes** `/customer-portal/quotes` — approve / reject → triggers workflow
-- [ ] **Invoices** `/customer-portal/invoices` — pay online via Stripe Connect
+- [x] **Quotes** `/customer-portal/quotes` — approve / reject → triggers workflow
+- [x] **Invoices** `/customer-portal/invoices` — pay online via Stripe Connect
 - [ ] **Documents** `/customer-portal/documents` — download contracts, receipts, artwork proofs
 - [ ] **Messages** `/customer-portal/messages` — two-way chat inbox
 - [ ] **Conversation** `/customer-portal/messages/:conversationId` — threaded view; send a message → merchant receives in Approvals inbox
@@ -531,18 +531,18 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 - [ ] **Tenant isolation**: customer of Tenant A cannot see anything from Tenant B even by URL manipulation
 
 ### 4.5 Employee Portal — Full Coverage
-- [ ] PIN login at `/employee-portal/login` works
+- [x] PIN login at `/employee-portal/login` works
 - [ ] **Dashboard** `/employee-portal` — today’s tasks, clock status, quick links
 - [ ] **Clock IN / lunch / OUT** from phone, buttons big enough to tap
 - [ ] **Jobs** — individual job detail `/employee-portal/jobs/:jobId` loads with attachments
 - [ ] **Tasks** `/employee-portal/tasks` — all assigned tasks across all jobs
 - [ ] Mark task complete → reflects in admin UI immediately
-- [ ] **Pay** `/employee-portal/pay` — current pay period preview (hours, gross)
+- [x] **Pay** `/employee-portal/pay` — current pay period preview (hours, gross)
 - [ ] Employee can see their adjustments (bonuses / deductions) if tenant allows
 - [ ] Employee can NOT edit their own pay period unless the tenant explicitly enables manual corrections → then corrections go into admin approval queue
 - [ ] **Profile** `/employee-portal/profile` — upload new profile photo, change PIN, update personal info
 - [ ] **PIN recovery** flow (forgot PIN → admin resets → new PIN emailed)
-- [ ] Log out clears PIN session
+- [x] Log out clears PIN session
 
 ---
 
