@@ -1,0 +1,115 @@
+{
+  "summary": "Iteration 130: Prelaunch checklist sections 2.6 (Artwork/Files/Drawings), 2.7 (Webstores remaining), 2.8 (Products CRUD), 2.9 (Questionnaires), 2.10 (Customer Signature Page). 37/37 tests passed (100%). 5 notable design findings documented below.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/webstores/v2",
+        "issue": "2.7-A: Webstore name uniqueness NOT enforced. Two webstores with identical names can be created (no uniqueness check on name or slug). Both POST calls return 200 with different IDs.",
+        "priority": "LOW"
+      },
+      {
+        "endpoint": "GET /api/storefront/{webstore_id}",
+        "issue": "2.7-F: SEO/OG fields (seo_title, seo_description, og_image, meta_description) are ABSENT from the storefront response. WEBSTORE_PUBLIC_FIELDS list only includes: id, name, store_type, owner_name, description, status, is_public, branding, fundraiser_goal, fundraiser_start_date, fundraiser_end_date, total_sales, total_orders. No SEO metadata is implemented.",
+        "priority": "LOW"
+      },
+      {
+        "endpoint": "POST/GET /api/products",
+        "issue": "2.7-G: Product model uses extra='ignore'. Fields size_options, color_options, is_featured, in_stock are silently dropped on create/update/retrieve. They are NOT stored in MongoDB and NOT returned on GET. Checklist specifies testing these fields but they are not in the Product model.",
+        "priority": "LOW"
+      },
+      {
+        "endpoint": "POST /api/questionnaires/public/{id}/submit",
+        "issue": "2.9-G: Email format validation is NOT enforced for questionnaire answer fields. The submit endpoint stores answers as Dict[str,Any] without per-field type/format validation. Submitting 'not-an-email' in an email-type question returns 200 (accepted). Only required-field presence is validated.",
+        "priority": "LOW"
+      },
+      {
+        "endpoint": "POST /api/signatures/requirement, POST /api/signatures/request",
+        "issue": "2.10-B: The request_token is NEVER returned by any API endpoint. /requirement strips it (signature.pop('request_token', None)) before returning. /request returns only {message, signature_id, expires_at}. The token is only deliverable via email. For programmatic testing, token must be retrieved directly from MongoDB. This may be intentional for security but makes testing difficult and customer token delivery email-only.",
+        "priority": "INFO"
+      }
+    ]
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "verification_results": {
+    "2.6-A_upload_png": "PASS — 200, file_id=9d639b2b-..., filename=test_artwork.png, content_type=image/png, file_size=72",
+    "2.6-B_upload_jpg": "PASS — 200, content_type=image/jpeg, file_size=331",
+    "2.6-C_upload_pdf": "PASS — 200, content_type=application/pdf",
+    "2.6-D_upload_svg": "PASS — 200, content_type=image/svg+xml (accepted because 'image/' prefix whitelist matches)",
+    "2.6-E_upload_ai": "PASS — 200, application/octet-stream accepted (in ALLOWED_MIME_EXACT whitelist)",
+    "2.6-F_file_content": "PASS — GET content returns 200, image/png header, 72 bytes",
+    "2.6-G_file_list": "PASS — list returns 6 files, all uploaded files found",
+    "2.6-H_promote_to_shared": "PASS — POST returns {ok: true}, is_shared=True confirmed in file record",
+    "2.6-I_file_delete": "PASS — DELETE 200, subsequent GET /content returns 404",
+    "2.6-J_drawing_create": "PASS — 200, drawing_id=91244c54-..., title='Test Sketch' (requires image_data field, not drawing_data_url; min 150 decoded bytes; 20x20 PNG=1288 bytes used)",
+    "2.6-K_drawing_retrieve": "PASS — GET /{order_id} returns list with drawing",
+    "2.6-L_drawing_file": "PASS — GET /file/{drawing_id} returns 200, 1288 bytes (no auth required on file endpoint)",
+    "2.6-M_drawing_delete": "PASS — soft delete (visibility_status='deleted'), subsequent GET /file returns 404",
+    "2.7-A_slug_uniqueness": "NOT ENFORCED — both creates with same name return 200, different IDs assigned. No uniqueness constraint.",
+    "2.7-F_storefront_seo": "JSON response, NO SEO fields. Actual public fields: id, name, store_type, owner_name, description, status, is_public, branding, checkout_enabled, checkout_status, checkout_message",
+    "2.7-B_product_create": "PASS — 200, id returned, retail_price=45.0 (NOTE: field is 'retail_price' not 'base_price')",
+    "2.7-C_product_edit": "PASS — name+retail_price updated correctly",
+    "2.7-D_product_delete": "PASS — 200, GET returns 404",
+    "2.7-E_apparel_options": "PASS — returns {tiers: {economy, standard, premium}, apparel_sizes: [XS,S,M,L,XL,2XL,3XL], decal_sizes: [...]}",
+    "2.7-G_field_round_trip": "PARTIAL — base fields (name, description, retail_price) round-trip correctly. Extra fields (size_options, color_options, is_featured, in_stock) are SILENTLY DROPPED by Product model (extra='ignore')",
+    "2.9-A_create_questionnaire": "PASS — id returned, 7 fields preserved. IMPORTANT: Valid types are text/textarea/number/email/phone/select/multi_select/radio/checkbox/date/file_upload/signature/heading/paragraph. Checklist types 'short_text','long_text','multiple_choice','dropdown' are INVALID (cause 422)",
+    "2.9-B_get_questionnaire": "PASS — fields round-trip: checkbox, email, phone, radio, select, text, textarea",
+    "2.9-C_public_access": "PASS — requires status=active (draft questionnaires return 404). Sensitive fields (tenant_id, created_by) excluded from public response.",
+    "2.9-D_submit": "PASS — response_id=66c17903-... returned",
+    "2.9-E_dashboard_responses": "PASS — response appears in /responses endpoint with full answers",
+    "2.9-F_required_field": "PASS — missing required field returns 400 (not 200)",
+    "2.9-G_email_validation": "NOT ENFORCED — 'not-an-email' accepted with 200. No per-field format validation in submit endpoint.",
+    "2.10-A_signature_requirement": "PASS — signature_id=2c14b875-..., status=pending. Token NOT returned (by design).",
+    "2.10-B_token_exposure": "DESIGN NOTE — request_token not returned by any API. Retrieved from MongoDB for testing. Signature public flow is email-only.",
+    "2.10-C_public_token_loads": "PASS — GET /public/{token} returns 200, no auth required, status=pending, token not exposed",
+    "2.10-D_customer_signs": "PASS — POST /public/{token}/sign returns 200 with signed_at. DB status=signed, signature_acquired=True. Min PNG size: 20x20=1288 bytes (>1000 byte min)",
+    "2.10-E_one_time_use": "PASS — re-signing returns 400 'Signature has already been completed'",
+    "2.10-F_invalid_token": "PASS — fake-invalid-token-12345 returns 404 (clear error, no 500)",
+    "2.10-G_expired_token": "PASS — token with expires_at 30 days in past returns 410 'Signature request has expired'"
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_iteration130_artwork_products_questionnaires_signatures.py",
+    "/app/test_reports/pytest/iteration130_artwork_products_questionnaires_signatures.xml"
+  ],
+
+  "action_items": [
+    "DECISION 2.7-A: Decide whether webstore name uniqueness should be enforced. Currently no constraint exists — two stores can have identical names/slugs. If uniqueness is desired, add a unique index on {tenant_id, name} in webstores_v2 collection.",
+    "FEATURE 2.7-F: SEO/OG fields (seo_title, seo_description, og_image, meta_description) are not implemented in the Webstore model or storefront endpoint. Add to Webstore model and WEBSTORE_PUBLIC_FIELDS list if SEO meta tags are desired.",
+    "CLARIFY 2.7-G: Product model extra='ignore' silently drops size_options, color_options, is_featured, in_stock. If these product attributes are needed, add them to ProductCreate/ProductUpdate/Product models.",
+    "CLARIFY 2.9 field types: The valid QuestionType enum values are text/textarea/number/email/phone/select/multi_select/radio/checkbox/date/file_upload/signature/heading/paragraph. The checklist mentions 'short_text','long_text','multiple_choice','dropdown' — update documentation/checklist to use valid enum values.",
+    "DESIGN NOTE 2.9-G: Questionnaire submit does not validate email format in answer fields. Consider adding format validation for email-type questions at submission time.",
+    "DESIGN NOTE 2.10-B: The request_token is never returned by any API endpoint (stripped in /requirement, not included in /request response). The only way for customers to get their signing URL is via email. If a 'resend link' or 'copy link' feature is needed for the dashboard, an endpoint to retrieve/refresh the public signing URL should be added."
+  ],
+
+  "critical_code_review_comments": [
+    "MEDIUM: No webstore name uniqueness enforcement. Users could accidentally create duplicate stores with same name. Consider unique index on {tenant_id, name} in webstores_v2.",
+    "LOW: Product model uses extra='ignore' causing size_options/color_options/is_featured/in_stock to be silently dropped. If these are future-planned fields, add them now to avoid confusion.",
+    "LOW: Questionnaire submit does not validate email/phone field answer format — answers are stored as raw Dict[str,Any]. Consider format validation hooks per QuestionType.",
+    "INFO: Signature request_token has no API retrieval path after creation. The only delivery mechanism is email via /request endpoint. Consider adding a 'get-signing-url' endpoint for admins to retrieve or resend the token/link.",
+    "INFO: Drawing file endpoint (GET /order-drawings/file/{id}) has NO authentication — any user with a drawing_id can download the file. This appears intentional but is worth documenting as a security consideration."
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_iteration130_artwork_products_questionnaires_signatures.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (37/37 tests pass)"
+  },
+
+  "seed_data_creation": "All test data cleaned up: 2 test webstores deleted, test questionnaire + responses deleted, test PNG/JPG/PDF/SVG files deleted, test drawing soft-deleted, test signature created for order aa583c33-... (status=signed, in DB). Expired signature test doc inserted and deleted within test.",
+
+  "retest_needed": false,
+
+  "main_agent_can_self_test": true,
+
+  "context_for_next_testing_agent": "Sections 2.6, 2.7, 2.8, 2.9, 2.10 fully tested. All 37 tests pass. Key notes for next agent: (1) Drawing endpoint field is 'image_data' not 'drawing_data_url'; requires 20x20 PNG (1288 bytes) to pass the 150-byte minimum; (2) Signature public flow: token NOT returned by API, must get from MongoDB; (3) Product model fields: 'retail_price' not 'base_price'; (4) Questionnaire valid types: text/textarea/number/email/phone/select/multi_select/radio/checkbox/date etc — not short_text/long_text/multiple_choice; (5) Public questionnaire requires status=active (not draft). Test file: /app/backend/tests/test_iteration130_artwork_products_questionnaires_signatures.py (37 tests). Run: REACT_APP_BACKEND_URL=https://meta-webhook-setup.preview.emergentagent.com pytest backend/tests/test_iteration130_artwork_products_questionnaires_signatures.py -v"
+}
