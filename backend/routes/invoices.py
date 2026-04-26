@@ -5,11 +5,19 @@ This module contains all routes related to:
 - Invoice CRUD operations
 - Invoice from Job creation
 - Payment recording
+- Invoice PDF download (admin)
 """
 
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import StreamingResponse
 from typing import List, Optional
 from datetime import datetime, timezone
+from io import BytesIO
+
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
 
 from models import (
     Invoice, InvoiceCreate, InvoiceUpdate, InvoiceLineItem, InvoiceStatus,
@@ -375,3 +383,106 @@ async def get_invoice_payments(
     """Get all payments for an invoice"""
     payments = await db.payments.find({"invoice_id": invoice_id}, {"_id": 0}).sort("created_at", -1).to_list(100)
     return payments
+
+
+def _render_invoice_pdf(invoice: dict, tenant: dict, customer: Optional[dict]) -> BytesIO:
+    """Render invoice as a PDF document. Shared helper for admin + portal."""
+    output = BytesIO()
+    doc = SimpleDocTemplate(output, pagesize=letter, leftMargin=40, rightMargin=40, topMargin=40, bottomMargin=40)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    # Header — company + invoice meta
+    company_name = (tenant or {}).get("name") or "Sign Shop"
+    elements.append(Paragraph(f"<b>{company_name}</b>", styles['Title']))
+    if tenant:
+        addr_parts = [tenant.get(k) for k in ("address", "city", "state", "zip_code") if tenant.get(k)]
+        if addr_parts:
+            elements.append(Paragraph(" • ".join(addr_parts), styles['BodyText']))
+        if tenant.get("phone"):
+            elements.append(Paragraph(f"Phone: {tenant['phone']}", styles['BodyText']))
+    elements.append(Spacer(1, 16))
+
+    # Invoice header
+    invoice_number = invoice.get("invoice_number") or invoice.get("id", "")[:8].upper()
+    status = (invoice.get("status") or "draft").upper()
+    watermark = "PAID" if status == "PAID" else "UNPAID"
+    elements.append(Paragraph(f"<b>INVOICE #{invoice_number}</b>  <font color='{ '#10B981' if watermark == 'PAID' else '#EF4444'}'>[{watermark}]</font>", styles['Heading2']))
+    elements.append(Paragraph(f"Date: {(invoice.get('created_at') or '')[:10]}", styles['BodyText']))
+    if invoice.get("due_date"):
+        elements.append(Paragraph(f"Due: {invoice['due_date']}", styles['BodyText']))
+    elements.append(Spacer(1, 12))
+
+    # Bill-to
+    if customer:
+        elements.append(Paragraph("<b>Bill To:</b>", styles['BodyText']))
+        elements.append(Paragraph(customer.get("name") or "", styles['BodyText']))
+        if customer.get("company"):
+            elements.append(Paragraph(customer["company"], styles['BodyText']))
+        if customer.get("email"):
+            elements.append(Paragraph(customer["email"], styles['BodyText']))
+        elements.append(Spacer(1, 12))
+
+    # Line items
+    table_data = [["Description", "Qty", "Unit Price", "Total"]]
+    for item in invoice.get("line_items", []):
+        table_data.append([
+            item.get("description", "Item"),
+            str(item.get("quantity", 1)),
+            f"${item.get('unit_price', 0):.2f}",
+            f"${item.get('total', 0):.2f}",
+        ])
+    subtotal = float(invoice.get("subtotal", 0) or 0)
+    tax_amount = float(invoice.get("tax_amount", 0) or 0)
+    grand_total = float(invoice.get("grand_total", invoice.get("total", 0)) or 0)
+    table_data.append(["", "", "Subtotal", f"${subtotal:.2f}"])
+    if tax_amount:
+        table_data.append(["", "", f"Tax ({invoice.get('tax_rate', 0):.2f}%)", f"${tax_amount:.2f}"])
+    table_data.append(["", "", "Total", f"${grand_total:.2f}"])
+
+    table = Table(table_data, colWidths=[280, 50, 100, 100])
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTNAME", (-2, -1), (-1, -1), "Helvetica-Bold"),
+        ("ALIGN", (1, 1), (-1, -1), "RIGHT"),
+    ]))
+    elements.append(table)
+    elements.append(Spacer(1, 18))
+
+    if invoice.get("notes"):
+        elements.append(Paragraph(f"<b>Notes:</b> {invoice['notes']}", styles['BodyText']))
+    if invoice.get("terms"):
+        elements.append(Paragraph(f"<b>Terms:</b> {invoice['terms']}", styles['BodyText']))
+
+    doc.build(elements)
+    output.seek(0)
+    return output
+
+
+@router.get("/{invoice_id}/pdf")
+async def download_invoice_pdf(
+    invoice_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Download invoice PDF (admin-side, no portal login required)."""
+    invoice, _collection = await _find_invoice_document(invoice_id, current_user.tenant_id)
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0})
+    customer = None
+    if invoice.get("customer_id"):
+        customer = await db.customers.find_one(
+            {"id": invoice["customer_id"], "tenant_id": current_user.tenant_id},
+            {"_id": 0}
+        )
+
+    pdf = _render_invoice_pdf(invoice, tenant or {}, customer)
+    invoice_number = invoice.get("invoice_number") or invoice_id[:8].upper()
+    return StreamingResponse(
+        pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=invoice_{invoice_number}.pdf"}
+    )

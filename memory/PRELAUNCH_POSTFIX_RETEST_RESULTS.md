@@ -232,6 +232,38 @@ Independent verification:
 
 ---
 
+## Tier 6 Backend Audit + Admin PDFs + Appointment-Request Email (2026-04-26)
+
+### Customer Request Appointment — Email Notification (NEW)
+- ✅ Tenant owner receives an HTML email immediately when a customer submits a portal appointment request
+- ✅ Real send verified: `email_logs` collection has rows with `status='sent'`, `response_code=202`, `to_email=tenant.owner_email`
+- ✅ Graceful failure: try/except wraps the email path so SendGrid down or `is_configured()=False` does NOT block appointment creation
+
+### Admin PDF Endpoints (NEW)
+- ✅ **`GET /api/quotes/{id}/pdf`** — returns `application/pdf`, %PDF magic header, ~2KB. Renders company header, customer block, line items table, subtotal/tax/total, notes, terms.
+- ✅ **`GET /api/invoices/{id}/pdf`** — returns `application/pdf`, %PDF magic header, ~2KB. Includes PAID/UNPAID status badge with colour, watermark, line items, totals.
+- ✅ 404 on unknown invoice/quote IDs verified.
+
+### Tier 6 Backend Sweep (20/20 PASS)
+- ✅ AI Email Composer, AI Assistant (multi-turn with `conversation_history`), Voice transcribe, Image-gen route registered
+- ✅ Email service confirmed working (real 202 responses logged)
+- ✅ Customer portal invoice PDF download (already verified iteration 132)
+- ⚠️ **NOT_IMPLEMENTED (deferred to backlog):**
+  - `GET /api/ai/tools` listing endpoint
+  - `POST /api/ai/extract-invoice`
+  - `DELETE /api/ai-assistant/sessions/{id}` clear-chat (chat history is client-managed by design)
+  - `GET /api/payroll/{id}/pdf` payroll worksheet PDF (CSV export available)
+  - `GET /api/orders/{id}/work-ticket-pdf`
+- Test report: `/app/test_reports/iteration_135.json`
+
+### Code Review Notes (from testing agent — for future refactor)
+- `routes/ai.py` is 3183 lines — split into `ai_assistant.py` / `ai_image.py` / `ai_email.py` / `ai_voice.py` for maintainability.
+- PDF rendering boilerplate is duplicated between `routes/portal.py`, `routes/invoices.py`, `routes/quotes.py`, `routes/profit_analytics.py` — extract to `services/pdf_renderer.py`.
+- No unicode font registered with reportlab — non-ASCII customer names may render as boxes. Register TTFont (DejaVuSans / Noto) before launch if customers may have accented or CJK names.
+- AI assistant relies on client-supplied `conversation_history` — fine for stateless usage but means malicious clients can replay arbitrary history. Consider hardening if abused.
+
+---
+
 ## Tier 5 Backend Audit + Customer Request Appointment Feature (2026-04-26)
 
 ### Customer Request Appointment Flow (NEW FEATURE)

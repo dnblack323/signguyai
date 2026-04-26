@@ -294,3 +294,48 @@ Tier 5 backend audit complete (iteration_134, 28/29 PASS). These items remain **
 - [ ] **16.23 Timezone change affects scheduled emails** — Change tenant timezone → confirm scheduled digests fire at new local time.
 - [ ] **16.24 Community moderation walkthrough** — Pin a post, mark answered, soft-delete via UI → confirm UX makes sense to end users.
 - [ ] **16.25 25-hour session expiry** — Leave a tab idle 25+ hours → next action re-prompts login.
+
+---
+
+## Section 17 — Tier 6 Manual Verifications (added 2026-04-26)
+
+Tier 6 backend audit complete (iteration_135, 20/20 PASS). Most items are visual / mail-client / inbox-dependent and remain user-personal:
+
+### 6.1 AI Tools (UI walkthroughs)
+- [ ] **17.1** `/ai-tools` page shows every AI feature card with correct credit cost label.
+- [ ] **17.2** Each "Try it" button opens the tool's input form and returns a result.
+- [ ] **17.3** AI Email Composer: Copy / Insert into email template buttons work.
+- [ ] **17.4** Nano Banana / GPT Image 1 image generation: Image displays in UI gallery (not just base64 in network response).
+- [ ] **17.5** AI Image attaches to order assets when generated from order detail page.
+- [ ] **17.6** Profile → Universal Key balance link routes to credit top-up.
+- [ ] **17.7** AI usage history page shows correct rows after each AI call.
+- [ ] **17.8** AI Voice TTS via `/api/ai/voice/speak` (or equivalent) plays audio in UI.
+- [ ] **17.9** Burn credits to 0 (or use a test tenant with 0 credits) → AI tools show graceful upgrade prompt (not raw 402).
+
+### 6.2 Floating Assistant (UI walkthroughs)
+- [ ] **17.10** Floating-AI bubble visible in the corner on every logged-in admin page.
+- [ ] **17.11** Click opens slideout AI chat. Close + reopen → history preserved.
+- [ ] **17.12** On `/orders/<id>`, assistant's reply mentions the order's number / customer / total.
+- [ ] **17.13** On `/customers/<id>`, assistant's reply references that customer.
+- [ ] **17.14** Clear-chat button (currently client-side only) wipes the visible chat history.
+- [ ] **17.15** Keyboard shortcut (if exposed in UI) opens / closes chat.
+
+### 6.3 Email Inbox / Mail-Client Rendering
+- [ ] **17.16** Send a real **Quote email** → arrives in inbox, link opens portal correctly, no spam folder.
+- [ ] **17.17** Send a real **Invoice email** → arrives with PDF attachment that opens cleanly.
+- [ ] **17.18** Send a real **Approval/proof email** → portal link opens approval flow.
+- [ ] **17.19** **Password reset email** arrives within 60s; link valid; expires after stated window.
+- [ ] **17.20** **Welcome email** arrives on new customer create when `auto_welcome_email=true`.
+- [ ] **17.21** **Customer-requested appointment notification** lands in shop owner's inbox (just shipped — verify it actually arrives, not just SendGrid 202).
+- [ ] **17.22** **Digest email** fires on schedule, content matches preview.
+- [ ] **17.23** Render check across **all 10 mail clients**: Gmail web, Gmail iOS, Gmail Android, Outlook web, Outlook desktop, Apple Mail Mac, Apple Mail iPhone, Yahoo Mail, ProtonMail, iCloud Mail.
+- [ ] **17.24** From-address shows YOUR business name (`SENDGRID_FROM_NAME`), reply-to goes to your inbox.
+- [ ] **17.25** SPF / DKIM / DMARC records on sending domain verified with `dig TXT yourdomain.com` or MXToolbox.
+- [ ] **17.26** Unsubscribe link on marketing emails works; bounce rate < 2%; zero spam complaints in SendGrid dashboard.
+
+### 6.4 PDF Visual Quality
+- [ ] **17.27** Open generated **Quote PDF** in a viewer → logo, layout, totals, terms render cleanly. Print-on-paper test: page breaks sensible, margins not clipped.
+- [ ] **17.28** Open generated **Invoice PDF** → PAID/UNPAID watermark visually distinct (paid = green, unpaid = red as currently coded). Print-on-paper test passes.
+- [ ] **17.29** **Non-ASCII** customer names (José, Niño, 北京, François) render as readable characters, NOT boxes/tofu. NOTE: reportlab does not have unicode font registered today — flag for prelaunch fix if your customer names include accented or CJK characters.
+- [ ] **17.30** PDFs include logo (upload company logo first in Settings → Company).
+- [ ] **17.31** Wait until backend implements **payroll worksheet PDF** + **work-ticket PDF** (deferred to backlog) → walk through visual quality.

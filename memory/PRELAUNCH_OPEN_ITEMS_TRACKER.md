@@ -6,7 +6,7 @@ Use categories:
 - ❌ Failed and still open
 - ⛔ Cannot fully test without user/external actions
 
-Last updated: 2026-04-26 (post Tier 5 sweep + Request Appointment feature)
+Last updated: 2026-04-26 (post Tier 6 sweep + admin PDFs + appointment-request email)
 
 ---
 
@@ -25,6 +25,10 @@ Last updated: 2026-04-26 (post Tier 5 sweep + Request Appointment feature)
 | **5.1 Customer Request Appointment** (NEW FEATURE) | `POST /api/portal/appointments/request` + admin `PUT /confirm` & `/reject` + portal UI dialog with "Pending Confirmation" badge | 2026-04-26 |
 | **5.1 DELETE user endpoint** | Added `DELETE /api/admin/users/{id}` with self / staff-perm / last-owner guards | 2026-04-26 |
 | **Auth permission bug** | Fixed `Permission.USERS_EDIT` → `USERS_MANAGE` in `routes/auth.py` (status + reset-password) | 2026-04-26 |
+| **Customer request appointment email** | Tenant owner receives HTML email on portal appointment request (`email_logs` confirms `status='sent'`) | 2026-04-26 |
+| **Admin Quote PDF** (NEW) | `GET /api/quotes/{id}/pdf` returns valid PDF with company/customer/line-items/totals/terms | 2026-04-26 |
+| **Admin Invoice PDF** (NEW) | `GET /api/invoices/{id}/pdf` returns valid PDF with PAID/UNPAID badge, totals, watermark | 2026-04-26 |
+| **Tier 6 sweep** | AI assistant, email composer, voice, image-gen, SendGrid all PASS (iteration_135, 20/20) | 2026-04-26 |
 
 ---
 

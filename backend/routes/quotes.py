@@ -4,11 +4,19 @@ Quote Management Routes
 This module contains all routes related to:
 - Quote CRUD operations
 - Quote to Job conversion
+- Quote PDF download (admin)
 """
 
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import StreamingResponse
 from typing import List, Optional
 from datetime import datetime, timezone
+from io import BytesIO
+
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
 
 from models import (
     Quote, QuoteCreate, QuoteUpdate, QuoteLineItem, QuoteStatus,
@@ -238,3 +246,98 @@ async def send_quote(
     )
     
     return {"message": "Quote marked as sent"}
+
+
+@router.get("/{quote_id}/pdf")
+async def download_quote_pdf(
+    quote_id: str,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Download quote PDF (admin-side)."""
+    quote, _collection = await _find_quote_document(quote_id, current_user.tenant_id)
+    if not quote:
+        raise HTTPException(status_code=404, detail="Quote not found")
+
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0})
+    customer = None
+    if quote.get("customer_id"):
+        customer = await db.customers.find_one(
+            {"id": quote["customer_id"], "tenant_id": current_user.tenant_id},
+            {"_id": 0}
+        )
+
+    output = BytesIO()
+    doc = SimpleDocTemplate(output, pagesize=letter, leftMargin=40, rightMargin=40, topMargin=40, bottomMargin=40)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    # Header
+    company_name = (tenant or {}).get("name") or "Sign Shop"
+    elements.append(Paragraph(f"<b>{company_name}</b>", styles['Title']))
+    if tenant:
+        addr_parts = [tenant.get(k) for k in ("address", "city", "state", "zip_code") if tenant.get(k)]
+        if addr_parts:
+            elements.append(Paragraph(" • ".join(addr_parts), styles['BodyText']))
+        if tenant.get("phone"):
+            elements.append(Paragraph(f"Phone: {tenant['phone']}", styles['BodyText']))
+    elements.append(Spacer(1, 16))
+
+    # Quote header
+    quote_number = quote.get("quote_number") or quote_id[:8].upper()
+    status = (quote.get("status") or "draft").upper()
+    elements.append(Paragraph(f"<b>QUOTE #{quote_number}</b>  <font color='#0D9488'>[{status}]</font>", styles['Heading2']))
+    elements.append(Paragraph(f"Date: {(quote.get('created_at') or '')[:10]}", styles['BodyText']))
+    if quote.get("expiration_date"):
+        elements.append(Paragraph(f"Valid until: {quote['expiration_date']}", styles['BodyText']))
+    elements.append(Spacer(1, 12))
+
+    # For
+    if customer:
+        elements.append(Paragraph("<b>For:</b>", styles['BodyText']))
+        elements.append(Paragraph(customer.get("name") or "", styles['BodyText']))
+        if customer.get("company"):
+            elements.append(Paragraph(customer["company"], styles['BodyText']))
+        if customer.get("email"):
+            elements.append(Paragraph(customer["email"], styles['BodyText']))
+        elements.append(Spacer(1, 12))
+
+    # Line items
+    table_data = [["Description", "Qty", "Unit Price", "Total"]]
+    for item in quote.get("line_items", []):
+        table_data.append([
+            item.get("description", "Item"),
+            str(item.get("quantity", 1)),
+            f"${item.get('unit_price', 0):.2f}",
+            f"${item.get('total', 0):.2f}",
+        ])
+    subtotal = float(quote.get("subtotal", 0) or 0)
+    tax_amount = float(quote.get("tax_amount", 0) or 0)
+    grand_total = float(quote.get("grand_total", quote.get("total", 0)) or 0)
+    table_data.append(["", "", "Subtotal", f"${subtotal:.2f}"])
+    if tax_amount:
+        table_data.append(["", "", f"Tax ({quote.get('tax_rate', 0):.2f}%)", f"${tax_amount:.2f}"])
+    table_data.append(["", "", "Total", f"${grand_total:.2f}"])
+
+    table = Table(table_data, colWidths=[280, 50, 100, 100])
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTNAME", (-2, -1), (-1, -1), "Helvetica-Bold"),
+        ("ALIGN", (1, 1), (-1, -1), "RIGHT"),
+    ]))
+    elements.append(table)
+    elements.append(Spacer(1, 18))
+
+    if quote.get("notes"):
+        elements.append(Paragraph(f"<b>Notes:</b> {quote['notes']}", styles['BodyText']))
+    if quote.get("terms"):
+        elements.append(Paragraph(f"<b>Terms:</b> {quote['terms']}", styles['BodyText']))
+
+    doc.build(elements)
+    output.seek(0)
+    return StreamingResponse(
+        output,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=quote_{quote_number}.pdf"}
+    )

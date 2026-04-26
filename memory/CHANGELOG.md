@@ -1,5 +1,16 @@
 # SignGuy AI - Changelog
 
+## April 26, 2026 (Tier 6 sweep)
+- **Customer Appointment Request → Owner Email Notification (NEW)**
+  - When a customer submits an appointment request via portal, tenant owner now receives an HTML email immediately (verified by `email_logs` rows with status='sent', response_code=202).
+  - Try/except wrapper means SendGrid failure does NOT block appointment creation.
+- **Admin PDF Endpoints (NEW)**
+  - `GET /api/quotes/{id}/pdf` — admin can download quote PDF (no portal login required).
+  - `GET /api/invoices/{id}/pdf` — admin can download invoice PDF with PAID/UNPAID status badge.
+- **Tier 6 Backend Audit (20/20 PASS)** — AI assistant multi-turn, email composer, voice transcribe, image-gen route, SendGrid wiring, customer portal invoice PDF all verified.
+- **Backlog tracked (NOT_IMPLEMENTED, deferred):** `GET /api/ai/tools` list, `POST /api/ai/extract-invoice`, server-side clear-chat, payroll PDF, work-ticket PDF.
+- **Trackers updated:** PRELAUNCH_CHECKLIST.md Tier 6 sections + Section 17 added to user personal checklist (31 items: AI UI, mail-client rendering, PDF visual quality, SPF/DKIM/DMARC).
+
 ## April 26, 2026 (later)
 - **Customer Request Appointment Feature (NEW) + Tier 5 Backend Sweep**
 - New: `POST /api/portal/appointments/request` — customer-initiated appointment requests with `status="requested"`. Notification row auto-created for shop staff.

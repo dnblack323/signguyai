@@ -23,6 +23,15 @@ Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independen
 
 ## Implemented (CHANGELOG)
 
+### 2026-04-26 (Tier 6 sweep) — Admin PDFs + Appointment Email Notification
+- **Customer Request Appointment email notification:** Tenant owner now receives an HTML email immediately when a customer submits an appointment request via portal. Verified end-to-end (real 202 from SendGrid). Wrapped in try/except so SendGrid failure does not block appointment creation.
+- **Admin Quote PDF** `GET /api/quotes/{id}/pdf` — implemented; returns valid PDF with company header, customer block, line items, totals, notes, terms.
+- **Admin Invoice PDF** `GET /api/invoices/{id}/pdf` — implemented; includes PAID/UNPAID status badge with colour-coded watermark, line items, totals.
+- **Tier 6 backend sweep (20/20 PASS)** — sections 6.1 AI Tools, 6.2 Floating Assistant, 6.3 Emails/SendGrid, 6.4 PDFs.
+- **Deferred to backlog:** `GET /api/ai/tools` listing endpoint, `POST /api/ai/extract-invoice`, server-side clear-chat (chat history is client-managed by design), payroll PDF, work-ticket PDF.
+- **Code review notes for future refactor:** Split `routes/ai.py` (3183 lines) into 4 files. Extract PDF rendering boilerplate to `services/pdf_renderer.py`. Register a unicode TTFont with reportlab if customer names may include CJK/accented characters.
+- **Trackers updated:** PRELAUNCH_CHECKLIST.md Tier 6 sections + Section 17 added to user personal checklist (31 items covering AI UI, 10-mail-client render, PDF visual quality, SPF/DKIM/DMARC).
+
 ### 2026-04-26 (later) — Customer Request Appointment Feature + Tier 5 Backend Sweep
 - **NEW FEATURE:** Customer-initiated appointment requests via portal:
   - `POST /api/portal/appointments/request` (customer) — creates appointment with `status="requested"`, notifies shop
