@@ -1,0 +1,109 @@
+{
+  "summary": "Iteration 129: Prelaunch checklist sections 2.4 (Order Item Clone: Duplicate/Variant/Copy-to-Category) and 2.5 (Quote→Order→Invoice). 31/32 tests passed (96.9%). 1 confirmed bug, 3 notable warnings documented.",
+
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "GET /api/quotes/{id}",
+        "issue": "BUG 2.5-D: `sent_at` field is NOT returned after POST /api/quotes/{id}/send. The send endpoint correctly writes sent_at to MongoDB, but the Quote Pydantic model in models/jobs.py does NOT declare `sent_at: Optional[str] = None`. With `extra='ignore'`, FastAPI strips the field from the GET response, returning sent_at=None instead of the ISO timestamp.",
+        "priority": "MEDIUM",
+        "file": "/app/backend/models/jobs.py — class Quote (line 39)",
+        "fix": "Add `sent_at: Optional[str] = None` and `approved_at: Optional[str] = None` fields to the Quote model (same pattern as Job model which already has these fields at line 96-97 of jobs.py)."
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "POST /api/job-tickets/{id}/clone",
+        "issue": "BUG/SPEC-MISMATCH 2.4-F: Checklist specifies carry_over:{production_notes:false} should clear production_notes, install_notes, AND packaging_notes. Code uses SEPARATE carry_over keys: `production_notes` controls production_notes/description, and `install_location_notes` controls install_notes independently. Sending only {production_notes:false} leaves install_notes intact (carries source value). packaging_notes is always '' (hardcoded). Action: Either update checklist spec to use separate keys, or update clone handler to treat production_notes:false as clearing both production_notes AND install_notes.",
+        "priority": "LOW"
+      },
+      {
+        "endpoint": "GET /api/invoices/{id}",
+        "issue": "STRUCTURAL 2.5-G: Fields `tax_rate` and `is_tax_exempt` are written to DB by generate_invoice_from_order but NOT returned by GET /api/invoices/{id} because Invoice Pydantic model (models/jobs.py) does not declare these fields, and extra='ignore' strips them. These fields ARE present in the direct generate-invoice response. Fix: Add `tax_rate: Optional[float] = None` and `is_tax_exempt: Optional[bool] = None` to Invoice model.",
+        "priority": "LOW"
+      },
+      {
+        "endpoint": "GET /api/quotes/{id}/pdf",
+        "issue": "NOT IMPLEMENTED 2.5-C: Quote PDF endpoint returns 404. No PDF generation is implemented for quotes. Document as not implemented — user-only feature or future work.",
+        "priority": "INFO"
+      }
+    ]
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "verification_results": {
+    "2.4-A_duplicate_mode": "PASS — name='Copy of Source Sign', item_category='rigid_signs', quantity=1, entry_mode='quick', source_item_id set, clone_mode='duplicate'",
+    "2.4-B_variation_mode": "PASS — name='Variant — Source Sign', item_category='rigid_signs', entry_mode='detailed', quantity=1, clone_mode='variation'",
+    "2.4-C_copy_to_category": "PASS — name='Converted — Source Sign', item_category='banners', converted_from_category='rigid_signs', entry_mode='detailed', rush_order=True (universal field preserved)",
+    "2.4-D_field_dropping": "PASS — hardware_included absent/False, protective_finish absent, double_sided_art absent after rigid_signs→banners copy; width=24.0, height=12.0, unit_of_measure='inches' preserved (CATEGORY_COPY_REMAP allow-list working correctly)",
+    "2.4-E_artwork_off": "PASS — carry_over.artwork=false → linked_order_file_ids=[], item_artwork_file_ids=[]",
+    "2.4-F_production_notes_off": "PASS with WARNING — production_notes='' ✓, packaging_notes='' ✓; install_notes NOT cleared (requires separate carry_over.install_location_notes=false key). Bonus test confirms both notes cleared when both keys=false.",
+    "2.4-G_due_date_off": "PASS — due_date=None when carry_over.due_date=false; due_date='2026-12-31' preserved when no carry_over (default=True)",
+    "legacy_duplicate_endpoint": "PASS — POST /api/job-tickets/{id}/duplicate: name='Copy of ...', entry_mode='quick' (forced), quantity=1 (legacy endpoint forces entry_mode, unlike new clone endpoint which inherits)",
+    "2.5-A_create_quote": "PASS — total=320.0 (2×85+1×150), status='draft', line_item totals 170+150 correct",
+    "2.5-B_list_and_retrieve": "PASS — quote found in list of 22; GET /api/quotes/{id} round-trips customer_id, line_items, total, status",
+    "2.5-C_quote_pdf": "NOT IMPLEMENTED — GET /api/quotes/{id}/pdf returns 404",
+    "2.5-D_quote_send": "PARTIAL — API returns 200, status updates to 'sent' ✓; sent_at=None in GET response (BUG: Quote model missing sent_at field)",
+    "2.5-E_convert_to_job": "PASS — job_id=7e0f4aad-..., job status='approved', quote status='approved', quote.job_id set; double-convert returns 400",
+    "2.5-F_invoice_from_order": "PASS — subtotal=350.0, tax_rate=6.0, tax_amount=21.0, grand_total=371.0, is_tax_exempt=False, source='order', status='draft' (re-confirmed from iteration 127)",
+    "2.5-G_invoice_structure": "PASS — all required fields (id, tenant_id, order_id, customer_id, customer_name, status, total, line_items, tax_amount, grand_total, amount_paid, notes, due_date, created_at, source='order') present; WARNING: tax_rate/is_tax_exempt stripped by Invoice model in GET response",
+    "2.5-H_invoice_send": "PASS — POST /api/invoices/{id}/send → 200, status updates to 'sent'",
+    "2.5-I_partial_payment": "PASS — POST /api/invoices/{id}/record-payment?amount=185.5 → balance=185.5, status='sent' (not 'paid'), amount_paid=185.5 persisted",
+    "2.5-J_mark_paid": "PASS — PUT /api/invoices/{id} {status:'paid'} → status='paid' persists in DB"
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_iteration129_clone_quotes_invoices.py",
+    "/app/test_reports/pytest/iteration129_clone_quotes_invoices.xml"
+  ],
+
+  "action_items": [
+    "BUG FIX MEDIUM 2.5-D: Add `sent_at: Optional[str] = None` to Quote model in /app/backend/models/jobs.py (class Quote, ~line 39). Also consider adding `approved_at: Optional[str] = None` for consistency with Job model which already has this field.",
+    "FIX LOW 2.5-G: Add `tax_rate: Optional[float] = None` and `is_tax_exempt: Optional[bool] = None` to Invoice model in /app/backend/models/jobs.py so GET /api/invoices/{id} returns these tax fields (currently written to DB by generate_invoice_from_order but stripped by Invoice model response_model).",
+    "DECISION 2.4-F: Clarify whether carry_over.production_notes:false should ALSO clear install_notes (requiring code change) or if separate carry_over.install_location_notes key is intentional (requiring spec/doc update). Current behavior: separate keys, need both set to false to clear both fields.",
+    "DOCUMENT 2.5-C: Quote PDF endpoint (GET /api/quotes/{id}/pdf) returns 404 — mark as not implemented in checklist. No PDF generation for quotes currently."
+  ],
+
+  "critical_code_review_comments": [
+    "MEDIUM: Quote model (models/jobs.py line 39) missing sent_at field. The send_quote endpoint writes it to DB but it's lost on read. Quote model should mirror Job model which has sent_at and approved_at fields.",
+    "LOW: Invoice model (models/jobs.py line 264) missing tax_rate and is_tax_exempt fields. The generate_invoice_from_order endpoint writes these to DB but they're stripped when reading back via GET /api/invoices/{id}. This means invoice tax details can only be seen from the create response, not from subsequent reads — a data completeness issue.",
+    "LOW: Clone endpoint 2.4-F carry_over key naming inconsistency: the key for install_notes is 'install_location_notes' but for production_notes it is 'production_notes'. These should be documented in the API spec or aligned (consider grouping as 'notes_group' or using a uniform schema)."
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_iteration129_clone_quotes_invoices.py"
+  ],
+
+  "success_rate": {
+    "backend": "96.9% (31/32 tests pass; 1 fails on sent_at field not returned)"
+  },
+
+  "seed_data_creation": "Test quote 4475e0b4-1213-4180-b875-816fd927c49e and Job 7e0f4aad-fbe6-4534-a8f6-7abf6aee21b5 remain in DB (quote cannot be deleted after conversion per API design). Invoice 6e9af0a0-... deleted. All clone job tickets deleted (8 tickets cleaned up).",
+
+  "retest_needed": true,
+
+  "main_agent_can_self_test": true,
+
+  "context_for_next_testing_agent": "Sections 2.4 and 2.5 fully tested. Main findings: (1) Clone endpoint works correctly for all 3 modes (duplicate/variation/copy_to_category) and all carry_over options; (2) Legacy /duplicate endpoint also working; (3) Quote→Job conversion flow fully working; (4) Invoice from order with tax logic confirmed working; (5) Partial payment and mark-paid working. Only bug: sent_at not returned in GET /api/quotes/{id} (Quote model missing field). Test file: /app/backend/tests/test_iteration129_clone_quotes_invoices.py (32 tests). Run with: REACT_APP_BACKEND_URL=https://meta-webhook-setup.preview.emergentagent.com pytest backend/tests/test_iteration129_clone_quotes_invoices.py -v",
+
+  "rca_of_issues": {
+    "bug_sent_at_not_returned": {
+      "issue": "GET /api/quotes/{id} returns sent_at=None after POST /api/quotes/{id}/send",
+      "root_cause": "routes/quotes.py:send_quote writes 'sent_at' to MongoDB. models/jobs.py:Quote does NOT declare 'sent_at' field. With ConfigDict(extra='ignore'), FastAPI's response_model=Quote strips undeclared fields. So sent_at is written to DB but never readable via the API.",
+      "fix": "In models/jobs.py, add `sent_at: Optional[str] = None` to class Quote (after updated_at field). Also `approved_at: Optional[str] = None` for completeness.",
+      "reproduction": "POST /api/quotes/{id}/send → 200. Then GET /api/quotes/{id} → sent_at=None",
+      "file": "/app/backend/models/jobs.py:Quote, /app/backend/routes/quotes.py:send_quote"
+    },
+    "tax_rate_stripped_from_invoice": {
+      "issue": "GET /api/invoices/{id} does not return tax_rate or is_tax_exempt fields",
+      "root_cause": "generate_invoice_from_order (orders.py) stores tax_rate, is_tax_exempt in the invoice document. But Invoice Pydantic model in models/jobs.py does not declare these fields. With extra='ignore', response_model=Invoice strips them on GET.",
+      "fix": "Add `tax_rate: Optional[float] = None` and `is_tax_exempt: Optional[bool] = None` to InvoiceBase or Invoice model.",
+      "reproduction": "POST /api/orders/{id}/generate-invoice → response includes tax_rate=6.0. GET /api/invoices/{id} → no tax_rate field in response."
+    }
+  }
+}
