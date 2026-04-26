@@ -23,7 +23,21 @@ Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independen
 
 ## Implemented (CHANGELOG)
 
-### 2026-04-25 — Facebook/Meta Messenger Integration (Phase 1)
+### 2026-04-25 — Public `/data-deletion` static page (Meta App compliance fix)
+- Created `/app/frontend/public/data-deletion.html` and `/app/frontend/public/data-deletion/index.html` so the URL is served as raw HTML (Meta crawler does not run JS).
+- Wrapped `mailto:` links in `<!--email_off-->...<!--/email_off-->` to disable Cloudflare's Email Address Obfuscation, which was rewriting `support@signguy-ai.com` to `[email&nbsp;protected]` mid-flight.
+- Page contents include: title "Data Deletion Instructions - SignGuy AI OS", `support@signguy-ai.com`, last-updated date, request fields, retention notes.
+- Existing React route `/data-deletion` (`pages/DataDeletion.js`) remains intact for in-app navigation.
+- Verified production: `https://signguy-ai.com/data-deletion` returns HTTP 200 with full content visible to Facebook crawler UA.
+- Note: Meta's "name_placeholder should represent a valid URL" error in their UI was a Meta frontend bug; bypassed with hard refresh / incognito.
+
+### 2026-04-25 — Meta OAuth redirect_uri fix (production)
+- Fixed `routes/meta_integration.py` `start_oauth` and `oauth/callback` to build `redirect_uri` from new env var `META_PUBLIC_URL` (`https://signguy-ai.com`) instead of `request.base_url` (which returned the internal Kubernetes cluster URL `team-schedule-32.cluster-2.deploy.emergentagent.com`).
+- Added `META_PUBLIC_URL=https://signguy-ai.com` to backend `.env`.
+- Verified production now sends correct `redirect_uri=https://signguy-ai.com/api/integrations/meta/oauth/callback`, matching the URI whitelisted in Meta App > Facebook Login for Business > Settings.
+- OAuth flow now reaches Facebook's authorization page successfully.
+
+
 **Backend files created:**
 - `services/meta_service.py` — Fernet token encryption, Meta Graph API helpers, audit logging
 - `services/facebook_ai.py` — Claude Sonnet AI classification + structured order extraction (12 classification labels, 30+ extraction fields)
@@ -150,11 +164,31 @@ Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independen
 
 ## Roadmap (P0 → P3)
 
+### 🟡 IN PROGRESS — Meta Messenger Phase 1 End-to-End Verification
+**Status (paused 2026-04-25):**
+- ✅ Backend: webhook GET/POST verified, OAuth start/callback fixed, env vars set
+- ✅ Production deployment: `signguy-ai.com` serves new code with `META_PUBLIC_URL` fix
+- ✅ Meta Dashboard: App Domains, Privacy URL, Terms URL, Data Deletion URL, Webhook Callback URL, Verify Token, Valid OAuth Redirect URI — all configured and verified
+- ✅ OAuth flow now reaches Facebook's auth dialog (no more "Can't load URL")
+- ❌ **BLOCKED:** "No Pages Found" after OAuth — user has not yet added the four Messenger permissions in Meta App settings (`pages_show_list`, `pages_messaging`, `pages_manage_metadata`, `pages_read_engagement`)
+- ⏸️ Pending: revoke previous FB authorization, re-do OAuth, select page, send test DM, verify lead creation, verify tenant isolation
+
+**Next session — resume here:**
+1. Confirm user added the 4 Messenger permissions in Meta App Dashboard (Use Cases or App Review > Permissions and Features)
+2. Have user revoke prior auth at facebook.com/settings?tab=business_tools
+3. Re-run OAuth — pages should appear
+4. Test full flow: connect page → webhook subscribed → real DM → AI-extracted draft lead in `/facebook-leads`
+5. Verify tenant isolation
+6. After verification, prepare Meta App Review submission (subprocessor list already documented in conversation: Emergent Labs, Cloudflare, MongoDB, Anthropic, PostHog)
+
 ### P2 — Upcoming
 - Easy Artwork sharing to Customer Portal from order details.
 - AI receipt analysis for uploaded expense photos.
 - Tax-exempt toggle behavior validation/fix (`2.1F`).
 - Assets-panel artwork attach + thumbnail path fix (`2.2E`).
+
+### P2 — Meta Messenger Phase 2 (after Phase 1 verified)
+- Dashboard widgets, auto-replies, advanced customer matching, notification system, retention settings.
 
 ### P2 — Backlog
 - Deduplicate payroll compensation snapshot hours (`_get_employee_compensation_snapshot` sums job+manual+clock without dedupe; needs product decision).
