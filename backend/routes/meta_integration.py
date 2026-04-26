@@ -112,9 +112,13 @@ async def start_oauth(
         }
     )
 
-    # Build redirect URI — same origin as the backend API
-    origin = str(request.base_url).rstrip("/")
-    redirect_uri = f"{origin}/api/integrations/meta/oauth/callback"
+    # Build redirect URI — must match the value registered in Meta App settings.
+    # Use META_PUBLIC_URL so it always points at the public production domain
+    # (request.base_url returns the internal cluster URL which Meta rejects).
+    public_base = os.environ.get("META_PUBLIC_URL", "").rstrip("/")
+    if not public_base:
+        public_base = str(request.base_url).rstrip("/")
+    redirect_uri = f"{public_base}/api/integrations/meta/oauth/callback"
 
     return {
         "auth_url": get_oauth_url(redirect_uri=redirect_uri, state=state),
@@ -136,11 +140,8 @@ async def oauth_callback(
     """
     from fastapi.responses import RedirectResponse
 
-    frontend_origin = os.environ.get("REACT_APP_FRONTEND_URL", "")
-    # Fallback: strip /api from base URL
-    if not frontend_origin:
-        # We'll resolve at runtime from the stored state
-        frontend_origin = ""
+    frontend_origin = os.environ.get("META_PUBLIC_URL", "") or os.environ.get("REACT_APP_FRONTEND_URL", "")
+    frontend_origin = frontend_origin.rstrip("/")
 
     if error:
         logger.warning(f"Meta OAuth error: {error} — {error_description}")
@@ -175,7 +176,11 @@ async def oauth_callback(
     # Build same redirect URI used in start_oauth
     # We reconstruct from the stored state since this is a GET redirect
     # The request.base_url approach fails for GET redirects; use env fallback
-    api_base = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/")
+    # Use the same META_PUBLIC_URL as start_oauth so the redirect_uri matches
+    # exactly (Meta requires byte-for-byte equality across both calls).
+    api_base = os.environ.get("META_PUBLIC_URL", "").rstrip("/")
+    if not api_base:
+        api_base = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/")
     redirect_uri = f"{api_base}/api/integrations/meta/oauth/callback"
 
     try:
