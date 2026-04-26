@@ -218,37 +218,37 @@ For **EACH** category below, follow this exact sequence:
 #### 2.3g Services (deepest — newest build)
 Test **every** scenario; each one exercises a different calculation branch.
 
-- [ ] **Hourly Installation** — `service_type=installation, billing_unit=hour, estimated_hours=4, labor_role=lead_installer, travel=15mi, trip_charge=yes, trip_count=1, equipment=scissor_lift, equipment_days=1, rush=yes` → suggested price ≈ **$1,100**, profit > $500, margin > 40 %
-- [ ] **Flat-Fee Graphic Design** — `service_type=graphic_design, billing_unit=flat, flat_fee=250, complexity=medium` → suggested price = **$250 × 1.25 = $312.50** (or minimum if higher)
-- [ ] **Consultation Minimum Enforcement** — `service_type=consultation, billing_unit=hour, estimated_hours=0.25` → price floors at the **$50 consultation minimum** (not $12.50 labor)
-- [ ] **Delivery Per Mile** — `service_type=delivery, billing_unit=mile, miles=25` → price = 25 × per-mile rate
-- [ ] **Delivery Per Trip** — `service_type=delivery, billing_unit=trip, trip_count=2` → price = 2 × trip rate
-- [ ] **Subcontracted Permit** — `service_type=permit_handling, flat_fee=150, subcontracted=yes, sub_cost=100, markup_applies=yes` → price = 150 + (100 × 1.20) = **$270** (20% markup on sub)
-- [ ] **Equipment Rental Standalone** — `service_type=equipment_rental, equipment_type=boom_lift, equipment_days=2` → cost + sell pulled from equipment library
-- [ ] **File Cleanup Flat Fee** — `service_type=file_cleanup, billing_unit=flat, flat_fee=35` → price = $35 (or shop minimum)
-- [ ] **Site Survey With Travel** — `service_type=site_survey, billing_unit=flat, flat_fee=75, travel=12mi, trip_charge=yes` → price includes flat + travel_sell + trip charge
-- [ ] **Wrap Install Labor with Complexity** — `service_type=wrap_install, billing_unit=hour, hours=6, complexity=difficult (×1.5)` → labor cost reflects the 1.5 multiplier
+- [x] **Hourly Installation** — `service_type=installation, billing_unit=hour, estimated_hours=4, labor_role=lead_installer, travel=15mi, trip_charge=yes, trip_count=1, equipment=scissor_lift, equipment_days=1, rush=yes` → suggested price ≈ **$1,100**, profit > $500, margin > 40 %
+- [x] **Flat-Fee Graphic Design** — `service_type=graphic_design, billing_unit=flat, flat_fee=250, complexity=medium` → suggested price = **$250 × 1.25 = $312.50** (or minimum if higher)
+- [x] **Consultation Minimum Enforcement** — `service_type=consultation, billing_unit=hour, estimated_hours=0.25` → price floors at the **$50 consultation minimum** (not $12.50 labor)
+- [x] **Delivery Per Mile** — `service_type=delivery, billing_unit=mile, miles=25` → price = 25 × per-mile rate
+- [x] **Delivery Per Trip** — `service_type=delivery, billing_unit=trip, trip_count=2` → price = 2 × trip rate
+- [x] **Subcontracted Permit** — `service_type=permit_handling, flat_fee=150, subcontracted=yes, sub_cost=100, markup_applies=yes` → price = 150 + (100 × 1.20) = **$270** (20% markup on sub)
+- [x] **Equipment Rental Standalone** — `service_type=equipment_rental, equipment_type=boom_lift, equipment_days=2` → cost + sell pulled from equipment library
+- [x] **File Cleanup Flat Fee** — `service_type=file_cleanup, billing_unit=flat, flat_fee=35` → price = $35 (or shop minimum)
+- [x] **Site Survey With Travel** — `service_type=site_survey, billing_unit=flat, flat_fee=75, travel=12mi, trip_charge=yes` → price includes flat + travel_sell + trip charge
+- [x] **Wrap Install Labor with Complexity** — `service_type=wrap_install, billing_unit=hour, hours=6, complexity=difficult (×1.5)` → labor cost reflects the 1.5 multiplier
 - [ ] **AI Prefill** — click ✨ Sparkles → type “Install 4 aluminum signs 15 miles away, needs a scissor lift” → fields populate; Service Type shows **“AI”** badge
 - [ ] Manually change Labor Role after AI prefill → that field’s badge flips to **“Edited”**
 - [ ] Other AI-populated fields retain the **“AI”** badge
 - [ ] Un-touched default fields show the **“Default”** badge
 - [ ] **AI never overwrites**: set Service Type = wrap_install FIRST, THEN click Prefill with a description mentioning “installation” → Service Type stays **wrap_install** (AI did not overwrite your input)
-- [ ] **Rush from Pricing Foundation**: set Pricing Foundation → default_rush_percent = 17.5 → toggle Rush = Yes on the order item → breakdown.`rush_percent_source` = `foundation`, `rush_percent_applied` = `17.5`
-- [ ] **Rush fallback**: clear default_rush_percent (null) → breakdown.`rush_percent_source` = `services_category`, `rush_percent_applied` = `25.0`
-- [ ] **Explicit 0% foundation rush**: set default_rush_percent = 0 → honored (not silently overridden) → `rush_percent_applied` = `0`
-- [ ] **Field provenance in breakdown** — open dev tools, inspect `/api/pricing/calculate` response → `breakdown.field_sources` is present and correctly tags each field (`shop_default` / `ai_estimated` / `user_entered`)
-- [ ] **Spec-named totals in breakdown** — response includes: `total_labor_cost`, `total_travel_cost`, `total_equipment_cost`, `total_subcontract_cost`, `total_permit_cost`, `total_production_cost`
+- [x] **Rush from Pricing Foundation**: set Pricing Foundation → default_rush_percent = 17.5 → toggle Rush = Yes on the order item → breakdown.`rush_percent_source` = `foundation`, `rush_percent_applied` = `17.5`
+- [x] **Rush fallback**: clear default_rush_percent (null) → breakdown.`rush_percent_source` = `services_category`, `rush_percent_applied` = `25.0`
+- [x] **Explicit 0% foundation rush**: set default_rush_percent = 0 → honored (not silently overridden) → `rush_percent_applied` = `0`
+- [x] **Field provenance in breakdown** — open dev tools, inspect `/api/pricing/calculate` response → `breakdown.field_sources` is present and correctly tags each field (`shop_default` / `ai_estimated` / `user_entered`)
+- [x] **Spec-named totals in breakdown** — response includes: `total_labor_cost`, `total_travel_cost`, `total_equipment_cost`, `total_subcontract_cost`, `total_permit_cost`, `total_production_cost`
 
 #### 2.3h Promotional Items
-- [ ] Magnets / yard signs / stickers each have their own baseline pricing
-- [ ] Quantity tier discounts kick in at the published thresholds (50 / 100 / 250 / 500 / 1000)
-- [ ] Double-sided option adds the double-sided upcharge
-- [ ] Rush = Yes → rush % at end
+- [x] Magnets / yard signs / stickers each have their own baseline pricing
+- [x] Quantity tier discounts kick in at the published thresholds (50 / 100 / 250 / 500 / 1000)
+- [x] Double-sided option adds the double-sided upcharge
+- [x] Rush = Yes → rush % at end
 
 #### 2.3i Custom / Other
-- [ ] Manual price entry saved as-is with no calculation override
-- [ ] Description field is free-text
-- [ ] No progressive-disclosure fields appear (Custom has none)
+- [x] Manual price entry saved as-is with no calculation override
+- [x] Description field is free-text
+- [x] No progressive-disclosure fields appear (Custom has none)
 
 ### 2.4 Order Item — Duplicate / Variant / Copy-to-Category
 - [ ] On an existing order item, click the kebab menu → **Duplicate**

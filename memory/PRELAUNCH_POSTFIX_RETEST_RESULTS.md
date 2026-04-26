@@ -80,9 +80,45 @@ Independent verification:
 - ✅ Admin editability remains intact after marking Paid in Full.
   - Evidence: `/app/test_reports/iteration_123.json`
 
----
+### 2.3g / 2.3h / 2.3i Services, Promotional, Custom pricing (2026-04-26)
+**23/25 tests passed (2 bugs found and immediately fixed)**
 
-## Source artifacts
+**2.3g Services pricing:**
+- ✅ **2.3g-1** Hourly installation with travel + equipment + rush → sell > $200, profit/margin > 0
+- ✅ **2.3g-2** Flat-fee graphic design → `sell=$250.00` (after fixing ServiceType enum: `GRAPHIC_DESIGN='graphic_design'` added to `enums.py`)
+- ✅ **2.3g-3** Consultation minimum enforcement → `sell >= $50` (0.25h floored to minimum)
+- ✅ **2.3g-4** Delivery per mile → `sell >= $31.25` for 25 miles
+- ✅ **2.3g-5** Delivery per trip → `sell >= $45` for 2 trips
+- ✅ **2.3g-6** Subcontracted permit → `sell ≈ $270` ($150 flat + $100 sub × 1.20)
+- ✅ **2.3g-7** Equipment rental (boom_lift, 2 days) → `equipment_sell=$950`
+- ✅ **2.3g-8** File cleanup flat fee → `sell >= $35`
+- ✅ **2.3g-9** Site survey with travel → `sell > $75` + `travel_sell > 0`
+- ✅ **2.3g-10** Wrap install with difficulty multiplier → `difficult/medium ≈ 1.2 ratio`
+- ✅ **2.3g-11** Rush from Pricing Foundation (`17.5%`) → `rush_source=foundation`, `rush_applied=17.5`
+- ✅ **2.3g-12** Rush fallback (null foundation) → `rush_source=services_category`, `pct≈25.0`
+- ✅ **2.3g-13** Explicit 0% rush → `rush_applied=0` (not overridden)
+- ✅ **2.3g-14** Breakdown spec fields → `total_labor_cost`, `total_travel_cost`, `total_equipment_cost`, `total_subcontract_cost`, `rush_percent_source` all present
+
+**2.3h Promotional Items pricing:**
+- ✅ **2.3h-1** Magnets qty=50 → `sell=$1934.49 > 0`
+- ✅ **2.3h-2** Yard signs qty=100 → `sell > 0`
+- ✅ **2.3h-3** Stickers qty=250 → `sell > 0`
+- ✅ **2.3h-4** Quantity tier discounts → per-unit price decreases at qty 50→100→250→500
+- ✅ **2.3h-5** Double-sided upcharge → `double_sided=different: $2503.46 > none: $1934.49` (after fixing `calculate_promotional()` to apply 1.5× multiplier)
+- ✅ **2.3h-6** Rush upcharge → promotional rush=true > rush=false
+
+**2.3i Custom/Other:**
+- ✅ **2.3i-1** Manual price override → `sell=$150.00` exactly (no override)
+- ✅ **2.3i-2** Description persists → `'Custom laser-cut acrylic award'` saved (after adding `description=data.description` to `JobTicket()` constructor in `job_tickets.py`)
+- ✅ **2.3i-3** No progressive disclosure fields → `custom` and `custom_other` schemas return 0 `visible_when` fields
+
+**Bugs fixed in this session:**
+- `models/enums.py`: Added `GRAPHIC_DESIGN = 'graphic_design'` to `ServiceType` enum
+- `routes/job_tickets.py`: Added `description`, `entry_mode`, `manual_quote_override`, `pricing_snapshot`, `linked_order_file_ids`, `item_artwork_file_ids`, `artwork_use_mode` to `JobTicket()` constructor
+- `server.py` (`calculate_promotional`): Added double-sided upcharge (1.5× for `different`, 1.2× for `same`)
+- Test report: `/app/test_reports/iteration_128.json`
+
+---
 - `/app/memory/SECTION1_FIX_RETEST_RESULTS.json`
 - `/app/test_reports/iteration_119.json`
 - `/app/test_reports/iteration_123.json`

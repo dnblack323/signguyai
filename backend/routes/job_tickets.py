@@ -1451,6 +1451,13 @@ async def create_job_ticket(data: JobTicketCreate, current_user: UserInDB = Depe
         estimated_price=data.estimated_price,
         labor_estimate=data.labor_estimate,
         material_estimate=data.material_estimate,
+        description=data.description,
+        entry_mode=data.entry_mode,
+        manual_quote_override=data.manual_quote_override,
+        pricing_snapshot=data.pricing_snapshot,
+        linked_order_file_ids=data.linked_order_file_ids,
+        item_artwork_file_ids=data.item_artwork_file_ids,
+        artwork_use_mode=data.artwork_use_mode,
     )
     ticket.ticket_number = await _next_ticket_number(data.order_id, current_user.tenant_id)
 

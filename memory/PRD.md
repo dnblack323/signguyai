@@ -164,7 +164,19 @@ Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independen
 
 ## Roadmap (P0 → P3)
 
-### 2026-04-26 — Prelaunch Checklist 2.1F + 2.2E Fixed
+### 2026-04-26 — Prelaunch Checklist 2.3g + 2.3h + 2.3i Tested + 3 Bugs Fixed
+
+- **2.3g Services (14/14 agent-testable PASS)**: All pricing branches verified — hourly installation, flat-fee, consultation minimum, delivery/mile, delivery/trip, subcontracted permit, equipment rental, file cleanup, site survey, wrap install complexity, rush from foundation/fallback/zero. Breakdown spec fields verified.
+- **2.3h Promotional (6/6 PASS)**: Magnets, yard signs, stickers baseline + tier discounts + double-sided upcharge + rush all verified.
+- **2.3i Custom/Other (3/3 PASS)**: Manual price override, description persistence, no progressive disclosure.
+- 5 AI Prefill badge items in 2.3g remain for user verification (require real AI credits).
+
+**3 bugs found and fixed:**
+1. `models/enums.py`: Added `GRAPHIC_DESIGN = 'graphic_design'` to `ServiceType` enum (was causing 500 on `graphic_design` service type)
+2. `routes/job_tickets.py`: Added `description`, `entry_mode`, `manual_quote_override`, `pricing_snapshot`, `linked_order_file_ids`, `item_artwork_file_ids`, `artwork_use_mode` to `JobTicket()` constructor (these fields were silently dropped on create)
+3. `server.py` `calculate_promotional()`: Added double-sided upcharge (1.5× for `different`, 1.2× for `same`)
+
+---
 
 #### 2.1F — Tax-Exempt Toggle
 - Added `default_tax_rate: Optional[float]` to `TenantBase` and `TenantUpdate` models (`models/auth.py`)

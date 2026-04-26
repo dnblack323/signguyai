@@ -465,6 +465,16 @@ async def calculate_promotional(data: JobItemPricingData, quantity: float, defau
         if data.markup_percent is not None
         else category_config.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.5))
     )
+
+    # Double-sided upcharge: 'different' art = 1.5× material, 'same' art = 1.2× material
+    double_sided_art = getattr(data, 'double_sided_art', None)
+    double_sided_multiplier = 1.0
+    if double_sided_art == "different":
+        double_sided_multiplier = 1.5
+    elif double_sided_art in ("same", "true", True):
+        double_sided_multiplier = 1.2
+    material_cost *= double_sided_multiplier
+
     pre_overhead_total = material_cost + labor_cost  # setup_fee added flat after markup
     overhead_cost = calculate_overhead_cost(pre_overhead_total, labor_hours, defaults, category_config)
     suggested_price = resolve_selling_price(
@@ -499,6 +509,8 @@ async def calculate_promotional(data: JobItemPricingData, quantity: float, defau
             "production_rate": production_rate,
             "overhead_cost": round(overhead_cost, 2),
             "quantity_discount": discount,
+            "double_sided_art": double_sided_art,
+            "double_sided_multiplier": double_sided_multiplier,
             "price_per_item": round(suggested_price / quantity, 2) if quantity > 0 else 0
         }
     )

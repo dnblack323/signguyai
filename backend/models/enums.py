@@ -74,6 +74,7 @@ class PricingCategory(str, Enum):
 
 class ServiceType(str, Enum):
     DESIGN = "design"
+    GRAPHIC_DESIGN = "graphic_design"
     ARTWORK_SETUP = "artwork_setup"
     FILE_CLEANUP = "file_cleanup"
     CONSULTATION = "consultation"
