@@ -1,15 +1,16 @@
 # Test Credentials
 
-## Production Owner Account
-- Email: signguypa@gmail.com
-- Password: Billnel323
-- Role: owner
-- Tenant: The Signtists Lab (Founders Edition)
-- Database: signguy_ai
-
-## Legacy Admin Account  
+## Production Admin Account (USER'S PRIMARY — USE THIS)
 - Email: thesigntistslab@gmail.com
 - Password: password123
+- Role: owner / admin
+- Tenant: The Signtists Lab (Founders Edition)
+- Database: signguy_ai
+- NOTE: This is the user's actual working admin account. Always use this for testing/instructions.
+
+## Secondary Account (User's Father — DO NOT use unless explicitly instructed)
+- Email: signguypa@gmail.com
+- Password: Billnel323
 - Tenant: The Signtists Lab (same tenant, signguy_ai database)
 
 ## Test Order for Drawing Pad
