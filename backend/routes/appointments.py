@@ -261,3 +261,82 @@ async def delete_appointment(
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Appointment not found")
     return {"message": "Appointment deleted"}
+
+
+class ConfirmRequest(BaseModel):
+    scheduled_start: Optional[str] = None  # admin can override the proposed time
+    scheduled_end: Optional[str] = None
+    employee_id: Optional[str] = None
+    notes: Optional[str] = None
+
+
+@router.put("/{appointment_id}/confirm", response_model=AppointmentResponse)
+async def confirm_appointment(
+    appointment_id: str,
+    payload: ConfirmRequest = ConfirmRequest(),
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Admin confirms a customer-requested appointment.
+    Flips status from 'requested' (or any state) to 'confirmed'.
+    Admin can override proposed time and assign an employee."""
+    doc = await db.appointments.find_one(
+        {"id": appointment_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0},
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    updates: dict = {
+        "status": "confirmed",
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if payload.scheduled_start:
+        updates["scheduled_start"] = payload.scheduled_start
+        updates["scheduled_at"] = payload.scheduled_start
+        updates["scheduled_date"] = payload.scheduled_start[:10]
+    if payload.scheduled_end:
+        updates["scheduled_end"] = payload.scheduled_end
+    if payload.notes:
+        updates["notes"] = payload.notes
+    if payload.employee_id:
+        emp = await db.employees.find_one(
+            {"id": payload.employee_id, "tenant_id": current_user.tenant_id},
+            {"_id": 0, "name": 1},
+        )
+        updates["employee_id"] = payload.employee_id
+        updates["employee_name"] = (emp or {}).get("name")
+
+    await db.appointments.update_one({"id": appointment_id}, {"$set": updates})
+    doc.update(updates)
+    return _doc_to_response(doc)
+
+
+class RejectRequest(BaseModel):
+    reason: Optional[str] = None
+
+
+@router.put("/{appointment_id}/reject", response_model=AppointmentResponse)
+async def reject_appointment(
+    appointment_id: str,
+    payload: RejectRequest = RejectRequest(),
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Admin rejects a customer-requested appointment. Sets status='cancelled'
+    and stores the reason in notes."""
+    doc = await db.appointments.find_one(
+        {"id": appointment_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0},
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    updates: dict = {
+        "status": "cancelled",
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if payload.reason:
+        prev_notes = doc.get("notes") or ""
+        updates["notes"] = (prev_notes + f"\nRejected: {payload.reason}").strip()
+    await db.appointments.update_one({"id": appointment_id}, {"$set": updates})
+    doc.update(updates)
+    return _doc_to_response(doc)

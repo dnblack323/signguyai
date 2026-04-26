@@ -4,10 +4,16 @@ import { PortalLayout } from './PortalDashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { Textarea } from '../components/ui/textarea';
+import { Label } from '../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { useToast } from '../hooks/use-toast';
 import { getPortalToken, getPortalCustomerName } from '../lib/authStorage';
 import { 
   Loader2, FileText, Receipt, ChevronRight, Calendar, Clock,
-  CheckCircle, AlertCircle, DollarSign
+  CheckCircle, AlertCircle, DollarSign, Plus
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -463,9 +469,20 @@ export function PortalInvoices() {
 // Portal Appointments Page
 export function PortalAppointments() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState([]);
   const [showPast, setShowPast] = useState(false);
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [requestForm, setRequestForm] = useState({
+    appointment_type: 'consultation',
+    preferred_date: '',
+    preferred_time: '',
+    duration_minutes: 60,
+    location: '',
+    description: '',
+  });
   const customerName = getPortalCustomerName() || 'Customer';
 
   const fetchAppointments = useCallback(async () => {
@@ -523,21 +540,88 @@ export function PortalAppointments() {
 
   const getStatusConfig = (status) => {
     const configs = {
-      scheduled: { color: 'bg-blue-100 text-blue-700' },
-      confirmed: { color: 'bg-green-100 text-green-700' },
-      completed: { color: 'bg-slate-100 text-slate-700' },
-      cancelled: { color: 'bg-red-100 text-red-700' },
-      no_show: { color: 'bg-red-100 text-red-700' },
+      requested: { color: 'bg-amber-100 text-amber-700', label: 'Pending Confirmation' },
+      scheduled: { color: 'bg-blue-100 text-blue-700', label: 'Scheduled' },
+      confirmed: { color: 'bg-green-100 text-green-700', label: 'Confirmed' },
+      completed: { color: 'bg-slate-100 text-slate-700', label: 'Completed' },
+      cancelled: { color: 'bg-red-100 text-red-700', label: 'Cancelled' },
+      no_show: { color: 'bg-red-100 text-red-700', label: 'No Show' },
     };
     return configs[status] || configs.scheduled;
+  };
+
+  const submitAppointmentRequest = async () => {
+    if (!requestForm.preferred_date) {
+      toast({ title: 'Date required', description: 'Please pick a preferred date.', variant: 'destructive' });
+      return;
+    }
+    const token = getPortalToken();
+    if (!token) {
+      navigate('/customer-portal/login');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await fetch(`${API_URL}/api/portal/appointments/request`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...requestForm,
+          preferred_time: requestForm.preferred_time || null,
+          duration_minutes: Number(requestForm.duration_minutes) || 60,
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: 'Request submitted',
+          description: 'We received your appointment request. The shop will confirm shortly.',
+        });
+        setRequestOpen(false);
+        setRequestForm({
+          appointment_type: 'consultation',
+          preferred_date: '',
+          preferred_time: '',
+          duration_minutes: 60,
+          location: '',
+          description: '',
+        });
+        fetchAppointments();
+      } else {
+        const err = await response.json().catch(() => ({}));
+        toast({
+          title: 'Request failed',
+          description: err.detail || 'Could not submit your request.',
+          variant: 'destructive',
+        });
+      }
+    } catch (err) {
+      toast({ title: 'Request failed', description: String(err), variant: 'destructive' });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <PortalLayout activeNav="appointments" customerName={customerName}>
       <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900">Your Appointments</h2>
-          <p className="text-slate-600 mt-1">Scheduled meetings and visits</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900">Your Appointments</h2>
+            <p className="text-slate-600 mt-1">Scheduled meetings and visits</p>
+          </div>
+          <Button
+            data-testid="portal-request-appointment-btn"
+            onClick={() => setRequestOpen(true)}
+            className="bg-teal-500 hover:bg-teal-600 gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Request Appointment
+          </Button>
         </div>
 
         <div className="flex gap-2">
@@ -588,7 +672,7 @@ export function PortalAppointments() {
                           </div>
                           <div className="flex flex-col items-end gap-2">
                             <Badge className={typeConfig.color}>{typeConfig.label}</Badge>
-                            <Badge className={statusConfig.color}>{apt.status}</Badge>
+                            <Badge className={statusConfig.color}>{statusConfig.label || apt.status}</Badge>
                           </div>
                         </div>
                         {apt.location && (
@@ -613,10 +697,112 @@ export function PortalAppointments() {
               <p className="text-slate-500">
                 {showPast ? 'No appointments found' : 'No upcoming appointments'}
               </p>
+              <Button
+                data-testid="portal-request-appointment-empty-btn"
+                onClick={() => setRequestOpen(true)}
+                className="mt-4 bg-teal-500 hover:bg-teal-600 gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Request Appointment
+              </Button>
             </CardContent>
           </Card>
         )}
       </div>
+
+      <Dialog open={requestOpen} onOpenChange={setRequestOpen}>
+        <DialogContent data-testid="portal-request-appointment-dialog" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Request an Appointment</DialogTitle>
+            <DialogDescription>
+              Tell us when you'd like to meet. We'll confirm a time within one business day.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="appt-type">Appointment Type</Label>
+              <Select
+                value={requestForm.appointment_type}
+                onValueChange={(v) => setRequestForm({ ...requestForm, appointment_type: v })}
+              >
+                <SelectTrigger data-testid="portal-request-type-select" id="appt-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="consultation">Consultation</SelectItem>
+                  <SelectItem value="site_survey">Site Survey</SelectItem>
+                  <SelectItem value="pickup">Pickup</SelectItem>
+                  <SelectItem value="install">Installation</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="appt-date">Preferred Date</Label>
+                <Input
+                  data-testid="portal-request-date-input"
+                  id="appt-date"
+                  type="date"
+                  value={requestForm.preferred_date}
+                  onChange={(e) => setRequestForm({ ...requestForm, preferred_date: e.target.value })}
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              <div>
+                <Label htmlFor="appt-time">Preferred Time</Label>
+                <Input
+                  data-testid="portal-request-time-input"
+                  id="appt-time"
+                  type="time"
+                  value={requestForm.preferred_time}
+                  onChange={(e) => setRequestForm({ ...requestForm, preferred_time: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="appt-location">Location (optional)</Label>
+              <Input
+                data-testid="portal-request-location-input"
+                id="appt-location"
+                placeholder="123 Main St"
+                value={requestForm.location}
+                onChange={(e) => setRequestForm({ ...requestForm, location: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="appt-desc">Notes (optional)</Label>
+              <Textarea
+                data-testid="portal-request-description-textarea"
+                id="appt-desc"
+                placeholder="What would you like to discuss?"
+                rows={3}
+                value={requestForm.description}
+                onChange={(e) => setRequestForm({ ...requestForm, description: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRequestOpen(false)}
+              disabled={submitting}
+              data-testid="portal-request-cancel-btn"
+            >
+              Cancel
+            </Button>
+            <Button
+              data-testid="portal-request-submit-btn"
+              onClick={submitAppointmentRequest}
+              disabled={submitting}
+              className="bg-teal-500 hover:bg-teal-600"
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Submit Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PortalLayout>
   );
 }

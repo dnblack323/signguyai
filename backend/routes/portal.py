@@ -17,6 +17,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import StreamingResponse
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
+from pydantic import BaseModel
 import jwt
 import uuid
 import base64
@@ -943,10 +944,84 @@ async def get_portal_appointments(
     if upcoming_only:
         today = datetime.now(timezone.utc).date().isoformat()
         query["scheduled_date"] = {"$gte": today}
-        query.setdefault("status", {"$in": ["scheduled", "confirmed"]} if not status else status)
+        query.setdefault("status", {"$in": ["scheduled", "confirmed", "requested"]} if not status else status)
 
     appointments = await db.appointments.find(query, {"_id": 0}).sort("scheduled_start", 1).to_list(200)
     return appointments
+
+
+class PortalAppointmentRequest(BaseModel):
+    appointment_type: Optional[str] = None  # consultation, site_survey, pickup, install, other
+    preferred_date: str  # ISO date YYYY-MM-DD
+    preferred_time: Optional[str] = None  # e.g., "14:00" or "any"
+    duration_minutes: Optional[int] = 60
+    location: Optional[str] = None
+    description: Optional[str] = None
+    order_id: Optional[str] = None
+
+
+@router.post("/appointments/request")
+async def request_portal_appointment(
+    payload: PortalAppointmentRequest,
+    customer: dict = Depends(get_current_portal_customer)
+):
+    """Customer-initiated appointment request. Creates appointment with status='requested';
+    admin must confirm via PUT /api/appointments/{id}/confirm to mark as scheduled."""
+    if not payload.preferred_date:
+        raise HTTPException(status_code=400, detail="preferred_date is required")
+
+    now = datetime.now(timezone.utc).isoformat()
+    scheduled_start = f"{payload.preferred_date}T{payload.preferred_time}:00" if payload.preferred_time and payload.preferred_time != "any" else f"{payload.preferred_date}T09:00:00"
+    type_label_map = {
+        "consultation": "Consultation",
+        "site_survey": "Site Survey",
+        "pickup": "Pickup",
+        "install": "Installation",
+        "installation": "Installation",
+        "other": "Appointment",
+    }
+    title = f"{type_label_map.get(payload.appointment_type or 'other', 'Appointment')} Request"
+
+    doc = {
+        "id": str(uuid.uuid4()),
+        "tenant_id": customer.get("tenant_id"),
+        "title": title,
+        "status": "requested",
+        "appointment_type": payload.appointment_type,
+        "customer_id": customer["id"],
+        "customer_name": customer.get("name"),
+        "order_id": payload.order_id,
+        "employee_id": None,
+        "employee_name": None,
+        "scheduled_start": scheduled_start,
+        "scheduled_end": None,
+        "scheduled_at": scheduled_start,
+        "scheduled_date": payload.preferred_date,
+        "duration_minutes": payload.duration_minutes or 60,
+        "location": payload.location,
+        "description": payload.description,
+        "notes": "Customer-requested via portal",
+        "send_reminder": True,
+        "requested_by_customer": True,
+        "created_by": customer["id"],
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.appointments.insert_one(doc)
+    doc.pop("_id", None)
+
+    # Notify shop staff
+    notification = CustomerNotification(
+        tenant_id=customer.get("tenant_id"),
+        customer_id=customer["id"],
+        notification_type="appointment_requested",
+        title="New appointment request",
+        message=f"{customer.get('name', 'Customer')} requested a {payload.appointment_type or 'meeting'} on {payload.preferred_date}",
+        related_id=doc["id"],
+    )
+    await db.customer_notifications.insert_one(notification.model_dump())
+
+    return doc
 
 
 # ============== PORTAL DOCUMENTS ==============

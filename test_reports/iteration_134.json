@@ -1,0 +1,138 @@
+{
+  "summary": "Iteration 134 — PART 1: Customer Request Appointment flow (backend + UI) PASSES end-to-end. PART 2: Tier 5 Admin/Settings backend audit complete. 28 PASS, 1 XFAIL (DELETE /admin/users/{id} not implemented), full UI flow verified. Tier 5 sections covered: 5.1 Users (partial — DELETE missing), 5.2 Admin portal owner access, 5.4 Digest, 5.7 Promo codes (full CRUD), 5.8 Community Hub (full CRUD + upvote), 5.10 Pricing Foundation (defaults GET/PUT), 5.11 Tenant Settings, 5.12 Email Templates.",
+
+  "test_run": {
+    "command": "REACT_APP_BACKEND_URL=<preview> python -m pytest tests/test_iteration134.py -v",
+    "result": "28 passed, 1 xfailed in 7.00s",
+    "frontend": "Customer portal request appointment dialog → submit → 'Pending Confirmation' badge appears with correct details. Verified visually."
+  },
+
+  "part1_appointment_request_flow": {
+    "POST /api/portal/appointments/request": "PASS — 400 on missing preferred_date (validation works); 200 returns status='requested', requested_by_customer=true, duration_minutes=60 default, customer_id auto-set, _id excluded, customer_notifications row created (verified by code review of route).",
+    "GET /api/portal/appointments?upcoming_only=true": "PASS — newly-created 'requested' appointment appears in upcoming list (status filter $in includes 'requested').",
+    "GET /api/appointments?status=requested (admin)": "PASS — admin sees the customer's request scoped to tenant.",
+    "PUT /api/appointments/{id}/confirm (admin)": "PASS — flips status from 'requested' to 'confirmed'; supports overriding scheduled_start, scheduled_end, employee_id, notes; portal re-fetch shows status=confirmed.",
+    "PUT /api/appointments/{id}/reject (admin)": "PASS — flips status to 'cancelled' and appends reason to notes.",
+    "Frontend /customer-portal/appointments": "PASS — Login as taxtest_non@example.com / portal123 → Request Appointment button visible (data-testid=portal-request-appointment-btn) → dialog opens (portal-request-appointment-dialog) → fields fillable (date, time, location, description) → submit button works → list updates with new entry showing 'Pending Confirmation' yellow badge + appointment-type tag."
+  },
+
+  "part2_tier5_audit": {
+    "5.1_user_management": {
+      "POST /api/admin/users/create": "PASS (requires field 'full_name', not 'name')",
+      "PUT /api/admin/users/{id}/role": "PASS",
+      "DELETE /api/admin/users/{id}": "FAIL_NOT_IMPLEMENTED — endpoint missing (404). Test xfailed.",
+      "PUT /api/admin/users/{id}/status": "NOT_TESTED (route exists per auth.py:457, deactivation via status field)",
+      "POST /api/admin/users/{id}/reset-password": "NOT_TESTED (route exists per auth.py:424)",
+      "last-owner-cannot-remove-self_guard": "BLOCKED_BY_MISSING_DELETE",
+      "resend_invite_revoke_invite": "NOT_IMPLEMENTED — no /api/auth/invite-user route. Use /api/admin/users/create instead (already documented in iteration 132)."
+    },
+    "5.2_admin_portal_super_admin": {
+      "GET /api/admin-portal/dashboard (admin owner)": "PASS",
+      "non-superadmin_403_check": "USER_ONLY — no dedicated super-admin-only routes found in admin-portal router; all routes accessible by tenant owner. The cross-tenant super-admin gating lives in /api/tiers/admin/* (e.g. /api/tiers/admin/tenant/{id}/plan). NOT separately tested."
+    },
+    "5.4_digest_config": {
+      "GET /api/digest/settings": "PASS",
+      "PUT /api/digest/settings": "PASS (toggle enabled, send_time)",
+      "GET /api/digest/preview": "PASS",
+      "POST /api/digest/send": "USER_ONLY — would actually send email; not invoked in test."
+    },
+    "5.7_promo_codes": {
+      "GET /api/promo-codes": "PASS",
+      "POST /api/promo-codes": "PASS (note: discount_type valid values are 'percent','fixed','free_trial','free_days' — not 'percentage')",
+      "PUT /api/promo-codes/{id}": "PASS",
+      "DELETE /api/promo-codes/{id}": "PASS",
+      "POST /api/promo-codes/validate": "NOT_TESTED (validation/redeem flows exist, lines 181/234)",
+      "plan_association_validation": "NOT_TESTED — schema supports applies_to_plans field; not exercised."
+    },
+    "5.8_community_hub": {
+      "POST /api/community/posts": "PASS (note: requires field 'body' not 'content'; valid categories are bug_report, feature_request, question, feedback)",
+      "GET /api/community/posts": "PASS",
+      "POST /api/community/posts/{id}/upvote": "PASS",
+      "DELETE /api/community/posts/{id}": "PASS",
+      "POST /api/community/posts/{id}/reply": "NOT_TESTED (route exists per community.py:115)",
+      "PUT /api/community/posts/{id}": "NOT_TESTED",
+      "admin_moderation_delete_other_users_post": "NOT_TESTED (logic exists at community.py:211 — owner role can delete any post)"
+    },
+    "5.10_pricing_foundation": {
+      "GET /api/pricing/defaults": "PASS",
+      "PUT /api/pricing/defaults": "PASS (default_markup_percent updated)",
+      "POST /api/pricing/calculate": "PASS (implicit — endpoint exists; not retested in 134, was passing in earlier iterations)",
+      "Note": "There is no /api/pricing-foundation route — actual route is /api/pricing/defaults & /settings; spec language 'pricing-foundation' should be updated."
+    },
+    "5.11_company_settings": {
+      "GET /api/tenant": "PASS",
+      "PUT /api/tenant": "PASS — phone update persists (verified via re-GET); test restored original phone."
+    },
+    "5.12_email_templates": {
+      "GET /api/email-templates": "PASS",
+      "GET /api/email-templates/{id}": "PASS",
+      "PUT /api/email-templates/{id}": "PASS",
+      "POST /api/email-templates/{id}/preview": "PASS",
+      "POST /api/email-templates/{id}/reset": "NOT_TESTED (route exists)",
+      "send_test_email_to_inbox": "USER_ONLY — actual email delivery not asserted."
+    },
+    "5.6_tier_feature_flags": "USER_ONLY/NOT_TESTED — Tier A (Founders Edition) account has all features unlocked; would need a Starter-tier tenant to verify Pro-only 403 gating. No simple agent-testable Pro endpoint identified."
+  },
+
+  "user_only_items_to_migrate_to_section16": [
+    "5.1 — UI walkthrough: invite user, accept invite via email, last-owner-self-removal guard once DELETE endpoint is added",
+    "5.1 — Resend invite / revoke invite (no API today; UI-only or not-implemented decision needed)",
+    "5.2 — Verify non-super-admin sees no super-admin pages in UI (Manage Tenants, Tenant Plans, etc.)",
+    "5.3 — Account/profile photo upload UI",
+    "5.4 — Confirm digest email actually arrives (POST /api/digest/send)",
+    "5.5 — 25-hour session expiry verification",
+    "5.6 — Tier feature gating UI: confirm Pro-only buttons hide on Starter plan",
+    "5.7 — Stripe-side promo redemption end-to-end at checkout",
+    "5.8 — Community moderation walkthrough (pin, mark answered, soft-delete UX)",
+    "5.9 — Onboarding walkthrough overlay/tour resets correctly",
+    "5.10 — Verify pricing change reflected in active quote calculations end-to-end",
+    "5.11 — Logo/favicon upload and timezone affects scheduled emails",
+    "5.12 — Send-test email actually arrives in inbox + render in major clients"
+  ],
+
+  "backend_bugs_for_main_agent": [
+    {"priority": "MEDIUM", "endpoint": "DELETE /api/admin/users/{id}", "issue": "Not implemented. Required for 5.1 admin user removal + last-owner-self-removal guard. Add with guard: if user_id == current_user.id and user.role=='owner' and tenant_owner_count==1 → 400 'Cannot remove last owner'."},
+    {"priority": "LOW", "endpoint": "POST /api/auth/invite-user (or /api/admin/users/{id}/resend-invite, /revoke-invite)", "issue": "No invite flow APIs. Currently /admin/users/create just creates an active user with a password — no email-link invite/accept. Consider adding for 5.1 acceptance."},
+    {"priority": "LOW", "endpoint": "POST /api/payroll/adjustments + 'bonus' type", "issue": "Carry-over from iteration 132 — not in scope of Tier 5 but still open."},
+    {"priority": "INFO", "endpoint": "Spec mismatch: /api/pricing-foundation/*", "issue": "Checklist says /api/pricing-foundation/*; actual route is /api/pricing/defaults & /settings. Update PRELAUNCH_CHECKLIST.md 5.10 wording."}
+  ],
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "critical_code_review_comments": [
+    "PART 1 looks solid: portal route correctly excludes _id, uses tenant_id from customer doc, sets status='requested' & requested_by_customer=true, and the upcoming filter $in now includes 'requested'. Notification row created. Confirm/reject routes scope by tenant_id and update notes properly.",
+    "Tier 5: spec wording 'discount_type=percentage' and 'content' for community posts and 'name' for /admin/users/create are misleading — actual schemas use 'percent', 'body', and 'full_name'. Update PRELAUNCH_CHECKLIST examples.",
+    "Tier 5 user lifecycle is incomplete: DELETE user endpoint is missing. This is a real prelaunch gap (cannot offboard a teammate via API today).",
+    "Community route uses get_current_active_user only — any tenant member can post/delete their own. Owner-role check exists for cross-author delete (community.py:211) — looks correct.",
+    "Promo codes accept future expires_at and max_redemptions — full validation flow at /validate not exercised here but logic exists at promo_codes.py:181."
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/test_iteration134.py",
+    "/app/test_reports/pytest/iteration134_results.xml"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_iteration134.py",
+    "/app/test_reports/iteration_134.json"
+  ],
+
+  "test_credentials": {
+    "admin": "thesigntistslab@gmail.com / password123",
+    "customer_portal": "taxtest_non@example.com / portal123",
+    "staff": "staff_payroll_test@test.com / StaffTest123!"
+  },
+
+  "seed_data_creation": "Created and cleaned up: 1 confirmed appointment, 1 rejected appointment, 1 staff user (TEST_t5_user_*), 1 promo code, 1 community post, 1 frontend-submitted appointment. Tenant phone restored. Pricing default_markup_percent restored.",
+
+  "success_rate": {"backend": "28/29 (96.5%) — 1 xfail for unimplemented DELETE", "frontend": "100% (request appointment dialog flow)"},
+
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+
+  "context_for_next_testing_agent": "Iteration 134 closed PART 1 (Customer Request Appointment) end-to-end (UI + backend) and PART 2 (Tier 5 backend audit). Test file: /app/backend/tests/test_iteration134.py. Field-name gotchas to remember for future tests: admin user create uses 'full_name'; promo discount_type values are 'percent'|'fixed'|'free_trial'|'free_days'; community post uses 'body' field and category in {bug_report, feature_request, question, feedback}. PRICING-FOUNDATION lives at /api/pricing/defaults (no /pricing-foundation prefix). Open Tier 5 items needing main-agent action: (1) DELETE /api/admin/users/{id} missing, (2) invite-flow APIs absent, (3) checklist wording for 5.10. User-only items listed under 'user_only_items_to_migrate_to_section16' should be moved to /app/memory/PRELAUNCH_SECTION1_USER_PERSONAL_CHECKLIST.md Section 16."
+}
