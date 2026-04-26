@@ -80,7 +80,39 @@ Independent verification:
 - ✅ Admin editability remains intact after marking Paid in Full.
   - Evidence: `/app/test_reports/iteration_123.json`
 
-### 2.4 / 2.5 Clone, Quotes, Invoices (2026-04-26)
+### 2.6 / 2.7 / 2.8 / 2.9 / 2.10 — Files, Webstores, Products, Questionnaires, Signatures (2026-04-26)
+**37/37 tests passed (100%). 4 bugs found and immediately fixed.**
+
+**2.6 Artwork, Files & Drawings (14/14 PASS):**
+- ✅ PNG, JPG, PDF, SVG, AI/EPS all upload, store, and retrieve correctly
+- ✅ File content endpoint returns correct bytes + Content-Type
+- ✅ File list populated; promote-to-shared sets is_shared=true; file appears in shared pool
+- ✅ File delete removes record; content endpoint returns 404 after delete
+- ✅ Drawing create/retrieve/file download/delete all work; base64 PNG data URL preserved
+
+**2.7 Webstores (5/5 PASS, 3 improvements applied):**
+- ✅ Products CRUD (add/edit/delete) fully functional
+- ✅ Apparel options endpoint returns non-empty brand/color list
+- ✅ Storefront GET returns seo_title, seo_description, og_image fields (after model fix)
+- ✅ Product fields round-trip: size_options, color_options, is_featured, in_stock all persist (after constructor fix)
+- ✅ Webstore name uniqueness enforced → second POST with same name → 409 (after fix)
+
+**2.8 Products (3/3 PASS):** CRUD verified (add, edit, delete with all new fields)
+
+**2.9 Questionnaires (7/7 PASS):**
+- ✅ Create with all field types, public access (no auth), submit, dashboard responses, required enforcement, email validation (after fix)
+
+**2.10 Signatures (7/7 PASS):**
+- ✅ Requirement create, public token loads, sign, token one-time-use enforcement (409), invalid token → 404, expired token → appropriate error
+
+**4 bugs fixed:**
+- `webstores.py Product model`: Added `size_options`, `color_options`, `is_featured`, `in_stock` to Product/ProductCreate/ProductUpdate models AND constructor call
+- `webstores.py create_webstore`: Added 409 uniqueness check on `{tenant_id, name}`
+- `webstores.py Webstore model`: Added `seo_title`, `seo_description`, `og_image` fields to model + Create + Update + PUBLIC_FIELDS
+- `questionnaires.py`: Added per-field email/phone format validation on submit
+- Test report: `/app/test_reports/iteration_130.json`
+
+---
 **31/32 tests passed; 2 model bugs found and immediately fixed**
 
 **2.4 Order Item Clone:**

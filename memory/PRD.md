@@ -164,7 +164,17 @@ Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independen
 
 ## Roadmap (P0 → P3)
 
-### 2026-04-26 — Prelaunch Checklist 2.3g + 2.3h + 2.3i Tested + 3 Bugs Fixed
+### 2026-04-26 — Prelaunch Checklist Sections 2.6-2.10 — 37/37 PASS + 4 Bugs Fixed
+
+- **2.6 Files & Drawings**: PNG/JPG/PDF/SVG/AI upload, content fetch, promote-to-shared, delete, drawing CRUD — all pass
+- **2.7 Webstores**: Products CRUD with new `size_options/color_options/is_featured/in_stock`, webstore name uniqueness (409), SEO fields `seo_title/seo_description/og_image` added to model
+- **2.8 Products**: Full CRUD verified with all new fields
+- **2.9 Questionnaires**: All field types, public submit, required enforcement, email format validation added
+- **2.10 Signatures**: Create, public token, sign, one-time-use (409), invalid token (404), expired token (handled)
+
+**Checklist progress: 179 checked / 736 total**
+
+---
 
 - **2.3g Services (14/14 agent-testable PASS)**: All pricing branches verified — hourly installation, flat-fee, consultation minimum, delivery/mile, delivery/trip, subcontracted permit, equipment rental, file cleanup, site survey, wrap install complexity, rush from foundation/fallback/zero. Breakdown spec fields verified.
 - **2.3h Promotional (6/6 PASS)**: Magnets, yard signs, stickers baseline + tier discounts + double-sided upcharge + rush all verified.

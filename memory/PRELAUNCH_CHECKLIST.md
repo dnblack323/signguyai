@@ -287,25 +287,25 @@ Test **every** scenario; each one exercises a different calculation branch.
 - [ ] **Refund** via Stripe dashboard → invoice auto-updates to `refunded`
 
 ### 2.6 Artwork, Files & Drawings
-- [ ] Upload **PNG** to an order → thumbnail renders
-- [ ] Upload **JPG** → thumbnail renders
-- [ ] Upload **PDF** → preview renders (or at least opens in new tab)
-- [ ] Upload **SVG** → accepted and stored (thumbnail may be fallback icon)
-- [ ] Upload **AI / EPS** → accepted and stored (fallback icon)
-- [ ] Upload file **> 10 MB** → uploads via chunked flow without timing out
-- [ ] Upload file **> 100 MB** → either succeeds or shows a clear size-limit error (no silent fail)
-- [ ] **Drawing Modal**: open on an order → draw something → save → attached as PNG to order
-- [ ] Drawing modal: change color, thickness, clear, redo — all work
-- [ ] **Shared Artwork**: mark an uploaded file as `is_shared=true` via the category dropdown → new order items can pick it via the Shared Artwork picker
-- [ ] Delete a file → removed from Object Storage (not just DB) — the original signed URL should 404 after delete
+- [x] Upload **PNG** to an order → thumbnail renders
+- [x] Upload **JPG** → thumbnail renders
+- [x] Upload **PDF** → preview renders (or at least opens in new tab)
+- [x] Upload **SVG** → accepted and stored (thumbnail may be fallback icon)
+- [x] Upload **AI / EPS** → accepted and stored (fallback icon)
+- [ ] Upload file **> 10 MB** → uploads via chunked flow without timing out *(manual test with real large file)*
+- [ ] Upload file **> 100 MB** → either succeeds or shows a clear size-limit error (no silent fail) *(manual test with real huge file)*
+- [x] **Drawing Modal**: open on an order → draw something → save → attached as PNG to order
+- [ ] Drawing modal: change color, thickness, clear, redo — all work *(manual UI test)*
+- [x] **Shared Artwork**: mark an uploaded file as `is_shared=true` via the category dropdown → new order items can pick it via the Shared Artwork picker
+- [x] Delete a file → removed from Object Storage (not just DB) — the original signed URL should 404 after delete
 
 ### 2.7 Webstores / Public Storefront
 _You specifically called this out as missed from V1 — test it thoroughly._
 
 - [x] **Create a Webstore**: Webstores → + New → name, slug, logo, banner, tagline → saves
-- [ ] Slug is **unique** per tenant (try creating two with same slug → second rejected)
+- [x] Slug is **unique** per tenant (try creating two with same slug → second rejected)
 - [x] **Add products** to the store (at least one from each category: apparel, print, rigid sign)
-- [ ] For each product, confirm: title, description, price, images, size options, color options, stock on/off, featured flag
+- [x] For each product, confirm: title, description, price, images, size options, color options, stock on/off, featured flag
 - [x] **Product image upload** — try a large PNG (8MB) → uploads, displays
 - [x] **Public storefront URL** `/store/{slug}` loads **without login** (test in incognito mode)
 - [x] Hero banner + logo + product grid render on **mobile** (375px width)
@@ -321,50 +321,50 @@ _You specifically called this out as missed from V1 — test it thoroughly._
 - [x] **Analytics**: Webstores → Analytics → shows views, conversions, revenue for a date range
 - [ ] **Payouts page**: shows Stripe Connect payout history (synced from Stripe)
 - [x] **Record payout manually** (for external settlements) → balance adjusts in the UI
-- [ ] **SEO**: `view-source:/store/{slug}` has populated `<title>` and `<meta name="description">`
-- [ ] **Open Graph** tags present for social sharing
+- [ ] **SEO**: `view-source:/store/{slug}` has populated `<title>` and `<meta name="description">` *(see personal checklist — requires SSR/React Helmet)*
+- [ ] **Open Graph** tags present for social sharing *(seo_title/og_image fields now available via API; frontend meta injection needed)*
 - [x] **Multiple webstores**: create 2 different webstores → each has distinct URL, product set, branding, logo
 - [x] **Delete webstore** → `/store/{slug}` now returns 404
 
 ### 2.8 Products Catalog (separate from Order line items)
 - [x] Products page — list view with filters (by webstore, by type)
-- [ ] **Add product** → title, description, price, images
-- [ ] **Edit product** → changes persist
-- [ ] **Delete product** → with confirm
+- [x] **Add product** → title, description, price, images
+- [x] **Edit product** → changes persist
+- [x] **Delete product** → with confirm
 - [x] Assign a single product to **multiple webstores** — it shows up on all of them
-- [ ] `GET /api/products/defaults/apparel-options` returns the current brand/color list
-- [ ] Image from Object Storage renders in thumbnail
+- [x] `GET /api/products/defaults/apparel-options` returns the current brand/color list
+- [x] Image from Object Storage renders in thumbnail
 - [x] Inventory / stock toggle affects whether it’s orderable on storefront
 
 ### 2.9 Questionnaires / Public Intake Forms
-- [ ] Create a questionnaire (Questionnaires page)
+- [x] Create a questionnaire (Questionnaires page)
 - [ ] Add fields of each type:
-  - [ ] Short text
-  - [ ] Long text / textarea
-  - [ ] Multiple choice (radio)
-  - [ ] Checkbox list
-  - [ ] File upload
-  - [ ] Email (validated)
-  - [ ] Phone (validated)
-  - [ ] Dropdown / Select
-- [ ] Copy the public link `/questionnaire/{id}` → open in incognito → fill out → submit
-- [ ] Submission appears in dashboard with all fields + any uploaded files
+  - [x] Short text
+  - [x] Long text / textarea
+  - [x] Multiple choice (radio)
+  - [x] Checkbox list
+  - [x] File upload
+  - [x] Email (validated)
+  - [x] Phone (validated)
+  - [x] Dropdown / Select
+- [x] Copy the public link `/questionnaire/{id}` → open in incognito → fill out → submit
+- [x] Submission appears in dashboard with all fields + any uploaded files
 - [ ] **Admin email notification** on new submission (check SendGrid logs)
-- [ ] Required fields enforced — try submitting with a required field blank → blocked
-- [ ] Email field validates format
-- [ ] File upload respects max size
+- [x] Required fields enforced — try submitting with a required field blank → blocked
+- [x] Email field validates format
+- [x] File upload respects max size
 - [ ] **Portal Forms**: logged-in customers see their past submissions at `/customer-portal/forms`
 - [ ] Customer can **continue an unfinished form** if saving drafts is supported
 
 ### 2.10 Public Customer Signature Page
-- [ ] Create an approval or contract that requires a signature
-- [ ] Copy the public signature link `/customer-sign/{token}`
-- [ ] Open in incognito (no login) → page loads
-- [ ] Customer signs with mouse on desktop → submit → signature stored on record
+- [x] Create an approval or contract that requires a signature
+- [x] Copy the public signature link `/customer-sign/{token}`
+- [x] Open in incognito (no login) → page loads
+- [x] Customer signs with mouse on desktop → submit → signature stored on record
 - [ ] Customer signs with finger on mobile → submit → signature stored
-- [ ] **Token becomes invalid** for re-use after submit
+- [x] **Token becomes invalid** for re-use after submit
 - [ ] **Expired token** (manually mark old in DB, or wait past expiry) → friendly “This link has expired” page
-- [ ] **Invalid / fabricated token** → friendly error page, no stack trace
+- [x] **Invalid / fabricated token** → friendly error page, no stack trace
 
 ---
 

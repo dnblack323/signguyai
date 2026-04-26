@@ -307,15 +307,28 @@ async def submit_questionnaire_response(
     if not questionnaire:
         raise HTTPException(status_code=404, detail="Questionnaire not found or not active")
     
-    # Validate required fields
+    # Validate required fields and per-field format
+    import re as _re
+    _EMAIL_RE = _re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+    _PHONE_RE = _re.compile(r'^[\d\s\+\-\(\)\.]{7,20}$')
     for question in questionnaire.get("questions", []):
-        if question.get("required") and question.get("type") not in ["heading", "paragraph"]:
+        q_type = question.get("type", "")
+        if question.get("required") and q_type not in ["heading", "paragraph"]:
             q_id = question.get("id")
             if q_id not in request.answers or not request.answers[q_id]:
                 raise HTTPException(
-                    status_code=400, 
+                    status_code=400,
                     detail=f"Required field missing: {question.get('label')}"
                 )
+        # Per-field format validation
+        q_id = question.get("id")
+        answer = request.answers.get(q_id) if request.answers else None
+        if answer and q_type == "email":
+            if not _EMAIL_RE.match(str(answer)):
+                raise HTTPException(status_code=422, detail=f"Invalid email format for field: {question.get('label')}")
+        if answer and q_type == "phone":
+            if not _PHONE_RE.match(str(answer)):
+                raise HTTPException(status_code=422, detail=f"Invalid phone format for field: {question.get('label')}")
     
     # Get client IP
     client_ip = req.client.host if req.client else None

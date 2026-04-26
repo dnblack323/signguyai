@@ -152,6 +152,11 @@ class Product(BaseModel):
     has_variants: bool = False
     variants: List[ProductVariant] = []
     is_active: bool = True
+    # Product attributes
+    size_options: List[str] = []
+    color_options: List[str] = []
+    is_featured: bool = False
+    in_stock: bool = True
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: Optional[str] = None
 
@@ -166,6 +171,10 @@ class ProductCreate(BaseModel):
     image_url: Optional[str] = None  # Legacy support
     has_variants: bool = False
     variants: List[Dict[str, Any]] = []
+    size_options: List[str] = []
+    color_options: List[str] = []
+    is_featured: bool = False
+    in_stock: bool = True
 
 
 class ProductUpdate(BaseModel):
@@ -179,6 +188,10 @@ class ProductUpdate(BaseModel):
     has_variants: Optional[bool] = None
     variants: Optional[List[Dict[str, Any]]] = None
     is_active: Optional[bool] = None
+    size_options: Optional[List[str]] = None
+    color_options: Optional[List[str]] = None
+    is_featured: Optional[bool] = None
+    in_stock: Optional[bool] = None
 
 
 class WebstoreBranding(BaseModel):
@@ -208,6 +221,10 @@ class Webstore(BaseModel):
     fundraiser_start_date: Optional[str] = None
     fundraiser_end_date: Optional[str] = None
     fundraiser_profit_percent: float = 0
+    # SEO / Open Graph
+    seo_title: Optional[str] = None
+    seo_description: Optional[str] = None
+    og_image: Optional[str] = None
     creator_commission_type: str = "percentage"
     creator_commission_value: float = 0
     total_sales: float = 0
@@ -234,6 +251,9 @@ class WebstoreCreate(BaseModel):
     fundraiser_profit_percent: float = Field(default=0, ge=0, le=100)
     creator_commission_type: str = Field(default="percentage", pattern="^(percentage|flat)$")
     creator_commission_value: float = Field(default=0, ge=0)
+    seo_title: Optional[str] = None
+    seo_description: Optional[str] = None
+    og_image: Optional[str] = None
 
 
 class WebstoreUpdate(BaseModel):
@@ -251,6 +271,9 @@ class WebstoreUpdate(BaseModel):
     fundraiser_profit_percent: Optional[float] = Field(default=None, ge=0, le=100)
     creator_commission_type: Optional[str] = Field(default=None, pattern="^(percentage|flat)$")
     creator_commission_value: Optional[float] = Field(default=None, ge=0)
+    seo_title: Optional[str] = None
+    seo_description: Optional[str] = None
+    og_image: Optional[str] = None
 
 
 class WebstoreProduct(BaseModel):
@@ -530,10 +553,12 @@ storefront_router = APIRouter(prefix="/storefront", tags=["Storefront (Public)"]
 
 # Safe fields to expose publicly for webstores
 WEBSTORE_PUBLIC_FIELDS = [
-    "id", "name", "store_type", "owner_name", "description", 
+    "id", "name", "store_type", "owner_name", "description",
     "status", "is_public", "branding",
     "fundraiser_goal", "fundraiser_start_date", "fundraiser_end_date",
-    "total_sales", "total_orders"  # Allow for fundraiser progress display
+    "total_sales", "total_orders",
+    "seo_title", "seo_description", "og_image",
+    "checkout_enabled", "checkout_status", "checkout_message"
 ]
 
 def sanitize_webstore_for_public(webstore: dict) -> dict:
@@ -730,7 +755,11 @@ async def create_product(
         images=images,
         image_url=images[0] if images else None,  # Keep legacy field populated
         has_variants=input.has_variants,
-        variants=variants
+        variants=variants,
+        size_options=input.size_options,
+        color_options=input.color_options,
+        is_featured=input.is_featured,
+        in_stock=input.in_stock,
     )
     doc = product.model_dump()
     await db.products.insert_one(doc)
@@ -855,6 +884,13 @@ async def create_webstore(
 ):
     """Create a new webstore"""
     _require_permission(current_user, Permission.WEBSTORES_CREATE)
+    # Enforce unique name per tenant
+    existing = await db.webstores_v2.find_one(
+        {"tenant_id": current_user.tenant_id, "name": input.name},
+        {"_id": 0, "id": 1}
+    )
+    if existing:
+        raise HTTPException(status_code=409, detail="A webstore with this name already exists.")
     branding = WebstoreBranding(**(input.branding or {}))
     webstore = Webstore(
         tenant_id=current_user.tenant_id,
@@ -871,7 +907,10 @@ async def create_webstore(
         fundraiser_end_date=input.fundraiser_end_date,
         fundraiser_profit_percent=input.fundraiser_profit_percent,
         creator_commission_type=input.creator_commission_type,
-        creator_commission_value=input.creator_commission_value
+        creator_commission_value=input.creator_commission_value,
+        seo_title=input.seo_title,
+        seo_description=input.seo_description,
+        og_image=input.og_image,
     )
     doc = webstore.model_dump()
     await db.webstores_v2.insert_one(doc)
