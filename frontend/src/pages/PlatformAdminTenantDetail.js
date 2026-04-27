@@ -16,6 +16,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getAuthToken, setAuthToken } from '../lib/authStorage';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -45,7 +46,13 @@ export default function PlatformAdminTenantDetail() {
 
   const fetchTenantDetail = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
+      if (!token) {
+        toast.error('Not authenticated');
+        navigate('/login');
+        return;
+      }
+      
       const response = await fetch(
         `${BACKEND_URL}/api/platform-admin/tenants/${tenantId}`,
         {
@@ -77,7 +84,12 @@ export default function PlatformAdminTenantDetail() {
 
     setImpersonating(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
+      if (!token) {
+        toast.error('Not authenticated');
+        return;
+      }
+      
       const response = await fetch(
         `${BACKEND_URL}/api/platform-admin/impersonate`,
         {
@@ -96,10 +108,12 @@ export default function PlatformAdminTenantDetail() {
 
       const data = await response.json();
 
-      // Store the new impersonation token
-      localStorage.setItem('token', data.access_token);
+      // Store the original platform admin token
+      localStorage.setItem('platform_admin_token', token);
       localStorage.setItem('impersonation_active', 'true');
-      localStorage.setItem('platform_admin_token', token); // Save original token
+      
+      // Store the new impersonation token using authStorage
+      setAuthToken(data.access_token, false);
 
       toast.success(
         `Now viewing as ${data.target_user.full_name} (${data.tenant.name})`

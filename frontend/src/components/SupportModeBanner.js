@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, X, LogOut } from 'lucide-react';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
+import { setAuthToken } from '../lib/authStorage';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -27,8 +28,8 @@ export function SupportModeBanner({ user }) {
       const platformAdminToken = localStorage.getItem('platform_admin_token');
 
       if (platformAdminToken) {
-        // Restore the original token
-        localStorage.setItem('token', platformAdminToken);
+        // Restore the original token using authStorage
+        setAuthToken(platformAdminToken, false);
         localStorage.removeItem('platform_admin_token');
         localStorage.removeItem('impersonation_active');
 
@@ -38,7 +39,7 @@ export function SupportModeBanner({ user }) {
         window.location.href = '/platform-admin';
       } else {
         // No saved token, need to log out
-        localStorage.removeItem('token');
+        setAuthToken(null);
         localStorage.removeItem('impersonation_active');
         toast.info('Please log in as Platform Admin');
         window.location.href = '/login';

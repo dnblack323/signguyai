@@ -59,7 +59,7 @@ class TenantDetail(BaseModel):
     state: Optional[str] = None
     website: Optional[str] = None
     plan: str
-    is_active: bool
+    is_active: bool = True
     created_at: str
     updated_at: str
 

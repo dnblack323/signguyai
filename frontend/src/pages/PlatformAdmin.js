@@ -6,6 +6,7 @@ import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { Search, Users, ChevronRight, Shield } from 'lucide-react';
 import { toast } from 'sonner';
+import { getAuthToken } from '../lib/authStorage';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -49,7 +50,13 @@ export default function PlatformAdmin() {
 
   const fetchTenants = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
+      if (!token) {
+        toast.error('Not authenticated');
+        navigate('/login');
+        return;
+      }
+      
       const response = await fetch(`${BACKEND_URL}/api/platform-admin/tenants`, {
         headers: {
           Authorization: `Bearer ${token}`,
