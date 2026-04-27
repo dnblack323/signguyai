@@ -1,0 +1,51 @@
+{
+  "summary": "Tier 7 Pre-launch Sweep (Signatures & Drawings) backend testing complete. 22/24 tests pass (91.7%). All 7.1 signature endpoints work end-to-end (capture, list, file retrieval, requirement, request via email, public token negative paths). 7.2 Order Drawings: create/list/query/file-retrieval/blank-rejection all pass, but TWO real backend bugs were discovered in update + delete flows.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "DELETE /api/order-drawings/{drawing_id}",
+        "issue": "Returns 403 'Only admins can delete drawings' for the production owner account (role='platform_admin'). The route only allows roles ('owner','admin','superadmin') — 'platform_admin' (the highest role, which the founder uses) is missing from the allow-list. Result: the user's primary admin account at thesigntistslab@gmail.com cannot delete any drawing.",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "PUT /api/order-drawings/{drawing_id}",
+        "issue": "Updating ONLY 'label' (without also sending 'title') silently does not change the visible label. Root cause: PUT writes label to DB but leaves title untouched; _serialize_drawing then overrides response label with `payload.get('title') or payload.get('label')`. So the GET/list and the PUT response both return the OLD title-as-label. Frontend DrawingModal that sends only label will appear to never persist edits.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_tier7_signatures_drawings.py",
+    "/app/test_reports/pytest/tier7_signatures_drawings.xml"
+  ],
+  "action_items": [
+    "Fix DELETE /api/order-drawings/{drawing_id} role check in /app/backend/routes/order_drawings.py line 213: add 'platform_admin' to the allowed roles tuple — `if current_user.role not in ('owner','admin','superadmin','platform_admin')`. Same role-check pattern likely exists elsewhere; audit all RBAC tuples for missing platform_admin.",
+    "Fix PUT /api/order-drawings/{drawing_id} in /app/backend/routes/order_drawings.py: when 'label' is provided, mirror it into 'title' so _serialize_drawing returns the new value. Add: `if updates.get('label') and 'title' not in updates: updates['title'] = updates['label']` (mirror of the existing title→label logic on line 201-202)."
+  ],
+  "critical_code_review_comments": [
+    "order_drawings.py _serialize_drawing forces label = title or label which makes label storage ambiguous; consider storing a single canonical field instead of duplicating title/label.",
+    "POST /api/signatures/request stores request_token in DB but never returns it to the caller; this is correct from a security standpoint (token only emails to customer) — keeping this as-is.",
+    "signatures.py: list endpoint correctly excludes request_token from responses (validated by test).",
+    "Signature capture rejects images <1000 bytes server-side; drawings reject <150 bytes — both validations work as documented.",
+    "Public signature flow's 410 expiration logic was not exercised because tests cannot retrieve the request_token from the API; only negative-path 404 cases verified."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_tier7_signatures_drawings.py (new)"
+  ],
+  "success_rate": {"backend": "91.7% (22/24 tests passing)", "frontend": "not tested (backend-only sweep)"},
+  "test_credentials": "thesigntistslab@gmail.com / password123 (role=platform_admin, tenant=d9c5507b-879c-4bec-9736-1dc841334719); test order ORD-0001 id=1efe0ae8-473d-4d5f-bde7-dbfde8180cda. Tenant signature_settings.enabled is TRUE.",
+  "seed_data_creation": "Created several TEST_Tier7_* signatures and one drawing during the test run. Drawing was deleted at end of suite (or rather, attempted — left soft-state as 403 blocked deletion). Remaining TEST_Tier7_* signatures persist on order ORD-0001.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Re-run /app/backend/tests/test_tier7_signatures_drawings.py after main agent fixes the two bugs. Drawing test_update_drawing currently asserts label persistence; if main agent makes label↔title symmetric, it will pass. Drawing test_delete_drawing requires 'platform_admin' added to the delete allow-list. Public signature sign/decline happy-path is currently untestable from outside because the API does not expose request_token after creation; if a future endpoint returns it (or admin can fetch it), extend that section. Signature capture properly stamps signer_name and signed_at, but IP address capture (a Tier 7 requirement) is NOT implemented in /app/backend/routes/signatures.py — the capture model has no client_ip field and the route does not extract request.client.host. Flag for main agent if 7.1 'Signature with signer name + IP address storage' is required.",
+  "rca_of_the_issue": {
+    "delete_drawing_403": "current_user.role='platform_admin' for the founder account, but order_drawings.py line 213 hard-codes allowed=('owner','admin','superadmin'). platform_admin is the SaaS-platform-level admin role and should always have at least owner-level permissions on tenant data. Mitigation: extend the tuple, or replace with a centralised RBAC helper.",
+    "update_drawing_label_not_persisted": "DrawingUpdate accepts label and title separately. The PUT handler writes whatever fields are provided. _serialize_drawing then computes response.label = title or label. If caller sends only label, title remains old and the response masks the new label. Mitigation: when label is updated and title is not, copy label into title (symmetric to the existing title->label sync at line 201-202)."
+  }
+}

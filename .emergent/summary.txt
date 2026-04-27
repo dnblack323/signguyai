@@ -1,1 +1,149 @@
-<analysis>PRELAUNCH_CHECKLIST.mdPRELAUNCH_OPEN_ITEMS_TRACKER.mdPRELAUNCH_POSTFIX_RETEST_RESULTS.mdPRELAUNCH_SECTION1_USER_PERSONAL_CHECKLIST.mditeration_135.jsoniteration_135.jsonPRELAUNCH_CHECKLIST.mdPRELAUNCH_CHECKLIST.md/payroll/reportPOST /api/portal/appointments/requestPUT /api/appointments/{id}/confirm/rejectPortalPages.jsDELETE /api/admin/users/{user_id}USERS_EDITemail_service.pyGET /api/quotes/{quote_id}/pdfGET /api/invoices/{invoice_id}/pdfPRELAUNCH_SECTION1_USER_PERSONAL_CHECKLIST.mdGET /api/orders/{id}/work-ticket/pdfOPEN_ITEMS_TRACKER/app/backend/routes//app/frontend/src//app/memory/staffownerappointmentsstatustitleusersroletenant_id/app/test_reports/iteration_133.jsoniteration_134.jsoniteration_135.json/app/backend/routes/employees.py/app/backend/routes/workflow_templates.py/app/backend/routes/portal.py/app/backend/routes/auth.py/app/backend/services/email_service.py/app/backend/routes/invoices.py/app/backend/routes/quotes.py/app/frontend/src/pages/PortalPages.js/app/memory/PRELAUNCH_CHECKLIST.md/app/memory/PRELAUNCH_SECTION1_USER_PERSONAL_CHECKLIST.mdPortalPages.jsPOST /api/portal/appointments/requestPUT /api/appointments/{id}/confirmGET /api/invoices/{id}/pdfGET /api/quotes/{id}/pdfDELETE /api/admin/users/{id}PRELAUNCH_CHECKLIST.mdPRELAUNCH_POSTFIX_RETEST_RESULTS.mdPRELAUNCH_OPEN_ITEMS_TRACKER.mdPRELAUNCH_SECTION1_USER_PERSONAL_CHECKLIST.md/app/test_reports/iteration_133.json/app/test_reports/iteration_134.json/app/test_reports/iteration_135.json/app/memory/PRD.md/app/memory/CHANGELOG.md/app/memory/PRELAUNCH_CHECKLIST.md/app/memory/PRELAUNCH_SECTION1_USER_PERSONAL_CHECKLIST.md/app/memory/PRELAUNCH_OPEN_ITEMS_TRACKER.md/app/memory/PRELAUNCH_POSTFIX_RETEST_RESULTS.mdstatus: 202META_APP_IDMETA_APP_SECRETiteration_133.jsoniteration_134.jsoniteration_135.jsonthesigntistslab@gmail.compassword123ask_humanPRELAUNCH_CHECKLIST.md/app/backend/routes/signatures.py</analysis>
+<analysis>**original_problem_statement**: 
+The user wanted to establish a secure Platform Admin / Tenant Onboarding Management area for SignGuy AI to manage tenant setup and onboarding progress. The goal was to allow  staff to assist tenants without ever needing or seeing customer passwords. The user initially provided a comprehensive 4-phase requirement but later requested a scoped-down minimal MVP consisting of a Tenant list, Tenant detail view, and secure Support Mode/Impersonation flow. Following the successful MVP, the user requested the addition of the Onboarding Checklist feature. 
+
+PRODUCT REQUIREMENTS:
+1. Create  role and restrict  access exclusively to this role.
+2. Maintain strict tenant isolation; platform admins must not accidentally leak cross-tenant data.
+3. Build secure impersonation flow (Support Mode) with a persistent frontend banner and backend audit logging.
+4. Add Tenant Onboarding Checklist to track setup progress (e.g., Business info received, Logo uploaded).
+5. No passwords should be exposed, and terminology like orders/order items must remain intact (no jobs/job tickets).
+
+**User's preferred language**: English (INSTRUCT next agent to respond in English only)
+
+**what currently exists?** 
+A heavily documented, full-stack SaaS app (FastAPI + React) passing Tier 1-6 tests. The platform now features a dedicated  route. A secure JWT-based impersonation logic allows super admins to log in as tenant owners with full UI support (Support Mode Banner) and backend tracking. A functioning Onboarding Checklist system is integrated into the Platform Admin Tenant Detail view. 
+
+**Last working item**: 
+    - Last item agent was working: Implementing the Onboarding Checklist feature in the Platform Admin dashboard (backend endpoints, default item initialization, and frontend UI tab).
+    - Status: USER VERIFICATION PENDING
+    - Agent Testing Done: Y
+    - Which testing method agent to use? backend testing via curl / python -c and frontend screenshot tool.
+    - User Testing Done: N
+
+**All Pending/In progress Issue list**:  
+  - Issue 1: Meta OAuth / Webhook End-to-End Verification (P2)
+     - Attempted fixes: Setup implemented previously; awaiting user's Messenger permissions configuration.
+     - Next debug checklist: Wait for user to grant the required Messenger permissions in their Meta App settings and test OAuth flow.
+     - Why fix this issue and what will be achieved with the fix? Finalizes Phase 1 of Meta integration.
+     - Status: BLOCKED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? both
+     - Blocked on other issue: User action required.
+
+**In progress Task List**: 
+  None actively in progress. The last assigned task (Onboarding Checklist) was completed successfully.
+
+**Upcoming and Future Tasks**
+    Upcoming Tasks:
+    - P1: Platform Admin Phase 2 Extensions: Add Internal Notes and User invite flow to the Platform Admin Tenant Detail page (Requested in original prompt but skipped in MVP).
+    - P1: Add Confirm / Reject Quick Action buttons directly inside Appointment Notification emails (Deferred from previous handoff).
+    - P1: Tier 7 Sweep (Signatures & Drawings) — Run backend testing agent for Tier 7 features on the . Update markdown trackers accordingly.
+    - P2: Tier 8+ Sweeps from .
+
+    Future Tasks:
+    - P3: Platform Admin Phase 3/4 Extensions: Business profile setup controls, Product/pricing setup status, Portal/team setup visibility.
+    - P3: Meta Messenger Phase 2 (Dashboard widgets, auto-replies).
+
+**Completed work in this session**
+- Added  role and integrated it into RBAC permissions (, ). (DONE)
+- Built  endpoints for listing tenants and fetching details. (DONE)
+- Implemented secure JWT-based Impersonation flow without password exposure (, ). (DONE)
+- Created Frontend UI for Platform Admin Dashboard, Tenant Detail, and Support Mode Banner (, , ). (DONE)
+- Fixed AuthContext token storage bug to properly handle impersonation JWTs via . (DONE)
+- Built and integrated the Onboarding Checklist system (backend logic + ). (DONE)
+
+**Earlier issues found/mentioned but not fixed**
+   - Issue 1: Work-ticket PDF ()
+     - Debug checklist: Implement endpoint to generate a work-ticket PDF.
+     - Why to solve this issue and what will be achieved with this: Identified as a gap in Tier 6 sweep in previous runs.
+     - Should Test frontend/backend/both after fix: backend
+     - Is recurring issue? N
+   - Issue 2: Stripe Connect not fully enabled & CSV partial-insert product decision
+     - Both remain flagged as blocked/pending product decisions in the .
+
+**Known issue recurrence from previous fork**
+  - Issue recurrence in previous fork: None
+  - Recurrence count: 0 
+  - Status: RESOLVED
+
+**Code Architecture**
+- Backend: FastAPI (). 
+- Frontend: React ().
+- Auth state management relies heavily on  communicating with  (not raw ).
+
+**Key Technical Concepts**
+- Role-Based Access Control (RBAC) heavily restricts routes.
+- Tenant Isolation is enforced system-wide.
+- Secure Impersonation relies on JWT metadata (, ). The backend  injects this metadata into the  object for API calls.
+
+**key DB schema**
+  - : Includes  (now supporting ).
+  - : Tracks item setup progress dynamically per tenant.
+  - : Tracks platform admin impersonation sessions (start time, user, tenant).
+
+**changes in tech stack**
+  - None
+
+**All files of reference** 
+  -  (Created - Core admin logic & checklist APIs)
+  -  &  (Updated - Added  role)
+  -  &  (Updated - Handled impersonation metadata in JWT)
+  -  (Created)
+  -  (Created)
+  -  (Created)
+  -  (Created)
+  -  &  (Updated - Fixed token storage logic)
+  -  (Created - Doc)
+
+**Areas that need refactoring**: 
+-  contains a growing number of tabs and might need sub-component extraction in the future if more Phase 3/4 sections are added.
+
+**key api endpoints**
+- 
+- 
+-  (Requires )
+- 
+- 
+
+**Critical Info for New Agent** 
+- The Auth system strictly uses  (, ) instead of standard . If working with JWTs on the frontend, DO NOT use native .
+- Platform admins have their own routes prefix (). Existing tenant endpoints shouldn't be altered unless specifically required.
+- The user heavily tracks prelaunch progress across 4 markdown trackers in . If you execute a backend Tier sweep (e.g., Tier 7), you MUST update , , , and .
+- Ask the user before proceeding if they want to build the remaining Platform Admin Phase 2 elements (Internal Notes/User Invites) OR switch focus to the Tier 7 Sweep / Appointment Email action buttons.
+
+**documents and test reports created in this job** 
+  - 
+
+**Last 10 User Messages and any pending HUMAN messages** 
+1. *User*: add onboarding checklist feature (COMPLETED)
+2. *User*: continue (COMPLETED)
+3. *User*: continue / High Priority: Debug frontend AuthContext token storage issue... (COMPLETED)
+4. *User*: go with this simplier version to save credits Build the smallest possible Platform Admin MVP... (COMPLETED)
+5. *User*: Create a secure Platform Admin / Tenant Onboarding Management area for SignGuy AI... (COMPLETED)
+
+**Project Health Check:**
+- Broken: None
+- Mocked: SendGrid email delivery logic.
+
+**3rd Party Integrations** 
+- Stripe (Payments) — requires User API Key
+- Meta / Facebook Graph API — requires User  and 
+- SendGrid — requires User API Key
+- Emergent LLM Key — used for Claude Sonnet functionality
+
+**Testing status**
+  - Testing agent used after significant changes: NO (Tested manually via curl/screenshot)
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: None
+  - Known regressions: None
+
+**Credentials to test flow:**
+- Platform Admin / Main account:  / 
+
+**What agent forgot to execute**
+- The original requirement list requested an Internal Notes feature and User Invite functionality under Phase 2 of the Platform Admin dashboard. The MVP scope skipped these, and when the user asked to add onboarding checklist feature, only the checklist was added. Internal notes and user invites remain pending.
+
+**Debugging checklist for current issue**
+    Issue: Next Steps Selection
+    - Review with the user if they want to add the Internal Notes tab to the Platform Admin section.
+    - If user prefers moving forward to Prelaunch sweeps, load  and initiate the Tier 7 (Signatures & Drawings) backend sweep using the testing agent.</analysis>
