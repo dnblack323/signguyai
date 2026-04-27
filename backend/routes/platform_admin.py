@@ -127,15 +127,36 @@ async def get_tenant_detail(
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
     
-    # Get all users for this tenant
-    users = await db.users.find(
+    # Get all users for this tenant - with error handling for invalid user data
+    users_raw = await db.users.find(
         {"tenant_id": tenant_id},
         {"_id": 0, "hashed_password": 0}
     ).to_list(1000)
     
+    # Filter out users with invalid data and validate each one
+    valid_users = []
+    invalid_users = []
+    
+    for user_data in users_raw:
+        try:
+            # Try to create a User model - this will validate the data
+            valid_user = User(**user_data)
+            valid_users.append(valid_user)
+        except Exception as e:
+            # Log invalid user but continue processing
+            logger.warning(
+                f"Skipping invalid user in tenant {tenant_id}: "
+                f"email={user_data.get('email')}, error={str(e)}"
+            )
+            invalid_users.append({
+                "email": user_data.get("email", "unknown"),
+                "error": str(e)
+            })
+    
     return {
         "tenant": TenantDetail(**tenant),
-        "users": [User(**u) for u in users]
+        "users": valid_users,
+        "invalid_users_count": len(invalid_users)
     }
 
 

@@ -333,9 +333,9 @@ async def setup_admin_account(request_body: dict):
 
 # ============== USER PROFILE ROUTES ==============
 
-@users_router.get("/me", response_model=User)
+@users_router.get("/me")
 async def get_current_user_profile(current_user: UserInDB = Depends(get_current_active_user)):
-    """Get current user's profile"""
+    """Get current user's profile - includes impersonation metadata if present"""
     user_data = {
         "id": current_user.id,
         "email": current_user.email,
@@ -349,7 +349,7 @@ async def get_current_user_profile(current_user: UserInDB = Depends(get_current_
         "is_founder": getattr(current_user, 'is_founder', False)
     }
     
-    # Add impersonation metadata if present
+    # Add impersonation metadata if present (from JWT token)
     impersonation = getattr(current_user, 'impersonation', None)
     if impersonation:
         user_data['impersonation'] = impersonation
