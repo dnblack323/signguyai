@@ -1,0 +1,53 @@
+{
+  "summary": "Tier 8 Pre-launch Sweep (Docs & Marketing) - frontend only. 17/17 checklist items PASS. All 15 docs pages and all 9 marketing/public pages return HTTP 200 with rendered content and zero console errors. Updated docs sections (Signatures & Drawings, Appointment Requests, expanded Financials, 5-category FAQ) all verified.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/docs sidebar", "issues": ["Active sidebar item highlight does not reset to 'Overview' when navigating back to /docs after visiting a sub-page (last visited item stays highlighted). Minor cosmetic state-leak; nav still functions."]},
+      {"screen": "/docs header search", "issues": ["The 'Search documentation...' input is visible but does not filter the sidebar nav or page content (typing 'invoice' leaves all 14 docs links visible). Acceptable per checklist (only visibility required), but flag for future feature work."]}
+    ]
+  },
+  "tier8_results": {
+    "8.1_docs": {
+      "all_15_pages_status_200": "PASS - /docs, /docs/getting-started, /docs/customers, /docs/document-library, /docs/quotes-jobs, /docs/invoicing, /docs/pricing-calculator, /docs/ai-tools, /docs/time-tracking, /docs/employees, /docs/webstores, /docs/customer-portal, /docs/financials, /docs/productivity, /docs/faq",
+      "sidebar_navigation_works": "PASS - 14 unique sidebar links; click-through navigates correctly (verified with /docs/customer-portal)",
+      "search_input_visible": "PASS - 2 search inputs (header 'Search documentation...' + sidebar 'Search...')",
+      "getting_started_10plus_sections": "PASS - 21 H1/H2/H3 headings (Quick Start Setup, Standard Setup, Full Optimization, etc.)",
+      "quotes_jobs_signatures_drawings": "PASS - headings include 'Signatures & Drawings', 'Signature Capture', 'Order Drawings (Whiteboard)'",
+      "customer_portal_appointment_requests": "PASS - 'Appointment Requests' heading present alongside Dashboard, Orders, Proofs, Invoices, Forms, Quotes, Security, Configuration sections",
+      "financials_5plus_sections": "PASS - 8 headings: Two Financial Layers, Financials Dashboard, Profit & Margin Analytics, Invoice Management, Profit Analytics Reports, Stripe Connect Integration, Invoice Aging",
+      "faq_5_categories_collapsible": "PASS - 5 category headings (Getting Started, Customer Portal, AI & Credits, Orders & Production, Billing & Payments); collapsibles expand on click (body delta +152, +125 chars confirmed)"
+    },
+    "8.2_marketing": {
+      "/_landing": "PASS - 15 headings; CTAs visible (Get Founders Edition, Start Free Trial, Explore Features, See All Features, View Pricing); pricing/features/FAQ sections render",
+      "/features": "PASS - 23 feature headings/cards (Customer Mgmt, Order Tracking, Smart Pricing, Invoicing, Stripe Connect, Time Tracking, Payroll, AI Tools, Customer Portal, Employee Portal, Webstore Builder, Scheduling, Signatures/Drawings, Messaging, Questionnaires, Reports, Admin Controls)",
+      "/pricing": "PASS - 21 headings; price tiers ($99, $0, $10, $25, $60) visible; AI Credit packs (100/300/1000) present",
+      "/pricing-plans": "PASS - 15 headings; Founders Edition tier + AI Credit Packs + Processing Fees + FAQ",
+      "/founders": "PASS - 21 headings (resolves to FoundersEditionPricing component, same as /pricing)",
+      "/about": "PASS - 19 headings; 'Built by a Sign Shop, For Sign Shops' hero",
+      "/contact": "PASS - Form has 4 inputs (Name/Email/Company/Subject) + textarea + 'Send Message' button; FAQ section present",
+      "/terms": "PASS - 14 headings (Terms of Service + 13 numbered clauses)",
+      "/privacy": "PASS - 13 headings (Privacy Policy + numbered clauses; GDPR/data-retention/AI data sections)"
+    }
+  },
+  "test_report_links": [],
+  "action_items": [
+    "(Optional, low-priority) Reset DocsSidebar active-item state to 'Overview' when route is exactly /docs.",
+    "(Optional, future) Wire up the docs header 'Search documentation...' input to actually filter sidebar links or doc content; today it is a passive visual-only input."
+  ],
+  "critical_code_review_comments": [
+    "All public/docs pages render server-side correctly with zero console errors and zero pageerrors across 24 page navigations.",
+    "Routes /pricing and /founders both render the same FoundersEditionPricing component - intentional, but consider Navigate redirect to canonicalise the URL for SEO.",
+    "Contact form inputs lack data-testid attributes; future automation testing of form submission would benefit from adding them (e.g., contact-name-input, contact-email-input, contact-submit-button)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend-only sweep per request)", "frontend": "100% (17/17 Tier 8 checklist items pass)"},
+  "test_credentials": "n/a (all pages public, no auth used)",
+  "seed_data_creation": "none",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Tier 8 (Docs & Marketing) is fully green. All 24 public pages (15 docs + 9 marketing) load with 200, render content, and have no console errors. The two minor cosmetic notes (sidebar active-state on /docs, non-functional docs header search) are not blockers and can be deferred. No backend testing was done in this iteration - re-use /app/backend/tests/test_tier7_signatures_drawings.py from iteration_136 for any Tier 7 retest.",
+  "rca_of_the_issue": "n/a - no defects found"
+}

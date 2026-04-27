@@ -104,6 +104,33 @@ export default function DocsOrdersTickets() {
             <li>Apparel quantity discounts: 12+ (5%), 24+ (10%), 48+ (15%), 72+ (20%), 144+ (25%)</li>
           </ul>
         </section>
+
+        <section>
+          <h2 className="text-xl font-semibold text-white mb-3 flex items-center gap-2"><Layers className="w-5 h-5 text-cyan-400" /> Signatures & Drawings</h2>
+          <p className="text-gray-300 mb-3">Orders support in-app signature capture and whiteboard drawings:</p>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+              <h3 className="font-semibold text-white mb-2">Signature Capture</h3>
+              <ul className="text-sm text-gray-400 space-y-1">
+                <li>• Capture customer signatures on tablet or desktop</li>
+                <li>• Records signer name, timestamp, and IP address</li>
+                <li>• View full signature history on any order</li>
+                <li>• Send signature requests via email link</li>
+                <li>• Supports quote approvals, order authorizations, delivery confirmations</li>
+              </ul>
+            </div>
+            <div className="bg-cyan-900/30 rounded-lg p-4 border border-cyan-700/50">
+              <h3 className="font-semibold text-cyan-300 mb-2">Order Drawings (Whiteboard)</h3>
+              <ul className="text-sm text-cyan-200/70 space-y-1">
+                <li>• Create sketches, measurement notes, install diagrams</li>
+                <li>• Tools: pen, arrow, circle, text with colors and sizes</li>
+                <li>• Autosaves as you draw</li>
+                <li>• Multiple drawings per order</li>
+                <li>• Works with mouse or finger on mobile</li>
+              </ul>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );

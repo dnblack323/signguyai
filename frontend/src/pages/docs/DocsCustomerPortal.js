@@ -120,6 +120,57 @@ export default function DocsCustomerPortal() {
         </ul>
       </div>
 
+      {/* Quotes & Approvals */}
+      <div className="p-6 rounded-xl bg-gray-900/50 border border-gray-800">
+        <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+          <CreditCard className="h-5 w-5 text-cyan-400" /> Quotes & Invoices
+        </h2>
+        <ul className="space-y-2 text-gray-300">
+          <li className="flex items-start gap-2">
+            <CheckCircle className="h-4 w-4 text-green-400 mt-1 flex-shrink-0" />
+            <span><strong className="text-white">View Quotes</strong> — Customers see all pending quotes with line items and totals</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <CheckCircle className="h-4 w-4 text-green-400 mt-1 flex-shrink-0" />
+            <span><strong className="text-white">Approve / Reject Quotes</strong> — One-click approval triggers signature capture flow</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <CheckCircle className="h-4 w-4 text-green-400 mt-1 flex-shrink-0" />
+            <span><strong className="text-white">Download PDFs</strong> — Quote and invoice PDFs available for download</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <CheckCircle className="h-4 w-4 text-green-400 mt-1 flex-shrink-0" />
+            <span><strong className="text-white">Online Payments</strong> — Pay invoices via Stripe when connected</span>
+          </li>
+        </ul>
+      </div>
+
+      {/* Appointments */}
+      <div className="p-6 rounded-xl bg-gradient-to-r from-violet-500/20 to-purple-500/20 border border-violet-500/30">
+        <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+          <Users className="h-5 w-5 text-violet-400" /> Appointment Requests
+        </h2>
+        <p className="text-gray-300 mb-3">Customers can request appointments directly through the portal:</p>
+        <ul className="space-y-2 text-gray-300">
+          <li className="flex items-start gap-2">
+            <CheckCircle className="h-4 w-4 text-violet-400 mt-1 flex-shrink-0" />
+            <span><strong className="text-white">Request New Appointment</strong> — Customer selects type (consultation, install, site survey), date, time, and location</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <CheckCircle className="h-4 w-4 text-violet-400 mt-1 flex-shrink-0" />
+            <span><strong className="text-white">Pending Confirmation</strong> — Shows amber badge until shop confirms or rejects</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <CheckCircle className="h-4 w-4 text-violet-400 mt-1 flex-shrink-0" />
+            <span><strong className="text-white">Admin Notification</strong> — Shop owner receives email when new request submitted</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <CheckCircle className="h-4 w-4 text-violet-400 mt-1 flex-shrink-0" />
+            <span><strong className="text-white">View Scheduled Appointments</strong> — List of all confirmed appointments with details</span>
+          </li>
+        </ul>
+      </div>
+
       {/* Security */}
       <div className="p-6 rounded-xl bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30">
         <div className="flex items-start gap-3">
