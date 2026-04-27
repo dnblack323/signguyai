@@ -23,22 +23,27 @@ Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independen
 
 ## Implemented (CHANGELOG)
 
-### 2026-04-27 — Tier 7 Sweep (Signatures & Drawings)
-- **Backend sweep:** 22/24 tests pass (iteration_136). All signature and drawing endpoints verified.
+### 2026-04-27 — Tier 8 Sweep (Docs & Marketing) + Tier 7 (Signatures & Drawings)
+
+**Tier 8 — Docs & Marketing (17/17 tests pass)**
+- All 15 docs pages return HTTP 200 and render content
+- All 9 marketing pages load correctly (/, /features, /pricing, /about, /contact, /terms, /privacy)
+- **Docs Content Updates:**
+  - `DocsQuotesJobs.js` — Added Signatures & Drawings section
+  - `DocsCustomerPortal.js` — Added Appointment Requests + Quotes & Invoices sections
+  - `DocsFinancials.js` — Expanded to 8 sections (Invoice Management, Stripe Connect, Invoice Aging)
+  - `DocsFAQ.js` — Added Billing & Payments category with 3 new questions
+- Test report: `/app/test_reports/iteration_137.json`
+
+**Tier 7 — Signatures & Drawings (22/24 backend tests pass)**
 - **Bugs Fixed:**
-  1. **DELETE `/api/order-drawings/{id}`** — Added `platform_admin` to allowed roles (was returning 403 for platform admins)
-  2. **PUT `/api/order-drawings/{id}`** — Fixed label→title mirror sync (label updates were not persisting)
-  3. **Signature IP capture** — Added `client_ip` field to both internal `/capture` and public `/sign` endpoints
+  1. DELETE `/api/order-drawings/{id}` — Added `platform_admin` to allowed roles
+  2. PUT `/api/order-drawings/{id}` — Fixed label↔title mirror sync
+  3. Signature capture — Added `client_ip` field to both internal and public sign routes
 - **RBAC audit:** Fixed 5 additional role-check locations missing `platform_admin`:
-  - `employees.py` — `_require_payroll_edit_access`, `_require_payroll_view_access`
-  - `credits.py` — `/admin-summary` endpoint
-  - `pricing.py` — PUT pricing defaults
-  - `pricing_setup.py` — `ensure_admin_access`
-- **API endpoints verified:**
-  - Signatures: `/capture`, list, file retrieval, requirement, request, public token flows
-  - Drawings: CRUD, file retrieval, query filters, blank rejection
-- **Remaining (user-only):** Frontend UI testing for modal components, mobile touch input, PDF visual verification
-- Trackers updated: `PRELAUNCH_POSTFIX_RETEST_RESULTS.md`, `PRELAUNCH_OPEN_ITEMS_TRACKER.md`
+  - `employees.py` — payroll access checks
+  - `credits.py`, `pricing.py`, `pricing_setup.py` — admin functions
+- Test report: `/app/test_reports/iteration_136.json`
 
 ### 2026-04-26 (Tier 6 sweep) — Admin PDFs + Appointment Email Notification
 - **Customer Request Appointment email notification:** Tenant owner now receives an HTML email immediately when a customer submits an appointment request via portal. Verified end-to-end (real 202 from SendGrid). Wrapped in try/except so SendGrid failure does not block appointment creation.

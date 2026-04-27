@@ -379,3 +379,44 @@ The following items require manual UI testing:
 - DrawingCanvasPad autosave on stroke
 - DrawingPreviewModal display
 - Mobile touch input for both features
+
+
+---
+
+## Tier 8 Sweep (2026-04-27)
+
+### Frontend Sweep Results
+- **Test report**: `/app/test_reports/iteration_137.json`
+- **Overall**: 17/17 checklist items pass (100%)
+
+### 8.1 Docs/Help Center — All 15 Pages Verified
+- ✅ All 15 docs pages return HTTP 200 and render content
+- ✅ Sidebar navigation works (14 unique links, click-through verified)
+- ✅ Search input visible (header + sidebar)
+- ✅ Getting Started page: 21 sections (Quick Start, Standard Setup, Full Optimization)
+- ✅ **Orders & Order Items**: Now includes Signatures & Drawings section (UPDATED)
+- ✅ **Customer Portal**: Now includes Appointment Requests + Quotes & Invoices sections (UPDATED)
+- ✅ **Financials**: Expanded to 8 sections (Invoice Management, Stripe Connect, Invoice Aging) (UPDATED)
+- ✅ **FAQ**: 5 categories with collapsible questions (UPDATED - added Billing & Payments)
+
+### 8.2 Marketing/Public Pages — All 9 Pages Verified
+- ✅ `/` (Landing page): 15 headings, CTAs visible, pricing/features/FAQ render
+- ✅ `/features`: 23 feature headings/cards
+- ✅ `/pricing`: Price tiers visible ($99, $0, $10, $25, $60), AI Credit packs
+- ✅ `/pricing-plans`: Founders Edition + AI Credits + Processing Fees
+- ✅ `/founders`: Resolves to same component as /pricing
+- ✅ `/about`: "Built by a Sign Shop, For Sign Shops" hero
+- ✅ `/contact`: Form with 4 inputs + textarea + Send Message button
+- ✅ `/terms`: 14 headings (Terms of Service + 13 clauses)
+- ✅ `/privacy`: 13 headings (Privacy Policy + GDPR/data-retention sections)
+
+### Docs Content Updates Made
+1. **DocsQuotesJobs.js** — Added "Signatures & Drawings" section covering signature capture and order whiteboard
+2. **DocsCustomerPortal.js** — Added "Quotes & Invoices" and "Appointment Requests" sections
+3. **DocsFinancials.js** — Expanded from 3 to 8 sections (Invoice Management, Stripe Connect, Invoice Aging buckets)
+4. **DocsFAQ.js** — Added "Billing & Payments" category; updated questions for appointments, signatures, quotes
+
+### Minor Cosmetic Notes (Deferred)
+- Sidebar active-item highlight doesn't reset to Overview when navigating back to /docs
+- Docs header search input is visual-only (doesn't filter content yet)
+- Contact form inputs lack data-testid attributes

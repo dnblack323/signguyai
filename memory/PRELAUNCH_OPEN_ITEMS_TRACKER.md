@@ -33,6 +33,7 @@ Last updated: 2026-04-27 (post Tier 7 sweep — Signatures & Drawings)
 | **Admin Invoice PDF** (NEW) | `GET /api/invoices/{id}/pdf` returns valid PDF with PAID/UNPAID badge, totals, watermark | 2026-04-26 |
 | **Tier 6 sweep** | AI assistant, email composer, voice, image-gen, SendGrid all PASS (iteration_135, 20/20) | 2026-04-26 |
 | **Tier 7 sweep** | Signatures & Drawings backend sweep: 22/24 tests pass (iteration_136) | 2026-04-27 |
+| **Tier 8 sweep** | Docs & Marketing frontend sweep: 17/17 tests pass (iteration_137). All 24 public pages verified. Docs updated with Signatures/Drawings, Appointments, Financials content. | 2026-04-27 |
 
 ---
 
