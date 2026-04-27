@@ -191,10 +191,15 @@ class Permission(str, Enum):
     PRODUCTS_VIEW = "products:view"
     PRODUCTS_CREATE = "products:create"
     PRODUCTS_MANAGE = "products:manage"
+    
+    # Platform Admin permissions
+    PLATFORM_ADMIN_ACCESS = "platform_admin:access"
+    PLATFORM_ADMIN_IMPERSONATE = "platform_admin:impersonate"
 
 
 # Role to permissions mapping
 ROLE_PERMISSIONS = {
+    UserRole.PLATFORM_ADMIN: list(Permission),  # Platform admins have all permissions including impersonation
     UserRole.OWNER: list(Permission),  # Owners have all permissions
     UserRole.ADMIN: [
         Permission.CUSTOMERS_VIEW, Permission.CUSTOMERS_CREATE, Permission.CUSTOMERS_EDIT, Permission.CUSTOMERS_DELETE,

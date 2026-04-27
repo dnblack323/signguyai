@@ -208,6 +208,7 @@ class UserRole(str, Enum):
     OWNER = "owner"
     ADMIN = "admin"
     STAFF = "staff"
+    PLATFORM_ADMIN = "platform_admin"
 
 class TenantPlan(str, Enum):
     """Tenant plan - maps to tier for feature gating"""

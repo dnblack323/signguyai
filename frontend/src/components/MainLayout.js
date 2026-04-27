@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { TopAppBar, PrimaryNav, ActionToolbar, MobileNav } from './ribbon';
 import { TrialCountdown } from './TrialLockout';
+import { SupportModeBanner } from './SupportModeBanner';
 import DevPanel from './DevPanel';
 import FloatingAssistant from './FloatingAssistant';
 
@@ -75,6 +76,9 @@ export const MainLayout = ({ children }) => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#0f172a' }}>
+      {/* Support Mode Banner - Shows when impersonating */}
+      <SupportModeBanner user={user} />
+      
       {/* Fixed Header - Light */}
       <header 
         className={cn(

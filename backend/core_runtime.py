@@ -70,6 +70,16 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         if user_id is None:
             raise credentials_exception
         token_data = TokenData(user_id=user_id)
+        
+        # Extract impersonation metadata if present
+        impersonation_metadata = None
+        if payload.get('impersonating'):
+            impersonation_metadata = {
+                'is_impersonating': True,
+                'impersonation_log_id': payload.get('impersonation_log_id'),
+                'platform_admin_id': payload.get('platform_admin_id'),
+                'platform_admin_email': payload.get('platform_admin_email'),
+            }
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail='Token has expired')
     except jwt.PyJWTError:
@@ -78,7 +88,14 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     user = await db.users.find_one({'id': token_data.user_id}, {'_id': 0})
     if user is None:
         raise credentials_exception
-    return UserInDB(**user)
+    
+    user_obj = UserInDB(**user)
+    
+    # Attach impersonation metadata to user object for frontend consumption
+    if impersonation_metadata:
+        user_obj.__dict__['impersonation'] = impersonation_metadata
+    
+    return user_obj
 
 
 async def get_current_active_user(current_user: UserInDB = Depends(get_current_user)) -> UserInDB:
@@ -88,7 +105,8 @@ async def get_current_active_user(current_user: UserInDB = Depends(get_current_u
 
 
 def has_permission(user: UserInDB, permission: Permission) -> bool:
-    if user.role.value == 'owner':
+    # Platform admins and owners have all permissions
+    if user.role.value in ('owner', 'platform_admin'):
         return True
     user_permissions = ROLE_PERMISSIONS.get(user.role, [])
     return permission in user_permissions

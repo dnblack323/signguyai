@@ -62,6 +62,10 @@ import PromoCodes from "./pages/PromoCodes";
 import EmailTemplates from "./pages/EmailTemplates";
 import PaymentSettings from "./pages/Admin/PaymentSettings";
 
+// Platform Admin Pages
+import PlatformAdmin from "./pages/PlatformAdmin";
+import PlatformAdminTenantDetail from "./pages/PlatformAdminTenantDetail";
+
 // Customer Portal Pages
 import PortalLogin from "./pages/PortalLogin";
 import PortalDashboard from "./pages/PortalDashboard";
@@ -227,6 +231,9 @@ function ProtectedRoutes() {
           <Route path="/questionnaires" element={<Questionnaires />} />
           <Route path="/settings/meta-integration" element={<MetaIntegration />} />
           <Route path="/facebook-leads" element={<FacebookLeads />} />
+          {/* Platform Admin Routes */}
+          <Route path="/platform-admin" element={<PlatformAdmin />} />
+          <Route path="/platform-admin/tenants/:tenantId" element={<PlatformAdminTenantDetail />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </MainLayout>

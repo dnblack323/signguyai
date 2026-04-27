@@ -336,18 +336,25 @@ async def setup_admin_account(request_body: dict):
 @users_router.get("/me", response_model=User)
 async def get_current_user_profile(current_user: UserInDB = Depends(get_current_active_user)):
     """Get current user's profile"""
-    return User(
-        id=current_user.id,
-        email=current_user.email,
-        full_name=current_user.full_name,
-        company_name=current_user.company_name,
-        is_active=current_user.is_active,
-        role=current_user.role,
-        tenant_id=current_user.tenant_id,
-        created_at=current_user.created_at,
-        updated_at=current_user.updated_at,
-        is_founder=getattr(current_user, 'is_founder', False)
-    )
+    user_data = {
+        "id": current_user.id,
+        "email": current_user.email,
+        "full_name": current_user.full_name,
+        "company_name": current_user.company_name,
+        "is_active": current_user.is_active,
+        "role": current_user.role,
+        "tenant_id": current_user.tenant_id,
+        "created_at": current_user.created_at,
+        "updated_at": current_user.updated_at,
+        "is_founder": getattr(current_user, 'is_founder', False)
+    }
+    
+    # Add impersonation metadata if present
+    impersonation = getattr(current_user, 'impersonation', None)
+    if impersonation:
+        user_data['impersonation'] = impersonation
+    
+    return user_data
 
 
 @users_router.get("/me/permissions")

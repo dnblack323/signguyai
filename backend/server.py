@@ -2772,6 +2772,9 @@ from routes.appointments import router as appointments_router
 from routes.meta_integration import router as meta_integration_router
 from routes.facebook_messages import router as facebook_messages_router
 
+# Platform Admin
+from routes.platform_admin import router as platform_admin_router
+
 # Include all routers in the api_router
 api_router.include_router(auth_router)
 api_router.include_router(users_router)
@@ -2825,6 +2828,7 @@ api_router.include_router(productivity_router)  # Unified Productivity Layer
 api_router.include_router(appointments_router)  # Appointment detail routes
 api_router.include_router(meta_integration_router)  # Meta/Facebook Messenger integration
 api_router.include_router(facebook_messages_router)  # Facebook Leads inbox
+api_router.include_router(platform_admin_router)  # Platform Admin for tenant impersonation
 
 # Backup & Restore
 from routes.backup import setup_backup_routes
