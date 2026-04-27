@@ -10,7 +10,7 @@ import sys
 from datetime import datetime, timedelta
 
 # Configuration
-BASE_URL = "https://meta-webhook-setup.preview.emergentagent.com/api"
+BASE_URL = "https://saas-launch-hub.preview.emergentagent.com/api"
 LOGIN_EMAIL = "signguypa@gmail.com"
 LOGIN_PASSWORD = "Billnel323"
 

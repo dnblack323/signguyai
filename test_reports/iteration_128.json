@@ -67,7 +67,7 @@
     "BUG FIX HIGH 2.3g-2: Add GRAPHIC_DESIGN='graphic_design' to ServiceType enum in /app/backend/models/enums.py. Audit ALL ServiceType enum values against available_service_types config keys — 'design' vs 'graphic_design' gap may indicate other mismatches too.",
     "BUG FIX HIGH 2.3i-2: In create_job_ticket() (job_tickets.py ~line 1430-1454), add missing fields to JobTicket() constructor: description=data.description, entry_mode=data.entry_mode, manual_quote_override=data.manual_quote_override, linked_order_file_ids=data.linked_order_file_ids, item_artwork_file_ids=data.item_artwork_file_ids.",
     "BUG FIX MEDIUM 2.3h-5: Add double-sided upcharge logic to calculate_promotional() in server.py. When double_sided_art is set to 'different' or 'same', apply a cost multiplier (e.g., 1.5x material cost for different-art double-sided).",
-    "CLEANUP: Test job ticket TEST_Custom Acrylic Award was created and deleted during testing (id=a1387de7-3adb-411e-bb68-a627c9b1ff70). Verify deletion succeeded."
+    "CLEANUP: Test job ticket TEST_Custom Acrylic Award was created and deleted during testing (id=saas-launch-hub). Verify deletion succeeded."
   ],
   "critical_code_review_comments": [
     "CRITICAL: ServiceType enum (enums.py) uses 'design' but available_service_types config uses 'graphic_design' as key. The calculate_services() function matches st_key against config keys, so enum value 'design' will ALWAYS fall back to general_labor — the graphic_design billing rates ($95/hr, min $25) are completely unreachable. This affects all service types: audit the full enum-to-config key mapping.",

@@ -186,7 +186,7 @@ class TestCheckoutGatingBehavior:
             }
         }
         
-        origin_url = "https://meta-webhook-setup.preview.emergentagent.com"
+        origin_url = "https://saas-launch-hub.preview.emergentagent.com"
         response = requests.post(
             f"{BASE_URL}/api/stripe-connect/webstore/{TEST_STORE_ID}/checkout?origin_url={origin_url}",
             json=checkout_payload

@@ -24,7 +24,7 @@
 - Note: This account is in test_database, NOT the production signguy_ai database
 
 ## Employee Portal Test Accounts
-- Email: preview-payroll@example.com / PIN: 1234 (QA Test Employee - Iteration 104, employee_id=18eed187-1a90-4bf8-b233-dc47b44c9579)
+- Email: preview-payroll@example.com / PIN: 1234 (QA Test Employee - Iteration 104, employee_id=saas-launch-hub)
 - Email: DNBLACK323@GMAIL.COM / Password: 1234 (Note: DNBLACK323 not in employees collection; use preview-payroll for portal)
 
 ## Customer Portal Test Account

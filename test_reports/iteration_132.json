@@ -53,7 +53,7 @@
   },
 
   "verification_results": {
-    "T1-ISO-A_register_tenant_b": "PASS — Tenant B registered (tenanttwo_isolation@test.com), tenant_id=9af04c73-fb64-4d3e-bcf1-203be54921e3 (differs from Tenant A d9c5507b)",
+    "T1-ISO-A_register_tenant_b": "PASS — Tenant B registered (tenanttwo_isolation@test.com), tenant_id=saas-launch-hub (differs from Tenant A d9c5507b)",
     "T1-ISO-B_tenant_b_empty_data": "PASS — Tenant B has 3 customers (sample data only), Tenant A's customers not visible",
     "T1-ISO-C_cross_tenant_order_block": "PASS — GET /api/orders/aa583c33 with Tenant B token → 404 (correct isolation)",
     "T1-ISO-D_staff_invite": "PASS — Staff user created via POST /api/admin/users/create with role=staff. NOTE: No /api/auth/invite-user endpoint exists; use /api/admin/users/create instead.",
@@ -81,7 +81,7 @@
     "T4-EMP_PORTAL_B_jobs": "PASS — GET /api/employee-portal/jobs returns 200, 1 job",
     "T4-EMP_PORTAL_C_tasks": "PASS — GET /api/employee-portal/tasks returns 200, 1 task",
     "T4-EMP_PORTAL_D_mark_complete": "PASS — PUT /api/employee-portal/tasks/{id}/complete returns 200. Admin verified is_complete=True on GET /api/tasks/{id}",
-    "T4-EMP_LINK": "INFO — No explicit /link-user endpoint. Auto-linking works via email matching on create/update. Employee has linked_user_id=666148eb-f7fd-40ea-aa96-fd35d866bd6c confirmed."
+    "T4-EMP_LINK": "INFO — No explicit /link-user endpoint. Auto-linking works via email matching on create/update. Employee has linked_user_id=saas-launch-hub confirmed."
   },
 
   "frontend_issues": {
