@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import OnboardingChecklistTab from '../components/OnboardingChecklistTab';
 import {
   ArrowLeft,
   Building2,
@@ -14,6 +16,7 @@ import {
   LogIn,
   Shield,
   Calendar,
+  ClipboardCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAuthToken, setAuthToken } from '../lib/authStorage';
@@ -181,12 +184,25 @@ export default function PlatformAdminTenantDetail() {
           </div>
         </div>
 
-        {/* Tenant Overview */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Business Information</CardTitle>
-          </CardHeader>
-          <CardContent>
+        {/* Tabs for different sections */}
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">Overview & Users</TabsTrigger>
+            <TabsTrigger value="checklist">
+              <ClipboardCheck className="w-4 h-4 mr-2" />
+              Onboarding Checklist
+            </TabsTrigger>
+            <TabsTrigger value="notes">Notes</TabsTrigger>
+          </TabsList>
+
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6 mt-6">
+            {/* Tenant Overview */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Business Information</CardTitle>
+              </CardHeader>
+              <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-start gap-3">
                 <Building2 className="w-5 h-5 text-gray-400 mt-1" />
@@ -323,6 +339,25 @@ export default function PlatformAdminTenantDetail() {
             )}
           </CardContent>
         </Card>
+          </TabsContent>
+
+          {/* Onboarding Checklist Tab */}
+          <TabsContent value="checklist" className="mt-6">
+            <OnboardingChecklistTab tenantId={tenantId} />
+          </TabsContent>
+
+          {/* Notes Tab (placeholder) */}
+          <TabsContent value="notes" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Internal Notes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">Notes feature coming soon...</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

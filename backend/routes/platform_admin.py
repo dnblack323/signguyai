@@ -7,6 +7,7 @@ This module provides:
 3. Impersonate tenant user
 4. Exit impersonation
 5. Impersonation logs
+6. Onboarding checklist management
 """
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -39,6 +40,24 @@ class ImpersonationLog(BaseModel):
     duration_seconds: Optional[int] = None
 
 
+class OnboardingChecklistItem(BaseModel):
+    id: str
+    tenant_id: str
+    item_key: str
+    label: str
+    completed: bool = False
+    note: Optional[str] = None
+    updated_by: Optional[str] = None
+    updated_by_email: Optional[str] = None
+    updated_at: Optional[str] = None
+    order: int
+
+
+class UpdateChecklistItemRequest(BaseModel):
+    completed: bool
+    note: Optional[str] = None
+
+
 class TenantListItem(BaseModel):
     id: str
     name: str
@@ -68,6 +87,31 @@ class ImpersonateRequest(BaseModel):
     target_user_id: str
 
 
+# ============== CONSTANTS ==============
+
+DEFAULT_CHECKLIST_ITEMS = [
+    {"key": "business_info", "label": "Business info received", "order": 1},
+    {"key": "logo_uploaded", "label": "Logo received/uploaded", "order": 2},
+    {"key": "owner_created", "label": "Owner/admin user created", "order": 3},
+    {"key": "users_invited", "label": "Employee/users invited", "order": 4},
+    {"key": "product_categories", "label": "Product categories selected", "order": 5},
+    {"key": "materials_entered", "label": "Materials entered", "order": 6},
+    {"key": "labor_rates", "label": "Labor rates entered", "order": 7},
+    {"key": "markups_minimums", "label": "Markups/minimums entered", "order": 8},
+    {"key": "pricing_reviewed", "label": "Pricing foundation reviewed", "order": 9},
+    {"key": "first_quote_tested", "label": "First quote/order tested", "order": 10},
+    {"key": "customer_approval_tested", "label": "Customer approval workflow tested", "order": 11},
+    {"key": "production_tested", "label": "Production workflow tested", "order": 12},
+    {"key": "customer_portal_reviewed", "label": "Customer portal reviewed", "order": 13},
+    {"key": "employee_portal_reviewed", "label": "Employee portal reviewed", "order": 14},
+    {"key": "ai_tools_reviewed", "label": "AI tools reviewed", "order": 15},
+    {"key": "training_scheduled", "label": "Training scheduled", "order": 16},
+    {"key": "training_completed", "label": "Training completed", "order": 17},
+    {"key": "customer_approved", "label": "Customer approved setup", "order": 18},
+    {"key": "onboarding_complete", "label": "Onboarding complete", "order": 19},
+]
+
+
 # ============== HELPER FUNCTIONS ==============
 
 def require_platform_admin(current_user: UserInDB = Depends(get_current_user)) -> UserInDB:
@@ -78,6 +122,34 @@ def require_platform_admin(current_user: UserInDB = Depends(get_current_user)) -
             detail="Access denied: Platform Admin privileges required"
         )
     return current_user
+
+
+async def ensure_checklist_exists(tenant_id: str):
+    """Ensure checklist items exist for a tenant, create if missing"""
+    existing_count = await db.onboarding_checklist.count_documents({"tenant_id": tenant_id})
+    
+    if existing_count == 0:
+        # Create default checklist items
+        items = []
+        for item in DEFAULT_CHECKLIST_ITEMS:
+            items.append({
+                "id": str(uuid.uuid4()),
+                "tenant_id": tenant_id,
+                "item_key": item["key"],
+                "label": item["label"],
+                "completed": False,
+                "note": None,
+                "updated_by": None,
+                "updated_by_email": None,
+                "updated_at": None,
+                "order": item["order"]
+            })
+        
+        if items:
+            await db.onboarding_checklist.insert_many(items)
+            logger.info(f"Created {len(items)} checklist items for tenant {tenant_id}")
+    
+    return True
 
 
 # ============== ROUTES ==============
@@ -302,3 +374,102 @@ async def end_impersonation_log(
     logger.info(f"Impersonation log {log_id} ended (duration: {duration}s)")
     
     return {"message": "Impersonation log ended", "duration_seconds": duration}
+
+
+# ============== ONBOARDING CHECKLIST ROUTES ==============
+
+@router.get("/tenants/{tenant_id}/checklist", response_model=List[OnboardingChecklistItem])
+async def get_tenant_checklist(
+    tenant_id: str,
+    current_user: UserInDB = Depends(require_platform_admin)
+):
+    """Get onboarding checklist for a tenant - Platform Admin only"""
+    
+    # Verify tenant exists
+    tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    # Ensure checklist exists
+    await ensure_checklist_exists(tenant_id)
+    
+    # Get checklist items
+    items = await db.onboarding_checklist.find(
+        {"tenant_id": tenant_id},
+        {"_id": 0}
+    ).sort("order", 1).to_list(100)
+    
+    return [OnboardingChecklistItem(**item) for item in items]
+
+
+@router.patch("/tenants/{tenant_id}/checklist/{item_id}")
+async def update_checklist_item(
+    tenant_id: str,
+    item_id: str,
+    request: UpdateChecklistItemRequest,
+    current_user: UserInDB = Depends(require_platform_admin)
+):
+    """Update a checklist item - Platform Admin only"""
+    
+    # Verify item exists
+    item = await db.onboarding_checklist.find_one(
+        {"id": item_id, "tenant_id": tenant_id},
+        {"_id": 0}
+    )
+    if not item:
+        raise HTTPException(status_code=404, detail="Checklist item not found")
+    
+    # Update item
+    update_data = {
+        "completed": request.completed,
+        "note": request.note,
+        "updated_by": current_user.id,
+        "updated_by_email": current_user.email,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.onboarding_checklist.update_one(
+        {"id": item_id},
+        {"$set": update_data}
+    )
+    
+    logger.info(
+        f"Platform Admin {current_user.email} updated checklist item "
+        f"{item['label']} for tenant {tenant_id} (completed: {request.completed})"
+    )
+    
+    # Get updated item
+    updated_item = await db.onboarding_checklist.find_one(
+        {"id": item_id},
+        {"_id": 0}
+    )
+    
+    return OnboardingChecklistItem(**updated_item)
+
+
+@router.get("/tenants/{tenant_id}/checklist/progress")
+async def get_checklist_progress(
+    tenant_id: str,
+    current_user: UserInDB = Depends(require_platform_admin)
+):
+    """Get checklist completion progress - Platform Admin only"""
+    
+    # Ensure checklist exists
+    await ensure_checklist_exists(tenant_id)
+    
+    # Get all items
+    items = await db.onboarding_checklist.find(
+        {"tenant_id": tenant_id},
+        {"_id": 0}
+    ).to_list(100)
+    
+    total = len(items)
+    completed = sum(1 for item in items if item.get("completed", False))
+    percentage = int((completed / total) * 100) if total > 0 else 0
+    
+    return {
+        "total": total,
+        "completed": completed,
+        "remaining": total - completed,
+        "percentage": percentage
+    }
