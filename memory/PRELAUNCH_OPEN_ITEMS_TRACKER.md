@@ -6,7 +6,7 @@ Use categories:
 - ❌ Failed and still open
 - ⛔ Cannot fully test without user/external actions
 
-Last updated: 2026-04-26 (post Tier 6 sweep + admin PDFs + appointment-request email)
+Last updated: 2026-04-27 (post Tier 7 sweep — Signatures & Drawings)
 
 ---
 
@@ -14,6 +14,9 @@ Last updated: 2026-04-26 (post Tier 6 sweep + admin PDFs + appointment-request e
 
 | Item | Fix | Date |
 |------|-----|------|
+| **T7-DELETE-DRAWING** | Added `platform_admin` to allowed roles in DELETE `/api/order-drawings/{id}` | 2026-04-27 |
+| **T7-UPDATE-DRAWING** | Added label→title mirror sync in PUT `/api/order-drawings/{id}` | 2026-04-27 |
+| **T7-SIGNATURE-IP** | Added `client_ip` capture to signature capture and public sign routes | 2026-04-27 |
 | **2.1F** Tax-exempt toggle | Added `default_tax_rate` to tenant model + CompanySettings UI; invoice generation now checks `is_tax_exempt` flag per customer | 2026-04-26 |
 | **2.2E** Assets-panel upload/thumbnail | Rewrote `OrderAssetsPanel.js` — drag-and-drop zone + `AssetThumbnail` component shows real image blobs | 2026-04-26 |
 | **T1-ISO-E** Payroll READ security bug | Added `_require_payroll_view_access()` to all GET payroll routes — staff now `403` | 2026-04-26 |
@@ -29,6 +32,7 @@ Last updated: 2026-04-26 (post Tier 6 sweep + admin PDFs + appointment-request e
 | **Admin Quote PDF** (NEW) | `GET /api/quotes/{id}/pdf` returns valid PDF with company/customer/line-items/totals/terms | 2026-04-26 |
 | **Admin Invoice PDF** (NEW) | `GET /api/invoices/{id}/pdf` returns valid PDF with PAID/UNPAID badge, totals, watermark | 2026-04-26 |
 | **Tier 6 sweep** | AI assistant, email composer, voice, image-gen, SendGrid all PASS (iteration_135, 20/20) | 2026-04-26 |
+| **Tier 7 sweep** | Signatures & Drawings backend sweep: 22/24 tests pass (iteration_136) | 2026-04-27 |
 
 ---
 

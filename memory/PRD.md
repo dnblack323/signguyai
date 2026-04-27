@@ -23,6 +23,23 @@ Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independen
 
 ## Implemented (CHANGELOG)
 
+### 2026-04-27 — Tier 7 Sweep (Signatures & Drawings)
+- **Backend sweep:** 22/24 tests pass (iteration_136). All signature and drawing endpoints verified.
+- **Bugs Fixed:**
+  1. **DELETE `/api/order-drawings/{id}`** — Added `platform_admin` to allowed roles (was returning 403 for platform admins)
+  2. **PUT `/api/order-drawings/{id}`** — Fixed label→title mirror sync (label updates were not persisting)
+  3. **Signature IP capture** — Added `client_ip` field to both internal `/capture` and public `/sign` endpoints
+- **RBAC audit:** Fixed 5 additional role-check locations missing `platform_admin`:
+  - `employees.py` — `_require_payroll_edit_access`, `_require_payroll_view_access`
+  - `credits.py` — `/admin-summary` endpoint
+  - `pricing.py` — PUT pricing defaults
+  - `pricing_setup.py` — `ensure_admin_access`
+- **API endpoints verified:**
+  - Signatures: `/capture`, list, file retrieval, requirement, request, public token flows
+  - Drawings: CRUD, file retrieval, query filters, blank rejection
+- **Remaining (user-only):** Frontend UI testing for modal components, mobile touch input, PDF visual verification
+- Trackers updated: `PRELAUNCH_POSTFIX_RETEST_RESULTS.md`, `PRELAUNCH_OPEN_ITEMS_TRACKER.md`
+
 ### 2026-04-26 (Tier 6 sweep) — Admin PDFs + Appointment Email Notification
 - **Customer Request Appointment email notification:** Tenant owner now receives an HTML email immediately when a customer submits an appointment request via portal. Verified end-to-end (real 202 from SendGrid). Wrapped in try/except so SendGrid failure does not block appointment creation.
 - **Admin Quote PDF** `GET /api/quotes/{id}/pdf` — implemented; returns valid PDF with company header, customer block, line items, totals, notes, terms.

@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
 from server import db, get_current_active_user, logger
@@ -455,6 +455,7 @@ async def request_signature(
 @router.post("/capture")
 async def capture_signature_internal(
     payload: SignatureCapturePayload,
+    request: Request,
     current_user: UserInDB = Depends(get_current_active_user),
 ):
     await _require_signature_feature_enabled(current_user.tenant_id)
@@ -466,6 +467,15 @@ async def capture_signature_internal(
         "tenant_id": current_user.tenant_id,
         "status": {"$in": ["pending", "expired"]},
     }, {"_id": 0})
+
+    # Extract client IP address
+    client_ip = None
+    if request.client:
+        client_ip = request.client.host
+    # Check for forwarded IP (behind proxy)
+    forwarded_for = request.headers.get("x-forwarded-for")
+    if forwarded_for:
+        client_ip = forwarded_for.split(",")[0].strip()
 
     signature_id = existing["id"] if existing else str(uuid.uuid4())
     storage_path, image_url = await _store_signature_image(signature_id, payload.order_id or parent.get("order_id"), payload.image_data)
@@ -484,6 +494,7 @@ async def capture_signature_internal(
         "signature_image": image_url,
         "signature_storage_path": storage_path,
         "signed_at": signed_at,
+        "client_ip": client_ip,
         "notes": payload.notes or "",
         "document_version": payload.document_version,
         "status": "signed",
@@ -533,13 +544,22 @@ async def get_public_signature_request(token: str):
 
 
 @router.post("/public/{token}/sign")
-async def sign_public_request(token: str, payload: PublicSignatureCapturePayload):
+async def sign_public_request(token: str, payload: PublicSignatureCapturePayload, request: Request):
     signature = await db.signatures.find_one({"request_token": token}, {"_id": 0})
     if not signature:
         raise HTTPException(status_code=404, detail="Signature request not found")
     await _require_signature_feature_enabled(signature["tenant_id"])
     if signature.get("status") == "signed":
         raise HTTPException(status_code=400, detail="Signature has already been completed")
+
+    # Extract client IP address
+    client_ip = None
+    if request.client:
+        client_ip = request.client.host
+    # Check for forwarded IP (behind proxy)
+    forwarded_for = request.headers.get("x-forwarded-for")
+    if forwarded_for:
+        client_ip = forwarded_for.split(",")[0].strip()
 
     storage_path, image_url = await _store_signature_image(signature["id"], signature.get("order_id"), payload.image_data)
     signed_at = datetime.now(timezone.utc).isoformat()
@@ -550,6 +570,7 @@ async def sign_public_request(token: str, payload: PublicSignatureCapturePayload
         "signature_image": image_url,
         "signature_storage_path": storage_path,
         "signed_at": signed_at,
+        "client_ip": client_ip,
         "notes": payload.notes or signature.get("notes") or "",
         "status": "signed",
         "signature_acquired": True,

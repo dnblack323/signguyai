@@ -126,7 +126,7 @@ async def update_pricing_defaults(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Update pricing defaults for current tenant"""
-    if current_user.role not in ["owner", "admin"]:
+    if current_user.role not in ["owner", "admin", "platform_admin"]:
         raise HTTPException(status_code=403, detail="Only owners and admins can update pricing settings")
 
     tenant_id = current_user.tenant_id

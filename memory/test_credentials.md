@@ -3,7 +3,7 @@
 ## Production Admin Account (USER'S PRIMARY — USE THIS)
 - Email: thesigntistslab@gmail.com
 - Password: password123
-- Role: owner / admin
+- Role: owner / platform_admin
 - Tenant: The Signtists Lab (Founders Edition)
 - Database: signguy_ai
 - NOTE: This is the user's actual working admin account. Always use this for testing/instructions.

@@ -407,7 +407,7 @@ async def get_all_credit_costs(current_user: UserInDB = Depends(get_current_acti
 
 @router.get("/admin-summary")
 async def get_admin_credit_summary(current_user: UserInDB = Depends(get_current_active_user)):
-    if current_user.role not in ["owner", "admin"]:
+    if current_user.role not in ["owner", "admin", "platform_admin"]:
         raise HTTPException(status_code=403, detail="Only admins and owners can view AI usage summary")
 
     tenant_id = current_user.tenant_id

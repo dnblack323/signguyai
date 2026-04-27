@@ -200,6 +200,8 @@ async def update_drawing(drawing_id: str, input: DrawingUpdate, current_user: Us
     updates = {key: value for key, value in input.model_dump().items() if value is not None}
     if updates.get("title") and "label" not in updates:
         updates["label"] = updates["title"]
+    if updates.get("label") and "title" not in updates:
+        updates["title"] = updates["label"]
     if updates.get("status") and updates["status"] not in ALLOWED_STATUS:
         raise HTTPException(status_code=400, detail="Invalid drawing status")
     updates["updated_at"] = datetime.now(timezone.utc).isoformat()
@@ -210,7 +212,7 @@ async def update_drawing(drawing_id: str, input: DrawingUpdate, current_user: Us
 
 @router.delete("/{drawing_id}")
 async def delete_drawing(drawing_id: str, current_user: UserInDB = Depends(get_current_active_user)):
-    if current_user.role not in ("owner", "admin", "superadmin"):
+    if current_user.role not in ("owner", "admin", "superadmin", "platform_admin"):
         raise HTTPException(status_code=403, detail="Only admins can delete drawings")
     drawing = await db.order_drawings.find_one({"id": drawing_id, "tenant_id": current_user.tenant_id, "visibility_status": {"$ne": "deleted"}}, {"_id": 0, "id": 1})
     if not drawing:

@@ -329,3 +329,53 @@ Independent verification:
 - ✅ All 6 endpoints tested via curl with admin + staff + portal + employee tokens
 - ✅ Existing endpoints unaffected (regression spot-check: appointments, invoice-aging, quotes, workflow-templates list — all `200`)
 - Test report: `/app/test_reports/iteration_132.json` (action items resolved)
+
+
+
+---
+
+## Tier 7 Sweep (2026-04-27)
+
+### Backend API Sweep Results
+- **Test report**: `/app/test_reports/iteration_136.json`
+- **Overall**: 22/24 backend tests pass (91.7%)
+
+### 7.1 Signature Capture — All Backend Endpoints Verified
+- ✅ `POST /api/signatures/capture` — Creates signature with signer_name, signed_at, **client_ip** (FIXED)
+- ✅ `GET /api/signatures?order_id={id}` — Returns signature history list
+- ✅ `GET /api/signatures/file/{id}` — Retrieves signature image from object storage
+- ✅ `POST /api/signatures/requirement` — Creates pending signature requirement
+- ✅ `POST /api/signatures/request` — Sends signature request email with secure token
+- ✅ `GET /api/signatures/public/{token}` — Returns public signature page data (404 on invalid token)
+- ✅ `POST /api/signatures/public/{token}/sign` — Signs public request with **IP capture** (FIXED)
+
+### 7.2 Order Drawings — All Backend Endpoints Verified (2 bugs fixed)
+- ✅ `POST /api/order-drawings/` — Creates drawing with PNG in object storage
+- ✅ `GET /api/order-drawings/{order_id}` — Lists all drawings for an order
+- ✅ `GET /api/order-drawings/file/{id}` — Retrieves drawing image
+- ✅ `PUT /api/order-drawings/{id}` — Updates label/title/notes — **FIXED**: label↔title mirror sync
+- ✅ `DELETE /api/order-drawings/{id}` — Soft-deletes drawing — **FIXED**: added `platform_admin` role
+- ✅ Blank drawing rejection (<150 bytes) — Returns 400 error
+- ✅ Drawing query with filters — order_id, status, job_ticket_id work
+- ✅ Multiple drawings per order — All listed
+
+### Bugs Fixed in This Sweep
+1. **CRITICAL** — `DELETE /api/order-drawings/{id}` returned 403 for `platform_admin` role
+   - Root cause: Role check only included `owner`, `admin`, `superadmin`
+   - Fix: Added `platform_admin` to allowed roles in `/app/backend/routes/order_drawings.py` line 213
+2. **HIGH** — `PUT /api/order-drawings/{id}` did not persist `label` when sent alone
+   - Root cause: `_serialize_drawing` returns `title or label`, but update only mirrored title→label
+   - Fix: Added label→title mirror sync in update handler
+3. **ENHANCEMENT** — Signature capture now stores `client_ip` from request headers
+   - Added `Request` parameter and X-Forwarded-For handling to both internal and public sign routes
+
+### Frontend Testing (User-Only)
+The following items require manual UI testing:
+- SignatureCaptureModal opens and captures signature
+- SignatureActivityList displays history with re-view capability
+- Clear/redo works in signature canvas
+- Signature renders on invoice PDF
+- DrawingModal pen/text/colors/thickness tools
+- DrawingCanvasPad autosave on stroke
+- DrawingPreviewModal display
+- Mobile touch input for both features

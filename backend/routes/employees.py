@@ -255,13 +255,13 @@ payroll_router = APIRouter(prefix="/payroll", tags=["Payroll"])
 
 
 def _require_payroll_edit_access(current_user: UserInDB):
-    if current_user.role not in ["owner", "admin", "superadmin"]:
+    if current_user.role not in ["owner", "admin", "superadmin", "platform_admin"]:
         raise HTTPException(status_code=403, detail="Only admin-level users can edit payroll data")
 
 
 def _require_payroll_view_access(current_user: UserInDB):
     """Owner/admin can read payroll. Staff role is denied (no PAYROLL_VIEW)."""
-    if current_user.role not in ["owner", "admin", "superadmin"]:
+    if current_user.role not in ["owner", "admin", "superadmin", "platform_admin"]:
         raise HTTPException(status_code=403, detail="You do not have permission to view payroll data")
 
 
