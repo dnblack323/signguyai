@@ -10,7 +10,7 @@ This module provides:
 6. Onboarding checklist management
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import List, Optional
 from datetime import datetime, timezone
 from pydantic import BaseModel
@@ -21,6 +21,7 @@ from server import (
     db, logger,
     get_current_user, create_access_token, UserInDB
 )
+from services.admin_audit import log_admin_action
 
 router = APIRouter(prefix="/platform-admin", tags=["Platform Admin"])
 
@@ -235,6 +236,7 @@ async def get_tenant_detail(
 @router.post("/impersonate")
 async def start_impersonation(
     request: ImpersonateRequest,
+    http_request: Request,
     current_user: UserInDB = Depends(require_platform_admin)
 ):
     """
@@ -269,7 +271,26 @@ async def start_impersonation(
         "duration_seconds": None,
     }
     await db.impersonation_logs.insert_one(log_doc)
-    
+
+    # Audit log entry
+    await log_admin_action(
+        db,
+        request=http_request,
+        actor=current_user,
+        action="impersonation.start",
+        action_category="impersonation",
+        target_type="user",
+        target_id=target_user["id"],
+        target_label=target_user.get("email"),
+        tenant_id=target_user["tenant_id"],
+        tenant_name=tenant.get("name"),
+        summary=f"Started impersonating {target_user.get('email')} in tenant {tenant.get('name')}",
+        metadata={
+            "impersonation_log_id": log_id,
+            "target_role": target_user.get("role"),
+        },
+    )
+
     logger.info(
         f"Platform Admin {current_user.email} started impersonating "
         f"{target_user['email']} (Tenant: {tenant['name']})"
@@ -309,6 +330,7 @@ async def start_impersonation(
 
 @router.post("/exit-impersonation")
 async def exit_impersonation(
+    http_request: Request,
     current_user: UserInDB = Depends(get_current_user)
 ):
     """
@@ -317,12 +339,25 @@ async def exit_impersonation(
     This endpoint is called by an impersonating user to end the session.
     The frontend should handle the token replacement.
     """
-    
-    # This endpoint is accessible to anyone, but we need to verify impersonation
-    # The token should have impersonation metadata
-    # For now, we just log the exit and return success
-    # The frontend will handle removing the impersonation token
-    
+
+    # Try to capture audit context from token (impersonation metadata is in JWT)
+    # Best-effort logging - no failure should block the exit.
+    try:
+        await log_admin_action(
+            db,
+            request=http_request,
+            actor=current_user,
+            action="impersonation.exit",
+            action_category="impersonation",
+            target_type="user",
+            target_id=current_user.id,
+            target_label=current_user.email,
+            tenant_id=current_user.tenant_id,
+            summary=f"Exited impersonation as {current_user.email}",
+        )
+    except Exception:
+        pass
+
     return {
         "message": "Impersonation session ended. Please refresh or re-login as platform admin.",
         "action": "logout_required"
@@ -347,6 +382,7 @@ async def get_impersonation_logs(
 @router.post("/impersonation-logs/{log_id}/end")
 async def end_impersonation_log(
     log_id: str,
+    http_request: Request,
     current_user: UserInDB = Depends(require_platform_admin)
 ):
     """Manually end an impersonation log entry"""
@@ -372,7 +408,23 @@ async def end_impersonation_log(
     )
     
     logger.info(f"Impersonation log {log_id} ended (duration: {duration}s)")
-    
+
+    # Audit log entry
+    await log_admin_action(
+        db,
+        request=http_request,
+        actor=current_user,
+        action="impersonation.manual_end",
+        action_category="impersonation",
+        target_type="impersonation_log",
+        target_id=log_id,
+        target_label=log.get("target_user_email"),
+        tenant_id=log.get("tenant_id"),
+        tenant_name=log.get("tenant_name"),
+        summary=f"Manually ended impersonation log for {log.get('target_user_email')}",
+        metadata={"duration_seconds": duration},
+    )
+
     return {"message": "Impersonation log ended", "duration_seconds": duration}
 
 
@@ -407,6 +459,7 @@ async def update_checklist_item(
     tenant_id: str,
     item_id: str,
     request: UpdateChecklistItemRequest,
+    http_request: Request,
     current_user: UserInDB = Depends(require_platform_admin)
 ):
     """Update a checklist item - Platform Admin only"""
@@ -436,6 +489,30 @@ async def update_checklist_item(
     logger.info(
         f"Platform Admin {current_user.email} updated checklist item "
         f"{item['label']} for tenant {tenant_id} (completed: {request.completed})"
+    )
+
+    # Audit log entry
+    tenant_doc = await db.tenants.find_one({"id": tenant_id}, {"_id": 0, "name": 1})
+    await log_admin_action(
+        db,
+        request=http_request,
+        actor=current_user,
+        action="checklist.update",
+        action_category="onboarding",
+        target_type="onboarding_checklist_item",
+        target_id=item_id,
+        target_label=item.get("label"),
+        tenant_id=tenant_id,
+        tenant_name=(tenant_doc or {}).get("name"),
+        summary=(
+            f"Marked '{item.get('label')}' as "
+            f"{'completed' if request.completed else 'incomplete'}"
+        ),
+        metadata={
+            "completed": request.completed,
+            "previous_completed": item.get("completed", False),
+            "note": request.note,
+        },
     )
     
     # Get updated item
@@ -473,3 +550,82 @@ async def get_checklist_progress(
         "remaining": total - completed,
         "percentage": percentage
     }
+
+
+
+# ============== ADMIN AUDIT LOG ROUTES ==============
+
+@router.get("/audit-log")
+async def list_audit_log(
+    action: Optional[str] = None,
+    action_category: Optional[str] = None,
+    actor_email: Optional[str] = None,
+    target_id: Optional[str] = None,
+    tenant_id: Optional[str] = None,
+    since: Optional[str] = None,
+    until: Optional[str] = None,
+    limit: int = 200,
+    current_user: UserInDB = Depends(require_platform_admin)
+):
+    """
+    List Admin Audit Log entries (Platform Admin only).
+
+    Filters: action, action_category, actor_email, target_id, tenant_id,
+    since (ISO datetime), until (ISO datetime).
+    Default 200 entries, max 1000.
+    """
+    limit = max(1, min(limit, 1000))
+
+    query: dict = {}
+    if action:
+        query["action"] = action
+    if action_category:
+        query["action_category"] = action_category
+    if actor_email:
+        query["actor_email"] = {"$regex": actor_email, "$options": "i"}
+    if target_id:
+        query["target_id"] = target_id
+    if tenant_id:
+        query["tenant_id"] = tenant_id
+    if since or until:
+        created_filter: dict = {}
+        if since:
+            created_filter["$gte"] = since
+        if until:
+            created_filter["$lte"] = until
+        query["created_at"] = created_filter
+
+    entries = await db.admin_audit_log.find(
+        query, {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+
+    return {
+        "total_returned": len(entries),
+        "limit": limit,
+        "entries": entries,
+    }
+
+
+@router.get("/audit-log/actions")
+async def list_audit_actions(
+    current_user: UserInDB = Depends(require_platform_admin)
+):
+    """Return distinct action types and categories present in the audit log."""
+    actions = await db.admin_audit_log.distinct("action")
+    categories = await db.admin_audit_log.distinct("action_category")
+    return {
+        "actions": sorted([a for a in actions if a]),
+        "categories": sorted([c for c in categories if c]),
+    }
+
+
+@router.get("/audit-log/{entry_id}")
+async def get_audit_entry(
+    entry_id: str,
+    current_user: UserInDB = Depends(require_platform_admin)
+):
+    """Get a single audit-log entry by id."""
+    entry = await db.admin_audit_log.find_one({"id": entry_id}, {"_id": 0})
+    if not entry:
+        raise HTTPException(status_code=404, detail="Audit entry not found")
+    return entry

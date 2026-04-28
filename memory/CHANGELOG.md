@@ -1,5 +1,17 @@
 # SignGuy AI - Changelog
 
+## February 15, 2026
+- **Admin Audit Log (NEW)** — top-5 prelaunch platform gap #1
+  - New collection `admin_audit_log` capturing every privileged Platform Admin action with actor, target, tenant, IP, user-agent, summary, structured metadata, status, timestamp.
+  - New service `services/admin_audit.py::log_admin_action()` (failure-tolerant — never blocks the calling action).
+  - Wired into existing privileged endpoints: impersonation start, impersonation exit, manual end of impersonation log, and onboarding-checklist updates.
+  - New endpoints: `GET /api/platform-admin/audit-log` (filterable by action, category, actor_email, target_id, tenant_id, since/until; paginated), `GET /api/platform-admin/audit-log/actions` (distinct actions/categories), `GET /api/platform-admin/audit-log/{id}` (single entry).
+  - New page `/platform-admin/audit-log` with filter bar, table, and detail dialog. Reachable from "View Audit Log" button on the Platform Admin home page.
+  - Verified end-to-end: impersonation start writes audit row with action `impersonation.start`, captured IP `34.170.12.145`, actor `thesigntistslab@gmail.com`, target user, tenant, metadata `{impersonation_log_id, target_role}`.
+
+## April 28, 2026
+- AI Tool Audits complete (read-only): Racing, Business, Marketing, Design, Branding categories documented in `/app/memory/*_TOOLS_AUDIT.md`.
+
 ## April 26, 2026 (Tier 6 sweep)
 - **Customer Appointment Request → Owner Email Notification (NEW)**
   - When a customer submits an appointment request via portal, tenant owner now receives an HTML email immediately (verified by `email_logs` rows with status='sent', response_code=202).

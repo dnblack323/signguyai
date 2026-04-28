@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
-import { Search, Users, ChevronRight, Shield } from 'lucide-react';
+import { Search, Users, ChevronRight, Shield, ScrollText } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAuthToken } from '../lib/authStorage';
 
@@ -86,14 +86,24 @@ export default function PlatformAdmin() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Shield className="w-8 h-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Platform Admin</h1>
+        <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <Shield className="w-8 h-8 text-blue-600" />
+              <h1 className="text-3xl font-bold text-gray-900">Platform Admin</h1>
+            </div>
+            <p className="text-gray-600">
+              Manage tenant accounts and provide support access
+            </p>
           </div>
-          <p className="text-gray-600">
-            Manage tenant accounts and provide support access
-          </p>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/platform-admin/audit-log')}
+            data-testid="platform-admin-audit-log-btn"
+          >
+            <ScrollText className="w-4 h-4 mr-1" />
+            View Audit Log
+          </Button>
         </div>
 
         {/* Stats Cards */}

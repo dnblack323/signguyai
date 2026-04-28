@@ -65,6 +65,7 @@ import PaymentSettings from "./pages/Admin/PaymentSettings";
 // Platform Admin Pages
 import PlatformAdmin from "./pages/PlatformAdmin";
 import PlatformAdminTenantDetail from "./pages/PlatformAdminTenantDetail";
+import PlatformAdminAuditLog from "./pages/PlatformAdminAuditLog";
 
 // Customer Portal Pages
 import PortalLogin from "./pages/PortalLogin";
@@ -233,6 +234,7 @@ function ProtectedRoutes() {
           <Route path="/facebook-leads" element={<FacebookLeads />} />
           {/* Platform Admin Routes */}
           <Route path="/platform-admin" element={<PlatformAdmin />} />
+          <Route path="/platform-admin/audit-log" element={<PlatformAdminAuditLog />} />
           <Route path="/platform-admin/tenants/:tenantId" element={<PlatformAdminTenantDetail />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
