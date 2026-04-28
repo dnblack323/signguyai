@@ -8,7 +8,7 @@ import { Badge } from '../components/ui/badge';
 import { 
   Sparkles, Send, ArrowLeft, Loader2, User, Bot, 
   Lightbulb, DollarSign, Users, Briefcase, TrendingUp,
-  Clock, FileText, RefreshCw, Mic, MicOff, Volume2
+  Clock, FileText, RefreshCw, Mic, MicOff, Volume2, ShoppingCart
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
@@ -17,6 +17,24 @@ import { useAICreditGuard } from '../components/credits/AICreditConfirmationDial
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+// Shared readable error helper - prevents "Error: [object Object]"
+function getReadableError(error) {
+  if (!error) return "Something went wrong.";
+  if (typeof error === "string") return error;
+  if (error.message) return error.message;
+  if (error.response?.data?.detail) return error.response.data.detail;
+  if (error.response?.data?.message) return error.response.data.message;
+  if (error.data?.detail) return error.data.detail;
+  if (error.data?.message) return error.data.message;
+  try {
+    const str = JSON.stringify(error);
+    if (str !== '{}') return str;
+  } catch {
+    // ignore
+  }
+  return "Something went wrong.";
+}
+
 const suggestedPrompts = [
   { icon: DollarSign, text: "What's a good profit margin for vehicle wraps?", category: 'pricing' },
   { icon: Users, text: "How do I handle a difficult customer complaint?", category: 'customers' },
@@ -24,6 +42,7 @@ const suggestedPrompts = [
   { icon: TrendingUp, text: "How can I increase my average order value?", category: 'growth' },
   { icon: Clock, text: "How long should a full vehicle wrap take?", category: 'operations' },
   { icon: FileText, text: "Write a follow-up email for a quote I sent", category: 'communications' },
+  { icon: ShoppingCart, text: "Make an order for a customer", category: 'orders' },
 ];
 
 export default function AIAssistant() {
@@ -39,7 +58,7 @@ export default function AIAssistant() {
 - **Customer Management** - Handling complaints, communication tips
 - **Operations** - Production times, workflow optimization
 - **Sales & Growth** - Closing deals, marketing ideas, increasing revenue
-- **Industry Knowledge** - Materials, installation tips, best practices
+- **Create Orders** - Say "Make an order for [customer] for [product]" and I'll help you build it step by step
 
 What can I help you with today?`
     }
@@ -48,6 +67,7 @@ What can I help you with today?`
   const [loading, setLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [voiceLoading, setVoiceLoading] = useState(false);
+  const [activeOrderDraft, setActiveOrderDraft] = useState(null);
   const [sessionId] = useState(() => `assistant_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -90,6 +110,10 @@ What can I help you with today?`
           const audio = new Audio(`data:${response.data.mime_type};base64,${response.data.audio_base64}`);
           await audio.play();
           return response.data;
+        } catch (error) {
+          console.error('Voice output error:', error);
+          toast.error(getReadableError(error));
+          throw error;
         } finally {
           setVoiceLoading(false);
         }
@@ -140,6 +164,10 @@ What can I help you with today?`
               toast.success('Voice captured. Review and send, or edit the text first.');
             }
             return response.data;
+          } catch (error) {
+            console.error('Voice transcription error:', error);
+            toast.error(getReadableError(error));
+            throw error;
           } finally {
             setVoiceLoading(false);
           }
@@ -161,7 +189,8 @@ What can I help you with today?`
       setIsRecording(true);
       toast.info('Recording started. Click the mic again to stop.');
     } catch (error) {
-      toast.error('Microphone access failed. Please allow microphone access and try again.');
+      console.error('Microphone access error:', error);
+      toast.error(getReadableError(error) || 'Microphone access failed. Please allow microphone access and try again.');
     }
   };
 
@@ -195,12 +224,18 @@ What can I help you with today?`
 
           const assistantMessage = { role: 'assistant', content: response.data.response };
           setMessages(prev => [...prev, assistantMessage]);
+          
+          // Update active order draft if returned from backend
+          if (response.data.active_order_draft) {
+            setActiveOrderDraft(response.data.active_order_draft);
+          }
+          
           return assistantMessage;
         }
       });
     } catch (error) {
-      console.error('Error:', error);
-      toast.error(error.response?.data?.detail || 'Failed to get response. Please try again.');
+      console.error('Assistant error:', error);
+      toast.error(getReadableError(error));
       // Remove the user message if we failed
       setMessages(prev => prev.slice(0, -1));
       setInput(messageText);
@@ -229,10 +264,11 @@ What can I help you with today?`
 - **Customer Management** - Handling complaints, communication tips
 - **Operations** - Production times, workflow optimization
 - **Sales & Growth** - Closing deals, marketing ideas, increasing revenue
-- **Industry Knowledge** - Materials, installation tips, best practices
+- **Create Orders** - Say "Make an order for [customer] for [product]" and I'll help you build it step by step
 
 What can I help you with today?`
     }]);
+    setActiveOrderDraft(null); // Clear the order draft when starting new chat
   };
 
   return (
@@ -270,6 +306,23 @@ What can I help you with today?`
 
       {/* Chat Area */}
       <Card className="flex-1 flex flex-col overflow-hidden">
+        {/* Compact Order Draft Indicator */}
+        {activeOrderDraft && activeOrderDraft.intent === 'create_order' && (
+          <div className="px-4 py-2 bg-green-50 border-b border-green-200 flex items-center gap-3" data-testid="active-order-draft-indicator">
+            <ShoppingCart className="h-4 w-4 text-green-600 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <span className="text-xs font-medium text-green-800">Creating Order</span>
+              <span className="text-xs text-green-600 ml-2">
+                {activeOrderDraft.customer_name && `Customer: ${activeOrderDraft.customer_name}`}
+                {activeOrderDraft.order_items?.[0]?.product_type && ` • ${activeOrderDraft.order_items[0].product_type}`}
+                {activeOrderDraft.order_items?.[0]?.quantity && ` • Qty: ${activeOrderDraft.order_items[0].quantity}`}
+                {activeOrderDraft.order_items?.[0]?.size && ` • ${activeOrderDraft.order_items[0].size}`}
+                {activeOrderDraft.order_items?.[0]?.material && ` • ${activeOrderDraft.order_items[0].material}`}
+              </span>
+            </div>
+          </div>
+        )}
+        
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-4 max-w-3xl mx-auto">
             {messages.map((message, index) => (

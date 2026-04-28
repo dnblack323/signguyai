@@ -1302,6 +1302,343 @@ class VoiceSpeakRequest(BaseModel):
     speed: float = 1.0
 
 
+# ============== ORDER DRAFT MANAGEMENT ==============
+
+import re
+
+# Intent detection patterns
+ORDER_INTENT_PATTERNS = [
+    r'\b(make|create|start|new|add|open)\b.*\b(order|quote|job)\b',
+    r'\border\b.*\bfor\b',
+    r'\bquote\b.*\bfor\b',
+    r'\bjob\b.*\bfor\b',
+    r'\bneed\b.*\b(sign|banner|wrap|vinyl|lettering|decal|graphic)\b',
+    r'\bwant\b.*\b(sign|banner|wrap|vinyl|lettering|decal|graphic)\b',
+]
+
+# Field extraction patterns
+QUANTITY_PATTERNS = [
+    r'^(\d+)$',  # Just a number as standalone response
+    r'(\d+)\s*(sign|banner|piece|unit|item|set|pair|each|qty|quantity)',
+    r'(qty|quantity|need|want|order)\s*[:\s]*(\d+)',
+    r'(\d+)\s*of\s*them',
+]
+
+SIZE_PATTERNS = [
+    r'(\d+)\s*(?:x|by|×)\s*(\d+)',  # 18x24, 18 by 24
+    r"(\d+)['\"]?\s*(?:x|by|×)\s*(\d+)['\"]?",  # 18"x24"
+    r'(\d+)\s*(?:inch|in|ft|foot|feet)',
+]
+
+MATERIAL_KEYWORDS = [
+    'coroplast', 'aluminum', 'aluminium', 'acm', 'dibond', 'pvc', 'foam', 'foamcore',
+    'acrylic', 'wood', 'mdo', 'plywood', 'sintra', 'styrene', 'metal', 'steel',
+    'magnetic', 'vinyl', 'banner', 'mesh', 'canvas', 'fabric', 'polyester',
+]
+
+PRODUCT_KEYWORDS = [
+    'sign', 'signs', 'banner', 'banners', 'yard sign', 'yard signs', 'step sign', 'step signs',
+    'a-frame', 'a frame', 'sandwich board', 'channel letter', 'channel letters',
+    'vehicle wrap', 'car wrap', 'truck wrap', 'van wrap', 'wrap', 'wraps',
+    'decal', 'decals', 'sticker', 'stickers', 'vinyl', 'lettering', 'window graphic',
+    'wall graphic', 'floor graphic', 'poster', 'posters', 'real estate sign',
+    'political sign', 'campaign sign', 'election sign', 'monument sign',
+]
+
+SIDES_KEYWORDS = {
+    'single': ['single', 'single-sided', 'single sided', 'one side', '1 side', 'one-sided'],
+    'double': ['double', 'double-sided', 'double sided', 'both sides', '2 side', 'two-sided', 'two sides'],
+}
+
+
+def detect_order_intent(message: str) -> bool:
+    """Detect if user wants to create an order/quote/job"""
+    message_lower = message.lower()
+    for pattern in ORDER_INTENT_PATTERNS:
+        if re.search(pattern, message_lower):
+            return True
+    return False
+
+
+def extract_customer_name(message: str) -> Optional[str]:
+    """Extract customer name from message"""
+    # Pattern: "for [Name]" or "customer [Name]" or "[Name]'s order"
+    patterns = [
+        r'\bfor\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)',  # "for Donald Black"
+        r'\bcustomer\s+(?:is\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)',  # "customer Donald Black"
+        r"([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)'s\s+(?:order|quote|job)",  # "Donald Black's order"
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, message)
+        if match:
+            name = match.group(1).strip()
+            # Filter out common false positives
+            if name.lower() not in ['the', 'a', 'an', 'some', 'my', 'this', 'that']:
+                return name
+    return None
+
+
+def extract_product_type(message: str) -> Optional[str]:
+    """Extract product/item type from message, preferring longer/more specific matches"""
+    message_lower = message.lower()
+    # Sort by length descending to match longer phrases first (e.g., "step signs" before "signs")
+    sorted_products = sorted(PRODUCT_KEYWORDS, key=len, reverse=True)
+    for product in sorted_products:
+        if product in message_lower:
+            return product
+    return None
+
+
+def extract_quantity(message: str, last_question: Optional[str] = None) -> Optional[int]:
+    """Extract quantity from message"""
+    message_lower = message.lower().strip()
+    
+    # If last question was about quantity, a standalone number is likely the answer
+    if last_question and 'how many' in last_question.lower():
+        match = re.match(r'^(\d+)$', message_lower)
+        if match:
+            return int(match.group(1))
+    
+    for pattern in QUANTITY_PATTERNS:
+        match = re.search(pattern, message_lower)
+        if match:
+            # Get the first numeric group
+            for group in match.groups():
+                if group and group.isdigit():
+                    return int(group)
+    return None
+
+
+def extract_size(message: str) -> Optional[str]:
+    """Extract size dimensions from message"""
+    for pattern in SIZE_PATTERNS:
+        match = re.search(pattern, message.lower())
+        if match:
+            groups = match.groups()
+            if len(groups) >= 2:
+                return f"{groups[0]}x{groups[1]}"
+            return match.group(0)
+    return None
+
+
+def extract_material(message: str) -> Optional[str]:
+    """Extract material from message"""
+    message_lower = message.lower()
+    for material in MATERIAL_KEYWORDS:
+        if material in message_lower:
+            return material
+    return None
+
+
+def extract_sides(message: str) -> Optional[str]:
+    """Extract single/double sided from message"""
+    message_lower = message.lower()
+    for side_type, keywords in SIDES_KEYWORDS.items():
+        for keyword in keywords:
+            if keyword in message_lower:
+                return side_type
+    return None
+
+
+def get_next_missing_field(draft: dict) -> Optional[str]:
+    """Determine the next field to ask about"""
+    order_items = draft.get('order_items', [])
+    if not order_items:
+        return 'product_type'
+    
+    item = order_items[0]  # Focus on first item for now
+    
+    # Priority order for questions
+    if item.get('quantity') is None:
+        return 'quantity'
+    if item.get('size') is None:
+        return 'size'
+    if item.get('material') is None:
+        return 'material'
+    if item.get('sides') is None:
+        return 'sides'
+    if item.get('design_notes') is None:
+        return 'design_notes'
+    if item.get('due_date') is None:
+        return 'due_date'
+    if item.get('delivery_method') is None:
+        return 'delivery_method'
+    
+    return None  # All fields captured
+
+
+def format_draft_for_prompt(draft: dict) -> str:
+    """Format the active order draft for inclusion in the LLM prompt"""
+    if not draft or draft.get('intent') != 'create_order':
+        return ""
+    
+    lines = ["## Active Order Draft:"]
+    
+    if draft.get('customer_name'):
+        lines.append(f"- Customer: {draft['customer_name']}")
+        if draft.get('customer_id'):
+            lines.append(f"  (Customer ID found: {draft['customer_id']})")
+    
+    order_items = draft.get('order_items', [])
+    if order_items:
+        item = order_items[0]
+        lines.append(f"- Product Type: {item.get('product_type') or 'Not specified'}")
+        if item.get('quantity'):
+            lines.append(f"- Quantity: {item['quantity']}")
+        if item.get('size'):
+            lines.append(f"- Size: {item['size']}")
+        if item.get('material'):
+            lines.append(f"- Material: {item['material']}")
+        if item.get('sides'):
+            lines.append(f"- Sides: {item['sides']}")
+        if item.get('design_notes'):
+            lines.append(f"- Design Notes: {item['design_notes']}")
+        if item.get('due_date'):
+            lines.append(f"- Due Date: {item['due_date']}")
+        if item.get('delivery_method'):
+            lines.append(f"- Delivery: {item['delivery_method']}")
+    
+    missing = get_next_missing_field(draft)
+    if missing:
+        lines.append(f"\n**Next field needed: {missing}**")
+    else:
+        lines.append("\n**All required fields captured. Ready to confirm and create order.**")
+    
+    if draft.get('last_question_asked'):
+        lines.append(f"\nLast question asked: \"{draft['last_question_asked']}\"")
+    
+    return "\n".join(lines)
+
+
+async def get_or_create_assistant_session(tenant_id: str, session_id: str) -> dict:
+    """Get or create an assistant session with order draft"""
+    session = await db.assistant_sessions.find_one(
+        {"tenant_id": tenant_id, "session_id": session_id},
+        {"_id": 0}
+    )
+    if not session:
+        session = {
+            "tenant_id": tenant_id,
+            "session_id": session_id,
+            "active_order_draft": None,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.assistant_sessions.insert_one(session)
+    return session
+
+
+async def update_assistant_session(tenant_id: str, session_id: str, draft: dict, last_question: str = None):
+    """Update the assistant session with new draft state"""
+    update_data = {
+        "active_order_draft": draft,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if last_question:
+        if draft:
+            draft['last_question_asked'] = last_question
+    
+    await db.assistant_sessions.update_one(
+        {"tenant_id": tenant_id, "session_id": session_id},
+        {"$set": update_data},
+        upsert=True
+    )
+
+
+async def lookup_customer_by_name(tenant_id: str, customer_name: str) -> Optional[dict]:
+    """Look up customer by name (case-insensitive partial match)"""
+    if not customer_name:
+        return None
+    
+    # Try exact match first
+    customer = await db.customers.find_one(
+        {"tenant_id": tenant_id, "name": {"$regex": f"^{re.escape(customer_name)}$", "$options": "i"}},
+        {"_id": 0, "id": 1, "name": 1, "company": 1, "email": 1}
+    )
+    if customer:
+        return customer
+    
+    # Try partial match
+    customers = await db.customers.find(
+        {"tenant_id": tenant_id, "name": {"$regex": re.escape(customer_name), "$options": "i"}},
+        {"_id": 0, "id": 1, "name": 1, "company": 1, "email": 1}
+    ).limit(5).to_list(5)
+    
+    if len(customers) == 1:
+        return customers[0]
+    
+    return None  # No match or multiple matches
+
+
+def process_user_message_for_draft(message: str, existing_draft: Optional[dict], last_question: Optional[str] = None) -> dict:
+    """Process user message and update/create order draft"""
+    
+    # Initialize or get existing draft
+    if existing_draft and existing_draft.get('intent') == 'create_order':
+        draft = existing_draft.copy()
+    else:
+        draft = {
+            "intent": None,
+            "customer_name": None,
+            "customer_id": None,
+            "order_items": [],
+            "last_question_asked": last_question,
+        }
+    
+    # Check for order intent
+    if detect_order_intent(message) or draft.get('intent') == 'create_order':
+        draft['intent'] = 'create_order'
+    
+    # Extract customer name
+    customer_name = extract_customer_name(message)
+    if customer_name and not draft.get('customer_name'):
+        draft['customer_name'] = customer_name
+    
+    # Extract product type
+    product_type = extract_product_type(message)
+    
+    # Initialize order item if needed
+    if not draft.get('order_items'):
+        draft['order_items'] = [{
+            'product_type': None,
+            'quantity': None,
+            'size': None,
+            'material': None,
+            'sides': None,
+            'design_notes': None,
+            'due_date': None,
+            'delivery_method': None,
+        }]
+    
+    item = draft['order_items'][0]
+    
+    # Update product type
+    if product_type and not item.get('product_type'):
+        item['product_type'] = product_type
+    
+    # Extract and update quantity
+    quantity = extract_quantity(message, last_question)
+    if quantity and not item.get('quantity'):
+        item['quantity'] = quantity
+    
+    # Extract and update size
+    size = extract_size(message)
+    if size and not item.get('size'):
+        item['size'] = size
+    
+    # Extract and update material
+    material = extract_material(message)
+    if material and not item.get('material'):
+        item['material'] = material
+    
+    # Extract and update sides
+    sides = extract_sides(message)
+    if sides and not item.get('sides'):
+        item['sides'] = sides
+    
+    return draft
+
+
 async def _get_job_category_breakdown(tenant_id: str) -> list:
     pipeline = [
         {"$match": {"tenant_id": tenant_id}},
@@ -1392,7 +1729,7 @@ async def ai_business_assistant(
     data: AIAssistantRequest,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """AI Business Assistant - Chat interface for sign shop operations with real shop data"""
+    """AI Business Assistant - Chat interface for sign shop operations with real shop data and order creation"""
     from emergentintegrations.llm.chat import LlmChat, UserMessage
     from services.multi_product_gate import get_multi_product_feature_gate
     
@@ -1426,7 +1763,26 @@ async def ai_business_assistant(
                 return value.content
             return str(value)
 
-        # Only fetch shop data if user has access
+        # ========== ORDER DRAFT MANAGEMENT ==========
+        # Get or create assistant session
+        session = await get_or_create_assistant_session(current_user.tenant_id, data.session_id)
+        existing_draft = session.get('active_order_draft')
+        last_question = existing_draft.get('last_question_asked') if existing_draft else None
+        
+        # Process user message to extract/update order draft
+        updated_draft = process_user_message_for_draft(data.message, existing_draft, last_question)
+        
+        # Look up customer if we have a name but no ID yet
+        if updated_draft.get('customer_name') and not updated_draft.get('customer_id'):
+            customer = await lookup_customer_by_name(current_user.tenant_id, updated_draft['customer_name'])
+            if customer:
+                updated_draft['customer_id'] = customer.get('id')
+                updated_draft['customer_match'] = customer
+        
+        # Format draft for inclusion in prompt
+        draft_context = format_draft_for_prompt(updated_draft) if updated_draft.get('intent') == 'create_order' else ""
+        
+        # ========== SHOP DATA CONTEXT ==========
         shop_data = None
         shop_summary = ""
         
@@ -1465,17 +1821,13 @@ async def ai_business_assistant(
 - Webstore Orders: {shop_data['webstores']['total_orders']}
 """
         else:
-            # Non-data-aware mode - provide generic sign shop context
             shop_summary = """
 ## Note: Operating in generic mode (no access to your business data)
 
 I can help with general sign shop questions, industry best practices, and advice,
 but I don't have access to your specific customer, job, or financial data.
-
-To get personalized insights based on your actual business data, please upgrade your plan.
 """
         
-        # Build conversation context from history
         # Build conversation context from history
         context_messages = ""
         if data.conversation_history:
@@ -1483,57 +1835,74 @@ To get personalized insights based on your actual business data, please upgrade 
                 role = "User" if msg.get("role") == "user" else "Assistant"
                 context_messages += f"{role}: {msg.get('content', '')}\n\n"
         
-        # Build system message based on data access level
-        if has_business_data_access and shop_data:
-            system_message = f"""You are the AI Business Assistant for SignGuy AI, a comprehensive sign shop management platform. You are chatting with {current_user.full_name or 'the owner'} from {shop_data['company_name']}.
+        # ========== BUILD SYSTEM MESSAGE ==========
+        # Add order creation instructions if there's an active draft
+        order_creation_instructions = ""
+        if updated_draft.get('intent') == 'create_order':
+            order_creation_instructions = f"""
+
+## ACTIVE ORDER CREATION MODE
+
+You are currently helping create an order. Here is the current order draft:
+
+{draft_context}
+
+### CRITICAL RULES FOR ORDER CREATION:
+1. **NEVER ask for information already in the draft above.** The user already provided it.
+2. **Ask for ONLY the next missing field.** Do not dump a list of questions.
+3. **When the user gives a short answer like "10" or "18x24", interpret it based on what you just asked.**
+4. **Always acknowledge what you captured before asking the next question.**
+
+### Question Order (skip any already captured):
+1. Quantity - "How many [product] do they need?"
+2. Size - "What size?" (common: 18x24, 24x36, 4x8 feet)
+3. Material - "What material?" (coroplast, aluminum, PVC, etc.)
+4. Sides - "Single-sided or double-sided?"
+5. Design - "Any design notes or do they have artwork?"
+6. Due date - "When do they need it by?"
+7. Delivery - "Pickup, delivery, or install?"
+
+### Good Response Examples:
+- User: "Make an order for Donald Black for step signs"
+  You: "Got it! Starting an order for Donald Black with step signs. How many step signs do they need?"
+
+- User: "10"
+  You: "Perfect, 10 step signs. What size - 18x24 is standard, or something different?"
+
+- User: "18 by 24 coroplast"
+  You: "Great - 10 step signs, 18x24 coroplast. Single-sided or double-sided?"
+
+### Bad Response Examples (NEVER DO THESE):
+- Asking "Who is this order for?" when customer_name is already set
+- Asking "What product/item?" when product_type is already set
+- Asking multiple questions at once
+- Ignoring a short answer like "10" and asking "What do you mean?"
+"""
+        
+        company_name = shop_data['company_name'] if shop_data else 'Your Shop'
+        
+        system_message = f"""You are the AI Business Assistant for SignGuy AI, a comprehensive sign shop management platform. You are chatting with {current_user.full_name or 'the owner'} from {company_name}.
 
 ## Your Role
-You have FULL ACCESS to this shop's real business data (shown below). Use this data to give SPECIFIC, PERSONALIZED answers - never generic advice.
+You are a smart, helpful assistant that can:
+1. Answer questions about running a sign shop
+2. Help CREATE ORDERS by collecting information step-by-step
+3. Provide business insights based on shop data
+{order_creation_instructions}
 
 {shop_summary}
 
 ## Your Knowledge
-- **Sign Industry Operations**: Vehicle wraps, channel letters, monument signs, banners, vinyl graphics, dimensional letters, LED signs, A-frames, window graphics, wall wraps, trade show displays
-- **Materials & Production**: Vinyl types (cast, calendered, reflective), substrates (ACM, PVC, MDO), laminates, print technologies, installation techniques
-- **Business Management**: Pricing strategies, profit margins (industry standard 40-60%), job costing, time tracking, workflow optimization
-- **SignGuy AI Features**: You know this platform has Quotes, Jobs, Invoices, Customers, Time Tracking, Webstores, Employee Portal, AI Tools, and more
+- **Sign Industry**: Vehicle wraps, channel letters, monument signs, banners, yard signs, step signs, vinyl graphics, A-frames, window graphics, real estate signs, political signs
+- **Materials**: Coroplast, aluminum, ACM/Dibond, PVC/Sintra, foam board, acrylic, MDO, vinyl
+- **Production**: Print technologies, lamination, cutting, installation techniques
+- **Business**: Pricing (40-60% margins typical), job costing, time tracking
 
-## How to Respond
-1. ALWAYS use the shop's actual data when answering questions about their business
-2. Reference specific numbers: "Your average job is ${shop_data['jobs']['average_value']:,.2f}" not "typically shops charge..."
-3. Identify their best-performing categories and customers from the data
-4. If asked about profit margins, calculate using THEIR data
-5. Be conversational but data-driven
-6. For questions about features, explain how to use SignGuy AI
-
-## Examples of Good Responses
-- "Looking at your data, your top category is [X] with $[Y] in revenue. Here's how to grow it..."
-- "Your quote conversion rate is {shop_data['quotes']['conversion_rate']}% - here are 3 ways to improve it..."
-- "Based on your {shop_data['jobs']['active']} active jobs, here's how to optimize workflow..."
-
-Never say "if you upload your data" or "tell me what software you use" - you already have their data!"""
-        else:
-            # Non-data-aware mode
-            system_message = f"""You are the AI Business Assistant for SignGuy AI, a comprehensive sign shop management platform.
-
-## Your Role
-You are operating in GENERAL ADVICE MODE. You can help with sign industry best practices, but you don't have access to this user's specific business data.
-
-{shop_summary}
-
-## Your Knowledge
-- **Sign Industry Operations**: Vehicle wraps, channel letters, monument signs, banners, vinyl graphics, dimensional letters, LED signs, A-frames, window graphics, wall wraps, trade show displays
-- **Materials & Production**: Vinyl types (cast, calendered, reflective), substrates (ACM, PVC, MDO), laminates, print technologies, installation techniques
-- **Business Management**: Pricing strategies, profit margins (industry standard 40-60%), job costing, time tracking, workflow optimization
-- **SignGuy AI Features**: You know this platform has Quotes, Jobs, Invoices, Customers, Time Tracking, Webstores, Employee Portal, AI Tools, and more
-
-## How to Respond
-1. Provide helpful general advice about the sign industry
-2. Share industry benchmarks and best practices
-3. If they ask about their specific data, politely explain you don't have access and suggest they upgrade for personalized insights
-4. Be conversational and helpful
-
-Note: For personalized insights based on their actual business data, users can upgrade to a Pro or Business plan."""
+## Response Style
+- Be conversational and helpful, not robotic
+- Keep responses concise - don't over-explain
+- If creating an order, stay focused on collecting the needed info
+- Acknowledge what you heard before asking the next question"""
         
         # Initialize chat with the session
         chat = LlmChat(
@@ -1551,6 +1920,34 @@ Note: For personalized insights based on their actual business data, users can u
         # Send message and get response
         response = await chat.send_message(UserMessage(text=full_prompt))
         assistant_text = normalize_llm_response(response)
+        
+        # Extract the question asked from the response (for tracking)
+        response_lower = assistant_text.lower()
+        detected_question = None
+        if 'how many' in response_lower:
+            detected_question = 'How many?'
+        elif 'what size' in response_lower:
+            detected_question = 'What size?'
+        elif 'what material' in response_lower:
+            detected_question = 'What material?'
+        elif 'single-sided' in response_lower or 'double-sided' in response_lower:
+            detected_question = 'Single or double sided?'
+        elif 'design' in response_lower or 'artwork' in response_lower:
+            detected_question = 'Design/artwork notes?'
+        elif 'when do they need' in response_lower or 'due date' in response_lower:
+            detected_question = 'Due date?'
+        elif 'pickup' in response_lower or 'delivery' in response_lower or 'install' in response_lower:
+            detected_question = 'Pickup/delivery/install?'
+        
+        # Save updated draft to session
+        if updated_draft.get('intent') == 'create_order':
+            await update_assistant_session(
+                current_user.tenant_id, 
+                data.session_id, 
+                updated_draft, 
+                detected_question
+            )
+        
         await deduct_credits_after_success(
             db,
             tenant_id=current_user.tenant_id,
@@ -1561,15 +1958,21 @@ Note: For personalized insights based on their actual business data, users can u
             metadata={"session_id": data.session_id, "message": data.message[:200]},
         )
         
-        # Log assistant conversation metadata separately from the credit ledger
+        # Log assistant conversation
         await db.ai_assistant_logs.insert_one({
             "tenant_id": current_user.tenant_id,
             "user_id": current_user.id,
             "tool": "business_assistant",
+            "has_order_draft": updated_draft.get('intent') == 'create_order',
             "created_at": datetime.now(timezone.utc).isoformat()
         })
         
-        return {"response": assistant_text}
+        # Include draft in response for frontend display
+        response_data = {"response": assistant_text}
+        if updated_draft.get('intent') == 'create_order':
+            response_data["active_order_draft"] = updated_draft
+        
+        return response_data
         
     except Exception as e:
         await log_failed_ai_usage(
