@@ -38,10 +38,14 @@ Each P0 item is being implemented one at a time on user request.
    - UI: "Billing & Dunning" card on tenant detail with failed-attempts counter, timestamps, auto-suspended badge, "Mark as Paid" button + dialog.
    - Wired into existing Stripe webhook handlers `handle_invoice_payment_failed` and `handle_invoice_payment_succeeded`.
 
-4. **Email Deliverability Dashboard + Un-mock SendGrid** — PARTIAL
-   - SendGrid is currently mocked. Real delivery is the precondition.
-   - Need: bounces / spam complaints / last-sent timestamp per tenant, surfaced on Platform Admin tenant detail.
-   - Re-use existing `email_logs` collection.
+4. **Email Deliverability Dashboard + un-mock SendGrid** ✅ DONE (Feb 15, 2026)
+   - SendGrid is **already live** (verified by 202 responses on real welcome-back / payment emails).
+   - Schema: `email_logs.delivery_status`, `email_logs.sg_message_id`, `email_logs.events[]`. Back-filled 40 historical records.
+   - SendGrid Event Webhook: `POST /api/webhook/sendgrid` matches events to `email_logs` and refines `delivery_status`.
+   - New endpoints: `GET /api/platform-admin/email-logs` (filterable), `GET /api/platform-admin/email-logs/summary` (aggregate counts).
+   - Page: `/platform-admin/email-logs` with summary tiles + filterable table + detail dialog showing every captured event.
+   - Per-tenant deliverability tile on tenant detail page (auto-hides when no email history).
+   - To finish the deployment side: configure SendGrid → Settings → Mail Settings → Event Webhook → URL = `https://<host>/api/webhook/sendgrid`, then enable the "Bounced", "Spam Reports", "Dropped", "Delivered" toggles.
 
 5. **System-wide Announcement Banner + Maintenance Mode Toggle** — NOT STARTED
    - Single global banner ("We deploy at 11pm ET", outage notices) controllable by Platform Admin.

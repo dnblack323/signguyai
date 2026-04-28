@@ -43,18 +43,22 @@ export default function PlatformAdminTenantDetail() {
   const navigate = useNavigate();
   const [tenant, setTenant] = useState(null);
   const [users, setUsers] = useState([]);
+  const [emailSummary, setEmailSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [impersonating, setImpersonating] = useState(false);
   const [showSuspendDialog, setShowSuspendDialog] = useState(false);
   const [showReactivateDialog, setShowReactivateDialog] = useState(false);
   const [showMarkPaidDialog, setShowMarkPaidDialog] = useState(false);
+  const [showThresholdDialog, setShowThresholdDialog] = useState(false);
   const [suspensionReason, setSuspensionReason] = useState('');
   const [reactivationNote, setReactivationNote] = useState('');
   const [markPaidNote, setMarkPaidNote] = useState('');
+  const [thresholdValue, setThresholdValue] = useState('');
   const [notifyOwnerOnReactivate, setNotifyOwnerOnReactivate] = useState(true);
   const [suspending, setSuspending] = useState(false);
   const [reactivating, setReactivating] = useState(false);
   const [markingPaid, setMarkingPaid] = useState(false);
+  const [savingThreshold, setSavingThreshold] = useState(false);
 
   // Redirect if not platform admin
   useEffect(() => {
@@ -96,6 +100,20 @@ export default function PlatformAdminTenantDetail() {
       const data = await response.json();
       setTenant(data.tenant);
       setUsers(data.users);
+
+      // Best-effort email deliverability summary for this tenant
+      try {
+        const sumRes = await fetch(
+          `${BACKEND_URL}/api/platform-admin/email-logs/summary?tenant_id=${tenantId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (sumRes.ok) {
+          const sum = await sumRes.json();
+          setEmailSummary(sum);
+        }
+      } catch (e) {
+        /* non-fatal */
+      }
     } catch (error) {
       console.error('Error fetching tenant details:', error);
       toast.error('Failed to load tenant details');
@@ -275,6 +293,50 @@ export default function PlatformAdminTenantDetail() {
     }
   };
 
+  const handleSaveThreshold = async () => {
+    setSavingThreshold(true);
+    try {
+      const token = getAuthToken();
+      const trimmed = thresholdValue.trim();
+      const parsed = trimmed === '' ? null : parseInt(trimmed, 10);
+      if (parsed !== null && (Number.isNaN(parsed) || parsed < 1)) {
+        toast.error('Threshold must be a positive integer (or empty to clear)');
+        setSavingThreshold(false);
+        return;
+      }
+      const response = await fetch(
+        `${BACKEND_URL}/api/platform-admin/tenants/${tenantId}/dunning-threshold`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ threshold: parsed }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          (data?.detail && (typeof data.detail === 'string' ? data.detail : data.detail.message)) ||
+            'Failed to update threshold'
+        );
+      }
+      toast.success(
+        parsed === null
+          ? 'Threshold cleared — using global default'
+          : `Threshold set to ${parsed}`
+      );
+      if (data.tenant) setTenant(data.tenant);
+      setShowThresholdDialog(false);
+    } catch (err) {
+      console.error('Threshold save error:', err);
+      toast.error(err.message || 'Failed to update threshold');
+    } finally {
+      setSavingThreshold(false);
+    }
+  };
+
   if (user?.role !== 'platform_admin') {
     return null;
   }
@@ -386,11 +448,15 @@ export default function PlatformAdminTenantDetail() {
         {/* Billing & Dunning card */}
         {(tenant.payment_failed_count > 0 ||
           tenant.auto_suspended_for_payment ||
-          tenant.last_payment_succeeded_at) && (
+          tenant.last_payment_succeeded_at ||
+          tenant.dunning_failure_threshold ||
+          tenant.is_founder) && (
           <Card
             className={`mb-6 ${
               tenant.auto_suspended_for_payment
                 ? 'border-red-200'
+                : tenant.grace_period_until
+                ? 'border-amber-300'
                 : tenant.payment_failed_count > 0
                 ? 'border-amber-200'
                 : 'border-emerald-200'
@@ -398,15 +464,24 @@ export default function PlatformAdminTenantDetail() {
             data-testid="tenant-billing-card"
           >
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
+              <CardTitle className="flex items-center gap-2 text-base flex-wrap">
                 <CreditCard className="w-4 h-4" /> Billing & Dunning
                 {tenant.auto_suspended_for_payment && (
                   <Badge
                     variant="outline"
-                    className="bg-red-100 text-red-900 border-red-300 ml-2"
+                    className="bg-red-100 text-red-900 border-red-300"
                     data-testid="tenant-auto-suspended-badge"
                   >
                     Auto-suspended for non-payment
+                  </Badge>
+                )}
+                {tenant.is_founder && (
+                  <Badge
+                    variant="outline"
+                    className="bg-purple-100 text-purple-900 border-purple-300"
+                    data-testid="tenant-founder-badge"
+                  >
+                    Founder · 24h grace applies
                   </Badge>
                 )}
               </CardTitle>
@@ -429,6 +504,9 @@ export default function PlatformAdminTenantDetail() {
                   >
                     {tenant.payment_failed_count || 0}
                   </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Threshold: <strong>{tenant.dunning_failure_threshold || 'default (3)'}</strong>
+                  </div>
                 </div>
                 <div>
                   <div className="text-xs uppercase tracking-wide text-gray-500">
@@ -450,7 +528,7 @@ export default function PlatformAdminTenantDetail() {
                       : '—'}
                   </div>
                 </div>
-                <div className="flex items-end">
+                <div className="flex flex-col gap-2 items-stretch">
                   <Button
                     variant="outline"
                     size="sm"
@@ -460,15 +538,109 @@ export default function PlatformAdminTenantDetail() {
                     <DollarSign className="w-4 h-4 mr-1" />
                     Mark as Paid
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setThresholdValue(
+                        tenant.dunning_failure_threshold
+                          ? String(tenant.dunning_failure_threshold)
+                          : ''
+                      );
+                      setShowThresholdDialog(true);
+                    }}
+                    data-testid="tenant-threshold-btn"
+                  >
+                    Set Threshold
+                  </Button>
                 </div>
               </div>
+              {tenant.grace_period_until && (
+                <p
+                  className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded p-2 mt-3"
+                  data-testid="tenant-grace-banner"
+                >
+                  <strong>In grace period:</strong> auto-suspend held until{' '}
+                  {new Date(tenant.grace_period_until).toLocaleString()}.
+                  Next failed payment after that time will suspend the tenant.
+                </p>
+              )}
               {tenant.payment_failed_count > 0 &&
-                !tenant.auto_suspended_for_payment && (
+                !tenant.auto_suspended_for_payment &&
+                !tenant.grace_period_until && (
                   <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded p-2 mt-3">
-                    <strong>Heads up:</strong> The next failed payment attempt will
-                    auto-suspend this tenant.
+                    <strong>Heads up:</strong>{' '}
+                    {tenant.is_founder
+                      ? 'Reaching the threshold will start a 24-hour grace window before suspension.'
+                      : 'The next failed payment attempt at or above the threshold will auto-suspend this tenant.'}
                   </p>
                 )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Email Deliverability mini-tile */}
+        {emailSummary && emailSummary.total > 0 && (
+          <Card
+            className={`mb-6 ${
+              emailSummary.bounced + emailSummary.complaints > 0
+                ? 'border-red-200'
+                : 'border-emerald-200'
+            }`}
+            data-testid="tenant-email-deliverability-card"
+          >
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Mail className="w-4 h-4" /> Email Deliverability (this tenant)
+                {emailSummary.bounced + emailSummary.complaints > 0 && (
+                  <Badge
+                    variant="outline"
+                    className="bg-red-100 text-red-900 border-red-300"
+                  >
+                    Issues detected
+                  </Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-sm">
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-gray-500">Total</div>
+                  <div className="text-xl font-bold">{emailSummary.total}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-gray-500">Delivered</div>
+                  <div className="text-xl font-bold text-emerald-700">{emailSummary.delivered}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-gray-500">Pending</div>
+                  <div className="text-xl font-bold text-amber-700">{emailSummary.pending}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-gray-500">Bounced</div>
+                  <div className={`text-xl font-bold ${emailSummary.bounced > 0 ? 'text-red-700' : 'text-gray-400'}`}>
+                    {emailSummary.bounced}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-gray-500">Complaints</div>
+                  <div className={`text-xl font-bold ${emailSummary.complaints > 0 ? 'text-red-700' : 'text-gray-400'}`}>
+                    {emailSummary.complaints}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    navigate(`/platform-admin/email-logs?tenant=${tenantId}`)
+                  }
+                  data-testid="tenant-view-email-logs-btn"
+                >
+                  View detailed email logs →
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -820,6 +992,54 @@ export default function PlatformAdminTenantDetail() {
               data-testid="tenant-mark-paid-confirm-btn"
             >
               {markingPaid ? 'Saving…' : 'Mark as Paid'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Set Dunning Threshold Dialog */}
+      <Dialog open={showThresholdDialog} onOpenChange={setShowThresholdDialog}>
+        <DialogContent data-testid="tenant-threshold-dialog">
+          <DialogHeader>
+            <DialogTitle>Set dunning threshold</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-gray-700">
+              Override how many consecutive failed payments are allowed before
+              this tenant is auto-suspended. Leave blank to use the global default.
+            </p>
+            <div>
+              <label className="text-xs font-medium text-gray-700 block mb-1">
+                Threshold (positive integer or empty)
+              </label>
+              <input
+                type="number"
+                min={1}
+                value={thresholdValue}
+                onChange={(e) => setThresholdValue(e.target.value)}
+                className="w-full border rounded-md px-3 py-2 text-sm"
+                placeholder="e.g., 5"
+                data-testid="tenant-threshold-input"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Tip: enterprise / NET-60 customers often need 5–7 attempts. Founders
+                additionally get a 24-hour grace window after the threshold is hit.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setShowThresholdDialog(false)}
+              disabled={savingThreshold}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveThreshold}
+              disabled={savingThreshold}
+              data-testid="tenant-threshold-save-btn"
+            >
+              {savingThreshold ? 'Saving…' : 'Save'}
             </Button>
           </DialogFooter>
         </DialogContent>

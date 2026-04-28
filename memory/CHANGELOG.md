@@ -1,5 +1,26 @@
 # SignGuy AI - Changelog
 
+## February 15, 2026 (Items #3+ refinements + Item #4)
+
+### Dunning Refinements
+- **Founder 24-hour grace period.** When a tenant flagged `is_founder` (or with any user where `users.is_founder=True`) hits the failure threshold, the system starts a 24-hour grace window (`grace_period_until` on the tenant doc) and writes a new audit row `dunning.grace_started`. The next failure that arrives **after** the grace expires triggers the actual auto-suspend; payment success during the window clears it. Hours configurable via env `DUNNING_FOUNDER_GRACE_HOURS` (default 24).
+- **Per-tenant failure threshold override.** Tenant doc gains `dunning_failure_threshold` (positive int, or null = use global default). New endpoint `PUT /api/platform-admin/tenants/{id}/dunning-threshold` lets a Platform Admin set or clear it. Audit action: `dunning.threshold_set`.
+- **`is_founder` surfaced on TenantDetail.** Computed on the fly from any user's `is_founder=True` and exposed via a small `_enrich_with_founder_flag` helper used on every tenant-mutation endpoint.
+- **Stripe webhook E2E test.** New `backend/tests/test_dunning_webhook_e2e.py` posts synthetic `invoice.payment_failed` and `invoice.payment_succeeded` events to the live `/api/webhook/stripe` and asserts: (1) auto-suspend at 3 failures, (2) auto-reactivate on success, (3) founder grace window starts instead of immediate suspend, (4) per-tenant threshold of 5 holds until attempt 5. **All 4 phases pass.**
+- **UI:** dunning card now shows the active threshold ("Threshold: 3 (default)" or "Threshold: 5"), a purple "Founder · 24h grace applies" badge when applicable, and an amber grace-window banner showing the suspension hold timestamp. New "Set Threshold" button + dialog.
+
+### Item #4 — Email Deliverability Dashboard (NEW)
+- Confirmed **SendGrid is already live** (multiple 202 responses observed in production logs).
+- New `email_logs` schema additions: `delivery_status`, `sg_message_id`, `events[]`. Existing 40 records back-filled with `delivery_status: "sent"`.
+- New SendGrid Event Webhook handler at `POST /api/webhook/sendgrid` — accepts the standard SendGrid array payload. Matches events to `email_logs` by `sg_message_id` prefix, refines `delivery_status` (delivered / deferred / bounce / dropped / spamreport / blocked), appends the event to the log's `events[]`, and bumps `email_bounce_count` / `email_spam_count` on the tenant.
+- New endpoints (Platform Admin):
+  - `GET /api/platform-admin/email-logs` — filterable by tenant_id, delivery_status, to_email, since, until.
+  - `GET /api/platform-admin/email-logs/summary` — aggregate counts (total / delivered / pending / bounced / complaints / failed).
+- New page `/platform-admin/email-logs` with summary tiles, filter bar (recipient, status, tenant), table, and detail dialog (subject, sg_message_id, every captured SendGrid event with its reason).
+- New "Email Deliverability (this tenant)" mini-tile on `PlatformAdminTenantDetail.js` — auto-hides when there are zero emails.
+- "Email Deliverability" button on the Platform Admin home page.
+- **Verified end-to-end:** sent a real email (got `sg_message_id`), POSTed a synthetic bounce event to `/api/webhook/sendgrid`, watched `delivery_status` flip from `sent` → `bounce`, the event saved to the log's events array, summary updated to show `bounced: 1`, `email_bounce_count` incremented on the tenant.
+
 ## February 15, 2026 (later — Item #3)
 - **Failed-Payment / Dunning Workflow (NEW)** — top-5 prelaunch platform gap #3
   - New service `services/dunning.py` with `record_payment_failure()` and `record_payment_success()` — single source of truth for dunning state.

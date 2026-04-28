@@ -11,28 +11,71 @@ Tracked on the tenant document:
     last_payment_failure_at       iso   most recent failure
     auto_suspended_for_payment    bool  set true when this service triggered the suspension
     last_payment_succeeded_at     iso
+    grace_period_until            iso   if set, no auto-suspend before this time
+    dunning_failure_threshold     int   per-tenant override for AUTO_SUSPEND_AFTER_FAILURES
 
 Tracked in the audit log under category="billing":
     payment.failed
+    dunning.grace_started
     dunning.auto_suspend
     payment.succeeded
     dunning.auto_reactivate
     payment.manual_mark_paid
 
 Auto-suspend threshold: AUTO_SUSPEND_AFTER_FAILURES (default 3).
+Founders / explicitly-flagged tenants get a `FOUNDER_GRACE_HOURS` (default 24)
+grace window before the auto-suspend actually fires.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Any
 import os
 
 from services.admin_audit import log_admin_action
 
 AUTO_SUSPEND_AFTER_FAILURES = int(os.environ.get("DUNNING_AUTO_SUSPEND_AFTER", "3"))
+FOUNDER_GRACE_HOURS = int(os.environ.get("DUNNING_FOUNDER_GRACE_HOURS", "24"))
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return _now().isoformat()
+
+
+def _parse_iso(value: Optional[str]) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except Exception:
+        return None
+
+
+def _resolve_threshold(tenant: dict) -> int:
+    """Per-tenant override > env default."""
+    override = tenant.get("dunning_failure_threshold")
+    if isinstance(override, int) and override > 0:
+        return override
+    return AUTO_SUSPEND_AFTER_FAILURES
+
+
+def _is_grace_eligible(tenant: dict) -> bool:
+    """
+    A tenant is eligible for the founder grace window if:
+      - Any user in the tenant is a founder, OR
+      - The tenant doc itself is flagged is_founder / is_platform_owner.
+    Since `users.is_founder` is per-user, callers may pass a tenant doc
+    enriched via _enrich_with_founder_flag() — but as a safe default we
+    look at known tenant-level flags directly.
+    """
+    return bool(
+        tenant.get("is_founder")
+        or tenant.get("is_platform_owner")
+        or tenant.get("_grace_eligible")
+    )
 
 
 async def _get_owner_email(db, tenant: dict) -> Optional[str]:
@@ -52,6 +95,7 @@ async def record_payment_failure(
     Record a failed payment for a tenant. Returns the post-state including:
     {
         "tenant_id", "payment_failed_count", "auto_suspended": bool,
+        "grace_started": bool, "grace_period_until": iso|None,
         "email_sent": bool, "email_status": dict|None
     }
     """
@@ -59,9 +103,21 @@ async def record_payment_failure(
     if not tenant:
         return {"tenant_id": tenant_id, "found": False}
 
-    now = _now_iso()
+    # Resolve grace eligibility from users (any founder user makes the tenant grace-eligible)
+    if not _is_grace_eligible(tenant):
+        founder_user = await db.users.find_one(
+            {"tenant_id": tenant_id, "is_founder": True}, {"_id": 0, "id": 1}
+        )
+        if founder_user:
+            tenant["_grace_eligible"] = True
+
+    threshold = _resolve_threshold(tenant)
+    grace_eligible = _is_grace_eligible(tenant)
+
+    now_dt = _now()
+    now = now_dt.isoformat()
     new_count = int(tenant.get("payment_failed_count") or 0) + 1
-    update_doc = {
+    update_doc: Dict[str, Any] = {
         "payment_failed_count": new_count,
         "last_payment_failure_at": now,
         "updated_at": now,
@@ -69,9 +125,7 @@ async def record_payment_failure(
     if not tenant.get("first_payment_failure_at"):
         update_doc["first_payment_failure_at"] = now
 
-    await db.tenants.update_one({"id": tenant_id}, {"$set": update_doc})
-
-    # Audit log
+    # Audit the failure first
     await log_admin_action(
         db,
         action="payment.failed",
@@ -84,27 +138,64 @@ async def record_payment_failure(
         summary=f"Payment failed (attempt {new_count}) for {tenant.get('name')}",
         metadata={
             "attempt": new_count,
+            "threshold": threshold,
             "amount": amount,
             "currency": currency,
             "stripe_invoice_id": stripe_invoice_id,
             "stripe_subscription_id": stripe_subscription_id,
+            "grace_eligible": grace_eligible,
         },
     )
 
     auto_suspended = False
-    email_status = None
+    grace_started = False
+    grace_period_until: Optional[str] = tenant.get("grace_period_until")
+    grace_until_dt = _parse_iso(grace_period_until)
 
-    # Auto-suspend if past threshold and not already suspended.
-    if new_count >= AUTO_SUSPEND_AFTER_FAILURES and tenant.get("is_active") is not False:
-        # Skip auto-suspend if tenant contains a platform_admin user (self-lockout protection)
+    if (
+        new_count >= threshold
+        and tenant.get("is_active") is not False
+    ):
+        # Self-lockout protection: never auto-suspend a tenant that contains a platform_admin user
         pa_count = await db.users.count_documents({
             "tenant_id": tenant_id,
             "role": "platform_admin",
         })
         if pa_count == 0:
-            await db.tenants.update_one(
-                {"id": tenant_id},
-                {"$set": {
+            # Founder grace window: hold off on the actual suspension for 24 h
+            in_active_grace = grace_until_dt is not None and grace_until_dt > now_dt
+
+            if grace_eligible and not grace_until_dt:
+                # First time we hit threshold for a founder → start the grace clock
+                grace_until = now_dt + timedelta(hours=FOUNDER_GRACE_HOURS)
+                grace_period_until = grace_until.isoformat()
+                update_doc["grace_period_until"] = grace_period_until
+                grace_started = True
+                await log_admin_action(
+                    db,
+                    action="dunning.grace_started",
+                    action_category="billing",
+                    target_type="tenant",
+                    target_id=tenant_id,
+                    target_label=tenant.get("name"),
+                    tenant_id=tenant_id,
+                    tenant_name=tenant.get("name"),
+                    summary=(
+                        f"Founder grace period started for {tenant.get('name')} — "
+                        f"auto-suspend held until {grace_period_until}"
+                    ),
+                    metadata={
+                        "grace_period_until": grace_period_until,
+                        "grace_hours": FOUNDER_GRACE_HOURS,
+                        "failure_count": new_count,
+                    },
+                )
+            elif grace_eligible and in_active_grace:
+                # Still inside the grace window — record the failure but don't suspend
+                pass
+            else:
+                # Either non-founder OR grace expired → suspend now
+                update_doc.update({
                     "is_active": False,
                     "suspension_reason": (
                         f"Non-payment: {new_count} consecutive failed payment attempts"
@@ -113,30 +204,37 @@ async def record_payment_failure(
                     "suspended_by": "system:dunning",
                     "suspended_by_email": "system@dunning",
                     "auto_suspended_for_payment": True,
+                    "grace_period_until": None,
                     "reactivated_at": None,
                     "reactivated_by": None,
                     "reactivated_by_email": None,
-                    "updated_at": now,
-                }},
-            )
-            auto_suspended = True
-            await log_admin_action(
-                db,
-                action="dunning.auto_suspend",
-                action_category="billing",
-                target_type="tenant",
-                target_id=tenant_id,
-                target_label=tenant.get("name"),
-                tenant_id=tenant_id,
-                tenant_name=tenant.get("name"),
-                summary=(
-                    f"Auto-suspended {tenant.get('name')} after {new_count} "
-                    "consecutive failed payments"
-                ),
-                metadata={"failure_count": new_count},
-            )
+                })
+                auto_suspended = True
+                await log_admin_action(
+                    db,
+                    action="dunning.auto_suspend",
+                    action_category="billing",
+                    target_type="tenant",
+                    target_id=tenant_id,
+                    target_label=tenant.get("name"),
+                    tenant_id=tenant_id,
+                    tenant_name=tenant.get("name"),
+                    summary=(
+                        f"Auto-suspended {tenant.get('name')} after {new_count} "
+                        "consecutive failed payments"
+                    ),
+                    metadata={
+                        "failure_count": new_count,
+                        "threshold": threshold,
+                        "grace_eligible": grace_eligible,
+                        "grace_expired": bool(grace_until_dt and grace_until_dt <= now_dt),
+                    },
+                )
+
+    await db.tenants.update_one({"id": tenant_id}, {"$set": update_doc})
 
     # Send email
+    email_status = None
     owner_email = await _get_owner_email(db, tenant)
     if owner_email:
         try:
@@ -148,7 +246,7 @@ async def record_payment_failure(
                     tenant_id=tenant_id,
                 )
             else:
-                attempts_remaining = max(AUTO_SUSPEND_AFTER_FAILURES - new_count, 0)
+                attempts_remaining = max(threshold - new_count, 0)
                 email_status = await email_service.send_payment_failed_email(
                     owner_email=owner_email,
                     tenant_name=tenant.get("name") or "your account",
@@ -164,7 +262,10 @@ async def record_payment_failure(
     return {
         "tenant_id": tenant_id,
         "payment_failed_count": new_count,
+        "threshold": threshold,
         "auto_suspended": auto_suspended,
+        "grace_started": grace_started,
+        "grace_period_until": grace_period_until,
         "email_status": email_status,
     }
 
@@ -189,6 +290,7 @@ async def record_payment_success(
     update_doc: Dict[str, Any] = {
         "payment_failed_count": 0,
         "first_payment_failure_at": None,
+        "grace_period_until": None,
         "last_payment_succeeded_at": now,
         "updated_at": now,
     }

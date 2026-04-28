@@ -66,6 +66,7 @@ import PaymentSettings from "./pages/Admin/PaymentSettings";
 import PlatformAdmin from "./pages/PlatformAdmin";
 import PlatformAdminTenantDetail from "./pages/PlatformAdminTenantDetail";
 import PlatformAdminAuditLog from "./pages/PlatformAdminAuditLog";
+import PlatformAdminEmailLogs from "./pages/PlatformAdminEmailLogs";
 import AccountSuspended from "./pages/AccountSuspended";
 
 // Customer Portal Pages
@@ -236,6 +237,7 @@ function ProtectedRoutes() {
           {/* Platform Admin Routes */}
           <Route path="/platform-admin" element={<PlatformAdmin />} />
           <Route path="/platform-admin/audit-log" element={<PlatformAdminAuditLog />} />
+          <Route path="/platform-admin/email-logs" element={<PlatformAdminEmailLogs />} />
           <Route path="/platform-admin/tenants/:tenantId" element={<PlatformAdminTenantDetail />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

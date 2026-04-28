@@ -96,6 +96,9 @@ class TenantDetail(BaseModel):
     last_payment_failure_at: Optional[str] = None
     last_payment_succeeded_at: Optional[str] = None
     auto_suspended_for_payment: bool = False
+    grace_period_until: Optional[str] = None
+    dunning_failure_threshold: Optional[int] = None
+    is_founder: bool = False
 
 
 class ImpersonateRequest(BaseModel):
@@ -113,6 +116,21 @@ class ReactivateTenantRequest(BaseModel):
 
 class MarkPaidRequest(BaseModel):
     note: Optional[str] = None
+
+
+class DunningThresholdRequest(BaseModel):
+    threshold: Optional[int] = None  # None = use global default
+
+
+async def _enrich_with_founder_flag(tenant: dict) -> dict:
+    """Attach a computed `is_founder` flag based on the tenant's users."""
+    if not tenant:
+        return tenant
+    has_founder = await db.users.count_documents(
+        {"tenant_id": tenant["id"], "is_founder": True}
+    )
+    tenant["is_founder"] = has_founder > 0
+    return tenant
 
 
 # ============== CONSTANTS ==============
@@ -256,6 +274,9 @@ async def get_tenant_detail(
                 "error": str(e)
             })
     
+    # Enrich tenant doc with computed `is_founder` (any founder user in the tenant)
+    await _enrich_with_founder_flag(tenant)
+
     return {
         "tenant": TenantDetail(**tenant),
         "users": valid_users,
@@ -342,6 +363,7 @@ async def suspend_tenant(
     )
 
     updated = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    await _enrich_with_founder_flag(updated)
     return {
         "message": "Tenant suspended",
         "tenant": TenantDetail(**updated),
@@ -411,6 +433,7 @@ async def reactivate_tenant(
     )
 
     updated = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    await _enrich_with_founder_flag(updated)
 
     # Optional: send "You're back" email to the owner.
     email_status: Optional[Dict[str, Any]] = None
@@ -486,10 +509,69 @@ async def mark_tenant_paid(
     )
 
     updated = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    await _enrich_with_founder_flag(updated)
     return {
         "message": "Tenant marked as paid",
         "tenant": TenantDetail(**updated),
         "auto_reactivated": result.get("auto_reactivated", False),
+    }
+
+
+@router.put("/tenants/{tenant_id}/dunning-threshold")
+async def set_dunning_threshold(
+    tenant_id: str,
+    payload: DunningThresholdRequest,
+    http_request: Request,
+    current_user: UserInDB = Depends(require_platform_admin)
+):
+    """
+    Set or clear a per-tenant override for the dunning failure threshold.
+    Pass `threshold=null` to clear the override and use the global default
+    (env: DUNNING_AUTO_SUSPEND_AFTER, default 3).
+    """
+    if payload.threshold is not None and payload.threshold < 1:
+        raise HTTPException(status_code=400, detail="threshold must be >= 1 (or null to clear)")
+
+    tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.tenants.update_one(
+        {"id": tenant_id},
+        {"$set": {
+            "dunning_failure_threshold": payload.threshold,
+            "updated_at": now_iso,
+        }},
+    )
+
+    await log_admin_action(
+        db,
+        request=http_request,
+        actor=current_user,
+        action="dunning.threshold_set",
+        action_category="billing",
+        target_type="tenant",
+        target_id=tenant_id,
+        target_label=tenant.get("name"),
+        tenant_id=tenant_id,
+        tenant_name=tenant.get("name"),
+        summary=(
+            f"Set dunning threshold to {payload.threshold} for {tenant.get('name')}"
+            if payload.threshold is not None
+            else f"Cleared dunning threshold override for {tenant.get('name')}"
+        ),
+        metadata={
+            "previous": tenant.get("dunning_failure_threshold"),
+            "new": payload.threshold,
+        },
+    )
+
+    updated = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    await _enrich_with_founder_flag(updated)
+    return {
+        "message": "Dunning threshold updated",
+        "tenant": TenantDetail(**updated),
     }
 
 

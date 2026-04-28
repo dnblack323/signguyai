@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
-import { Search, Users, ChevronRight, Shield, ScrollText } from 'lucide-react';
+import { Search, Users, ChevronRight, Shield, ScrollText, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAuthToken } from '../lib/authStorage';
 
@@ -96,14 +96,24 @@ export default function PlatformAdmin() {
               Manage tenant accounts and provide support access
             </p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/platform-admin/audit-log')}
-            data-testid="platform-admin-audit-log-btn"
-          >
-            <ScrollText className="w-4 h-4 mr-1" />
-            View Audit Log
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/platform-admin/email-logs')}
+              data-testid="platform-admin-email-logs-btn"
+            >
+              <Mail className="w-4 h-4 mr-1" />
+              Email Deliverability
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/platform-admin/audit-log')}
+              data-testid="platform-admin-audit-log-btn"
+            >
+              <ScrollText className="w-4 h-4 mr-1" />
+              View Audit Log
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}

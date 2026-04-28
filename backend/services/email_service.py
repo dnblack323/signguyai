@@ -132,18 +132,35 @@ class EmailService:
             
             sg = SendGridAPIClient(self.api_key)
             response = sg.send(message)
-            
+
+            # Capture SendGrid's message ID so we can correlate later events
+            sg_message_id = None
+            try:
+                if hasattr(response, "headers") and response.headers:
+                    # response.headers is a dict-like
+                    sg_message_id = (
+                        response.headers.get("X-Message-Id")
+                        or response.headers.get("x-message-id")
+                    )
+            except Exception:
+                pass
+
             # Log the email send
             await self._log_email(
                 tenant_id=tenant_id,
                 to_email=to_email,
                 subject=subject,
                 status="sent",
-                response_code=response.status_code
+                response_code=response.status_code,
+                sg_message_id=sg_message_id,
             )
-            
+
             logger.info(f"Email sent to {to_email}, status: {response.status_code}")
-            return {"success": True, "status_code": response.status_code}
+            return {
+                "success": True,
+                "status_code": response.status_code,
+                "sg_message_id": sg_message_id,
+            }
             
         except Exception as e:
             logger.error(f"Failed to send email to {to_email}: {str(e)}")
@@ -163,7 +180,8 @@ class EmailService:
         subject: str,
         status: str,
         response_code: Optional[int] = None,
-        error: Optional[str] = None
+        error: Optional[str] = None,
+        sg_message_id: Optional[str] = None,
     ):
         """Log email to database for tracking"""
         log_entry = {
@@ -174,6 +192,9 @@ class EmailService:
             "status": status,
             "response_code": response_code,
             "error": error,
+            "sg_message_id": sg_message_id,
+            "delivery_status": status,  # mirrors `status` until events refine it
+            "events": [],
             "sent_at": datetime.now(timezone.utc).isoformat()
         }
         await db.email_logs.insert_one(log_entry)
