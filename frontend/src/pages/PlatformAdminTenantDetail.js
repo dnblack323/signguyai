@@ -4,6 +4,15 @@ import { useAuth } from '../context/AuthContext';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../components/ui/dialog';
+import { Textarea } from '../components/ui/textarea';
+import { Badge } from '../components/ui/badge';
 import OnboardingChecklistTab from '../components/OnboardingChecklistTab';
 import {
   ArrowLeft,
@@ -17,6 +26,9 @@ import {
   Shield,
   Calendar,
   ClipboardCheck,
+  Ban,
+  CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAuthToken, setAuthToken } from '../lib/authStorage';
@@ -31,6 +43,12 @@ export default function PlatformAdminTenantDetail() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [impersonating, setImpersonating] = useState(false);
+  const [showSuspendDialog, setShowSuspendDialog] = useState(false);
+  const [showReactivateDialog, setShowReactivateDialog] = useState(false);
+  const [suspensionReason, setSuspensionReason] = useState('');
+  const [reactivationNote, setReactivationNote] = useState('');
+  const [suspending, setSuspending] = useState(false);
+  const [reactivating, setReactivating] = useState(false);
 
   // Redirect if not platform admin
   useEffect(() => {
@@ -84,7 +102,6 @@ export default function PlatformAdminTenantDetail() {
     if (!confirm('Are you sure you want to impersonate this user?')) {
       return;
     }
-
     setImpersonating(true);
     try {
       const token = getAuthToken();
@@ -128,6 +145,78 @@ export default function PlatformAdminTenantDetail() {
       console.error('Error starting impersonation:', error);
       toast.error('Failed to start impersonation');
       setImpersonating(false);
+    }
+  };
+
+  const handleSuspend = async () => {
+    if (!suspensionReason.trim()) {
+      toast.error('Please provide a reason');
+      return;
+    }
+    setSuspending(true);
+    try {
+      const token = getAuthToken();
+      const response = await fetch(
+        `${BACKEND_URL}/api/platform-admin/tenants/${tenantId}/suspend`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ reason: suspensionReason.trim() }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          (data?.detail && (typeof data.detail === 'string' ? data.detail : data.detail.message)) ||
+            'Failed to suspend tenant'
+        );
+      }
+      toast.success('Tenant suspended');
+      if (data.tenant) setTenant(data.tenant);
+      setShowSuspendDialog(false);
+      setSuspensionReason('');
+    } catch (err) {
+      console.error('Suspend error:', err);
+      toast.error(err.message || 'Failed to suspend tenant');
+    } finally {
+      setSuspending(false);
+    }
+  };
+
+  const handleReactivate = async () => {
+    setReactivating(true);
+    try {
+      const token = getAuthToken();
+      const response = await fetch(
+        `${BACKEND_URL}/api/platform-admin/tenants/${tenantId}/reactivate`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ note: reactivationNote.trim() || null }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          (data?.detail && (typeof data.detail === 'string' ? data.detail : data.detail.message)) ||
+            'Failed to reactivate tenant'
+        );
+      }
+      toast.success('Tenant reactivated');
+      if (data.tenant) setTenant(data.tenant);
+      setShowReactivateDialog(false);
+      setReactivationNote('');
+    } catch (err) {
+      console.error('Reactivate error:', err);
+      toast.error(err.message || 'Failed to reactivate tenant');
+    } finally {
+      setReactivating(false);
     }
   };
 
@@ -175,14 +264,69 @@ export default function PlatformAdminTenantDetail() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Tenant List
           </Button>
-          <div className="flex items-center gap-3">
-            <Shield className="w-8 h-8 text-blue-600" />
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3">
+              <Shield className="w-8 h-8 text-blue-600" />
+              <div>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h1 className="text-3xl font-bold text-gray-900">{tenant.name}</h1>
+                  {tenant.is_active === false && (
+                    <Badge
+                      variant="outline"
+                      className="bg-red-100 text-red-900 border-red-300"
+                      data-testid="tenant-suspended-badge"
+                    >
+                      Suspended
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-gray-600">Tenant Details & Management</p>
+              </div>
+            </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{tenant.name}</h1>
-              <p className="text-gray-600">Tenant Details & Management</p>
+              {tenant.is_active === false ? (
+                <Button
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                  onClick={() => setShowReactivateDialog(true)}
+                  data-testid="tenant-reactivate-btn"
+                >
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  Reactivate Tenant
+                </Button>
+              ) : (
+                <Button
+                  variant="destructive"
+                  onClick={() => setShowSuspendDialog(true)}
+                  data-testid="tenant-suspend-btn"
+                >
+                  <Ban className="w-4 h-4 mr-2" />
+                  Suspend Tenant
+                </Button>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Suspension banner */}
+        {tenant.is_active === false && (
+          <div
+            className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 flex items-start gap-3"
+            data-testid="tenant-suspended-banner"
+          >
+            <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5" />
+            <div className="flex-1">
+              <div className="font-semibold text-red-900">This tenant is suspended</div>
+              <div className="text-sm text-red-800 mt-1">
+                <span className="font-medium">Reason:</span>{' '}
+                {tenant.suspension_reason || '—'}
+              </div>
+              <div className="text-xs text-red-700 mt-1">
+                Suspended {tenant.suspended_at ? new Date(tenant.suspended_at).toLocaleString() : '—'}
+                {tenant.suspended_by_email && ` by ${tenant.suspended_by_email}`}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Tabs for different sections */}
         <Tabs defaultValue="overview" className="w-full">
@@ -359,6 +503,106 @@ export default function PlatformAdminTenantDetail() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Suspend Tenant Dialog */}
+      <Dialog open={showSuspendDialog} onOpenChange={setShowSuspendDialog}>
+        <DialogContent data-testid="tenant-suspend-dialog">
+          <DialogHeader>
+            <DialogTitle className="text-red-700 flex items-center gap-2">
+              <Ban className="w-5 h-5" /> Suspend {tenant?.name}?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-gray-700">
+              Suspending will <strong>immediately</strong> log out every user in this
+              tenant and block new logins. Their data is preserved and can be
+              restored at any time by reactivating.
+            </p>
+            <div>
+              <label className="text-xs font-medium text-gray-700 block mb-1">
+                Reason for suspension <span className="text-red-600">*</span>
+              </label>
+              <Textarea
+                value={suspensionReason}
+                onChange={(e) => setSuspensionReason(e.target.value)}
+                placeholder="e.g., Failed payment - card declined 3x"
+                rows={3}
+                data-testid="tenant-suspend-reason-input"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                The reason is logged to the audit trail and shown to the user on the
+                "Account Suspended" screen.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setShowSuspendDialog(false)}
+              disabled={suspending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleSuspend}
+              disabled={suspending || !suspensionReason.trim()}
+              data-testid="tenant-suspend-confirm-btn"
+            >
+              {suspending ? 'Suspending…' : 'Suspend Tenant'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reactivate Tenant Dialog */}
+      <Dialog open={showReactivateDialog} onOpenChange={setShowReactivateDialog}>
+        <DialogContent data-testid="tenant-reactivate-dialog">
+          <DialogHeader>
+            <DialogTitle className="text-emerald-700 flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5" /> Reactivate {tenant?.name}?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-gray-700">
+              Reactivating will restore login access for all users in this tenant
+              and clear the suspension reason.
+            </p>
+            <div>
+              <label className="text-xs font-medium text-gray-700 block mb-1">
+                Note (optional)
+              </label>
+              <Textarea
+                value={reactivationNote}
+                onChange={(e) => setReactivationNote(e.target.value)}
+                placeholder="e.g., Customer paid invoice 5012"
+                rows={2}
+                data-testid="tenant-reactivate-note-input"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                The note is recorded on the audit trail entry for this action.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setShowReactivateDialog(false)}
+              disabled={reactivating}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700"
+              onClick={handleReactivate}
+              disabled={reactivating}
+              data-testid="tenant-reactivate-confirm-btn"
+            >
+              {reactivating ? 'Reactivating…' : 'Reactivate Tenant'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

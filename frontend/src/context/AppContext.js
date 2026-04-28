@@ -1,6 +1,11 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { getAuthToken } from '../lib/authStorage';
+import {
+  isTenantSuspendedDetail,
+  saveSuspensionInfo,
+  redirectToSuspendedScreen,
+} from '../lib/suspensionGuard';
 import { useAuth } from './AuthContext';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -20,6 +25,26 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Detect tenant-suspended 403 responses and route the user to the
+// /account-suspended screen on their next render. The original error is
+// still rejected so callers can clean up their own state.
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    try {
+      const status = error?.response?.status;
+      const detail = error?.response?.data?.detail;
+      if (status === 403 && isTenantSuspendedDetail(detail)) {
+        saveSuspensionInfo(detail);
+        redirectToSuspendedScreen();
+      }
+    } catch {
+      /* never let the interceptor itself throw */
+    }
     return Promise.reject(error);
   }
 );

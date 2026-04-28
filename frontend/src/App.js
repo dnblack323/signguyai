@@ -66,6 +66,7 @@ import PaymentSettings from "./pages/Admin/PaymentSettings";
 import PlatformAdmin from "./pages/PlatformAdmin";
 import PlatformAdminTenantDetail from "./pages/PlatformAdminTenantDetail";
 import PlatformAdminAuditLog from "./pages/PlatformAdminAuditLog";
+import AccountSuspended from "./pages/AccountSuspended";
 
 // Customer Portal Pages
 import PortalLogin from "./pages/PortalLogin";
@@ -288,6 +289,7 @@ function App() {
                 
                 {/* Auth Routes - Public */}
                 <Route path="/login" element={<Login />} />
+                <Route path="/account-suspended" element={<AccountSuspended />} />
                 <Route path="/register" element={<Navigate to="/login?register=true" replace />} />
                 
                 {/* Documentation Routes */}

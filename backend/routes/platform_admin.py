@@ -66,6 +66,9 @@ class TenantListItem(BaseModel):
     plan: str
     created_at: str
     user_count: int
+    is_active: bool = True
+    suspension_reason: Optional[str] = None
+    suspended_at: Optional[str] = None
 
 
 class TenantDetail(BaseModel):
@@ -82,10 +85,23 @@ class TenantDetail(BaseModel):
     is_active: bool = True
     created_at: str
     updated_at: str
+    suspension_reason: Optional[str] = None
+    suspended_at: Optional[str] = None
+    suspended_by_email: Optional[str] = None
+    reactivated_at: Optional[str] = None
+    reactivated_by_email: Optional[str] = None
 
 
 class ImpersonateRequest(BaseModel):
     target_user_id: str
+
+
+class SuspendTenantRequest(BaseModel):
+    reason: str
+
+
+class ReactivateTenantRequest(BaseModel):
+    note: Optional[str] = None
 
 
 # ============== CONSTANTS ==============
@@ -183,9 +199,12 @@ async def list_tenants(
             owner_email=tenant.get("owner_email", ""),
             plan=tenant.get("plan", "starter"),
             created_at=tenant.get("created_at", ""),
-            user_count=user_count
+            user_count=user_count,
+            is_active=tenant.get("is_active", True),
+            suspension_reason=tenant.get("suspension_reason"),
+            suspended_at=tenant.get("suspended_at"),
         ))
-    
+
     return result
 
 
@@ -230,6 +249,159 @@ async def get_tenant_detail(
         "tenant": TenantDetail(**tenant),
         "users": valid_users,
         "invalid_users_count": len(invalid_users)
+    }
+
+
+# ============== TENANT SUSPENSION ROUTES ==============
+
+@router.post("/tenants/{tenant_id}/suspend")
+async def suspend_tenant(
+    tenant_id: str,
+    payload: SuspendTenantRequest,
+    http_request: Request,
+    current_user: UserInDB = Depends(require_platform_admin)
+):
+    """
+    Suspend a tenant.
+
+    Sets is_active=False and stores reason/audit metadata. Active sessions are
+    blocked on their next API call (via get_current_active_user). Login is
+    blocked with the same reason. Platform-admin tenants cannot be suspended.
+    """
+    if not payload.reason or not payload.reason.strip():
+        raise HTTPException(status_code=400, detail="A reason is required")
+
+    tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    # Don't allow suspending a tenant that owns a platform_admin user (self-lockout protection)
+    pa_count = await db.users.count_documents({
+        "tenant_id": tenant_id,
+        "role": "platform_admin",
+    })
+    if pa_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot suspend a tenant that contains a platform_admin user",
+        )
+
+    if tenant.get("is_active") is False:
+        return {
+            "message": "Tenant already suspended",
+            "tenant_id": tenant_id,
+            "already_suspended": True,
+            "suspension_reason": tenant.get("suspension_reason"),
+            "suspended_at": tenant.get("suspended_at"),
+        }
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    update_doc = {
+        "is_active": False,
+        "suspension_reason": payload.reason.strip(),
+        "suspended_at": now_iso,
+        "suspended_by": current_user.id,
+        "suspended_by_email": current_user.email,
+        "reactivated_at": None,
+        "reactivated_by": None,
+        "reactivated_by_email": None,
+        "updated_at": now_iso,
+    }
+    await db.tenants.update_one({"id": tenant_id}, {"$set": update_doc})
+
+    # Audit log
+    await log_admin_action(
+        db,
+        request=http_request,
+        actor=current_user,
+        action="tenant.suspend",
+        action_category="tenant",
+        target_type="tenant",
+        target_id=tenant_id,
+        target_label=tenant.get("name"),
+        tenant_id=tenant_id,
+        tenant_name=tenant.get("name"),
+        summary=f"Suspended tenant {tenant.get('name')} (reason: {payload.reason.strip()})",
+        metadata={"reason": payload.reason.strip()},
+    )
+
+    logger.warning(
+        f"Tenant {tenant_id} ({tenant.get('name')}) suspended by "
+        f"{current_user.email}: {payload.reason.strip()}"
+    )
+
+    updated = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    return {
+        "message": "Tenant suspended",
+        "tenant": TenantDetail(**updated),
+    }
+
+
+@router.post("/tenants/{tenant_id}/reactivate")
+async def reactivate_tenant(
+    tenant_id: str,
+    payload: ReactivateTenantRequest,
+    http_request: Request,
+    current_user: UserInDB = Depends(require_platform_admin)
+):
+    """
+    Reactivate a previously suspended tenant.
+
+    Sets is_active=True and clears suspension fields, while preserving
+    a reactivated_at / reactivated_by_email pointer for the audit trail.
+    """
+    tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    if tenant.get("is_active") is True:
+        return {
+            "message": "Tenant is already active",
+            "tenant_id": tenant_id,
+            "already_active": True,
+        }
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    update_doc = {
+        "is_active": True,
+        "suspension_reason": None,
+        "suspended_at": None,
+        "suspended_by": None,
+        "suspended_by_email": None,
+        "reactivated_at": now_iso,
+        "reactivated_by": current_user.id,
+        "reactivated_by_email": current_user.email,
+        "updated_at": now_iso,
+    }
+    await db.tenants.update_one({"id": tenant_id}, {"$set": update_doc})
+
+    # Audit log
+    await log_admin_action(
+        db,
+        request=http_request,
+        actor=current_user,
+        action="tenant.reactivate",
+        action_category="tenant",
+        target_type="tenant",
+        target_id=tenant_id,
+        target_label=tenant.get("name"),
+        tenant_id=tenant_id,
+        tenant_name=tenant.get("name"),
+        summary=f"Reactivated tenant {tenant.get('name')}",
+        metadata={
+            "previous_reason": tenant.get("suspension_reason"),
+            "note": (payload.note or "").strip() or None,
+        },
+    )
+
+    logger.info(
+        f"Tenant {tenant_id} ({tenant.get('name')}) reactivated by {current_user.email}"
+    )
+
+    updated = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    return {
+        "message": "Tenant reactivated",
+        "tenant": TenantDetail(**updated),
     }
 
 

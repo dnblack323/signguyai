@@ -1,5 +1,10 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { getAuthToken, setAuthToken, clearAuthToken } from '../lib/authStorage';
+import {
+  isTenantSuspendedDetail,
+  saveSuspensionInfo,
+  redirectToSuspendedScreen,
+} from '../lib/suspensionGuard';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -131,6 +136,17 @@ export function AuthProvider({ children }) {
         
         return userData;
       } else {
+        // If suspended, route to suspension screen instead of just clearing
+        if (profileResponse.status === 403) {
+          try {
+            const data = await profileResponse.json();
+            if (isTenantSuspendedDetail(data?.detail)) {
+              saveSuspensionInfo(data.detail);
+              redirectToSuspendedScreen();
+              return null;
+            }
+          } catch { /* ignore */ }
+        }
         // Token is invalid or expired
         clearAuthToken();
         setToken(null);
@@ -213,7 +229,20 @@ export function AuthProvider({ children }) {
         let errorMsg = 'Login failed';
         try {
           const data = await response.json();
-          errorMsg = data.detail || errorMsg;
+
+          // Handle structured tenant-suspended response
+          if (response.status === 403 && isTenantSuspendedDetail(data.detail)) {
+            saveSuspensionInfo(data.detail);
+            redirectToSuspendedScreen();
+            return { success: false, error: data.detail.message || 'Account suspended' };
+          }
+
+          // detail can be a string or a dict; normalize for display
+          if (data.detail) {
+            errorMsg = typeof data.detail === 'string'
+              ? data.detail
+              : (data.detail.message || JSON.stringify(data.detail));
+          }
         } catch {
           if (response.status === 401) {
             errorMsg = 'Invalid email or password';

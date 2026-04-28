@@ -190,8 +190,23 @@ export default function PlatformAdmin() {
                     onClick={() => navigate(`/platform-admin/tenants/${tenant.id}`)}
                   >
                     <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900">{tenant.name}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold text-gray-900">{tenant.name}</h3>
+                        {tenant.is_active === false && (
+                          <span
+                            className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-900 border border-red-200"
+                            data-testid={`tenant-list-suspended-badge-${tenant.id}`}
+                          >
+                            Suspended
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-600">{tenant.owner_email}</p>
+                      {tenant.is_active === false && tenant.suspension_reason && (
+                        <p className="text-xs text-red-700 mt-1">
+                          Reason: {tenant.suspension_reason}
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right">

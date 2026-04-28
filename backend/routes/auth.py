@@ -182,7 +182,25 @@ async def login(input: UserLogin):
     # Check if user is active
     if not user.get("is_active", True):
         raise HTTPException(status_code=400, detail="Account is disabled")
-    
+
+    # Block login for suspended tenants (skip platform admins).
+    user_role = user.get("role")
+    if user_role != "platform_admin" and user.get("tenant_id"):
+        tenant = await db.tenants.find_one(
+            {"id": user["tenant_id"]},
+            {"_id": 0, "is_active": 1, "suspension_reason": 1, "suspended_at": 1},
+        )
+        if tenant and tenant.get("is_active") is False:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "code": "tenant_suspended",
+                    "message": "This account is suspended. Please contact support.",
+                    "reason": tenant.get("suspension_reason"),
+                    "suspended_at": tenant.get("suspended_at"),
+                },
+            )
+
     # Create access token - extended expiry if "remember me" is checked
     if input.remember_me:
         expires_delta = timedelta(days=30)

@@ -1,5 +1,18 @@
 # SignGuy AI - Changelog
 
+## February 15, 2026 (later)
+- **Suspend / Reactivate Tenant (NEW)** — top-5 prelaunch platform gap #2
+  - New endpoints: `POST /api/platform-admin/tenants/{id}/suspend` (body: `reason`), `POST /api/platform-admin/tenants/{id}/reactivate` (body: `note?`).
+  - Tenant doc gains: `is_active`, `suspension_reason`, `suspended_at`, `suspended_by`, `suspended_by_email`, `reactivated_at`, `reactivated_by`, `reactivated_by_email`.
+  - **Self-lockout protection:** cannot suspend a tenant that contains a `platform_admin` user.
+  - **Idempotent:** re-suspend returns `already_suspended: true`; re-reactivate returns `already_active: true`.
+  - **Login enforcement:** suspended tenants' users get HTTP 403 with structured detail `{code: "tenant_suspended", message, reason, suspended_at}` on login attempt.
+  - **Active session enforcement:** every protected endpoint runs through `get_current_active_user`, which checks tenant `is_active` and rejects with the same 403 — existing sessions are killed on the next API call. Platform admins are exempt.
+  - **Auto audit log:** suspend / reactivate actions write `tenant.suspend` / `tenant.reactivate` rows automatically via `log_admin_action`.
+  - Frontend: `TenantListItem` and `TenantDetail` response models surface `is_active`, `suspension_reason`, `suspended_at`, `suspended_by_email`. `PlatformAdmin.js` shows red "Suspended" badge + reason inline. `PlatformAdminTenantDetail.js` shows red banner + "Suspend Tenant" / "Reactivate Tenant" buttons with reason / note dialogs.
+  - **Account-suspended UX:** new `/account-suspended` page shows the user the reason + suspended_at + a "Contact Support" mailto. New `lib/suspensionGuard.js` helper saves the suspension info to sessionStorage and hard-redirects. AuthContext login + fetchUserProfile + AppContext axios response interceptor all detect 403/`tenant_suspended` and route the user to `/account-suspended`.
+  - Verified end-to-end: created brand-new tenant → confirmed `/api/users/me` works → suspended → existing token blocked with 403 + structured payload → fresh login also blocked with same payload → reactivated → existing token works again. Audit trail captured 6 events.
+
 ## February 15, 2026
 - **Admin Audit Log (NEW)** — top-5 prelaunch platform gap #1
   - New collection `admin_audit_log` capturing every privileged Platform Admin action with actor, target, tenant, IP, user-agent, summary, structured metadata, status, timestamp.

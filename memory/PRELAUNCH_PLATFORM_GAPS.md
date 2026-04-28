@@ -17,9 +17,15 @@ Each P0 item is being implemented one at a time on user request.
    - Wired into impersonation start/exit/manual-end + checklist updates.
    - Next wiring opportunities: tenant suspend/reactivate, tenant create/delete, plan changes, refunds, credit grants, force-logout, role changes, password resets — wire as those features are added.
 
-2. **Suspend / Reactivate Tenant** — NOT STARTED
-   - Separate from delete. Tenant gets a "Your account is suspended" screen but data is preserved.
-   - Required: `is_active` flag on tenant (already exists), suspension reason/note, suspended_by, suspended_at fields, middleware that blocks logins to suspended tenants, admin UI button on tenant detail page.
+2. **Suspend / Reactivate Tenant** ✅ DONE (Feb 15, 2026)
+   - Endpoints: `POST /api/platform-admin/tenants/{id}/suspend`, `/reactivate`.
+   - Tenant doc: `is_active`, `suspension_reason`, `suspended_at`, `suspended_by`, `suspended_by_email`, `reactivated_at`, `reactivated_by`, `reactivated_by_email`.
+   - Login + active session both blocked with HTTP 403 + structured payload `{code: "tenant_suspended", message, reason, suspended_at}`.
+   - Self-lockout protection: cannot suspend a tenant that contains a `platform_admin` user.
+   - Idempotent.
+   - Auto audit log via `log_admin_action`.
+   - UI: red "Suspend"/green "Reactivate" buttons + dialogs on tenant detail; red banner on suspended tenant; suspended badge in tenant list.
+   - User-side: `/account-suspended` screen shows reason + Contact Support mailto. AuthContext login, fetchUserProfile, and AppContext axios interceptor all detect tenant_suspended and route there.
 
 3. **Failed-Payment / Dunning Workflow** — NOT STARTED
    - State machine: declined → grace_period → restricted → suspended → cancelled.

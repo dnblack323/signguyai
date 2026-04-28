@@ -64,4 +64,27 @@ async def get_current_active_user(current_user: UserInDB = Depends(get_current_u
     """Get the current active (non-disabled) user"""
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+
+    # Block users whose tenant is suspended (skip platform admins).
+    # Platform admins must always be able to reach Platform Admin endpoints
+    # in order to reactivate a tenant.
+    if (
+        current_user.tenant_id
+        and getattr(current_user, "role", None)
+        and getattr(current_user.role, "value", current_user.role) != "platform_admin"
+    ):
+        tenant = await _db.tenants.find_one(
+            {"id": current_user.tenant_id},
+            {"_id": 0, "is_active": 1, "suspension_reason": 1, "suspended_at": 1},
+        )
+        if tenant and tenant.get("is_active") is False:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "code": "tenant_suspended",
+                    "message": "This account is suspended. Please contact support.",
+                    "reason": tenant.get("suspension_reason"),
+                    "suspended_at": tenant.get("suspended_at"),
+                },
+            )
     return current_user
