@@ -469,23 +469,37 @@ export default function FeaturesPage() {
         </div>
       </section>
 
-      <section className="px-4 pb-14" data-testid="features-coverage-highlights">
-        <div className="max-w-7xl mx-auto grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {coverageHighlights.map((highlight) => (
-            <div key={highlight.id} className="rounded-2xl border border-white/10 bg-white/5 p-5" data-testid={highlight.id}>
-              <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#2F8BFB]/20 text-[#2F8BFB]">
-                <highlight.icon className="h-5 w-5" />
+      {activeCategory === 'all' && (
+        <section className="px-4 pb-14" data-testid="features-coverage-highlights">
+          <div className="max-w-7xl mx-auto grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {coverageHighlights.map((highlight) => (
+              <div key={highlight.id} className="rounded-2xl border border-white/10 bg-white/5 p-5" data-testid={highlight.id}>
+                <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#2F8BFB]/20 text-[#2F8BFB]">
+                  <highlight.icon className="h-5 w-5" />
+                </div>
+                <h3 className="mb-3 text-lg font-semibold text-white">{highlight.title}</h3>
+                <ul className="space-y-2">
+                  {highlight.items.map((item) => (
+                    <li key={item} className="text-sm text-gray-300">• {item}</li>
+                  ))}
+                </ul>
               </div>
-              <h3 className="mb-3 text-lg font-semibold text-white">{highlight.title}</h3>
-              <ul className="space-y-2">
-                {highlight.items.map((item) => (
-                  <li key={item} className="text-sm text-gray-300">• {item}</li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Category indicator when filtered */}
+      {activeCategory !== 'all' && (
+        <section className="px-4 pb-8">
+          <div className="max-w-7xl mx-auto">
+            <p className="text-center text-gray-400">
+              Showing <span className="text-[#2F8BFB] font-semibold">{filteredFeatures.length}</span> {filteredFeatures.length === 1 ? 'feature' : 'features'} in{' '}
+              <span className="text-white font-semibold">{categories.find(c => c.id === activeCategory)?.name}</span>
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* Features List */}
       <section className="px-4 pb-20">
