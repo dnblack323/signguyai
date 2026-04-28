@@ -632,8 +632,9 @@ export default function AITools() {
           }
         } catch (err) {
           console.error('Generation error:', err);
-          toast.error(err.response?.data?.detail || err.message || 'Generation failed. Please try again.');
-          throw err;
+          const errorMessage = err.response?.data?.detail || err.message || 'Generation failed. Please try again.';
+          toast.error(errorMessage);
+          // Don't re-throw - error is handled gracefully with toast
         } finally {
           setLoading(false);
         }
@@ -666,8 +667,9 @@ export default function AITools() {
             toast.success('Design regenerated!');
           }
         } catch (err) {
-          toast.error('Failed to regenerate');
-          throw err;
+          console.error('Regenerate error:', err);
+          toast.error(err.response?.data?.detail || err.message || 'Failed to regenerate');
+          // Don't re-throw - error is handled gracefully with toast
         } finally {
           setLoading(false);
         }

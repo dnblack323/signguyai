@@ -95,8 +95,9 @@ export const useAICreditGuard = () => {
       window.dispatchEvent(new Event('creditsRefresh'));
       pendingPromiseRef.current?.resolve?.(result);
     } catch (error) {
+      console.error('Credit guarded action error:', error);
       pendingPromiseRef.current?.reject?.(error);
-      throw error;
+      // Don't re-throw - let the caller handle the rejection
     } finally {
       setSavingPreference(false);
       executeRef.current = null;
