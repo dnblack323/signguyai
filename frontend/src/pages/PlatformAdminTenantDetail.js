@@ -29,6 +29,8 @@ import {
   Ban,
   CheckCircle2,
   AlertTriangle,
+  CreditCard,
+  DollarSign,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAuthToken, setAuthToken } from '../lib/authStorage';
@@ -45,10 +47,14 @@ export default function PlatformAdminTenantDetail() {
   const [impersonating, setImpersonating] = useState(false);
   const [showSuspendDialog, setShowSuspendDialog] = useState(false);
   const [showReactivateDialog, setShowReactivateDialog] = useState(false);
+  const [showMarkPaidDialog, setShowMarkPaidDialog] = useState(false);
   const [suspensionReason, setSuspensionReason] = useState('');
   const [reactivationNote, setReactivationNote] = useState('');
+  const [markPaidNote, setMarkPaidNote] = useState('');
+  const [notifyOwnerOnReactivate, setNotifyOwnerOnReactivate] = useState(true);
   const [suspending, setSuspending] = useState(false);
   const [reactivating, setReactivating] = useState(false);
+  const [markingPaid, setMarkingPaid] = useState(false);
 
   // Redirect if not platform admin
   useEffect(() => {
@@ -198,7 +204,10 @@ export default function PlatformAdminTenantDetail() {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ note: reactivationNote.trim() || null }),
+          body: JSON.stringify({
+            note: reactivationNote.trim() || null,
+            notify_owner: notifyOwnerOnReactivate,
+          }),
         }
       );
       const data = await response.json();
@@ -208,15 +217,61 @@ export default function PlatformAdminTenantDetail() {
             'Failed to reactivate tenant'
         );
       }
-      toast.success('Tenant reactivated');
+      const emailMsg = notifyOwnerOnReactivate
+        ? (data?.email_status?.success
+            ? ' (welcome-back email sent)'
+            : data?.email_status?.error
+              ? ' (email not sent — see audit metadata)'
+              : '')
+        : '';
+      toast.success(`Tenant reactivated${emailMsg}`);
       if (data.tenant) setTenant(data.tenant);
       setShowReactivateDialog(false);
       setReactivationNote('');
+      setNotifyOwnerOnReactivate(true);
     } catch (err) {
       console.error('Reactivate error:', err);
       toast.error(err.message || 'Failed to reactivate tenant');
     } finally {
       setReactivating(false);
+    }
+  };
+
+  const handleMarkPaid = async () => {
+    setMarkingPaid(true);
+    try {
+      const token = getAuthToken();
+      const response = await fetch(
+        `${BACKEND_URL}/api/platform-admin/tenants/${tenantId}/mark-paid`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ note: markPaidNote.trim() || null }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          (data?.detail && (typeof data.detail === 'string' ? data.detail : data.detail.message)) ||
+            'Failed to mark tenant as paid'
+        );
+      }
+      toast.success(
+        data.auto_reactivated
+          ? 'Marked as paid — tenant auto-reactivated'
+          : 'Marked as paid — counters reset'
+      );
+      if (data.tenant) setTenant(data.tenant);
+      setShowMarkPaidDialog(false);
+      setMarkPaidNote('');
+    } catch (err) {
+      console.error('Mark paid error:', err);
+      toast.error(err.message || 'Failed to mark tenant as paid');
+    } finally {
+      setMarkingPaid(false);
     }
   };
 
@@ -326,6 +381,96 @@ export default function PlatformAdminTenantDetail() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Billing & Dunning card */}
+        {(tenant.payment_failed_count > 0 ||
+          tenant.auto_suspended_for_payment ||
+          tenant.last_payment_succeeded_at) && (
+          <Card
+            className={`mb-6 ${
+              tenant.auto_suspended_for_payment
+                ? 'border-red-200'
+                : tenant.payment_failed_count > 0
+                ? 'border-amber-200'
+                : 'border-emerald-200'
+            }`}
+            data-testid="tenant-billing-card"
+          >
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <CreditCard className="w-4 h-4" /> Billing & Dunning
+                {tenant.auto_suspended_for_payment && (
+                  <Badge
+                    variant="outline"
+                    className="bg-red-100 text-red-900 border-red-300 ml-2"
+                    data-testid="tenant-auto-suspended-badge"
+                  >
+                    Auto-suspended for non-payment
+                  </Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-gray-500">
+                    Failed attempts
+                  </div>
+                  <div
+                    className={`text-2xl font-bold ${
+                      tenant.payment_failed_count >= 3
+                        ? 'text-red-600'
+                        : tenant.payment_failed_count > 0
+                        ? 'text-amber-600'
+                        : 'text-gray-900'
+                    }`}
+                    data-testid="tenant-failed-attempts-count"
+                  >
+                    {tenant.payment_failed_count || 0}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-gray-500">
+                    Last failure
+                  </div>
+                  <div className="text-gray-900">
+                    {tenant.last_payment_failure_at
+                      ? new Date(tenant.last_payment_failure_at).toLocaleString()
+                      : '—'}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-gray-500">
+                    Last success
+                  </div>
+                  <div className="text-gray-900">
+                    {tenant.last_payment_succeeded_at
+                      ? new Date(tenant.last_payment_succeeded_at).toLocaleString()
+                      : '—'}
+                  </div>
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowMarkPaidDialog(true)}
+                    data-testid="tenant-mark-paid-btn"
+                  >
+                    <DollarSign className="w-4 h-4 mr-1" />
+                    Mark as Paid
+                  </Button>
+                </div>
+              </div>
+              {tenant.payment_failed_count > 0 &&
+                !tenant.auto_suspended_for_payment && (
+                  <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded p-2 mt-3">
+                    <strong>Heads up:</strong> The next failed payment attempt will
+                    auto-suspend this tenant.
+                  </p>
+                )}
+            </CardContent>
+          </Card>
         )}
 
         {/* Tabs for different sections */}
@@ -583,6 +728,28 @@ export default function PlatformAdminTenantDetail() {
                 The note is recorded on the audit trail entry for this action.
               </p>
             </div>
+            <label
+              className="flex items-start gap-3 p-3 border rounded-md bg-emerald-50/40 border-emerald-100 cursor-pointer"
+              htmlFor="notify-owner-checkbox"
+            >
+              <input
+                id="notify-owner-checkbox"
+                type="checkbox"
+                checked={notifyOwnerOnReactivate}
+                onChange={(e) => setNotifyOwnerOnReactivate(e.target.checked)}
+                className="mt-1"
+                data-testid="tenant-reactivate-notify-owner-checkbox"
+              />
+              <span className="flex-1">
+                <span className="font-medium text-gray-900 block">
+                  Send the owner a "Welcome back" email
+                </span>
+                <span className="text-xs text-gray-600">
+                  Optional. If your note above is filled in, it will be included
+                  in the email so the owner knows why their account is active again.
+                </span>
+              </span>
+            </label>
           </div>
           <DialogFooter>
             <Button
@@ -599,6 +766,60 @@ export default function PlatformAdminTenantDetail() {
               data-testid="tenant-reactivate-confirm-btn"
             >
               {reactivating ? 'Reactivating…' : 'Reactivate Tenant'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Mark as Paid Dialog */}
+      <Dialog open={showMarkPaidDialog} onOpenChange={setShowMarkPaidDialog}>
+        <DialogContent data-testid="tenant-mark-paid-dialog">
+          <DialogHeader>
+            <DialogTitle className="text-emerald-700 flex items-center gap-2">
+              <DollarSign className="w-5 h-5" /> Mark {tenant?.name} as paid?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-gray-700">
+              This is a manual override for cases Stripe can't tell us about
+              (NET-60 invoices, wire transfers, manually cleared chargebacks, etc.).
+            </p>
+            <ul className="text-xs text-gray-600 list-disc pl-5 space-y-1">
+              <li>Resets the failed-payment counter to 0.</li>
+              <li>
+                If the tenant was auto-suspended for non-payment, it will be
+                reactivated immediately and the owner will receive a "welcome back"
+                email.
+              </li>
+              <li>The action is recorded on the audit log.</li>
+            </ul>
+            <div>
+              <label className="text-xs font-medium text-gray-700 block mb-1">
+                Note (optional)
+              </label>
+              <Textarea
+                value={markPaidNote}
+                onChange={(e) => setMarkPaidNote(e.target.value)}
+                placeholder="e.g., Wire transfer received - invoice 5012"
+                rows={2}
+                data-testid="tenant-mark-paid-note-input"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setShowMarkPaidDialog(false)}
+              disabled={markingPaid}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700"
+              onClick={handleMarkPaid}
+              disabled={markingPaid}
+              data-testid="tenant-mark-paid-confirm-btn"
+            >
+              {markingPaid ? 'Saving…' : 'Mark as Paid'}
             </Button>
           </DialogFooter>
         </DialogContent>

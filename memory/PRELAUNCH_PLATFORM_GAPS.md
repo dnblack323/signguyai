@@ -27,11 +27,16 @@ Each P0 item is being implemented one at a time on user request.
    - UI: red "Suspend"/green "Reactivate" buttons + dialogs on tenant detail; red banner on suspended tenant; suspended badge in tenant list.
    - User-side: `/account-suspended` screen shows reason + Contact Support mailto. AuthContext login, fetchUserProfile, and AppContext axios interceptor all detect tenant_suspended and route there.
 
-3. **Failed-Payment / Dunning Workflow** — NOT STARTED
-   - State machine: declined → grace_period → restricted → suspended → cancelled.
-   - Stripe webhook hooks for `invoice.payment_failed`, `invoice.payment_succeeded`.
-   - Admin override "manually mark paid".
-   - Email notifications at each transition.
+3. **Failed-Payment / Dunning Workflow** ✅ DONE (Feb 15, 2026)
+   - Service: `services/dunning.py` — `record_payment_failure()` and `record_payment_success()`.
+   - Tenant doc: `payment_failed_count`, `first_payment_failure_at`, `last_payment_failure_at`, `last_payment_succeeded_at`, `auto_suspended_for_payment`.
+   - State machine: failure 1 → email "N attempts left" → failure 2 → email → failure 3 → AUTO-SUSPEND + email → payment success → AUTO-REACTIVATE + welcome-back email → counters reset.
+   - Threshold configurable via env `DUNNING_AUTO_SUSPEND_AFTER` (default 3).
+   - Self-lockout protection: never auto-suspends a tenant with a platform_admin user.
+   - Manual override endpoint: `POST /api/platform-admin/tenants/{id}/mark-paid` for NET-60, wires, cleared chargebacks, etc.
+   - Audit log entries: `payment.failed`, `dunning.auto_suspend`, `payment.succeeded`, `dunning.auto_reactivate`, `payment.manual_mark_paid` — all under `action_category="billing"`.
+   - UI: "Billing & Dunning" card on tenant detail with failed-attempts counter, timestamps, auto-suspended badge, "Mark as Paid" button + dialog.
+   - Wired into existing Stripe webhook handlers `handle_invoice_payment_failed` and `handle_invoice_payment_succeeded`.
 
 4. **Email Deliverability Dashboard + Un-mock SendGrid** — PARTIAL
    - SendGrid is currently mocked. Real delivery is the precondition.

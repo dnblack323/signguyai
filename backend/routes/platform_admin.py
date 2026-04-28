@@ -11,7 +11,7 @@ This module provides:
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Request
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from pydantic import BaseModel
 import uuid
@@ -90,6 +90,12 @@ class TenantDetail(BaseModel):
     suspended_by_email: Optional[str] = None
     reactivated_at: Optional[str] = None
     reactivated_by_email: Optional[str] = None
+    # Dunning state
+    payment_failed_count: int = 0
+    first_payment_failure_at: Optional[str] = None
+    last_payment_failure_at: Optional[str] = None
+    last_payment_succeeded_at: Optional[str] = None
+    auto_suspended_for_payment: bool = False
 
 
 class ImpersonateRequest(BaseModel):
@@ -101,6 +107,11 @@ class SuspendTenantRequest(BaseModel):
 
 
 class ReactivateTenantRequest(BaseModel):
+    note: Optional[str] = None
+    notify_owner: bool = True
+
+
+class MarkPaidRequest(BaseModel):
     note: Optional[str] = None
 
 
@@ -391,6 +402,7 @@ async def reactivate_tenant(
         metadata={
             "previous_reason": tenant.get("suspension_reason"),
             "note": (payload.note or "").strip() or None,
+            "notify_owner": payload.notify_owner,
         },
     )
 
@@ -399,9 +411,85 @@ async def reactivate_tenant(
     )
 
     updated = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+
+    # Optional: send "You're back" email to the owner.
+    email_status: Optional[Dict[str, Any]] = None
+    if payload.notify_owner:
+        owner_email = (updated or {}).get("owner_email") or tenant.get("owner_email")
+        if owner_email:
+            try:
+                from services.email_service import email_service
+                email_status = await email_service.send_tenant_reactivated_email(
+                    owner_email=owner_email,
+                    tenant_name=(updated or {}).get("name") or tenant.get("name") or "your account",
+                    tenant_id=tenant_id,
+                    note=(payload.note or "").strip() or None,
+                )
+                logger.info(
+                    f"Reactivation email sent to {owner_email} (status={email_status})"
+                )
+            except Exception as e:
+                logger.error(f"Failed to send reactivation email: {e}")
+                email_status = {"success": False, "error": str(e)}
+        else:
+            email_status = {"success": False, "error": "No owner_email on tenant"}
+
     return {
         "message": "Tenant reactivated",
         "tenant": TenantDetail(**updated),
+        "email_status": email_status,
+    }
+
+
+@router.post("/tenants/{tenant_id}/mark-paid")
+async def mark_tenant_paid(
+    tenant_id: str,
+    payload: MarkPaidRequest,
+    http_request: Request,
+    current_user: UserInDB = Depends(require_platform_admin)
+):
+    """
+    Manual override: mark a tenant as having paid.
+
+    Resets dunning counters and, if the tenant was auto-suspended for non-payment,
+    reactivates the account. Used for NET-60 invoices, wire transfers, manually
+    cleared chargebacks, or any case where Stripe can't tell us about the payment.
+    """
+    tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    from services.dunning import record_payment_success
+    result = await record_payment_success(
+        db,
+        tenant_id=tenant_id,
+        triggered_by="manual:platform_admin",
+    )
+
+    # Audit the manual override (record_payment_success only records "system" entries)
+    await log_admin_action(
+        db,
+        request=http_request,
+        actor=current_user,
+        action="payment.manual_mark_paid",
+        action_category="billing",
+        target_type="tenant",
+        target_id=tenant_id,
+        target_label=tenant.get("name"),
+        tenant_id=tenant_id,
+        tenant_name=tenant.get("name"),
+        summary=f"Manually marked {tenant.get('name')} as paid",
+        metadata={
+            "note": (payload.note or "").strip() or None,
+            "auto_reactivated": result.get("auto_reactivated"),
+        },
+    )
+
+    updated = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    return {
+        "message": "Tenant marked as paid",
+        "tenant": TenantDetail(**updated),
+        "auto_reactivated": result.get("auto_reactivated", False),
     }
 
 

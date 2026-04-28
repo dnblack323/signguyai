@@ -339,6 +339,139 @@ class EmailService:
             tenant_id=tenant_id
         )
 
+    async def send_tenant_reactivated_email(
+        self,
+        owner_email: str,
+        tenant_name: str,
+        tenant_id: str,
+        note: Optional[str] = None,
+        login_url: Optional[str] = None,
+    ) -> dict:
+        """Send a 'You're back' email to the tenant owner after reactivation."""
+        login_link = login_url or f"{os.environ.get('APP_URL', '').rstrip('/')}/login"
+        login_link_html = (
+            f'<p style="margin:24px 0;"><a href="{login_link}" '
+            f'style="background:#10b981;color:#fff;padding:12px 24px;'
+            f'text-decoration:none;border-radius:6px;font-weight:600;">'
+            f'Sign back in</a></p>'
+            if login_link else ""
+        )
+        note_html = (
+            f'<p style="margin:16px 0;color:#374151;"><strong>Note from our team:</strong> '
+            f'{note}</p>' if note else ""
+        )
+
+        subject = f"Your {tenant_name} account is active again"
+        html_content = f"""
+        <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;
+                    padding:24px;color:#111827;">
+          <h2 style="color:#059669;margin-top:0;">Welcome back!</h2>
+          <p>Good news — your <strong>{tenant_name}</strong> account has been
+          reactivated and full access is restored.</p>
+          {note_html}
+          <p>You and your team can sign in and pick up exactly where you left off.
+          All of your data is intact.</p>
+          {login_link_html}
+          <p style="color:#6b7280;font-size:13px;margin-top:32px;">
+            If you didn't expect this email or believe it was sent in error,
+            please reply and let us know.
+          </p>
+        </div>
+        """
+        return await self.send_email(
+            to_email=owner_email,
+            subject=subject,
+            html_content=html_content,
+            tenant_id=tenant_id,
+        )
+
+    async def send_payment_failed_email(
+        self,
+        owner_email: str,
+        tenant_name: str,
+        tenant_id: str,
+        attempt: int,
+        attempts_remaining: int,
+        amount: Optional[float] = None,
+        currency: str = "USD",
+        billing_url: Optional[str] = None,
+    ) -> dict:
+        """Send a payment-failed reminder email."""
+        billing_link = billing_url or f"{os.environ.get('APP_URL', '').rstrip('/')}/billing"
+        amount_str = f"{currency.upper()} ${amount:.2f}" if amount else "your invoice"
+        urgency = (
+            "Your account will be suspended on the next failed attempt."
+            if attempts_remaining <= 1
+            else f"You have {attempts_remaining} attempt(s) left before suspension."
+        )
+        subject = f"Action needed: payment failed for {tenant_name}"
+        html_content = f"""
+        <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;
+                    padding:24px;color:#111827;">
+          <h2 style="color:#dc2626;margin-top:0;">Payment failed</h2>
+          <p>We weren't able to process {amount_str} for your
+          <strong>{tenant_name}</strong> account on this attempt (#{attempt}).</p>
+          <p style="color:#b91c1c;"><strong>{urgency}</strong></p>
+          <p>Please update your payment method to avoid an interruption in service.</p>
+          <p style="margin:24px 0;">
+            <a href="{billing_link}"
+               style="background:#dc2626;color:#fff;padding:12px 24px;
+                      text-decoration:none;border-radius:6px;font-weight:600;">
+              Update payment method
+            </a>
+          </p>
+          <p style="color:#6b7280;font-size:13px;margin-top:32px;">
+            If the payment has already gone through on your end, no action is needed —
+            our system will catch up automatically.
+          </p>
+        </div>
+        """
+        return await self.send_email(
+            to_email=owner_email,
+            subject=subject,
+            html_content=html_content,
+            tenant_id=tenant_id,
+        )
+
+    async def send_dunning_suspended_email(
+        self,
+        owner_email: str,
+        tenant_name: str,
+        tenant_id: str,
+        billing_url: Optional[str] = None,
+    ) -> dict:
+        """Send a 'Your account has been suspended for non-payment' email."""
+        billing_link = billing_url or f"{os.environ.get('APP_URL', '').rstrip('/')}/billing"
+        subject = f"Your {tenant_name} account has been suspended"
+        html_content = f"""
+        <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;
+                    padding:24px;color:#111827;">
+          <h2 style="color:#dc2626;margin-top:0;">Account suspended for non-payment</h2>
+          <p>After multiple failed payment attempts, your <strong>{tenant_name}</strong>
+          account has been suspended. All of your data is preserved.</p>
+          <p>To restore access, please update your payment method. The account will
+          be reactivated automatically as soon as a payment succeeds.</p>
+          <p style="margin:24px 0;">
+            <a href="{billing_link}"
+               style="background:#dc2626;color:#fff;padding:12px 24px;
+                      text-decoration:none;border-radius:6px;font-weight:600;">
+              Update payment method
+            </a>
+          </p>
+          <p style="color:#6b7280;font-size:13px;margin-top:32px;">
+            Need help? Reply to this email and our team will get back to you.
+          </p>
+        </div>
+        """
+        return await self.send_email(
+            to_email=owner_email,
+            subject=subject,
+            html_content=html_content,
+            tenant_id=tenant_id,
+        )
+
+
+
 
 # Global email service instance
 email_service = EmailService()

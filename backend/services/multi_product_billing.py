@@ -512,6 +512,17 @@ async def handle_invoice_payment_succeeded(db, event_data: Any) -> None:
                     "updated_at": datetime.now(timezone.utc).isoformat(),
                 }}
             )
+
+            # Dunning: reset failure counters; auto-reactivate if was suspended
+            try:
+                from services.dunning import record_payment_success
+                await record_payment_success(
+                    db,
+                    tenant_id=sub["tenant_id"],
+                    triggered_by="stripe:invoice.payment_succeeded",
+                )
+            except Exception:
+                pass
         
         # Record transaction
         await db.payment_transactions.insert_one({
@@ -555,6 +566,25 @@ async def handle_invoice_payment_failed(db, event_data: Any) -> None:
                     "updated_at": datetime.now(timezone.utc).isoformat(),
                 }}
             )
+
+            # Dunning: increment counter, send email, auto-suspend at threshold
+            try:
+                from services.dunning import record_payment_failure
+                amount = (
+                    (event_data.amount_due / 100)
+                    if hasattr(event_data, "amount_due") and event_data.amount_due
+                    else None
+                )
+                await record_payment_failure(
+                    db,
+                    tenant_id=sub["tenant_id"],
+                    amount=amount,
+                    currency=getattr(event_data, "currency", "usd") or "usd",
+                    stripe_invoice_id=getattr(event_data, "id", None),
+                    stripe_subscription_id=subscription_id,
+                )
+            except Exception:
+                pass
 
 
 # ============== SUBSCRIPTION ACTIVATION ==============

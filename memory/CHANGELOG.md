@@ -1,7 +1,32 @@
 # SignGuy AI - Changelog
 
-## February 15, 2026 (later)
+## February 15, 2026 (later — Item #3)
+- **Failed-Payment / Dunning Workflow (NEW)** — top-5 prelaunch platform gap #3
+  - New service `services/dunning.py` with `record_payment_failure()` and `record_payment_success()` — single source of truth for dunning state.
+  - Tenant doc gains: `payment_failed_count`, `first_payment_failure_at`, `last_payment_failure_at`, `last_payment_succeeded_at`, `auto_suspended_for_payment`.
+  - **Auto-suspend at 3 consecutive failures** (configurable via env `DUNNING_AUTO_SUSPEND_AFTER`). Self-lockout protection: never auto-suspends a tenant that contains a `platform_admin` user.
+  - **Auto-reactivate on payment success** if the tenant was previously auto-suspended for payment (`auto_suspended_for_payment=true`). Manual suspensions are NOT auto-reactivated.
+  - **Email orchestration:**
+    - Failure 1 / 2 → `send_payment_failed_email` ("you have N attempts left").
+    - Failure 3 → `send_dunning_suspended_email` ("account suspended").
+    - Auto-reactivate → existing `send_tenant_reactivated_email`.
+  - **Webhook wiring:** `multi_product_billing.handle_invoice_payment_failed` and `handle_invoice_payment_succeeded` now call into the dunning service.
+  - **Manual override:** new `POST /api/platform-admin/tenants/{id}/mark-paid` for NET-60 invoices, wires, manually cleared chargebacks, etc. Resets counters + auto-reactivates if needed.
+  - **Audit log integration:** every transition writes a row under `action_category="billing"`: `payment.failed`, `dunning.auto_suspend`, `payment.succeeded`, `dunning.auto_reactivate`, `payment.manual_mark_paid`.
+  - **UI:** `PlatformAdminTenantDetail.js` now shows a "Billing & Dunning" card (failed-attempts counter, last failure/success timestamps, "Auto-suspended for non-payment" badge, "Mark as Paid" button + confirmation dialog). Card auto-hides if there's nothing to show (zero failures and no payment history).
+  - `TenantDetail` Pydantic now exposes all five dunning fields.
+  - **Verified end-to-end:** simulated 3 consecutive failures via `services.dunning` → tenant auto-suspended after #3 → payment success auto-reactivated → manual mark-paid via real HTTP also auto-reactivated → 9 distinct billing audit rows captured.
+
+## February 15, 2026 (later — Email toggle)
+- **"Welcome back" email toggle on Reactivation** — Suggestion from Item #2 finish-tool note.
+  - New `EmailService.send_tenant_reactivated_email()` (renders an HTML "Welcome back" message with optional "note from our team").
+  - `POST /api/platform-admin/tenants/{id}/reactivate` now accepts `notify_owner: bool` (default true) and returns `email_status` so the UI can confirm.
+  - Reactivate dialog has a checkbox "Send the owner a 'Welcome back' email" (default ON).
+  - Verified via curl: notify_owner=true returns `email_status.success=true, status_code=202` (real SendGrid send); notify_owner=false returns `email_status: null`.
+
+## February 15, 2026 (Item #2)
 - **Suspend / Reactivate Tenant (NEW)** — top-5 prelaunch platform gap #2
+
   - New endpoints: `POST /api/platform-admin/tenants/{id}/suspend` (body: `reason`), `POST /api/platform-admin/tenants/{id}/reactivate` (body: `note?`).
   - Tenant doc gains: `is_active`, `suspension_reason`, `suspended_at`, `suspended_by`, `suspended_by_email`, `reactivated_at`, `reactivated_by`, `reactivated_by_email`.
   - **Self-lockout protection:** cannot suspend a tenant that contains a `platform_admin` user.
