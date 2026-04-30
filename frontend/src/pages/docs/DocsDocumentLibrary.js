@@ -93,7 +93,8 @@ export default function DocsDocumentLibrary() {
             <ul className="space-y-1 text-sm text-gray-300">
               <li>• Add multiple tags to any document</li>
               <li>• Filter by tag for quick finding</li>
-              <li>• Pre-defined categories: Artwork, Templates, Contracts, etc.</li>
+              <li>• Pre-defined categories for shop docs: Artwork, Templates, Contracts, Quotes, Permits, Insurance, Warranty, etc.</li>
+              <li>• <strong className="text-white">AI tool outputs auto-tag</strong> into matching categories: Logo Concept, Brand Kit, Tagline, Social Post, Content Calendar, Campaign Plan, Blog Article, Marketing Content</li>
               <li>• Create custom tags</li>
             </ul>
           </div>

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Users, ArrowRight, UserPlus, Mail, Building2, Search, Edit2, Trash2 } from 'lucide-react';
+import { Users, ArrowRight, UserPlus, Mail, Building2, Search, Edit2, Trash2, Palette, Sparkles } from 'lucide-react';
 
 export default function DocsCustomers() {
   return (
@@ -82,6 +82,64 @@ export default function DocsCustomers() {
             <p className="text-gray-300"><strong className="text-white">Company</strong> - Business name if applicable</p>
             <p className="text-gray-300"><strong className="text-white">Address</strong> - Billing/shipping address</p>
             <p className="text-gray-300"><strong className="text-white">Notes</strong> - Internal notes about the customer</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Customer Branding Profile */}
+      <div>
+        <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+          <Palette className="h-5 w-5 text-pink-400" />
+          Customer Branding Profile
+          <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">New</span>
+        </h2>
+        <p className="text-gray-300 mb-4">
+          Every customer record now has a <strong className="text-white">Branding</strong> tab that stores their brand information in one place. The AI Branding Tools can pre-fill from this profile and save outputs (taglines, logos, brand kits) directly back to it.
+        </p>
+
+        <div className="rounded-xl bg-gray-900/60 border border-gray-800 p-5 space-y-4">
+          <div>
+            <h3 className="font-medium text-white mb-2">What you can store</h3>
+            <ul className="space-y-1 text-sm text-gray-300">
+              <li>• Business name, industry, target audience, brand personality</li>
+              <li>• Brand voice notes, USP, things to avoid, key competitors</li>
+              <li>• Brand colors (hex), font suggestions, brand-kit text</li>
+              <li>• Saved taglines (with one selected as the active tagline)</li>
+              <li>• Saved logo concepts (up to 3)</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-medium text-white mb-2">How to use it</h3>
+            <ol className="space-y-2 text-sm text-gray-300">
+              <li className="flex items-start gap-2">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-pink-500/20 text-pink-400 text-sm flex items-center justify-center">1</span>
+                <span>Open a customer from the Customers list. Click the <strong className="text-white">Branding</strong> tab (5th tab).</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-pink-500/20 text-pink-400 text-sm flex items-center justify-center">2</span>
+                <span>Click <strong className="text-white">Edit</strong>, fill in what you know about their brand, and Save.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-pink-500/20 text-pink-400 text-sm flex items-center justify-center">3</span>
+                <span>Use the three CTAs at the top of the tab — <em>Brainstorm Ideas</em>, <em>Create Brand Kit</em>, <em>Logo Concepts</em>. They open the matching AI tool with this customer pre-attached and the form pre-filled from the profile.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-pink-500/20 text-pink-400 text-sm flex items-center justify-center">4</span>
+                <span>Run the AI tool. The result panel has <strong className="text-white">"Save to Customer Branding"</strong> buttons that push the output (tagline / logo / brand kit) straight back to the profile.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-pink-500/20 text-pink-400 text-sm flex items-center justify-center">5</span>
+                <span>Re-open the customer's Branding tab to see the saved items, with delete buttons next to each.</span>
+              </li>
+            </ol>
+          </div>
+
+          <div className="text-sm bg-pink-500/5 border border-pink-500/20 rounded-lg p-3 flex items-start gap-2">
+            <Sparkles className="h-4 w-4 text-pink-400 mt-0.5 flex-shrink-0" />
+            <span className="text-pink-100">
+              <strong className="text-white">Why it matters:</strong> Outputs from the AI Branding tools no longer "die" in your AI history. Everything stays organized on the customer record so the next time you work with that customer, you don't start from scratch.
+            </span>
           </div>
         </div>
       </div>
