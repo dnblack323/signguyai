@@ -971,3 +971,162 @@ async def get_audit_entry(
     if not entry:
         raise HTTPException(status_code=404, detail="Audit entry not found")
     return entry
+
+
+
+# ============== BROADCAST EMAIL TO TENANT OWNERS ==============
+#
+# Lets a Platform Admin send a one-off email to one or more tenant owners.
+# Audience can be filtered (all / active / suspended / founders) or limited to a
+# specific list of tenant_ids. Always supports a "test mode" so the admin can
+# preview the rendered email by sending only to a single address first.
+
+class BroadcastEmailRequest(BaseModel):
+    subject: str
+    # html_body is the rendered HTML the recipient sees. The frontend can build
+    # this from a plain-text textarea by wrapping in <p> tags.
+    html_body: str
+    # Audience selector. Mutually exclusive with `tenant_ids`.
+    target: Optional[str] = "all_owners"  # all_owners | active_only | suspended_only | founders_only
+    # Optional explicit override (takes precedence over `target` when set).
+    tenant_ids: Optional[List[str]] = None
+    # When set, the email is only sent to this single address. Nothing goes out
+    # to tenants. Use this to preview the rendered email first.
+    test_to: Optional[str] = None
+
+
+@router.post("/broadcast-email")
+async def broadcast_email(
+    payload: BroadcastEmailRequest,
+    request: Request,
+    current_user: UserInDB = Depends(require_platform_admin),
+):
+    """Send a one-off email to one or many tenant owners.
+
+    Modes:
+    - test_to set → sends to that one address only (no audience resolution).
+    - tenant_ids set → resolves owner_email for each id, sends to those.
+    - target set → filters tenants by `target` and sends to each owner_email.
+
+    Always writes a single audit-log row with summary counts.
+    """
+    from services.email_service import email_service
+
+    if not payload.subject.strip():
+        raise HTTPException(status_code=400, detail="Subject is required")
+    if not payload.html_body.strip():
+        raise HTTPException(status_code=400, detail="Email body is required")
+
+    # 1) Resolve recipient list
+    recipients: List[Dict[str, Any]] = []  # [{tenant_id, email, name}]
+
+    if payload.test_to:
+        recipients.append({"tenant_id": None, "email": payload.test_to.strip(), "name": "Test Recipient"})
+    elif payload.tenant_ids:
+        tenants = await db.tenants.find(
+            {"id": {"$in": payload.tenant_ids}},
+            {"_id": 0, "id": 1, "name": 1, "owner_email": 1},
+        ).to_list(len(payload.tenant_ids))
+        for t in tenants:
+            if t.get("owner_email"):
+                recipients.append({"tenant_id": t["id"], "email": t["owner_email"], "name": t.get("name") or ""})
+    else:
+        target = (payload.target or "all_owners").lower()
+        query: Dict[str, Any] = {}
+        if target == "active_only":
+            query["is_active"] = {"$ne": False}
+        elif target == "suspended_only":
+            query["is_active"] = False
+        elif target == "founders_only":
+            query["is_founder"] = True
+        # all_owners → no filter
+
+        tenants = await db.tenants.find(
+            query,
+            {"_id": 0, "id": 1, "name": 1, "owner_email": 1, "is_founder": 1, "is_active": 1},
+        ).to_list(10000)
+        for t in tenants:
+            if t.get("owner_email"):
+                recipients.append({"tenant_id": t["id"], "email": t["owner_email"], "name": t.get("name") or ""})
+
+    # Dedupe by email (a single human can own multiple tenants — we only email them once)
+    seen_emails = set()
+    unique_recipients: List[Dict[str, Any]] = []
+    for r in recipients:
+        em = (r["email"] or "").strip().lower()
+        if not em or em in seen_emails:
+            continue
+        seen_emails.add(em)
+        unique_recipients.append(r)
+
+    if not unique_recipients:
+        raise HTTPException(status_code=400, detail="No recipients matched the given audience")
+
+    # 2) Send. We send sequentially to keep error handling simple; SendGrid
+    # tolerates this volume comfortably for any plausible launch-day blast.
+    sent: List[str] = []
+    failed: List[Dict[str, str]] = []
+    for r in unique_recipients:
+        try:
+            res = await email_service.send_email(
+                to_email=r["email"],
+                subject=payload.subject,
+                html_content=payload.html_body,
+                tenant_id=r.get("tenant_id"),
+            )
+            if res and res.get("success"):
+                sent.append(r["email"])
+            else:
+                failed.append({"email": r["email"], "error": (res or {}).get("error", "unknown")})
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"Broadcast email failed for {r['email']}: {e}")
+            failed.append({"email": r["email"], "error": str(e)})
+
+    # 3) Audit log (single row summarizing the blast)
+    try:
+        await log_admin_action(
+            db=db,
+            request=request,
+            actor=current_user,
+            action="broadcast_email.send",
+            action_category="platform",
+            target_type="tenants",
+            summary=f"Broadcast email sent: {payload.subject}",
+            metadata={
+                "subject": payload.subject,
+                "target": payload.target,
+                "tenant_ids": payload.tenant_ids,
+                "test_to": payload.test_to,
+                "sent_count": len(sent),
+                "failed_count": len(failed),
+            },
+            status="success" if not failed else "partial",
+        )
+    except Exception as audit_err:  # noqa: BLE001
+        logger.error(f"Failed to write broadcast_email audit row: {audit_err}")
+
+    return {
+        "mode": "test" if payload.test_to else "broadcast",
+        "matched_recipients": len(unique_recipients),
+        "sent_count": len(sent),
+        "failed_count": len(failed),
+        "failed": failed[:25],  # cap response size
+    }
+
+
+@router.get("/broadcast-email/audience-counts")
+async def broadcast_email_audience_counts(
+    current_user: UserInDB = Depends(require_platform_admin),
+):
+    """Return live recipient counts for each audience filter so the UI can
+    show 'Send to 47 active tenants' before the admin commits."""
+    all_owners = await db.tenants.count_documents({"owner_email": {"$exists": True, "$ne": ""}})
+    active = await db.tenants.count_documents({"owner_email": {"$exists": True, "$ne": ""}, "is_active": {"$ne": False}})
+    suspended = await db.tenants.count_documents({"owner_email": {"$exists": True, "$ne": ""}, "is_active": False})
+    founders = await db.tenants.count_documents({"owner_email": {"$exists": True, "$ne": ""}, "is_founder": True})
+    return {
+        "all_owners": all_owners,
+        "active_only": active,
+        "suspended_only": suspended,
+        "founders_only": founders,
+    }

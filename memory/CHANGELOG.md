@@ -1,5 +1,19 @@
 # SignGuy AI - Changelog
 
+## April 30, 2026 — NEW: Broadcast Email to Tenant Owners + Platform Admin Runbook
+
+### Broadcast Email (the missing "mass email" feature)
+- New endpoint: `POST /api/platform-admin/broadcast-email` with audience filters (`all_owners` | `active_only` | `suspended_only` | `founders_only`) plus a per-tenant override (`tenant_ids`) and a `test_to` mode that sends to a single address only (no audience resolution).
+- Companion endpoint: `GET /api/platform-admin/broadcast-email/audience-counts` — live recipient counts so the UI can show "Send to N tenants" before commit.
+- Sends via existing SendGrid email service. Sequential delivery, dedupes by email so multi-tenant owners only get one email. Returns `{matched_recipients, sent_count, failed_count, failed[]}`. Single audit row per blast (`broadcast_email.send`) with summary metadata.
+- New page `/platform-admin/broadcast-email` — Subject + plain-text Body (auto-wrapped to HTML paragraphs), Audience picker with live count, Test-recipient field (pre-filled with admin's email), "Send test" + "Send to N tenants" buttons, confirm dialog, result panel showing sent/failed.
+- Wired button on Platform Admin home (`PlatformAdmin.js` top-right action row) and route registration in `App.js`.
+- Smoke-tested end-to-end: audience-counts returns 6 owners; test send returns `sent_count=1`; empty subject correctly returns 400; audit row written with `broadcast_email.send`.
+
+### Platform Admin Runbook
+- Created `/app/PLATFORM_ADMIN_RUNBOOK.md` — a plain-English walkthrough of every platform-admin feature (Tenant List, Tenant Detail, Suspend/Reactivate, Dunning + Mark as Paid, Threshold override, Impersonate, Onboarding Checklist, Broadcast Email, Site Settings, Email Deliverability, Audit Log) with step-by-step instructions, when-to-use guidance, common scenarios cheat-sheet, launch-day checklist, "setup work outside the app" list, and an API reference appendix.
+
+
 ## April 30, 2026 — Racing Tools Cleanup (audit-driven)
 
 - **Hidden** `Vehicle Wrap Cost Calculator` from the Racing category (frontend `hidden: true`; backend prompt + logic preserved for future relocation to Pricing / Quotes / Business). It's a general pricing tool, not racing-specific.
