@@ -75,7 +75,7 @@ export default function DocsCustomerPortal() {
               <li>• Proof images with approve/reject</li>
               <li>• Revision request notes</li>
               <li>• Associated documents</li>
-              <li>• Message thread for that job</li>
+              <li>• Message thread for that order</li>
             </ul>
           </div>
         </div>

@@ -14,7 +14,7 @@ const primaryLinks = [
   },
   {
     title: 'Customers',
-    description: 'Customer records, portal invitations, account history, jobs, quotes, invoices, and portal access.',
+    description: 'Customer records, portal invitations, the customer branding profile, account history, orders, quotes, invoices, and portal access.',
     href: '/docs/customers',
     icon: Users,
     color: 'bg-blue-500/10 text-blue-400 border-blue-500/20'
@@ -28,7 +28,7 @@ const primaryLinks = [
   },
   {
     title: 'Orders, Order Items & Production',
-    description: 'Unified quote/job pipeline, job detail tabs, timeline/history, assignments, and production workflow.',
+    description: 'Unified order pipeline, order detail tabs, timeline/history, assignments, and production workflow.',
     href: '/docs/quotes-jobs',
     icon: Briefcase,
     color: 'bg-purple-500/10 text-purple-400 border-purple-500/20'

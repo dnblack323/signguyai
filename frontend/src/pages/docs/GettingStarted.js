@@ -32,7 +32,7 @@ const quickStart = [
   {
     title: 'Add Your First Employee',
     bullets: [
-      'Create at least one employee so clock-in, assigned tickets, and stage tracking can be tested.',
+      'Create at least one employee so clock-in, assigned orders, and stage tracking can be tested.',
       'Employees use the Employee Portal to see assigned work and act on stages.',
       'You can control sensitive-visibility settings from Company Settings.'
     ]

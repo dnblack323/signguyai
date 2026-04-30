@@ -16,7 +16,7 @@ const faqs = [
     questions: [
       { q: 'How does a customer log in after being invited?', a: 'They use their email address and the temporary PIN from the invitation email. After login, they should change credentials.' },
       { q: 'What can customers do in the portal?', a: 'They can view orders, review proofs, send messages, download shared documents, complete forms, view/pay invoices, approve quotes, and request appointments.' },
-      { q: 'Can customers see internal job details?', a: 'No. The portal is designed for customer-facing status and records only. Internal notes, production stages, and pricing breakdowns are hidden.' },
+      { q: 'Can customers see internal order details?', a: 'No. The portal is designed for customer-facing status and records only. Internal notes, production stages, and pricing breakdowns are hidden.' },
       { q: 'Can customers request appointments?', a: 'Yes. Customers can submit appointment requests through the portal specifying type, date, time, and location. You receive an email notification and can confirm or reject the request.' },
     ]
   },

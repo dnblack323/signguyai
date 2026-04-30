@@ -10,7 +10,7 @@ export default function DocsWebstores() {
         </div>
         <h1 className="text-3xl font-bold text-white mb-4">Webstores</h1>
         <p className="text-lg text-gray-400">
-          Webstores let you sell products online, route orders into jobs, and use Stripe Connect for checkout when enabled.
+          Webstores let you sell products online, route checkout into your production pipeline as orders, and use Stripe Connect for payments when enabled.
         </p>
       </div>
 
@@ -53,7 +53,7 @@ export default function DocsWebstores() {
             </li>
             <li className="flex items-start gap-2">
               <Package className="h-4 w-4 text-cyan-400 mt-1 flex-shrink-0" />
-              <span>Auto-create jobs from orders</span>
+              <span>Auto-create orders from webstore checkout</span>
             </li>
             <li className="flex items-start gap-2">
               <Truck className="h-4 w-4 text-cyan-400 mt-1 flex-shrink-0" />

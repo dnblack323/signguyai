@@ -26,10 +26,10 @@ export default function DocsFinancials() {
           <div className="bg-cyan-900/30 rounded-lg p-4 border border-cyan-700/50">
             <h3 className="font-semibold text-cyan-300 mb-2">Profit & Margin Analytics</h3>
             <ul className="text-sm text-cyan-200/70 space-y-1">
-              <li>• Job-level cost vs sell comparison</li>
+              <li>• Order-level cost vs sell comparison</li>
               <li>• Category profitability breakdown</li>
               <li>• Customer profitability ranking</li>
-              <li>• Underpriced job detection</li>
+              <li>• Underpriced order detection</li>
               <li>• Export to CSV/XLSX/PDF</li>
             </ul>
           </div>
@@ -54,7 +54,7 @@ export default function DocsFinancials() {
           <li>• <strong className="text-white">Revenue Summary</strong> — Total revenue and profit metrics</li>
           <li>• <strong className="text-white">Profit by Category</strong> — See which product lines are most profitable</li>
           <li>• <strong className="text-white">Customer Profitability</strong> — Rank customers by total profit contribution</li>
-          <li>• <strong className="text-white">Job Profitability</strong> — Identify underpriced jobs with cost vs sell analysis</li>
+          <li>• <strong className="text-white">Job Profitability</strong> — Identify underpriced orders with cost vs sell analysis</li>
           <li>• <strong className="text-white">Top/Bottom 10</strong> — Quick view of best and worst performing orders</li>
         </ul>
       </div>

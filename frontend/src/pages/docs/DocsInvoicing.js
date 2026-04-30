@@ -10,7 +10,7 @@ export default function DocsInvoicing() {
         </div>
         <h1 className="text-3xl font-bold text-white mb-4">Invoicing & Payments</h1>
         <p className="text-lg text-gray-400">
-          Invoices connect job billing, customer portal visibility, PDF delivery, AI-assisted email drafting, and Stripe-connected payment collection.
+          Invoices connect order billing, customer portal visibility, PDF delivery, AI-assisted email drafting, and Stripe-connected payment collection.
         </p>
       </div>
 
@@ -44,7 +44,7 @@ export default function DocsInvoicing() {
         <h2 className="text-xl font-semibold text-white mb-4">Standard Invoice Flow</h2>
         <ol className="space-y-3">
           {[
-            'Create an invoice manually or generate one from a job.',
+            'Create an invoice manually or generate one from an order.',
             'Review line items, due date, notes, and totals.',
             'Preview the invoice and optionally use AI Draft to generate the email copy.',
             'Send the invoice to the customer by email and/or expose it in the customer portal.',

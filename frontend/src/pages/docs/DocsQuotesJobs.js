@@ -18,7 +18,7 @@ export default function DocsOrdersTickets() {
           <div className="bg-gray-800/50 rounded-lg p-4 space-y-2 border border-gray-700">
             <p className="font-medium text-white">Layer 1: Order — The master container for a customer's request</p>
             <p className="ml-4 text-gray-400">Layer 2: Order Items — Individual production items within an order</p>
-            <p className="ml-8 text-gray-400">Layer 3: Quotes / Invoices — Financial documents generated from tickets</p>
+            <p className="ml-8 text-gray-400">Layer 3: Quotes / Invoices — Financial documents generated from order items</p>
             <p className="ml-8 text-gray-400">Layer 4: Production Tasks — Department-level workflow stages</p>
           </div>
         </section>
@@ -75,7 +75,7 @@ export default function DocsOrdersTickets() {
             <li><strong className="text-white">Generate Invoice</strong> — creates an invoice from order items</li>
             <li><strong className="text-white">Generate Work Order</strong> — creates a production document with full specs</li>
             <li><strong className="text-white">Email Quote/Invoice</strong> — sends to customer via email</li>
-            <li><strong className="text-white">Start Production</strong> — activates workflow for all enabled tickets</li>
+            <li><strong className="text-white">Start Production</strong> — activates workflow for all enabled order items</li>
             <li><strong className="text-white">Status Change</strong> — quick status update (Approved, In Production, Ready, etc.)</li>
           </ul>
         </section>
@@ -87,7 +87,7 @@ export default function DocsOrdersTickets() {
             <li>6 default templates (Rigid Signs 11 stages, Banners 12, Cut Vinyl 8, Vehicle Wrap 14, Apparel 11, Promo 5)</li>
             <li>Each task has: department, status, assigned employee, timestamps</li>
             <li>Task controls: Start, Complete, Pause, On Hold, Rework</li>
-            <li>Progress automatically rolls up: tasks → ticket → order</li>
+            <li>Progress automatically rolls up: tasks → order item → order</li>
             <li>Production Board shows all tasks grouped by department</li>
             <li>Admin can customize templates in Settings → Workflow Templates</li>
           </ul>
@@ -100,7 +100,7 @@ export default function DocsOrdersTickets() {
             <li>Material costs, labor rates, markup, overhead — all configurable</li>
             <li>Live estimate updates as you fill in the form</li>
             <li>Calculator mode (from settings) or Manual mode (override)</li>
-            <li>Pricing snapshots preserved on each ticket</li>
+            <li>Pricing snapshots preserved on each order item</li>
             <li>Apparel quantity discounts: 12+ (5%), 24+ (10%), 48+ (15%), 72+ (20%), 144+ (25%)</li>
           </ul>
         </section>

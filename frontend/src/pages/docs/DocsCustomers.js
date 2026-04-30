@@ -86,6 +86,44 @@ export default function DocsCustomers() {
         </div>
       </div>
 
+      {/* CSV Import / Export */}
+      <div>
+        <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+          <Mail className="h-5 w-5 text-cyan-400" />
+          Bulk Import & Export
+        </h2>
+        <p className="text-gray-300 mb-4">
+          Already have a customer list somewhere else? Bring it in (or take it out) with the CSV buttons at the top of the Customers page.
+        </p>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="p-4 rounded-lg bg-gray-800/50 border border-gray-700">
+            <h3 className="font-medium text-white mb-2">Import CSV</h3>
+            <ul className="space-y-1 text-sm text-gray-300">
+              <li>• Click <strong className="text-white">Import CSV</strong> on the Customers page header.</li>
+              <li>• Required column: <code className="text-cyan-300">name</code>. Optional columns: <code className="text-cyan-300">email, phone, company, address, notes</code>.</li>
+              <li>• If any row fails validation, the whole import is rolled back and an error message tells you which row was bad — no half-imported data.</li>
+              <li>• Use this to onboard a new tenant from another CRM in one shot.</li>
+            </ul>
+          </div>
+          <div className="p-4 rounded-lg bg-gray-800/50 border border-gray-700">
+            <h3 className="font-medium text-white mb-2">Export CSV</h3>
+            <ul className="space-y-1 text-sm text-gray-300">
+              <li>• Click <strong className="text-white">Export CSV</strong> on the Customers page header.</li>
+              <li>• Downloads every customer record (name, email, phone, company, address, status, notes, created date).</li>
+              <li>• Use this for end-of-month reporting, backup, or migrating away.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* Welcome Email */}
+      <div className="p-4 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-100 text-sm flex items-start gap-2">
+        <Mail className="h-4 w-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+        <span>
+          <strong className="text-white">Welcome email:</strong> when you add a customer with an email address, the system can automatically send a "welcome" email from your shop. Toggle it under Settings → Notifications → <em>Send welcome email on customer create</em> (default ON).
+        </span>
+      </div>
+
       {/* Customer Branding Profile */}
       <div>
         <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
