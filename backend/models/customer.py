@@ -10,6 +10,38 @@ from .enums import CustomerStatus, MessageType, ProofStatus, AppointmentType, Ap
 
 
 # ============== CUSTOMER MODELS ==============
+
+class BrandingLogoConcept(BaseModel):
+    """A single saved logo concept image attached to a customer's branding profile."""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    image_url: Optional[str] = None      # data URL or remote URL
+    summary: Optional[str] = None
+    source_tool: Optional[str] = None    # e.g. "logo_creator"
+    saved_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class BrandingProfile(BaseModel):
+    """Per-customer branding profile. Embedded directly on the Customer document."""
+    model_config = ConfigDict(extra="ignore")
+    business_name: Optional[str] = None
+    industry: Optional[str] = None
+    target_audience: Optional[str] = None
+    brand_personality: Optional[str] = None
+    taglines: List[str] = Field(default_factory=list)
+    selected_tagline: Optional[str] = None
+    logos: List[BrandingLogoConcept] = Field(default_factory=list)
+    brand_colors: List[str] = Field(default_factory=list)        # hex strings
+    font_suggestions: List[str] = Field(default_factory=list)
+    brand_voice_notes: Optional[str] = None
+    competitors: Optional[str] = None
+    differentiation: Optional[str] = None
+    things_to_avoid: Optional[str] = None
+    brand_kit_text: Optional[str] = None
+    notes: Optional[str] = None
+    updated_at: Optional[str] = None
+    updated_by_email: Optional[str] = None
+
+
 class CustomerBase(BaseModel):
     name: Optional[str] = None
     company: Optional[str] = None
@@ -23,6 +55,7 @@ class CustomerBase(BaseModel):
     tax_exempt_document_url: Optional[str] = None
     portal_password_hash: Optional[str] = None
     portal_enabled: bool = False
+    branding_profile: Optional[BrandingProfile] = None
     notification_preferences: Dict[str, bool] = Field(default_factory=lambda: {
         "email_messages": True,
         "email_orders": True,

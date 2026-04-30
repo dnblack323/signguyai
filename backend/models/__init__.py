@@ -19,6 +19,7 @@ from .enums import (
 # Customer & Portal models
 from .customer import (
     CustomerBase, CustomerCreate, CustomerUpdate, Customer,
+    BrandingProfile, BrandingLogoConcept,
     ConversationMessage, Conversation, ArtworkProof,
     CustomerNotification, Appointment,
     CustomerPortalLogin, CustomerPortalRegister, CustomerPortalToken,

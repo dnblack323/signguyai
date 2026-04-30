@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAICreditGuard } from '../components/credits/AICreditConfirmationDialog';
+import CustomerBrandingPicker from '../components/CustomerBrandingPicker';
 
 const aiTools = [
   // NEW AI Tools
@@ -96,9 +97,12 @@ const aiTools = [
       { name: 'industry', label: 'Industry', type: 'text', placeholder: 'e.g., Restaurant, Auto Repair, Law Firm, Fitness' },
       { name: 'target_audience', label: 'Target Audience', type: 'textarea', placeholder: 'Who are you trying to reach? What do they care about?' },
       { name: 'key_values', label: 'Key Values/USP', type: 'textarea', placeholder: 'What makes this business unique? Core values, differentiators' },
+      { name: 'competitors', label: 'Competitors (Optional)', type: 'text', placeholder: 'Comma-separated names of competing brands' },
+      { name: 'differentiation', label: 'Differentiation / What makes this brand different', type: 'textarea', placeholder: 'Why a customer would choose this brand over the competitors' },
       { name: 'tone', label: 'Desired Tone', type: 'select', options: ['professional_serious', 'friendly_approachable', 'fun_playful', 'luxurious_premium', 'bold_edgy', 'warm_caring', 'innovative_tech'] },
       { name: 'avoid', label: 'Things to Avoid', type: 'text', placeholder: 'Any words, themes, or styles to avoid' }
-    ]
+    ],
+    supportsCustomerBranding: true,
   },
   {
     id: 'permit_research',
@@ -237,11 +241,13 @@ const aiTools = [
   {
     id: 'logo_creator',
     name: 'Logo Creator',
-    description: 'Generate professional logo design concepts with multiple options.',
+    description: 'Generate AI logo concept images (raster — final production may need vectorization).',
     icon: PenTool,
     category: 'branding',
     generatesImages: true,
     imageCount: 3,
+    rasterDisclaimer: true,
+    supportsCustomerBranding: true,
     fields: [
       { name: 'business_name', label: 'Business Name', type: 'text', placeholder: 'Name to appear in/with logo', required: true },
       { name: 'tagline', label: 'Tagline (Optional)', type: 'text', placeholder: 'e.g., "Quality Signs Since 1995"' },
@@ -259,7 +265,13 @@ const aiTools = [
     icon: Palette,
     category: 'branding',
     generatesImages: false,
+    supportsCustomerBranding: true,
     fields: [
+      { name: 'business_name', label: 'Business / Brand Name', type: 'text', placeholder: 'e.g., Acme Signs', required: true },
+      { name: 'industry', label: 'Industry', type: 'text', placeholder: 'e.g., Restaurant, Auto Repair, Law Firm', required: true },
+      { name: 'existing_tagline', label: 'Existing Tagline (Optional)', type: 'text', placeholder: 'Leave blank if none' },
+      { name: 'website', label: 'Website or Social Link (Optional)', type: 'text', placeholder: 'https://...' },
+      { name: 'brand_color_preferences', label: 'Brand Color Preferences (Optional)', type: 'text', placeholder: 'e.g., navy & gold, earthy greens, black & red' },
       { name: 'logo_description', label: 'Describe Your Logo', type: 'textarea', placeholder: 'Describe the existing logo or what it should look like' },
       { name: 'brand_tone', label: 'Brand Personality', type: 'select', options: ['professional_trustworthy', 'friendly_approachable', 'luxurious_premium', 'playful_energetic', 'innovative_modern', 'traditional_established'] },
       { name: 'target_audience', label: 'Target Audience', type: 'textarea', placeholder: 'Who are your customers? What do they care about?' },
@@ -518,6 +530,11 @@ export default function AITools() {
   const [sendMessage, setSendMessage] = useState('');
   const [notifyCustomer, setNotifyCustomer] = useState(true);
 
+  // Branding profile attachment (Branding category tools only)
+  const [brandingCustomerId, setBrandingCustomerId] = useState(null);
+  const [brandingProfile, setBrandingProfile] = useState(null);
+  const [savingToBrandingProfile, setSavingToBrandingProfile] = useState(false);
+
   // Load customers when needed
   useEffect(() => {
     if (showSendDialog && (!customers || customers.length === 0)) {
@@ -560,6 +577,8 @@ export default function AITools() {
     setGeneratedImages([]);
     setSelectedImageIndex(null);
     setUploadedImagePreview(null);
+    setBrandingCustomerId(null);
+    setBrandingProfile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -736,23 +755,132 @@ export default function AITools() {
   const handleSaveToLibrary = async () => {
     const content = result?.content || result?.output;
     if (!content) return;
-    
+
+    // Map AI tools → Document Library category. Branding tools land in
+    // sensible buckets so they're discoverable later.
+    const branded = (() => {
+      switch (selectedTool.id) {
+        case 'logo_creator':
+          return 'Logo Concepts';
+        case 'branding_kit_generator':
+          return 'Brand Kits';
+        case 'idea_brainstormer':
+          return 'Taglines & Slogans';
+        default:
+          return null;
+      }
+    })();
+    const category =
+      branded || (selectedTool.category === 'business' ? 'contract' : 'other');
+
     setSavingToLibrary(true);
     try {
       await api.post('/documents/from-ai', {
         content: content,
         name: `${selectedTool.name} - ${new Date().toLocaleDateString()}`,
         tool_id: selectedTool.id,
-        category: selectedTool.category === 'business' ? 'contract' : 'other',
+        category,
         input_data: formData
       });
-      
+
       toast.success('Document saved to library');
     } catch (err) {
       console.error('Save to library error:', err);
       toast.error(err.response?.data?.detail || 'Failed to save document');
     }
     setSavingToLibrary(false);
+  };
+
+  // ----- Branding Profile helpers (Branding tools only) -----
+  const handlePrefillFromBrandingProfile = (profile) => {
+    if (!profile) return;
+    const next = { ...formData };
+    // Generic mappings — only fill what's empty so we don't trample user edits
+    const fillMap = {
+      business_name: profile.business_name,
+      industry: profile.industry,
+      target_audience: profile.target_audience,
+      brand_tone: profile.brand_personality,
+      tone: profile.brand_personality,
+      competitors: profile.competitors,
+      differentiation: profile.differentiation,
+      avoid: profile.things_to_avoid,
+      brand_color_preferences:
+        profile.brand_colors && profile.brand_colors.length
+          ? profile.brand_colors.join(', ')
+          : null,
+      color_preferences:
+        profile.brand_colors && profile.brand_colors.length
+          ? profile.brand_colors.join(', ')
+          : null,
+      existing_tagline: profile.selected_tagline,
+      tagline: profile.selected_tagline,
+    };
+    Object.entries(fillMap).forEach(([key, value]) => {
+      if (value && !next[key]) next[key] = value;
+    });
+    setFormData(next);
+    toast.success('Pre-filled from customer branding profile');
+  };
+
+  const handleBrandingPickerChange = ({ customerId, profile }) => {
+    setBrandingCustomerId(customerId);
+    setBrandingProfile(profile);
+  };
+
+  const saveToBrandingProfile = async (payload, successMsg = 'Saved to customer branding profile') => {
+    if (!brandingCustomerId) {
+      toast.error('Pick a customer first');
+      return;
+    }
+    setSavingToBrandingProfile(true);
+    try {
+      await api.post(`/customers/${brandingCustomerId}/branding/append`, payload);
+      toast.success(successMsg);
+    } catch (err) {
+      console.error('Save to branding profile error:', err);
+      toast.error(err.response?.data?.detail || 'Failed to save to branding profile');
+    } finally {
+      setSavingToBrandingProfile(false);
+    }
+  };
+
+  const handleSaveBrandKitToProfile = async () => {
+    const content = result?.content || result?.output;
+    if (!content) return;
+    // Best-effort regex parse for hex codes and common font names
+    const hexes = Array.from(
+      content.matchAll(/#[0-9a-fA-F]{6}\b/g),
+      (m) => m[0].toUpperCase()
+    );
+    const fontMatches = Array.from(
+      content.matchAll(/(?:font|typeface)[:\s]+([A-Z][A-Za-z0-9 ]+?)(?:[,.\n]|$)/g),
+      (m) => m[1].trim()
+    ).filter((f) => f.length > 1 && f.length < 40);
+    await saveToBrandingProfile({
+      brand_kit_text: content,
+      brand_colors: Array.from(new Set(hexes)).slice(0, 6),
+      font_suggestions: Array.from(new Set(fontMatches)).slice(0, 4),
+    });
+  };
+
+  const handleSaveTaglineToProfile = async (tagline, select = false) => {
+    if (!tagline) return;
+    await saveToBrandingProfile(
+      { tagline, select_tagline: select },
+      select ? 'Set as selected tagline' : 'Tagline saved'
+    );
+  };
+
+  const handleSaveLogoToProfile = async (imageDataUrl, summary) => {
+    if (!imageDataUrl) return;
+    await saveToBrandingProfile({
+      logo: {
+        image_url: imageDataUrl,
+        summary: summary || `Generated by ${selectedTool.name}`,
+        source_tool: selectedTool.id,
+      },
+    });
   };
 
   // Send document directly to customer portal
@@ -923,6 +1051,23 @@ export default function AITools() {
               <CardTitle className="font-heading uppercase text-sm">Input</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {selectedTool.supportsCustomerBranding && (
+                <CustomerBrandingPicker
+                  value={brandingCustomerId}
+                  onChange={handleBrandingPickerChange}
+                  onPrefill={handlePrefillFromBrandingProfile}
+                />
+              )}
+              {selectedTool.rasterDisclaimer && (
+                <div
+                  className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded p-2"
+                  data-testid="logo-raster-disclaimer"
+                >
+                  <strong>Heads up:</strong> AI-generated logo concepts are
+                  raster images. Use them as a starting concept — final
+                  production artwork may need cleanup or vectorization.
+                </div>
+              )}
               {selectedTool.fields.map((field) => (
                 <div key={field.name} className="space-y-2">
                   <Label>
@@ -1093,6 +1238,25 @@ export default function AITools() {
                           >
                             <Download className="h-3 w-3" />
                           </Button>
+                          {selectedTool.supportsCustomerBranding && brandingCustomerId && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="h-8 text-xs"
+                              disabled={savingToBrandingProfile}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSaveLogoToProfile(
+                                  img,
+                                  `${selectedTool.name} concept #${index + 1} for ${formData.business_name || 'customer'}`
+                                );
+                              }}
+                              title="Save this concept to the customer's Branding Profile"
+                              data-testid={`save-logo-to-profile-btn-${index}`}
+                            >
+                              <Palette className="h-3 w-3" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1186,6 +1350,27 @@ export default function AITools() {
                       {savingToLibrary ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FolderPlus className="h-4 w-4 mr-2" />}
                       Save to Library
                     </Button>
+                    {selectedTool.supportsCustomerBranding && brandingCustomerId && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={
+                          selectedTool.id === 'branding_kit_generator'
+                            ? handleSaveBrandKitToProfile
+                            : () => handleSaveTaglineToProfile(result.content || result.output, false)
+                        }
+                        disabled={savingToBrandingProfile}
+                        data-testid="save-to-branding-profile-btn"
+                        className="text-purple-700 hover:bg-purple-50"
+                      >
+                        {savingToBrandingProfile ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Palette className="h-4 w-4 mr-2" />
+                        )}
+                        Save to Branding Profile
+                      </Button>
+                    )}
                     <Button 
                       variant="outline" 
                       size="sm" 

@@ -135,7 +135,11 @@ Make the content genuinely engaging, not generic or salesy.""",
 **Target Audience:** {target_audience}
 **Key Values/USP:** {key_values}
 **Desired Tone:** {tone}
+**Competitors:** {competitors}
+**Differentiation / What makes this brand different:** {differentiation}
 **Things to Avoid:** {avoid}
+
+Use competitors and differentiation to make the ideas distinctive — avoid sounding like the listed competitors and lean into what makes this brand different.
 
 Based on the request type, provide:
 
@@ -462,12 +466,21 @@ Provide:
 8. Budget Allocation Suggestions""",
 
     # Frontend-matching tool aliases
-    "branding_kit_generator": """You are a brand strategist for sign shops. Create a complete brand system with guidelines:
+    "branding_kit_generator": """You are a brand strategist for sign shops. Create a complete brand system with guidelines.
 
+**Business / Brand Name:** {business_name}
+**Industry:** {industry}
+**Existing Tagline:** {existing_tagline}
+**Website / Social Link:** {website}
+**Brand Color Preferences:** {brand_color_preferences}
 **Logo Description:** {logo_description}
 **Brand Personality:** {brand_tone}
 **Target Audience:** {target_audience}
 **Competitors:** {competitors}
+
+Use the business name and industry as the anchor for every recommendation.
+If brand colors were provided, build the palette around them; otherwise propose a fitting palette.
+If an existing tagline was provided, respect it (don't replace it unless asked).
 
 Create comprehensive branding guidelines including:
 
@@ -804,14 +817,14 @@ Colors: {brand_colors}.
 Clean, readable typography, professional print-ready design.
 Marketing banner suitable for outdoor or indoor display.""",
 
-    "logo_creator": """Professional logo design for "{business_name}".
+    "logo_creator": """AI-generated logo concept image for "{business_name}".
 Industry: {industry}.
 Logo style: {logo_type}, {style_preferences} aesthetic.
 Colors: {color_preferences}.
 Tagline to incorporate: {tagline}.
 Icon/symbol ideas: {icon_ideas}.
-The logo should be clean, scalable, memorable, and work well on signage.
-Professional brand identity design, vector-style appearance, white or transparent background.
+The logo should be clean, memorable, and work well on signage.
+Render as a flat, high-contrast logo concept on a white or transparent background — this is a raster concept image, not a final vector artwork file.
 High quality logo suitable for business cards, signs, and digital use.""",
 
     "mockup_creator": """Realistic mockup photograph showing {product_type} in a {environment} setting.
@@ -885,6 +898,13 @@ async def generate_text_content(tool: str, input_data: Dict[str, Any]) -> str:
     prompt_template = TOOL_PROMPTS.get(tool)
     if not prompt_template:
         raise HTTPException(status_code=400, detail=f"Unknown tool: {tool}")
+
+    # Tool-specific required-field validation
+    if tool == "branding_kit_generator":
+        if not (input_data.get("business_name") or "").strip():
+            raise HTTPException(status_code=400, detail="Business / Brand Name is required")
+        if not (input_data.get("industry") or "").strip():
+            raise HTTPException(status_code=400, detail="Industry is required")
     
     # Handle special formatting for pricing_advisor tool
     if tool == "pricing_advisor":

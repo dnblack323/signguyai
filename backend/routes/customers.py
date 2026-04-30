@@ -10,12 +10,13 @@ This module contains all routes related to:
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional
 from datetime import datetime, timezone
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import random
 import re
 
 from models import (
     Customer, CustomerCreate, CustomerUpdate, CustomerStatus,
+    BrandingProfile, BrandingLogoConcept,
     UserInDB, Permission
 )
 
@@ -278,6 +279,139 @@ async def get_customer(
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
     return customer
+
+
+# ============== BRANDING PROFILE ROUTES ==============
+
+# How many recent logo concepts to keep on the embedded branding_profile.
+# Concepts are large base64 PNGs, so we cap to keep the customer doc lean.
+BRANDING_LOGO_CAP = 3
+
+
+class BrandingAppendRequest(BaseModel):
+    """One-shot append helper used by AI tools to push a single artifact onto
+    a customer's branding profile without overwriting unrelated fields."""
+    tagline: Optional[str] = None
+    select_tagline: Optional[bool] = False
+    logo: Optional[BrandingLogoConcept] = None
+    brand_kit_text: Optional[str] = None
+    brand_colors: List[str] = Field(default_factory=list)
+    font_suggestions: List[str] = Field(default_factory=list)
+    notes_append: Optional[str] = None
+
+
+@router.get("/{customer_id}/branding", response_model=BrandingProfile)
+async def get_customer_branding(
+    customer_id: str,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Return this customer's branding profile (or an empty profile if none)."""
+    customer = await db.customers.find_one(
+        {"id": customer_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0, "branding_profile": 1},
+    )
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    profile = customer.get("branding_profile") or {}
+    return BrandingProfile(**profile)
+
+
+@router.put("/{customer_id}/branding", response_model=BrandingProfile)
+async def update_customer_branding(
+    customer_id: str,
+    payload: BrandingProfile,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Replace the branding profile for this customer."""
+    existing = await db.customers.find_one(
+        {"id": customer_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0, "id": 1},
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    profile = payload.model_dump(exclude_none=False)
+    profile["updated_at"] = datetime.now(timezone.utc).isoformat()
+    profile["updated_by_email"] = current_user.email
+
+    # Cap logos to N most recent
+    if profile.get("logos") and len(profile["logos"]) > BRANDING_LOGO_CAP:
+        profile["logos"] = profile["logos"][-BRANDING_LOGO_CAP:]
+
+    await db.customers.update_one(
+        {"id": customer_id, "tenant_id": current_user.tenant_id},
+        {"$set": {
+            "branding_profile": profile,
+            "updated_at": profile["updated_at"],
+        }},
+    )
+    return BrandingProfile(**profile)
+
+
+@router.post("/{customer_id}/branding/append", response_model=BrandingProfile)
+async def append_to_customer_branding(
+    customer_id: str,
+    payload: BrandingAppendRequest,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Append a single artifact (tagline / logo / brand kit) to the profile.
+    Used by Branding AI tools so they don't trample unrelated fields."""
+    customer = await db.customers.find_one(
+        {"id": customer_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0, "branding_profile": 1},
+    )
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    profile_doc = customer.get("branding_profile") or {}
+    profile = BrandingProfile(**profile_doc)
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    if payload.tagline:
+        if payload.tagline not in profile.taglines:
+            profile.taglines.append(payload.tagline)
+        if payload.select_tagline:
+            profile.selected_tagline = payload.tagline
+
+    if payload.logo:
+        # Stamp source + saved_at if missing, then push and cap FIFO
+        if not payload.logo.saved_at:
+            payload.logo.saved_at = now_iso
+        profile.logos.append(payload.logo)
+        if len(profile.logos) > BRANDING_LOGO_CAP:
+            profile.logos = profile.logos[-BRANDING_LOGO_CAP:]
+
+    if payload.brand_kit_text:
+        profile.brand_kit_text = payload.brand_kit_text
+
+    for hex_code in payload.brand_colors or []:
+        if hex_code and hex_code not in profile.brand_colors:
+            profile.brand_colors.append(hex_code)
+
+    for font in payload.font_suggestions or []:
+        if font and font not in profile.font_suggestions:
+            profile.font_suggestions.append(font)
+
+    if payload.notes_append:
+        existing_notes = profile.notes or ""
+        profile.notes = (
+            f"{existing_notes}\n\n{payload.notes_append}".strip()
+            if existing_notes
+            else payload.notes_append
+        )
+
+    profile.updated_at = now_iso
+    profile.updated_by_email = current_user.email
+
+    profile_dict = profile.model_dump()
+    await db.customers.update_one(
+        {"id": customer_id, "tenant_id": current_user.tenant_id},
+        {"$set": {
+            "branding_profile": profile_dict,
+            "updated_at": now_iso,
+        }},
+    )
+    return profile
 
 
 @router.post("/{customer_id}/invite-portal", response_model=PortalInviteResponse)
