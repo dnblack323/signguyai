@@ -346,60 +346,54 @@ const aiTools = [
   {
     id: 'completed_job_post',
     name: 'Completed Order Post Creator',
-    description: 'Upload a photo of your completed work and get ready-to-post social content.',
+    description: 'Turn a completed order into ready-to-post social content (with or without a photo).',
     icon: Share2,
     category: 'marketing',
     generatesImages: false,
     fields: [
-      { name: 'image_upload', label: 'Upload Completed Order Photo', type: 'image_upload', required: true },
+      { name: 'post_mode', label: 'Post Mode', type: 'select', options: ['with_image', 'text_only'], required: true, helpText: 'Choose "With Image" to upload a photo of the completed work, or "Text Only" for a quick text-based post.' },
+      { name: 'image_upload', label: 'Upload Completed Order Photo', type: 'image_upload', requiredWhen: { field: 'post_mode', equals: 'with_image' }, showWhen: { field: 'post_mode', equals: 'with_image' } },
+      { name: 'job_description', label: 'Describe the Completed Order', type: 'textarea', placeholder: 'Required for text-only posts. Describe colors, materials, scale, what made it special.', requiredWhen: { field: 'post_mode', equals: 'text_only' }, showWhen: { field: 'post_mode', equals: 'text_only' } },
       { name: 'job_type', label: 'What Did You Create?', type: 'select', options: ['full_vehicle_wrap', 'partial_vehicle_wrap', 'fleet_graphics', 'storefront_sign', 'channel_letters', 'monument_sign', 'wall_mural', 'window_graphics', 'banner', 'trade_show_display', 'dimensional_letters', 'awning', 'a_frame_sign', 'yard_signs', 'interior_signage', 'other'], required: true },
-      { name: 'job_details', label: 'Order Details', type: 'textarea', placeholder: 'Describe the project: colors, materials, challenges overcome, special features, turnaround time' },
+      { name: 'job_details', label: 'Order Details (optional)', type: 'textarea', placeholder: 'Extra context: challenges overcome, materials, turnaround time, special features.' },
       { name: 'client_industry', label: 'Client Industry (no names)', type: 'text', placeholder: 'e.g., local plumber, restaurant, real estate agent' },
       { name: 'platforms', label: 'Posting To', type: 'select', options: ['facebook', 'instagram', 'linkedin', 'tiktok', 'all_platforms'] },
       { name: 'post_style', label: 'Post Style', type: 'select', options: ['professional_showcase', 'behind_the_scenes', 'before_after', 'educational', 'casual_fun'] },
+      { name: 'brand_voice', label: 'Brand Voice / Tone', type: 'select', options: ['professional', 'friendly', 'bold_confident', 'witty_playful', 'inspirational'] },
       { name: 'include_hashtags', label: 'Include Hashtags?', type: 'select', options: ['yes_full_set', 'yes_minimal', 'no'] }
-    ]
-  },
-  {
-    id: 'social_job_post',
-    name: 'Social Media Job Post Creator',
-    description: 'Create engaging social posts from completed jobs.',
-    icon: Share2,
-    category: 'marketing',
-    generatesImages: false,
-    fields: [
-      { name: 'job_description', label: 'Describe the Completed Job', type: 'textarea', placeholder: 'What did you make? Vehicle wrap, storefront sign, banner, etc.' },
-      { name: 'job_type', label: 'Order Type', type: 'select', options: ['vehicle_wrap', 'storefront_sign', 'monument_sign', 'interior_signage', 'banner', 'window_graphics', 'fleet_graphics', 'dimensional_letters'] },
-      { name: 'client_industry', label: 'Client Industry (no names)', type: 'text', placeholder: 'e.g., local restaurant, construction company' },
-      { name: 'platforms', label: 'Target Platforms', type: 'select', options: ['facebook', 'instagram', 'linkedin', 'all_platforms'] }
     ]
   },
   {
     id: 'social_pack_generator',
     name: 'Social Media Pack Generator',
-    description: 'Generate a batch of social media content ideas.',
+    description: 'Generate a batch of social media post ideas (5–30) you can drop straight into a calendar.',
     icon: Share2,
     category: 'marketing',
     generatesImages: false,
     fields: [
-      { name: 'services_offered', label: 'Services You Offer', type: 'textarea', placeholder: 'List your main services: vehicle wraps, signs, banners, etc.' },
-      { name: 'pack_size', label: 'Number of Posts', type: 'select', options: ['5_posts', '10_posts', '15_posts', '30_posts'] },
+      { name: 'services_offered', label: 'Services You Offer', type: 'textarea', placeholder: 'List your main services: vehicle wraps, signs, banners, etc.', required: true },
+      { name: 'pack_size', label: 'Number of Posts', type: 'select', options: ['5_posts', '10_posts', '15_posts', '30_posts'], required: true },
+      { name: 'platforms', label: 'Target Platforms', type: 'select', options: ['facebook', 'instagram', 'linkedin', 'tiktok', 'all_platforms'] },
       { name: 'target_audience', label: 'Target Audience', type: 'text', placeholder: 'Local businesses, contractors, restaurants, etc.' },
+      { name: 'brand_voice', label: 'Brand Voice / Tone', type: 'select', options: ['professional', 'friendly', 'bold_confident', 'witty_playful', 'inspirational'] },
       { name: 'content_mix', label: 'Content Focus', type: 'select', options: ['mostly_promotional', 'mostly_educational', 'behind_the_scenes', 'balanced_mix'] }
     ]
   },
   {
     id: 'content_calendar',
     name: 'Content Calendar Creator',
-    description: 'Plan your social media posting schedule.',
+    description: 'Plan a posting calendar with start date, frequency, themes and ideas per day.',
     icon: Calendar,
     category: 'marketing',
     generatesImages: false,
     fields: [
-      { name: 'date_range', label: 'Time Period', type: 'select', options: ['1_week', '2_weeks', '1_month'] },
-      { name: 'platforms', label: 'Platforms', type: 'text', placeholder: 'e.g., Facebook, Instagram' },
+      { name: 'start_date', label: 'Start Date', type: 'date', required: true },
+      { name: 'date_range', label: 'Time Period', type: 'select', options: ['1_week', '2_weeks', '1_month'], required: true },
+      { name: 'post_frequency', label: 'Posting Frequency', type: 'select', options: ['1x_per_day', '5x_per_week', '3x_per_week', '2x_per_week', '1x_per_week'], required: true },
+      { name: 'platforms', label: 'Platforms', type: 'text', placeholder: 'e.g., Facebook, Instagram, LinkedIn' },
       { name: 'goals', label: 'Marketing Goals', type: 'textarea', placeholder: 'What do you want to achieve? More leads, brand awareness?' },
-      { name: 'upcoming_events', label: 'Upcoming Events/Promotions', type: 'textarea', placeholder: 'Any sales, holidays, or events to plan around?' }
+      { name: 'upcoming_events', label: 'Upcoming Events / Promotions', type: 'textarea', placeholder: 'Any sales, holidays, or events to plan around?' },
+      { name: 'brand_voice', label: 'Brand Voice / Tone', type: 'select', options: ['professional', 'friendly', 'bold_confident', 'witty_playful', 'inspirational'] }
     ]
   },
   {
@@ -501,7 +495,7 @@ const categories = [
   { id: 'design', name: 'Design Tools', icon: Image, color: 'text-blue-400', count: 10 },
   { id: 'branding', name: 'Branding', icon: Palette, color: 'text-purple-400', count: 3 },
   { id: 'business', name: 'Business', icon: FileText, color: 'text-green-400', count: 5 },
-  { id: 'marketing', name: 'Marketing', icon: Share2, color: 'text-pink-400', count: 6 },
+  { id: 'marketing', name: 'Marketing', icon: Share2, color: 'text-pink-400', count: 5 },
   { id: 'racing', name: 'Racing & Motorsports', icon: Flag, color: 'text-red-400', count: 4 }
 ];
 
@@ -546,6 +540,7 @@ export default function AITools() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const toolParam = params.get('tool');
+    const customerParam = params.get('customer');
     if (toolParam) {
       const tool = aiTools.find(t => t.id === toolParam);
       if (tool) {
@@ -556,6 +551,20 @@ export default function AITools() {
         setGeneratedImages([]);
       }
     }
+    // Deep-link from a customer's Branding tab: pre-attach + pre-fill
+    if (customerParam) {
+      (async () => {
+        try {
+          const r = await api.get(`/customers/${customerParam}/branding`);
+          setBrandingCustomerId(customerParam);
+          setBrandingProfile(r.data || {});
+          handlePrefillFromBrandingProfile(r.data || {});
+        } catch (err) {
+          console.error('Auto-load customer branding profile failed', err);
+        }
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredTools = selectedCategory === 'all' 
@@ -609,10 +618,21 @@ export default function AITools() {
     }
   };
 
+  // Conditional-required helpers (used by `requiredWhen` and `showWhen`).
+  const matchesCondition = (cond) => {
+    if (!cond) return true;
+    return formData?.[cond.field] === cond.equals;
+  };
+  const isFieldRequiredNow = (field) =>
+    field.required || (field.requiredWhen && matchesCondition(field.requiredWhen));
+  const isFieldVisible = (field) =>
+    !field.showWhen || matchesCondition(field.showWhen);
+
   const handleGenerate = async () => {
-    // Check for required fields
-    const requiredFields = selectedTool.fields.filter(f => f.required);
+    // Check for required fields (static + conditional)
+    const requiredFields = selectedTool.fields.filter(isFieldRequiredNow);
     for (const field of requiredFields) {
+      if (!isFieldVisible(field)) continue;
       if (!formData[field.name]) {
         toast.error(`Please provide: ${field.label}`);
         return;
@@ -756,22 +776,26 @@ export default function AITools() {
     const content = result?.content || result?.output;
     if (!content) return;
 
-    // Map AI tools → Document Library category. Branding tools land in
-    // sensible buckets so they're discoverable later.
-    const branded = (() => {
-      switch (selectedTool.id) {
-        case 'logo_creator':
-          return 'Logo Concepts';
-        case 'branding_kit_generator':
-          return 'Brand Kits';
-        case 'idea_brainstormer':
-          return 'Taglines & Slogans';
-        default:
-          return null;
-      }
-    })();
-    const category =
-      branded || (selectedTool.category === 'business' ? 'contract' : 'other');
+    // Centralized AI tool → Document Library category map (audit 2026-04).
+    // Keeps marketing/branding outputs out of the "other" bucket so they're
+    // discoverable by category later.
+    const TOOL_TO_DOC_CATEGORY = {
+      // Branding
+      logo_creator: 'logo_concept',
+      branding_kit_generator: 'brand_kit',
+      idea_brainstormer: 'tagline',
+      // Marketing
+      blog_creator: 'blog_article',
+      completed_job_post: 'social_post',
+      social_job_post: 'social_post',
+      social_pack_generator: 'marketing_content',
+      content_calendar: 'content_calendar',
+      campaign_builder: 'campaign_plan',
+      // Business
+      document_composer: 'contract',
+      product_description: 'marketing_content',
+    };
+    const category = TOOL_TO_DOC_CATEGORY[selectedTool.id] || 'other';
 
     setSavingToLibrary(true);
     try {
@@ -940,7 +964,7 @@ export default function AITools() {
       {/* Header */}
       <div>
           <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-gray-900">AI Tools Suite</h1>
-        <p className="text-gray-700 mt-1">15 AI-powered tools for design, branding, business, and marketing</p>
+        <p className="text-gray-700 mt-1">14 AI-powered tools for design, branding, business, and marketing</p>
       </div>
 
       {/* Category Filter */}
@@ -1068,17 +1092,31 @@ export default function AITools() {
                   production artwork may need cleanup or vectorization.
                 </div>
               )}
-              {selectedTool.fields.map((field) => (
+              {selectedTool.fields.map((field) => {
+                if (!isFieldVisible(field)) return null;
+                const requiredNow = isFieldRequiredNow(field);
+                return (
                 <div key={field.name} className="space-y-2">
                   <Label>
                     {field.label}
-                    {field.required && <span className="text-red-500 ml-1">*</span>}
+                    {requiredNow && <span className="text-red-500 ml-1">*</span>}
                   </Label>
+                  {field.helpText && (
+                    <p className="text-xs text-gray-500 -mt-1">{field.helpText}</p>
+                  )}
                   {field.type === 'text' && (
                     <Input
                       value={formData[field.name] || ''}
                       onChange={(e) => handleFieldChange(field.name, e.target.value)}
                       placeholder={field.placeholder}
+                      data-testid={`input-${field.name}`}
+                    />
+                  )}
+                  {field.type === 'date' && (
+                    <Input
+                      type="date"
+                      value={formData[field.name] || ''}
+                      onChange={(e) => handleFieldChange(field.name, e.target.value)}
                       data-testid={`input-${field.name}`}
                     />
                   )}
@@ -1149,7 +1187,8 @@ export default function AITools() {
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
               
               <Button 
                 onClick={handleGenerate} 

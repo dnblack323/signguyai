@@ -35,6 +35,15 @@ class DocumentCategory(str, Enum):
     QUOTE_TEMPLATE = "quote_template"
     CUSTOMER_FORM = "customer_form"
     INTERNAL = "internal"
+    # Marketing & branding outputs from AI tools (audit 2026-04)
+    MARKETING_CONTENT = "marketing_content"
+    SOCIAL_POST = "social_post"
+    CONTENT_CALENDAR = "content_calendar"
+    CAMPAIGN_PLAN = "campaign_plan"
+    BLOG_ARTICLE = "blog_article"
+    LOGO_CONCEPT = "logo_concept"
+    BRAND_KIT = "brand_kit"
+    TAGLINE = "tagline"
     OTHER = "other"
 
 

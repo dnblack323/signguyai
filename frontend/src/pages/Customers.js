@@ -45,6 +45,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { getAuthToken } from '../lib/authStorage';
 import { useSetPageContext } from '../context/PageContext';
+import CustomerBrandingTab from '../components/CustomerBrandingTab';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -977,11 +978,12 @@ export default function Customers() {
                 </div>
 
                 <Tabs value={detailTab} onValueChange={setDetailTab}>
-                  <TabsList className="grid grid-cols-4 w-full">
+                  <TabsList className="grid grid-cols-5 w-full">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="jobs">Orders ({stats.customerJobs.length})</TabsTrigger>
                     <TabsTrigger value="invoices">Invoices ({stats.customerInvoices.length})</TabsTrigger>
                     <TabsTrigger value="quotes">Quotes ({customerQuotes.length})</TabsTrigger>
+                    <TabsTrigger value="branding" data-testid="customer-branding-tab-trigger">Branding</TabsTrigger>
                   </TabsList>
 
                   {/* Overview Tab */}
@@ -1174,6 +1176,11 @@ export default function Customers() {
                         ))}
                       </div>
                     )}
+                  </TabsContent>
+
+                  {/* Branding Tab */}
+                  <TabsContent value="branding" className="mt-4">
+                    <CustomerBrandingTab customerId={selectedCustomer.id} />
                   </TabsContent>
                 </Tabs>
 

@@ -91,40 +91,47 @@ The article should:
 
 Format the article with clear headers and easy-to-scan structure.""",
 
-    # NEW TOOLS - Completed Job Post Creator
-    "completed_job_post": """You are a social media expert for sign shops. Based on the uploaded photo of a completed job, create engaging social media content.
+    # NEW TOOLS - Completed Order Post Creator
+    # Merged 2026-04: now supports both image-based and text-only modes (was a
+    # duplicate of social_job_post). post_mode = "with_image" | "text_only".
+    "completed_job_post": """You are a social media expert for sign shops. Create engaging social media content for a completed order.
 
+**Post Mode:** {post_mode}
 **Job Type:** {job_type}
-**Job Details:** {job_details}
+**Order / Project Description:** {job_description}
+**Order Details:** {job_details}
 **Client Industry:** {client_industry}
 **Platform:** {platforms}
 **Post Style:** {post_style}
+**Brand Voice:** {brand_voice}
 **Include Hashtags:** {include_hashtags}
 
-Analyze the uploaded image and create:
+If post_mode is "with_image", an image of the completed work has been attached — analyze it and reference visible details (colors, materials, surface, environment) in the caption.
+If post_mode is "text_only", base the post entirely on the description above.
 
-1. **Primary Post Caption** (platform-optimized length):
-   - Hook/attention-grabber in first line
-   - Describe the work showcased
-   - Highlight craftsmanship, challenges overcome, or unique features
-   - Include the call to action
-   - Match the requested post style
+Produce:
 
-2. **Alternative Caption** - A shorter or different angle version
+1. **Primary Post Caption** (length tuned to the chosen platform):
+   - Hook in the first line
+   - Describe the work and what makes it stand out
+   - Match the requested post style and brand voice
+   - Single clear call to action
 
-3. **Hashtag Set** (if requested):
-   - Industry hashtags (#signshop, #vehiclewrap, etc.)
-   - Local/service area hashtags (suggest format)
-   - Trending relevant hashtags
-   - Branded hashtag suggestion
+2. **Alternative Caption** — same content, shorter or different angle.
 
-4. **Best Posting Tips**:
-   - Optimal posting time for this content type
-   - Suggested story/reel content ideas
-   - Engagement prompt suggestions
+3. **Hashtag Set** (only if requested):
+   - Industry hashtags
+   - Local / service-area placeholder hashtags
+   - 1–2 trending relevant hashtags
+   - Suggested branded hashtag
 
-Keep client confidentiality - use industry description, not names.
-Make the content genuinely engaging, not generic or salesy.""",
+4. **Posting Tips**:
+   - Best time to post for this content
+   - Story / Reel idea
+   - Engagement prompt to add in first comment
+
+Keep client confidentiality — describe the industry, never the client name.
+Avoid generic AI fluff. Match the brand voice exactly.""",
 
     # Original NEW TOOLS
     "idea_brainstormer": """You are a creative brainstorming expert for sign shops and their clients. Generate creative ideas based on:
@@ -421,31 +428,50 @@ Create:
 - Call to action
 - Keep client confidentiality (no names unless approved)""",
 
-    "social_pack_generator": """Generate {pack_size} social media post ideas for a sign shop:
+    "social_pack_generator": """You are a social media strategist for a sign / graphics shop. Generate {pack_size} social media post ideas the user can drop straight into a posting calendar.
 
-Services: {services_offered}
-Target Audience: {target_audience}
-Content Mix: {content_mix}
+**Services Offered:** {services_offered}
+**Target Platforms:** {platforms}
+**Target Audience:** {target_audience}
+**Brand Voice / Tone:** {brand_voice}
+**Content Mix:** {content_mix}
 
-For each post provide:
-- Post type (educational, promotional, behind-scenes, etc.)
-- Caption/copy
-- Visual suggestion
-- Best platform for this content
-- Hashtag suggestions""",
+Strict requirements:
+- Honor the chosen content mix balance.
+- If a single platform is specified, tailor format / length / hashtag count to that platform.
+- Number every post (1, 2, 3, …).
 
-    "content_calendar": """Create a {date_range} content calendar for a sign shop:
+For each post, provide on its own labeled lines:
+- **Post Type:** educational / promotional / behind-the-scenes / testimonial / engagement / etc.
+- **Caption:** 2–4 sentences in the requested brand voice.
+- **Visual Suggestion:** a short, concrete image idea (not vague filler).
+- **Best Platform:** which platform it suits best, and why in <10 words.
+- **Hashtags:** 5–10 hashtags relevant to the post.
 
-Platforms: {platforms}
-Goals: {goals}
-Upcoming Events: {upcoming_events}
+End the output with a "Quick Reuse Tips" section (3 bullets) on how to repurpose these across formats (Reel, carousel, story).""",
 
-Provide a structured calendar with:
-- Posting schedule by day
-- Content themes for each day
-- Specific post ideas
-- Important dates to leverage
-- Content mix balance""",
+    "content_calendar": """You are a content planner for a sign / graphics shop. Create a structured content calendar.
+
+**Start Date:** {start_date}
+**Duration:** {date_range}
+**Posting Frequency:** {post_frequency}
+**Platforms:** {platforms}
+**Marketing Goals:** {goals}
+**Upcoming Events / Promotions:** {upcoming_events}
+**Brand Voice / Tone:** {brand_voice}
+
+Strict requirements:
+- Calculate exact post dates from the start date and posting frequency.
+- Format every entry as a row: `YYYY-MM-DD (Day) | Theme | Platform(s) | Post Idea | CTA`.
+- Honor the duration: a 1_week plan = 7 days, 2_weeks = 14 days, 1_month = ~30 days.
+- Weave in the listed upcoming events / promotions on or just before their dates.
+- Vary content types (educational, promo, behind-the-scenes, customer story, engagement) so no two consecutive posts are the same type.
+- Match the brand voice on every post idea.
+
+After the day-by-day table, add:
+1. **Theme Summary** — the running themes used across the period.
+2. **Production Checklist** — concrete photos / graphics / videos the user needs to capture or create to execute the calendar.
+3. **Optional Boosts** — 2–3 paid promotion ideas tied to the most important dates.""",
 
     "campaign_builder": """Design a complete marketing campaign:
 

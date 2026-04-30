@@ -63,6 +63,27 @@ export default function CustomerBrandingPicker({ value, onChange, onPrefill }) {
     }
   }, [onChange]);
 
+  // Sync internal profile when parent sets `value` externally (e.g. URL deep-link)
+  useEffect(() => {
+    if (value && (!profile || profile?._customer_id !== value)) {
+      let cancelled = false;
+      (async () => {
+        try {
+          const r = await axios.get(`${API}/customers/${value}/branding`, { headers: headers() });
+          if (cancelled) return;
+          setProfile({ ...(r.data || {}), _customer_id: value });
+        } catch {
+          if (!cancelled) setProfile(null);
+        }
+      })();
+      return () => { cancelled = true; };
+    }
+    if (!value && profile) {
+      setProfile(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
   const handleSelect = (val) => {
     const next = val === '__none' ? null : val;
     fetchProfile(next);
