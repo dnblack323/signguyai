@@ -995,6 +995,41 @@ class BroadcastEmailRequest(BaseModel):
     test_to: Optional[str] = None
 
 
+# ---------- Personalization helpers ----------
+# Supported placeholders in subject + html_body. Missing values render empty
+# rather than blowing up.
+_BROADCAST_PLACEHOLDERS = (
+    "tenant_name",
+    "owner_email",
+    "owner_first_name",
+)
+
+
+def _derive_owner_first_name(tenant: Dict[str, Any]) -> str:
+    """Best-effort first name from explicit owner_name or fallback to email local-part."""
+    name = (tenant.get("owner_name") or "").strip()
+    if name:
+        return name.split()[0]
+    email = (tenant.get("owner_email") or "").strip()
+    if email and "@" in email:
+        local = email.split("@", 1)[0]
+        # turn "first.last" / "first_last" / "first-last" into "First"
+        local = local.replace(".", " ").replace("_", " ").replace("-", " ")
+        first = local.split()[0] if local.split() else local
+        return first.capitalize()
+    return "there"
+
+
+def _render_broadcast_template(text: str, ctx: Dict[str, str]) -> str:
+    """Tiny mustache-ish renderer for `{{placeholder}}` tokens. Unknown tokens
+    are left as-is so the admin notices typos at preview time."""
+    out = text
+    for key in _BROADCAST_PLACEHOLDERS:
+        token = "{{" + key + "}}"
+        out = out.replace(token, str(ctx.get(key, "") or ""))
+    return out
+
+
 @router.post("/broadcast-email")
 async def broadcast_email(
     payload: BroadcastEmailRequest,
@@ -1017,19 +1052,36 @@ async def broadcast_email(
     if not payload.html_body.strip():
         raise HTTPException(status_code=400, detail="Email body is required")
 
-    # 1) Resolve recipient list
-    recipients: List[Dict[str, Any]] = []  # [{tenant_id, email, name}]
+    # 1) Resolve recipient list (now also captures the tenant doc so we can
+    # personalize per-recipient at render time).
+    recipients: List[Dict[str, Any]] = []  # [{tenant_id, email, tenant}]
 
     if payload.test_to:
-        recipients.append({"tenant_id": None, "email": payload.test_to.strip(), "name": "Test Recipient"})
+        # Test mode → preview using the admin's own tenant (or stub values if
+        # the admin isn't tied to a tenant). This way the rendered placeholders
+        # match what real recipients will see.
+        admin_tenant = None
+        if current_user.tenant_id:
+            admin_tenant = await db.tenants.find_one(
+                {"id": current_user.tenant_id},
+                {"_id": 0, "id": 1, "name": 1, "owner_email": 1, "owner_name": 1},
+            )
+        recipients.append({
+            "tenant_id": admin_tenant.get("id") if admin_tenant else None,
+            "email": payload.test_to.strip(),
+            "tenant": admin_tenant or {
+                "name": "Example Tenant LLC",
+                "owner_email": payload.test_to.strip(),
+            },
+        })
     elif payload.tenant_ids:
         tenants = await db.tenants.find(
             {"id": {"$in": payload.tenant_ids}},
-            {"_id": 0, "id": 1, "name": 1, "owner_email": 1},
+            {"_id": 0, "id": 1, "name": 1, "owner_email": 1, "owner_name": 1},
         ).to_list(len(payload.tenant_ids))
         for t in tenants:
             if t.get("owner_email"):
-                recipients.append({"tenant_id": t["id"], "email": t["owner_email"], "name": t.get("name") or ""})
+                recipients.append({"tenant_id": t["id"], "email": t["owner_email"], "tenant": t})
     else:
         target = (payload.target or "all_owners").lower()
         query: Dict[str, Any] = {}
@@ -1043,11 +1095,11 @@ async def broadcast_email(
 
         tenants = await db.tenants.find(
             query,
-            {"_id": 0, "id": 1, "name": 1, "owner_email": 1, "is_founder": 1, "is_active": 1},
+            {"_id": 0, "id": 1, "name": 1, "owner_email": 1, "owner_name": 1, "is_founder": 1, "is_active": 1},
         ).to_list(10000)
         for t in tenants:
             if t.get("owner_email"):
-                recipients.append({"tenant_id": t["id"], "email": t["owner_email"], "name": t.get("name") or ""})
+                recipients.append({"tenant_id": t["id"], "email": t["owner_email"], "tenant": t})
 
     # Dedupe by email (a single human can own multiple tenants — we only email them once)
     seen_emails = set()
@@ -1062,16 +1114,23 @@ async def broadcast_email(
     if not unique_recipients:
         raise HTTPException(status_code=400, detail="No recipients matched the given audience")
 
-    # 2) Send. We send sequentially to keep error handling simple; SendGrid
-    # tolerates this volume comfortably for any plausible launch-day blast.
+    # 2) Send (sequential, per-recipient personalization).
     sent: List[str] = []
     failed: List[Dict[str, str]] = []
     for r in unique_recipients:
+        tenant = r.get("tenant") or {}
+        ctx = {
+            "tenant_name": tenant.get("name") or "",
+            "owner_email": tenant.get("owner_email") or r["email"],
+            "owner_first_name": _derive_owner_first_name(tenant),
+        }
+        rendered_subject = _render_broadcast_template(payload.subject, ctx)
+        rendered_body = _render_broadcast_template(payload.html_body, ctx)
         try:
             res = await email_service.send_email(
                 to_email=r["email"],
-                subject=payload.subject,
-                html_content=payload.html_body,
+                subject=rendered_subject,
+                html_content=rendered_body,
                 tenant_id=r.get("tenant_id"),
             )
             if res and res.get("success"):

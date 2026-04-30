@@ -195,12 +195,21 @@ export default function PlatformAdminBroadcastEmail() {
                 rows={10}
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
-                placeholder={'Hi {tenant owner},\n\nA quick update from the SignGuy AI team...\n\nBlank lines start a new paragraph.'}
+                placeholder={'Hi {{owner_first_name}},\n\nA quick update from the SignGuy AI team about {{tenant_name}}...\n\nBlank lines start a new paragraph.'}
                 data-testid="broadcast-body-textarea"
               />
               <p className="text-xs text-gray-500 mt-1">
                 Plain-text input is auto-wrapped in HTML paragraphs. Blank lines create new paragraphs; single newlines become line breaks.
               </p>
+              <div className="mt-2 text-xs bg-blue-50 border border-blue-200 rounded p-2 space-y-1">
+                <div className="font-medium text-blue-900">Available placeholders (rendered per recipient):</div>
+                <ul className="text-blue-800 grid grid-cols-1 md:grid-cols-3 gap-1">
+                  <li><code>{'{{owner_first_name}}'}</code> — the owner's first name</li>
+                  <li><code>{'{{tenant_name}}'}</code> — the tenant's company name</li>
+                  <li><code>{'{{owner_email}}'}</code> — their email address</li>
+                </ul>
+                <div className="text-blue-800">Works in both <strong>Subject</strong> and <strong>Body</strong>. Test-mode previews using your own tenant's data.</div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
