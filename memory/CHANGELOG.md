@@ -1,5 +1,18 @@
 # SignGuy AI - Changelog
 
+## April 30, 2026 — Racing Tools Cleanup (audit-driven)
+
+- **Hidden** `Vehicle Wrap Cost Calculator` from the Racing category (frontend `hidden: true`; backend prompt + logic preserved for future relocation to Pricing / Quotes / Business). It's a general pricing tool, not racing-specific.
+- **Kept the 3 actually-racing tools:** Race Number Designer, Driver Name Plate Generator, Race Team Branding Kit.
+- **Softened wording** on all three so users don't expect vector / production-ready / cut-ready output:
+  - Race Number Designer — "AI-rendered raster concept images… final cut/print artwork may need vectorization or cleanup".
+  - Driver Name Plate Generator — "AI raster concept images… not production-cut artwork".
+  - Race Team Branding Kit — "AI raster brand-kit concepts plus a written racing branding brief… final vector artwork must be produced separately".
+- **Race Team Branding Kit now also emits a written branding brief** alongside images (existing TOOL_PROMPTS["race_team_branding"] already covered Brand Identity / Number Design / Race Car Layout / Merchandise / Production Files Needed). Wired by adding `race_team_branding` to the paired-text-brief tuple in `POST /api/ai/generate-images`. Frontend "Design Brief" panel title now also fires for this tool. No extra credit cost; brief failure does not block images.
+- Racing category badge updated to (3); top-of-page total recalculated to 24 via the existing `visibleTools` filter.
+- Smoke-tested: Racing tab renders exactly the 3 expected tools; lints clean.
+
+
 ## April 30, 2026 — Design Tools Cleanup (audit-driven)
 
 - **Hidden** two misleading Design tools (frontend-only `hidden: true` flag — kept in array so existing AI history rows still resolve):

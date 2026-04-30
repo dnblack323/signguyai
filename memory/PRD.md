@@ -22,6 +22,7 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-04-30 — Racing Tools Cleanup: hid `Vehicle Wrap Cost Calculator` from Racing (kept backend for future relocation); softened production wording on remaining 3 racing tools; Race Team Branding Kit now also emits a written branding brief alongside images.
 - 2026-04-30 — Design Tools Cleanup: hid `logo_refresher` and `generative_fill` (misleading); renamed `text_to_image` → `AI Image Concept Creator`; softened production wording on remaining tools; AI Sign / Banner Designer now also emit a concise design brief alongside images.
 - 2026-04-30 — Customer Branding Profile UI integration + Marketing Tools Cleanup (merged Completed Order Post Creator + Social Media Job Post Creator; improved Social Pack Generator + Content Calendar; 8 new Document Library categories with AI-tool auto-tagging).
 

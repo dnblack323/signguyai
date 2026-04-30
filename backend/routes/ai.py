@@ -1156,7 +1156,7 @@ async def generate_ai_images(
         # For design tools that have a paired text prompt, also generate a short
         # design brief alongside the images (no extra credit charge — bundled).
         design_brief = None
-        if data.tool in ("ai_sign_designer", "ai_banner_designer"):
+        if data.tool in ("ai_sign_designer", "ai_banner_designer", "race_team_branding"):
             try:
                 design_brief = await generate_text_content(data.tool, data.input_data)
             except Exception as brief_err:

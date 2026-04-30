@@ -417,7 +417,7 @@ const aiTools = [
   {
     id: 'race_number_designer',
     name: 'Race Number Designer',
-    description: 'Generate professional racing number designs with custom fonts, colors, and effects.',
+    description: 'Generate AI-rendered raster concept images of racing numbers (fonts, colors, effects). Final cut/print artwork may need vectorization or cleanup.',
     icon: Flag,
     category: 'racing',
     generatesImages: true,
@@ -435,7 +435,7 @@ const aiTools = [
   {
     id: 'driver_name_plate',
     name: 'Driver Name Plate Generator',
-    description: 'Create professional driver name plates and roof strips for race cars.',
+    description: 'Generate AI raster concept images of driver name plates and roof strips. Use as a starting point — final cut/print artwork may need cleanup or vectorization.',
     icon: Users,
     category: 'racing',
     generatesImages: true,
@@ -459,6 +459,7 @@ const aiTools = [
     icon: DollarSign,
     category: 'racing',
     generatesImages: false,
+    hidden: true, // Audit 2026-04: this is a general pricing tool, not a Racing tool. Hidden from Racing — keep backend logic for future relocation to Pricing/Quotes.
     fields: [
       { name: 'vehicle_type', label: 'Vehicle Type', type: 'select', options: ['sedan_compact', 'sedan_full', 'suv_crossover', 'suv_full_size', 'pickup_truck', 'van_cargo', 'van_sprinter', 'box_truck', 'semi_truck_cab', 'semi_trailer', 'race_car_stock', 'race_car_late_model', 'race_car_modified', 'sprint_car', 'motorcycle', 'atv_utv', 'boat', 'trailer'], required: true },
       { name: 'wrap_coverage', label: 'Wrap Coverage', type: 'select', options: ['full_wrap_100', 'partial_wrap_75', 'partial_wrap_50', 'partial_wrap_25', 'decal_kit_only', 'color_change_full', 'accent_only'], required: true },
@@ -475,7 +476,7 @@ const aiTools = [
   {
     id: 'race_team_branding',
     name: 'Race Team Branding Kit',
-    description: 'Generate complete branding packages for race teams including logos, numbers, and sponsor layouts.',
+    description: 'Generate AI raster brand-kit concept images plus a written racing branding brief (logo direction, number design, team colors, sponsor placement, merchandise, production file notes). Concepts are a starting point — final vector artwork must be produced separately.',
     icon: Flag,
     category: 'racing',
     generatesImages: true,
@@ -498,7 +499,7 @@ const categories = [
   { id: 'branding', name: 'Branding', icon: Palette, color: 'text-purple-400', count: 3 },
   { id: 'business', name: 'Business', icon: FileText, color: 'text-green-400', count: 5 },
   { id: 'marketing', name: 'Marketing', icon: Share2, color: 'text-pink-400', count: 5 },
-  { id: 'racing', name: 'Racing & Motorsports', icon: Flag, color: 'text-red-400', count: 4 }
+  { id: 'racing', name: 'Racing & Motorsports', icon: Flag, color: 'text-red-400', count: 3 }
 ];
 
 export default function AITools() {
@@ -1339,7 +1340,7 @@ export default function AITools() {
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-heading uppercase text-sm text-primary flex items-center gap-2">
                         <FileText className="h-4 w-4" />
-                        {(selectedTool.id === 'ai_sign_designer' || selectedTool.id === 'ai_banner_designer')
+                        {(selectedTool.id === 'ai_sign_designer' || selectedTool.id === 'ai_banner_designer' || selectedTool.id === 'race_team_branding')
                           ? 'Design Brief'
                           : 'Design Notes & Rationale'}
                       </h4>
