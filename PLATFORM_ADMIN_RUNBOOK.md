@@ -236,7 +236,10 @@ This is the feature you asked for. It sends a one-off email to one or more tenan
 - **Speed:** sends are sequential. A 1000-tenant blast takes ~1–2 minutes. Don't close the tab mid-send.
 - **No undo:** once you click "Yes, send now" the emails go out. The audit log has a record but you can't unsend.
 - **Dedupe:** if one human owns multiple tenants, they only get one email.
-- **Personalization:** not yet — every recipient gets the same body. Mentioning the tenant's name in the body has to be done manually with a generic salutation like "Hi there,".
+- **Personalization:** ✅ supported. Use `{{owner_first_name}}`, `{{tenant_name}}`, `{{owner_email}}` in either subject or body. Each recipient gets their own values rendered in. Unknown placeholders are left as-is so typos are visible at preview time. All values are HTML-escaped for safety.
+- **Rate limits (per-admin):** 10 full broadcasts per hour, 30 test sends per hour. Returns HTTP 429 over the cap — wait an hour or use a different admin account.
+- **Body / subject size limits:** subject ≤ 200 chars, body ≤ 50 KB. Beyond that the request is rejected with 422. (For larger emails, use linked CDN images, not embedded.)
+- **SendGrid required:** if `SENDGRID_API_KEY` is missing the endpoint returns 503 instead of silently "succeeding" with 0 emails sent.
 
 ### When to use it
 

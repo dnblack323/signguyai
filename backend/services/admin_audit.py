@@ -19,9 +19,12 @@ Document shape:
     }
 """
 
+import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 import uuid
+
+logger = logging.getLogger(__name__)
 
 
 def _extract_client_ip(request) -> Optional[str]:
@@ -101,6 +104,16 @@ async def log_admin_action(
 
         await db.admin_audit_log.insert_one(doc)
         return entry_id
-    except Exception:
-        # Logging must never break the caller.
+    except Exception as audit_err:  # noqa: BLE001
+        # Logging must never break the caller, but DO surface the failure
+        # loudly to logs / Sentry so an ops engineer notices a missing audit
+        # trail rather than an attacker silently exploiting the gap.
+        logger.error(
+            "AUDIT_LOG_WRITE_FAILED action=%s actor=%s target=%s err=%s",
+            action,
+            getattr(actor, "email", None),
+            target_id,
+            audit_err,
+            exc_info=True,
+        )
         return ""

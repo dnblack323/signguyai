@@ -1,5 +1,28 @@
 # SignGuy AI - Changelog
 
+## April 30, 2026 — Broadcast Email personalization + critical platform-admin hardening
+
+### Personalization (per-recipient placeholders)
+- `{{owner_first_name}}`, `{{tenant_name}}`, `{{owner_email}}` placeholders now render per recipient in both subject and body. First name derived from `users.full_name` if present, else email local-part. Test mode previews using the admin's own tenant data.
+- New helper `_render_broadcast_template()` performs the substitution.
+- UI: a blue help card in the Body section lists the available placeholders.
+
+### Critical security/correctness hardening (from troubleshoot agent review)
+1. **Body size cap.** `BroadcastEmailRequest.html_body` capped at 50 KB, subject at 200 chars, `tenant_ids` list at 1000. Bodies over the cap return 422 (verified).
+2. **HTML-escape placeholder values.** All substituted values now go through `html.escape(..., quote=True)` so a tenant whose name contains `<script>...</script>` cannot inject JS into the rendered email. Verified.
+3. **Hourly rate limit per admin.** New `_enforce_broadcast_rate_limit()` queries the audit log for past-hour `broadcast_email.send` rows by this actor. Caps: 10 full broadcasts/hour, 30 test sends/hour. Returns 429 over cap. Verified — fires at attempt 28 (counting earlier smoke tests already on record).
+4. **Fail-closed if SendGrid not configured.** Endpoint now calls `email_service.is_configured()` first and returns 503 instead of silently reporting "0 sent."
+5. **`founders_only` filter fix.** Was querying `tenants.is_founder` which is never persisted (it's per-user, computed by `_enrich_with_founder_flag`). Now queries `users.distinct("tenant_id", {"is_founder": True})` and filters tenants by those IDs. Both `/broadcast-email` and `/broadcast-email/audience-counts` updated.
+6. **Loud audit-log failures.** `services/admin_audit.log_admin_action()` previously swallowed exceptions silently. Now logs `AUDIT_LOG_WRITE_FAILED action=… actor=… target=… err=…` at error level with stack trace, so an ops engineer notices a missing audit trail rather than an attacker silently exploiting the gap. The "logging never breaks the caller" contract is preserved.
+
+### Open follow-ups (post-launch hardening — not blocking)
+- Impersonation token revocation (active-tokens collection + check on every request).
+- `is_platform_owner` check in dunning auto-suspend for the edge case of a tenant with zero users.
+- Frontend impersonation-token expiry check (every 60s).
+- Maintenance-mode allowlist test coverage (developer footgun guard).
+- Audit-log row even on idempotent suspend attempts.
+
+
 ## April 30, 2026 — NEW: Broadcast Email to Tenant Owners + Platform Admin Runbook
 
 ### Broadcast Email (the missing "mass email" feature)

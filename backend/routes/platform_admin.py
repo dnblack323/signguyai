@@ -12,8 +12,9 @@ This module provides:
 
 from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import List, Optional, Dict, Any
-from datetime import datetime, timezone
-from pydantic import BaseModel
+from datetime import datetime, timezone, timedelta
+from pydantic import BaseModel, Field
+import html as _html_lib
 import uuid
 
 from models import UserRole, User
@@ -982,17 +983,55 @@ async def get_audit_entry(
 # preview the rendered email by sending only to a single address first.
 
 class BroadcastEmailRequest(BaseModel):
-    subject: str
-    # html_body is the rendered HTML the recipient sees. The frontend can build
-    # this from a plain-text textarea by wrapping in <p> tags.
-    html_body: str
+    # Subject capped at 200 chars (well above any reasonable email subject).
+    subject: str = Field(..., max_length=200)
+    # html_body capped at 50 KB. Beyond that you're either embedding images
+    # (don't — use linked CDN URLs) or about to trigger SendGrid abuse flags.
+    html_body: str = Field(..., max_length=50_000)
     # Audience selector. Mutually exclusive with `tenant_ids`.
     target: Optional[str] = "all_owners"  # all_owners | active_only | suspended_only | founders_only
     # Optional explicit override (takes precedence over `target` when set).
-    tenant_ids: Optional[List[str]] = None
+    tenant_ids: Optional[List[str]] = Field(default=None, max_length=1000)
     # When set, the email is only sent to this single address. Nothing goes out
     # to tenants. Use this to preview the rendered email first.
     test_to: Optional[str] = None
+
+
+# ---------- Rate limiting ----------
+# We don't have slowapi installed. Use an audit-log-driven cap instead: count
+# successful broadcast sends by this actor in the last 60 minutes. This is
+# self-healing (no extra collection) and survives restarts.
+BROADCAST_HOURLY_CAP_TENANTS = 10        # full-audience sends per hour
+BROADCAST_HOURLY_CAP_TESTS = 30          # test_to sends per hour
+
+
+async def _enforce_broadcast_rate_limit(actor_id: str, is_test: bool):
+    """Block runaway / compromised admin accounts from spam-blasting customers.
+
+    Counts past-hour `broadcast_email.send` audit rows by this actor split by
+    test vs broadcast. Raises 429 if over the cap.
+    """
+    since_iso = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+    query: Dict[str, Any] = {
+        "actor_user_id": actor_id,
+        "action": "broadcast_email.send",
+        "created_at": {"$gte": since_iso},
+    }
+    # We track test vs broadcast in metadata — count both separately.
+    rows = await db.admin_audit_log.find(query, {"_id": 0, "metadata": 1}).to_list(500)
+    test_count = sum(1 for r in rows if (r.get("metadata") or {}).get("test_to"))
+    broadcast_count = sum(1 for r in rows if not (r.get("metadata") or {}).get("test_to"))
+
+    if is_test and test_count >= BROADCAST_HOURLY_CAP_TESTS:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Broadcast test rate limit reached ({BROADCAST_HOURLY_CAP_TESTS}/hour). Try again later.",
+        )
+    if (not is_test) and broadcast_count >= BROADCAST_HOURLY_CAP_TENANTS:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Broadcast send rate limit reached ({BROADCAST_HOURLY_CAP_TENANTS}/hour). Try again later.",
+        )
 
 
 # ---------- Personalization helpers ----------
@@ -1021,12 +1060,18 @@ def _derive_owner_first_name(tenant: Dict[str, Any]) -> str:
 
 
 def _render_broadcast_template(text: str, ctx: Dict[str, str]) -> str:
-    """Tiny mustache-ish renderer for `{{placeholder}}` tokens. Unknown tokens
-    are left as-is so the admin notices typos at preview time."""
+    """Tiny mustache-ish renderer for `{{placeholder}}` tokens.
+
+    HTML-escapes every substituted value so a tenant whose name is
+    `<script>alert(1)</script>` cannot inject scripts into the rendered email.
+    Unknown tokens are left as-is so the admin notices typos at preview time.
+    """
     out = text
     for key in _BROADCAST_PLACEHOLDERS:
         token = "{{" + key + "}}"
-        out = out.replace(token, str(ctx.get(key, "") or ""))
+        raw_value = str(ctx.get(key, "") or "")
+        safe_value = _html_lib.escape(raw_value, quote=True)
+        out = out.replace(token, safe_value)
     return out
 
 
@@ -1051,6 +1096,21 @@ async def broadcast_email(
         raise HTTPException(status_code=400, detail="Subject is required")
     if not payload.html_body.strip():
         raise HTTPException(status_code=400, detail="Email body is required")
+
+    # Fail fast if SendGrid is not configured — otherwise a broadcast would
+    # silently report success with 0 emails actually sent.
+    if not email_service.is_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Email service is not configured. Set SENDGRID_API_KEY and try again.",
+        )
+
+    # Rate limit (per actor, last hour). Test sends and full broadcasts are
+    # capped separately — a runaway broadcast loop is the bigger risk.
+    await _enforce_broadcast_rate_limit(
+        actor_id=current_user.id,
+        is_test=bool(payload.test_to),
+    )
 
     # 1) Resolve recipient list (now also captures the tenant doc so we can
     # personalize per-recipient at render time).
@@ -1090,7 +1150,11 @@ async def broadcast_email(
         elif target == "suspended_only":
             query["is_active"] = False
         elif target == "founders_only":
-            query["is_founder"] = True
+            # `is_founder` is a per-user flag, not persisted on the tenant doc
+            # (see _enrich_with_founder_flag). Resolve via users collection so
+            # this filter actually returns rows.
+            founder_tenant_ids = await db.users.distinct("tenant_id", {"is_founder": True})
+            query["id"] = {"$in": [t for t in founder_tenant_ids if t]}
         # all_owners → no filter
 
         tenants = await db.tenants.find(
@@ -1179,10 +1243,16 @@ async def broadcast_email_audience_counts(
 ):
     """Return live recipient counts for each audience filter so the UI can
     show 'Send to 47 active tenants' before the admin commits."""
-    all_owners = await db.tenants.count_documents({"owner_email": {"$exists": True, "$ne": ""}})
-    active = await db.tenants.count_documents({"owner_email": {"$exists": True, "$ne": ""}, "is_active": {"$ne": False}})
-    suspended = await db.tenants.count_documents({"owner_email": {"$exists": True, "$ne": ""}, "is_active": False})
-    founders = await db.tenants.count_documents({"owner_email": {"$exists": True, "$ne": ""}, "is_founder": True})
+    base_q = {"owner_email": {"$exists": True, "$ne": ""}}
+    all_owners = await db.tenants.count_documents(base_q)
+    active = await db.tenants.count_documents({**base_q, "is_active": {"$ne": False}})
+    suspended = await db.tenants.count_documents({**base_q, "is_active": False})
+    # founder_tenant_ids resolved via users collection (is_founder is per-user).
+    founder_tenant_ids = await db.users.distinct("tenant_id", {"is_founder": True})
+    founder_tenant_ids = [t for t in founder_tenant_ids if t]
+    founders = await db.tenants.count_documents(
+        {**base_q, "id": {"$in": founder_tenant_ids}}
+    ) if founder_tenant_ids else 0
     return {
         "all_owners": all_owners,
         "active_only": active,
