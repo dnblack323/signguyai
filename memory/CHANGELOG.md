@@ -1,5 +1,23 @@
 # SignGuy AI - Changelog
 
+## April 30, 2026 — Design Tools Cleanup (audit-driven)
+
+- **Hidden** two misleading Design tools (frontend-only `hidden: true` flag — kept in array so existing AI history rows still resolve):
+  - `Logo Refresher` — uploaded logo wasn't actually sent to the image model.
+  - `Generative Fill / Image Expander` — uploaded image wasn't actually sent to the image model.
+- **Renamed** `Text to Image Creator` → **`AI Image Concept Creator`** with a concept-only description ("…for design inspiration, marketing visuals, or rough creative direction. Not print-ready production artwork.").
+- **Softened wording** on remaining Design tools so users understand outputs are AI concepts, not finished/print-ready artwork or true mockups using customer artwork:
+  - Photo Enhancer Analyzer — added verdict language (Approved / Needs Fixing / Not Usable).
+  - AI Sign Designer & AI Banner Designer — descriptions now mention "AI sign concept images **with a short written design brief**" + "starting point — final production artwork may need cleanup".
+  - Mockup Creator & Vehicle Wrap Mockup Generator — descriptions now state the AI illustrates the description and **does not place the customer's actual artwork**.
+- **Wired the unused text prompts** for `ai_sign_designer` and `ai_banner_designer`:
+  - Both prompts rewritten as a concise design brief (Direction, Colors & Layout, Readability, Production, Customer-Facing Summary).
+  - `POST /api/ai/generate-images` now also calls `generate_text_content()` for these two tools and returns `design_brief` alongside `images` (saved to `ai_history.output`; brief failure does not block image return; no extra credit charge).
+  - Frontend renders the brief in the existing "Design Notes" panel, retitled "Design Brief" for these two tools.
+- **Visible-tools filter:** added `visibleTools` (`!t.hidden`) — the Design Tools count badge, "All Tools" badge, page header copy, and tool cards all use the filtered list now. Default `selectedTool` skips hidden tools.
+- **Tested:** smoke screenshot — Design tab shows exactly 8 tools (no Logo Refresher, no Generative Fill); AI Image Concept Creator selected by default with concept-only copy.
+
+
 ## April 30, 2026 — Customer Branding Profile UI + Marketing Tools Cleanup
 
 ### Customer Branding Profile (UI integration shipped)

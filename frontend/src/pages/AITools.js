@@ -46,6 +46,7 @@ const aiTools = [
     category: 'design',
     generatesImages: true,
     imageCount: 3,
+    hidden: true, // Audit 2026-04: uploaded logo is not actually sent to image gen — hide until true image-to-image works.
     fields: [
       { name: 'image_upload', label: 'Upload Your Current Logo', type: 'image_upload', required: true },
       { name: 'business_name', label: 'Business Name', type: 'text', placeholder: 'Name on the logo', required: true },
@@ -62,6 +63,7 @@ const aiTools = [
     category: 'design',
     generatesImages: true,
     imageCount: 2,
+    hidden: true, // Audit 2026-04: uploaded image is not actually sent to image gen — hide until true outpainting works.
     fields: [
       { name: 'image_upload', label: 'Upload Image to Expand', type: 'image_upload', required: true },
       { name: 'expand_direction', label: 'Expansion Direction', type: 'select', options: ['expand_all_sides', 'expand_left', 'expand_right', 'expand_top', 'expand_bottom', 'expand_horizontal', 'expand_vertical'] },
@@ -71,8 +73,8 @@ const aiTools = [
   },
   {
     id: 'text_to_image',
-    name: 'Text to Image Creator',
-    description: 'Generate custom images from text descriptions for signs, mockups, and marketing.',
+    name: 'AI Image Concept Creator',
+    description: 'Create AI-generated concept images from a text description for design inspiration, marketing visuals, or rough creative direction. Not print-ready production artwork.',
     icon: Sparkles,
     category: 'design',
     generatesImages: true,
@@ -135,7 +137,7 @@ const aiTools = [
   {
     id: 'photo_enhancer',
     name: 'Photo Enhancer Analyzer',
-    description: 'Upload a photo to get professional enhancement recommendations and print-readiness assessment.',
+    description: 'Upload a photo to get professional enhancement recommendations and a print-readiness assessment with verdict (Approved / Needs Fixing / Not Usable).',
     icon: Image,
     category: 'design',
     generatesImages: false,
@@ -173,7 +175,7 @@ const aiTools = [
   {
     id: 'ai_sign_designer',
     name: 'AI Sign Designer',
-    description: 'Generate professional sign design concepts with actual images.',
+    description: 'Generate AI sign concept images with a short written design brief (direction, colors, readability, production notes). Concepts are a starting point — final production artwork may need cleanup.',
     icon: Layout,
     category: 'design',
     generatesImages: true,
@@ -191,7 +193,7 @@ const aiTools = [
   {
     id: 'ai_banner_designer',
     name: 'AI Banner Designer',
-    description: 'Generate banner designs optimized for promotions and events.',
+    description: 'Generate AI banner concept images with a short written design brief (layout, readability, material/finish notes). Concepts are a starting point — final artwork may need cleanup before printing.',
     icon: Flag,
     category: 'design',
     generatesImages: true,
@@ -208,7 +210,7 @@ const aiTools = [
   {
     id: 'mockup_creator',
     name: 'Mockup Creator',
-    description: 'Generate realistic mockup images showing your design in real environments.',
+    description: 'Generate AI-rendered concept mockups showing a described design in real environments. The AI illustrates the description — it does not place your customer\'s actual artwork.',
     icon: Box,
     category: 'design',
     generatesImages: true,
@@ -222,7 +224,7 @@ const aiTools = [
   {
     id: 'vehicle_wrap_mockup',
     name: 'Vehicle Wrap Mockup Generator',
-    description: 'See your wrap design on different vehicle types - sedans, vans, trucks, and more.',
+    description: 'Generate AI-rendered concept mockups of a wrap design across vehicle types. The AI illustrates your description — it does not apply your customer\'s actual artwork.',
     icon: Box,
     category: 'design',
     generatesImages: true,
@@ -492,7 +494,7 @@ const aiTools = [
 
 const categories = [
   { id: 'all', name: 'All Tools', icon: Sparkles, color: 'text-cyan-400' },
-  { id: 'design', name: 'Design Tools', icon: Image, color: 'text-blue-400', count: 10 },
+  { id: 'design', name: 'Design Tools', icon: Image, color: 'text-blue-400', count: 8 },
   { id: 'branding', name: 'Branding', icon: Palette, color: 'text-purple-400', count: 3 },
   { id: 'business', name: 'Business', icon: FileText, color: 'text-green-400', count: 5 },
   { id: 'marketing', name: 'Marketing', icon: Share2, color: 'text-pink-400', count: 5 },
@@ -504,7 +506,7 @@ export default function AITools() {
   const { generateAIContent, fetchAIHistory, generateAIImages, api, customers, fetchCustomers } = useApp();
   const { runGuardedAction, dialog: creditDialog } = useAICreditGuard();
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedTool, setSelectedTool] = useState(aiTools[0]);
+  const [selectedTool, setSelectedTool] = useState(() => aiTools.find(t => !t.hidden) || aiTools[0]);
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -567,9 +569,14 @@ export default function AITools() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filteredTools = selectedCategory === 'all' 
-    ? aiTools 
-    : aiTools.filter(t => t.category === selectedCategory);
+  // Visible tools = all tools minus those flagged as hidden in the audit
+  // (hidden tools remain in the array so URL deep-links and ai_history items
+  // referencing them still resolve).
+  const visibleTools = aiTools.filter(t => !t.hidden);
+
+  const filteredTools = selectedCategory === 'all'
+    ? visibleTools
+    : visibleTools.filter(t => t.category === selectedCategory);
 
   const handleToolSelect = (toolId) => {
     const tool = aiTools.find(t => t.id === toolId);
@@ -660,6 +667,9 @@ export default function AITools() {
             const imageResponse = await generateAIImages(selectedTool.id, formData, selectedTool.imageCount);
             if (imageResponse && imageResponse.images && imageResponse.images.length > 0) {
               setGeneratedImages(imageResponse.images);
+              if (imageResponse.design_brief) {
+                setResult({ content: imageResponse.design_brief });
+              }
               toast.success(`Generated ${imageResponse.images.length} design options!`);
             } else {
               toast.error('No images were generated. Please try again.');
@@ -964,7 +974,7 @@ export default function AITools() {
       {/* Header */}
       <div>
           <h1 className="text-4xl font-bold font-heading uppercase tracking-tight text-gray-900">AI Tools Suite</h1>
-        <p className="text-gray-700 mt-1">14 AI-powered tools for design, branding, business, and marketing</p>
+        <p className="text-gray-700 mt-1">{visibleTools.length} AI-powered tools for design, branding, business, and marketing</p>
       </div>
 
       {/* Category Filter */}
@@ -974,11 +984,11 @@ export default function AITools() {
           size="sm"
           onClick={() => setSelectedCategory('all')}
         >
-          All Tools ({aiTools.length})
+          All Tools ({visibleTools.length})
         </Button>
         {categories.map(cat => {
           const CatIcon = cat.icon;
-          const count = aiTools.filter(t => t.category === cat.id).length;
+          const count = visibleTools.filter(t => t.category === cat.id).length;
           return (
             <Button
               key={cat.id}
@@ -1323,13 +1333,15 @@ export default function AITools() {
                   </div>
                 )}
 
-                {/* Design Notes shown with images */}
+                {/* Design Brief / Notes shown with images */}
                 {result && selectedTool.generatesImages && (
                   <div className="mt-4 border-t border-gray-200 pt-4">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-heading uppercase text-sm text-primary flex items-center gap-2">
                         <FileText className="h-4 w-4" />
-                        Design Notes & Rationale
+                        {(selectedTool.id === 'ai_sign_designer' || selectedTool.id === 'ai_banner_designer')
+                          ? 'Design Brief'
+                          : 'Design Notes & Rationale'}
                       </h4>
                       <Button 
                         variant="ghost" 

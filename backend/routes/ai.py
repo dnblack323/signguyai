@@ -285,7 +285,7 @@ Provide:
 
 Be specific about font names and where to find them.""",
 
-    "ai_sign_designer": """Create a professional sign design concept for:
+    "ai_sign_designer": """You are a senior sign designer. Produce a concise design brief (NOT a marketing essay) for this sign concept:
 
 Business: {business_name}
 Type: {business_type}
@@ -295,9 +295,31 @@ Colors: {colors}
 Additional Text: {additional_text}
 Style: {style_preference}
 
-Generate a detailed visual description for a {sign_type} sign that would work for this business.""",
+Format the brief with these exact sections (use markdown headers):
 
-    "ai_banner_designer": """Create a banner design concept for:
+### Design Direction
+2–3 sentences describing the look and feel.
+
+### Colors & Layout
+- Specific color recommendations (with hex if you can infer them) and where each color goes.
+- Recommended layout / hierarchy (headline, sub-text, logo, etc.).
+
+### Readability Notes
+- Minimum letter height for the stated size and viewing distance.
+- Font weight / contrast advice.
+- Any text that should be cut or shortened.
+
+### Production Considerations
+- Recommended fabrication method for this sign type.
+- Material / finish suggestions.
+- Lighting or mounting notes if relevant.
+
+### Customer-Facing Summary
+A single short paragraph (2–3 sentences) the shop can paste into an email or proposal to describe the concept to the customer.
+
+Keep the entire brief under ~250 words. Plain language, no fluff.""",
+
+    "ai_banner_designer": """You are a senior banner designer. Produce a concise design brief (NOT a marketing essay) for this banner concept:
 
 Headline: {headline}
 Supporting Text: {subtext}
@@ -306,7 +328,29 @@ Purpose: {event_type}
 Colors: {brand_colors}
 Style: {style}
 
-Generate a detailed visual description for this promotional banner.""",
+Format the brief with these exact sections (use markdown headers):
+
+### Design Direction
+2–3 sentences describing the look and feel.
+
+### Colors & Layout
+- Specific color recommendations and where each color goes.
+- Recommended hierarchy: headline / sub-text / CTA / logo.
+
+### Readability Notes
+- Minimum letter height for the stated banner size and a typical viewing distance.
+- Font weight / contrast advice.
+- Any text that should be cut or shortened.
+
+### Production Considerations
+- Recommended material (13oz vinyl, mesh, blockout, etc.) for the stated purpose.
+- Hemming / grommet / pole-pocket guidance.
+- Indoor vs outdoor / weather notes if relevant.
+
+### Customer-Facing Summary
+A single short paragraph (2–3 sentences) the shop can paste into an email or proposal to describe the concept to the customer.
+
+Keep the entire brief under ~250 words. Plain language, no fluff.""",
 
     # Branding Tools
     "tagline_generator": """Generate 10 unique, memorable taglines for a sign shop client:
@@ -1109,6 +1153,17 @@ async def generate_ai_images(
         if not images:
             raise HTTPException(status_code=500, detail="No images were generated")
 
+        # For design tools that have a paired text prompt, also generate a short
+        # design brief alongside the images (no extra credit charge — bundled).
+        design_brief = None
+        if data.tool in ("ai_sign_designer", "ai_banner_designer"):
+            try:
+                design_brief = await generate_text_content(data.tool, data.input_data)
+            except Exception as brief_err:
+                # Don't fail the whole image generation if the brief errors —
+                # the user still gets the images.
+                print(f"Design brief generation failed for {data.tool}: {brief_err}")
+
         credit_result = await deduct_credits_after_success(
             db,
             tenant_id=current_user.tenant_id,
@@ -1124,7 +1179,7 @@ async def generate_ai_images(
             "id": str(uuid.uuid4()),
             "tool": data.tool,
             "input_data": data.input_data,
-            "output": None,
+            "output": design_brief,
             "images": images,
             "tenant_id": current_user.tenant_id,
             "user_id": current_user.id,
@@ -1133,7 +1188,12 @@ async def generate_ai_images(
         }
         await db.ai_history.insert_one(history_entry)
         
-        return {"images": images, "id": history_entry["id"], "credits_used": credit_result["credit_cost"]}
+        return {
+            "images": images,
+            "design_brief": design_brief,
+            "id": history_entry["id"],
+            "credits_used": credit_result["credit_cost"],
+        }
     except HTTPException:
         raise
     except Exception as e:
