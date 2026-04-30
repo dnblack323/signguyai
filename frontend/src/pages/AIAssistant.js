@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import { startRecording as startVoiceRecording } from '../lib/voiceRecorder';
 import { useAICreditGuard } from '../components/credits/AICreditConfirmationDialog';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -148,23 +149,23 @@ What can I help you with today?`
     });
   };
 
+  // Holds the active recording handle returned by startVoiceRecording().
+  // .stop() returns { blob, mimeType, filename }.
+  const voiceHandleRef = useRef(null);
+
   const stopRecording = async () => {
-    return new Promise((resolve) => {
-      if (!mediaRecorderRef.current) {
-        resolve(null);
-        return;
-      }
-      mediaRecorderRef.current.onstop = async () => {
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        audioChunksRef.current = [];
-        streamRef.current?.getTracks?.().forEach((track) => track.stop());
-        streamRef.current = null;
-        mediaRecorderRef.current = null;
-        setIsRecording(false);
-        resolve(blob);
-      };
-      mediaRecorderRef.current.stop();
-    });
+    const handle = voiceHandleRef.current;
+    if (!handle) return null;
+    voiceHandleRef.current = null;
+    streamRef.current = null;
+    setIsRecording(false);
+    try {
+      const { blob, mimeType, filename } = await handle.stop();
+      return { blob, mimeType, filename };
+    } catch (err) {
+      console.warn('stopRecording failed', err);
+      return null;
+    }
   };
 
   const handleVoiceInput = async () => {
@@ -175,8 +176,9 @@ What can I help you with today?`
 
     if (isRecording) {
       const recordingStopTime = Date.now();
-      const audioBlob = await stopRecording();
-      if (!audioBlob) return;
+      const result = await stopRecording();
+      if (!result) return;
+      const { blob: audioBlob, filename: audioFilename } = result;
 
       // Reset previous state
       setVoiceTranscript(null);
@@ -210,7 +212,7 @@ What can I help you with today?`
             }, 15000);
 
             const formData = new FormData();
-            formData.append('audio', audioBlob, 'assistant-input.webm');
+            formData.append('audio', audioBlob, audioFilename || 'assistant-input.webm');
             
             const transcribeStart = Date.now();
             const response = await axios.post(`${API_URL}/api/ai/voice/transcribe`, formData, {
@@ -264,22 +266,24 @@ What can I help you with today?`
       return;
     }
 
-    // Start recording
+    // Start recording (with voice-activity-detection auto-stop).
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      const recorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = recorder;
-      audioChunksRef.current = [];
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) audioChunksRef.current.push(event.data);
-      };
-      recorder.start();
+      const handle = await startVoiceRecording({
+        onSilence: () => {
+          // Auto-stop fires when the user has been silent for ~1.2s. We
+          // re-enter the same handler in "stop" mode so the existing
+          // transcription pipeline runs unchanged.
+          // NB: we don't await — fire-and-forget.
+          handleVoiceInputRef.current?.();
+        },
+      });
+      voiceHandleRef.current = handle;
+      streamRef.current = handle.stream;
       setIsRecording(true);
       setVoiceState('listening');
       setVoiceTranscript(null);
       setVoiceError(null);
-      toast.info('Recording... Click mic again to stop.');
+      toast.info('Recording... I\'ll auto-stop when you finish speaking.');
     } catch (error) {
       console.error('Microphone access error:', error);
       setVoiceState('error');
@@ -287,6 +291,12 @@ What can I help you with today?`
       toast.error(getReadableError(error) || 'Microphone access failed. Please allow microphone access and try again.');
     }
   };
+
+  // Stable ref so VAD's onSilence callback always sees the latest function.
+  const handleVoiceInputRef = useRef(null);
+  useEffect(() => {
+    handleVoiceInputRef.current = handleVoiceInput;
+  });
 
   const handleSend = async (messageText = input) => {
     if (!messageText.trim() || loading) return;

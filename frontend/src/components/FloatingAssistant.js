@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { startRecording as startVoiceRecording } from '../lib/voiceRecorder';
 import { useAICreditGuard } from './credits/AICreditConfirmationDialog';
 import AssistantQueryResult from './assistant/AssistantQueryResult';
 import AssistantPreviewCard from './assistant/AssistantPreviewCard';
@@ -204,27 +205,29 @@ export default function FloatingAssistant() {
     setIsDragging(true);
   };
 
+  // Active voice-recording handle (wraps MediaRecorder + VAD).
+  const voiceHandleRef = useRef(null);
+
   const stopRecording = async () => {
-    return new Promise((resolve) => {
-      if (!mediaRecorderRef.current) { resolve(null); return; }
-      if (recordingTimeoutRef.current) {
-        clearTimeout(recordingTimeoutRef.current);
-        recordingTimeoutRef.current = null;
-      }
-      mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        audioChunksRef.current = [];
-        streamRef.current?.getTracks?.().forEach((t) => t.stop());
-        streamRef.current = null;
-        mediaRecorderRef.current = null;
-        setIsRecording(false);
-        resolve(blob);
-      };
-      mediaRecorderRef.current.stop();
-    });
+    const handle = voiceHandleRef.current;
+    if (!handle) return null;
+    voiceHandleRef.current = null;
+    if (recordingTimeoutRef.current) {
+      clearTimeout(recordingTimeoutRef.current);
+      recordingTimeoutRef.current = null;
+    }
+    streamRef.current = null;
+    setIsRecording(false);
+    try {
+      const { blob, mimeType, filename } = await handle.stop();
+      return { blob, mimeType, filename };
+    } catch (err) {
+      console.warn('stopRecording failed', err);
+      return null;
+    }
   };
 
-  const transcribeAudioBlob = async (audioBlob) => {
+  const transcribeAudioBlob = async (audioBlob, audioFilename) => {
     await runGuardedAction({
       actionType: 'voice_transcription',
       featureName: 'Floating Assistant Voice Input',
@@ -232,7 +235,7 @@ export default function FloatingAssistant() {
         setVoiceLoading(true);
         try {
           const formData = new FormData();
-          formData.append('audio', audioBlob, 'assistant-input.webm');
+          formData.append('audio', audioBlob, audioFilename || 'assistant-input.webm');
           const response = await axios.post(`${API_URL}/api/ai/voice/transcribe`, formData, {
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
           });
@@ -256,37 +259,36 @@ export default function FloatingAssistant() {
     });
   };
 
+  // Stable ref so VAD onSilence sees the latest version.
+  const handleVoiceInputRef = useRef(null);
+
   const handleVoiceInput = async () => {
     if (isRecording) {
-      const audioBlob = await stopRecording();
-      if (!audioBlob) return;
-      await transcribeAudioBlob(audioBlob);
+      const result = await stopRecording();
+      if (!result) return;
+      await transcribeAudioBlob(result.blob, result.filename);
     } else {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-        streamRef.current = stream;
-        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : undefined;
-        const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-        mediaRecorderRef.current = recorder;
-        audioChunksRef.current = [];
-        recorder.ondataavailable = (event) => {
-          if (event.data.size > 0) audioChunksRef.current.push(event.data);
-        };
-        recorder.start(250);
+        const handle = await startVoiceRecording({
+          onSilence: () => {
+            // Auto-stop fires after the user has been silent ~1.2s.
+            handleVoiceInputRef.current?.();
+          },
+          maxRecordingMs: 45000,
+        });
+        voiceHandleRef.current = handle;
+        streamRef.current = handle.stream;
         setIsRecording(true);
-        toast.info('Recording... click mic again to stop');
-        if (recordingTimeoutRef.current) clearTimeout(recordingTimeoutRef.current);
-        recordingTimeoutRef.current = setTimeout(async () => {
-          if (mediaRecorderRef.current) {
-            const audioBlob = await stopRecording();
-            if (audioBlob) await transcribeAudioBlob(audioBlob);
-          }
-        }, 45000);
+        toast.info('Recording... I\'ll auto-stop when you finish speaking.');
       } catch {
         toast.error('Microphone access denied');
       }
     }
   };
+
+  useEffect(() => {
+    handleVoiceInputRef.current = handleVoiceInput;
+  });
 
   const playVoice = async (text) => {
     if (!text?.trim()) return;

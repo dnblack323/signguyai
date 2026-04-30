@@ -2228,8 +2228,26 @@ async def transcribe_voice_input(
         from emergentintegrations.llm.openai.speech_to_text import OpenAISpeechToText
         import tempfile
 
-        # Save uploaded file to a temp file with proper extension
-        ext = (audio.filename or "audio.webm").rsplit(".", 1)[-1] or "webm"
+        # Pick a sensible file extension. Some browsers (Safari) record as
+        # mp4/m4a; others as webm. We prefer the upload's content_type when
+        # set since browsers always populate it correctly, then fall back to
+        # the filename extension, then to 'webm'.
+        content_type = (audio.content_type or "").lower()
+        if "mp4" in content_type or "m4a" in content_type:
+            ext = "mp4"
+        elif "ogg" in content_type:
+            ext = "ogg"
+        elif "wav" in content_type:
+            ext = "wav"
+        elif "mpeg" in content_type or "mp3" in content_type:
+            ext = "mp3"
+        elif "webm" in content_type:
+            ext = "webm"
+        else:
+            ext = (audio.filename or "audio.webm").rsplit(".", 1)[-1] or "webm"
+            if ext.lower() not in {"webm", "mp4", "m4a", "mp3", "ogg", "wav", "flac", "mpeg"}:
+                ext = "webm"
+
         with tempfile.NamedTemporaryFile(suffix=f".{ext}", delete=False) as tmp:
             content = await audio.read()
             tmp.write(content)
