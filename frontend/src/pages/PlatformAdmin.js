@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
-import { Search, Users, ChevronRight, Shield, ScrollText, Mail } from 'lucide-react';
+import { Search, Users, ChevronRight, Shield, ScrollText, Mail, Megaphone } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAuthToken } from '../lib/authStorage';
 
@@ -97,6 +97,14 @@ export default function PlatformAdmin() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/platform-admin/site-settings')}
+              data-testid="platform-admin-site-settings-btn"
+            >
+              <Megaphone className="w-4 h-4 mr-1" />
+              Site Settings
+            </Button>
             <Button
               variant="outline"
               onClick={() => navigate('/platform-admin/email-logs')}

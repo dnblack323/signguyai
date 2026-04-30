@@ -2774,6 +2774,10 @@ from routes.facebook_messages import router as facebook_messages_router
 
 # Platform Admin
 from routes.platform_admin import router as platform_admin_router
+from routes.platform_settings import (
+    public_router as platform_settings_public_router,
+    admin_router as platform_settings_admin_router,
+)
 from routes.email_deliverability import (
     router as email_deliverability_router,
     sendgrid_webhook_router,
@@ -2833,6 +2837,8 @@ api_router.include_router(appointments_router)  # Appointment detail routes
 api_router.include_router(meta_integration_router)  # Meta/Facebook Messenger integration
 api_router.include_router(facebook_messages_router)  # Facebook Leads inbox
 api_router.include_router(platform_admin_router)  # Platform Admin for tenant impersonation
+api_router.include_router(platform_settings_public_router)  # Public banner + maintenance reads
+api_router.include_router(platform_settings_admin_router)  # Platform Admin banner + maintenance writes
 api_router.include_router(email_deliverability_router)  # Email deliverability endpoints
 api_router.include_router(sendgrid_webhook_router)  # Public SendGrid event webhook
 
@@ -2846,6 +2852,55 @@ setup_community_routes(app, db, get_current_active_user, UserInDB)
 
 # Include the api_router in the main app
 app.include_router(api_router)
+
+
+# ============== MAINTENANCE MODE MIDDLEWARE ==============
+
+_MAINTENANCE_ALLOW_PREFIXES = (
+    "/api/auth/",
+    "/api/users/me",
+    "/api/platform/",         # public banner + maintenance reads
+    "/api/platform-admin/",   # admins keep working
+    "/api/webhook/",          # external webhooks (Stripe, SendGrid) must keep flowing
+    "/api/health",
+)
+_MAINTENANCE_BLOCK_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+
+
+@app.middleware("http")
+async def maintenance_mode_middleware(request, call_next):
+    """
+    When platform_settings.maintenance.enabled is True, block every mutation
+    on /api/* unless the path is on the allowlist. Reads stay open so users
+    can still see their data. Platform admins are always allowed (verified by
+    the route's own dependency, but we short-circuit on path prefix here).
+    """
+    try:
+        path = request.url.path or ""
+        if path.startswith("/api/") and request.method in _MAINTENANCE_BLOCK_METHODS:
+            if not any(path.startswith(p) for p in _MAINTENANCE_ALLOW_PREFIXES):
+                settings = await db.platform_settings.find_one(
+                    {"id": "global"},
+                    {"_id": 0, "maintenance": 1},
+                )
+                if settings and (settings.get("maintenance") or {}).get("enabled") is True:
+                    from fastapi.responses import JSONResponse
+                    return JSONResponse(
+                        status_code=503,
+                        content={
+                            "detail": {
+                                "code": "maintenance_mode",
+                                "message": (
+                                    settings["maintenance"].get("message")
+                                    or "We're doing scheduled maintenance — please try again shortly."
+                                ),
+                            }
+                        },
+                    )
+    except Exception as e:
+        logger.error(f"maintenance_mode_middleware error: {e}")
+    return await call_next(request)
+
 
 # Add CORS middleware
 app.add_middleware(

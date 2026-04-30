@@ -3,7 +3,8 @@
 Originally surfaced after the user added the Impersonate-User admin tool and asked
 what other operator/admin tools would be needed for launch.
 
-Each P0 item is being implemented one at a time on user request.
+## ✅ TOP 5 P0 GAPS — ALL COMPLETE (Feb 15, 2026)
+The five most critical pre-launch admin tools are now shipped, audited, and end-to-end verified.
 
 ---
 
@@ -47,9 +48,13 @@ Each P0 item is being implemented one at a time on user request.
    - Per-tenant deliverability tile on tenant detail page (auto-hides when no email history).
    - To finish the deployment side: configure SendGrid → Settings → Mail Settings → Event Webhook → URL = `https://<host>/api/webhook/sendgrid`, then enable the "Bounced", "Spam Reports", "Dropped", "Delivered" toggles.
 
-5. **System-wide Announcement Banner + Maintenance Mode Toggle** — NOT STARTED
-   - Single global banner ("We deploy at 11pm ET", outage notices) controllable by Platform Admin.
-   - Maintenance/read-only mode flag that returns 503 from mutation endpoints with friendly message.
+5. **System-wide Announcement Banner + Maintenance Mode Toggle** ✅ DONE (Feb 15, 2026)
+   - Collection `platform_settings` (single `id="global"` doc) holds both states.
+   - Public endpoints `GET /api/platform/announcement`, `GET /api/platform/maintenance`. Admin endpoints `PUT /api/platform-admin/announcement`, `PUT /api/platform-admin/maintenance`, `GET /api/platform-admin/settings`.
+   - Announcement: message, severity (info/warning/critical), dismissable, optional expires_at. Per-user dismiss is keyed by updated_at so new edits re-show for everyone.
+   - Maintenance Mode: ASGI middleware in `server.py` returns HTTP 503 + structured `maintenance_mode` payload on POST/PUT/PATCH/DELETE for non-admin users. Allowlist keeps auth, platform-admin, webhooks, and health checks flowing.
+   - Audit log entries: `announcement.set`, `announcement.clear`, `maintenance.enable`, `maintenance.disable` (`action_category="platform"`).
+   - UI: `<GlobalBanner>` sticky on every page (re-polls every 60s); new `/platform-admin/site-settings` page; "Site Settings" button on Platform Admin home.
 
 ---
 

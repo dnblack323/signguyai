@@ -1,5 +1,32 @@
 # SignGuy AI - Changelog
 
+## February 15, 2026 (Item #5 — final P0 prelaunch gap)
+
+### Item #5 — System-wide Announcement Banner + Maintenance Mode (NEW)
+- New collection `platform_settings` with a single `id="global"` document holding both pieces of state.
+- New backend module `routes/platform_settings.py` exposing:
+  - **Public reads** (no auth required, so the banner renders on `/login` too): `GET /api/platform/announcement`, `GET /api/platform/maintenance`.
+  - **Admin writes** (Platform Admin only): `PUT /api/platform-admin/announcement`, `PUT /api/platform-admin/maintenance`, `GET /api/platform-admin/settings`.
+- **Announcement Banner:**
+  - Configurable `message`, `severity` (info / warning / critical), `dismissable` flag, optional `expires_at`.
+  - Auto-expires when `expires_at` is in the past.
+  - Per-user "dismiss" persisted in localStorage keyed by the banner's `updated_at` so a new edit re-shows for everyone.
+- **Maintenance Mode:**
+  - `enabled` toggle + custom user-facing message.
+  - **New ASGI middleware in `server.py`** blocks every mutation method (POST/PUT/PATCH/DELETE) on `/api/*` for non-admin users with HTTP 503 + structured `{code: "maintenance_mode", message}` payload.
+  - Allowlist (always passes through): `/api/auth/`, `/api/users/me`, `/api/platform/`, `/api/platform-admin/`, `/api/webhook/` (Stripe + SendGrid), `/api/health`. Reads stay open.
+- **Audit log:** every change writes a `platform`-category row — `announcement.set`, `announcement.clear`, `maintenance.enable`, `maintenance.disable`.
+- **Frontend:**
+  - New `<GlobalBanner>` component mounted at the top of every page (sticky). Polls public read endpoints every 60 seconds so changes propagate to live users without a refresh.
+  - New page `/platform-admin/site-settings` with two cards: Announcement (message, severity, expires_at, dismissable, Publish/Update/Clear) and Maintenance Mode (message + Enable/Disable buttons).
+  - "Site Settings" button on Platform Admin home, alongside Email Deliverability and Audit Log.
+- **End-to-end verified:**
+  - Set / read / clear announcement via API.
+  - Maintenance enable → user reads stay 200 → user write returns 503 with structured payload → admin write succeeds → SendGrid webhook still 200 → maintenance disable → user write 200 again.
+  - All four admin actions captured in the audit log.
+
+### THIS COMPLETES THE TOP-5 PRELAUNCH PLATFORM GAP CHECKLIST.
+
 ## February 15, 2026 (Items #3+ refinements + Item #4)
 
 ### Dunning Refinements

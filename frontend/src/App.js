@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { PageContextProvider } from "./context/PageContext";
 import { AppProvider } from "./context/AppContext";
+import GlobalBanner from "./components/GlobalBanner";
 import { ThemeProvider } from "./context/ThemeContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { TierProvider } from "./context/TierContext";
@@ -67,6 +68,7 @@ import PlatformAdmin from "./pages/PlatformAdmin";
 import PlatformAdminTenantDetail from "./pages/PlatformAdminTenantDetail";
 import PlatformAdminAuditLog from "./pages/PlatformAdminAuditLog";
 import PlatformAdminEmailLogs from "./pages/PlatformAdminEmailLogs";
+import PlatformAdminSiteSettings from "./pages/PlatformAdminSiteSettings";
 import AccountSuspended from "./pages/AccountSuspended";
 
 // Customer Portal Pages
@@ -238,6 +240,7 @@ function ProtectedRoutes() {
           <Route path="/platform-admin" element={<PlatformAdmin />} />
           <Route path="/platform-admin/audit-log" element={<PlatformAdminAuditLog />} />
           <Route path="/platform-admin/email-logs" element={<PlatformAdminEmailLogs />} />
+          <Route path="/platform-admin/site-settings" element={<PlatformAdminSiteSettings />} />
           <Route path="/platform-admin/tenants/:tenantId" element={<PlatformAdminTenantDetail />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
@@ -256,6 +259,7 @@ function App() {
             <BrowserRouter>
               <PageContextProvider>
               <ScrollToTop />
+              <GlobalBanner />
               <Routes>
                 {/* Public Landing Page - ROOT URL shows marketing site */}
                 <Route path="/" element={<LandingPage />} />
