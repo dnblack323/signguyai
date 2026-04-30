@@ -478,6 +478,15 @@ async def get_categories():
         {"value": "quote_template", "label": "Quote Template"},
         {"value": "customer_form", "label": "Customer Form"},
         {"value": "internal", "label": "Internal"},
+        # Marketing & branding outputs from AI tools (audit 2026-04)
+        {"value": "marketing_content", "label": "Marketing Content"},
+        {"value": "social_post", "label": "Social Post"},
+        {"value": "content_calendar", "label": "Content Calendar"},
+        {"value": "campaign_plan", "label": "Campaign Plan"},
+        {"value": "blog_article", "label": "Blog Article"},
+        {"value": "logo_concept", "label": "Logo Concept"},
+        {"value": "brand_kit", "label": "Brand Kit"},
+        {"value": "tagline", "label": "Tagline"},
         {"value": "other", "label": "Other"},
     ]
 

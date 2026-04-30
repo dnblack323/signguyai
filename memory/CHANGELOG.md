@@ -1,5 +1,24 @@
 # SignGuy AI - Changelog
 
+## April 30, 2026 — Customer Branding Profile UI + Marketing Tools Cleanup
+
+### Customer Branding Profile (UI integration shipped)
+- Wired existing `CustomerBrandingTab` into the customer detail drawer in `pages/Customers.js` as a 5th "Branding" tab (`grid-cols-5`).
+- Tab supports view/edit of full profile (business_name, industry, audience, brand personality, voice notes, competitors, USP, things to avoid, brand colors, taglines, logos, brand_kit_text), with per-item delete for taglines and saved logos.
+- 3 CTAs in tab navigate to `/ai-tools?tool={branding_kit_generator|logo_creator|idea_brainstormer}&customer={id}`.
+- AITools deep-link: when `?customer={id}` present, the page auto-fetches the branding profile, sets the picker, and pre-fills the form. `CustomerBrandingPicker` now also syncs internally when its `value` prop changes externally.
+- Backend models/routes (`GET/PUT/POST /api/customers/{id}/branding{,/append}`) verified end-to-end via curl + pytest.
+
+### Marketing Tools Cleanup (Message 574)
+- **Merged** `Completed Order Post Creator` (image-based) and `Social Media Job Post Creator` (text-only) into a single tool with a `post_mode` selector (`with_image` | `text_only`). Image upload and "describe the order" text fields are now conditionally required/visible. Old `social_job_post` tool definition removed from frontend; backend prompt kept as alias for legacy AI history.
+- Added a small `requiredWhen` / `showWhen` engine in `AITools.js` so any field can be conditionally required and conditionally hidden.
+- Added `date` field type and used it for the new Content Calendar `start_date` picker.
+- **Improved `Social Media Pack Generator`**: required `services_offered` + `pack_size`, added `platforms` filter and `brand_voice` selector. Stricter prompt asks for numbered posts with explicit Post Type / Caption / Visual / Best Platform / Hashtags lines, plus a "Quick Reuse Tips" footer.
+- **Improved `Content Calendar Creator`**: required `start_date` + `date_range` + `post_frequency`, added `brand_voice`. New prompt produces a `YYYY-MM-DD (Day) | Theme | Platform | Idea | CTA` table tied to the actual start date, plus Theme Summary, Production Checklist, and Optional Boosts.
+- **Document Library auto-tagging**: Added 8 new categories (`marketing_content`, `social_post`, `content_calendar`, `campaign_plan`, `blog_article`, `logo_concept`, `brand_kit`, `tagline`) to `DocumentCategory` enum. The `handleSaveToLibrary` mapper now routes every AI tool to the right bucket. `/documents/categories/list` updated so UI filters expose the new buckets.
+- **Tested:** testing_agent_v3_fork iteration 138 — backend 16/16 passing, frontend 5/5 smoke checks passing.
+
+
 ## February 15, 2026 (Item #5 — final P0 prelaunch gap)
 
 ### Item #5 — System-wide Announcement Banner + Maintenance Mode (NEW)
