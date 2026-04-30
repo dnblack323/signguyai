@@ -316,7 +316,7 @@ What can I help you with today?`
               {
                 message: messageText.trim(),
                 session_id: sessionId,
-                conversation_history: messages.slice(-10)
+                conversation_history: messages.slice(-30)
               },
               {
                 headers: {
@@ -371,7 +371,16 @@ What can I help you with today?`
     handleSend(prompt);
   };
 
-  const handleNewChat = () => {
+  const handleNewChat = async () => {
+    // Clear the persistent server-side conversation so the assistant forgets
+    // what was said across reloads too (not just this tab).
+    try {
+      await axios.delete(`${API_URL}/api/ai/assistant/history`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch (err) {
+      console.warn('Assistant clear failed', err);
+    }
     setMessages([{
       role: 'assistant',
       content: `Hey there! I'm your AI Business Assistant for sign shop operations. I can help you with:
@@ -389,6 +398,29 @@ What can I help you with today?`
     setVoiceTranscript(null);
     setVoiceError(null);
   };
+
+  // Hydrate persistent conversation history on mount so the assistant
+  // remembers what was said across page reloads / navigation.
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await axios.get(`${API_URL}/api/ai/assistant/history`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const saved = r.data?.messages || [];
+        if (!cancelled && saved.length > 0) {
+          // Replace the greeting with the persisted conversation.
+          setMessages(saved.map((m) => ({ role: m.role, content: m.content })));
+        }
+      } catch (err) {
+        console.warn('Assistant history hydrate failed', err);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   return (
     <div className="h-[calc(100vh-8rem)] flex flex-col">

@@ -7,7 +7,7 @@ import {
   Bot, Send, X, Minimize2, Maximize2, Loader2, User,
   Sparkles, CheckCircle2, AlertCircle, Briefcase, Calendar,
   FileText, Clock, Users, DollarSign, Mic, MicOff, Volume2,
-  Pin
+  Pin, Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -125,6 +125,47 @@ export default function FloatingAssistant() {
       inputRef.current?.focus();
     }
   }, [isOpen, isMinimized]);
+
+  // Hydrate persistent conversation history once we have a token. The server
+  // remembers the last ~60 messages per user so the assistant feels like it
+  // actually knows what was said before a page reload or navigation.
+  const [historyHydrated, setHistoryHydrated] = useState(false);
+  useEffect(() => {
+    if (!token || historyHydrated) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await axios.get(`${API_URL}/api/ai/assistant/history`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const saved = (r.data?.messages || []).map((m, i) => ({
+          id: `saved_${i}_${m.created_at || ''}`,
+          role: m.role,
+          content: m.content,
+          _persisted: true,
+        }));
+        if (!cancelled && saved.length > 0) setMessages(saved);
+      } catch (err) {
+        console.warn('Assistant history hydrate failed', err);
+      } finally {
+        if (!cancelled) setHistoryHydrated(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [token, historyHydrated]);
+
+  // Clear persistent history (the "New Chat" button).
+  const handleClearConversation = async () => {
+    try {
+      await axios.delete(`${API_URL}/api/ai/assistant/history`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch (err) {
+      console.warn('Assistant clear failed', err);
+    }
+    setMessages([]);
+    toast.success('Conversation cleared');
+  };
 
   useEffect(() => {
     return () => {
@@ -331,7 +372,7 @@ export default function FloatingAssistant() {
             {
               message: messageText.trim(),
               session_id: sessionId,
-              conversation_history: messagesRef.current.slice(-10),
+              conversation_history: messagesRef.current.slice(-30),
               context: pageContext,
             },
             { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
@@ -795,6 +836,21 @@ export default function FloatingAssistant() {
         <div className="flex items-center gap-1">
           {!isMinimized && (
             <AssistantModeSwitcher token={token} value={mode} onChange={setMode} />
+          )}
+          {!isMinimized && messages.length > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (window.confirm('Start a new conversation? This will clear the assistant\'s memory of the current chat.')) {
+                  handleClearConversation();
+                }
+              }}
+              title="New Chat — clears saved conversation"
+              className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
+              data-testid="assistant-new-chat-btn"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
           )}
           <button
             onClick={(e) => { e.stopPropagation(); setIsMinimized(!isMinimized); }}

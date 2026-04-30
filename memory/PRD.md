@@ -22,6 +22,7 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-04-30 — Assistant memory fix: persistent conversation per (tenant, user) in MongoDB (`assistant_conversations`), up to 60 messages stored, last 20 used for prompt context (was 6). Client sends last 30 (was 10). Page reloads and navigation no longer wipe the assistant's memory. GET/DELETE `/api/ai/assistant/history` endpoints added. "New Chat" trash button added to floating assistant.
 - 2026-04-30 — NEW: Broadcast Email to Tenant Owners platform-admin tool (`POST /api/platform-admin/broadcast-email`) with audience filters, test-mode, audit logging, full UI at `/platform-admin/broadcast-email`. Plus `/app/PLATFORM_ADMIN_RUNBOOK.md` walkthrough document covering every platform-admin feature step-by-step.
 - 2026-04-30 — Racing Tools Cleanup: hid `Vehicle Wrap Cost Calculator` from Racing (kept backend for future relocation); softened production wording on remaining 3 racing tools; Race Team Branding Kit now also emits a written branding brief alongside images.
 - 2026-04-30 — Design Tools Cleanup: hid `logo_refresher` and `generative_fill` (misleading); renamed `text_to_image` → `AI Image Concept Creator`; softened production wording on remaining tools; AI Sign / Banner Designer now also emit a concise design brief alongside images.

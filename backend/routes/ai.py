@@ -1651,6 +1651,58 @@ async def update_assistant_session(tenant_id: str, session_id: str, draft: dict,
     )
 
 
+# ============== PERSISTENT CONVERSATION HISTORY ==============
+# Stores the assistant chat per (tenant, user) so the conversation survives
+# page reloads and cross-page navigation. Messages are kept trimmed to the
+# last MAX_STORED_MESSAGES to keep the document small.
+
+MAX_STORED_MESSAGES = 60          # cap per user to bound document size
+PROMPT_CONTEXT_WINDOW = 20        # last N messages injected into the prompt
+
+
+async def load_assistant_conversation(tenant_id: str, user_id: str) -> list:
+    """Return saved messages for this user (or [] if none). Newest last."""
+    doc = await db.assistant_conversations.find_one(
+        {"tenant_id": tenant_id, "user_id": user_id},
+        {"_id": 0, "messages": 1},
+    )
+    return (doc or {}).get("messages", []) or []
+
+
+async def append_assistant_conversation(
+    tenant_id: str,
+    user_id: str,
+    user_message: str,
+    assistant_message: str,
+) -> None:
+    """Persist a single user-turn + assistant-turn pair. Trim to cap."""
+    now = datetime.now(timezone.utc).isoformat()
+    existing = await load_assistant_conversation(tenant_id, user_id)
+    existing.append({"role": "user", "content": user_message, "created_at": now})
+    existing.append({"role": "assistant", "content": assistant_message, "created_at": now})
+    trimmed = existing[-MAX_STORED_MESSAGES:]
+    await db.assistant_conversations.update_one(
+        {"tenant_id": tenant_id, "user_id": user_id},
+        {
+            "$set": {
+                "tenant_id": tenant_id,
+                "user_id": user_id,
+                "messages": trimmed,
+                "updated_at": now,
+            },
+            "$setOnInsert": {"created_at": now},
+        },
+        upsert=True,
+    )
+
+
+async def clear_assistant_conversation(tenant_id: str, user_id: str) -> None:
+    """Delete all saved messages for this user. Called by the 'New Chat' button."""
+    await db.assistant_conversations.delete_one(
+        {"tenant_id": tenant_id, "user_id": user_id}
+    )
+
+
 async def lookup_customer_by_name(tenant_id: str, customer_name: str) -> Optional[dict]:
     """Look up customer by name (case-insensitive partial match)"""
     if not customer_name:
@@ -1934,12 +1986,35 @@ I can help with general sign shop questions, industry best practices, and advice
 but I don't have access to your specific customer, job, or financial data.
 """
         
-        # Build conversation context from history
+        # Build conversation context from history.
+        # Priority order: (1) saved server-side history (persistent across
+        # page reloads), (2) fall back to whatever the client sent. We merge
+        # by de-duping on trailing content so we don't double up the last
+        # message if the client also sent it.
+        saved_history = await load_assistant_conversation(
+            current_user.tenant_id, current_user.id
+        )
+        client_history = data.conversation_history or []
+
+        merged_history: List[Dict[str, str]] = []
+        # If client sent messages the server doesn't know about (e.g. same
+        # session, in-flight), take them. We trust saved_history as the
+        # canonical base.
+        merged_history.extend(saved_history)
+        if client_history:
+            saved_tails = {
+                (m.get("role"), (m.get("content") or "").strip()) for m in saved_history[-4:]
+            }
+            for m in client_history:
+                key = (m.get("role"), (m.get("content") or "").strip())
+                if key not in saved_tails:
+                    merged_history.append(m)
+
+        # Inject up to the last PROMPT_CONTEXT_WINDOW turns into the prompt.
         context_messages = ""
-        if data.conversation_history:
-            for msg in data.conversation_history[-6:]:  # Last 6 messages for context
-                role = "User" if msg.get("role") == "user" else "Assistant"
-                context_messages += f"{role}: {msg.get('content', '')}\n\n"
+        for msg in merged_history[-PROMPT_CONTEXT_WINDOW:]:
+            role = "User" if msg.get("role") == "user" else "Assistant"
+            context_messages += f"{role}: {msg.get('content', '')}\n\n"
         
         # ========== BUILD SYSTEM MESSAGE ==========
         # Add order creation instructions if there's an active draft
@@ -2063,6 +2138,18 @@ You are a smart, helpful assistant that can:
             feature_name="ai_business_assistant",
             metadata={"session_id": data.session_id, "message": data.message[:200]},
         )
+
+        # Persist this turn so the conversation survives page reloads.
+        # Non-fatal — a storage failure must not break the user's reply.
+        try:
+            await append_assistant_conversation(
+                tenant_id=current_user.tenant_id,
+                user_id=current_user.id,
+                user_message=data.message,
+                assistant_message=assistant_text,
+            )
+        except Exception as persist_err:  # noqa: BLE001
+            logger.error("assistant_conversation_persist_failed: %s", persist_err)
         
         # Log assistant conversation
         await db.ai_assistant_logs.insert_one({
@@ -2092,6 +2179,35 @@ You are a smart, helpful assistant that can:
         )
         print(f"AI Assistant error: {e}")
         raise HTTPException(status_code=500, detail=f"Assistant error: {str(e)}")
+
+
+@router.get("/assistant/history")
+async def get_assistant_history(
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Return the persistent assistant conversation for this user.
+
+    The frontend calls this once on mount so the assistant remembers what
+    was said even after a page reload or navigation. Returns up to the last
+    MAX_STORED_MESSAGES messages.
+    """
+    messages = await load_assistant_conversation(
+        current_user.tenant_id, current_user.id
+    )
+    return {"messages": messages}
+
+
+@router.delete("/assistant/history")
+async def clear_assistant_history(
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Wipe the persistent assistant conversation ('New Chat' button).
+
+    Does NOT clear active order drafts — those are scoped to session_id and
+    can still be finished even after a chat clear.
+    """
+    await clear_assistant_conversation(current_user.tenant_id, current_user.id)
+    return {"cleared": True}
 
 
 @router.post("/voice/transcribe")

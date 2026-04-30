@@ -1,5 +1,14 @@
 # SignGuy AI - Changelog
 
+## April 30, 2026 — Assistant Memory Fix (options A + B)
+
+- **Option A — Persistent conversation per user.** New MongoDB collection `assistant_conversations` storing up to 60 messages per (tenant_id, user_id). Two new endpoints: `GET /api/ai/assistant/history` and `DELETE /api/ai/assistant/history`. The existing `POST /api/ai/assistant` now (1) loads saved history, (2) merges with any client-sent history (de-duped by role+content tail), (3) uses it for the prompt, (4) persists the user-turn + assistant-turn after every successful reply.
+- **Option B — Bigger context window.** Frontend slice bumped from last 10 → last 30 messages on send. Backend prompt context bumped from last 6 → last 20 messages. Works together with option A — even if the client sends nothing, the server has the full persisted history.
+- **UI:** Both the full-page `/ai-assistant` and the floating assistant now hydrate saved history on mount. Floating assistant gained a trash-icon "New Chat" button (top-right of its header, confirm dialog) that calls DELETE and resets local state. Full-page `/ai-assistant` "New Chat" button now also calls DELETE server-side so memory clears everywhere.
+- **Verified end-to-end:** clear → empty → "my favorite color is blue" → clear frontend → ask "what color?" → assistant correctly recalls "blue" (screenshot captured).
+- Files: `/app/backend/routes/ai.py`, `/app/frontend/src/components/FloatingAssistant.js`, `/app/frontend/src/pages/AIAssistant.js`.
+
+
 ## April 30, 2026 — Broadcast Email personalization + critical platform-admin hardening
 
 ### Personalization (per-recipient placeholders)
