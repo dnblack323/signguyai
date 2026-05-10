@@ -348,7 +348,7 @@ export default function Questionnaires() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Questionnaires</h1>
-          <p className="text-gray-500">Create custom intake forms for different job types</p>
+          <p className="text-gray-300">Create custom intake forms for different job types</p>
         </div>
         <div className="flex gap-2">
           <Button 
@@ -394,11 +394,11 @@ export default function Questionnaires() {
 
       {/* Questionnaires Grid */}
       {filteredQuestionnaires.length === 0 ? (
-        <Card className="bg-white text-white border-[#1E293B]">
+        <Card className="bg-white border-[#1E293B]">
           <CardContent className="p-12 text-center">
-            <FileQuestion className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">No questionnaires yet</h3>
-            <p className="text-gray-500 mb-4">
+            <FileQuestion className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2 text-slate-900">No questionnaires yet</h3>
+            <p className="text-gray-600 mb-4">
               Create your first questionnaire to start collecting customer information
             </p>
             <Button onClick={() => setShowTemplateDialog(true)}>
