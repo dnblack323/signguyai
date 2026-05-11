@@ -975,6 +975,120 @@ async def get_audit_entry(
 
 
 
+@router.post("/users/{user_id}/promote-to-tenant")
+async def promote_user_to_tenant(
+    user_id: str,
+    payload: dict,
+    request: Request,
+    current_user: UserInDB = Depends(require_platform_admin),
+):
+    """Promote an existing user out of their current tenant into a brand-new
+    tenant where they become the owner.
+
+    Used when someone signed up via a team-invite link by mistake but should
+    actually have been their own tenant.
+
+    Important: this ONLY moves the user record. No orders, customers,
+    invoices, or other tenant-scoped data is touched. The new tenant starts
+    empty. The original tenant keeps any data the user created while inside.
+    """
+    new_tenant_name = (payload or {}).get("new_tenant_name", "").strip()
+    if not new_tenant_name:
+        raise HTTPException(status_code=400, detail="new_tenant_name is required")
+    if len(new_tenant_name) > 120:
+        raise HTTPException(status_code=400, detail="Tenant name too long (max 120 chars)")
+
+    # Look up the user being promoted
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Don't allow promoting platform admins (they shouldn't be inside a tenant in the
+    # ordinary sense — and we already protect against losing the only platform admin
+    # via the suspend self-lockout guard).
+    if user.get("role") == "platform_admin":
+        raise HTTPException(status_code=400, detail="Cannot promote a platform_admin user")
+
+    # Don't double-promote: if the user is already the owner of their current
+    # tenant, there's nothing to do.
+    current_tenant = await db.tenants.find_one(
+        {"id": user.get("tenant_id")},
+        {"_id": 0, "id": 1, "name": 1, "owner_email": 1},
+    )
+    if current_tenant and current_tenant.get("owner_email", "").lower() == (user.get("email") or "").lower():
+        raise HTTPException(
+            status_code=409,
+            detail="User is already the owner of their current tenant — nothing to promote.",
+        )
+
+    # Create the new tenant
+    new_tenant_id = str(uuid.uuid4())
+    now_iso = datetime.now(timezone.utc).isoformat()
+    new_tenant_doc = {
+        "id": new_tenant_id,
+        "name": new_tenant_name,
+        "owner_email": user.get("email"),
+        "plan": "free_trial",
+        "is_active": True,
+        "created_at": now_iso,
+        "updated_at": now_iso,
+        # Make it discoverable that this tenant was split off so we have a
+        # paper trail beyond the audit row.
+        "promoted_from_tenant_id": user.get("tenant_id"),
+        "promoted_from_user_id": user["id"],
+        "promoted_at": now_iso,
+        "promoted_by_platform_admin": current_user.email,
+    }
+    await db.tenants.insert_one(new_tenant_doc)
+
+    # Move the user. Role flips to "owner" of the new tenant.
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "tenant_id": new_tenant_id,
+            "role": "owner",
+            "promoted_from_tenant_id": user.get("tenant_id"),
+            "promoted_at": now_iso,
+            "updated_at": now_iso,
+        }},
+    )
+
+    # Audit log on both tenants for full traceability.
+    try:
+        await log_admin_action(
+            db=db,
+            request=request,
+            actor=current_user,
+            action="user.promote_to_tenant",
+            action_category="platform",
+            target_type="user",
+            target_id=user_id,
+            target_label=user.get("email"),
+            tenant_id=new_tenant_id,
+            tenant_name=new_tenant_name,
+            summary=f"Promoted {user.get('email')} out of '{(current_tenant or {}).get('name')}' into new tenant '{new_tenant_name}'",
+            metadata={
+                "old_tenant_id": user.get("tenant_id"),
+                "old_tenant_name": (current_tenant or {}).get("name"),
+                "new_tenant_id": new_tenant_id,
+                "new_tenant_name": new_tenant_name,
+                "user_email": user.get("email"),
+            },
+            status="success",
+        )
+    except Exception as audit_err:  # noqa: BLE001
+        logger.error(f"Audit log failed for user.promote_to_tenant: {audit_err}")
+
+    # Strip the _id key (Mongo populated it on insert) before returning.
+    new_tenant_doc.pop("_id", None)
+    return {
+        "ok": True,
+        "tenant": new_tenant_doc,
+        "user_email": user.get("email"),
+        "moved_from_tenant_id": user.get("tenant_id"),
+    }
+
+
 # ============== BROADCAST EMAIL TO TENANT OWNERS ==============
 #
 # Lets a Platform Admin send a one-off email to one or more tenant owners.

@@ -46,6 +46,7 @@ export default function PlatformAdminTenantDetail() {
   const [emailSummary, setEmailSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [impersonating, setImpersonating] = useState(false);
+  const [promoting, setPromoting] = useState(null); // userId currently being promoted
   const [showSuspendDialog, setShowSuspendDialog] = useState(false);
   const [showReactivateDialog, setShowReactivateDialog] = useState(false);
   const [showMarkPaidDialog, setShowMarkPaidDialog] = useState(false);
@@ -169,6 +170,50 @@ export default function PlatformAdminTenantDetail() {
       console.error('Error starting impersonation:', error);
       toast.error('Failed to start impersonation');
       setImpersonating(false);
+    }
+  };
+
+  // Promote a user out of this tenant into their own brand-new tenant.
+  // Used when someone signed up via an invite link by mistake but should
+  // have been their own tenant (e.g. a separate shop owner who clicked
+  // an invite). NO order / customer / invoice data moves — only the user's
+  // identity record. They keep their email + password.
+  const handlePromoteToTenant = async (u) => {
+    const newTenantName = prompt(
+      `Create a new tenant for ${u.full_name || u.email}?\n\nEnter the tenant (company) name:`,
+      u.full_name ? `${u.full_name}'s Shop` : ''
+    );
+    if (!newTenantName || !newTenantName.trim()) return;
+    if (!confirm(
+      `This will:\n` +
+      `  • Create a new tenant called "${newTenantName.trim()}"\n` +
+      `  • Move ${u.email} into the new tenant as its owner\n` +
+      `  • NOT touch any orders, customers, invoices, or other data\n` +
+      `     (those stay on this tenant — ${u.full_name || u.email} is starting fresh)\n\n` +
+      `Continue?`
+    )) return;
+
+    setPromoting(u.id);
+    try {
+      const token = getAuthToken();
+      const res = await fetch(`${BACKEND_URL}/api/platform-admin/users/${u.id}/promote-to-tenant`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ new_tenant_name: newTenantName.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Promote failed (HTTP ${res.status})`);
+      }
+      const data = await res.json();
+      toast.success(`${u.email} is now the owner of "${data.tenant.name}"`);
+      // Refresh this tenant page (the user just disappeared from our user list)
+      fetchTenantDetails();
+    } catch (error) {
+      console.error('Error promoting user:', error);
+      toast.error(error.message || 'Failed to promote user');
+    } finally {
+      setPromoting(null);
     }
   };
 
@@ -400,7 +445,25 @@ export default function PlatformAdminTenantDetail() {
                 <p className="text-gray-600">Tenant Details & Management</p>
               </div>
             </div>
-            <div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const owner = users.find((u) => u.role === 'owner' && u.is_active !== false)
+                    || users.find((u) => u.email === tenant.owner_email)
+                    || users.find((u) => u.is_active !== false);
+                  if (!owner) {
+                    toast.error('No active owner found for this tenant');
+                    return;
+                  }
+                  handleImpersonate(owner.id);
+                }}
+                disabled={impersonating || tenant.is_active === false || users.length === 0}
+                data-testid="tenant-impersonate-owner-btn"
+              >
+                <LogIn className="w-4 h-4 mr-2" />
+                {impersonating ? 'Starting...' : 'Impersonate Tenant Owner'}
+              </Button>
               {tenant.is_active === false ? (
                 <Button
                   className="bg-emerald-600 hover:bg-emerald-700"
@@ -751,6 +814,9 @@ export default function PlatformAdminTenantDetail() {
               <Users className="w-5 h-5" />
               Users ({users.length})
             </CardTitle>
+            <p className="text-xs text-gray-500 mt-1">
+              To impersonate someone, use the "Impersonate Tenant Owner" button at the top. If a user listed here should actually have their own tenant (e.g. they signed up via an invite by mistake), click "Promote to Own Tenant" next to their name.
+            </p>
           </CardHeader>
           <CardContent>
             {users.length === 0 ? (
@@ -784,16 +850,21 @@ export default function PlatformAdminTenantDetail() {
                       </div>
                       <p className="text-sm text-gray-600">{u.email}</p>
                     </div>
-                    <Button
-                      onClick={() => handleImpersonate(u.id)}
-                      disabled={impersonating || !u.is_active}
-                      variant="outline"
-                      size="sm"
-                      className="ml-4"
-                    >
-                      <LogIn className="w-4 h-4 mr-2" />
-                      {impersonating ? 'Starting...' : 'Impersonate'}
-                    </Button>
+                    {/* Promote-to-own-tenant: only shown for non-owner users — the owner
+                        IS this tenant, so promoting them would be a no-op. */}
+                    {u.email !== tenant.owner_email && (
+                      <Button
+                        onClick={() => handlePromoteToTenant(u)}
+                        disabled={promoting || !u.is_active}
+                        variant="outline"
+                        size="sm"
+                        className="ml-4"
+                        data-testid={`promote-user-${u.id}-btn`}
+                      >
+                        <Shield className="w-4 h-4 mr-2" />
+                        {promoting === u.id ? 'Promoting…' : 'Promote to Own Tenant'}
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>

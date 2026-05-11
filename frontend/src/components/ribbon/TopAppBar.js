@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Bell, HelpCircle, LogOut, Settings, User, ChevronDown } from 'lucide-react';
+import { Search, Bell, HelpCircle, LogOut, Settings, User, ChevronDown, Shield } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
@@ -139,6 +139,19 @@ export const TopAppBar = ({ onMobileMenuClick }) => {
                   <Settings className="h-4 w-4" />
                   Settings
                 </button>
+                {user?.role === 'platform_admin' && (
+                  <>
+                    <div className="h-px bg-gray-100 my-1" />
+                    <button
+                      onClick={() => { navigate('/platform-admin'); setProfileOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-amber-700 hover:bg-amber-50 transition-colors"
+                      data-testid="topbar-platform-admin-btn"
+                    >
+                      <Shield className="h-4 w-4" />
+                      Platform Admin
+                    </button>
+                  </>
+                )}
                 <div className="h-px bg-gray-100 my-1" />
                 <button
                   onClick={() => { logout(); setProfileOpen(false); }}

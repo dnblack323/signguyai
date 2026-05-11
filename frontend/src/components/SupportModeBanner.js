@@ -63,6 +63,9 @@ export function SupportModeBanner({ user }) {
               </p>
               <p className="text-sm">
                 Viewing as <span className="font-medium">{user.full_name}</span> ({user.email})
+                {user.tenant_name && (
+                  <> {' • '} Tenant: <span className="font-medium">{user.tenant_name}</span></>
+                )}
                 {' • '}
                 Platform Admin: <span className="font-medium">{impersonation.platform_admin_email}</span>
               </p>

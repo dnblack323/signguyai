@@ -371,7 +371,16 @@ async def get_current_user_profile(current_user: UserInDB = Depends(get_current_
     impersonation = getattr(current_user, 'impersonation', None)
     if impersonation:
         user_data['impersonation'] = impersonation
-    
+
+    # Always include the tenant name — used by the impersonation banner so
+    # the platform admin sees exactly which tenant they're inside.
+    if current_user.tenant_id:
+        tenant_doc = await db.tenants.find_one(
+            {"id": current_user.tenant_id}, {"_id": 0, "name": 1}
+        )
+        if tenant_doc and tenant_doc.get("name"):
+            user_data['tenant_name'] = tenant_doc["name"]
+
     return user_data
 
 
