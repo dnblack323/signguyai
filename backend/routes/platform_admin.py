@@ -991,7 +991,19 @@ async def promote_user_to_tenant(
     Important: this ONLY moves the user record. No orders, customers,
     invoices, or other tenant-scoped data is touched. The new tenant starts
     empty. The original tenant keeps any data the user created while inside.
+
+    Disabled by default. Set env var ENABLE_PROMOTE_TO_TENANT=1 to enable.
     """
+    # Feature flag — keep this destructive tool OFF until explicitly turned
+    # on. Even with platform_admin auth we don't want this clickable in prod
+    # by accident.
+    import os as _os
+    if (_os.environ.get("ENABLE_PROMOTE_TO_TENANT") or "").strip() not in ("1", "true", "yes", "on"):
+        raise HTTPException(
+            status_code=403,
+            detail="Promote-to-tenant is disabled. Set ENABLE_PROMOTE_TO_TENANT=1 to enable.",
+        )
+
     new_tenant_name = (payload or {}).get("new_tenant_name", "").strip()
     if not new_tenant_name:
         raise HTTPException(status_code=400, detail="new_tenant_name is required")

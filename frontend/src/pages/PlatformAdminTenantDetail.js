@@ -37,6 +37,11 @@ import { getAuthToken, setAuthToken } from '../lib/authStorage';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
+// Feature flag — gates the destructive "Promote user to own tenant" button.
+// Keep OFF in production until verified safe. To enable: flip to true here
+// AND set ENABLE_PROMOTE_TO_TENANT=1 in the backend .env, then redeploy.
+const FEATURE_PROMOTE_TO_TENANT = false;
+
 export default function PlatformAdminTenantDetail() {
   const { tenantId } = useParams();
   const { user } = useAuth();
@@ -815,7 +820,7 @@ export default function PlatformAdminTenantDetail() {
               Users ({users.length})
             </CardTitle>
             <p className="text-xs text-gray-500 mt-1">
-              To impersonate someone, use the "Impersonate Tenant Owner" button at the top. If a user listed here should actually have their own tenant (e.g. they signed up via an invite by mistake), click "Promote to Own Tenant" next to their name.
+              To impersonate this tenant, use the "Impersonate Tenant Owner" button at the top of this page. Per-user impersonation has been removed — Platform Admins only impersonate at the tenant level.
             </p>
           </CardHeader>
           <CardContent>
@@ -851,8 +856,10 @@ export default function PlatformAdminTenantDetail() {
                       <p className="text-sm text-gray-600">{u.email}</p>
                     </div>
                     {/* Promote-to-own-tenant: only shown for non-owner users — the owner
-                        IS this tenant, so promoting them would be a no-op. */}
-                    {u.email !== tenant.owner_email && (
+                        IS this tenant, so promoting them would be a no-op.
+                        Currently hidden behind FEATURE_PROMOTE_TO_TENANT flag (off by default).
+                        To enable: set this constant to true AND set ENABLE_PROMOTE_TO_TENANT=1 in backend .env. */}
+                    {FEATURE_PROMOTE_TO_TENANT && u.email !== tenant.owner_email && (
                       <Button
                         onClick={() => handlePromoteToTenant(u)}
                         disabled={promoting || !u.is_active}
