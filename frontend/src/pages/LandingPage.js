@@ -100,15 +100,15 @@ export default function LandingPage() {
           <div className="mt-12 flex flex-wrap justify-center gap-8">
             <div className="text-center">
               <p className="text-3xl font-bold text-white">$99</p>
-              <p className="text-sm text-gray-500">per month</p>
+              <p className="text-sm text-gray-400">per month</p>
             </div>
             <div className="text-center">
               <p className="text-3xl font-bold text-white">150</p>
-              <p className="text-sm text-gray-500">AI credits/month</p>
+              <p className="text-sm text-gray-400">AI credits/month</p>
             </div>
             <div className="text-center">
               <p className="text-3xl font-bold text-white">100%</p>
-              <p className="text-sm text-gray-500">features included</p>
+              <p className="text-sm text-gray-400">features included</p>
             </div>
           </div>
         </div>

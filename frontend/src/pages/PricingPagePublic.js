@@ -122,7 +122,7 @@ export default function PricingPagePublic() {
                   <span className="text-3xl font-bold text-white">$99</span>
                   <span className="text-gray-400">/mo</span>
                   <p className="text-sm text-amber-400 mt-1">Founder (reg. $149/mo)</p>
-                  <p className="text-xs text-gray-500 mt-1">or $990/year (Founder) | $1490/year</p>
+                  <p className="text-xs text-gray-400 mt-1">or $990/year (Founder) | $1490/year</p>
                 </div>
                 <ul className="space-y-2 mb-6 text-sm text-gray-300">
                   <li className="flex items-center gap-2">
@@ -149,7 +149,7 @@ export default function PricingPagePublic() {
             </Card>
           </div>
 
-          <p className="text-center text-gray-500 text-sm mt-4">
+          <p className="text-center text-gray-400 text-sm mt-4">
             Annual billing only available for Business plan
           </p>
         </div>

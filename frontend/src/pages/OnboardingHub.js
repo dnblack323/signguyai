@@ -396,13 +396,13 @@ export default function OnboardingHub() {
                   key={step.id}
                   type="button"
                   onClick={() => setCurrentStepIndex(index)}
-                  className={`w-full rounded-xl border p-3 text-left ${currentStepIndex === index ? 'border-teal-400 bg-teal-500/10' : 'border-gray-200 bg-slate-900/40'}`}
+                  className={`w-full rounded-xl border p-3 text-left ${currentStepIndex === index ? 'border-teal-400 bg-teal-500/10 text-slate-900' : 'border-gray-200 bg-slate-900/40 text-white'}`}
                   data-testid={`onboarding-step-${step.id}`}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="font-medium text-white">{step.title}</p>
-                      <p className="text-xs text-slate-400 mt-1">{step.required ? 'Required' : 'Recommended / Optional'}</p>
+                      <p className={`font-medium ${currentStepIndex === index ? 'text-slate-900' : 'text-white'}`}>{step.title}</p>
+                      <p className={`text-xs mt-1 ${currentStepIndex === index ? 'text-slate-600' : 'text-slate-300'}`}>{step.required ? 'Required' : 'Recommended / Optional'}</p>
                     </div>
                     <Badge className={statusColor[status]}>{status === 'finish_later' ? 'Finish Later' : status}</Badge>
                   </div>
