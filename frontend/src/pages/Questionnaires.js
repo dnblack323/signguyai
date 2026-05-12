@@ -805,9 +805,10 @@ export default function Questionnaires() {
                 onChange={(e) => setSendEmail(e.target.value)}
                 placeholder="customer@example.com"
                 className="mt-1"
+                data-testid="send-questionnaire-email-input"
               />
             </div>
-            <Button onClick={handleSendEmail} disabled={sending || !sendEmail.trim()} className="w-full">
+            <Button onClick={handleSendEmail} disabled={sending || !sendEmail.trim()} className="w-full" data-testid="send-questionnaire-submit-btn">
               {sending ? <Loader2Icon className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
               Send via Email
             </Button>

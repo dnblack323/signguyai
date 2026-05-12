@@ -1,5 +1,14 @@
 # SignGuy AI - Changelog
 
+## February 12, 2026 — Questionnaire bugs fixed (Send via Email + dark-bg contrast)
+
+- **`POST /api/questionnaires/{id}/send-email` — new endpoint.** Accepts `{email, customer_name?, public_url?, message?}`. Verifies tenant ownership (404 cross-tenant), requires `status == "active"` (400 with explicit "Publish it first" message), validates email via Pydantic `EmailStr` (422 on bad format), uses `EmailService.send_email` (SendGrid) with a branded HTML + plain-text body and a tracked "Open Questionnaire" CTA button. Returns `{success, message, link}` on 200. Tenant company name pulled from `tenants.company_name`.
+- **Frontend `handleSendEmail` rewired.** `/app/frontend/src/pages/Questionnaires.js` now calls the new endpoint with `{email, public_url: window.location.origin}` instead of the broken `/documents/send-email` call (which expected a `customer_id` and a `Document`, never a Questionnaire — explaining why it suddenly failed in prod). Added `data-testid` on the email input + submit button for automation.
+- **PublicQuestionnaire dark-bg contrast.** Replaced all default `<Label>` (hardcoded `text-[#0F172A]`) and `text-muted-foreground` (resolves to `#475569`) instances on `/app/frontend/src/pages/PublicQuestionnaire.js` with explicit `text-slate-200` (labels), `text-slate-300` (paragraph questions / option labels), `text-slate-400` (descriptions, file-upload helper text, CardDescription) so customers can actually read the form on the `#0B0F17` background. Empty-state and Thank-You screens updated too.
+- **Tested:** 12/12 backend pytest pass (`/app/backend/tests/test_questionnaire_send_email.py`). PublicQuestionnaire contrast verified via Playwright screenshot — all labels light-on-dark.
+
+
+
 ## April 30, 2026 — Assistant Memory Fix (options A + B)
 
 - **Option A — Persistent conversation per user.** New MongoDB collection `assistant_conversations` storing up to 60 messages per (tenant_id, user_id). Two new endpoints: `GET /api/ai/assistant/history` and `DELETE /api/ai/assistant/history`. The existing `POST /api/ai/assistant` now (1) loads saved history, (2) merges with any client-sent history (de-duped by role+content tail), (3) uses it for the prompt, (4) persists the user-turn + assistant-turn after every successful reply.
