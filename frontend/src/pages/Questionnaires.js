@@ -254,13 +254,9 @@ export default function Questionnaires() {
     if (!sendEmail.trim() || !sendDialog) return;
     setSending(true);
     try {
-      const url = `${window.location.origin}/questionnaire/${sendDialog.id}`;
-      await api.post('/documents/send-email', {
-        document_type: 'questionnaire',
-        customer_email: sendEmail,
-        customer_name: '',
-        subject: `Please complete: ${sendDialog.name}`,
-        body: `You've been sent a questionnaire. Please click the link below to complete it:\n\n${url}`,
+      await api.post(`/questionnaires/${sendDialog.id}/send-email`, {
+        email: sendEmail,
+        public_url: window.location.origin,
       });
       toast.success(`Questionnaire sent to ${sendEmail}`);
       setSendDialog(null);

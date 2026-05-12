@@ -131,14 +131,14 @@ export default function PublicQuestionnaire() {
           <div className="pt-4 pb-2">
             <h3 className="text-lg font-semibold text-white">{question.label}</h3>
             {question.description && (
-              <p className="text-sm text-muted-foreground mt-1">{question.description}</p>
+              <p className="text-sm text-slate-400 mt-1">{question.description}</p>
             )}
           </div>
         );
 
       case 'paragraph':
         return (
-          <p className="text-muted-foreground">{question.label}</p>
+          <p className="text-slate-300">{question.label}</p>
         );
 
       case 'text':
@@ -146,11 +146,11 @@ export default function PublicQuestionnaire() {
       case 'phone':
         return (
           <div className="space-y-2">
-            <Label className={hasError ? 'text-destructive' : ''}>
+            <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
               {question.label} {question.required && <span className="text-destructive">*</span>}
             </Label>
             {question.description && (
-              <p className="text-xs text-muted-foreground">{question.description}</p>
+              <p className="text-xs text-slate-400">{question.description}</p>
             )}
             <Input
               type={question.type}
@@ -166,11 +166,11 @@ export default function PublicQuestionnaire() {
       case 'textarea':
         return (
           <div className="space-y-2">
-            <Label className={hasError ? 'text-destructive' : ''}>
+            <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
               {question.label} {question.required && <span className="text-destructive">*</span>}
             </Label>
             {question.description && (
-              <p className="text-xs text-muted-foreground">{question.description}</p>
+              <p className="text-xs text-slate-400">{question.description}</p>
             )}
             <Textarea
               value={answers[question.id] || ''}
@@ -186,7 +186,7 @@ export default function PublicQuestionnaire() {
       case 'number':
         return (
           <div className="space-y-2">
-            <Label className={hasError ? 'text-destructive' : ''}>
+            <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
               {question.label} {question.required && <span className="text-destructive">*</span>}
             </Label>
             <Input
@@ -203,7 +203,7 @@ export default function PublicQuestionnaire() {
       case 'date':
         return (
           <div className="space-y-2">
-            <Label className={hasError ? 'text-destructive' : ''}>
+            <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
               {question.label} {question.required && <span className="text-destructive">*</span>}
             </Label>
             <Input
@@ -219,11 +219,11 @@ export default function PublicQuestionnaire() {
       case 'select':
         return (
           <div className="space-y-2">
-            <Label className={hasError ? 'text-destructive' : ''}>
+            <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
               {question.label} {question.required && <span className="text-destructive">*</span>}
             </Label>
             {question.description && (
-              <p className="text-xs text-muted-foreground">{question.description}</p>
+              <p className="text-xs text-slate-400">{question.description}</p>
             )}
             <Select
               value={answers[question.id] || ''}
@@ -247,11 +247,11 @@ export default function PublicQuestionnaire() {
       case 'radio':
         return (
           <div className="space-y-2">
-            <Label className={hasError ? 'text-destructive' : ''}>
+            <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
               {question.label} {question.required && <span className="text-destructive">*</span>}
             </Label>
             {question.description && (
-              <p className="text-xs text-muted-foreground">{question.description}</p>
+              <p className="text-xs text-slate-400">{question.description}</p>
             )}
             <RadioGroup
               value={answers[question.id] || ''}
@@ -261,7 +261,7 @@ export default function PublicQuestionnaire() {
               {question.options?.map((option) => (
                 <div key={option.value} className="flex items-center space-x-2">
                   <RadioGroupItem value={option.value} id={`${question.id}-${option.value}`} />
-                  <Label htmlFor={`${question.id}-${option.value}`} className="font-normal">
+                  <Label htmlFor={`${question.id}-${option.value}`} className="font-normal text-slate-300">
                     {option.label}
                   </Label>
                 </div>
@@ -275,11 +275,11 @@ export default function PublicQuestionnaire() {
       case 'multi_select':
         return (
           <div className="space-y-2">
-            <Label className={hasError ? 'text-destructive' : ''}>
+            <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
               {question.label} {question.required && <span className="text-destructive">*</span>}
             </Label>
             {question.description && (
-              <p className="text-xs text-muted-foreground">{question.description}</p>
+              <p className="text-xs text-slate-400">{question.description}</p>
             )}
             <div className="space-y-2">
               {question.options?.map((option) => (
@@ -289,7 +289,7 @@ export default function PublicQuestionnaire() {
                     checked={(answers[question.id] || []).includes(option.value)}
                     onCheckedChange={() => toggleCheckbox(question.id, option.value)}
                   />
-                  <Label htmlFor={`${question.id}-${option.value}`} className="font-normal">
+                  <Label htmlFor={`${question.id}-${option.value}`} className="font-normal text-slate-300">
                     {option.label}
                   </Label>
                 </div>
@@ -302,15 +302,15 @@ export default function PublicQuestionnaire() {
       case 'file_upload':
         return (
           <div className="space-y-2">
-            <Label className={hasError ? 'text-destructive' : ''}>
+            <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
               {question.label} {question.required && <span className="text-destructive">*</span>}
             </Label>
             {question.description && (
-              <p className="text-xs text-muted-foreground">{question.description}</p>
+              <p className="text-xs text-slate-400">{question.description}</p>
             )}
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-              <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">
+              <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
+              <p className="text-sm text-slate-400">
                 File upload will be available after submission
               </p>
             </div>
@@ -337,7 +337,7 @@ export default function PublicQuestionnaire() {
           <CardContent className="p-8 text-center">
             <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
             <h2 className="text-xl font-bold text-white mb-2">Questionnaire Not Found</h2>
-            <p className="text-muted-foreground">
+            <p className="text-slate-400">
               This questionnaire may have been removed or is not currently active.
             </p>
           </CardContent>
@@ -353,7 +353,7 @@ export default function PublicQuestionnaire() {
           <CardContent className="p-8 text-center">
             <CheckCircle className="h-16 w-16 text-emerald-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-white mb-2">Thank You!</h2>
-            <p className="text-muted-foreground">
+            <p className="text-slate-300">
               {questionnaire.thank_you_message}
             </p>
           </CardContent>
@@ -374,7 +374,7 @@ export default function PublicQuestionnaire() {
               <div>
                 <CardTitle className="text-xl text-white">{questionnaire.name}</CardTitle>
                 {questionnaire.description && (
-                  <CardDescription>{questionnaire.description}</CardDescription>
+                  <CardDescription className="text-slate-400">{questionnaire.description}</CardDescription>
                 )}
               </div>
             </div>
@@ -387,7 +387,7 @@ export default function PublicQuestionnaire() {
                 <h3 className="font-medium text-white">Your Information</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className={errors.customer_name ? 'text-destructive' : ''}>
+                    <Label className={errors.customer_name ? 'text-destructive' : 'text-slate-200'}>
                       Name <span className="text-destructive">*</span>
                     </Label>
                     <Input
@@ -401,7 +401,7 @@ export default function PublicQuestionnaire() {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label className={errors.customer_email ? 'text-destructive' : ''}>
+                    <Label className={errors.customer_email ? 'text-destructive' : 'text-slate-200'}>
                       Email <span className="text-destructive">*</span>
                     </Label>
                     <Input

@@ -454,3 +454,109 @@ async def delete_response(
     await db.questionnaire_responses.delete_one({"id": response_id})
     
     return {"message": "Response deleted"}
+
+
+# ============== SEND VIA EMAIL ==============
+
+from pydantic import BaseModel, EmailStr
+
+
+class SendQuestionnaireEmail(BaseModel):
+    email: EmailStr
+    customer_name: Optional[str] = None
+    public_url: Optional[str] = None  # frontend origin (e.g. https://signguy-ai.com)
+    message: Optional[str] = None
+
+
+@router.post("/{questionnaire_id}/send-email")
+async def send_questionnaire_via_email(
+    questionnaire_id: str,
+    payload: SendQuestionnaireEmail,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Email a questionnaire link to a customer."""
+    from services.email_service import email_service
+
+    questionnaire = await db.questionnaires.find_one(
+        {"id": questionnaire_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    )
+    if not questionnaire:
+        raise HTTPException(status_code=404, detail="Questionnaire not found")
+
+    if questionnaire.get("status") != QuestionnaireStatus.ACTIVE.value:
+        raise HTTPException(
+            status_code=400,
+            detail="Questionnaire must be Active before it can be sent. Publish it first."
+        )
+
+    # Build the public link. Prefer frontend-supplied origin, fall back to env, then a relative path.
+    origin = (payload.public_url or os.environ.get("META_PUBLIC_URL", "") or "").rstrip("/")
+    link = f"{origin}/questionnaire/{questionnaire_id}" if origin else f"/questionnaire/{questionnaire_id}"
+
+    # Tenant branding (company name)
+    tenant = await db.tenants.find_one({"tenant_id": current_user.tenant_id}, {"_id": 0})
+    company_name = (tenant or {}).get("company_name") or "SignGuy AI"
+
+    # Customer greeting
+    greeting_name = (payload.customer_name or "").strip() or "there"
+    intro = payload.message or (
+        "We need a few details to get started on your project. "
+        "Please take a moment to complete the questionnaire below."
+    )
+
+    subject = f"Please complete: {questionnaire['name']}"
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #0F172A;">
+      <h2 style="color: #0F172A; margin-bottom: 8px;">{questionnaire['name']}</h2>
+      <p style="color: #475569; margin-top: 0;">From {company_name}</p>
+      <p>Hi {greeting_name},</p>
+      <p>{intro}</p>
+      <p style="margin: 28px 0;">
+        <a href="{link}"
+           style="background:#2F8BFB;color:#ffffff;padding:12px 24px;border-radius:8px;
+                  text-decoration:none;display:inline-block;font-weight:600;">
+          Open Questionnaire
+        </a>
+      </p>
+      <p style="color:#475569;font-size:13px;">
+        Or copy &amp; paste this link into your browser:<br/>
+        <a href="{link}" style="color:#2F8BFB;">{link}</a>
+      </p>
+      <hr style="border:none;border-top:1px solid #E2E8F0;margin:24px 0;"/>
+      <p style="color:#94A3B8;font-size:12px;">Sent by {company_name}</p>
+    </div>
+    """
+    plain_content = (
+        f"{questionnaire['name']}\n\n"
+        f"Hi {greeting_name},\n\n"
+        f"{intro}\n\n"
+        f"Open the questionnaire here:\n{link}\n\n"
+        f"— {company_name}"
+    )
+
+    result = await email_service.send_email(
+        to_email=payload.email,
+        subject=subject,
+        html_content=html_content,
+        plain_content=plain_content,
+        tenant_id=current_user.tenant_id
+    )
+
+    if not result.get("success"):
+        raise HTTPException(
+            status_code=502,
+            detail=result.get("error") or "Failed to send email. Check that SendGrid is configured."
+        )
+
+    # Log activity on the questionnaire
+    await db.questionnaires.update_one(
+        {"id": questionnaire_id},
+        {"$set": {"updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+
+    return {
+        "success": True,
+        "message": f"Questionnaire sent to {payload.email}",
+        "link": link,
+    }
