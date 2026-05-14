@@ -12,6 +12,7 @@ const CATEGORY_ICONS = {
   vehicle_wrap: '🚐',
   services: '🛠',
   promotional: '🎁',
+  events: '🎫',
   custom: '⋯',
 };
 

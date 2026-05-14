@@ -75,6 +75,7 @@ class ProductCategory(str, Enum):
     SIGNS = "signs"
     DECALS = "decals"
     PROMOTIONAL = "promotional"
+    EVENTS = "events"
     OTHER = "other"
 
 # Apparel tiers for default options
@@ -121,6 +122,7 @@ def map_category_to_item_type(category: Optional[str]) -> JobItemType:
         "signs": JobItemType.BANNER,    # Closest match
         "decals": JobItemType.DECAL,
         "promotional": JobItemType.OTHER,
+        "events": JobItemType.OTHER,    # Event tickets / passes / merch — no dedicated type
         "other": JobItemType.OTHER,
     }
     return category_map.get(category or "other", JobItemType.OTHER)

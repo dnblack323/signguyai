@@ -38,7 +38,7 @@ import {
   Eye, Edit2, Trash2, Package, DollarSign, TrendingUp,
   ExternalLink, Check, X, Settings, Copy, Link2, BarChart3,
   Upload, ImageIcon, CreditCard, AlertTriangle, Loader2, Palette,
-  QrCode, Download, Shirt, Sticker, Gift, Search
+  QrCode, Download, Shirt, Sticker, Gift, CalendarDays, Search
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
@@ -50,6 +50,7 @@ const categoryOptions = [
   { value: 'signs', label: 'Signs', icon: Package },
   { value: 'decals', label: 'Decals', icon: Sticker },
   { value: 'promotional', label: 'Promotional', icon: Gift },
+  { value: 'events', label: 'Events', icon: CalendarDays },
   { value: 'other', label: 'Other', icon: Package },
 ];
 

@@ -31,7 +31,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { formatCurrency } from '../lib/utils';
 import { 
-  Plus, Package, Shirt, SignpostBig, Sticker, Gift, 
+  Plus, Package, Shirt, SignpostBig, Sticker, Gift, CalendarDays,
   Edit2, Trash2, X, ChevronDown, ChevronUp, Upload, Link as LinkIcon,
   Sparkles, Loader2
 } from 'lucide-react';
@@ -47,6 +47,7 @@ const categoryOptions = [
   { value: 'signs', label: 'Signs', icon: SignpostBig },
   { value: 'decals', label: 'Decals', icon: Sticker },
   { value: 'promotional', label: 'Promotional', icon: Gift },
+  { value: 'events', label: 'Events', icon: CalendarDays },
   { value: 'other', label: 'Other', icon: Package },
 ];
 
@@ -61,6 +62,7 @@ const getCategoryColor = (category) => {
     signs: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
     decals: 'bg-green-500/20 text-green-400 border-green-500/30',
     promotional: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+    events: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
     other: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
   };
   return colors[category] || colors.other;

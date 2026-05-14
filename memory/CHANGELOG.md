@@ -1,5 +1,13 @@
 # SignGuy AI - Changelog
 
+## February 12, 2026 — New "Events" webstore product category
+
+- **Backend:** Added `EVENTS = "events"` to `ProductCategory` enum in `/app/backend/routes/webstores.py` and mapped it to `JobItemType.OTHER` in `map_category_to_item_type` so order-from-product flow still works.
+- **Frontend:** Added `Events` (CalendarDays icon, pink badge) to `categoryOptions` in `/app/frontend/src/pages/Products.js` (Products admin) and `/app/frontend/src/pages/Webstores.js` (webstore product picker). Added 🎫 emoji to ItemPickerDialog category icons.
+- **Verified:** created product with `category: "events"` → 200, filter `GET /api/products?category=events` → returns the item, delete → 200.
+
+
+
 ## February 12, 2026 — Questionnaire bugs fixed (Send via Email + dark-bg contrast)
 
 - **`POST /api/questionnaires/{id}/send-email` — new endpoint.** Accepts `{email, customer_name?, public_url?, message?}`. Verifies tenant ownership (404 cross-tenant), requires `status == "active"` (400 with explicit "Publish it first" message), validates email via Pydantic `EmailStr` (422 on bad format), uses `EmailService.send_email` (SendGrid) with a branded HTML + plain-text body and a tracked "Open Questionnaire" CTA button. Returns `{success, message, link}` on 200. Tenant company name pulled from `tenants.company_name`.
