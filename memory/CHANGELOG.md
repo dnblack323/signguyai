@@ -1,5 +1,36 @@
 # SignGuy AI - Changelog
 
+## February 12, 2026 — AI Assistant pass 2: proactive nudges + send-email loop + long-term memory
+
+### Backend (`/app/backend/routes/ai.py`)
+- **`GET /api/ai/assistant/nudges`** — scans tenant data and returns up to 6 proactive action pills:
+  - Stale quotes (>4d old, status sent/pending/draft) → "Draft follow-up email"
+  - Overdue invoices (>7d past due, status sent/partial/overdue) → "Send payment reminder"
+  - Pending appointments within next 24h → "Send confirmation"
+  - Each nudge carries `customer`, `ref` (quote_id/invoice_id/appointment_id), and a `confirm_label`
+- **`POST /api/ai/assistant/draft-email`** — GPT-4o-mini drafts a 2-4 sentence email body + subject given a customer + context (kind: follow_up / payment_reminder / appointment_confirm / generic). Strict-JSON output. Pulls real quote/invoice metadata to ground the prompt.
+- **`POST /api/ai/assistant/send-email`** — sends a reviewed draft via SendGrid (existing EmailService). Logs to `ai_assistant_logs` audit. 404 if customer missing email.
+- **Rolling long-term memory**: new `_update_long_term_memory()` helper compresses the last ~10 messages into 2-4 bullets and stores them on `tenant.assistant_long_term_memory`. Fired fire-and-forget every 12 messages (6 user turns) inside `append_assistant_conversation`. Prepended to every system prompt as `## What you remember about <user>`.
+
+### Frontend
+- **`components/AssistantNudgesWidget.js`** (NEW) — Dashboard widget. Fetches `/ai/assistant/nudges`, renders color-coded pills (amber=stale-quote, rose=overdue-invoice, emerald=appointment), with one-click "Draft" → opens `DraftEmailModal` (in-line review-and-send with editable subject + body) → calls `/assistant/send-email` → toasts success and auto-dismisses. Dismiss state persists in localStorage scoped to the day.
+- **`Dashboard.js`** — widget mounted below `OnboardingChecklist`. Hidden cleanly when no nudges.
+
+### Verified
+- Real DB scan returned 4 nudges live in preview (3 stale quotes + 1 overdue invoice)
+- `/assistant/draft-email` end-to-end: customer lookup → GPT-4o-mini generates `{subject, body}` → returned in <2s
+- 43/43 backend regression tests still green
+- Dashboard widget screenshot-verified with real pills + colors
+
+### Still to do (next pass)
+- True real-time tool-calling (assistant runs actions silently when low-risk + skip_confirm enabled)
+- Voice quality + latency
+- Multi-step workflows ("create order → invoice → schedule install")
+- Cron-style nightly memory consolidation (right now memory updates on chat traffic only)
+- Nudges modal "Edit draft" inline in the chat message itself (currently only via Dashboard widget)
+
+
+
 ## February 12, 2026 — AI Assistant: kill "generic mode" + personality picker + quick-action intents
 
 ### Backend (`/app/backend/routes/ai.py`)

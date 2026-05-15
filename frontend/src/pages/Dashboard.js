@@ -12,6 +12,7 @@ import {
 import { Link } from 'react-router-dom';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
 import OnboardingChecklist from '../components/OnboardingChecklist';
+import AssistantNudgesWidget from '../components/AssistantNudgesWidget';
 import { FoundersBadge, CreditMeter } from '../components/founders';
 import { CreditPurchaseModal } from '../components/credits/CreditBalance';
 import axios from 'axios';
@@ -817,6 +818,9 @@ export default function Dashboard() {
 
       {/* Onboarding Checklist - Shows for new users */}
       <OnboardingChecklist />
+
+      {/* Proactive AI Assistant nudges — stale quotes, overdue invoices, pending appointments */}
+      <AssistantNudgesWidget />
 
       {/* Invoice Preview Modal */}
       <InvoicePreviewModal

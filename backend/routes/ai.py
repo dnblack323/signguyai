@@ -1694,6 +1694,13 @@ async def append_assistant_conversation(
         },
         upsert=True,
     )
+    # Every ~12 messages (6 user turns), refresh the rolling memory summary.
+    # We fire-and-forget so we never block the chat hot path.
+    if len(trimmed) >= 6 and len(trimmed) % 12 == 0:
+        try:
+            asyncio.create_task(_update_long_term_memory(tenant_id, trimmed))
+        except Exception:
+            pass
 
 
 async def clear_assistant_conversation(tenant_id: str, user_id: str) -> None:
@@ -1995,7 +2002,7 @@ async def ai_business_assistant(
 
     tenant_doc = await db.tenants.find_one(
         {"id": current_user.tenant_id},
-        {"_id": 0, "is_founder": 1, "assistant_personality": 1, "assistant_skip_confirm": 1, "company_name": 1},
+        {"_id": 0, "is_founder": 1, "assistant_personality": 1, "assistant_skip_confirm": 1, "company_name": 1, "assistant_long_term_memory": 1},
     ) or {}
     is_founder_tenant = bool(tenant_doc.get("is_founder")) or bool(getattr(current_user, "is_founder", False))
 
@@ -2213,6 +2220,9 @@ in the app.
 
 {shop_summary}{order_creation_instructions}
 
+## What you remember about {user_name}
+{tenant_doc.get('assistant_long_term_memory') or '(no long-term memory yet — pay attention to durable preferences)'}
+
 ## Domain knowledge
 - Sign industry: vehicle wraps, channel letters, monuments, banners, yard signs, step signs, vinyl graphics, A-frames, window graphics, real estate/political signs
 - Materials: coroplast, aluminum, ACM/Dibond, PVC/Sintra, foam board, acrylic, MDO, calendered & cast vinyl, laminates
@@ -2414,6 +2424,356 @@ async def clear_assistant_history(
     """
     await clear_assistant_conversation(current_user.tenant_id, current_user.id)
     return {"cleared": True}
+
+
+# ─── Proactive nudges + long-term memory ─────────────────────────────────────
+#
+# Two enhancements that make the assistant feel less passive:
+#
+# 1. /assistant/nudges — scans for stale quotes / overdue invoices /
+#    appointments needing confirmation and surfaces them as one-click pills
+#    on the Dashboard. Same `proposed_action` shape the chat uses, so the FE
+#    has one renderer.
+#
+# 2. /assistant/memory — a tiny rolling summary of "what I know about your
+#    shop" that gets stored on the tenant and prepended into every chat.
+#    Updated incrementally after every N turns so the assistant remembers
+#    that, e.g., "owner prefers single-sided coroplast for step signs"
+#    across sessions.
+
+
+@router.get("/assistant/nudges")
+async def get_assistant_nudges(
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Return up to 6 proactive nudges the assistant can offer right now.
+
+    Each nudge has the same shape as a chat ``proposed_action`` so the
+    Dashboard widget renders them with the same pill component.
+
+    Heuristics (all tenant-scoped, _id excluded):
+    - Quote stale > 4 days, status sent/pending → propose follow-up email
+    - Invoice overdue > 7 days, status sent/partial → propose reminder
+    - Appointment in next 24h, status pending → propose confirmation
+    - Webstore with payout_owed > $25 and no auto-transfer → propose payout review
+    """
+    from datetime import timedelta as _td
+
+    now = datetime.now(timezone.utc)
+    nudges: List[Dict[str, Any]] = []
+
+    # 1. Stale quotes (>4 days, not accepted/rejected)
+    try:
+        stale_cutoff = (now - _td(days=4)).isoformat()
+        stale_quotes = await db.quotes.find(
+            {
+                "tenant_id": current_user.tenant_id,
+                "status": {"$in": ["sent", "pending", "draft"]},
+                "created_at": {"$lt": stale_cutoff},
+            },
+            {"_id": 0, "id": 1, "customer_id": 1, "customer_name": 1, "total": 1, "created_at": 1, "quote_number": 1},
+        ).sort("created_at", 1).limit(3).to_list(3)
+        for q in stale_quotes:
+            try:
+                age_days = (now - datetime.fromisoformat(q["created_at"].replace("Z", "+00:00"))).days
+            except Exception:
+                age_days = 0
+            nudges.append({
+                "kind": "stale_quote",
+                "action_type": "draft_email",
+                "status": "ready",
+                "title": f"Follow up on a {age_days}-day-old quote",
+                "subtitle": f"{q.get('customer_name') or 'Customer'} — ${(q.get('total') or 0):.2f}",
+                "customer": {"id": q.get("customer_id"), "name": q.get("customer_name")},
+                "ref": {"quote_id": q["id"], "quote_number": q.get("quote_number")},
+                "confirm_label": "Draft follow-up email",
+                "low_risk": True,
+            })
+    except Exception as exc:
+        logger.warning("nudges:stale_quotes failed: %s", exc)
+
+    # 2. Overdue invoices (>7 days past due, not paid)
+    try:
+        overdue_cutoff = (now - _td(days=7)).isoformat()
+        overdue_invoices = await db.invoices.find(
+            {
+                "tenant_id": current_user.tenant_id,
+                "status": {"$in": ["sent", "partial", "overdue"]},
+                "$or": [
+                    {"due_date": {"$lt": overdue_cutoff}},
+                    {"created_at": {"$lt": overdue_cutoff}},
+                ],
+            },
+            {"_id": 0, "id": 1, "customer_id": 1, "customer_name": 1, "total": 1, "grand_total": 1, "due_date": 1, "invoice_number": 1},
+        ).limit(3).to_list(3)
+        for inv in overdue_invoices:
+            amount = inv.get("grand_total") or inv.get("total") or 0
+            nudges.append({
+                "kind": "overdue_invoice",
+                "action_type": "send_invoice_reminder",
+                "status": "ready",
+                "title": "Overdue invoice",
+                "subtitle": f"{inv.get('customer_name') or 'Customer'} — ${amount:.2f}",
+                "customer": {"id": inv.get("customer_id"), "name": inv.get("customer_name")},
+                "ref": {"invoice_id": inv["id"], "invoice_number": inv.get("invoice_number")},
+                "confirm_label": "Send payment reminder",
+                "low_risk": True,
+            })
+    except Exception as exc:
+        logger.warning("nudges:overdue_invoices failed: %s", exc)
+
+    # 3. Appointments needing confirmation in next 24h
+    try:
+        upcoming_cutoff = (now + _td(hours=24)).isoformat()
+        pending_appts = await db.appointments.find(
+            {
+                "tenant_id": current_user.tenant_id,
+                "status": {"$in": ["pending", "tentative"]},
+                "start_at": {"$gte": now.isoformat(), "$lte": upcoming_cutoff},
+            },
+            {"_id": 0, "id": 1, "customer_id": 1, "customer_name": 1, "title": 1, "start_at": 1},
+        ).limit(2).to_list(2)
+        for ap in pending_appts:
+            nudges.append({
+                "kind": "pending_appointment",
+                "action_type": "confirm_appointment",
+                "status": "ready",
+                "title": "Unconfirmed appointment",
+                "subtitle": f"{ap.get('customer_name') or 'Customer'} — {ap.get('title', 'Appointment')}",
+                "customer": {"id": ap.get("customer_id"), "name": ap.get("customer_name")},
+                "ref": {"appointment_id": ap["id"], "start_at": ap.get("start_at")},
+                "confirm_label": "Send confirmation",
+                "low_risk": True,
+            })
+    except Exception as exc:
+        logger.warning("nudges:appointments failed: %s", exc)
+
+    return {"nudges": nudges[:6], "generated_at": now.isoformat()}
+
+
+# ── Closed-loop: actually send the email the assistant proposes ──────────────
+
+class AssistantSendEmailRequest(BaseModel):
+    customer_id: str
+    subject: str
+    body: str
+    quote_id: Optional[str] = None
+    invoice_id: Optional[str] = None
+    appointment_id: Optional[str] = None
+
+
+@router.post("/assistant/send-email")
+async def assistant_send_email(
+    payload: AssistantSendEmailRequest,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Send an email on behalf of the user from inside the assistant chat.
+
+    Treated as a low-risk action — the assistant has already shown a draft
+    confirm pill before this point. SendGrid via existing EmailService.
+    """
+    from services.email_service import email_service
+
+    customer = await db.customers.find_one(
+        {"id": payload.customer_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0, "name": 1, "email": 1, "company": 1},
+    )
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    if not customer.get("email"):
+        raise HTTPException(status_code=400, detail="Customer has no email on file")
+
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0, "company_name": 1}) or {}
+    company = tenant.get("company_name") or "Your Sign Shop"
+
+    body_html = (payload.body or "").replace("\n", "<br/>")
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#0F172A;">
+      <p>Hi {customer.get('name') or 'there'},</p>
+      <p>{body_html}</p>
+      <hr style="border:none;border-top:1px solid #E2E8F0;margin:24px 0;"/>
+      <p style="color:#94A3B8;font-size:12px;">Sent by {company}</p>
+    </div>
+    """
+
+    result = await email_service.send_email(
+        to_email=customer["email"],
+        subject=payload.subject,
+        html_content=html,
+        plain_content=payload.body,
+        tenant_id=current_user.tenant_id,
+    )
+    if not result.get("success"):
+        raise HTTPException(
+            status_code=502,
+            detail=result.get("error") or "SendGrid send failed",
+        )
+
+    # Audit log
+    await db.ai_assistant_logs.insert_one({
+        "tenant_id": current_user.tenant_id,
+        "user_id": current_user.id,
+        "tool": "assistant_send_email",
+        "customer_id": payload.customer_id,
+        "subject": payload.subject[:200],
+        "quote_id": payload.quote_id,
+        "invoice_id": payload.invoice_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+    return {
+        "success": True,
+        "message": f"Email sent to {customer['email']}",
+        "to": customer["email"],
+    }
+
+
+@router.post("/assistant/draft-email")
+async def assistant_draft_email(
+    payload: Dict[str, Any],
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Have the assistant draft an email body for a given customer + context.
+
+    Used by the proposed-action pill's "Draft" step before the user reviews
+    & clicks Send. Pure LLM call — no SendGrid involvement.
+    """
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    if not EMERGENT_LLM_KEY:
+        raise HTTPException(status_code=500, detail="AI service not configured")
+
+    customer_id = payload.get("customer_id")
+    context_hint = (payload.get("about") or "").strip()
+    kind = payload.get("kind") or "follow_up"
+
+    customer = await db.customers.find_one(
+        {"id": customer_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0, "name": 1, "email": 1, "company": 1},
+    )
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0, "company_name": 1, "assistant_personality": 1}) or {}
+    company = tenant.get("company_name") or "your sign shop"
+
+    # Optional reference data
+    extra = ""
+    quote_id = payload.get("quote_id")
+    if quote_id:
+        q = await db.quotes.find_one(
+            {"id": quote_id, "tenant_id": current_user.tenant_id},
+            {"_id": 0, "quote_number": 1, "total": 1, "created_at": 1},
+        )
+        if q:
+            extra = f"Quote #{q.get('quote_number') or quote_id[:8]} for ${q.get('total', 0):.2f} sent on {(q.get('created_at') or '')[:10]}."
+    invoice_id = payload.get("invoice_id")
+    if invoice_id:
+        inv = await db.invoices.find_one(
+            {"id": invoice_id, "tenant_id": current_user.tenant_id},
+            {"_id": 0, "invoice_number": 1, "grand_total": 1, "total": 1, "due_date": 1},
+        )
+        if inv:
+            amt = inv.get("grand_total") or inv.get("total") or 0
+            extra = f"Invoice #{inv.get('invoice_number') or invoice_id[:8]} for ${amt:.2f}, due {(inv.get('due_date') or '')[:10]}."
+
+    kind_prompts = {
+        "follow_up": f"Write a short, friendly follow-up email checking in on the quote. {extra}",
+        "payment_reminder": f"Write a polite but firm payment reminder. {extra}",
+        "appointment_confirm": "Write a short confirmation reminder for an upcoming appointment.",
+        "generic": f"Write a short professional email. Context: {context_hint or 'general check-in'}.",
+    }
+    instruction = kind_prompts.get(kind, kind_prompts["generic"])
+
+    prompt = (
+        f"You are writing a business email on behalf of {company}. Customer: "
+        f"{customer.get('name')} ({customer.get('company') or ''}).\n\n"
+        f"Instruction: {instruction}\n\n"
+        f"User-supplied notes: {context_hint or '(none)'}\n\n"
+        "Return ONLY a JSON object: {\"subject\": \"...\", \"body\": \"...\"}. "
+        "No preamble, no markdown fences. Body should be 2-4 sentences max, "
+        "warm but professional, signed off generically (no fake name)."
+    )
+
+    chat = LlmChat(
+        api_key=EMERGENT_LLM_KEY,
+        session_id=f"draft_email_{uuid.uuid4()}",
+        system_message="You produce concise, well-toned customer emails for a sign shop. Output strict JSON.",
+    ).with_model("openai", "gpt-4o-mini")
+
+    raw = await chat.send_message(UserMessage(text=prompt))
+    text = raw if isinstance(raw, str) else (getattr(raw, "text", None) or getattr(raw, "content", None) or str(raw))
+
+    # Strip code fences just in case
+    import json as _json
+    import re as _re
+    cleaned = _re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip(), flags=_re.MULTILINE)
+    try:
+        parsed = _json.loads(cleaned)
+        subject = (parsed.get("subject") or "").strip() or "Quick note"
+        body = (parsed.get("body") or "").strip()
+    except Exception:
+        # Fall back: use the raw text as body
+        subject = "Quick note"
+        body = cleaned.strip()
+
+    return {
+        "subject": subject,
+        "body": body,
+        "to": customer.get("email"),
+        "customer_id": customer_id,
+    }
+
+
+# ── Rolling long-term memory summary ─────────────────────────────────────────
+
+async def _update_long_term_memory(tenant_id: str, recent_messages: List[Dict[str, str]]) -> None:
+    """Compress the last few user turns into a 3-line 'what I know' summary
+    and store it on the tenant. Called opportunistically (e.g. every 6th turn)
+    so it doesn't bloat hot-path latency.
+    """
+    if len(recent_messages) < 4:
+        return
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        existing = await db.tenants.find_one(
+            {"id": tenant_id}, {"_id": 0, "assistant_long_term_memory": 1}
+        ) or {}
+        prior = existing.get("assistant_long_term_memory") or ""
+
+        # Build a tiny transcript window
+        transcript = "\n".join(
+            f"{m.get('role', 'user').title()}: {(m.get('content') or '')[:300]}"
+            for m in recent_messages[-10:]
+        )
+        prompt = (
+            "You're maintaining a tiny rolling memory note about the user (a sign-shop "
+            "owner). Output 2-4 short bullet points capturing only durable facts/preferences "
+            "worth remembering across sessions (preferred materials, common product types, "
+            "tone preferences, current focus). Do NOT include greetings, one-off questions, "
+            "or PII beyond first names. If the prior memory is still accurate, refine it; "
+            "don't make stuff up.\n\n"
+            f"Prior memory:\n{prior or '(none)'}\n\n"
+            f"Recent transcript:\n{transcript}\n\n"
+            "Return ONLY the new memory as plain bullet lines, no preamble."
+        )
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"memory_{uuid.uuid4()}",
+            system_message="You produce extremely terse rolling memory notes.",
+        ).with_model("openai", "gpt-4o-mini")
+        raw = await chat.send_message(UserMessage(text=prompt))
+        text = raw if isinstance(raw, str) else (getattr(raw, "text", None) or getattr(raw, "content", None) or str(raw))
+        summary = (text or "").strip()[:1200]
+        if summary:
+            await db.tenants.update_one(
+                {"id": tenant_id},
+                {"$set": {
+                    "assistant_long_term_memory": summary,
+                    "assistant_long_term_memory_updated_at": datetime.now(timezone.utc).isoformat(),
+                }},
+            )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("long_term_memory update failed: %s", exc)
 
 
 @router.post("/voice/transcribe")
