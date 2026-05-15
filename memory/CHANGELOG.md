@@ -1,5 +1,40 @@
 # SignGuy AI - Changelog
 
+## February 12, 2026 — AI Assistant pass 4: extracted + 2 new tools (reminder, bulk follow-up)
+
+### Surgical refactor (not a full rewrite — kept ai.py intact otherwise)
+- **Extracted the entire tool-calling subsystem** from `routes/ai.py` into a brand-new `routes/assistant_tools.py` (681 lines, isolated). `ai.py` now just imports `route_with_tools` and `execute_metric_query` from it.
+- **Why now:** the tool registry grew from 30 → 250 → 400 → 700+ lines across passes 1–3. Extracting at 700 lines was cheap; extracting at 3000 would have been painful. Rest of `ai.py` (legacy AI tools, prefill, voice, marketing copywriter) was untouched — those aren't growing.
+- Added clear public API surface: `TOOL_SCHEMAS`, `route_with_tools()`, `execute_metric_query()`, `safe_parse_datetime_phrase()`, plus the commit endpoints exposed via a sub-router.
+
+### Two new tools shipped
+- **`set_reminder`** — "remind me to call Donald in 3 days", "remind me on Friday to check inventory". Natural-language datetime parser now handles "in N days" / "in N hours" patterns. Persists to new `assistant_reminders` collection (separate from tasks so they don't pollute the task list).
+- **`send_quote_followup_bulk`** — "follow up on all my stale quotes" / "email everyone unresponded". Surfaces the 10 stalest quotes as previews → user clicks Send All → backend drafts personalized GPT-4o-mini emails for each → SendGrid bulk-send. Routed with PRIORITY (before metric matchers) so verb beats noun.
+
+### Backend
+- `POST /api/ai/assistant/commit-reminder` — new
+- `POST /api/ai/assistant/bulk-followup-quotes` — new
+- Friendly reply templates added for both tools in the assistant endpoint short-circuit
+
+### Frontend
+- `ProposedActionPill` now renders 2 new variants: yellow `set_reminder` pill (text + remind_at + Set button), rose-tinted `send_quote_followup_bulk` pill (count badge + first 5 customer previews + "Send all" button)
+- `handleRunProposedAction` switch handles 2 new commit endpoints with proper success toasts
+
+### Verified
+- All 6 tools work end-to-end via curl: navigate / metric / create_task / create_appointment / set_reminder / send_quote_followup_bulk
+- 43/43 backend regression tests still green
+- `ai.py` shrunk by ~500 lines after extraction; new `assistant_tools.py` clean
+- Lint clean on all files
+
+### Architecture going forward
+- New tools get added to `routes/assistant_tools.py` only (one place, never ai.py again)
+- Tool schemas live in `TOOL_SCHEMAS` list
+- Deterministic keyword fast-paths in `METRIC_KEYWORDS` / `NAV_KEYWORDS`
+- LLM classifier fallback for everything else
+- Pattern is now repeatable: add a tool = 1 schema entry + 1 executor branch + 1 commit endpoint (if needed) + 1 FE pill variant
+
+
+
 ## February 12, 2026 — AI Assistant pass 3: real tool calling (navigate / create / metric)
 
 ### Backend

@@ -2819,6 +2819,10 @@ api_router.include_router(stripe_connect_router)
 api_router.include_router(webstore_owners_router)
 api_router.include_router(webstore_owner_public_router)
 api_router.include_router(webstore_owner_portal_router)
+
+# Assistant tool-calling subsystem (commit endpoints — extracted Feb 2026)
+from routes.assistant_tools import router as assistant_tools_router  # noqa: E402
+api_router.include_router(assistant_tools_router)
 api_router.include_router(plans_router)  # Multi-product plan management
 api_router.include_router(questionnaires_router)  # Dynamic form builder
 api_router.include_router(credits_router)  # AI Credits system

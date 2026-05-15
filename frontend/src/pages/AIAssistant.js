@@ -163,6 +163,63 @@ function ProposedActionPill({ action, onRun }) {
     );
   }
 
+  if (action.action_type === 'set_reminder') {
+    return (
+      <div
+        className="mt-3 flex items-center justify-between gap-3 bg-yellow-50 border border-yellow-200 rounded-md px-3 py-2"
+        data-testid="proposed-action-set-reminder"
+      >
+        <div className="min-w-0 text-sm text-yellow-900">
+          <div className="font-medium truncate">{action.text}</div>
+          <div className="text-xs text-yellow-700">
+            {action.remind_at?.slice(0, 16).replace('T', ' ')}
+          </div>
+        </div>
+        <Button
+          size="sm"
+          onClick={() => onRun(action)}
+          className="bg-yellow-600 hover:bg-yellow-700 text-white h-8 px-3 text-xs shrink-0"
+          data-testid="proposed-action-set-reminder-confirm"
+        >
+          Set <ChevronRight className="h-3.5 w-3.5 ml-1" />
+        </Button>
+      </div>
+    );
+  }
+
+  if (action.action_type === 'send_quote_followup_bulk') {
+    return (
+      <div
+        className="mt-3 bg-rose-50 border border-rose-200 rounded-md px-3 py-2.5"
+        data-testid="proposed-action-bulk-followup"
+      >
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <div className="text-sm text-rose-900 font-medium">
+            Send {action.count} stale-quote follow-ups
+          </div>
+          <Button
+            size="sm"
+            onClick={() => onRun(action)}
+            className="bg-rose-600 hover:bg-rose-700 text-white h-8 px-3 text-xs"
+            data-testid="proposed-action-bulk-followup-confirm"
+          >
+            Send all <ChevronRight className="h-3.5 w-3.5 ml-1" />
+          </Button>
+        </div>
+        <div className="space-y-0.5 text-xs text-rose-800">
+          {(action.previews || []).slice(0, 5).map((p) => (
+            <div key={p.quote_id} className="truncate">
+              · {p.customer_name || 'Customer'} — #{p.quote_number || p.quote_id?.slice(0, 6)} · ${(p.total || 0).toFixed(2)}
+            </div>
+          ))}
+          {(action.previews || []).length > 5 && (
+            <div className="text-rose-600">… and {(action.previews || []).length - 5} more</div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // Email / invoice (pass-1/2)
   const Icon = action.action_type === 'send_invoice' ? FileText : Mail;
   return (
@@ -583,6 +640,37 @@ What can I help you with today?`
         setMessages((prev) => [...prev]);
       } catch (err) {
         toast.error(err.response?.data?.detail || 'Failed to schedule');
+      }
+      return;
+    }
+
+    // Reminder — commit via API
+    if (action.action_type === 'set_reminder') {
+      try {
+        await api.post('/ai/assistant/commit-reminder', {
+          text: action.text,
+          remind_at: action.remind_at,
+        });
+        toast.success('Reminder set');
+        action.status = 'completed';
+        setMessages((prev) => [...prev]);
+      } catch (err) {
+        toast.error(err.response?.data?.detail || 'Failed to set reminder');
+      }
+      return;
+    }
+
+    // Bulk quote follow-up — fire SendGrid for the proposed quote list
+    if (action.action_type === 'send_quote_followup_bulk') {
+      try {
+        const { data } = await api.post('/ai/assistant/bulk-followup-quotes', {
+          previews: action.previews,
+        });
+        toast.success(`Sent ${data?.sent || 0} follow-up emails`);
+        action.status = 'completed';
+        setMessages((prev) => [...prev]);
+      } catch (err) {
+        toast.error(err.response?.data?.detail || 'Bulk follow-up failed');
       }
       return;
     }
