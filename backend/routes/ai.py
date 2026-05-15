@@ -2282,6 +2282,32 @@ in the app.
                     reply_text = executed.get("hint") or "Nothing stale right now."
                 else:
                     reply_text = f"Found **{executed.get('count')}** stale quote(s). Click the button to send all follow-ups in one go."
+            elif tool_name == "find_customer":
+                if executed.get("status") == "needs_clarification":
+                    reply_text = executed.get("hint") or "Who should I look up?"
+                else:
+                    c = executed.get("customer") or {}
+                    parts = []
+                    if c.get("email"):
+                        parts.append(c["email"])
+                    if c.get("company"):
+                        parts.append(c["company"])
+                    extra = f" — {' · '.join(parts)}" if parts else ""
+                    inv_n = len(executed.get("recent_invoices") or [])
+                    ord_n = len(executed.get("recent_orders") or [])
+                    tail = []
+                    if inv_n:
+                        tail.append(f"{inv_n} recent invoice(s)")
+                    if ord_n:
+                        tail.append(f"{ord_n} recent order(s)")
+                    tail_txt = f" · {', '.join(tail)}" if tail else ""
+                    reply_text = f"Found **{c.get('name') or 'customer'}**{extra}.{tail_txt}"
+            elif tool_name == "attach_note_to_customer":
+                if executed.get("status") == "needs_clarification":
+                    reply_text = executed.get("hint") or "Who and what note?"
+                else:
+                    c = executed.get("customer") or {}
+                    reply_text = f"Ready to add a note to **{c.get('name') or 'customer'}**. Click confirm to save."
             elif tool_name == "query_shop_metric":
                 reply_text = executed.get("answer") or "Here's that number."
             else:

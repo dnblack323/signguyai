@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Sparkles, Loader2, X, Mail, AlertCircle, CalendarCheck, ChevronRight } from 'lucide-react';
+import { Sparkles, Loader2, X, Mail, AlertCircle, CalendarCheck, ChevronRight, Bell } from 'lucide-react';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
 import { getAuthToken } from '../lib/authStorage';
@@ -12,11 +12,13 @@ const KIND_ICON = {
   stale_quote: Mail,
   overdue_invoice: AlertCircle,
   pending_appointment: CalendarCheck,
+  reminder: Bell,
 };
 const KIND_COLOR = {
   stale_quote: 'text-amber-600 bg-amber-50 border-amber-200',
   overdue_invoice: 'text-rose-600 bg-rose-50 border-rose-200',
   pending_appointment: 'text-emerald-600 bg-emerald-50 border-emerald-200',
+  reminder: 'text-yellow-700 bg-yellow-50 border-yellow-200',
 };
 
 /**
@@ -70,9 +72,25 @@ export default function AssistantNudgesWidget() {
   };
 
   const handleAction = async (n, idx) => {
-    const key = `${n.kind}_${n.ref?.quote_id || n.ref?.invoice_id || n.ref?.appointment_id || idx}`;
+    const key = `${n.kind}_${n.ref?.quote_id || n.ref?.invoice_id || n.ref?.appointment_id || n.ref?.reminder_id || idx}`;
     if (n.kind === 'pending_appointment' && n.ref?.appointment_id) {
       navigate(`/appointments/${n.ref.appointment_id}`);
+      return;
+    }
+    // Reminder — mark done on the server, then hide
+    if (n.kind === 'reminder' && n.ref?.reminder_id) {
+      try {
+        await axios.post(
+          `${API}/ai/assistant/dismiss-reminder`,
+          { reminder_id: n.ref.reminder_id },
+          { headers: { Authorization: `Bearer ${getAuthToken()}` } },
+        );
+        toast.success('Reminder marked done');
+        dismiss(key);
+        setNudges((prev) => prev.filter((x) => x.ref?.reminder_id !== n.ref.reminder_id));
+      } catch (err) {
+        toast.error(err.response?.data?.detail || 'Could not dismiss reminder');
+      }
       return;
     }
     // Draft email path (stale_quote or overdue_invoice)
@@ -122,7 +140,7 @@ export default function AssistantNudgesWidget() {
   };
 
   const visible = nudges.filter((n, i) => {
-    const k = `${n.kind}_${n.ref?.quote_id || n.ref?.invoice_id || n.ref?.appointment_id || i}`;
+    const k = `${n.kind}_${n.ref?.quote_id || n.ref?.invoice_id || n.ref?.appointment_id || n.ref?.reminder_id || i}`;
     return !dismissed.has(k);
   });
 
@@ -148,7 +166,7 @@ export default function AssistantNudgesWidget() {
           {visible.slice(0, 4).map((n, idx) => {
             const Icon = KIND_ICON[n.kind] || Sparkles;
             const color = KIND_COLOR[n.kind] || 'text-purple-600 bg-purple-50 border-purple-200';
-            const key = `${n.kind}_${n.ref?.quote_id || n.ref?.invoice_id || n.ref?.appointment_id || idx}`;
+            const key = `${n.kind}_${n.ref?.quote_id || n.ref?.invoice_id || n.ref?.appointment_id || n.ref?.reminder_id || idx}`;
             return (
               <div
                 key={key}

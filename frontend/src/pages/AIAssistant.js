@@ -220,6 +220,73 @@ function ProposedActionPill({ action, onRun }) {
     );
   }
 
+  if (action.action_type === 'find_customer') {
+    const c = action.customer || {};
+    const inv = action.recent_invoices || [];
+    const ords = action.recent_orders || [];
+    return (
+      <div
+        className="mt-3 bg-sky-50 border border-sky-200 rounded-md px-3 py-2.5"
+        data-testid="proposed-action-find-customer"
+      >
+        <div className="flex items-center justify-between gap-3 mb-1.5">
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-sky-900 truncate">{c.name || 'Customer'}</div>
+            <div className="text-xs text-sky-700 truncate">
+              {[c.email, c.company].filter(Boolean).join(' · ') || 'No contact info on file'}
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => onRun(action)}
+            className="bg-sky-600 hover:bg-sky-700 text-white h-8 px-3 text-xs shrink-0"
+            data-testid="proposed-action-find-customer-confirm"
+          >
+            Open <ChevronRight className="h-3.5 w-3.5 ml-1" />
+          </Button>
+        </div>
+        {(inv.length > 0 || ords.length > 0) && (
+          <div className="text-xs text-sky-800 space-y-0.5">
+            {inv.slice(0, 3).map((i) => (
+              <div key={`inv_${i.id}`} className="truncate">
+                · Invoice #{i.invoice_number || i.id?.slice(0, 6)} — {i.status} · ${((i.grand_total || i.total || 0)).toFixed(2)}
+              </div>
+            ))}
+            {ords.slice(0, 3).map((o) => (
+              <div key={`job_${o.id}`} className="truncate">
+                · {o.title || 'Order'} — {o.status}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (action.action_type === 'attach_note_to_customer') {
+    return (
+      <div
+        className="mt-3 flex items-center justify-between gap-3 bg-indigo-50 border border-indigo-200 rounded-md px-3 py-2"
+        data-testid="proposed-action-attach-note"
+      >
+        <div className="min-w-0 text-sm text-indigo-900">
+          <div className="font-medium truncate">
+            Add note to {action.customer?.name || 'customer'}
+          </div>
+          <div className="text-xs text-indigo-700 truncate">"{action.note}"</div>
+        </div>
+        <Button
+          size="sm"
+          onClick={() => onRun(action)}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white h-8 px-3 text-xs shrink-0"
+          data-testid="proposed-action-attach-note-confirm"
+        >
+          Add <ChevronRight className="h-3.5 w-3.5 ml-1" />
+        </Button>
+      </div>
+    );
+  }
+
   // Email / invoice (pass-1/2)
   const Icon = action.action_type === 'send_invoice' ? FileText : Mail;
   return (
@@ -671,6 +738,38 @@ What can I help you with today?`
         setMessages((prev) => [...prev]);
       } catch (err) {
         toast.error(err.response?.data?.detail || 'Bulk follow-up failed');
+      }
+      return;
+    }
+
+    // Find customer — navigate to the customer detail page
+    if (action.action_type === 'find_customer') {
+      const cid = action.customer?.id;
+      if (!cid) {
+        toast.error('No customer to open');
+        return;
+      }
+      navigate(`/customers/${cid}`);
+      return;
+    }
+
+    // Attach note to customer — commit via API
+    if (action.action_type === 'attach_note_to_customer') {
+      const cid = action.customer?.id;
+      if (!cid || !action.note) {
+        toast.error('Missing customer or note');
+        return;
+      }
+      try {
+        await api.post('/ai/assistant/commit-note-to-customer', {
+          customer: action.customer,
+          note: action.note,
+        });
+        toast.success(`Note added to ${action.customer?.name || 'customer'}`);
+        action.status = 'completed';
+        setMessages((prev) => [...prev]);
+      } catch (err) {
+        toast.error(err.response?.data?.detail || 'Failed to add note');
       }
       return;
     }
