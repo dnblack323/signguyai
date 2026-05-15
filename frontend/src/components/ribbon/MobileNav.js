@@ -105,6 +105,7 @@ const mobileNavItems = [
       { label: 'Company Settings', path: '/settings' },
       { label: 'Materials & Pricing', path: '/materials' },
       { label: 'Daily Digest', path: '/settings/digest' },
+      { label: 'AI Assistant', path: '/settings/assistant' },
       { label: 'Billing & Plan', path: '/billing' },
       { label: 'Production Workflow', path: '/settings/production' },
       { label: 'Backup & Restore', path: '/settings/backup' },

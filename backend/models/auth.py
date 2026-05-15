@@ -73,6 +73,12 @@ class TenantUpdate(BaseModel):
     customer_portal_settings: Optional[Dict[str, bool]] = None
     signature_settings: Optional[Dict[str, Any]] = None
     default_tax_rate: Optional[float] = None
+    # AI Assistant personality — one of "ops_partner", "wise_mentor",
+    # "cheerful_helper", "no_bs_direct". Defaults to ops_partner when unset.
+    assistant_personality: Optional[str] = None
+    # Set of action-types the tenant has opted out of confirmation for
+    # (e.g. ["draft_email"]). Stored as a list; treated as a set.
+    assistant_skip_confirm: Optional[List[str]] = None
 
 class Tenant(TenantBase):
     model_config = ConfigDict(extra="ignore")

@@ -88,6 +88,7 @@ export const tabSubItems = {
     { label: 'Import Invoices', icon: ClipboardList, path: '/settings/pricing-setup' },
     { label: 'Email Templates', icon: Mail, path: '/settings/email-templates' },
     { label: 'Daily Digest', icon: Send, path: '/settings/digest' },
+    { label: 'AI Assistant', icon: Sparkles, path: '/settings/assistant' },
     { label: 'Production', icon: Wrench, path: '/settings/production' },
     { label: 'Backup', icon: Shield, path: '/settings/backup' },
     { label: 'Users', icon: Users, path: '/users' },
@@ -133,6 +134,7 @@ const routeToNavItem = {
   '/docs': 'community',
   '/settings': 'settings',
   '/settings/digest': 'settings',
+  '/settings/assistant': 'settings',
   '/settings/meta-integration': 'settings',
   '/facebook-leads': 'customers',
 };

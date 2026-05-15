@@ -1,5 +1,38 @@
 # SignGuy AI - Changelog
 
+## February 12, 2026 — AI Assistant: kill "generic mode" + personality picker + quick-action intents
+
+### Backend (`/app/backend/routes/ai.py`)
+- **Killed "generic mode" disclaimer.** Founders (every tenant during the launch phase) get `has_business_data_access = True` unconditionally. The fallback prompt (when business data isn't wired) no longer says "I don't have access to your account screens" — it says nothing of the sort and still injects the real app nav.
+- **System prompt rewritten from rigid rules → tone-driven.** Dropped the 80-line "CRITICAL RULES FOR ORDER CREATION", "Bad Response Examples (NEVER DO THESE)", "Question Order" script. The LLM now handles flow naturally; the draft state is still tracked but exposed as context, not enforced as rules.
+- **Removed the brittle regex `detected_question` post-processor** (which forced the "Got it!" / "Perfect, X." pattern by hard-keying on phrases like "how many", "what size", etc.).
+- **Always-on app awareness.** Every system prompt now embeds `APP_NAV_REFERENCE` listing all top-level tabs by their real names (Dashboard / Orders / Billing / Customers / Webstores / Documents / Team / AI Tools / Financials / Productivity / Reports / Community / Settings) so the assistant references YOUR app, not a hypothetical app.
+- **4 personality presets** (`PERSONALITY_PRESETS`): `ops_partner` (default) / `wise_mentor` / `cheerful_helper` / `no_bs_direct`. Loaded from `tenant.assistant_personality`.
+- **Quick action intent detection.** New `_detect_quick_action()` runs after every LLM reply. Matches simple verbs ("email <name>", "send invoice to <name>", "message <name>") + does a real customer lookup. Returns `proposed_action: { action_type, status: ready|needs_clarification, customer: {id,name,email}, confirm_label, low_risk }` alongside the chat response.
+- **New endpoints:**
+  - `GET /api/ai/assistant/personality` → `{ selected, skip_confirm, options[] }`
+  - `PUT /api/ai/assistant/personality` → `{ personality?, skip_confirm? }` (whitelisted to known action types)
+- **Tenant model**: added `assistant_personality: Optional[str]` and `assistant_skip_confirm: Optional[List[str]]` to `TenantUpdate` in `/app/backend/models/auth.py`.
+
+### Frontend
+- **`AIAssistant.js` chat UI** renders new `ProposedActionPill` below assistant replies when backend returns `proposed_action`. Two states: "ready" (purple pill with customer + Open button → routes to /customers/{id} or /billing/invoices/new) or "needs_clarification" (amber hint box).
+- **`pages/settings/AssistantSettings.js`** (NEW) at `/settings/assistant` — 4 personality option cards with active highlight + "Auto-open email drafts" toggle. Routes wired in `App.js`. Added to Settings primary + mobile nav as "AI Assistant" with Sparkles icon.
+
+### Verified
+- `curl /api/ai/assistant` with "where do I add a vehicle wrap questionnaire" returns "**Documents** is where questionnaires live. Go to **Documents** → **Questionnaires** → **New Questionnaire**" — NOT the old "I'm in generic mode" answer.
+- Switching to `no_bs_direct` and re-asking same question returns pure bullet-pointed steps with zero pleasantries.
+- "email Donald Black" returns `proposed_action: { status: "needs_clarification", hint: "I couldn't find a customer matching..." }` instead of crashing.
+- 43/43 backend regression tests still green (`tests/test_fees_and_owner_connect.py`, `tests/test_iteration140_owner_connect_endpoints.py`, `tests/test_questionnaire_send_email.py`).
+- Settings page screenshot-verified live.
+
+### Out of scope for this pass (next iteration)
+- True real-time tool-calling (assistant actually CLICKS buttons for you via API)
+- Voice quality / latency improvements
+- "What I know about your shop" rolling memory summary (long-term memory)
+- Multi-step workflows ("create order → invoice → schedule install")
+
+
+
 ## February 12, 2026 — "Show Math (Behind the Scenes)" debug panel on Pricing Foundation → Review
 
 - Added `ShowMathPanel` to the Review tab in `/app/frontend/src/pages/PricingFoundation.js`. Renders 4 sub-tabs after every Run Test:

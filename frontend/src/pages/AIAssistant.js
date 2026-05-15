@@ -8,7 +8,8 @@ import { Badge } from '../components/ui/badge';
 import { 
   Sparkles, Send, ArrowLeft, Loader2, User, Bot, 
   Lightbulb, DollarSign, Users, Briefcase, TrendingUp,
-  Clock, FileText, RefreshCw, Mic, MicOff, Volume2, ShoppingCart
+  Clock, FileText, RefreshCw, Mic, MicOff, Volume2, ShoppingCart,
+  Mail, ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
@@ -45,6 +46,55 @@ const suggestedPrompts = [
   { icon: FileText, text: "Write a follow-up email for a quote I sent", category: 'communications' },
   { icon: ShoppingCart, text: "Make an order for a customer", category: 'orders' },
 ];
+
+/**
+ * Inline confirmation pill rendered below an assistant reply when the user
+ * asked for a concrete action ("email <name>", "send invoice to <name>").
+ * Backend returns ``proposed_action`` with status "ready" (customer matched)
+ * or "needs_clarification" (no match — show hint only).
+ */
+function ProposedActionPill({ action, onRun }) {
+  if (!action) return null;
+
+  if (action.status === 'needs_clarification') {
+    return (
+      <div
+        className="mt-3 text-xs bg-amber-50 border border-amber-200 text-amber-900 rounded-md px-3 py-2"
+        data-testid="proposed-action-needs-clarification"
+      >
+        {action.hint || 'Need a bit more info.'}
+      </div>
+    );
+  }
+
+  const Icon = action.action_type === 'send_invoice' ? FileText : Mail;
+  return (
+    <div
+      className="mt-3 flex items-center justify-between gap-3 bg-purple-50 border border-purple-200 rounded-md px-3 py-2"
+      data-testid={`proposed-action-${action.action_type}`}
+    >
+      <div className="flex items-center gap-2 text-sm text-purple-900 min-w-0">
+        <Icon className="h-4 w-4 flex-shrink-0 text-purple-600" />
+        <div className="min-w-0">
+          <div className="font-medium truncate">
+            {action.confirm_label || 'Run action'} → {action.customer?.name}
+          </div>
+          {action.customer?.email && (
+            <div className="text-xs text-purple-700 truncate">{action.customer.email}</div>
+          )}
+        </div>
+      </div>
+      <Button
+        size="sm"
+        onClick={() => onRun(action)}
+        className="bg-purple-600 hover:bg-purple-700 text-white h-8 px-3 text-xs shrink-0"
+        data-testid={`proposed-action-${action.action_type}-confirm`}
+      >
+        Open <ChevronRight className="h-3.5 w-3.5 ml-1" />
+      </Button>
+    </div>
+  );
+}
 
 export default function AIAssistant() {
   const navigate = useNavigate();
@@ -341,7 +391,11 @@ What can I help you with today?`
             const aiTime = Date.now() - aiStart;
             console.log(`[Assistant] AI response in ${aiTime}ms`);
 
-            const assistantMessage = { role: 'assistant', content: response.data.response };
+            const assistantMessage = {
+              role: 'assistant',
+              content: response.data.response,
+              proposed_action: response.data.proposed_action || null,
+            };
             setMessages(prev => [...prev, assistantMessage]);
             
             // Update active order draft if returned from backend
@@ -379,6 +433,34 @@ What can I help you with today?`
 
   const handleSuggestedPrompt = (prompt) => {
     handleSend(prompt);
+  };
+
+  /**
+   * Execute a proposed action from the assistant. For now we route the user
+   * to the right page with the customer pre-selected so they confirm there.
+   * "Don't ask again" preference (from /api/ai/assistant/personality) can
+   * cause us to skip the confirm step in a future pass — the backend
+   * already accepts that field; the FE just hasn't wired the auto-execute
+   * path yet (kept manual on purpose so the first version is reversible).
+   */
+  const handleRunProposedAction = (action) => {
+    if (!action || action.status !== 'ready') return;
+    const cid = action.customer?.id;
+    if (!cid) {
+      toast.error('No customer linked to this action');
+      return;
+    }
+    if (action.action_type === 'draft_email') {
+      // Drop the customer & a draft into the Documents → Email page via query.
+      const subject = action.about ? `RE: ${action.about}` : 'Quick note';
+      navigate(`/customers/${cid}?compose_email=1&subject=${encodeURIComponent(subject)}`);
+      return;
+    }
+    if (action.action_type === 'send_invoice') {
+      navigate(`/billing/invoices/new?customer_id=${cid}`);
+      return;
+    }
+    toast.info('Action queued — opening the right page.');
   };
 
   const handleNewChat = async () => {
@@ -519,6 +601,12 @@ What can I help you with today?`
                       );
                     })}
                   </div>
+                  {message.proposed_action && (
+                    <ProposedActionPill
+                      action={message.proposed_action}
+                      onRun={(a) => handleRunProposedAction(a)}
+                    />
+                  )}
                 </div>
                 {message.role === 'user' && (
                   <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">

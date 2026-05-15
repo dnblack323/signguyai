@@ -1881,33 +1881,130 @@ async def get_shop_context(tenant_id: str) -> dict:
     }
 
 
+QUICK_ACTION_PATTERNS = {
+    "draft_email": [
+        r"^email\s+(.+?)(?:\s+about\s+(.+))?$",
+        r"^send\s+(?:an?\s+)?email\s+to\s+(.+?)(?:\s+about\s+(.+))?$",
+        r"^message\s+(.+?)(?:\s+about\s+(.+))?$",
+    ],
+    "send_invoice": [
+        r"^send\s+(?:an?\s+)?invoice\s+to\s+(.+?)$",
+        r"^invoice\s+(.+?)(?:\s+for\s+(.+))?$",
+    ],
+}
+
+
+async def _detect_quick_action(message: str, tenant_id: str) -> Optional[Dict[str, Any]]:
+    """Inspect the user's message for a lightweight action intent.
+
+    Returns a ``proposed_action`` dict the frontend can render as a one-click
+    confirm button, or ``None`` if no actionable verb was found.
+
+    This is intentionally simple — fast keyword + customer-name lookup — so
+    it stays predictable and never adds latency to a normal chat reply. The
+    LLM still answers in natural language; this only ADDS a structured
+    payload alongside.
+    """
+    text = (message or "").strip().lower()
+    if not text:
+        return None
+    if len(text) > 200:  # ignore long messages — they're chat, not commands
+        return None
+
+    import re as _re
+    for action_type, patterns in QUICK_ACTION_PATTERNS.items():
+        for pat in patterns:
+            m = _re.match(pat, text, _re.IGNORECASE)
+            if not m:
+                continue
+            customer_name_raw = (m.group(1) or "").strip().rstrip(".?!")
+            about = ""
+            if m.lastindex and m.lastindex >= 2:
+                about = (m.group(2) or "").strip().rstrip(".?!")
+            if not customer_name_raw:
+                continue
+            # Look up the customer in the tenant's CRM.
+            customer = await lookup_customer_by_name(tenant_id, customer_name_raw)
+            if not customer:
+                return {
+                    "action_type": action_type,
+                    "status": "needs_clarification",
+                    "raw_input": message,
+                    "customer_query": customer_name_raw,
+                    "hint": (
+                        f"I couldn't find a customer matching '{customer_name_raw}'. "
+                        "Add the customer first, or try the full name."
+                    ),
+                }
+            return {
+                "action_type": action_type,
+                "status": "ready",
+                "raw_input": message,
+                "customer": {
+                    "id": customer.get("id"),
+                    "name": customer.get("name"),
+                    "email": customer.get("email"),
+                    "company": customer.get("company"),
+                },
+                "about": about or None,
+                "low_risk": action_type == "draft_email",  # email drafts are reversible; invoices aren't
+                "confirm_label": (
+                    "Open draft email" if action_type == "draft_email"
+                    else "Open invoice"
+                ),
+            }
+    return None
+
+
 @router.post("/assistant")
 async def ai_business_assistant(
     request: Request,
     data: AIAssistantRequest,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """AI Business Assistant - Chat interface for sign shop operations with real shop data and order creation"""
+    """AI Business Assistant — context-aware chat partner for sign shop operators.
+
+    Major design choices (Feb 2026 rewrite):
+    - No more "generic mode" disclaimer. The assistant ALWAYS knows it's
+      running inside the SignGuy AI app and references real nav by name.
+    - Founders (every tenant during the Founders Edition phase) get full
+      business-data access by default — no silent feature-flag downgrade.
+    - System prompt is tone-driven, not rule-driven. Personality is loaded
+      from ``tenant.assistant_personality``.
+    - Brittle post-response regex for `detected_question` is removed; the
+      LLM handles question-tracking via natural context.
+    - Quick action intents ("email Donald", "send invoice to X") return a
+      lightweight ``proposed_action`` payload alongside the chat response
+      so the UI can render a one-click confirm button.
+    """
     from emergentintegrations.llm.chat import LlmChat, UserMessage
     from services.multi_product_gate import get_multi_product_feature_gate
-    
+
     if not EMERGENT_LLM_KEY:
         raise HTTPException(status_code=500, detail="AI service not configured")
-    
+
     preview = await preview_credit_usage(db, current_user.tenant_id, "ai_business_assistant")
     if not preview["sufficient_credits"]:
         raise HTTPException(status_code=402, detail=f"Insufficient credits. Need {preview['credit_cost']}, have {preview['total_credits']}.")
 
-    # Check feature access
+    # Feature gates remain in place but business-data access is force-on for
+    # Founders (which is everyone right now per SHOW_FOUNDERS_ONLY).
     gate = get_multi_product_feature_gate(db)
     await gate.require_feature(current_user.tenant_id, "ai_assistant", "assistant_access")
     await gate.require_feature(current_user.tenant_id, "ai_assistant", "monthly_queries", increment_usage=True)
-    
-    # Check if business data access is allowed
-    data_aware_result = await gate.check_feature(current_user.tenant_id, "ai_assistant", "business_data_aware")
-    data_limited_result = await gate.check_feature(current_user.tenant_id, "ai_assistant", "business_data_limited")
-    
-    has_business_data_access = data_aware_result.allowed or data_limited_result.allowed
+
+    tenant_doc = await db.tenants.find_one(
+        {"id": current_user.tenant_id},
+        {"_id": 0, "is_founder": 1, "assistant_personality": 1, "assistant_skip_confirm": 1, "company_name": 1},
+    ) or {}
+    is_founder_tenant = bool(tenant_doc.get("is_founder")) or bool(getattr(current_user, "is_founder", False))
+
+    if is_founder_tenant:
+        has_business_data_access = True
+    else:
+        data_aware_result = await gate.check_feature(current_user.tenant_id, "ai_assistant", "business_data_aware")
+        data_limited_result = await gate.check_feature(current_user.tenant_id, "ai_assistant", "business_data_limited")
+        has_business_data_access = data_aware_result.allowed or data_limited_result.allowed
     
     try:
         def normalize_llm_response(value):
@@ -1979,11 +2076,16 @@ async def ai_business_assistant(
 - Webstore Orders: {shop_data['webstores']['total_orders']}
 """
         else:
-            shop_summary = """
-## Note: Operating in generic mode (no access to your business data)
+            company_name = tenant_doc.get("company_name") or "your shop"
+            shop_summary = f"""
+## Shop context
 
-I can help with general sign shop questions, industry best practices, and advice,
-but I don't have access to your specific customer, job, or financial data.
+You are running INSIDE the SignGuy AI app for {company_name}. The tenant
+hasn't connected the full data feed yet, so you don't have specific revenue
+or customer numbers — but you DO know the app's structure and can refer the
+user to real screens by name. Never tell the user "I'm in generic mode" or
+"I don't have access to your account screens." Just be helpful with what
+you do have.
 """
         
         # Build conversation context from history.
@@ -2017,81 +2119,120 @@ but I don't have access to your specific customer, job, or financial data.
             context_messages += f"{role}: {msg.get('content', '')}\n\n"
         
         # ========== BUILD SYSTEM MESSAGE ==========
-        # Add order creation instructions if there's an active draft
+        # Add order creation instructions if there's an active draft. We keep
+        # the draft state but ditch the rigid Q&A script — the model now
+        # handles flow naturally using the draft snapshot as context.
         order_creation_instructions = ""
         if updated_draft.get('intent') == 'create_order':
             order_creation_instructions = f"""
 
-## ACTIVE ORDER CREATION MODE
+## Active Order Draft
 
-You are currently helping create an order. Here is the current order draft:
+The user is in the middle of creating an order. Here's what's captured so far:
 
 {draft_context}
 
-### CRITICAL RULES FOR ORDER CREATION:
-1. **NEVER ask for information already in the draft above.** The user already provided it.
-2. **Ask for ONLY the next missing field.** Do not dump a list of questions.
-3. **When the user gives a short answer like "10" or "18x24", interpret it based on what you just asked.**
-4. **Always acknowledge what you captured before asking the next question.**
-
-### Question Order (skip any already captured):
-1. Quantity - "How many [product] do they need?"
-2. Size - "What size?" (common: 18x24, 24x36, 4x8 feet)
-3. Material - "What material?" (coroplast, aluminum, PVC, etc.)
-4. Sides - "Single-sided or double-sided?"
-5. Design - "Any design notes or do they have artwork?"
-6. Due date - "When do they need it by?"
-7. Delivery - "Pickup, delivery, or install?"
-
-### Good Response Examples:
-- User: "Make an order for Donald Black for step signs"
-  You: "Got it! Starting an order for Donald Black with step signs. How many step signs do they need?"
-
-- User: "10"
-  You: "Perfect, 10 step signs. What size - 18x24 is standard, or something different?"
-
-- User: "18 by 24 coroplast"
-  You: "Great - 10 step signs, 18x24 coroplast. Single-sided or double-sided?"
-
-### Bad Response Examples (NEVER DO THESE):
-- Asking "Who is this order for?" when customer_name is already set
-- Asking "What product/item?" when product_type is already set
-- Asking multiple questions at once
-- Ignoring a short answer like "10" and asking "What do you mean?"
+Don't ask for anything that's already in the draft. When information is
+missing, ask for ONE thing at a time. Common still-to-collect fields:
+quantity, size, material, sides, design notes, due date, delivery method.
 """
-        
-        company_name = shop_data['company_name'] if shop_data else 'Your Shop'
-        
-        system_message = f"""You are the AI Business Assistant for SignGuy AI, a comprehensive sign shop management platform. You are chatting with {current_user.full_name or 'the owner'} from {company_name}.
 
-## Your Role
-You are a smart, helpful assistant that can:
-1. Answer questions about running a sign shop
-2. Help CREATE ORDERS by collecting information step-by-step
-3. Provide business insights based on shop data
-{order_creation_instructions}
+        company_name = (
+            shop_data['company_name'] if shop_data else
+            tenant_doc.get('company_name') or 'Your Shop'
+        )
+        user_name = current_user.full_name or "the owner"
 
-{shop_summary}
+        # ---- Personality presets ---------------------------------------------
+        # The tenant chooses one of these in Settings; the choice is injected
+        # into every system prompt so the assistant's voice stays consistent.
+        PERSONALITY_PRESETS = {
+            "ops_partner": (
+                "You're a sharp 5-year-veteran shop ops partner. Direct, witty, "
+                "no fluff. Push back when the user is about to make a costly "
+                "mistake. Drop the 'Got it!' / 'Perfect' filler — talk like a "
+                "real coworker. Use light dry humor where it fits, never forced. "
+                "Keep responses tight — 2-4 sentences unless the user asks for depth."
+            ),
+            "wise_mentor": (
+                "You're a calm, strategic mentor with decades in the sign and "
+                "print industry. You ask probing questions ('have you considered…') "
+                "rather than just answering. You explain WHY a recommendation "
+                "matters. Warm, measured, never preachy."
+            ),
+            "cheerful_helper": (
+                "You're an enthusiastic, encouraging sidekick who genuinely "
+                "loves the work. Use warm acknowledgements, celebrate small wins, "
+                "and keep momentum up. Stay accurate — encouragement doesn't mean "
+                "telling people what they want to hear."
+            ),
+            "no_bs_direct": (
+                "You're terse and operational. Bullet points only. Zero "
+                "pleasantries, zero filler — answer the question, list the steps, "
+                "stop talking. If the user is wrong, say so in one sentence and "
+                "give the right answer."
+            ),
+        }
+        personality_key = (tenant_doc.get("assistant_personality") or "ops_partner").lower()
+        if personality_key not in PERSONALITY_PRESETS:
+            personality_key = "ops_partner"
+        personality_voice = PERSONALITY_PRESETS[personality_key]
 
-## Your Knowledge
-- **Sign Industry**: Vehicle wraps, channel letters, monument signs, banners, yard signs, step signs, vinyl graphics, A-frames, window graphics, real estate signs, political signs
-- **Materials**: Coroplast, aluminum, ACM/Dibond, PVC/Sintra, foam board, acrylic, MDO, vinyl
-- **Production**: Print technologies, lamination, cutting, installation techniques
-- **Business**: Pricing (40-60% margins typical), job costing, time tracking
+        # ---- Always-on app awareness ----------------------------------------
+        # Even when business data isn't wired in, the assistant MUST know it's
+        # running inside the SignGuy AI app and reference real screens by name.
+        APP_NAV_REFERENCE = """
+## You are running INSIDE the SignGuy AI app
 
-## Response Style
-- Be conversational and helpful, not robotic
-- Keep responses concise - don't over-explain
-- If creating an order, stay focused on collecting the needed info
-- Acknowledge what you heard before asking the next question"""
-        
+Real top-level navigation the user sees:
+- **Dashboard** — KPIs, recent activity
+- **Orders** — create / track jobs, work tickets, production status
+- **Billing** — invoices, quotes, payments, payment links
+- **Customers** — customer list, contact info, history, branding profiles
+- **Webstores** — fundraiser / creator / pop-up stores, products, owner payouts
+- **Documents** — questionnaires, AI-generated marketing/design briefs, files
+- **Team** — employees, time clock, payroll
+- **AI Tools** — image gen (Nano Banana), logo creator, mockups, branding, marketing copywriter, blog/post generator, business copywriter, document composer, voice transcription, etc.
+- **Financials** — reports, P&L, Stripe Connect dashboard
+- **Productivity** — calendar, appointments, daily digest
+- **Reports** — analytics
+- **Community** — operator forum
+- **Settings** — Company, Pricing Foundation, Daily Digest, Backup, Users, Meta/Facebook, AI Assistant personality
+
+Always reference these by their real names. Never tell the user "look for a
+Settings → Templates area" if that's not what it's called — say what's actually
+in the app.
+"""
+
+        system_message = f"""You are the AI assistant inside SignGuy AI, a full operating system for sign shops. You are talking with {user_name} from {company_name}.
+
+## Voice
+{personality_voice}
+
+{APP_NAV_REFERENCE}
+
+{shop_summary}{order_creation_instructions}
+
+## Domain knowledge
+- Sign industry: vehicle wraps, channel letters, monuments, banners, yard signs, step signs, vinyl graphics, A-frames, window graphics, real estate/political signs
+- Materials: coroplast, aluminum, ACM/Dibond, PVC/Sintra, foam board, acrylic, MDO, calendered & cast vinyl, laminates
+- Production: digital print, lamination, plotter cutting, weeding/masking, install techniques
+- Business: typical sign-shop margins (40-60%), Stripe processing fees ($0.30 + 2.9%), platform fee (2.2% + $0.20 invoice, 4.2% + $0.20 webstore — Founders edition)
+
+## Conversation rules
+- Acknowledge what you heard, then move forward — don't re-ask things already in context
+- Short answers like "10" or "18x24" are valid replies; interpret them based on what you just asked
+- If the user asks you to DO something concrete (email a customer, send an invoice, create an order, schedule an appointment), keep your reply tight — the UI will surface a "Confirm & Send" button. Don't write a giant reply in that case.
+- If you are unsure between two interpretations, ask once — never assume on money or destructive actions
+"""
+
         # Initialize chat with the session
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
             session_id=data.session_id,
             system_message=system_message
         ).with_model("openai", "gpt-5.2")
-        
+
         # Build the prompt with context
         if context_messages:
             full_prompt = f"Previous conversation:\n{context_messages}\nUser's new message: {data.message}"
@@ -2101,33 +2242,25 @@ You are a smart, helpful assistant that can:
         # Send message and get response
         response = await chat.send_message(UserMessage(text=full_prompt))
         assistant_text = normalize_llm_response(response)
-        
-        # Extract the question asked from the response (for tracking)
-        response_lower = assistant_text.lower()
-        detected_question = None
-        if 'how many' in response_lower:
-            detected_question = 'How many?'
-        elif 'what size' in response_lower:
-            detected_question = 'What size?'
-        elif 'what material' in response_lower:
-            detected_question = 'What material?'
-        elif 'single-sided' in response_lower or 'double-sided' in response_lower:
-            detected_question = 'Single or double sided?'
-        elif 'design' in response_lower or 'artwork' in response_lower:
-            detected_question = 'Design/artwork notes?'
-        elif 'when do they need' in response_lower or 'due date' in response_lower:
-            detected_question = 'Due date?'
-        elif 'pickup' in response_lower or 'delivery' in response_lower or 'install' in response_lower:
-            detected_question = 'Pickup/delivery/install?'
-        
-        # Save updated draft to session
+
+        # Save updated draft to session (we no longer try to regex-detect the
+        # question — the LLM handles flow naturally now).
         if updated_draft.get('intent') == 'create_order':
             await update_assistant_session(
-                current_user.tenant_id, 
-                data.session_id, 
-                updated_draft, 
-                detected_question
+                current_user.tenant_id,
+                data.session_id,
+                updated_draft,
+                None,
             )
+
+        # Detect lightweight action intents ("email <name>", "send invoice to
+        # <name>") so the frontend can render a one-click confirm button. This
+        # uses simple keyword + customer-lookup heuristics — fast, deterministic,
+        # and never blocks a normal chat reply.
+        proposed_action = await _detect_quick_action(
+            data.message,
+            current_user.tenant_id,
+        )
         
         await deduct_credits_after_success(
             db,
@@ -2164,7 +2297,9 @@ You are a smart, helpful assistant that can:
         response_data = {"response": assistant_text}
         if updated_draft.get('intent') == 'create_order':
             response_data["active_order_draft"] = updated_draft
-        
+        if proposed_action:
+            response_data["proposed_action"] = proposed_action
+
         return response_data
         
     except Exception as e:
@@ -2177,8 +2312,79 @@ You are a smart, helpful assistant that can:
             feature_name="ai_business_assistant",
             metadata={"session_id": data.session_id},
         )
-        print(f"AI Assistant error: {e}")
+        logger.exception("AI Assistant error: %s", e)
         raise HTTPException(status_code=500, detail=f"Assistant error: {str(e)}")
+
+
+# ─── Personality settings ─────────────────────────────────────────────────────
+
+PERSONALITY_OPTIONS = [
+    {
+        "key": "ops_partner",
+        "name": "Sharp Ops Partner",
+        "tagline": "Direct, witty, no fluff. Pushes back when you're wrong.",
+        "default": True,
+    },
+    {
+        "key": "wise_mentor",
+        "name": "Wise Mentor",
+        "tagline": "Calm, strategic. Asks 'have you considered…' questions.",
+    },
+    {
+        "key": "cheerful_helper",
+        "name": "Cheerful Helper",
+        "tagline": "Warm, encouraging, lots of momentum.",
+    },
+    {
+        "key": "no_bs_direct",
+        "name": "No-BS Direct",
+        "tagline": "Terse bullets only. Zero pleasantries.",
+    },
+]
+
+
+@router.get("/assistant/personality")
+async def get_assistant_personality(
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Return the tenant's selected personality + the available options."""
+    tenant = await db.tenants.find_one(
+        {"id": current_user.tenant_id},
+        {"_id": 0, "assistant_personality": 1, "assistant_skip_confirm": 1},
+    ) or {}
+    return {
+        "selected": tenant.get("assistant_personality") or "ops_partner",
+        "skip_confirm": tenant.get("assistant_skip_confirm") or [],
+        "options": PERSONALITY_OPTIONS,
+    }
+
+
+class AssistantSettingsUpdate(BaseModel):
+    personality: Optional[str] = None
+    skip_confirm: Optional[List[str]] = None
+
+
+@router.put("/assistant/personality")
+async def update_assistant_personality(
+    body: AssistantSettingsUpdate,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Save the tenant's personality + skip-confirm preferences."""
+    valid_keys = {p["key"] for p in PERSONALITY_OPTIONS}
+    update: Dict[str, Any] = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if body.personality is not None:
+        if body.personality not in valid_keys:
+            raise HTTPException(status_code=400, detail="Unknown personality")
+        update["assistant_personality"] = body.personality
+    if body.skip_confirm is not None:
+        # whitelist only known low-risk action types
+        allowed = {"draft_email"}
+        update["assistant_skip_confirm"] = [a for a in body.skip_confirm if a in allowed]
+    await db.tenants.update_one(
+        {"id": current_user.tenant_id},
+        {"$set": update},
+    )
+    return {"success": True, **update}
 
 
 @router.get("/assistant/history")
