@@ -209,6 +209,9 @@ class UserRole(str, Enum):
     ADMIN = "admin"
     STAFF = "staff"
     PLATFORM_ADMIN = "platform_admin"
+    # Webstore owners (fundraiser organizers, creators, etc.) — connected to a
+    # webstore but NOT a tenant. Scoped to /owner-portal only.
+    WEBSTORE_OWNER = "webstore_owner"
 
 class TenantPlan(str, Enum):
     """Tenant plan - maps to tier for feature gating"""

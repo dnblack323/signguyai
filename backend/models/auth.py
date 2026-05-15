@@ -225,6 +225,9 @@ ROLE_PERMISSIONS = {
         Permission.WEBSTORES_VIEW,
         Permission.PRODUCTS_VIEW,
     ],
+    # Webstore owners have NO tenant-side permissions — their access is gated
+    # at the dedicated /api/owner-portal routes via a role check.
+    UserRole.WEBSTORE_OWNER: [],
 }
 
 

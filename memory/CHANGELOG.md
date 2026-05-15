@@ -1,5 +1,43 @@
 # SignGuy AI - Changelog
 
+## February 12, 2026 — Fee fix + Founders-only flag + Webstore Owner Stripe Connect (Phase A/B/C)
+
+### Phase A — Fee structure aligned to landing page
+- `PLATFORM_FEES` reshaped from `tier→percent` to `tier→{percent, flat_cents}` in `/app/backend/services/stripe_service.py`. All four tiers default to `{0.022, 20}`. Added `WEBSTORE_SURCHARGE_PERCENT = 0.020`.
+- New helper `calculate_platform_fee_cents(tier, amount_cents, is_webstore)` does the rounded math (round-half-up to avoid float drift; micro-payment floor never produces a fee ≥ amount).
+- Wired into 3 checkout call sites in `/app/backend/routes/stripe_connect.py`: invoice pay, invoice send-payment-link, webstore checkout (only the webstore site uses `is_webstore=True`).
+- New public endpoint `GET /api/stripe-connect/fee-preview?amount=X&is_webstore=Y` returns `{platform_fee_cents, platform_fee_label, stripe_estimated_cents, tenant_receives_cents}` for UI use.
+- **Result:** $5 invoice → 31¢ platform fee (was 11¢, undercharging by $0.20). Webstore $500 → $21.20 (was $11.00).
+
+### Phase B — Founders-only feature flag
+- `REACT_APP_SHOW_FOUNDERS_ONLY=true` added to `/app/frontend/.env`.
+- `TierContext.js` `checkFeature()` + `requireFeature()` short-circuit to "allowed" when flag on; reported tier becomes `founders_edition`.
+- `MainLayout.js` preview-mode panel hides Starter/Pro/Business/Webstores-only/AI-Studio-only options (only "Founders Edition (Full)" shows).
+- `/pricing-legacy` route now redirects to `/pricing-plans` (which is already Founders-only).
+- UpgradeModal will never open while flag is on (no upstream calls produce `upgradeModal.open=true`).
+
+### Phase C — Webstore Owner Stripe Connect (2 flows)
+**Backend (new `/app/backend/routes/webstore_owners.py`):**
+- Webstore model adds: `owner_stripe_account_id`, `owner_stripe_charges_enabled`, `owner_stripe_payouts_enabled`, `owner_stripe_details_submitted`, `owner_user_id`, `owner_portal_enabled`. Default webstore status changed to `PENDING`.
+- `UserRole.WEBSTORE_OWNER = "webstore_owner"` added to `/app/backend/models/enums.py` with empty permission set in `ROLE_PERMISSIONS`.
+- Tenant routes (auth): `POST /api/webstore-owners/{id}/invite/quick`, `POST /api/webstore-owners/{id}/invite/portal`, `GET /api/webstore-owners/{id}/owner-status`. SendGrid email with branded HTML + magic link (72h expiry, one-time use).
+- Public routes (token): `GET /api/owner-onboard/{token}`, `POST /api/owner-onboard/{token}/start-stripe` (creates Express account + AccountLink), `GET /api/owner-onboard/{token}/refresh`, `POST /api/owner-onboard/{token}/login-link`.
+- Portal routes: `POST /api/owner-portal/signup` (creates `webstore_owner` user), `GET /api/owner-portal/me`, `GET /api/owner-portal/stores/{id}/transfers`, `POST /api/owner-portal/stores/{id}/stripe-login-link`.
+- **Activation gate** added in `update_webstore()`: cannot set `status='active'` unless `owner_stripe_account_id` set + `owner_stripe_charges_enabled=true`. Returns 400 with clear message otherwise.
+- **Auto-transfer on order completion**: new `_maybe_auto_transfer_owner_commission()` helper inside `routes/webstores.py` `_apply_order_status_transition()`. When an order flips to COMPLETED and the owner has a connected Stripe account, fires `stripe.Transfer.create(amount, destination, idempotency_key=order_<id>_owner_commission)`. Updates `webstore.payout_owed -=, payout_paid +=`. Order doc gets `owner_transfer_id`, `owner_transfer_amount`, `owner_transfer_at`. Falls back to manual payout if owner not connected.
+
+**Frontend:**
+- `WebstoreOwnerConnectCard.js` (admin) embedded in the Webstore detail dashboard. Two buttons: "Send Quick Connect Link" and "Create Owner Portal". Live status badge + last-link copy.
+- `WebstoreOwnerOnboard.js` (public) at `/webstore-owner/onboard/:token` — branded landing → Connect Stripe button → Stripe Express hosted onboarding → return + auto-poll for status → Stripe Express dashboard link.
+- `OwnerPortalSignup.js` (public) at `/owner-portal-signup/:token` — collects password → creates `webstore_owner` user → redirects to same Stripe onboarding flow.
+- `OwnerPortal.js` at `/owner-portal` — login + dashboard listing stores, sales/orders/paid/pending stats, transfer history table, Stripe Express dashboard launcher.
+
+**Tests:**
+- `/app/backend/tests/test_fees_and_owner_connect.py` — 10 fee-math tests (all pass)
+- `/app/backend/tests/test_iteration140_owner_connect_endpoints.py` — 21 endpoint tests covering fee-preview, invites (quick + portal + cross-tenant 404), public onboard (valid + unknown + expired + login-link gate), portal signup (short-pw + quick-rejected + JWT + me + admin-cannot-use), transfers endpoint, stripe-login-link gate, AND activation-gate (cannot activate without connected, succeeds after seeding flags). **21/21 pass.**
+
+
+
 ## February 12, 2026 — New "Events" webstore product category
 
 - **Backend:** Added `EVENTS = "events"` to `ProductCategory` enum in `/app/backend/routes/webstores.py` and mapped it to `JobItemType.OTHER` in `map_category_to_item_type` so order-from-product flow still works.
