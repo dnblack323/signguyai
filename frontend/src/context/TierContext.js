@@ -3,6 +3,11 @@ import axios from 'axios';
 import { useAuth } from './AuthContext';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
+// Phase-launch feature flag: when true, every tenant is treated as Founders
+// and all credit/feature gating is bypassed in the UI. Flip to "false" (or
+// remove from .env) to bring back tier-based gating once Pro/Business/Starter
+// re-launch.
+const SHOW_FOUNDERS_ONLY = (process.env.REACT_APP_SHOW_FOUNDERS_ONLY || 'true').toLowerCase() === 'true';
 
 const TierContext = createContext(null);
 
@@ -51,6 +56,9 @@ export const TierProvider = ({ children }) => {
 
   // Check if a feature is accessible
   const checkFeature = useCallback((category, feature) => {
+    // Phase-launch override: everyone is on Founders → all features ON.
+    if (SHOW_FOUNDERS_ONLY) return { allowed: true, status: 'on' };
+
     if (!tierData?.features) return { allowed: true, status: 'on' }; // Default allow if no tier data
     
     const categoryData = tierData.features[category];
@@ -86,6 +94,9 @@ export const TierProvider = ({ children }) => {
 
   // Check feature and show upgrade modal if blocked
   const requireFeature = useCallback(async (category, feature) => {
+    // Phase-launch override: skip the gate entirely.
+    if (SHOW_FOUNDERS_ONLY) return true;
+
     const result = checkFeature(category, feature);
     
     if (!result.allowed) {
@@ -145,11 +156,12 @@ export const TierProvider = ({ children }) => {
   };
 
   const value = {
-    tier: tierData?.tier || 'starter',
-    tierDisplayName: tierData?.tier_display_name || 'Starter',
+    tier: SHOW_FOUNDERS_ONLY ? 'founders_edition' : (tierData?.tier || 'starter'),
+    tierDisplayName: SHOW_FOUNDERS_ONLY ? 'Founders Edition' : (tierData?.tier_display_name || 'Starter'),
     features: tierData?.features || {},
     usage,
     loading,
+    showFoundersOnly: SHOW_FOUNDERS_ONLY,
     checkFeature,
     requireFeature,
     useFeature,

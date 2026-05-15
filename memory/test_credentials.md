@@ -47,3 +47,15 @@
 - Role: staff (limited)
 - Tenant: d9c5507b-879c-4bec-9736-1dc841334719 (Signtists Lab)
 - Used for: verifying GET `/api/payroll/*` returns 403 for staff (security fix 2026-04-26)
+
+## Webstore Owner Connect — Stripe Express test flow notes (added 2026-02-12)
+- New role: `webstore_owner` (created by `/api/owner-portal/signup` from a portal-invite token)
+- Owner Portal page: `/owner-portal` (login UI + dashboard, JWT stored in `localStorage.owner_portal_token`)
+- Owner onboarding (no login): `/webstore-owner/onboard/:token`
+- Owner signup (portal flow): `/owner-portal-signup/:token`
+- Backend collections: `webstore_owner_invites` (token, expires_at, portal_invite flag, status)
+- Webstore fields: `owner_stripe_account_id`, `owner_stripe_charges_enabled`, `owner_user_id`, `owner_portal_enabled`
+- A webstore CANNOT be moved to status `active` until owner_stripe_charges_enabled is true (gate enforced in PUT /api/webstores/v2/{id})
+- Default webstore.status is now `pending` on create (previously `active`)
+- Phase-launch feature flag: `REACT_APP_SHOW_FOUNDERS_ONLY=true` in /app/frontend/.env — bypasses ALL tier/feature gating in the FE
+

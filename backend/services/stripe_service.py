@@ -37,17 +37,60 @@ stripe.api_key = os.environ.get("STRIPE_SECRET_KEY") or os.environ.get("STRIPE_A
 
 
 # ── Platform fee schedule ─────────────────────────────────────────────────────
-PLATFORM_FEES: Dict[str, float] = {
-    "starter":          0.022,
-    "pro":              0.022,
-    "business":         0.022,
-    "founders_edition": 0.022,
+# Per landing-page promise: 2.2% + $0.20 on every transaction. Webstore orders
+# get an additional +2.0% surcharge on top (covers hosted storefront infra +
+# secure checkout) → 4.2% + $0.20 total. The fee is taken as a Stripe
+# `application_fee_amount` on the destination charge.
+PLATFORM_FEES: Dict[str, Dict[str, float]] = {
+    "starter":          {"percent": 0.022, "flat_cents": 20},
+    "pro":              {"percent": 0.022, "flat_cents": 20},
+    "business":         {"percent": 0.022, "flat_cents": 20},
+    "founders_edition": {"percent": 0.022, "flat_cents": 20},
 }
+
+# Extra surcharge layered on top of the base percent for webstore orders only.
+# (Invoices stay at the base 2.2% + $0.20.)
+WEBSTORE_SURCHARGE_PERCENT: float = 0.020
+
+
+def get_platform_fee_config(tier: str) -> Dict[str, float]:
+    """Return {percent, flat_cents} for the given tier."""
+    return PLATFORM_FEES.get(tier, PLATFORM_FEES["founders_edition"])
 
 
 def get_platform_fee_percent(tier: str) -> float:
-    """Return the platform processing fee rate (0–1) for the given tier."""
-    return PLATFORM_FEES.get(tier, 0.022)
+    """Back-compat: return the *base* percent (without webstore surcharge).
+    Prefer ``calculate_platform_fee_cents`` going forward.
+    """
+    return get_platform_fee_config(tier)["percent"]
+
+
+def calculate_platform_fee_cents(
+    tier: str,
+    amount_cents: int,
+    *,
+    is_webstore: bool = False,
+) -> int:
+    """Compute the total platform fee in CENTS for a given transaction.
+
+    For invoices:          amount * tier_percent + tier_flat_cents
+    For webstore orders:   amount * (tier_percent + 2%) + tier_flat_cents
+
+    Floors to non-negative and never exceeds the amount itself (so a $0.30
+    invoice never produces a fee greater than the charge — Stripe rejects that).
+    """
+    cfg = get_platform_fee_config(tier)
+    percent = cfg["percent"] + (WEBSTORE_SURCHARGE_PERCENT if is_webstore else 0.0)
+    # Round-half-up to avoid float-precision drift (e.g. 0.022+0.020 stored as
+    # 0.04199999…99 produces 209c instead of 210c on a $50 charge).
+    fee = int(round(amount_cents * percent)) + int(cfg["flat_cents"])
+    if fee < 0:
+        fee = 0
+    if amount_cents > 0 and fee >= amount_cents:
+        # Don't let a tiny micro-payment produce a fee equal to the whole
+        # charge. Cap at amount - 1 cent so the destination at least nets a cent.
+        fee = max(amount_cents - 1, 0)
+    return fee
 
 
 def get_stripe_mode() -> str:

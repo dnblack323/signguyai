@@ -33,6 +33,9 @@ from core.auth_deps import get_current_active_user
 from services.stripe_service import (
     PLATFORM_FEES,
     get_platform_fee_percent,
+    get_platform_fee_config,
+    calculate_platform_fee_cents,
+    WEBSTORE_SURCHARGE_PERCENT,
     get_stripe_mode,
     get_tenant_tier,
     is_wrong_mode_error,
@@ -113,6 +116,55 @@ class WebstoreCheckoutRequest(BaseModel):
     """Request body for webstore checkout"""
     items: list[WebstoreCheckoutItem]
     customer_info: WebstoreCustomerInfo
+
+
+class FeePreview(BaseModel):
+    """Net-deposit preview shown to tenants before sending a payment link."""
+    amount: float
+    stripe_estimated_cents: int       # Stripe's processing fee estimate
+    platform_fee_cents: int           # Our application_fee_amount
+    platform_fee_label: str           # human-readable e.g. "2.2% + $0.20"
+    is_webstore: bool
+    tenant_receives_cents: int        # amount − stripe − platform
+    note: str = "Stripe's actual processing fee is computed at settlement; this is an estimate (2.9% + $0.30)."
+
+
+@router.get("/fee-preview", response_model=FeePreview)
+async def fee_preview(
+    amount: float,
+    is_webstore: bool = False,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Compute the net-deposit breakdown for a given amount and tier.
+
+    Used by the UI to show 'You'll receive ~$X' before sending a payment link
+    or activating a webstore checkout. No Stripe API call — pure math.
+    """
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be greater than zero")
+
+    tier = await get_tenant_tier(current_user.tenant_id)
+    cfg = get_platform_fee_config(tier)
+    amount_cents = int(round(amount * 100))
+    platform_fee_cents = calculate_platform_fee_cents(tier, amount_cents, is_webstore=is_webstore)
+
+    # Stripe's standard US-card fee: 2.9% + 30c — best public estimate.
+    stripe_fee_cents = int(round(amount_cents * 0.029)) + 30
+
+    tenant_receives = max(amount_cents - stripe_fee_cents - platform_fee_cents, 0)
+
+    effective_percent = (cfg["percent"] + (WEBSTORE_SURCHARGE_PERCENT if is_webstore else 0.0)) * 100
+    flat_dollars = cfg["flat_cents"] / 100
+    label = f"{effective_percent:.1f}% + ${flat_dollars:.2f}"
+
+    return FeePreview(
+        amount=amount,
+        stripe_estimated_cents=stripe_fee_cents,
+        platform_fee_cents=platform_fee_cents,
+        platform_fee_label=label,
+        is_webstore=is_webstore,
+        tenant_receives_cents=tenant_receives,
+    )
 
 
 
@@ -440,9 +492,9 @@ async def create_invoice_payment(
     if amount <= 0:
         raise HTTPException(status_code=400, detail="Invalid invoice amount")
     
-    # Calculate platform fee (in cents)
+    # Calculate platform fee (in cents): base percent + flat cents per landing page
     amount_cents = int(amount * 100)
-    platform_fee_cents = int(amount_cents * fee_percent)
+    platform_fee_cents = calculate_platform_fee_cents(tier, amount_cents, is_webstore=False)
     
     try:
         # Create checkout session with connected account
@@ -539,7 +591,7 @@ async def send_invoice_payment_link(
         raise HTTPException(status_code=400, detail="Invalid invoice amount")
 
     amount_cents = int(amount * 100)
-    platform_fee_cents = int(amount_cents * fee_percent)
+    platform_fee_cents = calculate_platform_fee_cents(tier, amount_cents, is_webstore=False)
 
     # Determine destination email: use override → invoice customer → fallback
     customer_email = (body.customer_email or "").strip()
@@ -811,9 +863,9 @@ async def create_webstore_checkout(
     if not line_items or total_amount <= 0:
         raise HTTPException(status_code=400, detail="Invalid order items")
     
-    # Calculate platform fee
+    # Calculate platform fee: webstore tier gets +2% surcharge on top of base
     total_cents = int(total_amount * 100)
-    platform_fee_cents = int(total_cents * fee_percent)
+    platform_fee_cents = calculate_platform_fee_cents(tier, total_cents, is_webstore=True)
     
     try:
         session = stripe.checkout.Session.create(

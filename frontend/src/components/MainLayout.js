@@ -65,8 +65,11 @@ export const MainLayout = ({ children }) => {
     window.dispatchEvent(new Event('previewProductLineChanged'));
   }, [previewProductLine]);
 
-  // Product Line preview options
-  const productLineLabels = {
+  // Product Line preview options (filtered when Founders-only mode is active)
+  const SHOW_FOUNDERS_ONLY = (process.env.REACT_APP_SHOW_FOUNDERS_ONLY || 'true').toLowerCase() === 'true';
+  const productLineLabels = SHOW_FOUNDERS_ONLY ? {
+    os_business: { name: 'Founders Edition (Full)', color: 'bg-amber-500', productLine: 'os' },
+  } : {
     os_business: { name: 'OS Business', color: 'bg-amber-500', productLine: 'os' },
     os_pro: { name: 'OS Pro', color: 'bg-blue-500', productLine: 'os' },
     os_starter: { name: 'OS Starter', color: 'bg-slate-500', productLine: 'os' },

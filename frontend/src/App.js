@@ -105,6 +105,11 @@ import BillingManagement from "./pages/BillingManagement";
 import Questionnaires from "./pages/Questionnaires";
 import PublicQuestionnaire from "./pages/PublicQuestionnaire";
 
+// Webstore Owner Connect
+import WebstoreOwnerOnboard from "./pages/WebstoreOwnerOnboard";
+import OwnerPortalSignup from "./pages/OwnerPortalSignup";
+import OwnerPortal from "./pages/OwnerPortal";
+
 // Public Pages
 import LandingPage from "./pages/LandingPage";
 import FeaturesPage from "./pages/FeaturesPage";
@@ -268,7 +273,8 @@ function App() {
                 <Route path="/home" element={<LandingPage />} />
                 <Route path="/features" element={<FeaturesPage />} />
                 <Route path="/pricing" element={<FoundersEditionPricing />} />
-                <Route path="/pricing-legacy" element={<PricingPagePublic />} />
+                {/* Legacy multi-tier pricing pages are hidden until non-Founders tiers re-launch */}
+                <Route path="/pricing-legacy" element={<Navigate to="/pricing-plans" replace />} />
                 <Route path="/founders" element={<FoundersEditionPricing />} />
                 <Route path="/why-founder" element={<WhyFounderPage />} />
                 <Route path="/about" element={<AboutPage />} />
@@ -325,6 +331,11 @@ function App() {
                 {/* Public Questionnaire - No Auth Required */}
                 <Route path="/questionnaire/:questionnaireId" element={<PublicQuestionnaire />} />
                 <Route path="/customer-sign/:token" element={<PublicSignaturePage />} />
+
+                {/* Webstore Owner — public Stripe Connect onboarding flow */}
+                <Route path="/webstore-owner/onboard/:token" element={<WebstoreOwnerOnboard />} />
+                <Route path="/owner-portal-signup/:token" element={<OwnerPortalSignup />} />
+                <Route path="/owner-portal" element={<OwnerPortal />} />
                 
                 {/* Public Pricing Page - New Multi-Product Version */}
                 <Route path="/pricing-plans" element={<PricingPlansV2 />} />

@@ -20,6 +20,7 @@ import {
   BarChart3, Users
 } from 'lucide-react';
 import { toast } from 'sonner';
+import WebstoreOwnerConnectCard from './WebstoreOwnerConnectCard';
 
 // Simple bar chart component
 const SimpleBarChart = ({ data, maxValue }) => {
@@ -135,6 +136,9 @@ export default function WebstoreDetailDashboard({ store, onClose }) {
 
   return (
     <div className="space-y-6" data-testid="webstore-dashboard">
+      {/* Owner Stripe Connect — gate for activating the store */}
+      <WebstoreOwnerConnectCard webstore={store} />
+
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card style={{ background: '#FFFFFF', borderColor: '#D7DCE2' }}>

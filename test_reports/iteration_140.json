@@ -1,0 +1,52 @@
+{
+  "summary": "Phase A/B/C testing for Webstore Owner Connect + Founders-only tier hiding. Created /app/backend/tests/test_iteration140_owner_connect_endpoints.py with 21 tests covering fee-preview math, tenant invite endpoints (quick + portal), public token-bound onboarding endpoints, portal signup + auth, and the webstore activation gate. 18/21 passed. The 3 failures are all caused by a single root-cause backend bug (UserRole enum missing 'webstore_owner'). The existing test_fees_and_owner_connect.py still passes 10/10. Frontend Phase B (tier hiding) and Phase C (owner-portal pages) UI verified visually.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/owner-portal/me, /api/owner-portal/stores/{id}/transfers, /api/owner-portal/stores/{id}/stripe-login-link",
+        "issue": "All authenticated owner-portal endpoints return 500 Internal Server Error. Root cause: models/enums.py UserRole enum only allows ('owner','admin','staff','platform_admin') — does NOT include 'webstore_owner'. routes/webstore_owners.py portal_signup creates users with role='webstore_owner', but when those users authenticate via get_current_active_user, Pydantic UserInDB validation fails. Backend log: \"pydantic_core._pydantic_core.ValidationError: 1 validation error for UserInDB. Input should be 'owner', 'admin', 'staff' or 'platform_admin' [type=enum, input_value='webstore_owner']\". This breaks the ENTIRE Owner Portal authenticated flow (Phase C signup→login→dashboard).",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Owner Portal login + dashboard",
+        "issue": "Even after fix lands on backend, the /owner-portal dashboard will fail to call /api/owner-portal/me until the UserRole enum is updated. UI itself renders the login form correctly on dark theme.",
+        "affected_selectors": ["[data-testid=owner-portal-login]"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration140_owner_connect_endpoints.py",
+    "/app/backend/tests/test_fees_and_owner_connect.py",
+    "/app/test_reports/pytest/iteration140_results.xml"
+  ],
+  "action_items": [
+    "CRITICAL: Add WEBSTORE_OWNER = 'webstore_owner' to UserRole enum in /app/backend/models/enums.py so the new role passes UserInDB Pydantic validation. After fix, re-run test_iteration140_owner_connect_endpoints.py — the remaining 3 tests should pass without further changes.",
+    "Optional: consider also adding webstore_owner to ROLE_PERMISSIONS in models/auth.py with an empty/whitelist permission set so RBAC checks don't crash if any code path inspects permissions for this role."
+  ],
+  "critical_code_review_comments": [
+    "routes/webstore_owners.py imports get_password_hash, create_access_token from server module at call-time inside portal_signup — works, but creates an implicit cyclic-import risk. Consider importing from a dedicated auth/security module.",
+    "stripe_service.calculate_platform_fee_cents has a 1-cent micro-payment floor that drops below the advertised 2.2%+$0.20 for tiny amounts (e.g. $0.05 invoice clamps to 4c). Confirmed by test_micro_payment_floor — acceptable but worth a note in the landing-page small print.",
+    "webstore_owner_invites collection has no TTL index — expired invites are detected at fetch but never cleaned up. Recommend a Mongo TTL index on expires_at to prevent unbounded growth.",
+    "_resolve_invite returns 404 for unknown tokens but the requirement says expired/unknown → 410/404 — current behavior matches (410 for known-but-expired, 404 for unknown). Good."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration140_owner_connect_endpoints.py (new)"
+  ],
+  "success_rate": {
+    "backend": "85% (18/21 new + 10/10 regression = 28/31)",
+    "frontend": "100% on smoke checks executed (login page, invalid-token landings, /pricing-legacy redirect, /pricing-plans Founders-only)"
+  },
+  "test_credentials": "thesigntistslab@gmail.com / password123 (admin) — confirmed working",
+  "seed_data_creation": "Test webstore (TEST_OwnerConnect_*) + two owner_invites + one webstore_owner user (TEST_portal_*@example.com). All cleaned up by fixture teardown + teardown_module(). Verified no TEST_ records remain in mongo after the run.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "After main agent adds WEBSTORE_OWNER to UserRole enum, simply rerun: cd /app/backend && python -m pytest tests/test_iteration140_owner_connect_endpoints.py -v --junitxml=/app/test_reports/pytest/iteration140_results.xml. Expect 21/21. Phase A fee math + Phase B tier hiding + public Phase C onboard pages already verified end-to-end; the gap is solely the authenticated owner-portal path which fails at the UserInDB schema layer.",
+  "rca_of_the_issue": "TEST_PORTAL_OWNER_500: Pydantic UserInDB model strictly types `role: UserRole` where UserRole = Enum('owner','admin','staff','platform_admin'). When routes/webstore_owners.py:478-490 inserts {role: 'webstore_owner'} into db.users, every later call to get_current_active_user() hydrates that doc into UserInDB and ValidationError → 500. Reproduction: POST /api/owner-portal/signup with portal-invite token → success; then GET /api/owner-portal/me with returned JWT → 500. Mitigation (1-line fix): add `WEBSTORE_OWNER = 'webstore_owner'` to UserRole in /app/backend/models/enums.py. No data migration needed."
+}

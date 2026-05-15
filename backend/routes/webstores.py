@@ -216,7 +216,7 @@ class Webstore(BaseModel):
     owner_email: Optional[str] = None
     owner_phone: Optional[str] = None
     description: Optional[str] = None
-    status: WebstoreStatus = WebstoreStatus.ACTIVE
+    status: WebstoreStatus = WebstoreStatus.PENDING
     is_public: bool = True
     branding: WebstoreBranding = Field(default_factory=WebstoreBranding)
     fundraiser_goal: Optional[float] = None
@@ -234,6 +234,16 @@ class Webstore(BaseModel):
     total_profit: float = 0
     payout_owed: float = 0
     payout_paid: float = 0
+    # Owner Stripe Express account — populated when the owner finishes the
+    # magic-link onboarding flow (or the portal flow). When set + charges_enabled,
+    # the webstore is allowed to go "active". When orders complete, a Stripe
+    # Transfer fires to this account for the owner's commission cut.
+    owner_stripe_account_id: Optional[str] = None
+    owner_stripe_charges_enabled: bool = False
+    owner_stripe_payouts_enabled: bool = False
+    owner_stripe_details_submitted: bool = False
+    owner_user_id: Optional[str] = None  # set if owner created a portal account
+    owner_portal_enabled: bool = False
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
@@ -1008,6 +1018,78 @@ async def get_webstore_order(
     return order
 
 
+async def _maybe_auto_transfer_owner_commission(
+    *,
+    order: dict,
+    tenant_id: str,
+    commission: float,
+    update_set: Dict[str, Any],
+) -> None:
+    """If the webstore has a connected owner Stripe Express account, fire a
+    Stripe Transfer for the owner's commission. Idempotent via
+    ``order.owner_transfer_id``.
+
+    Sets ``update_set['owner_transfer_id']`` and ``update_set['owner_transfer_amount']``
+    so the caller persists them on the order.
+    """
+    if order.get("owner_transfer_id"):
+        return  # already transferred
+
+    webstore = await db.webstores_v2.find_one(
+        {"id": order["webstore_id"], "tenant_id": tenant_id},
+        {
+            "_id": 0,
+            "owner_stripe_account_id": 1,
+            "owner_stripe_charges_enabled": 1,
+        },
+    )
+    if not webstore:
+        return
+    owner_acct = webstore.get("owner_stripe_account_id")
+    if not owner_acct or not webstore.get("owner_stripe_charges_enabled"):
+        return  # no auto-transfer; falls back to manual payout flow
+
+    # Lazy import to avoid module-load circularity
+    import stripe as _stripe
+    import os as _os
+    _stripe.api_key = _os.environ.get("STRIPE_SECRET_KEY") or _os.environ.get("STRIPE_API_KEY")
+
+    amount_cents = int(round(commission * 100))
+    if amount_cents <= 0:
+        return
+
+    # Use a deterministic idempotency key so duplicate webhook deliveries don't
+    # double-pay the owner.
+    idem_key = f"order_{order['id']}_owner_commission"
+
+    transfer = _stripe.Transfer.create(
+        amount=amount_cents,
+        currency="usd",
+        destination=owner_acct,
+        transfer_group=f"order_{order['id']}",
+        metadata={
+            "signguy_order_id": order["id"],
+            "signguy_webstore_id": order["webstore_id"],
+            "signguy_tenant_id": tenant_id,
+            "commission_amount": str(commission),
+        },
+        idempotency_key=idem_key,
+    )
+
+    update_set["owner_transfer_id"] = transfer.id
+    update_set["owner_transfer_amount"] = commission
+    update_set["owner_transfer_at"] = datetime.now(timezone.utc).isoformat()
+
+    # Decrement payout_owed since the owner has now been paid automatically.
+    await db.webstores_v2.update_one(
+        {"id": order["webstore_id"], "tenant_id": tenant_id},
+        {
+            "$inc": {"payout_owed": -commission, "payout_paid": commission},
+            "$set": {"updated_at": datetime.now(timezone.utc).isoformat()},
+        },
+    )
+
+
 async def _apply_order_status_transition(
     order: dict,
     new_status: str,
@@ -1033,6 +1115,26 @@ async def _apply_order_status_transition(
             {"$inc": {"payout_owed": commission}, "$set": {"updated_at": now}},
         )
         update_set["payout_recorded_at"] = now
+
+        # NEW: If the webstore's owner has connected their Stripe Express
+        # account, fire an automatic Transfer for the owner's commission cut.
+        # Falls back to the manual payout flow (payout_owed) if owner not
+        # connected. Idempotent — checks order.owner_transfer_id first.
+        try:
+            await _maybe_auto_transfer_owner_commission(
+                order=order,
+                tenant_id=tenant_id,
+                commission=commission,
+                update_set=update_set,
+            )
+        except Exception as exc:  # noqa: BLE001
+            # Never block the order transition on a transfer failure — it'll
+            # surface as a retryable item in the operator dashboard.
+            logger.exception(
+                "owner-commission transfer failed for order %s: %s",
+                order.get("id"),
+                exc,
+            )
     # Leaving payout-eligible state via cancel/refund — reverse the credit.
     elif (
         new_status in {WebstoreOrderStatus.CANCELLED.value, WebstoreOrderStatus.REFUNDED.value}
@@ -1349,6 +1451,26 @@ async def update_webstore(
     _require_permission(current_user, Permission.WEBSTORES_MANAGE)
     update_data = {k: v for k, v in input.model_dump().items() if v is not None}
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    # Gate: cannot move a webstore to "active" until the owner has finished
+    # their Stripe Express onboarding (charges_enabled). Tenants must invite
+    # the owner via the quick-link or portal-link flow first.
+    new_status = update_data.get("status")
+    if new_status == WebstoreStatus.ACTIVE.value or new_status == WebstoreStatus.ACTIVE:
+        existing = await db.webstores_v2.find_one(
+            {"id": webstore_id, "tenant_id": current_user.tenant_id},
+            {"_id": 0, "owner_stripe_account_id": 1, "owner_stripe_charges_enabled": 1}
+        )
+        if not existing:
+            raise HTTPException(status_code=404, detail="Webstore not found")
+        if not (existing.get("owner_stripe_account_id") and existing.get("owner_stripe_charges_enabled")):
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Owner has not finished Stripe onboarding. Send them the "
+                    "quick connect link or portal invite before activating the store."
+                ),
+            )
     
     result = await db.webstores_v2.update_one(
         {"id": webstore_id, "tenant_id": current_user.tenant_id}, 
