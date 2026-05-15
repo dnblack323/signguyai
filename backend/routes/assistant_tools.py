@@ -116,6 +116,29 @@ TOOL_SCHEMAS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "find_customer",
+        "description": "Look up a customer by name and return their contact info + recent activity. Use for 'find Donald', 'who is Smith', 'look up Donald Black's email'.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name_query": {"type": "string"},
+            },
+            "required": ["name_query"],
+        },
+    },
+    {
+        "name": "attach_note_to_customer",
+        "description": "Append a note to a customer's record. Use for 'add a note to Donald that he prefers matte', 'note Smith wants pickup'.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "customer_query": {"type": "string"},
+                "note": {"type": "string"},
+            },
+            "required": ["customer_query", "note"],
+        },
+    },
+    {
         "name": "query_shop_metric",
         "description": "Answer a number question about the shop.",
         "parameters": {
@@ -431,6 +454,57 @@ async def _execute_tool(tool_name: str, args: Dict[str, Any], tenant_id: str) ->
             "auto_execute": False,
         }
 
+    if tool_name == "find_customer":
+        query = (args.get("name_query") or "").strip()
+        if not query:
+            return {"action_type": "find_customer", "status": "needs_clarification", "hint": "Who should I look up?"}
+        customer = await _lookup_customer(tenant_id, query)
+        if not customer:
+            return {
+                "action_type": "find_customer",
+                "status": "needs_clarification",
+                "hint": f"I couldn't find a customer matching '{query}'.",
+            }
+        # Pull last 3 invoices + last 3 jobs/orders for quick context
+        invoices = await db.invoices.find(
+            {"tenant_id": tenant_id, "customer_id": customer["id"]},
+            {"_id": 0, "id": 1, "invoice_number": 1, "status": 1, "grand_total": 1, "total": 1, "created_at": 1},
+        ).sort("created_at", -1).limit(3).to_list(3)
+        jobs = await db.jobs.find(
+            {"tenant_id": tenant_id, "customer_id": customer["id"]},
+            {"_id": 0, "id": 1, "title": 1, "status": 1, "created_at": 1},
+        ).sort("created_at", -1).limit(3).to_list(3)
+        return {
+            "action_type": "find_customer",
+            "status": "ready",
+            "customer": customer,
+            "recent_invoices": invoices,
+            "recent_orders": jobs,
+            "auto_execute": True,
+        }
+
+    if tool_name == "attach_note_to_customer":
+        query = (args.get("customer_query") or "").strip()
+        note = (args.get("note") or "").strip()
+        if not query or not note:
+            return {"action_type": "attach_note_to_customer", "status": "needs_clarification", "hint": "Who and what note?"}
+        customer = await _lookup_customer(tenant_id, query)
+        if not customer:
+            return {
+                "action_type": "attach_note_to_customer",
+                "status": "needs_clarification",
+                "hint": f"Customer '{query}' not found.",
+            }
+        return {
+            "action_type": "attach_note_to_customer",
+            "status": "ready",
+            "customer": customer,
+            "note": note,
+            "confirm_label": "Add note",
+            "low_risk": True,
+            "auto_execute": False,
+        }
+
     if tool_name == "query_shop_metric":
         return await execute_metric_query(args.get("metric"), tenant_id)
 
@@ -604,6 +678,55 @@ async def commit_reminder(
     await db.assistant_reminders.insert_one(doc)
     doc.pop("_id", None)
     return {"success": True, "reminder": doc}
+
+
+@router.post("/commit-note-to-customer")
+async def commit_note_to_customer(
+    payload: Dict[str, Any],
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Append a note to a customer's record. Mirrors the customers.py
+    `notes_append` PUT behavior so the data shape stays consistent."""
+    customer = payload.get("customer") or {}
+    cid = customer.get("id")
+    note = (payload.get("note") or "").strip()
+    if not cid or not note:
+        raise HTTPException(status_code=400, detail="customer.id and note are required")
+
+    existing = await db.customers.find_one(
+        {"id": cid, "tenant_id": current_user.tenant_id}, {"_id": 0, "notes": 1}
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    new_line = f"[{stamp}] {note} — added by AI assistant"
+    prior = (existing.get("notes") or "").strip()
+    merged = f"{prior}\n\n{new_line}".strip() if prior else new_line
+
+    await db.customers.update_one(
+        {"id": cid, "tenant_id": current_user.tenant_id},
+        {"$set": {"notes": merged, "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    return {"success": True, "note_added": new_line}
+
+
+@router.post("/dismiss-reminder")
+async def dismiss_reminder(
+    payload: Dict[str, Any],
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Mark a fired reminder as done so it stops appearing in nudges."""
+    rid = payload.get("reminder_id")
+    if not rid:
+        raise HTTPException(status_code=400, detail="reminder_id required")
+    res = await db.assistant_reminders.update_one(
+        {"id": rid, "tenant_id": current_user.tenant_id},
+        {"$set": {"status": "done", "completed_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Reminder not found")
+    return {"success": True}
 
 
 @router.post("/bulk-followup-quotes")

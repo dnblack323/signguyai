@@ -2617,6 +2617,30 @@ async def get_assistant_nudges(
     except Exception as exc:
         logger.warning("nudges:appointments failed: %s", exc)
 
+    # 4. Due reminders (set via set_reminder tool, remind_at <= now, not fired yet)
+    try:
+        due_reminders = await db.assistant_reminders.find(
+            {
+                "tenant_id": current_user.tenant_id,
+                "status": "pending",
+                "remind_at": {"$lte": now.isoformat()},
+            },
+            {"_id": 0, "id": 1, "text": 1, "remind_at": 1},
+        ).sort("remind_at", 1).limit(3).to_list(3)
+        for r in due_reminders:
+            nudges.append({
+                "kind": "reminder",
+                "action_type": "dismiss_reminder",
+                "status": "ready",
+                "title": "Reminder",
+                "subtitle": r.get("text") or "—",
+                "ref": {"reminder_id": r["id"]},
+                "confirm_label": "Mark done",
+                "low_risk": True,
+            })
+    except Exception as exc:
+        logger.warning("nudges:reminders failed: %s", exc)
+
     return {"nudges": nudges[:6], "generated_at": now.isoformat()}
 
 
