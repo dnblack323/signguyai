@@ -10,7 +10,7 @@ import { Switch } from '../components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
 import {
-  ArrowLeft, BarChart3, Calculator, ChevronDown, ChevronUp, ClipboardCheck, DollarSign, Edit2, Factory,
+  ArrowLeft, BarChart3, Calculator, ChevronDown, ChevronUp, ClipboardCheck, Copy, DollarSign, Edit2, Factory,
   Layers3, Loader2, Package, Plus, Save, Settings2, Sparkles, Trash2, Wrench,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -2254,6 +2254,219 @@ function GlobalCalculationRulesTab({ settings, onChange, canEdit }) {
 }
 
 /* ────────── REVIEW / TESTING PANEL ────────── */
+
+/**
+ * "Show Math (Behind the Scenes)" debug panel. Renders the full breakdown
+ * dict returned by /api/pricing/calculate, plus the request payload and
+ * which knob in Pricing Foundation each value came from. This is the audit
+ * trail for "why is this price off?" questions.
+ */
+function ShowMathPanel({ result, testInputs, selectedMaterial, settings }) {
+  const [open, setOpen] = useState(true);
+  const [tab, setTab] = useState('flow'); // 'flow' | 'breakdown' | 'sources' | 'raw'
+  const breakdown = result?.breakdown || {};
+  const flat = Object.entries(breakdown);
+
+  const copy = (txt) => {
+    navigator.clipboard.writeText(txt);
+    toast.success('Copied');
+  };
+
+  // Map breakdown keys to which Pricing Foundation tab/setting they come from.
+  // This is the heart of the debug experience — for every value, the user can
+  // see *exactly* which knob to twist to change it.
+  const SOURCE_HINTS = {
+    vinyl_key: 'Materials Library → row whose key matches',
+    vinyl_cost_per_sqft: 'Materials Library → cost_per_unit (auto-converted to /sqft)',
+    transfer_tape_cost_per_sqft: 'Materials Library → "transfer_tape" key',
+    color_multiplier: 'Cut Vinyl tab → color_multipliers',
+    weeding_multiplier: 'Cut Vinyl tab → weeding_multipliers',
+    use_type_multiplier: 'Cut Vinyl tab → use_type_multipliers',
+    surface_type: 'Cut Vinyl tab → surface_multipliers',
+    quantity_discount_percent: 'Category tab → quantity_discounts',
+    waste_adjusted_area: 'Category tab → waste_percentage',
+    production_hours: 'Category tab → production_labor_hours_per_sqft × area × multipliers',
+    design_hours: 'Category tab → default_design_time_hours × complexity mult',
+    install_hours: 'Category tab → install_hours_per_sqft × complexity × surface',
+    file_cleanup_fee: 'Category tab → default_cleanup_fee',
+    print_media_key: 'Materials Library → print media row',
+    rip_time_minutes: 'Digital Print tab → rip_time_minutes_per_sqft',
+    ink_cost: 'Digital Print tab → ink_cost_per_sqft',
+    laminate_cost: 'Materials Library → laminate row',
+    grommet_count: 'Banners tab → grommet rule',
+    pole_pocket_cost: 'Banners tab → pole_pocket_cost_per_inch',
+    hem_cost: 'Banners tab → hem_cost_per_linear_foot',
+    apparel_blank_cost: 'Materials Library → apparel blank row',
+    print_method_multiplier: 'Apparel tab → print_method_pricing',
+    embroidery_stitch_count: 'Apparel tab → embroidery_stitch_charge_per_1k',
+    sides_count: 'Vehicle Graphics → side_multiplier',
+    rigid_substrate_cost: 'Materials Library → rigid substrate row',
+    overhead_method: 'Shop Defaults → overhead_method',
+    overhead_rate: 'Shop Defaults → overhead_per_hour OR overhead_percentage',
+    rush_multiplier: 'Shop Defaults → rush_fee_percentage',
+    minimum_charge: 'Category tab → default_minimum_sell_price (or minimum_charge)',
+  };
+
+  // Effective labor rate (the most-asked "why?" question)
+  const productionRate = settings?.labor_rates?.production?.hourly_rate
+    ?? settings?.production_hourly_rate ?? settings?.hourly_rate ?? 75;
+  const designRate = settings?.labor_rates?.design?.hourly_rate
+    ?? settings?.design_hourly_rate ?? 85;
+  const installRate = settings?.labor_rates?.installation?.hourly_rate
+    ?? settings?.install_hourly_rate ?? 95;
+
+  // Compute the calculation flow as a readable trail
+  const flow = [];
+  if (breakdown.dimensions) flow.push({ k: 'Dimensions', v: breakdown.dimensions });
+  if (breakdown.area_per_piece !== undefined) flow.push({ k: 'Area per piece', v: `${breakdown.area_per_piece} sqft` });
+  if (breakdown.billable_area_per_piece !== undefined) flow.push({ k: 'Billable area per piece', v: `${breakdown.billable_area_per_piece} sqft (min-billable floor applied)` });
+  if (breakdown.total_billable_area !== undefined) flow.push({ k: 'Total billable area', v: `${breakdown.total_billable_area} sqft × qty ${testInputs.quantity}` });
+  if (breakdown.waste_adjusted_area !== undefined) flow.push({ k: 'Waste-adjusted area', v: `${breakdown.waste_adjusted_area} sqft` });
+  if (result.material_cost !== undefined) flow.push({ k: 'Material cost', v: `$${(result.material_cost || 0).toFixed(2)}` });
+  if (breakdown.production_hours !== undefined) flow.push({ k: 'Production hours', v: `${breakdown.production_hours} hr × $${productionRate}/hr` });
+  if (breakdown.design_hours) flow.push({ k: 'Design hours', v: `${breakdown.design_hours} hr × $${designRate}/hr` });
+  if (breakdown.install_hours) flow.push({ k: 'Install hours', v: `${breakdown.install_hours} hr × $${installRate}/hr` });
+  if (result.labor_cost !== undefined) flow.push({ k: 'Labor cost (subtotal)', v: `$${(result.labor_cost || 0).toFixed(2)}` });
+  if (result.overhead_cost) flow.push({ k: 'Overhead', v: `$${(result.overhead_cost || 0).toFixed(2)} (${settings?.overhead_method || 'method?'})` });
+  if (breakdown.color_multiplier && breakdown.color_multiplier !== 1) flow.push({ k: 'Color multiplier', v: `${breakdown.color_multiplier}× (${breakdown.color_count} colors)` });
+  if (breakdown.weeding_multiplier && breakdown.weeding_multiplier !== 1) flow.push({ k: 'Weeding multiplier', v: `${breakdown.weeding_multiplier}× (${breakdown.weeding_complexity})` });
+  if (breakdown.use_type_multiplier && breakdown.use_type_multiplier !== 1) flow.push({ k: 'Use-type multiplier', v: `${breakdown.use_type_multiplier}× (${breakdown.use_type})` });
+  if (breakdown.quantity_discount_percent) flow.push({ k: 'Quantity discount', v: `-${breakdown.quantity_discount_percent}%` });
+  if (testInputs.rush_order) flow.push({ k: 'Rush order', v: `+${settings?.rush_fee_percentage || 0}%` });
+  if (result.suggested_price !== undefined) flow.push({ k: 'Suggested price', v: `$${(result.suggested_price || 0).toFixed(2)}` });
+  if (result.selling_price !== undefined) flow.push({ k: 'Selling price (post-margin)', v: `$${(result.selling_price || 0).toFixed(2)}` });
+
+  return (
+    <div className="mt-4 border border-violet-200 bg-violet-50/50 rounded-lg" data-testid="show-math-panel">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between gap-2 px-4 py-2.5 text-left"
+        data-testid="show-math-toggle"
+      >
+        <span className="flex items-center gap-2 text-sm font-medium text-violet-800">
+          <Calculator className="h-4 w-4" />
+          Show Math (Behind the Scenes)
+          <span className="text-xs font-normal text-violet-500">— exactly which numbers fed this price</span>
+        </span>
+        {open ? <ChevronUp className="h-4 w-4 text-violet-700" /> : <ChevronDown className="h-4 w-4 text-violet-700" />}
+      </button>
+
+      {open && (
+        <div className="border-t border-violet-200 bg-white rounded-b-lg">
+          <div className="flex border-b border-violet-100 text-xs">
+            {[
+              { k: 'flow', l: 'Calculation Flow' },
+              { k: 'breakdown', l: 'All Variables' },
+              { k: 'sources', l: 'Source Map' },
+              { k: 'raw', l: 'Raw JSON' },
+            ].map((t) => (
+              <button
+                key={t.k}
+                type="button"
+                onClick={() => setTab(t.k)}
+                className={`px-3 py-2 ${tab === t.k ? 'border-b-2 border-violet-600 text-violet-700 font-medium' : 'text-gray-500 hover:text-gray-700'}`}
+                data-testid={`show-math-tab-${t.k}`}
+              >
+                {t.l}
+              </button>
+            ))}
+          </div>
+
+          {tab === 'flow' && (
+            <div className="p-4 space-y-1.5 text-sm" data-testid="show-math-flow">
+              {flow.length === 0 ? (
+                <p className="text-gray-500 italic">No breakdown data returned. Try a different category.</p>
+              ) : flow.map((row, idx) => (
+                <div key={idx} className="flex justify-between border-b border-gray-100 pb-1 last:border-b-0">
+                  <span className="text-gray-700">{idx + 1}. {row.k}</span>
+                  <span className="text-gray-900 font-mono text-xs">{row.v}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {tab === 'breakdown' && (
+            <div className="p-4 text-sm" data-testid="show-math-breakdown">
+              {flat.length === 0 ? (
+                <p className="text-gray-500 italic">No detailed variables for this category.</p>
+              ) : (
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-xs text-gray-500 uppercase border-b">
+                      <th className="text-left py-1.5">Variable</th>
+                      <th className="text-right py-1.5">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody className="font-mono text-xs">
+                    {flat.map(([k, v]) => (
+                      <tr key={k} className="border-b border-gray-50">
+                        <td className="py-1 text-gray-700">{k}</td>
+                        <td className="py-1 text-right text-gray-900">
+                          {typeof v === 'number' ? (Number.isInteger(v) ? v : v.toFixed(4).replace(/\.?0+$/, '')) :
+                           typeof v === 'boolean' ? String(v) :
+                           v === null || v === undefined ? '—' :
+                           typeof v === 'object' ? JSON.stringify(v) : String(v)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+
+          {tab === 'sources' && (
+            <div className="p-4 text-sm space-y-1.5" data-testid="show-math-sources">
+              <p className="text-xs text-gray-500 mb-2">Where each value comes from in your Pricing Foundation:</p>
+              <div className="bg-gray-50 rounded p-2.5 text-xs space-y-1">
+                <div><strong>Shop labor rates:</strong> Production ${productionRate}/hr · Design ${designRate}/hr · Install ${installRate}/hr</div>
+                <div><strong>Overhead method:</strong> {settings?.overhead_method || '— (set on Shop Defaults tab)'}</div>
+                {selectedMaterial && (
+                  <div><strong>Selected material:</strong> {selectedMaterial.name || selectedMaterial.key} @ ${selectedMaterial.cost_per_unit}/{selectedMaterial.unit_of_measure || 'unit'}</div>
+                )}
+              </div>
+              <div className="mt-3 space-y-1">
+                {flat.filter(([k]) => SOURCE_HINTS[k]).map(([k, v]) => (
+                  <div key={k} className="text-xs flex flex-wrap gap-1 border-b border-gray-100 pb-1">
+                    <span className="font-mono text-gray-900 min-w-[180px]">{k}</span>
+                    <span className="font-mono text-violet-700">= {typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+                    <span className="text-gray-500 w-full">↳ {SOURCE_HINTS[k]}</span>
+                  </div>
+                ))}
+                {flat.filter(([k]) => SOURCE_HINTS[k]).length === 0 && (
+                  <p className="text-xs text-gray-500 italic">No mapped sources for these variables yet. Check the All Variables tab.</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {tab === 'raw' && (
+            <div className="p-4 text-xs" data-testid="show-math-raw">
+              <div className="flex justify-end mb-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => copy(JSON.stringify(result, null, 2))}
+                  className="h-7 text-xs"
+                  data-testid="show-math-copy-raw"
+                >
+                  <Copy className="h-3 w-3 mr-1" /> Copy JSON
+                </Button>
+              </div>
+              <pre className="bg-gray-900 text-green-300 rounded p-3 overflow-x-auto text-[11px] leading-relaxed">
+{JSON.stringify(result, null, 2)}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ────────── REVIEW / TESTING PANEL ────────── */
 function ReviewTestingPanel({ materials, settings }) {
   const [testInputs, setTestInputs] = useState({
     category: 'digital_print',
@@ -2423,6 +2636,8 @@ function ReviewTestingPanel({ materials, settings }) {
               </div>
             </div>
           )}
+
+          {result && <ShowMathPanel result={result} testInputs={testInputs} selectedMaterial={selectedMaterial} settings={settings} />}
         </CardContent>
       </Card>
     </div>

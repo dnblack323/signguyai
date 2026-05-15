@@ -1,5 +1,18 @@
 # SignGuy AI - Changelog
 
+## February 12, 2026 — "Show Math (Behind the Scenes)" debug panel on Pricing Foundation → Review
+
+- Added `ShowMathPanel` to the Review tab in `/app/frontend/src/pages/PricingFoundation.js`. Renders 4 sub-tabs after every Run Test:
+  1. **Calculation Flow** — numbered, human-readable trail (Dimensions → Area → Billable area → Waste-adjusted → Material cost → Production/Design/Install hours × rate → Labor subtotal → Overhead → Multipliers → Suggested → Final). Pulls labor rates from `labor_rates.production/design/installation.hourly_rate` with fallbacks.
+  2. **All Variables** — raw `result.breakdown` dict as a 2-col table with smart number formatting.
+  3. **Source Map** — for each known breakdown key, shows which Pricing Foundation tab/setting it comes from (e.g. `color_multiplier ↳ Cut Vinyl tab → color_multipliers`, `production_hours ↳ Category tab → production_labor_hours_per_sqft × area × multipliers`). Also displays effective Shop Defaults labor rates + overhead method + selected material at top.
+  4. **Raw JSON** — full `result` payload with one-click Copy.
+- Backend already returned `breakdown: Dict[str, Any]` on every calculator (no backend change needed). Verified working with Digital Print test 24"×24" qty 1 → flow shows 12 steps, $88.50 suggested.
+- `Copy` icon imported from lucide-react for the Raw JSON copy button.
+- All elements carry `data-testid` (`show-math-panel`, `show-math-toggle`, `show-math-tab-flow|breakdown|sources|raw`, `show-math-copy-raw`).
+
+
+
 ## February 12, 2026 — Fee fix + Founders-only flag + Webstore Owner Stripe Connect (Phase A/B/C)
 
 ### Phase A — Fee structure aligned to landing page
