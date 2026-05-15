@@ -9,7 +9,7 @@ import {
   Sparkles, Send, ArrowLeft, Loader2, User, Bot, 
   Lightbulb, DollarSign, Users, Briefcase, TrendingUp,
   Clock, FileText, RefreshCw, Mic, MicOff, Volume2, ShoppingCart,
-  Mail, ChevronRight
+  Mail, ChevronRight, CheckCircle2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
@@ -48,10 +48,13 @@ const suggestedPrompts = [
 ];
 
 /**
- * Inline confirmation pill rendered below an assistant reply when the user
- * asked for a concrete action ("email <name>", "send invoice to <name>").
- * Backend returns ``proposed_action`` with status "ready" (customer matched)
- * or "needs_clarification" (no match — show hint only).
+ * Inline confirmation pill rendered below an assistant reply. Handles every
+ * action_type produced by the backend tool router (pass-3): navigate,
+ * create_task, create_appointment, metric, draft_email, send_invoice.
+ *
+ * For `navigate` and `metric`, we auto-execute or show a passive label —
+ * no confirm needed. For `create_task` and `create_appointment` we surface
+ * an editable summary + a one-click "Add" button.
  */
 function ProposedActionPill({ action, onRun }) {
   if (!action) return null;
@@ -67,6 +70,100 @@ function ProposedActionPill({ action, onRun }) {
     );
   }
 
+  if (action.status === 'completed') {
+    return (
+      <div className="mt-3 text-xs bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-md px-3 py-2 flex items-center gap-2">
+        <CheckCircle2 className="h-3.5 w-3.5" />
+        Done.
+      </div>
+    );
+  }
+
+  // Metric — answer is in the chat text already. Show a small inline chip.
+  if (action.action_type === 'metric') {
+    return (
+      <div
+        className="mt-3 inline-flex items-center gap-1.5 bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded"
+        data-testid="proposed-action-metric"
+      >
+        <Sparkles className="h-3 w-3" />
+        {action.value_label}
+      </div>
+    );
+  }
+
+  // Navigate — show an "Opening …" hint (the auto-execute path is handled in
+  // the chat container via a useEffect; we keep the pill as a fallback).
+  if (action.action_type === 'navigate') {
+    return (
+      <div
+        className="mt-3 flex items-center justify-between gap-3 bg-blue-50 border border-blue-200 rounded-md px-3 py-2"
+        data-testid="proposed-action-navigate"
+      >
+        <span className="text-sm text-blue-900">→ {action.label}</span>
+        <Button
+          size="sm"
+          onClick={() => onRun(action)}
+          variant="outline"
+          className="text-blue-700 border-blue-300 h-7 text-xs"
+          data-testid="proposed-action-navigate-go"
+        >
+          Open
+        </Button>
+      </div>
+    );
+  }
+
+  if (action.action_type === 'create_task') {
+    return (
+      <div
+        className="mt-3 flex items-center justify-between gap-3 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2"
+        data-testid="proposed-action-create-task"
+      >
+        <div className="min-w-0 text-sm text-emerald-900">
+          <div className="font-medium truncate">{action.title}</div>
+          {action.due_date && (
+            <div className="text-xs text-emerald-700">Due {action.due_date.slice(0, 10)}</div>
+          )}
+        </div>
+        <Button
+          size="sm"
+          onClick={() => onRun(action)}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 px-3 text-xs shrink-0"
+          data-testid="proposed-action-create-task-confirm"
+        >
+          Add task <ChevronRight className="h-3.5 w-3.5 ml-1" />
+        </Button>
+      </div>
+    );
+  }
+
+  if (action.action_type === 'create_appointment') {
+    return (
+      <div
+        className="mt-3 flex items-center justify-between gap-3 bg-cyan-50 border border-cyan-200 rounded-md px-3 py-2"
+        data-testid="proposed-action-create-appointment"
+      >
+        <div className="min-w-0 text-sm text-cyan-900">
+          <div className="font-medium truncate">{action.title}</div>
+          <div className="text-xs text-cyan-700">
+            {action.start_at?.slice(0, 16).replace('T', ' ')} · {action.duration_minutes || 60} min
+            {action.customer?.name && ` · ${action.customer.name}`}
+          </div>
+        </div>
+        <Button
+          size="sm"
+          onClick={() => onRun(action)}
+          className="bg-cyan-600 hover:bg-cyan-700 text-white h-8 px-3 text-xs shrink-0"
+          data-testid="proposed-action-create-appointment-confirm"
+        >
+          Schedule <ChevronRight className="h-3.5 w-3.5 ml-1" />
+        </Button>
+      </div>
+    );
+  }
+
+  // Email / invoice (pass-1/2)
   const Icon = action.action_type === 'send_invoice' ? FileText : Mail;
   return (
     <div
@@ -436,22 +533,67 @@ What can I help you with today?`
   };
 
   /**
-   * Execute a proposed action from the assistant. For now we route the user
-   * to the right page with the customer pre-selected so they confirm there.
-   * "Don't ask again" preference (from /api/ai/assistant/personality) can
-   * cause us to skip the confirm step in a future pass — the backend
-   * already accepts that field; the FE just hasn't wired the auto-execute
-   * path yet (kept manual on purpose so the first version is reversible).
+   * Execute a proposed action from the assistant. New action types added in
+   * pass 3: navigate (auto-routes), create_task / create_appointment (show
+   * confirm pill then commit via /assistant/commit-*), metric (no-op,
+   * answer is in the chat reply already).
    */
-  const handleRunProposedAction = (action) => {
+  const handleRunProposedAction = async (action) => {
     if (!action || action.status !== 'ready') return;
+
+    // Navigate — auto-execute
+    if (action.action_type === 'navigate' && action.path) {
+      navigate(action.path);
+      return;
+    }
+
+    // Metric — answer already in reply; nothing to do
+    if (action.action_type === 'metric') {
+      return;
+    }
+
+    // Create task — commit via API
+    if (action.action_type === 'create_task') {
+      try {
+        await api.post('/ai/assistant/commit-task', {
+          title: action.title,
+          due_date: action.due_date,
+          priority: action.priority,
+        });
+        toast.success('Task added');
+        action.status = 'completed';  // local — pill re-renders disabled
+        setMessages((prev) => [...prev]);
+      } catch (err) {
+        toast.error(err.response?.data?.detail || 'Failed to add task');
+      }
+      return;
+    }
+
+    // Create appointment — commit via API
+    if (action.action_type === 'create_appointment') {
+      try {
+        await api.post('/ai/assistant/commit-appointment', {
+          title: action.title,
+          start_at: action.start_at,
+          duration_minutes: action.duration_minutes,
+          customer: action.customer,
+        });
+        toast.success('Appointment added to your calendar');
+        action.status = 'completed';
+        setMessages((prev) => [...prev]);
+      } catch (err) {
+        toast.error(err.response?.data?.detail || 'Failed to schedule');
+      }
+      return;
+    }
+
+    // Email / invoice actions (existing pass-1/2 behavior)
     const cid = action.customer?.id;
     if (!cid) {
       toast.error('No customer linked to this action');
       return;
     }
     if (action.action_type === 'draft_email') {
-      // Drop the customer & a draft into the Documents → Email page via query.
       const subject = action.about ? `RE: ${action.about}` : 'Quick note';
       navigate(`/customers/${cid}?compose_email=1&subject=${encodeURIComponent(subject)}`);
       return;

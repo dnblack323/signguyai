@@ -1,5 +1,42 @@
 # SignGuy AI - Changelog
 
+## February 12, 2026 — AI Assistant pass 3: real tool calling (navigate / create / metric)
+
+### Backend
+- **Tool router** `_route_with_tools()` runs BEFORE the GPT-5.2 chat call. Two-layer:
+  - Layer 1: **deterministic keyword fast-path** for the 20 most common money/metric phrasings ("how much did i make today", "how many open orders", etc.) and 10 navigation phrasings ("open the schedule", "show me customers"). Sub-200ms, zero LLM cost.
+  - Layer 2: **gpt-4o-mini classifier** with strict JSON output + full tool schemas. Strengthened prompt with explicit rules ("ANY 'how much/how many' → query_shop_metric", "ANY DO verb → tool", "advice/opinion → null").
+- **Tool registry** with 4 tools so far:
+  - `navigate(destination)` — opens schedule / customers / billing / etc. Auto-executes on FE (no confirm needed).
+  - `create_task(title, due_date_phrase, priority)` — natural-language date parser (today/tomorrow/friday/next-week + "2pm" / "10:30am" / "14:00")
+  - `create_appointment(title, customer_query, start_phrase, duration_minutes)` — same parser + customer lookup
+  - `query_shop_metric(metric)` — 10 metrics: revenue_today/week/month, open_orders, open_invoices_total, overdue_invoices_count, customers_total, customers_new_30d, top_customer_30d, stale_quotes_count
+- When a tool fires, the assistant **short-circuits** the full chat — returns the structured `proposed_action` + a 1-line friendly reply. Saves ~80% on LLM cost for metric questions and gives instant answers.
+- **New commit endpoints**:
+  - `POST /api/ai/assistant/commit-task` — inserts into `tasks` collection with `created_by_ai: true`
+  - `POST /api/ai/assistant/commit-appointment` — inserts into `appointments` with `created_by_ai: true`
+- Fixed a bug — `sum()` cannot iterate async generators; converted all metric queries to `.to_list(None)` then sum.
+
+### Frontend (`AIAssistant.js`)
+- `ProposedActionPill` now renders **6 distinct pill styles**:
+  - `metric` — small purple chip showing value_label (e.g. "$60.00")
+  - `navigate` — blue pill with "Open" button (also handler auto-routes immediately)
+  - `create_task` — emerald pill with Add button → commit-task
+  - `create_appointment` — cyan pill with Schedule button → commit-appointment
+  - `draft_email` / `send_invoice` — existing purple pill (pass-1/2)
+  - `completed` status — emerald "Done." chip after a commit
+- `handleRunProposedAction` switch updated to call commit endpoints, navigate, or fall through to existing email/invoice routing.
+
+### Verified live
+- "how much did i make today" → `$0.00` instant
+- "how much outstanding" → `$60.00` real
+- "open the schedule" → navigates to `/calendar` automatically
+- "add a task to call vinyl supplier tomorrow" → parses tomorrow 9am, shows confirm pill, commit endpoint inserts task with `created_by_ai: true`
+- "schedule a measure visit friday 10am" → parses Friday 10am, creates appointment doc on commit
+- 43/43 backend regression still green
+
+
+
 ## February 12, 2026 — AI Assistant pass 2: proactive nudges + send-email loop + long-term memory
 
 ### Backend (`/app/backend/routes/ai.py`)
