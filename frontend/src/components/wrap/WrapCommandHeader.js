@@ -19,7 +19,14 @@ const HEADER_ACTIONS = [
 
 const money = (n) => (typeof n === 'number' ? `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—');
 
-export default function WrapCommandHeader({ orderId, header }) {
+export default function WrapCommandHeader({ orderId, header, saveStatus, saveError }) {
+  const saveBadge = (() => {
+    if (saveStatus === 'saving') return { text: 'Saving…', cls: 'bg-amber-50 text-amber-700 border-amber-200' };
+    if (saveStatus === 'saved')  return { text: 'Saved',    cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+    if (saveStatus === 'error')  return { text: `Error: ${saveError || 'save failed'}`, cls: 'bg-rose-50 text-rose-700 border-rose-200' };
+    return null;
+  })();
+
   return (
     <div className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200" data-testid="wrap-command-header">
       <div className="px-4 sm:px-6 py-3 space-y-2.5">
@@ -38,6 +45,11 @@ export default function WrapCommandHeader({ orderId, header }) {
               </h1>
               <Badge className="bg-violet-100 text-violet-800 border-violet-200">Wrap Workflow</Badge>
               <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-200">{header.status}</Badge>
+              {saveBadge && (
+                <Badge variant="outline" className={saveBadge.cls} data-testid="wrap-save-status">
+                  {saveBadge.text}
+                </Badge>
+              )}
             </div>
             <p className="text-sm text-slate-600 mt-0.5 truncate">
               {header.business_name && <span>{header.business_name} · </span>}

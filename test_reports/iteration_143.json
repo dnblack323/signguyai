@@ -1,0 +1,39 @@
+{
+  "summary": "Iteration 143 — Wrap Command Center Phase 2A both-side testing. Backend: 13/13 PASS, 1 SKIPPED. Frontend: 100% of review_request flows verified PASS on viewport 1920x1080 with admin thesigntistslab@gmail.com. BACKEND — GET /api/wrap/items/{ticket} auto-creates a doc on first call with the 17 vehicle_info keys (year/make/model/trim/body_type/roof_height/wheelbase/vehicle_color/license_plate/vin/existing_graphics/existing_wrap/paint_condition/body_condition/vehicle_notes/template_type/customer_photo_placeholders), empty wrapped_areas list, and a coverage_summary block (total_raw_sqft, total_billable_sqft, average_waste_percent, included_count, excluded_count). Second GET returns the same id. Non-wrap ticket returns 400 'Job ticket is not a wrap category'. Nonexistent returns 404. No-auth returns 403. PUT /vehicle persists year=2024, make=Chevy, model=Express, body_type=Cargo Van, vehicle_color=Black, existing_graphics=true, vehicle_notes=Test and re-GET returns the same values. POST /areas with 120x72in/15% returns raw_sqft=60 and billable_sqft=69. POST with unit='ft' (10x5) returns raw=50, billable=50. POST with missing width/height returns raw_sqft=None and billable_sqft=None. PUT /areas/{id} recomputes (144x72in/10% -> raw 72, billable 79.2). Setting included=false decrements included_count and increments excluded_count. Two-area coverage math (60+30 raw, 69+36 billable @ 15/20% waste) -> total_raw=90, total_billable=105, included_count=2, excluded_count=0, avg_waste=17.5. Excluding one area drops totals to raw=60, billable=69, included=1, excluded=1. DELETE removes the area and recomputes summary. _id is stripped from all response shapes (vehicle_info, wrapped_areas, top-level, coverage_summary). FRONTEND — Vehicle Info tab renders all 13 text inputs (vehicle-input-{key}), both toggles (vehicle-toggle-existing_graphics, vehicle-toggle-existing_wrap), and vehicle-input-vehicle_notes. Typing in a field shows data-testid='vehicle-unsaved-indicator'. Clicking vehicle-save-btn fires PUT, updates wrap-save-status to 'Saved' (caught mid-flight; saving→saved transitions in <150ms because save is fast), shows success toast 'Vehicle info saved', clears the unsaved indicator, and auto-clears the badge after 2s. Reloading the page rehydrates the saved year/make/model. Measurements tab renders meas-coverage card with all 5 summary cells (cs-total-raw, cs-avg-waste, cs-total-billable, cs-included, cs-excluded). Add Driver Side 120x72in@15% -> cs-total-raw='60.00 ft²', cs-total-billable='69.00 ft²', cs-included='1'. Adding a 2nd area with included=false increments cs-excluded to 1 and the row shows the 'Excluded' chip. Clicking meas-toggle-included on the excluded row flips it to included optimistically (no reload). Inline edit form (meas-edit-{id}-…) updates width and the row's raw/billable refresh. Delete removes the row and summary recalculates. Direct navigation to wrap-command-center with the non-wrap ticket e19d6501-... silently redirects to /orders/{orderId}. AI helper button 'Autofill Dimensions' in Vehicle Info fires sonner toast 'AI feature will be connected in a later phase.'",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration143_wrap_command_center.py",
+    "/app/test_reports/pytest/iteration143_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "WrapCommandHeader save badge only renders in saving|saved|error states (not idle). flashSaved() auto-clears 'saved' after 2000ms, so the 'Saved' indicator is transient. For e2e tests, check it within ~1500ms of save click. This is intentional but worth noting in PRD.",
+    "wrap.py _coverage_summary computes average_waste_percent over included areas only — matches spec. Excluded areas correctly bypass total_raw/total_billable. Good.",
+    "wrap.py _is_wrap_category falls back to 'wrap' substring (norm.contains 'wrap'). Same permissive heuristic as frontend constants.isWrapCategory — strings like 'wraparound_signs' would erroneously match. Phase 1 risk noted in iteration_142 still present; no impact for current seeded tickets.",
+    "wrap.py PUT /areas/{area_id}: in-place dict mutation + write-back. Two concurrent updates could race (last-write-wins on full wrapped_areas array). Acceptable for single-user usage, but consider $set with arrayFilters for production multi-editor cases.",
+    "Frontend WrapCommandCenterPage handleSaveVehicle returns {ok:false} on error but the VehicleInfoTab uses result?.ok to decide whether to clear dirty. On error, dirty stays true — correct. Good UX.",
+    "Tenant isolation not exercised in this run (no second-tenant account available; signguypa is same tenant per /app/memory/test_credentials.md). The mongo query filters on current_user.tenant_id for every endpoint, so isolation is structurally enforced; needs a fresh second-tenant account to assert end-to-end.",
+    "Backend coverage_summary always returns numeric fields, allowing frontend toFixed() calls to be safe. No null-guard needed."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration143_wrap_command_center.py (new)"
+  ],
+  "success_rate": {
+    "backend": "100% (13/13 passed, 1 skipped — cross-tenant)",
+    "frontend": "100% (all review_request flows passed)"
+  },
+  "test_credentials": "thesigntistslab@gmail.com / password123 — confirmed working",
+  "seed_data_creation": "Used pre-seeded order 118b7377-... + wrap ticket aa0387f8-... + non-wrap ticket e19d6501-... per request. Backend tests reset wrap_data.wrapped_areas for this ticket at fixture start/end so coverage math is deterministic.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Phase 2A complete. wrap_data collection holds one doc per (tenant_id, ticket_id). When testing area math via FE, beware that the prior test run may leave 'A1' (Driver Side) etc. in the database; clean via /api/wrap/items/{id}/areas/{aid} DELETE before asserting cs-* values. To assert the 'Saving…' (mid-flight) save badge, run a network-throttling profile or check at ~80ms — typical save completes in <150ms in this env so 'saved' is what you'll catch. Cross-tenant isolation test is skipped — get a second-tenant account before claiming that's tested.",
+  "rca of the issue": "N/A — no bugs found. Phase 2A meets all spec requirements."
+}

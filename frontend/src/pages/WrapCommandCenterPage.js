@@ -1,13 +1,15 @@
-// Phase 1: Wrap Command Center page.
-// Composes the reusable wrap components into a single workspace tied to a
-// specific order item. Phase 1 uses placeholder data when backend fields
-// are not yet populated, but pulls real order/item/customer values when
-// available so the screen feels real to the user.
+// Phase 2A: Wrap Command Center page.
+// Phase 1 layout untouched. Phase 2A adds:
+//   • fetch /api/wrap/items/{ticketId} and pass wrapData + setters to tabs
+//   • track save status (idle | saving | saved | error) and surface it in the header subtitle
+//   • Vehicle Info tab + Measurements tab now save real data via the new
+//     endpoints; other tabs continue to use placeholders.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import WrapCommandHeader from '../components/wrap/WrapCommandHeader';
 import WrapStatusBar from '../components/wrap/WrapStatusBar';
@@ -33,14 +35,16 @@ import { getAuthToken } from '../lib/authStorage';
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const hdr = () => ({ Authorization: `Bearer ${getAuthToken()}`, 'Content-Type': 'application/json' });
 
-function deriveHeader(order, item, customer) {
+function deriveHeader(order, item, customer, wrapData) {
   if (!order && !item) return PLACEHOLDER_HEADER;
   const snapshot = item?.pricing_snapshot;
   const quoted = snapshot?.active_price || item?.estimated_price || PLACEHOLDER_HEADER.quoted_price;
   const specs = item?.specs || {};
-  const vehicle = [specs.vehicle_year, specs.vehicle_make, specs.vehicle_model]
-    .filter(Boolean)
-    .join(' ') || PLACEHOLDER_HEADER.vehicle;
+  const v = wrapData?.vehicle_info || {};
+  const vehicleParts = [v.year, v.make, v.model].filter(Boolean);
+  const vehicle = vehicleParts.length
+    ? vehicleParts.join(' ')
+    : [specs.vehicle_year, specs.vehicle_make, specs.vehicle_model].filter(Boolean).join(' ') || PLACEHOLDER_HEADER.vehicle;
   return {
     order_number: order?.order_number ? `Order #${order.order_number}` : PLACEHOLDER_HEADER.order_number,
     customer_name: customer?.name || order?.customer_name || PLACEHOLDER_HEADER.customer_name,
@@ -63,6 +67,9 @@ export default function WrapCommandCenterPage() {
   const [order, setOrder] = useState(null);
   const [item, setItem] = useState(null);
   const [customer, setCustomer] = useState(null);
+  const [wrapData, setWrapData] = useState(null);
+  const [saveStatus, setSaveStatus] = useState('idle'); // idle | saving | saved | error
+  const [saveError, setSaveError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -76,14 +83,19 @@ export default function WrapCommandCenterPage() {
         const tickets = o?.job_tickets || [];
         const matched = tickets.find((t) => t.id === itemId) || null;
         setItem(matched);
+        // Pull customer (best-effort) and wrap data in parallel
+        const tasks = [];
         if (o?.customer_id) {
-          try {
-            const cr = await axios.get(`${API}/customers/${o.customer_id}`, { headers: hdr() });
-            if (!cancelled) setCustomer(cr.data || null);
-          } catch (_) {
-            // customer fetch is best-effort; placeholder/order fallback is fine
-          }
+          tasks.push(axios.get(`${API}/customers/${o.customer_id}`, { headers: hdr() })
+            .then((cr) => { if (!cancelled) setCustomer(cr.data || null); })
+            .catch(() => {}));
         }
+        if (matched && isWrapCategory(matched.item_category)) {
+          tasks.push(axios.get(`${API}/wrap/items/${itemId}`, { headers: hdr() })
+            .then((wr) => { if (!cancelled) setWrapData(wr.data || null); })
+            .catch(() => { /* keep wrapData null on failure */ }));
+        }
+        await Promise.all(tasks);
       } catch (_) {
         // network/auth failure — fall back to placeholder UI so users still see structure
       } finally {
@@ -94,22 +106,91 @@ export default function WrapCommandCenterPage() {
     return () => { cancelled = true; };
   }, [orderId, itemId]);
 
-  const header = useMemo(() => deriveHeader(order, item, customer), [order, item, customer]);
+  const header = useMemo(() => deriveHeader(order, item, customer, wrapData), [order, item, customer, wrapData]);
 
-  // If we successfully loaded an item and it's not a wrap category, gently
-  // redirect the user back to the order detail to avoid showing a wrap
-  // workspace for a non-wrap line item.
+  // If item is loaded but not wrap, gently redirect (preserve Phase 1 guard)
   useEffect(() => {
     if (!loading && item && !isWrapCategory(item.item_category)) {
       navigate(`/orders/${orderId}`, { replace: true });
     }
   }, [loading, item, orderId, navigate]);
 
+  // ─── Save helpers (used by Vehicle Info + Measurements tabs) ───
+  const flashSaved = useCallback(() => {
+    setSaveStatus('saved');
+    setSaveError('');
+    setTimeout(() => {
+      setSaveStatus((s) => (s === 'saved' ? 'idle' : s));
+    }, 2000);
+  }, []);
+
+  const handleSaveVehicle = useCallback(async (vehiclePayload) => {
+    setSaveStatus('saving');
+    setSaveError('');
+    try {
+      const res = await axios.put(`${API}/wrap/items/${itemId}/vehicle`, vehiclePayload, { headers: hdr() });
+      setWrapData(res.data || null);
+      flashSaved();
+      toast.success('Vehicle info saved');
+      return { ok: true };
+    } catch (e) {
+      setSaveStatus('error');
+      const msg = e?.response?.data?.detail || e?.message || 'Failed to save';
+      setSaveError(msg);
+      toast.error('Failed to save vehicle info', { description: msg });
+      return { ok: false, error: msg };
+    }
+  }, [itemId, flashSaved]);
+
+  const handleAddArea = useCallback(async (areaPayload) => {
+    setSaveStatus('saving');
+    try {
+      const res = await axios.post(`${API}/wrap/items/${itemId}/areas`, areaPayload, { headers: hdr() });
+      setWrapData(res.data || null);
+      flashSaved();
+      toast.success('Area added');
+    } catch (e) {
+      setSaveStatus('error');
+      const msg = e?.response?.data?.detail || e?.message || 'Failed';
+      setSaveError(msg);
+      toast.error('Failed to add area', { description: msg });
+    }
+  }, [itemId, flashSaved]);
+
+  const handleUpdateArea = useCallback(async (areaId, areaPayload) => {
+    setSaveStatus('saving');
+    try {
+      const res = await axios.put(`${API}/wrap/items/${itemId}/areas/${areaId}`, areaPayload, { headers: hdr() });
+      setWrapData(res.data || null);
+      flashSaved();
+    } catch (e) {
+      setSaveStatus('error');
+      const msg = e?.response?.data?.detail || e?.message || 'Failed';
+      setSaveError(msg);
+      toast.error('Failed to update area', { description: msg });
+    }
+  }, [itemId, flashSaved]);
+
+  const handleDeleteArea = useCallback(async (areaId) => {
+    setSaveStatus('saving');
+    try {
+      const res = await axios.delete(`${API}/wrap/items/${itemId}/areas/${areaId}`, { headers: hdr() });
+      setWrapData(res.data || null);
+      flashSaved();
+      toast.success('Area deleted');
+    } catch (e) {
+      setSaveStatus('error');
+      const msg = e?.response?.data?.detail || e?.message || 'Failed';
+      setSaveError(msg);
+      toast.error('Failed to delete area', { description: msg });
+    }
+  }, [itemId, flashSaved]);
+
   const renderTab = () => {
     switch (tab) {
       case 'overview':     return <OverviewTab header={header} />;
-      case 'vehicle':      return <VehicleInfoTab />;
-      case 'measurements': return <MeasurementsTab />;
+      case 'vehicle':      return <VehicleInfoTab wrapData={wrapData} onSave={handleSaveVehicle} saveStatus={saveStatus} />;
+      case 'measurements': return <MeasurementsTab wrapData={wrapData} onAddArea={handleAddArea} onUpdateArea={handleUpdateArea} onDeleteArea={handleDeleteArea} saveStatus={saveStatus} />;
       case 'pricing':      return <PricingTab header={header} />;
       case 'design':       return <DesignTab />;
       case 'contract':     return <ContractTab />;
@@ -133,7 +214,7 @@ export default function WrapCommandCenterPage() {
 
   return (
     <div className="min-h-screen bg-slate-50" data-testid="wrap-command-center-page">
-      <WrapCommandHeader orderId={orderId} header={header} />
+      <WrapCommandHeader orderId={orderId} header={header} saveStatus={saveStatus} saveError={saveError} />
       <div className="px-4 sm:px-6 pt-3">
         <WrapStatusBar currentStatus={header.status} testId="wrap-cc-status-bar" />
       </div>
