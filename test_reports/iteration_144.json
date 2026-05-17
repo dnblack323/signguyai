@@ -1,0 +1,40 @@
+{
+  "summary": "Iteration 144 — Wrap Command Center Phase 2B both-side testing. Backend: 21/21 PASS (test_iteration144_wrap_phase2b.py). Frontend: 100% of review_request flows verified PASS on viewport 1920x1100 with admin thesigntistslab@gmail.com. BACKEND: PUT /api/wrap/items/{id}/vehicle with year=2023/make=Mercedes/model=Sprinter/trim=Cargo/body_type=High Roof/vehicle_color=Silver mirrors all 6 keys into job_tickets.specs (vehicle_year/make/model/trim/body_type/color) without disturbing other spec fields. POST/PUT/DELETE /materials work; total_material_cost auto-computes (140*1.85=259, 100*2.50=250). PUT /pricing returns full pricing_snapshot with all required keys (pricing_method, total_billable_sqft=207, total_labor_cost=900, material_total=427, base_cost=1452, markup_percent=30, markup_amount=435.6, suggested_price=2037.6, per_sqft_price, manual_quoted_price, quoted_price=2037.6, estimated_profit=585.6, estimated_margin_percent=28.71±0.05, computed_at). per_sqft method with price_per_sqft=15 + fees -> 3380.0. Manual override quoted_price=2500 with profit=1048. POST /recalculate refreshes snapshot WITHOUT overwriting pricing config (markup_percent, design_hours preserved). Excluding an area (15x6 ft, 90 raw / 103.5 billable) reduces total_billable_sqft on the next recalc from 207 to 103.5. POST /apply-price-to-order sets job_tickets.estimated_price=2037.6, pricing_snapshot.pricing_mode='wrap', .active_price=2037.6, .source='wrap_command_center'. Order total recomputed to $2337.60 (banner $250 + acrylic $50 + wrap $2037.60). Non-wrap guard (banner ticket e19d6501-...) returns 400 'Job ticket is not a wrap category' on all 4 new endpoints (materials POST, pricing PUT, recalculate POST, apply POST). No-auth returns 401/403 on every new endpoint. Phase 2A regression: GET /items still returns serialized doc; 144x72in@10% still computes raw=72/billable=79.2. No mongo _id leakage anywhere (recursive check on root, vehicle_info, wrapped_areas, materials, pricing, pricing_snapshot, coverage_summary, applied_to_ticket). FRONTEND: /orders/{order}/items/{wrap}/wrap-command-center loads; clicking data-testid='wrap-tab-pricing' renders pricing-summary card with all 6 cells (billable=207.00 ft², material-total=$427, labor-total=$900, base-cost=$1452, quoted=$2037.60, profit-margin=$585.60 (28.7%)). All 3 action buttons render (pricing-recalc-btn, pricing-save-btn, pricing-apply-btn). All 3 method radios render. All 15 pricing inputs present (price_per_sqft, manual_quoted_price, markup_percent, design_hours, production_hours, install_hours, labor_rate, removal_fee, prep_fee, rush_fee, travel_fee, setup_design_fee, laminate_cost, ink_consumables_cost, misc_cost). Live preview math mirrors backend: changing markup_percent 30->50 instantly bumped quoted from $2037.60 to $2328.00 BEFORE save and 'pricing-unsaved-indicator' appeared. Saving with markup=30 restored quoted to $2037.60. MATERIALS UI: material-add-btn opens material-add-form; submitting Vinyl X/3M/100sqft/$2.50 created a new material row visible in the list, then material-delete-btn-{id} removed it. APPLY-TO-ORDER: clicking pricing-apply-btn fired the API, a toast confirmed apply, and navigating to /orders/118b7377-... showed the WrapCC item at $2037.60 and the ESTIMATE statistics card at $2337.60 (banner $250 + acrylic $50 + wrap $2037.60). Phase-1 non-wrap guard intact: direct nav to /items/e19d6501-... /wrap-command-center silently redirected to /orders/{order}.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration144_wrap_phase2b.py",
+    "/app/test_reports/pytest/iteration144_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "wrap.py _compute_pricing_snapshot is well-isolated and pure (no DB writes). Good design — easy to unit test and reuse in apply-price-to-order's lazy snapshot fallback.",
+    "apply-price-to-order writes both `estimated_price` and `pricing_snapshot.wrap_snapshot` on the job_ticket. The wrap_snapshot duplicates the wrap_data.pricing_snapshot — consider just storing the key fields (pricing_mode/active_price/source/quoted/computed_at) to avoid stale-snapshot drift if a downstream save updates one and not the other.",
+    "_sync_vehicle_to_ticket writes via $set on dotted keys (specs.vehicle_year, etc.). It only sets a key if `vehicle.get(src) is not None` — so a payload {'make': 'X'} won't overwrite other specs.vehicle_* fields. Confirmed behaviour matches the requested spec; non-wrap specs (width/height/material) remain untouched.",
+    "wrap.py PUT /pricing accepts manual_quoted_price=None implicitly via Optional; snapshot logic falls back to suggested/per_sqft pricing when manual is None. Good.",
+    "Snapshot's estimated_margin_percent is computed against quoted_price (not base_cost). With quoted=2037.6 and profit=585.6, the result is 28.7414% which rounds to 28.74. Spec said ≈28.74 so this matches. (Note: backend rounds to 2dp = 28.74; FE displays 28.7%.)",
+    "Local preview math in PricingTab.js mirrors backend formulas exactly — verified via UI markup 30->50 swap producing the same $2328.00 the backend would. Risk: if either side ever changes a formula, the two will drift silently. Suggest a single shared formula module or a server-rendered preview endpoint for safety.",
+    "Backend doesn't restrict pricing_method to enum values — passes through whatever string is sent. Snapshot falls back to material_labor_markup if method isn't 'manual' or 'per_sqft'. Minor: tighten with a Literal type for clearer 422 errors on bad clients.",
+    "Materials route has no max-count guard — a runaway script could push thousands of materials into one wrap_data doc, blowing the 16MB Mongo doc limit. Low risk in practice; consider a soft cap (e.g., 100 materials) for defensive ops."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration144_wrap_phase2b.py (new)"
+  ],
+  "success_rate": {
+    "backend": "100% (21/21 passed)",
+    "frontend": "100% (all review_request flows passed)"
+  },
+  "test_credentials": "thesigntistslab@gmail.com / password123 — confirmed working",
+  "seed_data_creation": "Reset wrap_data for ticket aa0387f8-... at the start of TestPricingFormulas fixture; seeded 3 included areas (10x6, 15x6, 10x3 ft @ 15% waste -> 180 raw / 207 billable) and 2 materials (100*1.5 + 121*2 = $392). All test materials/areas created during the run are reset between assertions where determinism mattered.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Phase 2B is fully wired. wrap_data Mongo doc now stores: vehicle_info, wrapped_areas, materials, pricing (config), pricing_snapshot (computed). apply-price-to-order pushes quoted_price -> job_ticket.estimated_price and refreshes order.order_total via services/workflow_engine.update_order_progress. The seeded order 118b7377-... now has order_total $2337.60 (was $455.89 in Phase 1; was $300 banner+acrylic-only earlier) — if a future test asserts a specific older total, reset by re-applying or by manually updating estimated_price on the wrap ticket. JobTicketSpecs has Config.extra='allow' which is how the vehicle-sync writes specs.vehicle_year/make/model/trim/body_type/color without modifying the model. AI helper buttons on Pricing tab still placeholder toasts; verify they do NOT call backend (no real network on them). The Phase 2A `meas-coverage` card / measurements tab is untouched and still works. Phase-1 non-wrap silent redirect from /items/{nonwrap}/wrap-command-center still functions.",
+  "rca of the issue": "N/A — no bugs found. Phase 2B implementation matches all spec requirements (formulas, vehicle sync, materials CRUD, apply-to-order, non-wrap guard, _id stripping, auth)."
+}

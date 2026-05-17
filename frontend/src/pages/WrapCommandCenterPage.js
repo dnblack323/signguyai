@@ -186,12 +186,124 @@ export default function WrapCommandCenterPage() {
     }
   }, [itemId, flashSaved]);
 
+  // ─── Pricing & Materials (Phase 2B) ───
+  const handleSavePricing = useCallback(async (pricingPayload) => {
+    setSaveStatus('saving');
+    try {
+      const res = await axios.put(`${API}/wrap/items/${itemId}/pricing`, pricingPayload, { headers: hdr() });
+      setWrapData(res.data || null);
+      flashSaved();
+      toast.success('Pricing saved');
+      return true;
+    } catch (e) {
+      setSaveStatus('error');
+      const msg = e?.response?.data?.detail || e?.message || 'Failed';
+      setSaveError(msg);
+      toast.error('Failed to save pricing', { description: msg });
+      return false;
+    }
+  }, [itemId, flashSaved]);
+
+  const handleRecalculate = useCallback(async () => {
+    setSaveStatus('saving');
+    try {
+      const res = await axios.post(`${API}/wrap/items/${itemId}/recalculate`, {}, { headers: hdr() });
+      setWrapData(res.data || null);
+      flashSaved();
+      toast.success('Pricing recalculated');
+    } catch (e) {
+      setSaveStatus('error');
+      const msg = e?.response?.data?.detail || e?.message || 'Failed';
+      setSaveError(msg);
+      toast.error('Failed to recalculate', { description: msg });
+    }
+  }, [itemId, flashSaved]);
+
+  const handleApplyPrice = useCallback(async () => {
+    setSaveStatus('saving');
+    try {
+      const res = await axios.post(`${API}/wrap/items/${itemId}/apply-price-to-order`, {}, { headers: hdr() });
+      setWrapData(res.data || null);
+      // also refresh the parent order so the header's quoted/balance update
+      try {
+        const o = await axios.get(`${API}/orders/${orderId}`, { headers: hdr() });
+        setOrder(o.data || null);
+        const tickets = o.data?.job_tickets || [];
+        setItem(tickets.find((t) => t.id === itemId) || null);
+      } catch (_) { /* non-fatal */ }
+      flashSaved();
+      const applied = res.data?.applied_to_ticket;
+      toast.success('Price applied to order', {
+        description: applied ? `Order item updated to $${(applied.estimated_price || 0).toFixed(2)}` : undefined,
+      });
+    } catch (e) {
+      setSaveStatus('error');
+      const msg = e?.response?.data?.detail || e?.message || 'Failed';
+      setSaveError(msg);
+      toast.error('Failed to apply price', { description: msg });
+    }
+  }, [itemId, orderId, flashSaved]);
+
+  const handleAddMaterial = useCallback(async (payload) => {
+    setSaveStatus('saving');
+    try {
+      const res = await axios.post(`${API}/wrap/items/${itemId}/materials`, payload, { headers: hdr() });
+      setWrapData(res.data || null);
+      flashSaved();
+      toast.success('Material added');
+    } catch (e) {
+      setSaveStatus('error');
+      const msg = e?.response?.data?.detail || e?.message || 'Failed';
+      setSaveError(msg);
+      toast.error('Failed to add material', { description: msg });
+    }
+  }, [itemId, flashSaved]);
+
+  const handleUpdateMaterial = useCallback(async (materialId, payload) => {
+    setSaveStatus('saving');
+    try {
+      const res = await axios.put(`${API}/wrap/items/${itemId}/materials/${materialId}`, payload, { headers: hdr() });
+      setWrapData(res.data || null);
+      flashSaved();
+    } catch (e) {
+      setSaveStatus('error');
+      const msg = e?.response?.data?.detail || e?.message || 'Failed';
+      setSaveError(msg);
+      toast.error('Failed to update material', { description: msg });
+    }
+  }, [itemId, flashSaved]);
+
+  const handleDeleteMaterial = useCallback(async (materialId) => {
+    setSaveStatus('saving');
+    try {
+      const res = await axios.delete(`${API}/wrap/items/${itemId}/materials/${materialId}`, { headers: hdr() });
+      setWrapData(res.data || null);
+      flashSaved();
+      toast.success('Material deleted');
+    } catch (e) {
+      setSaveStatus('error');
+      const msg = e?.response?.data?.detail || e?.message || 'Failed';
+      setSaveError(msg);
+      toast.error('Failed to delete material', { description: msg });
+    }
+  }, [itemId, flashSaved]);
+
   const renderTab = () => {
     switch (tab) {
       case 'overview':     return <OverviewTab header={header} />;
       case 'vehicle':      return <VehicleInfoTab wrapData={wrapData} onSave={handleSaveVehicle} saveStatus={saveStatus} />;
       case 'measurements': return <MeasurementsTab wrapData={wrapData} onAddArea={handleAddArea} onUpdateArea={handleUpdateArea} onDeleteArea={handleDeleteArea} saveStatus={saveStatus} />;
-      case 'pricing':      return <PricingTab header={header} />;
+      case 'pricing':      return <PricingTab
+                                      header={header}
+                                      wrapData={wrapData}
+                                      onSavePricing={handleSavePricing}
+                                      onRecalculate={handleRecalculate}
+                                      onApplyPrice={handleApplyPrice}
+                                      onAddMaterial={handleAddMaterial}
+                                      onUpdateMaterial={handleUpdateMaterial}
+                                      onDeleteMaterial={handleDeleteMaterial}
+                                      saveStatus={saveStatus}
+                                    />;
       case 'design':       return <DesignTab />;
       case 'contract':     return <ContractTab />;
       case 'inspection':   return <InspectionTab />;
