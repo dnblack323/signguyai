@@ -3159,7 +3159,8 @@ async def calculate_custom(data: JobItemPricingData, quantity: float, defaults: 
     """Calculate custom items using tenant cost settings."""
     category_config = get_category_pricing_config(defaults, "custom")
     material_cost_map = get_material_cost_map(defaults)
-    material_cost = (data.unit_cost or material_cost_map.get("misc_material", 0)) * quantity
+    unit_material_cost = data.unit_cost or material_cost_map.get("misc_material", 0)
+    material_cost = unit_material_cost * quantity
 
     hourly_rate = data.hourly_rate_override or float(defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75)) or 0)
     labor_hours = data.estimated_hours or (float(category_config.get("default_labor_hours_per_unit", 0.25) or 0.25) * quantity)
@@ -3176,29 +3177,111 @@ async def calculate_custom(data: JobItemPricingData, quantity: float, defaults: 
     )
 
     custom_price = data.price_override if data.override_enabled else None
+    manual_override_used = False
     if custom_price:
         suggested_price = custom_price * quantity
+        manual_override_used = True
 
-    suggested_price = max(
-        suggested_price,
-        float(category_config.get("minimum_charge", defaults.get("minimum_order", 0)) or 0),
-    )
+    minimum_charge = float(category_config.get("minimum_charge", defaults.get("minimum_order", 0)) or 0)
+    suggested_price = max(suggested_price, minimum_charge)
     suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order)
 
-    return create_pricing_result(
+    # ============== PHASE 2D: USE STANDARDIZED RESPONSE ==============
+    # Custom is a simple cost-plus (or manual-override) model.
+    # Overhead math basis is preserved from legacy: material_cost + labor_cost.
+    materials_list = []
+    if material_cost > 0:
+        materials_list.append({
+            "name": "Custom Item Material",
+            "quantity": quantity,
+            "unit": "each",
+            "unit_cost": unit_material_cost,
+            "total_cost": material_cost,
+        })
+
+    labor_list = []
+    if labor_cost > 0:
+        labor_list.append({
+            "name": "Custom Labor",
+            "quantity": labor_hours,
+            "unit": "hours",
+            "unit_cost": hourly_rate,
+            "total_cost": labor_cost,
+        })
+
+    return create_standardized_pricing_result(
+        # Costs (itemized by type)
         material_cost=material_cost,
         labor_cost=labor_cost,
+        design_cost=0,
         setup_cost=0,
-        additional_costs=0,
+        finishing_cost=0,
+        hardware_cost=0,
+        install_cost=0,
+        outsourcing_cost=0,
         overhead_cost=overhead_cost,
+
+        # Pricing
         suggested_price=suggested_price,
+        minimum_charge=minimum_charge,
+
+        # Metadata
         estimated_labor_minutes=labor_hours * 60,
-        breakdown={
+        pricing_method=("manual_override" if manual_override_used else "markup"),
+        markup_multiplier=float(markup_multiplier or 1.0),
+        target_margin_percent=float(
+            category_config.get(
+                "target_profit_margin_percent",
+                defaults.get("target_profit_margin_percent", 40.0),
+            ) or 0
+        ),
+
+        # Overhead explainability (Phase 2D)
+        overhead_basis={
+            "formula": "(basis_amount * overhead_percentage / 100) + (labor_hours * shop_overhead_per_hour)",
+            "basis_amount": round(pre_overhead_total, 2),
+            "basis_components": [
+                "material_cost",
+                "labor_cost",
+            ],
+            "labor_hours": round(labor_hours, 2),
+            "overhead_percentage": float(
+                category_config.get("overhead_percentage", defaults.get("overhead_percentage", 0)) or 0
+            ),
+            "shop_overhead_per_hour": float(
+                category_config.get("shop_overhead_per_hour", defaults.get("shop_overhead_per_hour", 0)) or 0
+            ),
+            "overhead_excludes_setup_cost": True,
+            "notes": (
+                "Overhead is calculated from the legacy basis: material_cost + labor_cost. "
+                "When manual price override is enabled, the selling_price is the override value "
+                "(× quantity) and overhead is still computed on this basis for cost reporting only."
+            ),
+        },
+
+        # Breakdown arrays
+        materials_breakdown=materials_list,
+        labor_breakdown=labor_list,
+
+        # Metadata fields
+        quantity=quantity,
+        warnings=[],
+
+        # Legacy breakdown (preserve existing keys for backward compat)
+        legacy_breakdown={
             "custom_item": True,
             "labor_hours": labor_hours,
             "hourly_rate": hourly_rate,
             "overhead_cost": round(overhead_cost, 2),
-        }
+            "manual_override_used": manual_override_used,
+            "override_enabled": bool(data.override_enabled),
+            "price_override": data.price_override,
+            "override_unit_price": (custom_price if manual_override_used else None),
+            "markup_multiplier": float(markup_multiplier or 1.0),
+            "markup_percent_input": data.markup_percent,
+            "minimum_charge": minimum_charge,
+            "rush_order": bool(data.rush_order),
+        },
     )
 
 
