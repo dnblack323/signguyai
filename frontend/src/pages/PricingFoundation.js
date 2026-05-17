@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner';
 import { useAuth, Permission } from '../context/AuthContext';
 import { getAuthToken } from '../lib/authStorage';
+import PricingSetupQuiz from '../components/pricing/PricingSetupQuiz';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const hdr = () => ({ Authorization: `Bearer ${getAuthToken()}`, 'Content-Type': 'application/json' });
@@ -2803,6 +2804,15 @@ export default function PricingFoundation() {
     try { window.localStorage.setItem('pricingFoundationMode', mode); } catch { /* noop */ }
   }, [mode]);
 
+  // Phase 6: Pricing Setup Quiz dialog state
+  const [quizOpen, setQuizOpen] = useState(false);
+  const handleQuizApply = (nextSettings) => {
+    // Merge the quiz output into the in-memory settings. The user must still
+    // click "Save All" to persist (unless they had no other pending changes —
+    // in which case the standard hasChanges detection will flag this merge).
+    setSettings(nextSettings);
+  };
+
   const fetchAll = useCallback(async () => {
     const token = getAuthToken();
     if (!token) return;
@@ -2927,7 +2937,29 @@ export default function PricingFoundation() {
 
       {/* Simple-mode extras: category defaults summary above the standard tabs */}
       {mode === 'simple' && settings && (
-        <div className="mb-4">
+        <div className="mb-4 space-y-3">
+          <div className="flex items-center justify-between bg-violet-50 border border-violet-200 rounded-lg px-4 py-3">
+            <div className="flex items-start gap-2">
+              <Sparkles className="h-4 w-4 text-violet-600 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-violet-900">Not sure where to start?</p>
+                <p className="text-xs text-violet-700">
+                  Answer a few real-world price questions and we&apos;ll suggest defaults for you.
+                  Nothing changes until you review and apply.
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="default"
+              className="bg-violet-600 hover:bg-violet-700"
+              onClick={() => setQuizOpen(true)}
+              disabled={!canEdit}
+              data-testid="run-pricing-setup-quiz-btn"
+            >
+              <Sparkles className="h-4 w-4 mr-1" /> Run Pricing Setup Quiz
+            </Button>
+          </div>
           <CategoryDefaultsSummary settings={settings} />
         </div>
       )}
@@ -3025,6 +3057,14 @@ export default function PricingFoundation() {
           <RawSettingsJsonPanel settings={settings} materials={materials} hardwareAccessories={hardwareAccessories} />
         </div>
       )}
+
+      {/* Phase 6: Guided Pricing Setup Quiz dialog */}
+      <PricingSetupQuiz
+        open={quizOpen}
+        onClose={() => setQuizOpen(false)}
+        settings={settings}
+        onApply={handleQuizApply}
+      />
     </div>
   );
 }

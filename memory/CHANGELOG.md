@@ -1,5 +1,15 @@
 # SignGuy AI - Changelog
 
+## February 17, 2026 — Pricing System Refactor (Phases 1-6) Complete
+- **Phase 1:** `/api/pricing/calculate` accepts canonical dimensions (`width_inches`, `height_inches`, `area_sqft`) and category aliases; legacy payloads still work
+- **Phase 2:** Added `create_standardized_pricing_result()` returning 8 itemized cost buckets + structured `breakdown` arrays + explainable `breakdown.metadata.overhead_basis`
+- **Phase 2D:** Migrated all 9 calculators (rigid_signs, banners, cut_vinyl, digital_print, promotional, custom, services, vehicle_graphics, apparel) to the standardized response. Pricing math unchanged — only response shape
+- **Phase 2E:** 14 backend regression tests (`backend/tests/test_pricing.py::TestPhase2EResponseShape`) pin response shape + math invariants per calculator. All passing
+- **Phase 3:** New `StandardizedPricingBreakdown` frontend component renders top summary, structured cost buckets (auto-hidden when zero), overhead-basis expander, margin-health banner
+- **Phase 4:** Removed redundant legacy display blocks from `PricingCalculator.js` (~110 lines of duplicated UI/math). UI now backend-driven
+- **Phase 5:** Added Simple / Advanced / Audit mode switch to Pricing Foundation. Simple shows essentials + Category Defaults Summary; Audit shows test calculator + Raw Settings JSON viewer; mode persisted to localStorage
+- **Phase 6:** Optional `PricingSetupQuiz` wizard — 10 sections (Shop Basics, Banners, Yard Signs, Rigid Signs, Cut Vinyl, Digital Print, Vehicle Graphics, Apparel, Services, Promotional/Custom). Converts real-world price answers into conservative suggested defaults with per-suggestion Apply/Skip review screen. Never auto-overwrites; user must click Apply then existing Save All
+
 ## February 12, 2026 — AI Assistant pass 4: extracted + 2 new tools (reminder, bulk follow-up)
 
 ### Surgical refactor (not a full rewrite — kept ai.py intact otherwise)
