@@ -670,15 +670,112 @@ async def calculate_promotional(data: JobItemPricingData, quantity: float, defau
     if discount > 0:
         suggested_price *= (1 - discount)
     suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order)
-    
-    return create_pricing_result(
+
+    # ============== PHASE 2D: USE STANDARDIZED RESPONSE ==============
+    # Promotional is a wholesale + markup model. The per-unit vendor cost is the
+    # primary material cost (already multiplied by quantity and double-sided modifier).
+    # Overhead math is preserved: overhead is calculated on (material_cost + labor_cost),
+    # i.e., setup_fee is intentionally excluded from the overhead basis.
+    product_label = str(product_type.value) if product_type and hasattr(product_type, "value") else (str(product_type) if product_type else "Promotional Item")
+
+    materials_list = []
+    if material_cost > 0:
+        # Effective per-unit cost after double-sided adjustment, so the breakdown line
+        # sums exactly to material_cost.
+        effective_unit_cost = (material_cost / quantity) if quantity > 0 else material_cost
+        materials_list.append({
+            "name": f"{product_label} (vendor unit cost)",
+            "quantity": quantity,
+            "unit": "each",
+            "unit_cost": effective_unit_cost,
+            "total_cost": material_cost,
+            "notes": (
+                f"double_sided_multiplier={double_sided_multiplier}" if double_sided_multiplier != 1.0 else None
+            ),
+        })
+
+    labor_list = []
+    if labor_cost > 0:
+        labor_list.append({
+            "name": "Handling/Production Labor",
+            "quantity": labor_hours,
+            "unit": "hours",
+            "unit_cost": production_rate,
+            "total_cost": labor_cost,
+        })
+
+    setup_list = []
+    if setup_fee > 0:
+        setup_list.append({
+            "name": "Setup Fee",
+            "quantity": 1,
+            "unit": "job",
+            "unit_cost": setup_fee,
+            "total_cost": setup_fee,
+        })
+
+    return create_standardized_pricing_result(
+        # Costs (itemized by type)
         material_cost=material_cost,
         labor_cost=labor_cost,
+        design_cost=0,
         setup_cost=setup_fee,
-        additional_costs=0,
+        finishing_cost=0,
+        hardware_cost=0,
+        install_cost=0,
+        outsourcing_cost=0,
         overhead_cost=overhead_cost,
+
+        # Pricing
         suggested_price=suggested_price,
-        breakdown={
+        minimum_charge=0,
+
+        # Metadata
+        estimated_labor_minutes=labor_hours * 60,
+        pricing_method="markup",
+        markup_multiplier=markup_multiplier,
+        target_margin_percent=float(
+            category_config.get(
+                "target_profit_margin_percent",
+                defaults.get("target_profit_margin_percent", 40.0),
+            ) or 0
+        ),
+
+        # Overhead explainability (Phase 2D)
+        overhead_basis={
+            "formula": "(basis_amount * overhead_percentage / 100) + (labor_hours * shop_overhead_per_hour)",
+            "basis_amount": round(pre_overhead_total, 2),
+            "basis_components": [
+                "material_cost",
+                "labor_cost",
+            ],
+            "labor_hours": round(labor_hours, 2),
+            "overhead_percentage": float(
+                category_config.get("overhead_percentage", defaults.get("overhead_percentage", 0)) or 0
+            ),
+            "shop_overhead_per_hour": float(
+                category_config.get("shop_overhead_per_hour", defaults.get("shop_overhead_per_hour", 0)) or 0
+            ),
+            "overhead_excludes_setup_cost": True,
+            "notes": (
+                "Overhead is calculated from the legacy basis: material_cost + labor_cost. "
+                "setup_fee is intentionally excluded from this basis to preserve pre-Phase-2D "
+                "behavior (setup fee is added FLAT to selling price, never marked up or "
+                "subjected to overhead)."
+            ),
+        },
+
+        # Breakdown arrays
+        materials_breakdown=materials_list,
+        labor_breakdown=labor_list,
+        setup_breakdown=setup_list,
+
+        # Metadata fields
+        quantity=quantity,
+        warnings=[],
+
+        # Legacy breakdown (preserve existing keys for backward compat)
+        legacy_breakdown={
             "product_type": product_type,
             "base_unit_cost": base_cost,
             "quantity": quantity,
@@ -691,8 +788,8 @@ async def calculate_promotional(data: JobItemPricingData, quantity: float, defau
             "quantity_discount": discount,
             "double_sided_art": double_sided_art,
             "double_sided_multiplier": double_sided_multiplier,
-            "price_per_item": round(suggested_price / quantity, 2) if quantity > 0 else 0
-        }
+            "price_per_item": round(suggested_price / quantity, 2) if quantity > 0 else 0,
+        },
     )
 
 
