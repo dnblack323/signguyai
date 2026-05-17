@@ -3821,15 +3821,181 @@ async def calculate_apparel(data: JobItemPricingData, quantity: float, defaults:
         cfg,
     )
 
-    return create_pricing_result(
-        material_cost=material_cost_total,
-        labor_cost=labor_cost_total,
+    return create_standardized_pricing_result(
+        # === ITEMIZED COSTS (Phase 2D mapping) ===
+        # Blanks → materials
+        # Decoration consumable (HTV/DTG/screen ink/embroidery thread) + per-piece
+        # add-on upcharges (plus-size, custom name/number, specialty finish,
+        # two-tone, leather patch, bag-and-fold) → finishing.
+        # NOTE on add-ons: legacy create_pricing_result accepted these as
+        # `additional_costs` and added them to production_cost. To preserve
+        # production_cost (= true_cost) and profit_amount EXACTLY, they must
+        # stay inside base_cost. They sit in `finishing` here for clarity since
+        # they all relate to garment decoration/finishing.
+        # Production labor → labor; design labor → design; setup fee → setup.
+        # Overhead basis stays exactly as legacy: material_cost_total +
+        # labor_cost_total (blanks + decoration_material + production_labor +
+        # design_cost). Setup fee and per-piece add-ons are intentionally
+        # excluded from the overhead basis to preserve pre-Phase-2D math.
+        material_cost=total_blank_cost,
+        labor_cost=(labor_cost_total - design_cost),  # production labor only
+        design_cost=design_cost,
         setup_cost=setup_fee,
-        additional_costs=plus_size_cost + custom_nn_cost + specialty_cost + two_tone_cost + patch_cost + bag_fold_cost,
+        finishing_cost=(
+            total_decoration_material_cost
+            + plus_size_cost
+            + custom_nn_cost
+            + specialty_cost
+            + two_tone_cost
+            + patch_cost
+            + bag_fold_cost
+        ),
+        hardware_cost=0,
+        install_cost=0,
+        outsourcing_cost=0,
         overhead_cost=overhead_cost,
+
+        # === PRICING ===
         suggested_price=suggested_price,
+        minimum_charge=min_sell_per_piece * qty,
+
+        # === METADATA ===
         estimated_labor_minutes=labor_hours * 60,
-        breakdown={
+        pricing_method=(
+            "manual_override"
+            if (manual_override is not None) or (data.override_enabled and data.price_override)
+            else baseline_source or "cost_plus"
+        ),
+        markup_multiplier=float(cfg.get("default_markup_multiplier", 2.15) or 2.15),
+        target_margin_percent=float(cfg.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 0)) or 0),
+
+        # Overhead explainability (Phase 2D)
+        overhead_basis={
+            "formula": "(basis_amount * overhead_percentage / 100) + (labor_hours * shop_overhead_per_hour)",
+            "basis_amount": round(material_cost_total + labor_cost_total, 2),
+            "basis_components": [
+                "total_blank_cost",
+                "total_decoration_material_cost",
+                "production_labor_cost",
+                "design_cost",
+            ],
+            "labor_hours": round(labor_hours, 2),
+            "labor_hours_components": [
+                "production_labor_hours",
+                "design_hours (when artwork not ready)",
+            ],
+            "overhead_percentage": float(
+                cfg.get("overhead_percentage", defaults.get("overhead_percentage", 0)) or 0
+            ),
+            "shop_overhead_per_hour": float(
+                cfg.get("shop_overhead_per_hour", defaults.get("shop_overhead_per_hour", 0)) or 0
+            ),
+            "overhead_excludes_setup_cost": True,
+            "notes": (
+                "Overhead is calculated from the legacy basis: blanks + decoration material + "
+                "production labor + design labor. setup_fee AND per-piece add-on upcharges "
+                "(plus_size, custom_name_number, specialty_finish, two_tone, leather_patch, "
+                "bag_and_fold) are intentionally excluded from the overhead basis to preserve "
+                "pre-Phase-2D math. The add-ons remain inside base_cost (mapped to "
+                "finishing_cost) so production_cost and profit_amount equal legacy values."
+            ),
+        },
+
+        # === BREAKDOWN ARRAYS ===
+        materials_breakdown=(
+            [{
+                "name": ((blank_material or {}).get("name") or brand_key or "Blank Garment"),
+                "quantity": qty,
+                "unit": "each",
+                "unit_cost": round(blank_cost_per_piece, 2),
+                "total_cost": round(total_blank_cost, 2),
+            }] if total_blank_cost > 0 else []
+        ),
+        labor_breakdown=(
+            [{
+                "name": "Production / Pressing Labor",
+                "quantity": round((labor_minutes_per_piece * qty) / 60.0, 2),
+                "unit": "hours",
+                "unit_cost": prod_rate,
+                "total_cost": round(labor_cost_total - design_cost, 2),
+            }] if (labor_cost_total - design_cost) > 0 else []
+        ),
+        design_breakdown=(
+            [{
+                "name": "Design / Artwork",
+                "quantity": round(labor_hours - ((labor_minutes_per_piece * qty) / 60.0), 2) if design_cost > 0 else 0,
+                "unit": "hours",
+                "unit_cost": float(labor_rates.get("design", {}).get("hourly_rate", defaults.get("design_hourly_rate", 85)) or 85),
+                "total_cost": round(design_cost, 2),
+            }] if design_cost > 0 else []
+        ),
+        setup_breakdown=(
+            [{
+                "name": "Apparel Setup Fee",
+                "quantity": 1,
+                "unit": "job",
+                "unit_cost": round(setup_fee, 2),
+                "total_cost": round(setup_fee, 2),
+            }] if setup_fee > 0 else []
+        ),
+        finishing_breakdown=(
+            ([{
+                "name": f"Decoration Consumable ({method_key})",
+                "quantity": qty,
+                "unit": "each",
+                "unit_cost": round(decoration_material_per_piece, 2),
+                "total_cost": round(total_decoration_material_cost, 2),
+            }] if total_decoration_material_cost > 0 else [])
+            + ([{
+                "name": "Plus-Size Upcharge",
+                "quantity": plus_size_count,
+                "unit": "piece",
+                "unit_cost": round(plus_size_rate, 2),
+                "total_cost": round(plus_size_cost, 2),
+            }] if plus_size_cost > 0 else [])
+            + ([{
+                "name": "Custom Name/Number",
+                "quantity": custom_nn_count,
+                "unit": "piece",
+                "unit_cost": round(custom_nn_cost / custom_nn_count, 2) if custom_nn_count > 0 else 0,
+                "total_cost": round(custom_nn_cost, 2),
+            }] if custom_nn_cost > 0 else [])
+            + ([{
+                "name": "Specialty Finish",
+                "quantity": qty,
+                "unit": "piece",
+                "unit_cost": round(specialty_cost / qty, 2) if qty > 0 else 0,
+                "total_cost": round(specialty_cost, 2),
+            }] if specialty_cost > 0 else [])
+            + ([{
+                "name": "Two-Tone Hat Finish",
+                "quantity": qty,
+                "unit": "piece",
+                "unit_cost": round(two_tone_cost / qty, 2) if qty > 0 else 0,
+                "total_cost": round(two_tone_cost, 2),
+            }] if two_tone_cost > 0 else [])
+            + ([{
+                "name": "Leather Patch",
+                "quantity": qty,
+                "unit": "piece",
+                "unit_cost": round(patch_cost / qty, 2) if qty > 0 else 0,
+                "total_cost": round(patch_cost, 2),
+            }] if patch_cost > 0 else [])
+            + ([{
+                "name": "Bag & Fold",
+                "quantity": qty,
+                "unit": "piece",
+                "unit_cost": round(bag_fold_cost / qty, 2) if qty > 0 else 0,
+                "total_cost": round(bag_fold_cost, 2),
+            }] if bag_fold_cost > 0 else [])
+        ),
+
+        # === METADATA FIELDS ===
+        quantity=qty,
+        warnings=([warning] if warning else []),
+
+        # === LEGACY BREAKDOWN (preserve all existing keys) ===
+        legacy_breakdown={
             "product_type": product_type_key,
             "is_hat": is_hat,
             "brand_style_key": brand_key,
@@ -3842,7 +4008,6 @@ async def calculate_apparel(data: JobItemPricingData, quantity: float, defaults:
             "uses_shop_table": uses_shop_table,
             "baseline_source": baseline_source,
             "shop_table_warning": warning,
-            "quantity": qty,
             "quantity_tier": tier_key,
             "per_piece_sell": round(per_piece_sell, 2),
             "blank_cost_per_piece": round(blank_cost_per_piece, 2),
@@ -3872,10 +4037,17 @@ async def calculate_apparel(data: JobItemPricingData, quantity: float, defaults:
             "stitch_count": int(data.apparel_stitch_count or 0),
             "labor_hours": round(labor_hours, 2),
             "labor_cost_total": round(labor_cost_total, 2),
-            "overhead_cost": round(overhead_cost, 2),
             "rush_percent_applied": round(rush_percent, 2) if data.rush_order else 0,
             "manual_quote_override": manual_override,
             "min_sell_per_piece": min_sell_per_piece,
+            # Phase 2D: preserve legacy aggregate values (additional_costs was
+            # the sum of all the per-piece add-on upcharges).
+            "legacy_material_cost_total": round(material_cost_total, 2),
+            "legacy_labor_cost_total": round(labor_cost_total, 2),
+            "legacy_additional_costs": round(
+                plus_size_cost + custom_nn_cost + specialty_cost
+                + two_tone_cost + patch_cost + bag_fold_cost, 2
+            ),
         },
     )
 
