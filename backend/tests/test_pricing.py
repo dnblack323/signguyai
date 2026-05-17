@@ -780,3 +780,404 @@ class TestPhase1Normalization:
         # If width is present, it should be normalized to width_inches
         # height_inches is already canonical, should work as-is
 
+
+# ============== PHASE 2E: STANDARDIZED RESPONSE SHAPE TESTS ==============
+# Verifies every pricing calculator returns the Phase 2 standardized response
+# structure and that breakdown arrays sum to their matching top-level fields.
+
+class TestPhase2EResponseShape:
+    """Phase 2E — Confirm all 9 pricing calculators return the standardized
+    Phase 2 response structure with consistent top-level cost fields, structured
+    breakdown arrays whose sums match top-level costs, and an explainable
+    overhead_basis under breakdown.metadata.
+    """
+
+    TOLERANCE = 0.02  # legacy tests use 0.02, we use 0.01 where strict
+
+    # The full set of top-level cost fields every standardized response must expose.
+    REQUIRED_TOP_FIELDS = [
+        "material_cost", "labor_cost", "design_cost", "setup_cost",
+        "finishing_cost", "hardware_cost", "install_cost", "outsourcing_cost",
+        "overhead_cost",
+        "base_cost", "true_cost", "production_cost", "total_cost",
+        "suggested_price", "selling_price",
+        "profit_amount", "profit_margin_percent", "markup_percent",
+        "estimated_labor_minutes", "minimum_charge_applied",
+        "pricing_method_used", "breakdown",
+    ]
+
+    REQUIRED_BREAKDOWN_KEYS = [
+        "materials", "labor", "design", "setup", "finishing",
+        "hardware", "install", "outsourcing", "overhead", "metadata",
+    ]
+
+    # Itemized cost buckets that have a corresponding breakdown array
+    BUCKET_TO_FIELD = [
+        ("materials", "material_cost"),
+        ("labor", "labor_cost"),
+        ("design", "design_cost"),
+        ("setup", "setup_cost"),
+        ("finishing", "finishing_cost"),
+        ("hardware", "hardware_cost"),
+        ("install", "install_cost"),
+        ("outsourcing", "outsourcing_cost"),
+    ]
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        """Authenticate against the live BASE_URL once per test."""
+        login = requests.post(
+            f"{BASE_URL}/api/auth/login",
+            json={"email": "thesigntistslab@gmail.com", "password": "password123"},
+        )
+        if login.status_code != 200:
+            pytest.skip(f"Login failed: {login.status_code} - {login.text}")
+        token = login.json().get("access_token")
+        self.headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+    # ---------------- helpers ----------------
+
+    def _calc(self, category: str, pricing_data: dict, quantity: float = 1):
+        payload = {"category": category, "pricing_data": pricing_data, "quantity": quantity}
+        r = requests.post(f"{BASE_URL}/api/pricing/calculate", json=payload, headers=self.headers)
+        assert r.status_code == 200, f"{category} failed: {r.status_code} {r.text}"
+        return r.json()
+
+    def _assert_shape(self, data: dict, label: str):
+        """Validate top-level + breakdown structure of a standardized response."""
+        # Top-level fields
+        for field in self.REQUIRED_TOP_FIELDS:
+            assert field in data, f"[{label}] missing top-level field: {field}"
+
+        bd = data["breakdown"]
+        assert isinstance(bd, dict), f"[{label}] breakdown must be a dict"
+        for key in self.REQUIRED_BREAKDOWN_KEYS:
+            assert key in bd, f"[{label}] breakdown missing key: {key}"
+
+        # Arrays should be lists (overhead is also a list of 0..1 items)
+        for key in [k for k in self.REQUIRED_BREAKDOWN_KEYS if k != "metadata"]:
+            assert isinstance(bd[key], list), f"[{label}] breakdown.{key} must be a list"
+
+        # Metadata + overhead_basis presence
+        md = bd["metadata"]
+        assert isinstance(md, dict), f"[{label}] breakdown.metadata must be a dict"
+        assert "overhead_basis" in md, f"[{label}] breakdown.metadata.overhead_basis missing"
+
+    def _assert_math(self, data: dict, label: str):
+        """Validate the math invariants for a standardized response."""
+        tol = self.TOLERANCE
+        bd = data["breakdown"]
+
+        # 1. Every breakdown bucket sums to its top-level field
+        for bucket, field in self.BUCKET_TO_FIELD:
+            arr_sum = round(sum(item.get("total_cost", 0) for item in bd[bucket]), 2)
+            top = float(data[field])
+            assert abs(arr_sum - top) <= tol, (
+                f"[{label}] sum(breakdown.{bucket})={arr_sum} != {field}={top}"
+            )
+
+        # 2. Overhead breakdown sums to overhead_cost
+        oh_sum = round(sum(item.get("total_cost", 0) for item in bd["overhead"]), 2)
+        assert abs(oh_sum - float(data["overhead_cost"])) <= tol, (
+            f"[{label}] sum(breakdown.overhead)={oh_sum} != overhead_cost={data['overhead_cost']}"
+        )
+
+        # 3. base_cost = sum of all 8 itemized buckets
+        itemized_sum = sum(float(data[f]) for _, f in self.BUCKET_TO_FIELD)
+        assert abs(itemized_sum - float(data["base_cost"])) <= tol, (
+            f"[{label}] sum(itemized costs)={itemized_sum} != base_cost={data['base_cost']}"
+        )
+
+        # 4. true_cost = base_cost + overhead_cost
+        expected_true = float(data["base_cost"]) + float(data["overhead_cost"])
+        assert abs(expected_true - float(data["true_cost"])) <= tol, (
+            f"[{label}] base+overhead={expected_true} != true_cost={data['true_cost']}"
+        )
+
+        # 5. production_cost = true_cost
+        assert abs(float(data["production_cost"]) - float(data["true_cost"])) <= tol, (
+            f"[{label}] production_cost != true_cost"
+        )
+
+        # 6. profit_amount = selling_price - true_cost
+        expected_profit = float(data["selling_price"]) - float(data["true_cost"])
+        assert abs(expected_profit - float(data["profit_amount"])) <= tol, (
+            f"[{label}] selling-true={expected_profit} != profit_amount={data['profit_amount']}"
+        )
+
+        # 7. overhead_basis math equals overhead_cost
+        ob = bd["metadata"]["overhead_basis"]
+        # Some calculators may have empty overhead_basis if overhead is 0 — guard.
+        if ob:
+            basis = float(ob.get("basis_amount", 0) or 0)
+            pct = float(ob.get("overhead_percentage", 0) or 0)
+            hours = float(ob.get("labor_hours", 0) or 0)
+            shop = float(ob.get("shop_overhead_per_hour", 0) or 0)
+            expected_oh = round(basis * pct / 100.0 + hours * shop, 2)
+            assert abs(expected_oh - float(data["overhead_cost"])) <= tol, (
+                f"[{label}] overhead_basis math={expected_oh} != overhead_cost={data['overhead_cost']}"
+            )
+
+    def _assert_response(self, data: dict, label: str):
+        self._assert_shape(data, label)
+        self._assert_math(data, label)
+
+    # ---------------- per-calculator tests ----------------
+
+    def test_rigid_signs_shape_24x36(self):
+        """rigid_signs 24in × 36in returns standardized response with consistent math."""
+        data = self._calc("rigid_signs", {"width_inches": 24, "height_inches": 36}, quantity=1)
+        self._assert_response(data, "rigid_signs:24x36")
+        assert data["material_cost"] > 0
+        # Materials breakdown should contain at least one line item
+        assert len(data["breakdown"]["materials"]) >= 1
+
+    def test_banners_shape_3ft_x_6ft_inches(self):
+        """banners 3ft × 6ft specified in inches (36in × 72in). Banners default
+        unit is 'feet' per category config, so we must pass unit_of_measure='inches'
+        to be interpreted as inches. Expected area = 18 sqft.
+        """
+        data = self._calc(
+            "banners",
+            {"width_inches": 36, "height_inches": 72, "unit_of_measure": "inches"},
+            quantity=1,
+        )
+        self._assert_response(data, "banners:36in_x_72in")
+        assert data["material_cost"] > 0
+        md = data["breakdown"]["metadata"]
+        assert abs(md.get("area_sqft", 0) - 18.0) <= 0.5, (
+            f"banners area_sqft mismatch: got {md.get('area_sqft')}"
+        )
+
+    def test_cut_vinyl_shape_24x36(self):
+        """cut_vinyl 24in × 36in returns standardized response."""
+        data = self._calc("cut_vinyl", {"width_inches": 24, "height_inches": 36}, quantity=1)
+        self._assert_response(data, "cut_vinyl:24x36")
+        assert data["material_cost"] > 0
+
+    def test_digital_print_shape_24x36(self):
+        """digital_print 24in × 36in returns standardized response."""
+        data = self._calc("digital_print", {"width_inches": 24, "height_inches": 36}, quantity=1)
+        self._assert_response(data, "digital_print:24x36")
+        assert data["material_cost"] > 0
+        md = data["breakdown"]["metadata"]
+        assert abs(md.get("area_sqft", 0) - 6.0) <= 0.5
+
+    def test_promotional_shape_with_setup_fee(self):
+        """promotional with setup_fee=$25 keeps setup excluded from overhead basis."""
+        data = self._calc(
+            "promotional",
+            {"unit_cost": 3.0, "include_setup_fee": True, "setup_fee": 25, "double_sided_art": "different"},
+            quantity=100,
+        )
+        self._assert_response(data, "promotional:setup25")
+        assert data["setup_cost"] == 25.0
+        ob = data["breakdown"]["metadata"]["overhead_basis"]
+        assert ob.get("overhead_excludes_setup_cost") is True
+        # Overhead basis must NOT include setup
+        basis = float(ob["basis_amount"])
+        assert abs(basis - (data["material_cost"] + data["labor_cost"])) <= 0.02
+
+    def test_custom_shape_manual_override(self):
+        """custom manual price override: selling_price = override × qty; method tagged."""
+        # cost-plus baseline
+        baseline = self._calc(
+            "custom",
+            {"unit_cost": 15, "estimated_hours": 2, "hourly_rate_override": 80, "markup_percent": 150},
+            quantity=3,
+        )
+        self._assert_response(baseline, "custom:cost_plus")
+        assert baseline["pricing_method_used"] == "markup"
+
+        # manual override
+        override = self._calc(
+            "custom",
+            {
+                "unit_cost": 15, "estimated_hours": 2, "hourly_rate_override": 80,
+                "override_enabled": True, "price_override": 99.99,
+            },
+            quantity=3,
+        )
+        self._assert_response(override, "custom:override")
+        assert override["pricing_method_used"] == "manual_override"
+        # selling_price must equal override × qty
+        assert abs(override["selling_price"] - (99.99 * 3)) <= 0.02
+        # profit_amount still equals selling - true_cost (re-checked inside _assert_math)
+        md = override["breakdown"]["metadata"]
+        assert md.get("manual_override_used") is True
+        assert md.get("override_unit_price") == 99.99
+
+    def test_services_shape_with_travel_equipment_subcontract_permit(self):
+        """services with travel + equipment + subcontract + permit add-ons all in outsourcing."""
+        data = self._calc(
+            "services",
+            {
+                "services_billing_unit": "hour", "estimated_hours": 4,
+                "services_complexity": "medium", "num_workers": 2,
+                "services_travel_required": True, "services_travel_miles": 30,
+                "services_equipment_required": True, "services_equipment_days": 1,
+                "services_equipment_type": "custom",
+                "services_subcontracted": True, "services_subcontract_cost": 150,
+                "services_permit_external_fee": 75,
+            },
+            quantity=1,
+        )
+        self._assert_response(data, "services:travel+eq+sub+permit")
+        # All 4 pass-through costs must land in outsourcing
+        assert data["outsourcing_cost"] > 0
+        outs_names = {item["name"] for item in data["breakdown"]["outsourcing"]}
+        # At least travel, equipment, subcontract, permit lines present
+        assert any("Travel" in n for n in outs_names), f"missing travel: {outs_names}"
+        assert any("Equipment" in n for n in outs_names), f"missing equipment: {outs_names}"
+        assert any("Subcontract" in n for n in outs_names), f"missing subcontract: {outs_names}"
+        assert any("Permit" in n for n in outs_names), f"missing permit: {outs_names}"
+        # material_cost is 0 for services
+        assert data["material_cost"] == 0
+
+    def test_services_shape_basic_hourly(self):
+        """services basic hourly: only labor populated."""
+        data = self._calc(
+            "services",
+            {"services_billing_unit": "hour", "estimated_hours": 3, "services_complexity": "medium", "num_workers": 1},
+            quantity=1,
+        )
+        self._assert_response(data, "services:basic_hourly")
+        assert data["labor_cost"] > 0
+        assert data["material_cost"] == 0
+        assert data["outsourcing_cost"] == 0
+
+    def test_vehicle_graphics_shape_full_wrap_with_install(self):
+        """vehicle_graphics full wrap with install + laminate + 2nd installer."""
+        data = self._calc(
+            "vehicle_graphics",
+            {
+                "vehicle_type": "van_cargo", "coverage_type": "full",
+                "install_required": True, "wrap_laminate_required": True,
+                "second_installer_required": True,
+                "install_difficulty_level": "medium", "seam_complexity": "basic",
+            },
+            quantity=1,
+        )
+        self._assert_response(data, "vehicle_graphics:full_wrap")
+        # Material (wrap vinyl) + finishing (laminate) + install (vehicle install + helper)
+        assert data["material_cost"] > 0
+        assert data["finishing_cost"] > 0, "laminate should be in finishing"
+        assert data["install_cost"] > 0, "install labor + helper should be in install"
+        # Install breakdown should have 2 lines (Vehicle Install + Helper)
+        assert len(data["breakdown"]["install"]) >= 2
+
+    def test_vehicle_graphics_shape_spot(self):
+        """vehicle_graphics spot graphics smoke test."""
+        data = self._calc(
+            "vehicle_graphics",
+            {"vehicle_type": "van_cargo", "coverage_type": "spot", "wrap_laminate_required": False},
+            quantity=1,
+        )
+        self._assert_response(data, "vehicle_graphics:spot")
+        assert data["material_cost"] > 0
+
+    def test_apparel_shape_basic(self):
+        """apparel basic order: short_sleeve_tee qty 12, single placement HTV, 1 color."""
+        data = self._calc(
+            "apparel",
+            {
+                "apparel_product_type": "short_sleeve_tee",
+                "apparel_placement_set": "front",
+                "apparel_decoration_method": "htv",
+                "apparel_num_colors": 1,
+            },
+            quantity=12,
+        )
+        self._assert_response(data, "apparel:basic")
+        # Blanks in materials
+        assert data["material_cost"] > 0
+        # Decoration consumable in finishing
+        assert data["finishing_cost"] > 0
+        # Outsourcing 0 (apparel has no outsource concept)
+        assert data["outsourcing_cost"] == 0
+
+    def test_apparel_shape_complex_with_addons(self):
+        """apparel complex: plus-size, custom name/number, specialty, bag&fold + setup + design."""
+        data = self._calc(
+            "apparel",
+            {
+                "apparel_product_type": "short_sleeve_tee",
+                "apparel_placement_set": "front",
+                "apparel_decoration_method": "htv",
+                "apparel_num_colors": 2,
+                "apparel_plus_size_count": 4,
+                "apparel_custom_name_number": True,
+                "apparel_custom_name_number_count": 24,
+                "apparel_specialty_finish": True,
+                "apparel_bag_and_fold": True,
+                "artwork_needed": True,
+                "design_complexity": "medium",
+            },
+            quantity=24,
+        )
+        self._assert_response(data, "apparel:complex")
+        # All add-on upcharges land in finishing per Phase 2D mapping
+        finishing_names = {item["name"] for item in data["breakdown"]["finishing"]}
+        assert any("Decoration Consumable" in n for n in finishing_names)
+        assert any("Plus-Size" in n for n in finishing_names)
+        assert any("Custom Name/Number" in n for n in finishing_names)
+        assert any("Specialty Finish" in n for n in finishing_names)
+        assert any("Bag & Fold" in n for n in finishing_names)
+        # Setup, design, labor populated
+        assert data["setup_cost"] > 0
+        assert data["design_cost"] > 0
+        assert data["labor_cost"] > 0
+        # Overhead basis must exclude setup + add-ons (only blanks + decoration + prod_labor + design)
+        ob = data["breakdown"]["metadata"]["overhead_basis"]
+        legacy_mat = data["breakdown"]["metadata"].get("legacy_material_cost_total", 0)
+        legacy_lab = data["breakdown"]["metadata"].get("legacy_labor_cost_total", 0)
+        assert abs(float(ob["basis_amount"]) - (legacy_mat + legacy_lab)) <= 0.02
+
+    def test_all_calculators_have_pricing_method_used(self):
+        """Every calculator should populate pricing_method_used with a non-empty string."""
+        scenarios = [
+            ("rigid_signs",      {"width_inches": 24, "height_inches": 36}),
+            ("banners",          {"width_inches": 36, "height_inches": 72}),
+            ("cut_vinyl",        {"width_inches": 12, "height_inches": 12}),
+            ("digital_print",    {"width_inches": 24, "height_inches": 36}),
+            ("promotional",      {"unit_cost": 2.5}),
+            ("custom",           {"unit_cost": 15, "estimated_hours": 2}),
+            ("services",         {"services_billing_unit": "hour", "estimated_hours": 2}),
+            ("vehicle_graphics", {"vehicle_type": "van_cargo", "coverage_type": "spot"}),
+            ("apparel",          {"apparel_product_type": "short_sleeve_tee",
+                                  "apparel_placement_set": "front",
+                                  "apparel_decoration_method": "htv"}),
+        ]
+        for cat, payload in scenarios:
+            qty = 12 if cat == "apparel" else 1
+            data = self._calc(cat, payload, quantity=qty)
+            assert isinstance(data.get("pricing_method_used"), str) and data["pricing_method_used"], (
+                f"{cat}: pricing_method_used missing or empty"
+            )
+
+    def test_all_calculators_have_overhead_basis(self):
+        """Every calculator must expose breakdown.metadata.overhead_basis as a dict."""
+        scenarios = [
+            ("rigid_signs",      {"width_inches": 24, "height_inches": 36}),
+            ("banners",          {"width_inches": 36, "height_inches": 72}),
+            ("cut_vinyl",        {"width_inches": 12, "height_inches": 12}),
+            ("digital_print",    {"width_inches": 24, "height_inches": 36}),
+            ("promotional",      {"unit_cost": 2.5}),
+            ("custom",           {"unit_cost": 15, "estimated_hours": 2}),
+            ("services",         {"services_billing_unit": "hour", "estimated_hours": 2}),
+            ("vehicle_graphics", {"vehicle_type": "van_cargo", "coverage_type": "spot"}),
+            ("apparel",          {"apparel_product_type": "short_sleeve_tee",
+                                  "apparel_placement_set": "front",
+                                  "apparel_decoration_method": "htv"}),
+        ]
+        for cat, payload in scenarios:
+            qty = 12 if cat == "apparel" else 1
+            data = self._calc(cat, payload, quantity=qty)
+            ob = data["breakdown"]["metadata"].get("overhead_basis")
+            assert isinstance(ob, dict) and ob, f"{cat}: overhead_basis missing/empty"
+            # Required keys inside overhead_basis
+            for required in ("formula", "basis_amount", "basis_components",
+                             "labor_hours", "overhead_percentage",
+                             "shop_overhead_per_hour", "overhead_excludes_setup_cost"):
+                assert required in ob, f"{cat}: overhead_basis missing key '{required}'"
+

@@ -1857,7 +1857,38 @@ async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defau
         # Metadata
         estimated_labor_minutes=(production_hours + design_hours + install_hours + mounting_hours) * 60,
         pricing_method="sell_rate",
-        
+
+        # Overhead explainability (Phase 2D)
+        overhead_basis={
+            "formula": "(basis_amount * overhead_percentage / 100) + (labor_hours * shop_overhead_per_hour)",
+            "basis_amount": round(material_cost + labor_cost, 2),
+            "basis_components": [
+                "substrate_cost",
+                "graphic_face_cost",
+                "finish_cost",
+                "hardware_cost",
+                "production_labor_cost",
+                "mounting_labor_cost",
+                "design_labor_cost",
+                "install_labor_cost",
+                "hardware_labor_cost",
+            ],
+            "labor_hours": round(production_hours + design_hours + install_hours + mounting_hours, 2),
+            "overhead_percentage": float(
+                category_config.get("overhead_percentage", defaults.get("overhead_percentage", 0)) or 0
+            ),
+            "shop_overhead_per_hour": float(
+                category_config.get("shop_overhead_per_hour", defaults.get("shop_overhead_per_hour", 0)) or 0
+            ),
+            "overhead_excludes_setup_cost": True,
+            "notes": (
+                "Overhead is calculated from the legacy basis: substrate + graphic_face + "
+                "finish + hardware + production + mounting + design + install + hardware_labor. "
+                "drill_prep_fee (setup_cost) is intentionally excluded from this basis to "
+                "preserve pre-Phase-2D behavior."
+            ),
+        },
+
         # Breakdown arrays
         materials_breakdown=materials_list,
         labor_breakdown=labor_list,
@@ -2351,7 +2382,37 @@ async def calculate_banners(data: JobItemPricingData, quantity: float, defaults:
         # Metadata
         estimated_labor_minutes=total_labor_hours * 60,
         pricing_method="cost_plus",
-        
+
+        # Overhead explainability (Phase 2D)
+        overhead_basis={
+            "formula": "(basis_amount * overhead_percentage / 100) + (labor_hours * shop_overhead_per_hour)",
+            "basis_amount": round(material_cost_total + labor_cost_total, 2),
+            "basis_components": [
+                "banner_material_cost",
+                "print_consumable_cost",
+                "laminate_cost",
+                "production_labor_cost",
+                "design_labor_cost",
+                "install_labor_cost",
+                "finishing_labor_cost",
+                "hardware_labor_cost",
+            ],
+            "labor_hours": round(total_labor_hours, 2),
+            "overhead_percentage": float(
+                cfg.get("overhead_percentage", defaults.get("overhead_percentage", 0)) or 0
+            ),
+            "shop_overhead_per_hour": float(
+                cfg.get("shop_overhead_per_hour", defaults.get("shop_overhead_per_hour", 0)) or 0
+            ),
+            "overhead_excludes_setup_cost": True,
+            "notes": (
+                "Overhead is calculated from the legacy basis: banner material + print "
+                "consumable + laminate + production + design + install + finishing labor + "
+                "hardware labor. Sell-side finishing additives (hems, grommets, pole pockets, "
+                "reinforced corners, wind slits, specialty sewing) are NOT in this basis."
+            ),
+        },
+
         # Breakdown arrays
         materials_breakdown=materials_list,
         labor_breakdown=labor_list,
