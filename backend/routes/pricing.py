@@ -30,6 +30,28 @@ router = APIRouter(prefix="/pricing", tags=["Pricing"])
 
 def _normalize_pricing_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     normalized = dict(payload or {})
+    
+    # --- DIMENSION FIELD NORMALIZATION (Phase 1) ---
+    # Canonical fields: width_inches, height_inches, area_sqft
+    # Legacy aliases: width, height, length_inches, square_footage
+    
+    # Alias: width → width_inches
+    if "width" in normalized and "width_inches" not in normalized:
+        normalized["width_inches"] = normalized["width"]
+    
+    # Alias: height → height_inches
+    if "height" in normalized and "height_inches" not in normalized:
+        normalized["height_inches"] = normalized["height"]
+    
+    # Alias: length_inches → height_inches (common legacy field)
+    if "length_inches" in normalized and "height_inches" not in normalized:
+        normalized["height_inches"] = normalized["length_inches"]
+    
+    # Alias: square_footage → area_sqft
+    if "square_footage" in normalized and "area_sqft" not in normalized:
+        normalized["area_sqft"] = normalized["square_footage"]
+    
+    # --- SUBSTRATE & MATERIAL NORMALIZATION (existing code) ---
     substrate = normalized.get("substrate_type")
     thickness = normalized.get("thickness")
     print_material = normalized.get("print_material")
@@ -56,14 +78,33 @@ def _normalize_pricing_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _normalize_pricing_category(category: Any) -> PricingCategory:
+    """
+    Normalize category names to canonical enum values.
+    
+    Canonical categories:
+    - banners, rigid_signs, cut_vinyl, digital_print, vehicle_graphics, 
+      apparel, services, promotional, custom
+    
+    Legacy aliases supported for backward compatibility.
+    """
     raw = str(category or "custom").lower()
+    
+    # Category alias map (Phase 1 backward compatibility)
     alias_map = {
         "promo_misc": PricingCategory.PROMOTIONAL,
         "vehicle_wrap": PricingCategory.VEHICLE_GRAPHICS,
+        "vehicle_wraps": PricingCategory.VEHICLE_GRAPHICS,
     }
+    
     if raw in alias_map:
         return alias_map[raw]
-    return PricingCategory(raw)
+    
+    # Try direct enum lookup (handles canonical names)
+    try:
+        return PricingCategory(raw)
+    except ValueError:
+        # Fallback to CUSTOM if category not recognized
+        return PricingCategory.CUSTOM
 
 
 # ============== PRICING CALCULATION ==============

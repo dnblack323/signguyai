@@ -1283,10 +1283,16 @@ class JobItemPricingData(BaseModel):
     include_setup_fee: bool = False
     setup_fee: Optional[float] = None
     
-    # Dimensions
-    width_inches: Optional[float] = None
-    length_inches: Optional[float] = None
-    square_footage: Optional[float] = None
+    # --- DIMENSIONS (Phase 1: Canonical + Legacy Fields) ---
+    # CANONICAL FIELDS (use these going forward):
+    width_inches: Optional[float] = None    # Width in inches (canonical)
+    height_inches: Optional[float] = None   # Height in inches (canonical, added Phase 1)
+    area_sqft: Optional[float] = None       # Area in square feet (canonical, added Phase 1)
+    
+    # LEGACY FIELDS (kept for backward compatibility, normalized via _normalize_pricing_payload):
+    length_inches: Optional[float] = None   # Legacy: maps to height_inches
+    square_footage: Optional[float] = None  # Legacy: maps to area_sqft
+    # Note: Frontend may also send "width" or "height" (normalized to width_inches/height_inches)
     
     # Promotional Items
     promo_product_type: Optional[PromoProductType] = None

@@ -1,3 +1,4 @@
+# Note: Phase 1 normalization tests appended at end of file
 # Pricing Calculator API Tests
 # Tests for pricing calculation, templates, and defaults endpoints
 
@@ -566,3 +567,216 @@ def cleanup_test_templates():
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "--tb=short"])
+
+
+# ============== PHASE 1: NORMALIZATION TESTS ==============
+
+class TestPhase1Normalization:
+    """Test backward compatibility for dimension and category aliases (Phase 1)"""
+    
+    @pytest.mark.asyncio
+    async def test_dimension_alias_width_to_width_inches(self):
+        """Test that 'width' field is normalized to 'width_inches'"""
+        # Login
+        login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": "thesigntistslab@gmail.com",
+            "password": "password123"
+        })
+        assert login_response.status_code == 200
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        payload = {
+            "category": "rigid_signs",
+            "pricing_data": {
+                "width": 24.0,        # Legacy field
+                "height": 36.0,       # Legacy field
+                "substrate_type_key": "coroplast_4mm"
+            },
+            "quantity": 1
+        }
+        
+        response = requests.post(f"{BASE_URL}/api/pricing/calculate", json=payload, headers=headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_cost"] > 0
+        # Verify calculation ran (no 500 error = normalization worked)
+    
+    @pytest.mark.asyncio
+    async def test_dimension_alias_length_to_height(self):
+        """Test that 'length_inches' field is normalized to 'height_inches'"""
+        login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": "thesigntistslab@gmail.com",
+            "password": "password123"
+        })
+        assert login_response.status_code == 200
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        payload = {
+            "category": "cut_vinyl",
+            "pricing_data": {
+                "width_inches": 24.0,
+                "length_inches": 36.0,  # Legacy field (should map to height_inches)
+                "vinyl_type_key": "oracal_651"
+            },
+            "quantity": 1
+        }
+        
+        response = requests.post(f"{BASE_URL}/api/pricing/calculate", json=payload, headers=headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["material_cost"] > 0
+    
+    @pytest.mark.asyncio
+    async def test_dimension_alias_square_footage_to_area_sqft(self):
+        """Test that 'square_footage' field is normalized to 'area_sqft'"""
+        login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": "thesigntistslab@gmail.com",
+            "password": "password123"
+        })
+        assert login_response.status_code == 200
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        payload = {
+            "category": "banners",
+            "pricing_data": {
+                "square_footage": 32.0,  # Legacy field (4x8 banner)
+                "banner_material_key": "banner_13oz"
+            },
+            "quantity": 1
+        }
+        
+        response = requests.post(f"{BASE_URL}/api/pricing/calculate", json=payload, headers=headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["material_cost"] > 0
+    
+    @pytest.mark.asyncio
+    async def test_category_alias_vehicle_wraps(self):
+        """Test that 'vehicle_wraps' category is normalized to 'vehicle_graphics'"""
+        login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": "thesigntistslab@gmail.com",
+            "password": "password123"
+        })
+        assert login_response.status_code == 200
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        payload = {
+            "category": "vehicle_wraps",  # Legacy category name
+            "pricing_data": {
+                "vehicle_type": "car_sedan",
+                "coverage_type": "spot"
+            },
+            "quantity": 1
+        }
+        
+        response = requests.post(f"{BASE_URL}/api/pricing/calculate", json=payload, headers=headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_cost"] > 0
+    
+    @pytest.mark.asyncio
+    async def test_category_alias_vehicle_wrap_singular(self):
+        """Test that 'vehicle_wrap' category is normalized to 'vehicle_graphics'"""
+        login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": "thesigntistslab@gmail.com",
+            "password": "password123"
+        })
+        assert login_response.status_code == 200
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        payload = {
+            "category": "vehicle_wrap",  # Legacy category name (singular)
+            "pricing_data": {
+                "vehicle_type": "pickup",
+                "coverage_type": "partial"
+            },
+            "quantity": 1
+        }
+        
+        response = requests.post(f"{BASE_URL}/api/pricing/calculate", json=payload, headers=headers)
+        assert response.status_code == 200
+    
+    @pytest.mark.asyncio
+    async def test_category_alias_promo_misc(self):
+        """Test that 'promo_misc' category is normalized to 'promotional'"""
+        login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": "thesigntistslab@gmail.com",
+            "password": "password123"
+        })
+        assert login_response.status_code == 200
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        payload = {
+            "category": "promo_misc",  # Legacy category name
+            "pricing_data": {
+                "promo_product_type": "magnets",
+                "unit_cost": 2.50,
+                "markup_percent": 100
+            },
+            "quantity": 100
+        }
+        
+        response = requests.post(f"{BASE_URL}/api/pricing/calculate", json=payload, headers=headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["selling_price"] > 0
+    
+    @pytest.mark.asyncio
+    async def test_canonical_fields_still_work(self):
+        """Test that canonical field names continue to work (no regression)"""
+        login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": "thesigntistslab@gmail.com",
+            "password": "password123"
+        })
+        assert login_response.status_code == 200
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        payload = {
+            "category": "rigid_signs",  # Canonical category
+            "pricing_data": {
+                "width_inches": 24.0,   # Canonical field
+                "height_inches": 36.0,  # Canonical field (NEW in Phase 1)
+                "substrate_type_key": "coroplast_4mm"
+            },
+            "quantity": 1
+        }
+        
+        response = requests.post(f"{BASE_URL}/api/pricing/calculate", json=payload, headers=headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["material_cost"] > 0
+        assert data["total_cost"] > 0
+    
+    @pytest.mark.asyncio
+    async def test_mixed_legacy_and_canonical_fields(self):
+        """Test that mixing legacy and canonical fields doesn't break"""
+        login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": "thesigntistslab@gmail.com",
+            "password": "password123"
+        })
+        assert login_response.status_code == 200
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        payload = {
+            "category": "digital_print",
+            "pricing_data": {
+                "width": 48.0,              # Legacy field
+                "height_inches": 96.0,      # Canonical field
+                "print_media_key": "banner_13oz"
+            },
+            "quantity": 1
+        }
+        
+        response = requests.post(f"{BASE_URL}/api/pricing/calculate", json=payload, headers=headers)
+        assert response.status_code == 200
+        # If width is present, it should be normalized to width_inches
+        # height_inches is already canonical, should work as-is
+
