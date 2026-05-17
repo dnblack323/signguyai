@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from '../components/ui/textarea';
 import {
   ArrowLeft, BarChart3, Calculator, ChevronDown, ChevronUp, ClipboardCheck, Copy, DollarSign, Edit2, Factory,
-  Layers3, Loader2, Package, Plus, Save, Settings2, Sparkles, Trash2, Wrench,
+  Layers3, Loader2, Package, Plus, Save, Settings2, Sparkles, Trash2, Wrench, FileJson, Sliders, Eye,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth, Permission } from '../context/AuthContext';
@@ -2644,6 +2644,137 @@ function ReviewTestingPanel({ materials, settings }) {
   );
 }
 
+/* ────────── PHASE 5: MODE-SCOPED HELPERS ────────── */
+
+// Read-only summary of per-category settings shown in Simple mode. Pulls
+// canonical fields from settings.category_defaults so it stays in sync with
+// the underlying data model — no copies, no rewrites.
+function CategoryDefaultsSummary({ settings }) {
+  const cats = (settings && settings.category_defaults) || {};
+  const entries = Object.entries(cats);
+  if (entries.length === 0) {
+    return (
+      <Card data-testid="category-defaults-summary-empty">
+        <CardHeader>
+          <CardTitle className="text-base">Category Defaults Summary</CardTitle>
+          <CardDescription>No per-category defaults configured yet.</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+  const fmt = (v) => (typeof v === 'number' ? `$${Number(v).toFixed(2)}` : '—');
+  return (
+    <Card data-testid="category-defaults-summary">
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <Layers3 className="h-4 w-4 text-violet-600" /> Category Defaults Summary
+        </CardTitle>
+        <CardDescription>
+          Read-only overview of the most-used settings per product category. Switch to
+          <span className="font-medium"> Advanced </span> mode to edit waste %, multipliers,
+          quantity discounts, install rules, and other per-category fields.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-gray-500 text-xs">
+            <tr>
+              <th className="text-left py-1 pr-3 font-normal">Category</th>
+              <th className="text-right py-1 pr-3 font-normal">Min Sell Price</th>
+              <th className="text-right py-1 pr-3 font-normal">Markup ×</th>
+              <th className="text-right py-1 pr-3 font-normal">Target Margin %</th>
+              <th className="text-right py-1 font-normal">Waste %</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map(([key, cat]) => (
+              <tr key={key} className="border-t border-gray-100" data-testid={`cat-summary-row-${key}`}>
+                <td className="py-1 pr-3 text-gray-700">{key.replace(/_/g, ' ')}</td>
+                <td className="py-1 pr-3 text-right text-gray-700">
+                  {fmt(cat?.default_minimum_sell_price ?? cat?.minimum_charge)}
+                </td>
+                <td className="py-1 pr-3 text-right text-gray-700">
+                  {cat?.default_markup_multiplier != null ? `${Number(cat.default_markup_multiplier).toFixed(2)}` : '—'}
+                </td>
+                <td className="py-1 pr-3 text-right text-gray-700">
+                  {cat?.target_profit_margin_percent != null ? `${Number(cat.target_profit_margin_percent).toFixed(1)}%` : '—'}
+                </td>
+                <td className="py-1 text-right text-gray-700">
+                  {cat?.waste_percentage != null ? `${Number(cat.waste_percentage).toFixed(1)}%` : '—'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Raw settings JSON viewer for Audit mode. Shows the complete saved payload
+// for debugging without exposing edit controls.
+function RawSettingsJsonPanel({ settings, materials, hardwareAccessories }) {
+  const [open, setOpen] = useState(true);
+  const payload = { ...(settings || {}), materials: materials || [], hardware_accessories: hardwareAccessories || [] };
+  const json = JSON.stringify(payload, null, 2);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(json);
+      toast.success('Settings JSON copied to clipboard');
+    } catch {
+      toast.error('Copy failed');
+    }
+  };
+  return (
+    <Card data-testid="raw-settings-json-panel">
+      <CardHeader className="flex flex-row items-start justify-between gap-2">
+        <div>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FileJson className="h-4 w-4 text-violet-600" /> Raw Settings JSON
+          </CardTitle>
+          <CardDescription>
+            Full pricing settings payload, including materials and hardware. Useful for
+            support, exports, and verifying that the UI is in sync with what was saved.
+          </CardDescription>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={copy} data-testid="raw-json-copy-btn">
+            <Copy className="h-3.5 w-3.5 mr-1" /> Copy
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setOpen((v) => !v)} data-testid="raw-json-toggle-btn">
+            {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          </Button>
+        </div>
+      </CardHeader>
+      {open && (
+        <CardContent>
+          <pre
+            className="text-[11px] bg-gray-50 border border-gray-200 rounded p-3 overflow-auto max-h-[600px] font-mono text-gray-700"
+            data-testid="raw-json-text"
+          >
+            {json}
+          </pre>
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
+// Which tabs are visible in each mode. Tabs themselves are unchanged — we
+// only filter the TabsTrigger/TabsContent rendering so all data, all save
+// behavior, and all forms stay intact.
+const TAB_MODE_MAP = {
+  defaults:   { simple: true,  advanced: true,  audit: false },
+  materials:  { simple: true,  advanced: true,  audit: false },
+  hardware:   { simple: false, advanced: true,  audit: false },
+  labor:      { simple: true,  advanced: true,  audit: false },
+  categories: { simple: false, advanced: true,  audit: false },
+  ai:         { simple: false, advanced: true,  audit: false },
+  benchmarks: { simple: false, advanced: true,  audit: false },
+  global:     { simple: false, advanced: true,  audit: false },
+  review:     { simple: false, advanced: false, audit: true  },
+};
+
 /* ────────── MAIN PAGE ────────── */
 export default function PricingFoundation() {
   const { hasPermission, isOwner, isAdminOrOwner } = useAuth();
@@ -2657,6 +2788,20 @@ export default function PricingFoundation() {
   const [materials, setMaterials] = useState([]);
   const [hardwareAccessories, setHardwareAccessories] = useState([]);
   const [snapshotJson, setSnapshotJson] = useState('');
+
+  // Phase 5: Mode switch (simple / advanced / audit). Persisted to
+  // localStorage so users land in their preferred view next visit.
+  const [mode, setMode] = useState(() => {
+    try {
+      const stored = typeof window !== 'undefined' && window.localStorage.getItem('pricingFoundationMode');
+      return stored === 'advanced' || stored === 'audit' ? stored : 'simple';
+    } catch {
+      return 'simple';
+    }
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem('pricingFoundationMode', mode); } catch { /* noop */ }
+  }, [mode]);
 
   const fetchAll = useCallback(async () => {
     const token = getAuthToken();
@@ -2735,56 +2880,151 @@ export default function PricingFoundation() {
         </div>
       </div>
 
+      {/* Phase 5: Mode switch (Simple / Advanced / Audit) */}
+      <div
+        className="mb-4 inline-flex bg-gray-100 p-1 rounded-lg gap-1"
+        role="tablist"
+        aria-label="Pricing Foundation mode"
+        data-testid="pricing-foundation-mode-switch"
+      >
+        {[
+          { key: 'simple',   label: 'Simple',   Icon: Eye,
+            hint: 'Day-to-day settings most shops adjust regularly' },
+          { key: 'advanced', label: 'Advanced', Icon: Sliders,
+            hint: 'Waste %, overhead, rush, install, multipliers, quantity discounts' },
+          { key: 'audit',    label: 'Audit',    Icon: FileJson,
+            hint: 'Raw JSON, test calculator, debug fields' },
+        ].map(({ key, label, Icon, hint }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setMode(key)}
+            title={hint}
+            className={`px-3 py-1.5 text-sm rounded-md inline-flex items-center gap-1.5 transition-colors ${
+              mode === key
+                ? 'bg-white text-violet-700 shadow-sm font-medium'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+            data-testid={`pricing-foundation-mode-${key}`}
+            aria-pressed={mode === key}
+          >
+            <Icon className="h-3.5 w-3.5" />
+            {label}
+          </button>
+        ))}
+      </div>
+      <p className="text-xs text-gray-500 mb-3" data-testid="pricing-foundation-mode-hint">
+        {mode === 'simple' && (
+          'Simple mode: only the settings most shops adjust day-to-day. All data is preserved — switch to Advanced for full control.'
+        )}
+        {mode === 'advanced' && (
+          'Advanced mode: every per-category, overhead, rush, install, and benchmark setting.'
+        )}
+        {mode === 'audit' && (
+          'Audit mode: raw saved settings and the in-page test calculator. Read-friendly debug view.'
+        )}
+      </p>
+
+      {/* Simple-mode extras: category defaults summary above the standard tabs */}
+      {mode === 'simple' && settings && (
+        <div className="mb-4">
+          <CategoryDefaultsSummary settings={settings} />
+        </div>
+      )}
+
       {/* Tabs */}
       <Tabs defaultValue="defaults" className="space-y-4">
         <TabsList className="bg-gray-100 p-1 flex flex-wrap">
-          <TabsTrigger value="defaults" className="gap-1 text-sm" data-testid="tab-defaults"><DollarSign className="h-3.5 w-3.5" /> Shop Defaults</TabsTrigger>
-          <TabsTrigger value="materials" className="gap-1 text-sm" data-testid="tab-materials"><Package className="h-3.5 w-3.5" /> Materials</TabsTrigger>
-          <TabsTrigger value="hardware" className="gap-1 text-sm" data-testid="tab-hardware"><Wrench className="h-3.5 w-3.5" /> Hardware</TabsTrigger>
-          <TabsTrigger value="labor" className="gap-1 text-sm" data-testid="tab-labor"><Factory className="h-3.5 w-3.5" /> Labor</TabsTrigger>
-          <TabsTrigger value="categories" className="gap-1 text-sm" data-testid="tab-categories"><Layers3 className="h-3.5 w-3.5" /> Category Rules</TabsTrigger>
-          <TabsTrigger value="ai" className="gap-1 text-sm" data-testid="tab-ai"><Sparkles className="h-3.5 w-3.5" /> AI Rules</TabsTrigger>
-          <TabsTrigger value="benchmarks" className="gap-1 text-sm" data-testid="tab-benchmarks"><BarChart3 className="h-3.5 w-3.5" /> Benchmarks</TabsTrigger>
-          <TabsTrigger value="global" className="gap-1 text-sm" data-testid="tab-global"><Settings2 className="h-3.5 w-3.5" /> Global Rules</TabsTrigger>
-          <TabsTrigger value="review" className="gap-1 text-sm" data-testid="tab-review"><ClipboardCheck className="h-3.5 w-3.5" /> Review</TabsTrigger>
+          {TAB_MODE_MAP.defaults[mode] && (
+            <TabsTrigger value="defaults" className="gap-1 text-sm" data-testid="tab-defaults"><DollarSign className="h-3.5 w-3.5" /> Shop Defaults</TabsTrigger>
+          )}
+          {TAB_MODE_MAP.materials[mode] && (
+            <TabsTrigger value="materials" className="gap-1 text-sm" data-testid="tab-materials"><Package className="h-3.5 w-3.5" /> Materials</TabsTrigger>
+          )}
+          {TAB_MODE_MAP.hardware[mode] && (
+            <TabsTrigger value="hardware" className="gap-1 text-sm" data-testid="tab-hardware"><Wrench className="h-3.5 w-3.5" /> Hardware</TabsTrigger>
+          )}
+          {TAB_MODE_MAP.labor[mode] && (
+            <TabsTrigger value="labor" className="gap-1 text-sm" data-testid="tab-labor"><Factory className="h-3.5 w-3.5" /> Labor</TabsTrigger>
+          )}
+          {TAB_MODE_MAP.categories[mode] && (
+            <TabsTrigger value="categories" className="gap-1 text-sm" data-testid="tab-categories"><Layers3 className="h-3.5 w-3.5" /> Category Rules</TabsTrigger>
+          )}
+          {TAB_MODE_MAP.ai[mode] && (
+            <TabsTrigger value="ai" className="gap-1 text-sm" data-testid="tab-ai"><Sparkles className="h-3.5 w-3.5" /> AI Rules</TabsTrigger>
+          )}
+          {TAB_MODE_MAP.benchmarks[mode] && (
+            <TabsTrigger value="benchmarks" className="gap-1 text-sm" data-testid="tab-benchmarks"><BarChart3 className="h-3.5 w-3.5" /> Benchmarks</TabsTrigger>
+          )}
+          {TAB_MODE_MAP.global[mode] && (
+            <TabsTrigger value="global" className="gap-1 text-sm" data-testid="tab-global"><Settings2 className="h-3.5 w-3.5" /> Global Rules</TabsTrigger>
+          )}
+          {TAB_MODE_MAP.review[mode] && (
+            <TabsTrigger value="review" className="gap-1 text-sm" data-testid="tab-review"><ClipboardCheck className="h-3.5 w-3.5" /> Review / Test</TabsTrigger>
+          )}
         </TabsList>
 
-        <TabsContent value="defaults">
-          <ShopDefaultsTab settings={settings} onChange={handleSettingsChange} canEdit={canEdit} />
-        </TabsContent>
+        {TAB_MODE_MAP.defaults[mode] && (
+          <TabsContent value="defaults">
+            <ShopDefaultsTab settings={settings} onChange={handleSettingsChange} canEdit={canEdit} />
+          </TabsContent>
+        )}
 
-        <TabsContent value="materials">
-          <MaterialsLibraryTab materials={materials} setMaterials={setMaterials} canEdit={canEdit} />
-        </TabsContent>
+        {TAB_MODE_MAP.materials[mode] && (
+          <TabsContent value="materials">
+            <MaterialsLibraryTab materials={materials} setMaterials={setMaterials} canEdit={canEdit} />
+          </TabsContent>
+        )}
 
-        <TabsContent value="hardware">
-          <HardwareAccessoriesTab items={hardwareAccessories} setItems={setHardwareAccessories} canEdit={canEdit} />
-        </TabsContent>
+        {TAB_MODE_MAP.hardware[mode] && (
+          <TabsContent value="hardware">
+            <HardwareAccessoriesTab items={hardwareAccessories} setItems={setHardwareAccessories} canEdit={canEdit} />
+          </TabsContent>
+        )}
 
-        <TabsContent value="labor">
-          <LaborRatesTab settings={settings} onChange={handleSettingsChange} canEdit={canEdit} />
-        </TabsContent>
+        {TAB_MODE_MAP.labor[mode] && (
+          <TabsContent value="labor">
+            <LaborRatesTab settings={settings} onChange={handleSettingsChange} canEdit={canEdit} />
+          </TabsContent>
+        )}
 
-        <TabsContent value="categories">
-          <CategoryRulesTab settings={settings} onChange={handleSettingsChange} canEdit={canEdit} materials={materials} />
-        </TabsContent>
+        {TAB_MODE_MAP.categories[mode] && (
+          <TabsContent value="categories">
+            <CategoryRulesTab settings={settings} onChange={handleSettingsChange} canEdit={canEdit} materials={materials} />
+          </TabsContent>
+        )}
 
-        <TabsContent value="ai">
-          <AiEstimationRulesTab settings={settings} onChange={handleSettingsChange} canEdit={canEdit} />
-        </TabsContent>
+        {TAB_MODE_MAP.ai[mode] && (
+          <TabsContent value="ai">
+            <AiEstimationRulesTab settings={settings} onChange={handleSettingsChange} canEdit={canEdit} />
+          </TabsContent>
+        )}
 
-        <TabsContent value="benchmarks">
-          <BenchmarkRulesTab settings={settings} onChange={handleSettingsChange} canEdit={canEdit} />
-        </TabsContent>
+        {TAB_MODE_MAP.benchmarks[mode] && (
+          <TabsContent value="benchmarks">
+            <BenchmarkRulesTab settings={settings} onChange={handleSettingsChange} canEdit={canEdit} />
+          </TabsContent>
+        )}
 
-        <TabsContent value="global">
-          <GlobalCalculationRulesTab settings={settings} onChange={handleSettingsChange} canEdit={canEdit} />
-        </TabsContent>
+        {TAB_MODE_MAP.global[mode] && (
+          <TabsContent value="global">
+            <GlobalCalculationRulesTab settings={settings} onChange={handleSettingsChange} canEdit={canEdit} />
+          </TabsContent>
+        )}
 
-        <TabsContent value="review">
-          <ReviewTestingPanel materials={materials} settings={settings} />
-        </TabsContent>
+        {TAB_MODE_MAP.review[mode] && (
+          <TabsContent value="review">
+            <ReviewTestingPanel materials={materials} settings={settings} />
+          </TabsContent>
+        )}
       </Tabs>
+
+      {/* Audit-mode extras: raw settings JSON below the test calculator */}
+      {mode === 'audit' && settings && (
+        <div className="mt-6">
+          <RawSettingsJsonPanel settings={settings} materials={materials} hardwareAccessories={hardwareAccessories} />
+        </div>
+      )}
     </div>
   );
 }
