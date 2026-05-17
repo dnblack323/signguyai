@@ -485,6 +485,7 @@ def create_standardized_pricing_result(
     target_margin_percent: float = 0,
     markup_multiplier: float = 1.0,
     warnings: List[str] = None,
+    overhead_basis: dict = None,  # Phase 2D: explainability for overhead calculation
     
     # === LEGACY FIELDS ===
     legacy_breakdown: dict = None,
@@ -577,6 +578,7 @@ def create_standardized_pricing_result(
             "markup_multiplier": markup_multiplier,
             "minimum_charge": minimum_charge,
             "warnings": warnings or [],
+            "overhead_basis": overhead_basis or {},
             # Merge legacy breakdown for backward compatibility
             **(legacy_breakdown or {})
         }
@@ -934,6 +936,33 @@ async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, default
         # Metadata
         estimated_labor_minutes=(production_hours + design_hours + install_hours) * 60,
         pricing_method="sell_rate",
+
+        # Overhead explainability (Phase 2D)
+        overhead_basis={
+            "formula": "(basis_amount * overhead_percentage / 100) + (labor_hours * shop_overhead_per_hour)",
+            "basis_amount": round(material_cost + labor_cost, 2),
+            "basis_components": [
+                "vinyl_cost",
+                "transfer_tape_cost",
+                "production_cost",
+                "design_cost",
+                "install_cost",
+            ],
+            "labor_hours": round(production_hours + design_hours + install_hours, 2),
+            "overhead_percentage": float(
+                category_config.get("overhead_percentage", defaults.get("overhead_percentage", 0)) or 0
+            ),
+            "shop_overhead_per_hour": float(
+                category_config.get("shop_overhead_per_hour", defaults.get("shop_overhead_per_hour", 0)) or 0
+            ),
+            "overhead_excludes_setup_cost": True,
+            "notes": (
+                "Overhead is calculated from the legacy basis: "
+                "vinyl_cost + transfer_tape_cost + production_cost + design_cost + install_cost. "
+                "file_cleanup_fee (setup_cost) is intentionally excluded from this basis to preserve "
+                "pre-Phase-2D behavior."
+            ),
+        },
         
         # Breakdown arrays
         materials_breakdown=materials_list,
@@ -1188,15 +1217,214 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
     rush_multiplier = 1 + (float(defaults.get("rush_fee_percentage", 0) or 0) / 100)
     suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order, rush_multiplier)
 
-    return create_pricing_result(
-        material_cost=material_cost,
-        labor_cost=labor_cost,
-        setup_cost=setup_fee,
-        additional_costs=file_cleanup_fee + trim_addon,
+    # ============== PHASE 2D: USE STANDARDIZED RESPONSE ==============
+    # Categorize costs into the standard buckets.
+    # NOTE: overhead math basis is preserved from legacy: material_cost + labor_cost
+    # (where material_cost = media + ink + laminate + substrate;
+    #        labor_cost   = production + mounting + separation + design + install).
+    # This means trim_addon, file_cleanup_fee, and setup_fee are NOT in the overhead basis.
+    media_material_cost = waste_adjusted_area * media_cost_per_sqft
+    media_name = media_material.get("name", media_key) if media_material else media_key
+
+    # Materials breakdown: print media + ink + substrate (if mounted)
+    materials_list = []
+    if media_material_cost > 0:
+        materials_list.append({
+            "name": media_name,
+            "quantity": waste_adjusted_area,
+            "unit": "sqft",
+            "unit_cost": media_cost_per_sqft,
+            "total_cost": media_material_cost,
+        })
+    if ink_cost > 0:
+        materials_list.append({
+            "name": "Print Ink",
+            "quantity": waste_adjusted_area,
+            "unit": "sqft",
+            "unit_cost": ink_cost_per_sqft * (ink_coverage / 100.0),
+            "total_cost": ink_cost,
+        })
+    if substrate_cost > 0:
+        materials_list.append({
+            "name": "Mounting Substrate",
+            "quantity": waste_adjusted_area,
+            "unit": "sqft",
+            "unit_cost": get_material_cost_per_sqft(defaults, data.substrate_material_key or "") if (data.substrate_material_key or data.substrate_type) else 0,
+            "total_cost": substrate_cost,
+        })
+    materials_total = media_material_cost + ink_cost + substrate_cost
+
+    # Labor breakdown: production + mounting + separation (design and install are separate)
+    labor_list = []
+    if production_labor_cost > 0:
+        labor_list.append({
+            "name": "Production Labor",
+            "quantity": production_hours,
+            "unit": "hours",
+            "unit_cost": production_rate,
+            "total_cost": production_labor_cost,
+        })
+    if mounting_labor_cost > 0:
+        labor_list.append({
+            "name": "Mounting Labor",
+            "quantity": mounting_hours,
+            "unit": "hours",
+            "unit_cost": production_rate,
+            "total_cost": mounting_labor_cost,
+        })
+    if separation_labor_cost > 0:
+        labor_list.append({
+            "name": "Piece Separation Labor",
+            "quantity": separation_hours,
+            "unit": "hours",
+            "unit_cost": production_rate,
+            "total_cost": separation_labor_cost,
+        })
+    labor_total = production_labor_cost + mounting_labor_cost + separation_labor_cost
+
+    # Design breakdown
+    design_list = []
+    if design_cost > 0:
+        design_list.append({
+            "name": "Design/Artwork",
+            "quantity": design_hours,
+            "unit": "hours",
+            "unit_cost": design_rate,
+            "total_cost": design_cost,
+        })
+
+    # Finishing breakdown: laminate material cost (sell-side addons excluded)
+    finishing_list = []
+    if laminate_cost > 0:
+        laminate_cost_per_sqft_now = get_material_cost_per_sqft(defaults, laminate_key)
+        finishing_list.append({
+            "name": "Laminate",
+            "quantity": waste_adjusted_area,
+            "unit": "sqft",
+            "unit_cost": laminate_cost_per_sqft_now,
+            "total_cost": laminate_cost,
+        })
+
+    # Install breakdown
+    install_list = []
+    if install_cost > 0:
+        install_list.append({
+            "name": "Installation",
+            "quantity": install_hours,
+            "unit": "hours",
+            "unit_cost": install_rate,
+            "total_cost": install_cost,
+        })
+
+    # Setup breakdown: file cleanup, trim premium addon, setup_fee
+    setup_list = []
+    if file_cleanup_fee > 0:
+        setup_list.append({
+            "name": "File Cleanup",
+            "quantity": 1,
+            "unit": "job",
+            "unit_cost": file_cleanup_fee,
+            "total_cost": file_cleanup_fee,
+        })
+    if trim_addon > 0:
+        setup_list.append({
+            "name": "Premium Trim Finish",
+            "quantity": quantity,
+            "unit": "each",
+            "unit_cost": float(category_config.get("trim_premium_addon", 3.0) or 0),
+            "total_cost": trim_addon,
+        })
+    if setup_fee > 0:
+        setup_list.append({
+            "name": "Setup Fee",
+            "quantity": 1,
+            "unit": "job",
+            "unit_cost": setup_fee,
+            "total_cost": setup_fee,
+        })
+    setup_total = file_cleanup_fee + trim_addon + setup_fee
+
+    # Warnings
+    warnings_list = []
+    if media_warning:
+        warnings_list.append(media_warning)
+    if laminate_warning:
+        warnings_list.append(laminate_warning)
+    if substrate_warning:
+        warnings_list.append(substrate_warning)
+
+    return create_standardized_pricing_result(
+        # Costs (itemized by type)
+        material_cost=materials_total,
+        labor_cost=labor_total,
+        design_cost=design_cost,
+        setup_cost=setup_total,
+        finishing_cost=laminate_cost,
+        hardware_cost=0,
+        install_cost=install_cost,
+        outsourcing_cost=0,
         overhead_cost=overhead_cost,
+
+        # Pricing
         suggested_price=suggested_price,
+        minimum_charge=min_sell,
+
+        # Metadata
         estimated_labor_minutes=(production_hours + mounting_hours + separation_hours + design_hours + install_hours) * 60,
-        breakdown={
+        pricing_method="sell_rate",
+
+        # Overhead explainability (Phase 2D)
+        overhead_basis={
+            "formula": "(basis_amount * overhead_percentage / 100) + (labor_hours * shop_overhead_per_hour)",
+            "basis_amount": round(material_cost + labor_cost, 2),
+            "basis_components": [
+                "media_cost",
+                "ink_cost",
+                "laminate_cost",
+                "substrate_cost",
+                "production_labor_cost",
+                "mounting_labor_cost",
+                "separation_labor_cost",
+                "design_cost",
+                "install_cost",
+            ],
+            "labor_hours": round(
+                production_hours + mounting_hours + separation_hours + design_hours + install_hours, 2
+            ),
+            "overhead_percentage": float(
+                category_config.get("overhead_percentage", defaults.get("overhead_percentage", 0)) or 0
+            ),
+            "shop_overhead_per_hour": float(
+                category_config.get("shop_overhead_per_hour", defaults.get("shop_overhead_per_hour", 0)) or 0
+            ),
+            "overhead_excludes_setup_cost": True,
+            "notes": (
+                "Overhead is calculated from the legacy basis: "
+                "media + ink + laminate + substrate + production + mounting + separation + design + install. "
+                "file_cleanup_fee, trim_addon, and setup_fee (all setup_cost) are intentionally excluded "
+                "from the overhead basis to preserve pre-Phase-2D behavior."
+            ),
+        },
+
+        # Breakdown arrays
+        materials_breakdown=materials_list,
+        labor_breakdown=labor_list,
+        design_breakdown=design_list,
+        setup_breakdown=setup_list,
+        finishing_breakdown=finishing_list,
+        install_breakdown=install_list,
+
+        # Metadata fields
+        area_sqft=area_per_piece,
+        billable_sqft=billable_area_per_piece,
+        quantity=quantity,
+        width_inches=width,
+        height_inches=height,
+        waste_percentage=waste_percent,
+        warnings=warnings_list,
+
+        # Legacy breakdown (preserve existing keys for backward compat)
+        legacy_breakdown={
             "dimensions": f"{width}\" x {height}\"",
             "unit_of_measure": unit,
             "area_per_piece": round(area_per_piece, 2),
@@ -1229,7 +1457,7 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
             "file_cleanup_fee": round(file_cleanup_fee, 2),
             "trim_addon": round(trim_addon, 2),
             "setup_fee": round(setup_fee, 2),
-        }
+        },
     )
 
 
