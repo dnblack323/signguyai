@@ -1751,15 +1751,218 @@ async def calculate_banners(data: JobItemPricingData, quantity: float, defaults:
     if data.override_enabled and data.price_override:
         suggested_price = float(data.price_override) * quantity
 
-    return create_pricing_result(
-        material_cost=material_cost_total,
-        labor_cost=labor_cost_total,
+    # ============== PHASE 2: USE STANDARDIZED RESPONSE ==============
+    # Separate costs by category for itemized breakdown
+    
+    # Materials breakdown (banner material + print consumable + laminate)
+    materials_list = []
+    if banner_material_cost > 0:
+        materials_list.append({
+            "name": banner_material.get("name", material_key) if banner_material else material_key,
+            "quantity": waste_adjusted_area * sided_mult,
+            "unit": "sqft",
+            "unit_cost": material_cost_per_sqft,
+            "total_cost": banner_material_cost,
+        })
+    if print_consumable_cost > 0:
+        materials_list.append({
+            "name": "Print Consumable",
+            "quantity": waste_adjusted_area * sided_mult,
+            "unit": "sqft",
+            "unit_cost": print_consumable_cost_per_sqft,
+            "total_cost": print_consumable_cost,
+        })
+    if laminate_cost > 0:
+        materials_list.append({
+            "name": f"Laminate ({laminate_key})" if laminate_key else "Laminate",
+            "quantity": waste_adjusted_area * sided_mult,
+            "unit": "sqft",
+            "unit_cost": laminate_cost_per_sqft,
+            "total_cost": laminate_cost,
+        })
+    
+    # Labor breakdown (production + finishing labor)
+    labor_list = []
+    if production_cost > 0:
+        labor_list.append({
+            "name": "Production Labor",
+            "quantity": production_hours,
+            "unit": "hours",
+            "unit_cost": production_rate,
+            "total_cost": production_cost,
+        })
+    if finishing_labor_cost > 0:
+        labor_list.append({
+            "name": "Finishing Labor (Grommets)",
+            "quantity": finishing_labor_hours,
+            "unit": "hours",
+            "unit_cost": finishing_rate,
+            "total_cost": finishing_labor_cost,
+        })
+    if hardware_labor_cost > 0:
+        labor_list.append({
+            "name": "Hardware Installation Labor",
+            "quantity": hardware_labor_hours,
+            "unit": "hours",
+            "unit_cost": production_rate,
+            "total_cost": hardware_labor_cost,
+        })
+    
+    # Design breakdown
+    design_list = []
+    if design_cost > 0:
+        design_list.append({
+            "name": "Design/Artwork",
+            "quantity": design_hours,
+            "unit": "hours",
+            "unit_cost": design_rate,
+            "total_cost": design_cost,
+        })
+    
+    # Finishing breakdown (hems, grommets material, pole pockets, reinforced corners, wind slits, specialty sewing)
+    finishing_list = []
+    if hem_cost > 0:
+        finishing_list.append({
+            "name": f"Hems ({hems})",
+            "quantity": perimeter_feet * quantity,
+            "unit": "linear_ft",
+            "unit_cost": hem_rate,
+            "total_cost": hem_cost,
+        })
+    if grommet_material_cost > 0:
+        finishing_list.append({
+            "name": f"Grommets ({grommet_mode})",
+            "quantity": total_grommets,
+            "unit": "each",
+            "unit_cost": grommet_cost_each,
+            "total_cost": grommet_material_cost,
+        })
+    if pole_pocket_cost > 0:
+        finishing_list.append({
+            "name": f"Pole Pockets ({pole_mode})",
+            "quantity": pole_linear_feet_per_item * quantity,
+            "unit": "linear_ft",
+            "unit_cost": pole_rate,
+            "total_cost": pole_pocket_cost,
+        })
+    if reinforced_corners_cost > 0:
+        finishing_list.append({
+            "name": "Reinforced Corners",
+            "quantity": quantity,
+            "unit": "each",
+            "unit_cost": reinforced_corners_cost / quantity,
+            "total_cost": reinforced_corners_cost,
+        })
+    if wind_slit_cost > 0:
+        finishing_list.append({
+            "name": "Wind Slits",
+            "quantity": quantity,
+            "unit": "each",
+            "unit_cost": wind_slit_cost / quantity,
+            "total_cost": wind_slit_cost,
+        })
+    if specialty_sewing_cost > 0:
+        finishing_list.append({
+            "name": "Specialty Sewing",
+            "quantity": perimeter_feet * quantity,
+            "unit": "linear_ft",
+            "unit_cost": specialty_sewing_rate,
+            "total_cost": specialty_sewing_cost,
+        })
+    
+    # Hardware breakdown
+    hardware_list = []
+    if hardware_cost > 0:
+        for hk in hardware_keys_list:
+            hw_list = defaults.get("hardware_accessories", []) or []
+            hw = next((h for h in hw_list if h.get("id") == hk or h.get("key") == hk), None)
+            if hw:
+                hardware_list.append({
+                    "name": hw.get("name", hk),
+                    "quantity": quantity,
+                    "unit": hw.get("unit_type", "each"),
+                    "unit_cost": float(hw.get("purchase_cost", 0) or 0),
+                    "total_cost": float(hw.get("purchase_cost", 0) or 0) * quantity,
+                })
+    
+    # Install breakdown
+    install_list = []
+    if install_cost > 0:
+        install_list.append({
+            "name": "Installation",
+            "quantity": install_hours,
+            "unit": "hours",
+            "unit_cost": install_rate,
+            "total_cost": install_cost,
+        })
+    
+    # Collect warnings
+    warnings_list = []
+    if material_warning:
+        warnings_list.append(material_warning)
+    if laminate_warning:
+        warnings_list.append(laminate_warning)
+    if hardware_warning:
+        warnings_list.append(hardware_warning)
+    
+    # Categorize costs for Phase 2 structure
+    # Banner material, print consumable, laminate → material_cost
+    material_costs_only = banner_material_cost + print_consumable_cost + laminate_cost
+    
+    # Grommets material → finishing_cost  
+    finishing_costs = grommet_material_cost
+    
+    # Production + finishing + hardware labor → labor_cost
+    labor_costs_only = production_cost + finishing_labor_cost + hardware_labor_cost
+    
+    # Design → design_cost
+    design_costs = design_cost
+    
+    # Install → install_cost  
+    install_costs = install_cost
+    
+    # Hardware → hardware_cost
+    hardware_costs = hardware_cost
+    
+    return create_standardized_pricing_result(
+        # Costs (itemized by type)
+        material_cost=material_costs_only,
+        labor_cost=labor_costs_only,
+        design_cost=design_costs,
         setup_cost=0,
-        additional_costs=0,
+        finishing_cost=finishing_costs,
+        hardware_cost=hardware_costs,
+        install_cost=install_costs,
+        outsourcing_cost=0,
         overhead_cost=overhead_cost,
+        
+        # Pricing
         suggested_price=suggested_price,
+        minimum_charge=min_sell_per_item * quantity,
+        
+        # Metadata
         estimated_labor_minutes=total_labor_hours * 60,
-        breakdown={
+        pricing_method="cost_plus",
+        
+        # Breakdown arrays
+        materials_breakdown=materials_list,
+        labor_breakdown=labor_list,
+        design_breakdown=design_list,
+        finishing_breakdown=finishing_list,
+        hardware_breakdown=hardware_list,
+        install_breakdown=install_list,
+        
+        # Metadata fields
+        area_sqft=area_per_piece,
+        billable_sqft=billable_area_per_piece,
+        quantity=quantity,
+        width_inches=width if unit == "inches" else width * 12,
+        height_inches=height if unit == "inches" else height * 12,
+        waste_percentage=waste_percent,
+        warnings=warnings_list,
+        
+        # Legacy breakdown (preserve existing keys for backward compat)
+        legacy_breakdown={
             "dimensions": f"{width} x {height} {unit}",
             "unit_of_measure": unit,
             "area_per_piece": round(area_per_piece, 2),
