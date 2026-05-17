@@ -14,7 +14,7 @@ import {
   DialogTitle, DialogFooter,
 } from '../ui/dialog';
 import {
-  Sparkles, ChevronLeft, ChevronRight, CheckCircle2, AlertCircle, X,
+  Sparkles, ChevronLeft, ChevronRight, CheckCircle2, AlertCircle, X, RotateCcw, Info,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -162,6 +162,198 @@ const num = (v) => {
   return Number.isFinite(n) && n > 0 ? n : null;
 };
 
+// ─────────── Phase 6B: per-question validation ───────────
+// Returns { level, msg } where level is 'error' | 'warn' | 'ok'.
+// - error: value is impossible (negative, NaN, or violates a hard rule). The
+//   answer is dropped from the suggestion engine and the user sees an inline
+//   red warning. They can still proceed to the next section so the rest of the
+//   quiz isn't blocked.
+// - warn:  value is unusual but not impossible. The answer is still used, but
+//   any suggestion derived from it is demoted to 'review' confidence so the
+//   user must explicitly opt in on the review screen.
+// - ok:    pass-through.
+const VALIDATORS = {
+  // Hourly rates: $10–$500/hr is normal range
+  design_hourly_rate:     (v) => boundCheck(v, 10, 500, '/hr'),
+  production_hourly_rate: (v) => boundCheck(v, 10, 500, '/hr'),
+  install_hourly_rate:    (v) => boundCheck(v, 10, 500, '/hr'),
+  svc_design_rate:        (v) => boundCheck(v, 10, 500, '/hr'),
+  svc_production_rate:    (v) => boundCheck(v, 10, 500, '/hr'),
+  svc_install_rate:       (v) => boundCheck(v, 10, 500, '/hr'),
+
+  // Target profit margin: 0–95% allowed; >95% is impossible
+  target_profit_margin_percent: (v) => {
+    if (v == null || v === '') return ok();
+    if (Number.isNaN(parseFloat(v))) return err('Enter a number');
+    const n = parseFloat(v);
+    if (n < 0) return err('Margin cannot be negative');
+    if (n > 95) return err('Margin over 95% is not realistic — caps at 95%');
+    if (n > 75) return warn('Margin over 75% is unusually high');
+    if (n > 0 && n < 10) return warn('Margin under 10% is unusually low');
+    return ok();
+  },
+
+  // Deposit %: 0–100
+  deposit_percentage: (v) => {
+    if (v == null || v === '') return ok();
+    const n = parseFloat(v);
+    if (Number.isNaN(n)) return err('Enter a number');
+    if (n < 0 || n > 100) return err('Deposit % must be between 0 and 100');
+    return ok();
+  },
+
+  // Minimum order: $0–$5000
+  minimum_order:           (v) => boundCheck(v, 0, 5000, '/order'),
+  cv_minimum_charge:       (v) => boundCheck(v, 0, 1000, '/order'),
+  pc_min_order:            (v) => boundCheck(v, 0, 5000, '/order'),
+  pc_min_setup_fee:        (v) => boundCheck(v, 0, 1000, '/job'),
+  svc_min_design:          (v) => boundCheck(v, 0, 2000, '/job'),
+  svc_min_install:         (v) => boundCheck(v, 0, 2000, '/job'),
+
+  // Banner prices (sanity-bounded against typical retail ranges)
+  banner_2x4: (v) => priceBound(v, 30, 400, 'banner'),
+  banner_3x6: (v) => priceBound(v, 60, 800, 'banner'),
+  banner_4x8: (v) => priceBound(v, 100, 1500, 'banner'),
+
+  // Yard signs (one 18×24 should be roughly $15–$150)
+  yard_qty_1:  (v) => priceBound(v, 10, 250, 'yard sign'),
+  yard_qty_10: (v) => priceBound(v, 5, 150, 'yard sign'),
+  yard_qty_25: (v) => priceBound(v, 4, 100, 'yard sign'),
+  yard_qty_50: (v) => priceBound(v, 3, 80, 'yard sign'),
+
+  // Rigid signs ($/sqft sanity: 16 sqft = $50–$1500, 32 sqft = $100–$3000)
+  rigid_coroplast_4x4: (v) => priceBound(v, 40, 1500, 'sign'),
+  rigid_coroplast_4x8: (v) => priceBound(v, 80, 2500, 'sign'),
+  rigid_acm_4x8:       (v) => priceBound(v, 150, 5000, 'sign'),
+  rigid_pvc_4x8:       (v) => priceBound(v, 120, 4000, 'sign'),
+
+  // Cut vinyl decals
+  cv_12x24_one_color: (v) => priceBound(v, 8, 250, 'decal'),
+  cv_24x36_one_color: (v) => priceBound(v, 20, 600, 'decal'),
+  cv_24x36_two_color: (v) => priceBound(v, 25, 800, 'decal'),
+
+  // Digital print
+  dp_24x36_poster:       (v) => priceBound(v, 10, 200, 'poster'),
+  dp_24x36_adhesive:     (v) => priceBound(v, 20, 400, 'adhesive print'),
+  dp_24x36_adhesive_lam: (v) => priceBound(v, 25, 500, 'laminated print'),
+  dp_4x8_panel:          (v) => priceBound(v, 80, 1500, 'panel'),
+
+  // Vehicle graphics
+  vg_door_lettering:    (v) => priceBound(v, 80, 2000, 'job'),
+  vg_spot_van:          (v) => priceBound(v, 150, 3500, 'job'),
+  vg_partial_wrap:      (v) => priceBound(v, 600, 8000, 'job'),
+  vg_full_wrap:         (v) => priceBound(v, 1500, 15000, 'job'),
+  vg_print_sqft_rate:   (v) => priceBound(v, 5, 40, 'sqft', 'sqft'),
+  vg_color_change_sqft: (v) => priceBound(v, 5, 50, 'sqft', 'sqft'),
+
+  // Apparel
+  ap_tee_qty_12_one_side: (v) => priceBound(v, 8, 80, 'tee'),
+  ap_tee_qty_24_one_side: (v) => priceBound(v, 7, 70, 'tee'),
+  ap_tee_qty_12_two_side: (v) => priceBound(v, 10, 100, 'tee'),
+  ap_blank_cost:          (v) => priceBound(v, 1, 50, 'blank'),
+  ap_decoration_cost:     (v) => priceBound(v, 0.25, 30, 'decoration'),
+  ap_hoodie_each:         (v) => priceBound(v, 18, 200, 'hoodie'),
+
+  // Promotional/custom markup — entered as percentage (0–500%)
+  pc_vendor_markup_percent: (v) => {
+    if (v == null || v === '') return ok();
+    const n = parseFloat(v);
+    if (Number.isNaN(n)) return err('Enter a number');
+    if (n < 0) return err('Markup cannot be negative');
+    if (n === 0) return warn('A 0% markup means selling at cost — confirm intentional');
+    if (n > 500) return err('Markup over 500% is not supported by this quiz');
+    if (n > 200) return warn('Markup over 200% is unusually high');
+    return ok();
+  },
+};
+
+function ok() { return { level: 'ok', msg: '' }; }
+function warn(msg) { return { level: 'warn', msg }; }
+function err(msg) { return { level: 'error', msg }; }
+function boundCheck(v, lo, hi, suffix = '') {
+  if (v == null || v === '') return ok();
+  const n = parseFloat(v);
+  if (Number.isNaN(n)) return err('Enter a number');
+  if (n < 0) return err('Cannot be negative');
+  if (n > 0 && n < lo) return warn(`Value seems unusually low${suffix ? ' for ' + suffix.replace('/', '') : ''}`);
+  if (n > hi) return warn(`Value seems unusually high${suffix ? ' for ' + suffix.replace('/', '') : ''}`);
+  return ok();
+}
+function priceBound(v, lo, hi, label, unit = 'each') {
+  if (v == null || v === '') return ok();
+  const n = parseFloat(v);
+  if (Number.isNaN(n)) return err('Enter a number');
+  if (n < 0) return err('Price cannot be negative');
+  if (n === 0) return err(`A $0 ${label} price is not valid — skip this question instead`);
+  if (n < lo) return warn(`Unusually low for a ${label} (typical $${lo}+ per ${unit})`);
+  if (n > hi) return warn(`Unusually high for a ${label} (typical up to $${hi} per ${unit})`);
+  return ok();
+}
+
+function validateAnswer(key, value) {
+  const fn = VALIDATORS[key];
+  if (!fn) return ok();
+  return fn(value);
+}
+
+// Map of suggestion-id → answer-keys that contributed to it. Used by the
+// warn-demotion logic in buildSuggestions so we don't have to thread
+// sourceKeys through every individual add() call.
+const SUGGESTION_SOURCES = {
+  shop_design_rate:        ['design_hourly_rate'],
+  shop_prod_rate:          ['production_hourly_rate'],
+  shop_install_rate:       ['install_hourly_rate'],
+  shop_target_margin:      ['target_profit_margin_percent'],
+  shop_min_order:          ['minimum_order'],
+  shop_deposit_pct:        ['deposit_required', 'deposit_percentage'],
+  banner_sell_rate:        ['banner_2x4', 'banner_3x6', 'banner_4x8'],
+  banner_min_sell:         ['banner_2x4', 'banner_3x6', 'banner_4x8'],
+  rigid_yard_rate:         ['yard_qty_1', 'yard_qty_10', 'yard_qty_25', 'yard_qty_50'],
+  rigid_yard_single_min:   ['yard_qty_1'],
+  rigid_qty_10:            ['yard_qty_1', 'yard_qty_10'],
+  rigid_qty_25:            ['yard_qty_1', 'yard_qty_25'],
+  rigid_sell_rate:         ['rigid_coroplast_4x4', 'rigid_coroplast_4x8', 'rigid_acm_4x8', 'rigid_pvc_4x8'],
+  cv_sell_rate:            ['cv_12x24_one_color', 'cv_24x36_one_color', 'cv_24x36_two_color'],
+  cv_min_charge:           ['cv_minimum_charge'],
+  dp_sell_rate:            ['dp_24x36_poster', 'dp_24x36_adhesive', 'dp_4x8_panel'],
+  dp_lam_addon:            ['dp_24x36_adhesive', 'dp_24x36_adhesive_lam'],
+  vg_print_rate:           ['vg_print_sqft_rate'],
+  vg_color_rate:           ['vg_color_change_sqft'],
+  vg_door:                 ['vg_door_lettering'],
+  vg_spot:                 ['vg_spot_van'],
+  vg_partial:              ['vg_partial_wrap'],
+  vg_full:                 ['vg_full_wrap'],
+  apparel_tier_12:         ['ap_tee_qty_12_one_side'],
+  apparel_tier_24:         ['ap_tee_qty_24_one_side'],
+  apparel_blank_cost:      ['ap_blank_cost'],
+  apparel_deco_cost:       ['ap_decoration_cost'],
+  apparel_hoodie_each:     ['ap_hoodie_each'],
+  svc_design_rate:         ['svc_design_rate'],
+  svc_prod_rate:           ['svc_production_rate'],
+  svc_install_rate:        ['svc_install_rate'],
+  svc_min_design:          ['svc_min_design'],
+  svc_min_install:         ['svc_min_install'],
+  pc_markup:               ['pc_vendor_markup_percent'],
+  pc_markup_custom:        ['pc_vendor_markup_percent'],
+  pc_setup:                ['pc_min_setup_fee'],
+  pc_min:                  ['pc_min_order'],
+};
+
+// Returns answers cleaned of any value with an `error`-level validation, so
+// the suggestion engine never sees impossible inputs. Also returns a Set of
+// keys that produced a `warn` so suggestions derived from them can be demoted.
+function partitionAnswers(answers) {
+  const clean = {};
+  const warned = new Set();
+  for (const [k, v] of Object.entries(answers || {})) {
+    const r = validateAnswer(k, v);
+    if (r.level === 'error') continue; // drop
+    clean[k] = v;
+    if (r.level === 'warn') warned.add(k);
+  }
+  return { clean, warned };
+}
+
 // Returns the current value of a path inside the settings object, supporting
 // nested paths like ["category_defaults", "banners", "sell_rate_defaults", "base_rate"].
 function getPath(obj, path) {
@@ -199,9 +391,23 @@ function applySuggestions(settings, suggestions) {
 //   - suggestedValue
 //   - confidence    'high' | 'review'  ('review' means "Review recommended" — auto-deselected)
 //   - section       (for grouping in the review screen)
-function buildSuggestions(answers) {
+//   - sourceKeys    (array of answer keys that fed this suggestion — used by
+//                    Phase 6B to demote suggestions whose inputs were flagged
+//                    `warn` by the validator)
+function buildSuggestions(rawAnswers) {
+  // Phase 6B: drop error-level answers; track warn-level so we can demote.
+  const { clean: answers, warned } = partitionAnswers(rawAnswers);
   const out = [];
-  const add = (s) => out.push({ apply: s.confidence === 'high', ...s });
+  const add = (s) => {
+    // Any suggestion built from a warned answer gets bumped down to 'review'
+    // so the user must opt-in explicitly on the review screen. Source-key
+    // mapping lives in SUGGESTION_SOURCES so we don't have to thread metadata
+    // through every add() call below.
+    const keys = SUGGESTION_SOURCES[s.id] || [];
+    const touchedWarn = keys.some((k) => warned.has(k));
+    const confidence = touchedWarn ? 'review' : s.confidence;
+    out.push({ apply: confidence === 'high', ...s, confidence });
+  };
 
   // ── Shop Basics ──
   const design = num(answers.design_hourly_rate);
@@ -587,6 +793,7 @@ function buildSuggestions(answers) {
 
 // ─────────── Subcomponents ───────────
 function QuestionRow({ q, value, onChange }) {
+  const validation = validateAnswer(q.key, value);
   if (q.type === 'bool') {
     return (
       <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg" data-testid={`quiz-q-${q.key}`}>
@@ -602,6 +809,8 @@ function QuestionRow({ q, value, onChange }) {
       </div>
     );
   }
+  const isError = validation.level === 'error';
+  const isWarn = validation.level === 'warn';
   return (
     <div className="p-3 bg-slate-50 rounded-lg" data-testid={`quiz-q-${q.key}`}>
       <Label className="text-sm">{q.label}</Label>
@@ -614,11 +823,24 @@ function QuestionRow({ q, value, onChange }) {
           placeholder="Skip if unsure"
           value={value ?? ''}
           onChange={(e) => onChange(q.key, e.target.value === '' ? '' : parseFloat(e.target.value))}
-          className="h-9 max-w-[160px]"
+          className={`h-9 max-w-[160px] ${
+            isError ? 'border-red-400 focus-visible:ring-red-300' : isWarn ? 'border-amber-400 focus-visible:ring-amber-300' : ''
+          }`}
           data-testid={`quiz-input-${q.key}`}
+          aria-invalid={isError ? 'true' : undefined}
         />
         {q.suffix && <span className="text-xs text-slate-500">{q.suffix}</span>}
       </div>
+      {validation.msg && (
+        <p
+          className={`mt-1.5 text-xs flex items-center gap-1 ${isError ? 'text-red-700' : 'text-amber-700'}`}
+          data-testid={`quiz-validation-${q.key}-${validation.level}`}
+        >
+          <AlertCircle className="h-3 w-3" />
+          {isError ? 'This value won\'t be used: ' : 'Heads up: '} {validation.msg}
+          {isWarn && '. We\'ll mark any suggestion using it as "Review recommended" so you can verify before applying.'}
+        </p>
+      )}
     </div>
   );
 }
@@ -681,6 +903,34 @@ export default function PricingSetupQuiz({ open, onClose, settings, onApply }) {
   const toggleSuggestion = (id, value) =>
     setSuggestions((arr) => arr.map((s) => (s.id === id ? { ...s, apply: value } : s)));
 
+  // Phase 6B: stats for the summary panel on the review screen.
+  const allQuestions = useMemo(() => SECTIONS.flatMap((s) => s.questions), []);
+  const stats = useMemo(() => {
+    let answered = 0;
+    let errored = 0;
+    for (const q of allQuestions) {
+      const v = answers[q.key];
+      if (v === undefined || v === '' || v === null) continue;
+      // booleans always count as answered when explicitly toggled true/false
+      if (q.type === 'bool') { answered += 1; continue; }
+      const val = validateAnswer(q.key, v);
+      if (val.level === 'error') errored += 1; else answered += 1;
+    }
+    const skipped = allQuestions.length - answered - errored;
+    const total_s = suggestions.length;
+    const autoApply = suggestions.filter((s) => s.apply && s.confidence === 'high').length;
+    const review = suggestions.filter((s) => s.confidence === 'review').length;
+    return {
+      totalQuestions: allQuestions.length,
+      answered,
+      errored,
+      skipped,
+      totalSuggestions: total_s,
+      autoApply,
+      review,
+    };
+  }, [answers, suggestions, allQuestions]);
+
   const goNext = () => {
     if (step < total - 1) {
       setStep(step + 1);
@@ -692,6 +942,12 @@ export default function PricingSetupQuiz({ open, onClose, settings, onApply }) {
   };
   const goPrev = () => {
     if (step > 0) setStep(step - 1);
+  };
+  const resetAnswers = () => {
+    setAnswers({});
+    setSuggestions([]);
+    setStep(0);
+    toast.message('Quiz answers reset.');
   };
 
   const applySelected = () => {
@@ -763,6 +1019,28 @@ export default function PricingSetupQuiz({ open, onClose, settings, onApply }) {
         </div>
 
         <div className="flex-1 overflow-y-auto pr-1">
+          {/* Phase 6B: helper banner explaining mapping rules — shown on every question page */}
+          {!onReview && (
+            <div
+              className="mb-3 p-2.5 bg-violet-50 border border-violet-200 rounded-lg text-xs text-violet-900 flex items-start gap-2"
+              data-testid="quiz-helper-banner"
+            >
+              <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-violet-600" />
+              <div className="space-y-0.5">
+                <p>
+                  <span className="font-medium">Sell-price answers</span> update sell rates, markups,
+                  and minimum charges. <span className="font-medium">Cost answers</span> (like
+                  &quot;average blank shirt cost&quot;) only update actual cost fields.
+                </p>
+                <p>
+                  Nothing is saved until you click <span className="font-medium">Apply Selected Defaults</span> on
+                  the review screen — and you still need to click <span className="font-medium">Save All</span> on
+                  Pricing Foundation afterward.
+                </p>
+              </div>
+            </div>
+          )}
+
           {!onReview && currentSection && (
             <div className="space-y-3" data-testid={`quiz-section-${currentSection.key}`}>
               <div>
@@ -779,6 +1057,48 @@ export default function PricingSetupQuiz({ open, onClose, settings, onApply }) {
 
           {onReview && (
             <div className="space-y-4" data-testid="quiz-review-screen">
+              {/* Phase 6B: summary stats panel */}
+              <div
+                className="grid grid-cols-2 md:grid-cols-5 gap-2 p-3 bg-slate-50 border border-slate-200 rounded-lg"
+                data-testid="quiz-review-summary"
+              >
+                <div>
+                  <p className="text-[10px] uppercase text-slate-500">Answered</p>
+                  <p className="text-base font-semibold text-slate-800" data-testid="quiz-stat-answered">
+                    {stats.answered} / {stats.totalQuestions}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase text-slate-500">Skipped</p>
+                  <p className="text-base font-semibold text-slate-700" data-testid="quiz-stat-skipped">{stats.skipped}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase text-slate-500">Suggestions</p>
+                  <p className="text-base font-semibold text-violet-700" data-testid="quiz-stat-suggestions">{stats.totalSuggestions}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase text-slate-500">Auto-selected</p>
+                  <p className="text-base font-semibold text-green-700" data-testid="quiz-stat-auto">{stats.autoApply}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase text-slate-500">Review recommended</p>
+                  <p className="text-base font-semibold text-amber-700" data-testid="quiz-stat-review">{stats.review}</p>
+                </div>
+              </div>
+              {stats.errored > 0 && (
+                <div
+                  className="p-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-800 flex items-start gap-2"
+                  data-testid="quiz-review-errored-banner"
+                >
+                  <AlertCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                  <p>
+                    <span className="font-medium">{stats.errored} answer{stats.errored === 1 ? ' was' : 's were'} invalid</span> and
+                    were dropped before generating suggestions. Go back to review them, or
+                    leave as-is if you intended to skip.
+                  </p>
+                </div>
+              )}
+
               {suggestions.length === 0 ? (
                 <div className="p-6 text-center text-slate-500" data-testid="quiz-review-empty">
                   <AlertCircle className="h-8 w-8 mx-auto mb-2 text-slate-400" />
@@ -821,10 +1141,21 @@ export default function PricingSetupQuiz({ open, onClose, settings, onApply }) {
                 size="sm"
                 onClick={goPrev}
                 data-testid="quiz-prev-btn"
+                title="Back to previous section"
               >
-                <ChevronLeft className="h-4 w-4 mr-1" /> Back
+                <ChevronLeft className="h-4 w-4 mr-1" /> Previous section
               </Button>
             )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={resetAnswers}
+              disabled={Object.keys(answers).length === 0 && suggestions.length === 0}
+              data-testid="quiz-reset-btn"
+              title="Clear all answers and start over"
+            >
+              <RotateCcw className="h-4 w-4 mr-1" /> Reset Quiz Answers
+            </Button>
             <Button
               variant="ghost"
               size="sm"
