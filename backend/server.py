@@ -1819,16 +1819,10 @@ async def calculate_banners(data: JobItemPricingData, quantity: float, defaults:
             "total_cost": design_cost,
         })
     
-    # Finishing breakdown (hems, grommets material, pole pockets, reinforced corners, wind slits, specialty sewing)
+    # Finishing breakdown (only actual material costs, not sell-price additions)
+    # Grommets material = actual cost
+    # Hems, pole pockets, reinforced corners, wind slits, specialty sewing = sell-price additions (not costs)
     finishing_list = []
-    if hem_cost > 0:
-        finishing_list.append({
-            "name": f"Hems ({hems})",
-            "quantity": perimeter_feet * quantity,
-            "unit": "linear_ft",
-            "unit_cost": hem_rate,
-            "total_cost": hem_cost,
-        })
     if grommet_material_cost > 0:
         finishing_list.append({
             "name": f"Grommets ({grommet_mode})",
@@ -1836,38 +1830,6 @@ async def calculate_banners(data: JobItemPricingData, quantity: float, defaults:
             "unit": "each",
             "unit_cost": grommet_cost_each,
             "total_cost": grommet_material_cost,
-        })
-    if pole_pocket_cost > 0:
-        finishing_list.append({
-            "name": f"Pole Pockets ({pole_mode})",
-            "quantity": pole_linear_feet_per_item * quantity,
-            "unit": "linear_ft",
-            "unit_cost": pole_rate,
-            "total_cost": pole_pocket_cost,
-        })
-    if reinforced_corners_cost > 0:
-        finishing_list.append({
-            "name": "Reinforced Corners",
-            "quantity": quantity,
-            "unit": "each",
-            "unit_cost": reinforced_corners_cost / quantity,
-            "total_cost": reinforced_corners_cost,
-        })
-    if wind_slit_cost > 0:
-        finishing_list.append({
-            "name": "Wind Slits",
-            "quantity": quantity,
-            "unit": "each",
-            "unit_cost": wind_slit_cost / quantity,
-            "total_cost": wind_slit_cost,
-        })
-    if specialty_sewing_cost > 0:
-        finishing_list.append({
-            "name": "Specialty Sewing",
-            "quantity": perimeter_feet * quantity,
-            "unit": "linear_ft",
-            "unit_cost": specialty_sewing_rate,
-            "total_cost": specialty_sewing_cost,
         })
     
     # Hardware breakdown
