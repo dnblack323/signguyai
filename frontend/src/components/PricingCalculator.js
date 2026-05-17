@@ -21,6 +21,7 @@ import {
 import { toast } from 'sonner';
 import { useAICreditGuard } from './credits/AICreditConfirmationDialog';
 import { getAuthToken } from '../lib/authStorage';
+import StandardizedPricingBreakdown from './pricing/StandardizedPricingBreakdown';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -3308,23 +3309,15 @@ export default function PricingCalculator({
                           </span>
                         </div>
                       )}
-                      {calculation.breakdown && Object.keys(calculation.breakdown).length > 0 && (
-                        <div className="pt-2 border-t border-slate-200">
-                          <p className="text-xs text-slate-500 uppercase mb-2">Details</p>
-                          {Object.entries(calculation.breakdown).map(([key, value]) => (
-                            <div key={key} className="flex justify-between text-xs">
-                              <span className="text-slate-500">{key.replace(/_/g, ' ')}:</span>
-                              <span className="text-slate-700">
-                                {typeof value === 'number' ? 
-                                  (key.includes('cost') || key.includes('price') ? formatCurrency(value) : value) 
-                                  : Array.isArray(value) ? value.join(', ') : String(value)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   )}
+
+                  {/* ============== PHASE 3: STANDARDIZED BREAKDOWN DISPLAY ============== */}
+                  <StandardizedPricingBreakdown
+                    calculation={calculation}
+                    formatCurrency={formatCurrency}
+                    finalPrice={finalPrice}
+                  />
 
                   {/* AI Pricing Suggestions */}
                   <div className="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
