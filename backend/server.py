@@ -697,7 +697,7 @@ async def calculate_promotional(data: JobItemPricingData, quantity: float, defau
 async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
     """Calculate cut vinyl using Pricing Foundation defaults."""
     width = data.width_inches or 12
-    height = data.length_inches or 12
+    height = data.height_inches or data.length_inches or 12  # Phase 1: Use canonical height_inches, fallback to legacy length_inches
     unit = (data.unit_of_measure or "inches").lower()
     area_per_piece = (width * height) / 144 if unit != "feet" else (width * height)
 
@@ -864,7 +864,7 @@ async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, default
 async def calculate_digital_print(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
     """Calculate digital print pricing using Pricing Foundation defaults."""
     width = data.width_inches or 24
-    height = data.length_inches or 24
+    height = data.height_inches or data.length_inches or 24  # Phase 1: Use canonical height_inches, fallback to legacy length_inches
     unit = (data.unit_of_measure or "inches").lower()
     area_per_piece = (width * height) / 144 if unit != "feet" else (width * height)
 
@@ -1489,7 +1489,7 @@ async def calculate_banners(data: JobItemPricingData, quantity: float, defaults:
 
     # Dimensions & area
     width = float(data.width_inches or 0)
-    height = float(data.length_inches or 0)
+    height = float(data.height_inches or data.length_inches or 0)  # Phase 1: Use canonical height_inches, fallback to legacy length_inches
     unit = (data.unit_of_measure or cfg.get("default_unit_of_measure", "feet")).lower()
     if unit == "feet":
         area_per_piece = width * height
