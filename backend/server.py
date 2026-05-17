@@ -3091,15 +3091,125 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
         "rush_percent": rush_source,
     }
 
-    return create_pricing_result(
-        material_cost=material_cost_total,
+    return create_standardized_pricing_result(
+        # === ITEMIZED COSTS (Phase 2D mapping) ===
+        # Services has no physical materials; direct pass-through costs (travel,
+        # equipment, subcontract, permits) go into outsourcing per spec. Labor
+        # stays in labor.
+        material_cost=0,
         labor_cost=labor_cost,
+        design_cost=0,
         setup_cost=0,
-        additional_costs=0,
+        finishing_cost=0,
+        hardware_cost=0,
+        install_cost=0,
+        outsourcing_cost=(travel_cost + equipment_cost + subcontract_cost + permit_cost),
         overhead_cost=overhead_cost,
+
+        # === PRICING ===
         suggested_price=suggested_price,
+        minimum_charge=effective_min if minimum_applies else 0,
+
+        # === METADATA ===
         estimated_labor_minutes=round(labor_hours_for_overhead * 60, 0),
-        breakdown={
+        pricing_method=(
+            "manual_override"
+            if (manual_override is not None) or (data.override_enabled and data.price_override)
+            else sell_method
+        ),
+        markup_multiplier=markup,
+        target_margin_percent=target_margin,
+
+        # Overhead explainability (Phase 2D)
+        overhead_basis={
+            "formula": "(basis_amount * overhead_percentage / 100) + (labor_hours * shop_overhead_per_hour)",
+            "basis_amount": round(material_cost_total + labor_cost, 2),
+            "basis_components": [
+                "labor_cost",
+                "travel_cost",
+                "equipment_cost",
+                "subcontract_cost",
+                "permit_cost",
+            ],
+            "labor_hours": round(labor_hours_for_overhead, 2),
+            "labor_hours_source": (
+                "estimated_hours × num_workers" if billing_unit in ("hour", "flat", "piece", "sqft", "linear_foot", "custom")
+                else f"derived from billing_unit={billing_unit}"
+            ),
+            "overhead_percentage": float(
+                cfg.get("overhead_percentage", defaults.get("overhead_percentage", 0)) or 0
+            ),
+            "shop_overhead_per_hour": float(
+                cfg.get("shop_overhead_per_hour", defaults.get("shop_overhead_per_hour", 0)) or 0
+            ),
+            "overhead_excludes_setup_cost": True,
+            "notes": (
+                "Overhead is calculated from the legacy basis: labor_cost + travel_cost + "
+                "equipment_cost + subcontract_cost + permit_cost. In the Phase 2D mapping the "
+                "pass-through costs are exposed under outsourcing_cost, but overhead math is "
+                "preserved exactly as pre-Phase-2D. labor_hours is derived per billing_unit "
+                "(see labor_hours_source)."
+            ),
+        },
+
+        # === BREAKDOWN ARRAYS ===
+        labor_breakdown=([
+            {
+                "name": f"{(st_info.get('label') if st_info else st_key)} Labor ({labor_role})",
+                "quantity": round(effective_hours * num_workers, 2) if billing_unit in ("hour", "flat", "piece", "sqft", "linear_foot", "custom") else round(labor_hours_for_overhead, 2),
+                "unit": "hours",
+                "unit_cost": labor_cost_rate,
+                "total_cost": labor_cost,
+                "notes": (
+                    f"billing_unit={billing_unit}; complexity={complexity_key}×{complexity_mult}; "
+                    f"workers={num_workers}"
+                ),
+            }
+        ] if labor_cost > 0 else []),
+        outsourcing_breakdown=(
+            ([{
+                "name": f"Travel ({travel_miles} mi)" if travel_miles > 0 else "Travel / Trip Charge",
+                "quantity": travel_miles if travel_miles > 0 else trip_count,
+                "unit": "miles" if travel_miles > 0 else "trips",
+                "unit_cost": (
+                    float(cfg.get("travel_cost_per_mile", 0.65) or 0)
+                    if travel_miles > 0 else trip_cost_rate
+                ),
+                "total_cost": round(travel_cost, 2),
+            }] if travel_cost > 0 else [])
+            + ([{
+                "name": f"Equipment Rental ({equipment_type})",
+                "quantity": equipment_days or equipment_hours,
+                "unit": "days" if equipment_days > 0 else "hours",
+                "unit_cost": (
+                    (equipment_cost / equipment_days) if equipment_days > 0
+                    else (equipment_cost / equipment_hours if equipment_hours > 0 else equipment_cost)
+                ),
+                "total_cost": round(equipment_cost, 2),
+            }] if equipment_cost > 0 else [])
+            + ([{
+                "name": "Subcontract / Vendor",
+                "quantity": 1,
+                "unit": "job",
+                "unit_cost": round(subcontract_cost, 2),
+                "total_cost": round(subcontract_cost, 2),
+                "notes": f"markup_applies={markup_applies}",
+            }] if subcontract_cost > 0 else [])
+            + ([{
+                "name": "Permits / External Fees",
+                "quantity": 1,
+                "unit": "job",
+                "unit_cost": round(permit_cost, 2),
+                "total_cost": round(permit_cost, 2),
+            }] if permit_cost > 0 else [])
+        ),
+
+        # === METADATA FIELDS ===
+        quantity=qty_raw,
+        warnings=warnings,
+
+        # === LEGACY BREAKDOWN (preserve all existing keys for backward compat) ===
+        legacy_breakdown={
             "service_type": st_key,
             "service_type_label": st_info.get("label") if st_info else st_key,
             "billing_unit": billing_unit,
@@ -3149,8 +3259,9 @@ async def calculate_services(data: JobItemPricingData, quantity: float, defaults
             "total_subcontract_cost": round(subcontract_cost, 2),
             "total_permit_cost": round(permit_cost, 2),
             "total_production_cost": round(production_cost_total, 2),
+            # Phase 2D: legacy material_cost meaning preserved here (was travel+eq+sub+permit).
+            "legacy_material_cost_total": round(material_cost_total, 2),
             "field_sources": field_sources,
-            "warnings": warnings,
         },
     )
 
