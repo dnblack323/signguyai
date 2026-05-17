@@ -39,7 +39,7 @@
     "/app/backend/tests/test_tier7_signatures_drawings.py (new)"
   ],
   "success_rate": {"backend": "91.7% (22/24 tests passing)", "frontend": "not tested (backend-only sweep)"},
-  "test_credentials": "thesigntistslab@gmail.com / password123 (role=platform_admin, tenant=d9c5507b-879c-4bec-9736-1dc841334719); test order ORD-0001 id=1efe0ae8-473d-4d5f-bde7-dbfde8180cda. Tenant signature_settings.enabled is TRUE.",
+  "test_credentials": "thesigntistslab@gmail.com / password123 (role=platform_admin, tenant=ticket-tracker-ai-1); test order ORD-0001 id=ticket-tracker-ai-1. Tenant signature_settings.enabled is TRUE.",
   "seed_data_creation": "Created several TEST_Tier7_* signatures and one drawing during the test run. Drawing was deleted at end of suite (or rather, attempted — left soft-state as 403 blocked deletion). Remaining TEST_Tier7_* signatures persist on order ORD-0001.",
   "retest_needed": true,
   "main_agent_can_self_test": true,

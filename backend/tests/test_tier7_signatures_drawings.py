@@ -15,7 +15,7 @@ import uuid
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://admin-onboard-4.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://ticket-tracker-ai-1.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api"
 
 ADMIN_EMAIL = "thesigntistslab@gmail.com"
@@ -212,7 +212,7 @@ class TestSignatureRequest:
             "parent_record_id": TEST_ORDER_ID,
             "order_id": TEST_ORDER_ID,
             "request_email": "TEST_tier7@example.com",
-            "origin_url": "https://admin-onboard-4.preview.emergentagent.com",
+            "origin_url": "https://ticket-tracker-ai-1.preview.emergentagent.com",
             "signer_name": "TEST_Public_Signer",
             "signer_role": "customer",
             "notes": "Tier 7 public sign test",
@@ -237,7 +237,7 @@ class TestPublicSignatureFlow:
             "parent_record_id": TEST_ORDER_ID,
             "order_id": TEST_ORDER_ID,
             "request_email": "TEST_publicflow@example.com",
-            "origin_url": "https://admin-onboard-4.preview.emergentagent.com",
+            "origin_url": "https://ticket-tracker-ai-1.preview.emergentagent.com",
             "signer_name": "TEST_Public_Flow",
             "expires_in_days": 7,
         }

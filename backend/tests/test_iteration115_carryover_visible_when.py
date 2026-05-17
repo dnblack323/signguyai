@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://admin-onboard-4.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://ticket-tracker-ai-1.preview.emergentagent.com").rstrip("/")
 TEST_EMAIL = "signguypa@gmail.com"
 TEST_PASSWORD = "Billnel323"
 EMPLOYEE_ID = "18eed187-1a90-4bf8-b233-dc47b44c9579"

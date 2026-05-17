@@ -1,149 +1,143 @@
-<analysis>**original_problem_statement**: 
-The user wanted to establish a secure Platform Admin / Tenant Onboarding Management area for SignGuy AI to manage tenant setup and onboarding progress. The goal was to allow  staff to assist tenants without ever needing or seeing customer passwords. The user initially provided a comprehensive 4-phase requirement but later requested a scoped-down minimal MVP consisting of a Tenant list, Tenant detail view, and secure Support Mode/Impersonation flow. Following the successful MVP, the user requested the addition of the Onboarding Checklist feature. 
-
-PRODUCT REQUIREMENTS:
-1. Create  role and restrict  access exclusively to this role.
-2. Maintain strict tenant isolation; platform admins must not accidentally leak cross-tenant data.
-3. Build secure impersonation flow (Support Mode) with a persistent frontend banner and backend audit logging.
-4. Add Tenant Onboarding Checklist to track setup progress (e.g., Business info received, Logo uploaded).
-5. No passwords should be exposed, and terminology like orders/order items must remain intact (no jobs/job tickets).
+<analysis>**original_problem_statement**: The app must serve as a robust SaaS for sign shops with fully functioning AI tools, an actionable chat assistant, and seamless Stripe transactions for both the tenant and their webstore customers. Recently, the focus shifted to fixing production bugs, heavily upgrading the AI Assistant to perform actual tool-calling, and optimizing the UX of the Production Board to handle crowded ticket views. PRODUCT REQUIREMENTS: A full-stack business management app with customer management, quoting, invoicing, job tracking, and Stripe Connect integrations.
 
 **User's preferred language**: English (INSTRUCT next agent to respond in English only)
 
 **what currently exists?** 
-A heavily documented, full-stack SaaS app (FastAPI + React) passing Tier 1-6 tests. The platform now features a dedicated  route. A secure JWT-based impersonation logic allows super admins to log in as tenant owners with full UI support (Support Mode Banner) and backend tracking. A functioning Onboarding Checklist system is integrated into the Platform Admin Tenant Detail view. 
+A full-stack SaaS app featuring robust AI tools, complete platform admin operations, custom tenant hierarchy, Stripe Connect integrations, a highly capable tool-calling AI assistant (with proactive nudges and CRM capabilities), and an optimized Production Board with a kanban workflow that supports Focus mode and per-order rollups to eliminate clutter.
 
 **Last working item**: 
-    - Last item agent was working: Implementing the Onboarding Checklist feature in the Platform Admin dashboard (backend endpoints, default item initialization, and frontend UI tab).
+    - Last item agent was working: Upgrading the  UI. The user complained that having every stage visible at once made it too crowded. The agent implemented a Hybrid solution (Per-order rollup + Focus mode toggle) where only the active step is visible, and the next step appears upon task completion. 
     - Status: USER VERIFICATION PENDING
     - Agent Testing Done: Y
-    - Which testing method agent to use? backend testing via curl / python -c and frontend screenshot tool.
+    - Which testing method agent to use? screenshot tool / manual testing by curl
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:  
-  - Issue 1: Meta OAuth / Webhook End-to-End Verification (P2)
-     - Attempted fixes: Setup implemented previously; awaiting user's Messenger permissions configuration.
-     - Next debug checklist: Wait for user to grant the required Messenger permissions in their Meta App settings and test OAuth flow.
-     - Why fix this issue and what will be achieved with the fix? Finalizes Phase 1 of Meta integration.
+  - Issue 1: High Material Cost Calculation in Production Pricing Foundation (P0)
+     - Attempted fixes: User shared a screenshot showing a 20.96 material cost for a 96x48 Coroplast sign, stating it does not make sense. Agent investigated and found the Preview environment calculates a correct 2.24. The issue is likely caused by the user inflating values in their *Production* Pricing Foundation settings (e.g., entering retail price instead of wholesale for , bumping , or increasing waste %). 
+     - Next debug checklist: Follow up with the user on their Pricing Foundation values in their production environment. The agent previously asked the user for this info, but the user ignored the question and pivoted to the Production Board task. Guide the user on how to fix this in their live environment.
+     - Why fix this issue and what will be achieved with the fix? Resolves the user's confusion about high pricing math and ensures accurate quoting.
+     - Status: BLOCKED (Waiting on user reply/acknowledgment).
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? NA (User configuration issue).
+     - Blocked on other issue: User input regarding their production settings.
+
+  - Issue 2: Meta OAuth / Webhook End-to-End Verification (P1)
+     - Attempted fixes: NA
+     - Next debug checklist: Await User Meta app configuration.
+     - Why fix this issue and what will be achieved with the fix? Completes social integration.
      - Status: BLOCKED
      - Is recurring issue? N
      - Should Test frontend/backend/both after fix? both
-     - Blocked on other issue: User action required.
+     - Blocked on other issue: User Meta app config.
 
 **In progress Task List**: 
-  None actively in progress. The last assigned task (Onboarding Checklist) was completed successfully.
+   None
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
-    - P1: Platform Admin Phase 2 Extensions: Add Internal Notes and User invite flow to the Platform Admin Tenant Detail page (Requested in original prompt but skipped in MVP).
-    - P1: Add Confirm / Reject Quick Action buttons directly inside Appointment Notification emails (Deferred from previous handoff).
-    - P1: Tier 7 Sweep (Signatures & Drawings) — Run backend testing agent for Tier 7 features on the . Update markdown trackers accordingly.
-    - P2: Tier 8+ Sweeps from .
+    - P1: Add Confirm / Reject Quick Action buttons directly inside Appointment Notification emails.
+    - P2: Work-ticket PDF endpoint ().
+    - P2: Platform Admin Phase 2 Extensions: Add Internal Notes and User invite flow to the Platform Admin Tenant Detail page.
 
     Future Tasks:
-    - P3: Platform Admin Phase 3/4 Extensions: Business profile setup controls, Product/pricing setup status, Portal/team setup visibility.
-    - P3: Meta Messenger Phase 2 (Dashboard widgets, auto-replies).
+    - P3: Platform Admin Phase 3/4 Extensions.
+    - P3: Meta Messenger Phase 2.
+    - P3: Decide final home for hidden .
 
 **Completed work in this session**
-- Added  role and integrated it into RBAC permissions (, ). (DONE)
-- Built  endpoints for listing tenants and fetching details. (DONE)
-- Implemented secure JWT-based Impersonation flow without password exposure (, ). (DONE)
-- Created Frontend UI for Platform Admin Dashboard, Tenant Detail, and Support Mode Banner (, , ). (DONE)
-- Fixed AuthContext token storage bug to properly handle impersonation JWTs via . (DONE)
-- Built and integrated the Onboarding Checklist system (backend logic + ). (DONE)
+- Completed AI Assistant Pass 5: Wired up  and  tools to the frontend () and backend commit endpoints. (DONE)
+- Made AI-set reminders actionable in the Dashboard  with full dismiss routing. (DONE)
+- Implemented Focus Mode and Per-order rollup toggles on the Production Board Kanban view to reduce visual clutter. (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-   - Issue 1: Work-ticket PDF ()
-     - Debug checklist: Implement endpoint to generate a work-ticket PDF.
-     - Why to solve this issue and what will be achieved with this: Identified as a gap in Tier 6 sweep in previous runs.
-     - Should Test frontend/backend/both after fix: backend
-     - Is recurring issue? N
-   - Issue 2: Stripe Connect not fully enabled & CSV partial-insert product decision
-     - Both remain flagged as blocked/pending product decisions in the .
+   - Issue 1: Real Generative Fill / Logo Refresher Image-to-Image logic
+   - Debug checklist: Build out proper Img2Img endpoints (currently tools are hidden from UI).
+   - Why to solve this issue and what will be achieved with this? Activates the hidden design tools.
+   - Should Test frontend/backend/both after fix: both
+   - Is recurring issue? N
 
 **Known issue recurrence from previous fork**
   - Issue recurrence in previous fork: None
-  - Recurrence count: 0 
+  - Recurrence count: 0
   - Status: RESOLVED
 
 **Code Architecture**
-- Backend: FastAPI (). 
-- Frontend: React ().
-- Auth state management relies heavily on  communicating with  (not raw ).
+- Backend: FastAPI. Routing split across modular files.
+- Frontend: React + Shadcn UI + Tailwind.
+- AI Assistant: Main chat completion in . Tool registry, definitions, and commit actions extracted to .
+- Payment: Custom Stripe Connect wrapper in  / .
 
 **Key Technical Concepts**
-- Role-Based Access Control (RBAC) heavily restricts routes.
-- Tenant Isolation is enforced system-wide.
-- Secure Impersonation relies on JWT metadata (, ). The backend  injects this metadata into the  object for API calls.
+- **AI Tool Router**: Uses a pre-router LLM call () to classify intent. Short-circuits the main chat response.
+- **Production Board State**: Uses React state to manage kanban columns (). Now includes a  and  logic to dynamically hide empty stages or group multiple tasks under one order card.
 
 **key DB schema**
-  - : Includes  (now supporting ).
-  - : Tracks item setup progress dynamically per tenant.
-  - : Tracks platform admin impersonation sessions (start time, user, tenant).
+  - : {tenant_id, user_id, messages[]}
+  - : added 
 
 **changes in tech stack**
   - None
 
 **All files of reference** 
-  -  (Created - Core admin logic & checklist APIs)
-  -  &  (Updated - Added  role)
-  -  &  (Updated - Handled impersonation metadata in JWT)
-  -  (Created)
-  -  (Created)
-  -  (Created)
-  -  (Created)
-  -  &  (Updated - Fixed token storage logic)
-  -  (Created - Doc)
+  -  (Updated with Focus mode and rollup logic)
+  -  (Updated to handle new AI tools and reminder dismissals)
+  -  (Updated for nudges endpoint)
+  -  (Updated  for  and )
+  -  (Updated to trigger dismiss actions)
 
 **Areas that need refactoring**: 
--  contains a growing number of tabs and might need sub-component extraction in the future if more Phase 3/4 sections are added.
+- The massive  array was discussed for a mini-refactor (extracting static config to ).
 
 **key api endpoints**
 - 
 - 
--  (Requires )
 - 
+-  
 - 
 
 **Critical Info for New Agent** 
-- The Auth system strictly uses  (, ) instead of standard . If working with JWTs on the frontend, DO NOT use native .
-- Platform admins have their own routes prefix (). Existing tenant endpoints shouldn't be altered unless specifically required.
-- The user heavily tracks prelaunch progress across 4 markdown trackers in . If you execute a backend Tier sweep (e.g., Tier 7), you MUST update , , , and .
-- Ask the user before proceeding if they want to build the remaining Platform Admin Phase 2 elements (Internal Notes/User Invites) OR switch focus to the Tier 7 Sweep / Appointment Email action buttons.
+- **Environments**: The user has deployed the app to production (). You are working strictly in the **PREVIEW** environment. The user frequently uploads screenshots from their Production environment. If an issue cannot be replicated in preview (like the P0 High Material Cost issue), it is likely a configuration mismatch in their production database. You cannot modify the production DB, so you must guide the user on how to update their own settings via the UI.
 
 **documents and test reports created in this job** 
   - 
+  - 
+  - 
 
 **Last 10 User Messages and any pending HUMAN messages** 
-1. *User*: add onboarding checklist feature (COMPLETED)
-2. *User*: continue (COMPLETED)
-3. *User*: continue / High Priority: Debug frontend AuthContext token storage issue... (COMPLETED)
-4. *User*: go with this simplier version to save credits Build the smallest possible Platform Admin MVP... (COMPLETED)
-5. *User*: Create a secure Platform Admin / Tenant Onboarding Management area for SignGuy AI... (COMPLETED)
+1. *User*: Asked for the Production Board to only show active steps instead of all stages to reduce clutter.
+2. *Agent*: Offered Options A, B, C, and D for solving the Production board clutter.
+3. *User*: Responded C (Selected Hybrid: Per-order rollup + Focus mode toggle). (Agent successfully implemented this).
+4. *User*: Uploaded screenshot complaining about high material costs (20.96 for Coroplast).
+5. *Agent*: Proved via logs/tests that the preview environment math is correct (2.24) and explained the issue lies in the user's Production Pricing Foundation settings. Asked the user for clarification. (User ignored this and moved to the Production board request).
+6. *Agent*: Finished and verified AI Assistant Pass 5.
+7. *User*: Approved plan for AI Assistant Pass 5.
 
 **Project Health Check:**
-- Broken: None
-- Mocked: SendGrid email delivery logic.
+- Broken: None currently identified.
+- Mocked: Meta OAuth.
 
 **3rd Party Integrations** 
 - Stripe (Payments) — requires User API Key
-- Meta / Facebook Graph API — requires User  and 
-- SendGrid — requires User API Key
-- Emergent LLM Key — used for Claude Sonnet functionality
+- SendGrid (Emails) — requires User API Key
+- OpenAI GPT-4o-mini & GPT-4o (Chat & AI Tools) — uses Emergent LLM Key
 
 **Testing status**
-  - Testing agent used after significant changes: NO (Tested manually via curl/screenshot)
+  - Testing agent used after significant changes: YES
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: None
-  - Known regressions: None
+  - Test files created: 
+  - Known regressions: None currently.
 
 **Credentials to test flow:**
-- Platform Admin / Main account:  / 
+- Admin/Tenant:  / 
+- Stripe Owner Portal test:  /  
 
 **What agent forgot to execute**
-- The original requirement list requested an Internal Notes feature and User Invite functionality under Phase 2 of the Platform Admin dashboard. The MVP scope skipped these, and when the user asked to add onboarding checklist feature, only the checklist was added. Internal notes and user invites remain pending.
+- The agent properly diagnosed the user's issue with High Material Costs in the Pricing Foundation, but the user ignored the agent's question and pivoted to requesting a UI change on the Production Board. The agent finished the job after fixing the UI, but forgot to remind/follow up with the user regarding the unresolved Pricing Foundation configuration issue in their production app.
 
 **Debugging checklist for current issue**
-    Issue: Next Steps Selection
-    - Review with the user if they want to add the Internal Notes tab to the Platform Admin section.
-    - If user prefers moving forward to Prelaunch sweeps, load  and initiate the Tier 7 (Signatures & Drawings) backend sweep using the testing agent.</analysis>
+    Issue: High Material Cost Calculation in Production Pricing Foundation (User Configuration).
+
+    Frontend/Backend files to check: NA (Code logic is sound, verified via tests).
+    
+    Next Action: Remind the user about the previous finding. Ask them to check their Production Pricing Foundation -> Materials & Substrates tab for Coroplast 4mm , direct-print consumable cost, and waste %. Guide them to adjust these values to reflect wholesale cost rather than retail markup.</analysis>
