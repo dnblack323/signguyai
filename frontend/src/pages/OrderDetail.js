@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import DrawingModal from './DrawingModal';
 import DrawingPreviewModal from './DrawingPreviewModal';
+import { isWrapCategory } from '../components/wrap/constants';
 import { TicketWorkflowShortcutDialog } from '../components/TicketWorkflowShortcutDialog';
 import { SignatureSection } from '../components/SignatureSection';
 import { SignatureActivityList } from '../components/SignatureActivityList';
@@ -645,6 +646,14 @@ export default function OrderDetail() {
                           <Badge variant="outline" className={STATUS_COLORS[ticket.status]}>{fmt(ticket.status)}</Badge>
                           {ticket.priority !== 'normal' && <Badge className={PRIORITY_COLORS[ticket.priority]}>{ticket.priority}</Badge>}
                           {ticket.production_flow_enabled && <Badge variant="outline" className="bg-violet-500/10 text-violet-400 border-violet-500/30 text-xs">Workflow</Badge>}
+                          {isWrapCategory(ticket.item_category) && (
+                            <Badge
+                              className="bg-violet-100 text-violet-800 border-violet-200 text-xs"
+                              data-testid={`wrap-workflow-badge-${ticket.id}`}
+                            >
+                              Wrap Workflow
+                            </Badge>
+                          )}
                           {ticket.assigned_user_id && <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30 text-xs">Assigned: {getEmployeeName(ticket.assigned_user_id)}</Badge>}
                           {/* Pricing mode badge */}
                           {pricingMode === 'calculator' && <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/30 text-xs"><Calculator className="w-3 h-3 mr-1" />Calc</Badge>}
@@ -661,6 +670,17 @@ export default function OrderDetail() {
                       </div>
                     </div>
                     <div className="flex items-center gap-4 flex-shrink-0">
+                      {isWrapCategory(ticket.item_category) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs bg-violet-50 border-violet-300 text-violet-800 hover:bg-violet-100 hidden sm:inline-flex"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/orders/${id}/items/${ticket.id}/wrap-command-center`); }}
+                          data-testid={`open-wrap-cc-${ticket.id}`}
+                        >
+                          Open Wrap Command Center
+                        </Button>
+                      )}
                       {/* Price */}
                       <div className="text-right hidden sm:block">
                         <p className="text-lg font-bold text-gray-900">${activePrice.toFixed(2)}</p>
@@ -688,6 +708,14 @@ export default function OrderDetail() {
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/job-tickets/${ticket.id}`); }}>
                             <Package className="w-4 h-4 mr-2" /> Open Item
                           </DropdownMenuItem>
+                          {isWrapCategory(ticket.item_category) && (
+                            <DropdownMenuItem
+                              onClick={(e) => { e.stopPropagation(); navigate(`/orders/${id}/items/${ticket.id}/wrap-command-center`); }}
+                              data-testid={`open-wrap-cc-menu-${ticket.id}`}
+                            >
+                              <Wrench className="w-4 h-4 mr-2" /> Open Wrap Command Center
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); duplicateTicket(ticket.id); }}>
                             <Copy className="w-4 h-4 mr-2" /> Duplicate
                           </DropdownMenuItem>

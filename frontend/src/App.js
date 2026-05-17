@@ -45,6 +45,7 @@ import PricingFoundation from "./pages/PricingFoundation";
 import OnboardingHub from "./pages/OnboardingHub";
 import OrdersPage from "./pages/OrdersPage";
 import OrderDetail from "./pages/OrderDetail";
+import WrapCommandCenterPage from "./pages/WrapCommandCenterPage";
 import NewOrderForm from "./pages/NewOrderForm";
 import AddTicketToOrder from "./pages/AddTicketToOrder";
 import JobTicketDetail from "./pages/JobTicketDetail";
@@ -195,6 +196,7 @@ function ProtectedRoutes() {
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/orders/new" element={<NewOrderForm />} />
           <Route path="/orders/:id" element={<OrderDetail />} />
+          <Route path="/orders/:orderId/items/:itemId/wrap-command-center" element={<WrapCommandCenterPage />} />
           <Route path="/orders/:id/add-ticket" element={<AddTicketToOrder />} />
           <Route path="/job-tickets/:ticketId" element={<JobTicketDetail />} />
           <Route path="/production-board" element={<ProductionBoard />} />
