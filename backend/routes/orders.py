@@ -5,11 +5,18 @@ CRUD for the master Order record (Layer 1).
 """
 
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, Response
+from fastapi.responses import StreamingResponse
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
+from io import BytesIO
 import uuid
 import base64
 import mimetypes
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle, KeepTogether
 
 from server import db, get_current_active_user
 from models import UserInDB
@@ -725,3 +732,363 @@ async def get_order_file_content(order_id: str, file_id: str, current_user: User
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=500, detail="Failed to load file") from exc
     return Response(content=content, media_type=media_type)
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# Work-Ticket PDF (internal production document)
+# ───────────────────────────────────────────────────────────────────────────
+
+
+def _render_work_ticket_pdf(
+    order: dict,
+    tenant: dict,
+    customer: Optional[dict],
+    tickets: List[dict],
+    include_pricing: bool,
+    assignees: Dict[str, str],
+) -> BytesIO:
+    """Render the internal production work-ticket PDF.
+
+    The work ticket is meant for shop staff. Pricing is hidden by default and
+    only included when include_pricing=True so production crews don't see
+    margins on the shop floor.
+    """
+    output = BytesIO()
+    doc = SimpleDocTemplate(
+        output, pagesize=letter,
+        leftMargin=36, rightMargin=36, topMargin=36, bottomMargin=36,
+    )
+    styles = getSampleStyleSheet()
+    h1 = styles['Heading1']
+    h3 = styles['Heading3']
+    body = styles['BodyText']
+    small = ParagraphStyle('small', parent=body, fontSize=8, leading=10, textColor=colors.HexColor('#475569'))
+    label_style = ParagraphStyle('label', parent=body, fontSize=8, leading=10, textColor=colors.HexColor('#64748B'), spaceAfter=0)
+    value_style = ParagraphStyle('value', parent=body, fontSize=10, leading=12, textColor=colors.HexColor('#0F172A'))
+    section_title = ParagraphStyle('section_title', parent=h3, fontSize=11, leading=14, textColor=colors.HexColor('#7C3AED'), spaceBefore=8, spaceAfter=4)
+
+    elements: List[Any] = []
+
+    # Header — tenant branding (text-only; image asset support could be added later)
+    company_name = (tenant or {}).get("name") or "Sign Shop"
+    elements.append(Paragraph(f"<b>{company_name}</b>", h1))
+    header_bits = []
+    if tenant:
+        for k in ("address", "city", "state", "zip_code", "phone", "email"):
+            v = tenant.get(k)
+            if v:
+                header_bits.append(str(v))
+    if header_bits:
+        elements.append(Paragraph(" · ".join(header_bits), small))
+
+    elements.append(Spacer(1, 6))
+    elements.append(Paragraph("<b>INTERNAL WORK TICKET</b>", h3))
+    elements.append(Spacer(1, 6))
+
+    # Order header table — order#, dates, status, customer
+    order_number = order.get("order_number") or (order.get("id") or "")[:8].upper()
+    order_name = order.get("name") or ""
+    order_date = (order.get("date_created") or "")[:10] or "—"
+    due_date = order.get("requested_due_date") or order.get("event_date") or "—"
+    status = (order.get("status") or "").upper() or "—"
+    approval = (order.get("approval_status") or "").upper() or "—"
+    payment = (order.get("payment_status") or "").upper() or "—"
+
+    cust_lines: List[str] = []
+    cust_name = (
+        (customer or {}).get("display_name")
+        or (customer or {}).get("name")
+        or order.get("customer_name")
+        or "—"
+    )
+    cust_lines.append(f"<b>{cust_name}</b>")
+    if (customer or {}).get("company") or order.get("company_name"):
+        cust_lines.append((customer or {}).get("company") or order.get("company_name") or "")
+    contact = (customer or {}).get("phone") or order.get("phone")
+    if contact:
+        cust_lines.append(f"📞 {contact}")
+    email = (customer or {}).get("email") or order.get("email")
+    if email:
+        cust_lines.append(f"✉  {email}")
+
+    header_rows = [
+        [
+            Paragraph("ORDER #", label_style),
+            Paragraph(f"<b>{order_number}</b>", value_style),
+            Paragraph("CUSTOMER", label_style),
+            Paragraph("<br/>".join(cust_lines), value_style),
+        ],
+        [
+            Paragraph("ORDER NAME", label_style),
+            Paragraph(order_name or "—", value_style),
+            Paragraph("ORDER DATE", label_style),
+            Paragraph(order_date, value_style),
+        ],
+        [
+            Paragraph("STATUS", label_style),
+            Paragraph(status, value_style),
+            Paragraph("DUE DATE", label_style),
+            Paragraph(due_date, value_style),
+        ],
+        [
+            Paragraph("APPROVAL", label_style),
+            Paragraph(approval, value_style),
+            Paragraph("PAYMENT", label_style),
+            Paragraph(payment, value_style),
+        ],
+    ]
+    header_table = Table(header_rows, colWidths=[70, 200, 70, 200])
+    header_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#F8FAFC')),
+        ('BACKGROUND', (2, 0), (2, -1), colors.HexColor('#F8FAFC')),
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.HexColor('#CBD5E1')),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(header_table)
+    elements.append(Spacer(1, 10))
+
+    # Shared order-level context (always useful to production)
+    shared_blocks = []
+    for label, key in [
+        ("Shared Production Notes", "shared_production_notes"),
+        ("Shared Design Notes", "shared_design_notes"),
+        ("Shared Install Notes", "shared_install_notes"),
+        ("Color / Brand Notes", "shared_color_brand_notes"),
+    ]:
+        val = order.get(key) or ""
+        if val:
+            shared_blocks.append(f"<b>{label}:</b> {val}")
+    if order.get("pickup_delivery_method"):
+        shared_blocks.append(f"<b>Fulfillment:</b> {order['pickup_delivery_method']}")
+        if order.get("pickup_delivery_notes"):
+            shared_blocks.append(f"<b>Fulfillment Notes:</b> {order['pickup_delivery_notes']}")
+    if shared_blocks:
+        elements.append(Paragraph("Shared Order Context", section_title))
+        for b in shared_blocks:
+            elements.append(Paragraph(b, body))
+        elements.append(Spacer(1, 6))
+
+    # ── Items (Job Tickets) ──
+    elements.append(Paragraph("Order Items", section_title))
+    if not tickets:
+        elements.append(Paragraph("<i>No job tickets attached to this order yet.</i>", small))
+    for idx, t in enumerate(tickets, start=1):
+        specs = t.get("specs") or {}
+        item_name = t.get("item_name") or t.get("description") or "Untitled Item"
+        category = t.get("item_category") or ""
+        sub = t.get("item_subcategory") or ""
+        qty = t.get("quantity", 1)
+        unit = t.get("unit_type") or "each"
+        ticket_due = t.get("due_date") or "—"
+        ticket_status = (t.get("status") or "").upper() or "—"
+        artwork_status = (t.get("artwork_status") or "").upper() or "—"
+        proof_status = (t.get("proof_approval_status") or "").upper() or "—"
+        assignee = assignees.get(t.get("assigned_user_id") or "", "") or t.get("assigned_team") or ""
+
+        width = specs.get("width", "")
+        height = specs.get("height", "")
+        uom = specs.get("unit_of_measure") or "in"
+        size_desc = specs.get("size_description") or (
+            f"{width} × {height} {uom}" if width and height else "—"
+        )
+        material = specs.get("material") or ""
+        substrate = specs.get("substrate") or ""
+        finish = specs.get("finish") or specs.get("lamination") or ""
+
+        item_rows = [
+            [
+                Paragraph(f"<b>Item {idx}</b>", value_style),
+                Paragraph(f"<b>{item_name}</b>", value_style),
+            ],
+            [Paragraph("Category", label_style),
+             Paragraph(f"{category}{(' / ' + sub) if sub else ''}", value_style)],
+            [Paragraph("Quantity", label_style), Paragraph(f"{qty} {unit}", value_style)],
+            [Paragraph("Dimensions", label_style), Paragraph(size_desc, value_style)],
+            [Paragraph("Material / Substrate", label_style),
+             Paragraph(" / ".join([x for x in (material, substrate) if x]) or "—", value_style)],
+        ]
+        if finish:
+            item_rows.append([Paragraph("Finish", label_style), Paragraph(finish, value_style)])
+        item_rows.extend([
+            [Paragraph("Due Date", label_style), Paragraph(ticket_due, value_style)],
+            [Paragraph("Production Status", label_style), Paragraph(ticket_status, value_style)],
+            [Paragraph("Approval Status", label_style),
+             Paragraph(f"Artwork: {artwork_status} · Proof: {proof_status}", value_style)],
+        ])
+        if assignee:
+            item_rows.append([Paragraph("Assigned", label_style), Paragraph(assignee, value_style)])
+
+        # Notes blocks
+        note_rows = []
+        for label, key in [
+            ("Production Notes", "production_notes"),
+            ("Special Instructions", "special_instructions"),
+            ("Install Notes", "install_notes"),
+            ("Packaging Notes", "packaging_notes"),
+        ]:
+            v = t.get(key) or ""
+            if v:
+                note_rows.append([Paragraph(label, label_style), Paragraph(v, value_style)])
+        # Design / finishing notes pulled from specs
+        for label, key in [
+            ("Design / Artwork Notes", "artwork_notes"),
+            ("Finishing Notes", "finishing"),
+        ]:
+            v = (specs.get(key) or "") if isinstance(specs, dict) else ""
+            if v:
+                note_rows.append([Paragraph(label, label_style), Paragraph(v, value_style)])
+        item_rows.extend(note_rows)
+
+        # Optional pricing rows (gated)
+        if include_pricing:
+            selling = float(t.get("estimated_price") or 0)
+            cost = float(t.get("actual_cost") or t.get("material_estimate") or 0) + float(t.get("labor_estimate") or 0)
+            profit = selling - cost
+            margin = (profit / selling * 100.0) if selling > 0 else 0.0
+            item_rows.append([
+                Paragraph("Selling Price", label_style),
+                Paragraph(f"${selling:.2f}", value_style),
+            ])
+            item_rows.append([
+                Paragraph("Production Cost", label_style),
+                Paragraph(f"${cost:.2f}", value_style),
+            ])
+            item_rows.append([
+                Paragraph("Profit / Margin", label_style),
+                Paragraph(f"${profit:.2f} ({margin:.1f}%)", value_style),
+            ])
+
+        tbl = Table(item_rows, colWidths=[120, 420])
+        tbl.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#EDE9FE')),
+            ('BACKGROUND', (0, 1), (0, -1), colors.HexColor('#F8FAFC')),
+            ('GRID', (0, 0), (-1, -1), 0.25, colors.HexColor('#CBD5E1')),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ]))
+        elements.append(KeepTogether([tbl, Spacer(1, 8)]))
+
+    # ── Production Checklist ──
+    elements.append(Spacer(1, 8))
+    elements.append(Paragraph("Production Checklist", section_title))
+    checklist = [
+        "Artwork ready",
+        "Customer approved",
+        "Deposit paid",
+        "Materials ordered",
+        "Printed",
+        "Laminated",
+        "Cut / trimmed",
+        "Installed / picked up",
+        "Final payment collected",
+    ]
+    # Two columns of checkboxes for compact layout
+    rows = []
+    for i in range(0, len(checklist), 2):
+        left = checklist[i]
+        right = checklist[i + 1] if i + 1 < len(checklist) else ""
+        rows.append([
+            Paragraph(f"☐ &nbsp; {left}", value_style),
+            Paragraph(f"☐ &nbsp; {right}" if right else "", value_style),
+        ])
+    chk = Table(rows, colWidths=[270, 270])
+    chk.setStyle(TableStyle([
+        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+    ]))
+    elements.append(chk)
+
+    # ── Notes (blank lines for shop staff) ──
+    elements.append(Spacer(1, 10))
+    elements.append(Paragraph("Shop Notes", section_title))
+    lines = []
+    for _ in range(6):
+        lines.append([Paragraph("", value_style)])
+    notes_tbl = Table(lines, colWidths=[540], rowHeights=[18] * 6)
+    notes_tbl.setStyle(TableStyle([
+        ('LINEBELOW', (0, 0), (-1, -1), 0.5, colors.HexColor('#94A3B8')),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+    ]))
+    elements.append(notes_tbl)
+
+    # Footer
+    elements.append(Spacer(1, 12))
+    pricing_visibility = "shown" if include_pricing else "hidden"
+    elements.append(Paragraph(
+        f"<font color='#64748B'>Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} · "
+        f"Pricing: {pricing_visibility} · Internal — not for customer distribution.</font>",
+        small,
+    ))
+
+    doc.build(elements)
+    output.seek(0)
+    return output
+
+
+@router.get("/{order_id}/work-ticket/pdf")
+async def download_order_work_ticket_pdf(
+    order_id: str,
+    include_pricing: bool = False,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Generate a printable internal production work-ticket PDF.
+
+    Query params:
+      include_pricing — when true, the PDF includes per-item selling price,
+                        production cost, and profit/margin. Defaults to false
+                        so production staff don't see margins by default.
+    """
+    order = await db.orders.find_one(
+        {"id": order_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0},
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    tickets = await db.job_tickets.find(
+        {"order_id": order_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0},
+    ).sort("ticket_number", 1).to_list(500)
+
+    tenant = await db.tenants.find_one(
+        {"id": current_user.tenant_id},
+        {"_id": 0},
+    ) or {}
+
+    customer = None
+    if order.get("customer_id"):
+        customer = await db.customers.find_one(
+            {"id": order["customer_id"], "tenant_id": current_user.tenant_id},
+            {"_id": 0},
+        )
+
+    # Resolve assigned user names so the ticket can show "Assigned: Jane Doe"
+    assignee_ids = list({t.get("assigned_user_id") for t in tickets if t.get("assigned_user_id")})
+    assignees: Dict[str, str] = {}
+    if assignee_ids:
+        async for user in db.users.find(
+            {"id": {"$in": assignee_ids}, "tenant_id": current_user.tenant_id},
+            {"_id": 0, "id": 1, "full_name": 1, "email": 1},
+        ):
+            assignees[user["id"]] = user.get("full_name") or user.get("email") or ""
+
+    pdf = _render_work_ticket_pdf(order, tenant, customer, tickets, include_pricing, assignees)
+    order_number = order.get("order_number") or order_id[:8].upper()
+    safe_number = "".join(c for c in str(order_number) if c.isalnum() or c in ("-", "_")) or "order"
+    return StreamingResponse(
+        pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"inline; filename=work_ticket_{safe_number}.pdf"},
+    )
