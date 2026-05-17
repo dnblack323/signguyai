@@ -10,7 +10,7 @@ import base64
 from starlette.middleware.cors import CORSMiddleware
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Dict  # Added List, Dict for Phase 2
 from datetime import datetime, timezone, timedelta
 import re
 from services.storage_config import init_storage
@@ -439,6 +439,184 @@ def create_pricing_result(
         profit_amount=round(profit_amount, 2),
         estimated_labor_minutes=round(estimated_labor_minutes, 1),
         breakdown=breakdown or {}
+    )
+
+
+
+# ============== PHASE 2: STANDARDIZED PRICING RESULT ==============
+
+def create_standardized_pricing_result(
+    # === ITEMIZED COSTS ===
+    material_cost: float = 0,
+    labor_cost: float = 0,              # Production labor only
+    design_cost: float = 0,
+    setup_cost: float = 0,
+    finishing_cost: float = 0,
+    hardware_cost: float = 0,
+    install_cost: float = 0,
+    outsourcing_cost: float = 0,
+    overhead_cost: float = 0,
+    
+    # === PRICING ===
+    suggested_price: float = 0,
+    minimum_charge: float = 0,
+    
+    # === METADATA ===
+    estimated_labor_minutes: float = 0,
+    pricing_method: str = "cost_plus",
+    
+    # === BREAKDOWN ARRAYS (Optional) ===
+    materials_breakdown: List[Dict] = None,
+    labor_breakdown: List[Dict] = None,
+    design_breakdown: List[Dict] = None,
+    setup_breakdown: List[Dict] = None,
+    finishing_breakdown: List[Dict] = None,
+    hardware_breakdown: List[Dict] = None,
+    install_breakdown: List[Dict] = None,
+    outsourcing_breakdown: List[Dict] = None,
+    
+    # === METADATA FIELDS ===
+    area_sqft: float = 0,
+    billable_sqft: float = 0,
+    quantity: float = 1,
+    width_inches: float = 0,
+    height_inches: float = 0,
+    waste_percentage: float = 0,
+    target_margin_percent: float = 0,
+    markup_multiplier: float = 1.0,
+    warnings: List[str] = None,
+    
+    # === LEGACY FIELDS ===
+    legacy_breakdown: dict = None,
+) -> PricingCalculation:
+    """
+    Create standardized pricing response (Phase 2).
+    
+    Corrected cost structure:
+    - base_cost = sum of all itemized costs (before overhead)
+    - overhead_cost = overhead applied to base_cost
+    - true_cost = base_cost + overhead_cost
+    - production_cost = true_cost (alias)
+    - profit_amount = selling_price - true_cost
+    - profit_margin_percent = profit_amount / selling_price * 100
+    """
+    from models.pricing import CostLineItem
+    
+    # Calculate base_cost (sum of all itemized costs before overhead)
+    base_cost = (
+        material_cost + labor_cost + design_cost + setup_cost +
+        finishing_cost + hardware_cost + install_cost + outsourcing_cost
+    )
+    
+    # true_cost = base_cost + overhead
+    true_cost = base_cost + overhead_cost
+    production_cost = true_cost  # Alias
+    
+    # Apply minimum charge if needed
+    minimum_charge_applied = False
+    if minimum_charge > 0 and suggested_price < minimum_charge:
+        selling_price = minimum_charge
+        minimum_charge_applied = True
+    else:
+        selling_price = suggested_price
+    
+    # Calculate profit (based on true_cost)
+    profit_amount = selling_price - true_cost
+    profit_margin_percent = round(
+        (profit_amount / selling_price * 100), 1
+    ) if selling_price > 0 else 0
+    markup_percent = round(
+        (selling_price / true_cost - 1) * 100, 1
+    ) if true_cost > 0 else 0
+    
+    # Helper to convert dict list to CostLineItem list
+    def to_line_items(items: List[Dict]) -> List[Dict]:
+        """Convert breakdown dicts to proper format for JSON serialization"""
+        if not items:
+            return []
+        result = []
+        for item in items:
+            result.append({
+                "name": item.get("name", ""),
+                "quantity": item.get("quantity", 1.0),
+                "unit": item.get("unit", "each"),
+                "unit_cost": item.get("unit_cost", 0.0),
+                "total_cost": item.get("total_cost", 0.0),
+                "notes": item.get("notes"),
+            })
+        return result
+    
+    # Build structured breakdown
+    breakdown = {
+        "materials": to_line_items(materials_breakdown or []),
+        "labor": to_line_items(labor_breakdown or []),
+        "design": to_line_items(design_breakdown or []),
+        "setup": to_line_items(setup_breakdown or []),
+        "finishing": to_line_items(finishing_breakdown or []),
+        "hardware": to_line_items(hardware_breakdown or []),
+        "install": to_line_items(install_breakdown or []),
+        "outsourcing": to_line_items(outsourcing_breakdown or []),
+        "overhead": [
+            {
+                "name": "Overhead",
+                "quantity": overhead_cost,
+                "unit": "amount",
+                "unit_cost": 0,
+                "total_cost": overhead_cost,
+                "notes": None,
+            }
+        ] if overhead_cost > 0 else [],
+        "metadata": {
+            "area_sqft": area_sqft,
+            "billable_sqft": billable_sqft,
+            "quantity": quantity,
+            "width_inches": width_inches,
+            "height_inches": height_inches,
+            "waste_percentage": waste_percentage,
+            "target_margin_percent": target_margin_percent,
+            "markup_multiplier": markup_multiplier,
+            "minimum_charge": minimum_charge,
+            "warnings": warnings or [],
+            # Merge legacy breakdown for backward compatibility
+            **(legacy_breakdown or {})
+        }
+    }
+    
+    return PricingCalculation(
+        # Itemized costs
+        material_cost=round(material_cost, 2),
+        labor_cost=round(labor_cost, 2),
+        design_cost=round(design_cost, 2),
+        setup_cost=round(setup_cost, 2),
+        finishing_cost=round(finishing_cost, 2),
+        hardware_cost=round(hardware_cost, 2),
+        install_cost=round(install_cost, 2),
+        outsourcing_cost=round(outsourcing_cost, 2),
+        overhead_cost=round(overhead_cost, 2),
+        
+        # Legacy
+        additional_costs=0,  # Deprecated
+        
+        # Totals (corrected structure)
+        base_cost=round(base_cost, 2),
+        true_cost=round(true_cost, 2),
+        production_cost=round(production_cost, 2),
+        total_cost=round(production_cost, 2),
+        suggested_price=round(suggested_price, 2),
+        selling_price=round(selling_price, 2),
+        
+        # Profit
+        profit_amount=round(profit_amount, 2),
+        profit_margin_percent=profit_margin_percent,
+        markup_percent=markup_percent,
+        
+        # Metadata
+        estimated_labor_minutes=round(estimated_labor_minutes, 1),
+        minimum_charge_applied=minimum_charge_applied,
+        pricing_method_used=pricing_method,
+        
+        # Breakdown
+        breakdown=breakdown
     )
 
 
@@ -1096,15 +1274,165 @@ async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defau
     rush_multiplier = 1 + (float(defaults.get("rush_fee_percentage", 0) or 0) / 100)
     suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order, rush_multiplier)
 
-    return create_pricing_result(
-        material_cost=material_cost,
-        labor_cost=labor_cost,
-        setup_cost=0,
-        additional_costs=drill_prep_fee,
+    # ============== PHASE 2: USE STANDARDIZED RESPONSE ==============
+    # Separate costs by category for itemized breakdown
+    production_labor_cost = production_cost + mounting_cost  # Production + mounting
+    design_labor_cost = design_cost
+    install_labor_cost = install_cost + hardware_labor_cost
+    
+    # Materials breakdown
+    materials_list = []
+    if substrate_cost > 0:
+        materials_list.append({
+            "name": substrate_material.get("name", substrate_key) if substrate_material else substrate_key,
+            "quantity": waste_adjusted_area,
+            "unit": "sqft",
+            "unit_cost": substrate_cost_per_sqft,
+            "total_cost": substrate_cost,
+        })
+    if graphic_face_cost > 0:
+        materials_list.append({
+            "name": f"Graphics ({graphic_method})",
+            "quantity": waste_adjusted_area * sided_mult,
+            "unit": "sqft",
+            "unit_cost": graphic_cost_per_sqft,
+            "total_cost": graphic_face_cost,
+        })
+    
+    # Labor breakdown
+    labor_list = []
+    if production_cost > 0:
+        labor_list.append({
+            "name": "Production Labor",
+            "quantity": production_hours,
+            "unit": "hours",
+            "unit_cost": production_rate,
+            "total_cost": production_cost,
+        })
+    if mounting_cost > 0:
+        labor_list.append({
+            "name": "Mounting Labor",
+            "quantity": mounting_hours,
+            "unit": "hours",
+            "unit_cost": production_rate,
+            "total_cost": mounting_cost,
+        })
+    
+    # Design breakdown
+    design_list = []
+    if design_hours > 0:
+        design_list.append({
+            "name": "Design/Artwork",
+            "quantity": design_hours,
+            "unit": "hours",
+            "unit_cost": design_rate,
+            "total_cost": design_cost,
+        })
+    
+    # Finishing breakdown
+    finishing_list = []
+    if finish_cost > 0:
+        finishing_list.append({
+            "name": finish_key,
+            "quantity": waste_adjusted_area * sided_mult,
+            "unit": "sqft",
+            "unit_cost": get_material_cost_per_sqft(defaults, finish_key),
+            "total_cost": finish_cost,
+        })
+    
+    # Hardware breakdown
+    hardware_list = []
+    if hardware_cost > 0:
+        hardware_list.append({
+            "name": data.hardware_type or "Hardware",
+            "quantity": quantity,
+            "unit": "each",
+            "unit_cost": hardware_cost / quantity,
+            "total_cost": hardware_cost,
+        })
+    
+    # Install breakdown
+    install_list = []
+    if install_hours > 0:
+        install_list.append({
+            "name": "Installation",
+            "quantity": install_hours,
+            "unit": "hours",
+            "unit_cost": install_rate,
+            "total_cost": install_cost,
+        })
+    if hardware_labor_cost > 0:
+        install_list.append({
+            "name": "Hardware Installation Labor",
+            "quantity": quantity,
+            "unit": "pieces",
+            "unit_cost": hardware_labor_cost / quantity,
+            "total_cost": hardware_labor_cost,
+        })
+    
+    # Setup breakdown
+    setup_list = []
+    if drill_prep_fee > 0:
+        setup_list.append({
+            "name": "Drill Prep",
+            "quantity": quantity,
+            "unit": "pieces",
+            "unit_cost": drill_prep_fee / quantity,
+            "total_cost": drill_prep_fee,
+        })
+    
+    # Collect warnings
+    warnings_list = []
+    if substrate_warning:
+        warnings_list.append(substrate_warning)
+    if graphic_warning:
+        warnings_list.append(graphic_warning)
+    if finish_warning:
+        warnings_list.append(finish_warning)
+    if hardware_warning:
+        warnings_list.append(hardware_warning)
+    
+    return create_standardized_pricing_result(
+        # Costs (itemized by type)
+        material_cost=substrate_cost + graphic_face_cost,  # Materials only
+        labor_cost=production_labor_cost,  # Production labor only
+        design_cost=design_labor_cost,
+        setup_cost=drill_prep_fee,
+        finishing_cost=finish_cost,
+        hardware_cost=hardware_cost,
+        install_cost=install_labor_cost,
+        outsourcing_cost=0,
         overhead_cost=overhead_cost,
+        
+        # Pricing
         suggested_price=suggested_price,
+        minimum_charge=min_sell,
+        
+        # Metadata
         estimated_labor_minutes=(production_hours + design_hours + install_hours + mounting_hours) * 60,
-        breakdown={
+        pricing_method="sell_rate",
+        
+        # Breakdown arrays
+        materials_breakdown=materials_list,
+        labor_breakdown=labor_list,
+        design_breakdown=design_list,
+        setup_breakdown=setup_list,
+        finishing_breakdown=finishing_list,
+        hardware_breakdown=hardware_list,
+        install_breakdown=install_list,
+        
+        # Metadata fields
+        area_sqft=area_per_piece,
+        billable_sqft=billable_area_per_piece,
+        quantity=quantity,
+        width_inches=width,
+        height_inches=height,
+        waste_percentage=waste_percent,
+        markup_multiplier=0,  # Not used in sell_rate method
+        warnings=warnings_list,
+        
+        # Legacy breakdown (preserve existing keys for backward compat)
+        legacy_breakdown={
             "dimensions": f"{width}\" x {height}\"",
             "unit_of_measure": unit,
             "area_per_piece": round(area_per_piece, 2),

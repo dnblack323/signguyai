@@ -1251,26 +1251,74 @@ class PricingDefaults(BaseModel):
 
 
 # ============== PRICING CALCULATION ==============
+# ============== PHASE 2: STANDARDIZED BREAKDOWN MODELS ==============
+
+class CostLineItem(BaseModel):
+    """Individual cost component for itemized breakdown (Phase 2)"""
+    name: str
+    quantity: float = 1.0
+    unit: str = "each"
+    unit_cost: float = 0.0
+    total_cost: float = 0.0
+    notes: Optional[str] = None
+
+
+class PricingBreakdown(BaseModel):
+    """Standardized breakdown structure (Phase 2)"""
+    materials: List[CostLineItem] = Field(default_factory=list)
+    labor: List[CostLineItem] = Field(default_factory=list)
+    design: List[CostLineItem] = Field(default_factory=list)
+    setup: List[CostLineItem] = Field(default_factory=list)
+    finishing: List[CostLineItem] = Field(default_factory=list)
+    hardware: List[CostLineItem] = Field(default_factory=list)
+    install: List[CostLineItem] = Field(default_factory=list)
+    outsourcing: List[CostLineItem] = Field(default_factory=list)
+    overhead: List[CostLineItem] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
 class PricingCalculation(BaseModel):
-    """Detailed pricing breakdown for a job item"""
+    """Detailed pricing breakdown for a job item (Phase 2: Standardized)"""
+    
+    # ========== ITEMIZED COSTS (Top-Level) ==========
     material_cost: float = 0
-    labor_cost: float = 0
+    labor_cost: float = 0              # Production labor only
+    design_cost: float = 0             # NEW (Phase 2): Design/artwork labor
     setup_cost: float = 0
-    additional_costs: float = 0
+    finishing_cost: float = 0          # NEW (Phase 2): Laminates, finishes
+    hardware_cost: float = 0           # NEW (Phase 2): Grommets, stakes, mounts
+    install_cost: float = 0            # NEW (Phase 2): Installation labor
+    outsourcing_cost: float = 0        # NEW (Phase 2): Subcontract, permits
     overhead_cost: float = 0
     
-    production_cost: float = 0
-    total_cost: float = 0
+    # ========== LEGACY FIELD (Backward Compat) ==========
+    additional_costs: float = 0        # Deprecated, kept for compatibility
+    
+    # ========== CALCULATED TOTALS ==========
+    # Corrected cost structure:
+    # base_cost = sum of all itemized costs (before overhead)
+    # overhead_cost = overhead applied to base_cost
+    # true_cost = base_cost + overhead_cost
+    # production_cost = true_cost (alias)
+    base_cost: float = 0               # NEW (Phase 2): Sum before overhead
+    true_cost: float = 0               # NEW (Phase 2): base_cost + overhead
+    production_cost: float = 0         # Alias for true_cost
+    total_cost: float = 0              # Legacy alias
     suggested_price: float = 0
     selling_price: float = 0
     
-    markup_percent: float = 0
-    profit_margin_percent: float = 0
+    # ========== PROFIT METRICS ==========
     profit_amount: float = 0
+    profit_margin_percent: float = 0
+    markup_percent: float = 0
     
+    # ========== METADATA ==========
     estimated_labor_minutes: float = 0
+    minimum_charge_applied: bool = False   # NEW (Phase 2)
+    pricing_method_used: str = "cost_plus" # NEW (Phase 2)
     
-    breakdown: Dict[str, Any] = Field(default_factory=dict)
+    # ========== STRUCTURED BREAKDOWN ==========
+    breakdown: Dict[str, Any] = Field(default_factory=dict)  # Keep dict for backward compat
 
 
 # ============== JOB ITEM PRICING DATA ==============
