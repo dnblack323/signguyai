@@ -1115,7 +1115,7 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
 async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defaults: dict) -> PricingCalculation:
     """Calculate rigid sign pricing using Pricing Foundation defaults."""
     width = data.width_inches or 24
-    height = data.length_inches or 24
+    height = data.height_inches or data.length_inches or 24  # Phase 1: Use canonical height_inches, fallback to legacy length_inches
     unit = (data.unit_of_measure or "inches").lower()
     area_per_piece = (width * height) / 144 if unit != "feet" else (width * height)
 
