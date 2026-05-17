@@ -2693,18 +2693,208 @@ async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, 
     suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order, rush_multiplier)
 
     # Price override (per vehicle × quantity)
+    manual_override_used = False
     if data.override_enabled and data.price_override:
         suggested_price = float(data.price_override) * quantity
+        manual_override_used = True
 
-    return create_pricing_result(
-        material_cost=material_cost_total,
-        labor_cost=labor_cost_total,
+    # ============== PHASE 2D: USE STANDARDIZED RESPONSE ==============
+    # Re-bucket costs into standard Phase 2 categories. Overhead math is
+    # preserved because the LEGACY local sums (material_cost_total +
+    # labor_cost_total) are still what's fed into calculate_overhead_cost above.
+    # New mapping:
+    #   materials: wrap vinyl + window perf + removal_consumables
+    #   finishing: laminate
+    #   labor:     production + surface_prep + removal (general production labor)
+    #   design:    design hours × design_rate
+    #   install:   install labor (with install_minimum floor) + helper labor
+    #   setup/hardware/outsourcing: 0 for vehicle_graphics
+    materials_list = []
+    if vinyl_material_cost > 0:
+        wrap_name = (wrap_material.get("name", wrap_material_key) if wrap_material else wrap_material_key)
+        materials_list.append({
+            "name": wrap_name,
+            "quantity": round(waste_adjusted_area, 2),
+            "unit": "sqft",
+            "unit_cost": vinyl_cost_per_sqft,
+            "total_cost": round(vinyl_material_cost, 2),
+        })
+    if perf_material_cost > 0:
+        perf_unit_cost = (perf_material_cost / (perf_area * (1 + waste_percent / 100.0))) if perf_area > 0 else 0
+        materials_list.append({
+            "name": f"Window Perf ({perf_scope})",
+            "quantity": round(perf_area * (1 + waste_percent / 100.0), 2),
+            "unit": "sqft",
+            "unit_cost": perf_unit_cost,
+            "total_cost": round(perf_material_cost, 2),
+        })
+    if removal_consumables > 0:
+        materials_list.append({
+            "name": "Removal Consumables",
+            "quantity": quantity,
+            "unit": "vehicle",
+            "unit_cost": float(cfg.get("removal_consumables_allowance", 8.0) or 8.0),
+            "total_cost": round(removal_consumables, 2),
+        })
+    materials_total = vinyl_material_cost + perf_material_cost + removal_consumables
+
+    finishing_list = []
+    if laminate_material_cost > 0:
+        finishing_list.append({
+            "name": f"Laminate ({lam_key})",
+            "quantity": round(waste_adjusted_area, 2),
+            "unit": "sqft",
+            "unit_cost": laminate_cost_per_sqft,
+            "total_cost": round(laminate_material_cost, 2),
+        })
+
+    labor_list = []
+    if production_cost > 0:
+        labor_list.append({
+            "name": "Production / Prep Labor",
+            "quantity": round(production_hours, 2),
+            "unit": "hours",
+            "unit_cost": production_rate,
+            "total_cost": round(production_cost, 2),
+        })
+    if prep_cost > 0:
+        labor_list.append({
+            "name": f"Surface Prep ({prep_scope})",
+            "quantity": round(prep_hours, 2),
+            "unit": "hours",
+            "unit_cost": production_rate,
+            "total_cost": round(prep_cost, 2),
+        })
+    if removal_cost > 0:
+        labor_list.append({
+            "name": f"Removal Labor ({removal_scope})",
+            "quantity": round(removal_hours, 2),
+            "unit": "hours",
+            "unit_cost": removal_rate,
+            "total_cost": round(removal_cost, 2),
+        })
+    labor_total = production_cost + prep_cost + removal_cost
+
+    design_list = []
+    if design_cost > 0:
+        design_list.append({
+            "name": "Design / Artwork",
+            "quantity": round(design_hours, 2),
+            "unit": "hours",
+            "unit_cost": design_rate,
+            "total_cost": round(design_cost, 2),
+        })
+
+    install_list = []
+    if install_labor_cost > 0:
+        effective_install_rate = (install_labor_cost / install_hours) if install_hours > 0 else install_rate
+        install_list.append({
+            "name": "Vehicle Install Labor",
+            "quantity": round(install_hours, 2),
+            "unit": "hours",
+            "unit_cost": round(effective_install_rate, 2),
+            "total_cost": round(install_labor_cost, 2),
+            "notes": (
+                f"difficulty={install_difficulty_key}; seam={seam_key}; "
+                f"install_minimum_floor={install_minimum * quantity}"
+            ),
+        })
+    if helper_cost > 0:
+        install_list.append({
+            "name": "Second Installer (Helper)",
+            "quantity": round(install_hours, 2),
+            "unit": "hours",
+            "unit_cost": helper_rate,
+            "total_cost": round(helper_cost, 2),
+        })
+    install_total = install_labor_cost + helper_cost
+
+    warnings_list = []
+    if material_warning:
+        warnings_list.append(material_warning)
+    if laminate_warning:
+        warnings_list.append(laminate_warning)
+
+    return create_standardized_pricing_result(
+        # === ITEMIZED COSTS (Phase 2D mapping) ===
+        material_cost=materials_total,
+        labor_cost=labor_total,
+        design_cost=design_cost,
         setup_cost=0,
-        additional_costs=0,
+        finishing_cost=laminate_material_cost,
+        hardware_cost=0,
+        install_cost=install_total,
+        outsourcing_cost=0,
         overhead_cost=overhead_cost,
+
+        # === PRICING ===
         suggested_price=suggested_price,
+        minimum_charge=min_sell * quantity,
+
+        # === METADATA ===
         estimated_labor_minutes=total_labor_hours * 60,
-        breakdown={
+        pricing_method=("manual_override" if manual_override_used else sell_method),
+        markup_multiplier=float(cfg.get("default_markup_multiplier", defaults.get("default_markup_multiplier", 2.4)) or 2.4),
+        target_margin_percent=float(cfg.get("target_profit_margin_percent", defaults.get("target_profit_margin_percent", 42.0)) or 42.0),
+
+        # Overhead explainability (Phase 2D)
+        overhead_basis={
+            "formula": "(basis_amount * overhead_percentage / 100) + (labor_hours * shop_overhead_per_hour)",
+            "basis_amount": round(material_cost_total + labor_cost_total, 2),
+            "basis_components": [
+                "vinyl_material_cost",
+                "laminate_material_cost",
+                "perf_material_cost",
+                "removal_consumables",
+                "production_cost",
+                "design_cost",
+                "surface_prep_cost",
+                "removal_cost",
+                "install_labor_cost",
+                "helper_cost",
+            ],
+            "labor_hours": round(total_labor_hours, 2),
+            "labor_hours_components": [
+                "production_hours",
+                "design_hours",
+                "prep_hours",
+                "removal_hours",
+                "install_hours",
+                "install_hours (×2 if second_installer)",
+            ],
+            "overhead_percentage": float(
+                cfg.get("overhead_percentage", defaults.get("overhead_percentage", 0)) or 0
+            ),
+            "shop_overhead_per_hour": float(
+                cfg.get("shop_overhead_per_hour", defaults.get("shop_overhead_per_hour", 0)) or 0
+            ),
+            "overhead_excludes_setup_cost": True,
+            "notes": (
+                "Overhead is calculated from the legacy basis: all material costs "
+                "(vinyl + laminate + perf + removal consumables) plus all labor costs "
+                "(production + design + prep + removal + install + second installer). "
+                "Window-perf SELL additive is added after cost-plus and is NOT in this basis. "
+                "Phase 2D moves laminate from material_cost to finishing_cost, but overhead "
+                "math is preserved exactly as pre-Phase-2D."
+            ),
+        },
+
+        # === BREAKDOWN ARRAYS ===
+        materials_breakdown=materials_list,
+        labor_breakdown=labor_list,
+        design_breakdown=design_list,
+        finishing_breakdown=finishing_list,
+        install_breakdown=install_list,
+
+        # === METADATA FIELDS ===
+        area_sqft=estimated_area_per_vehicle,
+        billable_sqft=total_area,
+        quantity=quantity,
+        waste_percentage=waste_percent,
+        warnings=warnings_list,
+
+        # === LEGACY BREAKDOWN (preserve all existing keys) ===
+        legacy_breakdown={
             "vehicle_type": vehicle_type,
             "coverage_type_input": coverage_raw,
             "coverage_resolved": coverage_key,
@@ -2758,8 +2948,12 @@ async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, 
             "package_price_total": round(package_price_total, 2),
             "sell_method": sell_method,
             "min_sell_per_item": min_sell,
-            "quantity": quantity,
             "total_per_vehicle": round(suggested_price / quantity, 2) if quantity > 0 else 0,
+            # Phase 2D: preserve legacy meaning for any consumer that read these.
+            "legacy_material_cost_total": round(material_cost_total, 2),
+            "legacy_labor_cost_total": round(labor_cost_total, 2),
+            "manual_override_used": manual_override_used,
+            "price_override": data.price_override if manual_override_used else None,
         },
     )
 
