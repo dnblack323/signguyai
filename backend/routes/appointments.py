@@ -1,14 +1,169 @@
 from datetime import datetime, timezone
 from typing import Optional, List
+import os
 import uuid
+import hmac
+import hashlib
+import base64
+import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from models import UserInDB
 from server import db, get_current_active_user
+from core_runtime import SECRET_KEY
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/appointments", tags=["Appointments"])
+
+# Public router — no auth, used for tokenized customer Confirm/Reject links
+# embedded in appointment notification emails. Lives at /api/public-appointments.
+public_router = APIRouter(prefix="/public-appointments", tags=["Appointments"])
+
+
+# ─────────── Phase: Email C/R quick-action token helpers ───────────
+# Tokens are URL-safe base64 of "{appointment_id}.{action}.{hmac}" where the
+# HMAC is computed over "{appointment_id}|{action}" with the server SECRET_KEY.
+# This keeps the token short, stateless, and tamper-proof without any DB or
+# schema changes. The customer never logs in to confirm/reject.
+def _make_action_token(appointment_id: str, action: str) -> str:
+    payload = f"{appointment_id}|{action}"
+    sig = hmac.new(SECRET_KEY.encode(), payload.encode(), hashlib.sha256).digest()
+    sig_b64 = base64.urlsafe_b64encode(sig).rstrip(b"=").decode()
+    raw = f"{appointment_id}.{action}.{sig_b64}"
+    return base64.urlsafe_b64encode(raw.encode()).rstrip(b"=").decode()
+
+
+def _decode_action_token(token: str) -> Optional[dict]:
+    try:
+        padded = token + "=" * (-len(token) % 4)
+        raw = base64.urlsafe_b64decode(padded.encode()).decode()
+        parts = raw.split(".")
+        if len(parts) != 3:
+            return None
+        appointment_id, action, sig_b64 = parts
+        if action not in {"confirm", "reject"}:
+            return None
+        expected_sig = hmac.new(
+            SECRET_KEY.encode(),
+            f"{appointment_id}|{action}".encode(),
+            hashlib.sha256,
+        ).digest()
+        expected_b64 = base64.urlsafe_b64encode(expected_sig).rstrip(b"=").decode()
+        if not hmac.compare_digest(expected_b64, sig_b64):
+            return None
+        return {"appointment_id": appointment_id, "action": action}
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _public_base_url(tenant: dict) -> str:
+    """Resolve the public base URL for tokenized links.
+
+    Priority: tenant.portal_url → APP_PUBLIC_URL env → REACT_APP_BACKEND_URL env.
+    Falls back to "" if nothing is configured.
+    """
+    return (
+        (tenant or {}).get("portal_url")
+        or os.environ.get("APP_PUBLIC_URL")
+        or os.environ.get("REACT_APP_BACKEND_URL")
+        or ""
+    ).rstrip("/")
+
+
+def _result_html(title: str, message: str, success: bool = True) -> str:
+    """Tiny standalone HTML response page for the customer after they click
+    Confirm or Reject. No JS, no external assets — works in any email client
+    preview / mobile browser.
+    """
+    color = "#0EA5E9" if success else "#DC2626"
+    icon = "✓" if success else "ℹ"
+    return f"""<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{title}</title>
+<style>
+ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#F8FAFC;color:#0F172A;margin:0;padding:24px;}}
+ .card{{max-width:480px;margin:48px auto;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(15,23,42,0.08);padding:28px;text-align:center;}}
+ .icon{{width:56px;height:56px;line-height:56px;border-radius:50%;background:{color};color:#fff;font-size:28px;margin:0 auto 16px;}}
+ h1{{font-size:22px;margin:0 0 8px;color:{color};}}
+ p{{color:#475569;line-height:1.55;margin:8px 0;}}
+</style></head><body>
+<div class="card"><div class="icon">{icon}</div>
+<h1>{title}</h1><p>{message}</p></div></body></html>"""
+
+
+async def _send_customer_appointment_email(appointment: dict, tenant: dict) -> None:
+    """Send the customer an appointment notification with Confirm / Reject
+    quick-action buttons. Safe-no-op if the customer has no email or if the
+    email service isn't configured.
+    """
+    try:
+        # Resolve customer email
+        customer_email = None
+        if appointment.get("customer_id"):
+            cust = await db.customers.find_one(
+                {"id": appointment["customer_id"], "tenant_id": appointment.get("tenant_id")},
+                {"_id": 0, "email": 1, "name": 1},
+            )
+            customer_email = (cust or {}).get("email")
+        if not customer_email:
+            return  # nothing to email
+
+        from services.email_service import email_service
+        if not email_service.is_configured():
+            logger.info("Email service not configured; skipping appointment email")
+            return
+
+        base = _public_base_url(tenant)
+        confirm_url = f"{base}/api/public-appointments/{_make_action_token(appointment['id'], 'confirm')}/confirm"
+        reject_url = f"{base}/api/public-appointments/{_make_action_token(appointment['id'], 'reject')}/reject"
+
+        title = appointment.get("title") or "Appointment"
+        when = (
+            appointment.get("scheduled_start")
+            or appointment.get("scheduled_at")
+            or appointment.get("scheduled_date")
+            or "TBD"
+        )
+        location = appointment.get("location") or ""
+        shop_name = (tenant or {}).get("name") or "Your Sign Shop"
+        appt_type = (appointment.get("appointment_type") or "").replace("_", " ").title() or "Appointment"
+
+        html = f"""
+        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;max-width:560px;margin:0 auto;color:#0F172A;">
+          <h2 style="color:#0F172A;margin:0 0 12px;">{title}</h2>
+          <p style="color:#475569;line-height:1.5;">{shop_name} has scheduled <strong>{appt_type}</strong> with you.</p>
+          <table style="margin:16px 0;border-collapse:collapse;width:100%;">
+            <tr><td style="padding:6px 0;color:#64748B;width:120px;">When</td><td style="padding:6px 0;"><strong>{when}</strong></td></tr>
+            {f'<tr><td style="padding:6px 0;color:#64748B;">Location</td><td style="padding:6px 0;">{location}</td></tr>' if location else ''}
+          </table>
+          <p style="color:#475569;line-height:1.5;">Please confirm this time works for you, or let us know if you need a change.</p>
+          <div style="margin:24px 0;text-align:center;">
+            <a href="{confirm_url}"
+               style="display:inline-block;background:#0EA5E9;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;margin:0 6px;">
+              ✓ Confirm Appointment
+            </a>
+            <a href="{reject_url}"
+               style="display:inline-block;background:#fff;color:#0F172A;border:1px solid #CBD5E1;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;margin:0 6px;">
+              Request Change
+            </a>
+          </div>
+          <p style="color:#94A3B8;font-size:12px;line-height:1.4;margin-top:32px;">
+            If neither button works, reply to this email and we'll help you reschedule.
+          </p>
+        </div>
+        """
+        await email_service.send_email(
+            to_email=customer_email,
+            subject=f"{shop_name}: Please confirm your appointment",
+            html_content=html,
+            tenant_id=appointment.get("tenant_id"),
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(f"Appointment notification email failed: {exc}")
 
 
 class AppointmentCreate(BaseModel):
@@ -152,6 +307,12 @@ async def create_appointment(
     }
     await db.appointments.insert_one(doc)
     doc.pop("_id", None)
+
+    # Send appointment email with Confirm/Reject quick actions to the customer
+    if doc.get("customer_id") and doc.get("send_reminder", True):
+        tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0}) or {}
+        await _send_customer_appointment_email(doc, tenant)
+
     return _doc_to_response(doc)
 
 
@@ -340,3 +501,173 @@ async def reject_appointment(
     await db.appointments.update_one({"id": appointment_id}, {"$set": updates})
     doc.update(updates)
     return _doc_to_response(doc)
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# Public (customer-facing) Confirm / Reject quick-action endpoints
+# ───────────────────────────────────────────────────────────────────────────
+
+
+@public_router.get("/{token}/confirm", response_class=HTMLResponse)
+async def public_confirm_appointment(token: str):
+    """Tokenized customer confirmation endpoint — no auth required.
+
+    Linked from the appointment notification email's "Confirm Appointment"
+    button. Marks the appointment as `confirmed` and returns a friendly
+    standalone HTML page. Idempotent — duplicate clicks return success.
+    """
+    decoded = _decode_action_token(token)
+    if not decoded or decoded["action"] != "confirm":
+        return HTMLResponse(
+            _result_html(
+                "Link expired",
+                "This confirmation link is no longer valid. Please reply to the appointment email to confirm directly.",
+                success=False,
+            ),
+            status_code=400,
+        )
+
+    appointment_id = decoded["appointment_id"]
+    appt = await db.appointments.find_one({"id": appointment_id}, {"_id": 0})
+    if not appt:
+        return HTMLResponse(
+            _result_html(
+                "Appointment not found",
+                "We couldn't find this appointment. It may have been removed.",
+                success=False,
+            ),
+            status_code=404,
+        )
+
+    # Already confirmed → idempotent success page (no duplicate update)
+    if appt.get("status") == "confirmed":
+        return HTMLResponse(_result_html(
+            "Already confirmed",
+            "Thanks — we already have your confirmation on file. See you soon!",
+            success=True,
+        ))
+
+    # If previously rejected/cancelled, still allow re-confirmation (customer
+    # changed their mind). Append an audit note.
+    now = datetime.now(timezone.utc).isoformat()
+    prev_status = appt.get("status") or "scheduled"
+    updates = {
+        "status": "confirmed",
+        "confirmation_status": "confirmed_by_customer",
+        "confirmed_at": now,
+        "updated_at": now,
+    }
+    if prev_status in {"cancelled", "rejected"}:
+        prev_notes = appt.get("notes") or ""
+        updates["notes"] = (prev_notes + f"\n[Customer re-confirmed via email on {now}]").strip()
+    await db.appointments.update_one({"id": appointment_id}, {"$set": updates})
+
+    return HTMLResponse(_result_html(
+        "Appointment confirmed",
+        f"Thanks! Your appointment is confirmed for <strong>{appt.get('scheduled_start') or 'the scheduled time'}</strong>. "
+        f"We'll see you then.",
+        success=True,
+    ))
+
+
+class _RejectReasonForm(BaseModel):
+    reason: Optional[str] = None
+
+
+@public_router.get("/{token}/reject", response_class=HTMLResponse)
+async def public_reject_appointment(token: str, reason: Optional[str] = Query(None)):
+    """Tokenized customer reject / request-change endpoint — no auth required.
+
+    Marks the appointment as `needs_reschedule` (preferred) and optionally
+    appends a customer-supplied reason. Returns a friendly standalone HTML
+    page that lets the customer add a short message and resubmit.
+    Idempotent — duplicate clicks return the same friendly page.
+    """
+    decoded = _decode_action_token(token)
+    if not decoded or decoded["action"] != "reject":
+        return HTMLResponse(
+            _result_html(
+                "Link expired",
+                "This link is no longer valid. Please reply to the appointment email and we'll help reschedule.",
+                success=False,
+            ),
+            status_code=400,
+        )
+
+    appointment_id = decoded["appointment_id"]
+    appt = await db.appointments.find_one({"id": appointment_id}, {"_id": 0})
+    if not appt:
+        return HTMLResponse(
+            _result_html(
+                "Appointment not found",
+                "We couldn't find this appointment. It may have been removed.",
+                success=False,
+            ),
+            status_code=404,
+        )
+
+    now = datetime.now(timezone.utc).isoformat()
+    # If a reason was supplied (e.g. via the reason form on the reject page),
+    # record it and mark as needs_reschedule. Otherwise show the reason form.
+    if reason:
+        prev_notes = appt.get("notes") or ""
+        updates = {
+            "status": "needs_reschedule",
+            "confirmation_status": "rejected_by_customer",
+            "rejected_at": now,
+            "notes": (prev_notes + f"\n[Customer requested change on {now}]: {reason}").strip(),
+            "updated_at": now,
+        }
+        await db.appointments.update_one({"id": appointment_id}, {"$set": updates})
+        return HTMLResponse(_result_html(
+            "Thanks — we got your message",
+            "We've let the shop know you need a different time. They'll reach out shortly with new options.",
+            success=True,
+        ))
+
+    # Already rejected — idempotent
+    if appt.get("status") in {"needs_reschedule", "rejected", "cancelled"}:
+        return HTMLResponse(_result_html(
+            "Already received",
+            "Thanks — we already received your request to reschedule. The shop will be in touch.",
+            success=True,
+        ))
+
+    # Mark needs_reschedule immediately, then show form to optionally add a reason.
+    await db.appointments.update_one(
+        {"id": appointment_id},
+        {"$set": {
+            "status": "needs_reschedule",
+            "confirmation_status": "rejected_by_customer",
+            "rejected_at": now,
+            "updated_at": now,
+        }},
+    )
+
+    # Friendly page with optional reason form — submit reposts to this same URL
+    # with ?reason=...
+    form_html = f"""<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Request a change</title>
+<style>
+ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#F8FAFC;color:#0F172A;margin:0;padding:24px;}}
+ .card{{max-width:520px;margin:48px auto;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(15,23,42,0.08);padding:28px;}}
+ h1{{font-size:20px;margin:0 0 12px;color:#0F172A;}}
+ p{{color:#475569;line-height:1.55;}}
+ textarea{{width:100%;min-height:96px;padding:10px;border:1px solid #CBD5E1;border-radius:8px;font:inherit;box-sizing:border-box;}}
+ button{{background:#0EA5E9;color:#fff;border:0;padding:11px 20px;border-radius:8px;font-weight:600;cursor:pointer;}}
+</style></head><body>
+<div class="card">
+  <h1>Request a different time</h1>
+  <p>Thanks for letting us know. Add a quick note (optional) and we'll reach out with new options.</p>
+  <form method="get" action="/api/public-appointments/{token}/reject">
+    <textarea name="reason" placeholder="Optional: what time works better for you?"></textarea>
+    <div style="margin-top:12px;text-align:right;">
+      <button type="submit">Send message</button>
+    </div>
+  </form>
+  <p style="color:#94A3B8;font-size:12px;margin-top:24px;">
+    Your appointment has already been marked as needing a new time. Adding a note just helps us pick the right slot.
+  </p>
+</div></body></html>"""
+    return HTMLResponse(form_html)
