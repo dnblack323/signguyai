@@ -5,7 +5,7 @@ import {
   Trash2, Loader2, Receipt, Wrench, MessageSquare, DollarSign, Pause, ChevronRight,
   Copy, Calculator, Edit3, MoreHorizontal, Upload, FileUp, Paperclip, Send, Mail, ExternalLink,
   UserPlus, CalendarPlus, ListTodo,
-  Pen, Image as ImageIcon, Eye, Camera
+  Pen, Image as ImageIcon, Eye, Camera, Printer
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -231,6 +231,27 @@ export default function OrderDetail() {
     finally { setActionLoading(''); }
   };
 
+  // Internal production work-ticket PDF (pricing hidden by default).
+  const printWorkTicket = async (withPricing = false) => {
+    const key = withPricing ? 'work_ticket_pricing' : 'work_ticket';
+    setActionLoading(key);
+    try {
+      const url = `${API}/orders/${id}/work-ticket/pdf${withPricing ? '?include_pricing=true' : ''}`;
+      const res = await axios.get(url, { headers: hdr(), responseType: 'blob' });
+      const blobUrl = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const win = window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      if (!win) {
+        toast.error('Pop-up was blocked. Allow pop-ups for this site and try again.');
+      }
+      // Release the object URL after the new tab has had a chance to read it.
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60_000);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Failed to generate work ticket');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
   const updateTask = async (taskId, status) => {
     setTaskLoading(taskId);
     try {
@@ -406,6 +427,20 @@ export default function OrderDetail() {
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => generateDoc('work_order')} disabled={!!actionLoading || tickets.length === 0}>
                 <Wrench className="w-4 h-4 mr-2" /> Generate Work Order
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => printWorkTicket(false)}
+                disabled={!!actionLoading}
+                data-testid="print-work-ticket-btn"
+              >
+                <Printer className="w-4 h-4 mr-2" /> Print Work Ticket
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => printWorkTicket(true)}
+                disabled={!!actionLoading}
+                data-testid="print-work-ticket-with-pricing-btn"
+              >
+                <Printer className="w-4 h-4 mr-2" /> Print Work Ticket <span className="ml-1 text-[10px] text-violet-600">+ Pricing</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
