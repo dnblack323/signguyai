@@ -824,15 +824,136 @@ async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, default
     rush_multiplier = 1 + (float(defaults.get("rush_fee_percentage", 0) or 0) / 100)
     suggested_price = apply_rush_order_multiplier(suggested_price, data.rush_order, rush_multiplier)
 
-    return create_pricing_result(
-        material_cost=material_cost,
-        labor_cost=labor_cost,
-        setup_cost=0,
-        additional_costs=file_cleanup_fee,
+    # ============== PHASE 2: USE STANDARDIZED RESPONSE ==============
+    # Materials breakdown (vinyl + transfer tape/masking)
+    materials_list = []
+    if vinyl_cost > 0:
+        materials_list.append({
+            "name": vinyl_material.get("name", vinyl_key) if vinyl_material else vinyl_key,
+            "quantity": waste_adjusted_area,
+            "unit": "sqft",
+            "unit_cost": vinyl_cost_per_sqft,
+            "total_cost": vinyl_cost,
+        })
+    
+    # Labor breakdown (production/weeding labor only)
+    labor_list = []
+    if production_cost > 0:
+        labor_list.append({
+            "name": "Production/Weeding Labor",
+            "quantity": production_hours,
+            "unit": "hours",
+            "unit_cost": production_rate,
+            "total_cost": production_cost,
+        })
+    
+    # Design breakdown
+    design_list = []
+    if design_cost > 0:
+        design_list.append({
+            "name": "Design/Artwork",
+            "quantity": design_hours,
+            "unit": "hours",
+            "unit_cost": design_rate,
+            "total_cost": design_cost,
+        })
+    
+    # Finishing breakdown (transfer tape/masking material cost)
+    finishing_list = []
+    if transfer_tape_cost > 0:
+        finishing_list.append({
+            "name": "Transfer Tape/Masking",
+            "quantity": waste_adjusted_area,
+            "unit": "sqft",
+            "unit_cost": transfer_tape_cost_per_sqft,
+            "total_cost": transfer_tape_cost,
+        })
+    
+    # Install breakdown
+    install_list = []
+    if install_cost > 0:
+        install_list.append({
+            "name": "Installation",
+            "quantity": install_hours,
+            "unit": "hours",
+            "unit_cost": install_rate,
+            "total_cost": install_cost,
+        })
+    
+    # Setup breakdown (file cleanup fee)
+    setup_list = []
+    if file_cleanup_fee > 0:
+        setup_list.append({
+            "name": "File Cleanup",
+            "quantity": 1,
+            "unit": "job",
+            "unit_cost": file_cleanup_fee,
+            "total_cost": file_cleanup_fee,
+        })
+    
+    # Collect warnings
+    warnings_list = []
+    if vinyl_warning:
+        warnings_list.append(vinyl_warning)
+    
+    # Categorize costs for Phase 2 structure
+    # Vinyl → material_cost
+    material_costs_only = vinyl_cost
+    
+    # Transfer tape/masking → finishing_cost
+    finishing_costs = transfer_tape_cost
+    
+    # Production/weeding → labor_cost (design and install are separate)
+    labor_costs_only = production_cost
+    
+    # Design → design_cost
+    design_costs = design_cost
+    
+    # Install → install_cost
+    install_costs = install_cost
+    
+    # File cleanup → setup_cost
+    setup_costs = file_cleanup_fee
+    
+    return create_standardized_pricing_result(
+        # Costs (itemized by type)
+        material_cost=material_costs_only,
+        labor_cost=labor_costs_only,
+        design_cost=design_costs,
+        setup_cost=setup_costs,
+        finishing_cost=finishing_costs,
+        hardware_cost=0,
+        install_cost=install_costs,
+        outsourcing_cost=0,
         overhead_cost=overhead_cost,
+        
+        # Pricing
         suggested_price=suggested_price,
+        minimum_charge=min_sell,
+        
+        # Metadata
         estimated_labor_minutes=(production_hours + design_hours + install_hours) * 60,
-        breakdown={
+        pricing_method="sell_rate",
+        
+        # Breakdown arrays
+        materials_breakdown=materials_list,
+        labor_breakdown=labor_list,
+        design_breakdown=design_list,
+        setup_breakdown=setup_list,
+        finishing_breakdown=finishing_list,
+        install_breakdown=install_list,
+        
+        # Metadata fields
+        area_sqft=area_per_piece,
+        billable_sqft=billable_area_per_piece,
+        quantity=quantity,
+        width_inches=width,
+        height_inches=height,
+        waste_percentage=waste_percent,
+        warnings=warnings_list,
+        
+        # Legacy breakdown (preserve existing keys for backward compat)
+        legacy_breakdown={
             "dimensions": f"{width}\" x {height}\"",
             "unit_of_measure": unit,
             "area_per_piece": round(area_per_piece, 2),
@@ -857,7 +978,7 @@ async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, default
             "surface_type": surface_type,
             "quantity_discount_percent": discount_percent,
             "file_cleanup_fee": round(file_cleanup_fee, 2),
-        }
+        },
     )
 
 
