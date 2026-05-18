@@ -13,6 +13,7 @@ import { Link } from 'react-router-dom';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
 import OnboardingChecklist from '../components/OnboardingChecklist';
 import AssistantNudgesWidget from '../components/AssistantNudgesWidget';
+import PendingCustomerActionsWidget from '../components/dashboard/PendingCustomerActionsWidget';
 import { FoundersBadge, CreditMeter } from '../components/founders';
 import { CreditPurchaseModal } from '../components/credits/CreditBalance';
 import axios from 'axios';
@@ -812,6 +813,7 @@ export default function Dashboard() {
         {/* Right Column - Quick Actions & Recent AI Docs */}
         <div className="space-y-4 sm:space-y-6">
           <QuickActions onSendDigest={handleSendDigest} sendingDigest={sendingDigest} />
+          <PendingCustomerActionsWidget />
           <RecentAIDocumentsWidget documents={recentAIDocs} />
         </div>
       </div>

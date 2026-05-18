@@ -1,7 +1,6 @@
 // Phase 2A: Measurements & Coverage tab — real CRUD against /api/wrap/items/{id}/areas.
 import { useState } from 'react';
 import WrapSectionCard from '../WrapSectionCard';
-import WrapAIHelperCard from '../WrapAIHelperCard';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
@@ -136,9 +135,8 @@ export default function MeasurementsTab({ wrapData, onAddArea, onUpdateArea, onD
   const busy = saveStatus === 'saving';
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4">
-      <div className="space-y-3">
-        <WrapSectionCard title="Coverage Summary" icon={Ruler} testId="meas-coverage">
+    <div className="space-y-3" data-testid="meas-tab">
+      <WrapSectionCard title="Coverage Summary" icon={Ruler} testId="meas-coverage">
           <CoverageSummary summary={summary} />
         </WrapSectionCard>
 
@@ -266,19 +264,6 @@ export default function MeasurementsTab({ wrapData, onAddArea, onUpdateArea, onD
             Default waste factor on new areas: <span className="font-medium">15%</span>. Adjust per-area as needed.
           </p>
         </WrapSectionCard>
-      </div>
-
-      <WrapAIHelperCard
-        title="Measurements AI Helper"
-        testId="meas-ai-helper"
-        actions={[
-          { label: 'Estimate Missing Dimensions' },
-          { label: 'Suggest Waste Factor' },
-          { label: 'Check Missing Areas' },
-          { label: 'Compare to Vehicle Type' },
-          { label: 'Suggest Billable Sq Ft' },
-        ]}
-      />
     </div>
   );
 }

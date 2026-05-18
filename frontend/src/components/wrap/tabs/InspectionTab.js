@@ -298,7 +298,7 @@ export default function InspectionTab({
       </div>
 
       <WrapAIHelperCard
-        title="Inspection AI Helper"
+        title="Inspection Summary & Report AI"
         testId="insp-ai-helper"
         actions={[
           { label: 'Summarize Damage' },

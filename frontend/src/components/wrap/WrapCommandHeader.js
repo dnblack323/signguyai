@@ -1,6 +1,6 @@
 // Phase 1: Sticky page header — shows merged order/item info + action buttons.
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Send, FileSignature, ClipboardList, Wand2, CalendarClock, Heart, Package, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Send, FileSignature, ClipboardList, Wand2, CalendarClock, Heart, Package, CheckCircle2, MessageSquare, UserSquare, FileText as FileTextIcon } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { toast } from 'sonner';
@@ -73,6 +73,24 @@ export default function WrapCommandHeader({ orderId, header, saveStatus, saveErr
               <p className="text-sm font-semibold text-rose-700">{money(header.balance_due)}</p>
             </div>
           </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-100" data-testid="wrap-header-respond-row">
+          <span className="text-[11px] uppercase tracking-wide text-slate-500 mr-1">Respond:</span>
+          <Link to={`/orders/${orderId}`} data-testid="wrap-respond-open-order">
+            <Button size="sm" variant="outline" className="text-xs h-8">
+              <FileTextIcon className="h-3.5 w-3.5 mr-1" /> Open Order
+            </Button>
+          </Link>
+          <Link to="/admin-portal" data-testid="wrap-respond-open-conversation">
+            <Button size="sm" variant="outline" className="text-xs h-8">
+              <MessageSquare className="h-3.5 w-3.5 mr-1" /> Open Conversation
+            </Button>
+          </Link>
+          <Link to="/customers" data-testid="wrap-respond-open-customer">
+            <Button size="sm" variant="outline" className="text-xs h-8">
+              <UserSquare className="h-3.5 w-3.5 mr-1" /> Open Customer
+            </Button>
+          </Link>
         </div>
         <div className="flex flex-wrap gap-1.5" data-testid="wrap-header-actions">
           {HEADER_ACTIONS.map((a) => (

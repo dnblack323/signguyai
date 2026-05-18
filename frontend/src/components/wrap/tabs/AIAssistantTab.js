@@ -106,7 +106,7 @@ export default function AIAssistantTab({ wrapData, onJumpToTab }) {
       </div>
 
       <WrapAIHelperCard
-        title="Global AI Helper"
+        title="Workflow Completion Summary AI"
         testId="ai-global-helper"
         actions={[
           { label: 'Generate Full Job Summary' },

@@ -165,7 +165,7 @@ export default function ContractTab({
       </div>
 
       <WrapAIHelperCard
-        title="Contract AI Helper"
+        title="Contract Draft AI"
         testId="contract-ai-helper"
         actions={[
           { label: 'Draft Contract' },

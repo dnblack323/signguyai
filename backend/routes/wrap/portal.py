@@ -202,3 +202,117 @@ async def get_customer_facing_summary(
     """
     ticket = await _load_ticket_or_404(ticket_id, current_user.tenant_id)
     return await build_customer_facing_summary(current_user.tenant_id, ticket_id, ticket)
+
+
+# ─────────── Pending Customer Actions (dashboard widget) ───────────
+@portal_router.get("/pending-customer-actions")
+async def list_pending_customer_actions(
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Return all wrap tickets in the current tenant that are waiting on a
+    customer action. Read-only, no side effects, no message templates.
+
+    Action codes:
+      - proof_pending     — customer hasn't approved or rejected the latest proof
+      - revision_requested — customer asked for changes, design tab needs work
+      - contract_pending  — contract sent but not signed
+      - quote_pending     — order/wrap has a quoted price but quote not approved
+      - inspection_pending — inspection shared with customer but not acknowledged
+      - aftercare_pending — aftercare sent but not acknowledged
+    """
+    from server import db as _db
+    tenant_id = current_user.tenant_id
+    # Pull all wrap_data docs for this tenant
+    cursor = _db.wrap_data.find(
+        {"tenant_id": tenant_id},
+        {
+            "_id": 0,
+            "ticket_id": 1,
+            "order_id": 1,
+            "vehicle_info": 1,
+            "wrap_type": 1,
+            "design": 1,
+            "contract": 1,
+            "approvals": 1,
+            "inspection": 1,
+            "aftercare": 1,
+            "pricing_snapshot": 1,
+        },
+    )
+    wrap_docs = await cursor.to_list(500)
+    if not wrap_docs:
+        return {"items": [], "total": 0}
+
+    # Batch-load order numbers + customer names
+    order_ids = list({d.get("order_id") for d in wrap_docs if d.get("order_id")})
+    orders_by_id: dict = {}
+    customer_ids = set()
+    if order_ids:
+        async for o in _db.orders.find(
+            {"id": {"$in": order_ids}, "tenant_id": tenant_id},
+            {"_id": 0, "id": 1, "order_number": 1, "customer_id": 1},
+        ):
+            orders_by_id[o["id"]] = o
+            if o.get("customer_id"):
+                customer_ids.add(o["customer_id"])
+    customers_by_id: dict = {}
+    if customer_ids:
+        async for c in _db.customers.find(
+            {"id": {"$in": list(customer_ids)}, "tenant_id": tenant_id},
+            {"_id": 0, "id": 1, "first_name": 1, "last_name": 1, "name": 1, "company": 1},
+        ):
+            customers_by_id[c["id"]] = c
+
+    items: list = []
+    for wd in wrap_docs:
+        design = wd.get("design") or {}
+        contract = wd.get("contract") or {}
+        approvals = wd.get("approvals") or {}
+        inspection = wd.get("inspection") or {}
+        aftercare = wd.get("aftercare") or {}
+        snap = wd.get("pricing_snapshot") or {}
+
+        actions: list = []
+        proof_status = design.get("proof_status") or ""
+        if proof_status in {"sent", "viewed"} and not approvals.get("proof_approved"):
+            actions.append({"code": "proof_pending", "label": "Proof awaiting approval"})
+        if proof_status == "revision_requested":
+            actions.append({"code": "revision_requested", "label": "Customer requested a revision"})
+        contract_status = contract.get("contract_status") or ""
+        if contract_status in {"sent", "viewed"} and not approvals.get("contract_signed"):
+            actions.append({"code": "contract_pending", "label": "Contract awaiting signature"})
+        if snap.get("quoted_price") and not approvals.get("quote_approved"):
+            actions.append({"code": "quote_pending", "label": "Quote awaiting approval"})
+        if inspection.get("customer_visible") and not inspection.get("customer_acknowledged"):
+            actions.append({"code": "inspection_pending", "label": "Inspection awaiting acknowledgement"})
+        if aftercare.get("aftercare_sent") and not aftercare.get("customer_acknowledged"):
+            actions.append({"code": "aftercare_pending", "label": "Aftercare awaiting acknowledgement"})
+
+        if not actions:
+            continue
+
+        order = orders_by_id.get(wd.get("order_id"), {})
+        customer = customers_by_id.get(order.get("customer_id"), {})
+        cust_name = (
+            f"{customer.get('first_name') or ''} {customer.get('last_name') or ''}".strip()
+            or customer.get("name")
+            or customer.get("company")
+            or "—"
+        )
+        v = wd.get("vehicle_info") or {}
+        vehicle = " ".join(b for b in [v.get("year"), v.get("make"), v.get("model")] if b).strip()
+
+        items.append({
+            "ticket_id": wd.get("ticket_id"),
+            "order_id": wd.get("order_id"),
+            "order_number": order.get("order_number"),
+            "customer_name": cust_name,
+            "customer_id": order.get("customer_id"),
+            "wrap_type": wd.get("wrap_type") or "Vehicle Wrap",
+            "vehicle": vehicle,
+            "actions": actions,
+        })
+
+    # Sort: most-recent first by order_number string (best-effort)
+    items.sort(key=lambda i: (i.get("order_number") or ""), reverse=True)
+    return {"items": items, "total": len(items)}

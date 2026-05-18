@@ -1,7 +1,6 @@
 // Phase 2E: Overview tab — real read-only summary cards built from wrapData/order/customer.
 // No editing here; each card has a "Go to tab" button.
 import WrapSectionCard from '../WrapSectionCard';
-import WrapAIHelperCard from '../WrapAIHelperCard';
 import { Button } from '../../ui/button';
 import { User, Car, Layers, Ruler, DollarSign, ClipboardList, FileSignature, ClipboardCheck, Factory, Calendar, LifeBuoy, Sparkles } from 'lucide-react';
 import { getNextBestAction } from '../summaryHelpers';
@@ -52,7 +51,7 @@ export default function OverviewTab({ wrapData, header, onJumpToTab }) {
   const nba = getNextBestAction(wrapData);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4">
+    <div className="space-y-3" data-testid="overview-tab">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <WrapSectionCard title="Customer" icon={User} testId="overview-customer" action={<GoTo tab="contract" onJumpToTab={onJumpToTab} testId="overview-customer-goto" />}>
           <Row label="Customer" value={header?.customer_name} testId="overview-customer-name" />
@@ -147,18 +146,6 @@ export default function OverviewTab({ wrapData, header, onJumpToTab }) {
           )}
         </WrapSectionCard>
       </div>
-
-      <WrapAIHelperCard
-        title="Overview AI Helper"
-        testId="overview-ai-helper"
-        actions={[
-          { label: 'Summarize Wrap Job' },
-          { label: 'Highlight Blockers' },
-          { label: 'Suggest Communication' },
-          { label: 'Write Customer Update' },
-          { label: 'Flag Profit Risk' },
-        ]}
-      />
     </div>
   );
 }

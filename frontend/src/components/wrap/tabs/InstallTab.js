@@ -1,7 +1,6 @@
 // Phase 2D: Install tab — real persistence + issue log + signoff.
 import { useEffect, useState } from 'react';
 import WrapSectionCard from '../WrapSectionCard';
-import WrapAIHelperCard from '../WrapAIHelperCard';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
@@ -120,9 +119,8 @@ export default function InstallTab({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4">
-      <div className="space-y-3">
-        <WrapSectionCard
+    <div className="space-y-3" data-testid="install-tab">
+      <WrapSectionCard
           title="Install Schedule"
           icon={Calendar}
           testId="install-schedule"
@@ -263,19 +261,6 @@ export default function InstallTab({
             </div>
           )}
         </WrapSectionCard>
-      </div>
-
-      <WrapAIHelperCard
-        title="Install AI Helper"
-        testId="install-ai-helper"
-        actions={[
-          { label: 'Build Install Checklist' },
-          { label: 'Estimate Install Time' },
-          { label: 'Write Drop-Off Message' },
-          { label: 'Summarize Issues' },
-          { label: 'Write Pickup Message' },
-        ]}
-      />
     </div>
   );
 }

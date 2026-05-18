@@ -146,7 +146,7 @@ export default function VehicleInfoTab({ wrapData, onSave, saveStatus }) {
         </WrapSectionCard>
       </div>
       <WrapAIHelperCard
-        title="Vehicle Info AI Helper"
+        title="Vehicle AI"
         testId="vehicle-ai-helper"
         actions={[
           { label: 'Autofill Dimensions' },

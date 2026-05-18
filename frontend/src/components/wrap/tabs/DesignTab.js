@@ -207,7 +207,7 @@ export default function DesignTab({
       </div>
 
       <WrapAIHelperCard
-        title="Design AI Helper"
+        title="Design Direction & Mockup AI"
         testId="design-ai-helper"
         actions={[
           { label: 'Summarize Answers' },

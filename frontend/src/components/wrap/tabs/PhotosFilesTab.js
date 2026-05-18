@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import WrapSectionCard from '../WrapSectionCard';
-import WrapAIHelperCard from '../WrapAIHelperCard';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
@@ -157,9 +156,8 @@ export default function PhotosFilesTab({ ticketId }) {
   }, {});
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4" data-testid="photos-files-tab">
-      <div className="space-y-3">
-        <WrapSectionCard
+    <div className="space-y-3" data-testid="photos-files-tab">
+      <WrapSectionCard
           title="Generate Wrap Documents"
           icon={FileText}
           testId="files-generate-card"
@@ -369,25 +367,10 @@ export default function PhotosFilesTab({ ticketId }) {
             ))}
           </div>
         </WrapSectionCard>
-      </div>
-
-      <WrapAIHelperCard
-        title="Photos & Files AI Helper"
-        testId="files-ai-helper"
-        actions={[
-          { label: 'Sort Files' },
-          { label: 'Label Photos' },
-          { label: 'Pick Best Photos' },
-          { label: 'Create Caption' },
-          { label: 'Create Social Post' },
-          { label: 'Create Portfolio Description' },
-        ]}
-      />
     </div>
   );
 }
 
-// Inline image preview that fetches the protected image via auth header
 function FileImagePreview({ ticketId, fileId, alt }) {
   const [src, setSrc] = useState(null);
   useEffect(() => {

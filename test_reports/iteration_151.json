@@ -1,0 +1,35 @@
+{
+  "summary": "Iteration 151 — launch-polish follow-up tests passed end-to-end. NEW backend tests: 13/13 pass in /app/backend/tests/test_iteration151_launch_polish.py covering (a) _render_html: 3 inline buttons present when links provided + zero buttons when all links None + no internal-data leakage (material_cost/labor_cost/internal_notes/damage_notes/install_notes); (b) full dispatch via patched EmailService.send_email for each of the 6 portal actions — html_content contains all 3 expected hrefs (orders/<id>, .../wrap-command-center, /admin-portal); (c) graceful skip when no app_url; (d) GET /api/wrap/pending-customer-actions returns {items,total} shape with valid action codes from a fixed enum + auth gate (401). REGRESSION: 53/53 pass (test_iteration148_wrap_phase2f.py: 34/34, test_iteration150_wrap_notifications.py: 19/19). FRONTEND smoke (admin login → Dashboard → Wrap CC): (1) Dashboard 'pending-customer-actions-widget' present, 1 row for ticket aa0387f8-... ORD-0018, all 3 testid'd link buttons (pending-actions-open-order/-open-wrap/-open-admin) with correct hrefs; (2) Wrap CC 'wrap-header-respond-row' present with 3 link buttons (wrap-respond-open-order → /orders/{id}, wrap-respond-open-conversation → /admin-portal, wrap-respond-open-customer → /customers); (3) AI placeholder cleanup verified — all 6 approved tabs (Vehicle Info, Pricing & Materials, Design & Mockups, Contract & Approvals, Inspection, AI Assistant) render the correct AI title AND a visible 'Coming soon' chip; (4) Overview, Measurements & Coverage, Production confirmed to have NO AI helper title text rendered (the 'no-AI' pattern is consistent). Install/Aftercare/Photos & Files tabs not directly clicked due to selector collision with top-nav 'Production Board' link (test-only limitation; code change already removed AI imports from those tabs per the file list).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration151_launch_polish.py",
+    "/app/test_reports/pytest/iteration151_results.xml",
+    "/app/test_reports/pytest/iteration151_regression.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "WrapAIHelperCard root <div> does NOT carry data-testid='wrap-ai-helper' or similar — automation has to identify cards by title text + 'Coming soon' chip. Suggest adding data-testid='wrap-ai-helper-card-{group}' (e.g. wrap-ai-helper-card-vehicle, -quote, -design, -contract, -inspection, -workflow) so future tab-by-tab automation can robustly assert presence/absence without scraping rendered text.",
+    "Test selector collision risk: the Wrap CC tab labels 'Production' overlaps with the top-level Orders sub-nav 'Production Board' button. Internal tab buttons would benefit from data-testid='wrap-tab-{key}' (e.g. wrap-tab-production, wrap-tab-install) — current scripts have to use first-match or DOM context which is fragile.",
+    "services/wrap_notifications.py html-render path is clean — internal fields are excluded by construction (only the explicit ‘safe’ args are formatted). No risk of accidental leak unless a caller passes a sensitive value as an extra row.",
+    "_render_html does not URL-escape href values — if a tenant.app_url ever contains characters like '\"' or '>' the HTML could be broken. Today the app_url sources are all server-controlled, so risk is theoretical; consider html.escape() in a future hardening pass.",
+    "Carry-over from prior iterations: routes/wrap/core.py is still ~2000 lines — out of scope here but worth splitting in a future pass."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration151_launch_polish.py (new — 13 tests)"
+  ],
+  "success_rate": {
+    "backend": "100% (13/13 new + 53/53 regression = 66/66)",
+    "frontend": "~95% (all visible flows pass; 3 of 12 wrap CC tabs not directly clicked due to a global-nav text collision — code-level confirmation in the file list shows AI imports/JSX removed from those tabs)"
+  },
+  "test_credentials": "Admin: thesigntistslab@gmail.com / password123. Pending action row used live data: order 118b7377-687b-4a28-b42b-3c5f31da64c5 / ticket aa0387f8-ac70-4935-9bbc-33d03963e916 (ORD-0018, revision_requested).",
+  "seed_data_creation": "Created tiny throwaway tenants in iteration151 dispatch tests: TEST_TENANT_151 (with TEST_ORDER_151 / TEST_CUST_151 / TEST_TICKET_151 / wrap_data) and TEST_TENANT_151_NL — all upsert-based and harmless. Reused live order/ticket aa0387f8-... for the GET /pending-customer-actions assertion.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iter151 is green. /app/backend/tests/test_iteration151_launch_polish.py uses a module-level event loop (_LOOP) to avoid motor's per-loop binding when seeding wrap_data + tenants + orders + customers + job_tickets sync-with-async. Email dispatch is asserted by monkey-patching services.email_service.EmailService.send_email at the class level and inspecting the html_content kwarg. The AI-helper card lacks a top-level data-testid — automation currently identifies it by title text + 'Coming soon' chip; recommend asking main agent to add `data-testid='wrap-ai-helper-card-<group>'`. Tab buttons in WrapCommandHeader lack data-testid='wrap-tab-<key>' which causes selector collisions with top-nav labels like 'Production' (Production Board) and 'Install' — adding testids would harden future tab automation.",
+  "rca of the issue": "N/A — no bugs found in scope. Two minor selector-stability nits captured under critical_code_review_comments for a future hardening pass."
+}

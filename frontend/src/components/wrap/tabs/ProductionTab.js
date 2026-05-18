@@ -1,7 +1,6 @@
 // Phase 2D: Production tab — real persistence + checklist + task CRUD.
 import { useEffect, useState } from 'react';
 import WrapSectionCard from '../WrapSectionCard';
-import WrapAIHelperCard from '../WrapAIHelperCard';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
@@ -95,9 +94,8 @@ export default function ProductionTab({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4">
-      <div className="space-y-3">
-        <WrapSectionCard
+    <div className="space-y-3" data-testid="prod-tab">
+      <WrapSectionCard
           title="Production Status"
           icon={Factory}
           testId="prod-status"
@@ -223,19 +221,6 @@ export default function ProductionTab({
             </div>
           )}
         </WrapSectionCard>
-      </div>
-
-      <WrapAIHelperCard
-        title="Production AI Helper"
-        testId="prod-ai-helper"
-        actions={[
-          { label: 'Build Checklist' },
-          { label: 'Estimate Time' },
-          { label: 'Check Bottlenecks' },
-          { label: 'Compare Labor' },
-          { label: 'Suggest Next Step' },
-        ]}
-      />
     </div>
   );
 }

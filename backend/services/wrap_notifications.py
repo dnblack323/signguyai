@@ -106,7 +106,9 @@ def _render_html(
     item_name: str,
     timestamp: str,
     extra_rows: Optional[list] = None,
+    order_link: Optional[str] = None,
     portal_link: Optional[str] = None,
+    admin_messages_link: Optional[str] = None,
 ) -> str:
     """Build a simple inline-styled HTML email body."""
     rows_html = "".join(
@@ -123,12 +125,30 @@ def _render_html(
         ]
         + (extra_rows or [])
     )
-    link_html = (
-        f'<p style="margin:20px 0 0 0"><a href="{portal_link}" '
-        f'style="background:{color};color:#fff;padding:10px 16px;border-radius:6px;'
-        f'text-decoration:none;font-size:13px;font-weight:600">Open in Wrap Command Center</a></p>'
-        if portal_link else ""
-    )
+
+    def _btn(href, label, primary=False):
+        if not href:
+            return ""
+        bg = color if primary else "#ffffff"
+        fg = "#ffffff" if primary else color
+        border = color
+        return (
+            f'<a href="{href}" style="display:inline-block;background:{bg};color:{fg};'
+            f'border:1px solid {border};padding:9px 14px;border-radius:6px;'
+            f'text-decoration:none;font-size:12px;font-weight:600;margin-right:6px;margin-top:6px">'
+            f'{label}</a>'
+        )
+
+    buttons_html = ""
+    if order_link or portal_link or admin_messages_link:
+        buttons_html = (
+            '<div style="margin:20px 0 0 0">'
+            + _btn(order_link, "Open Order", primary=True)
+            + _btn(portal_link, "Open Wrap Command Center")
+            + _btn(admin_messages_link, "Respond in Admin Portal")
+            + '</div>'
+        )
+
     return f"""
 <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#f8fafc;padding:24px">
   <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden">
@@ -139,7 +159,7 @@ def _render_html(
       <h2 style="margin:0 0 4px 0;color:#111827;font-size:18px">{headline}</h2>
       <p style="margin:0 0 16px 0;color:#6b7280;font-size:13px">Triggered from the Customer Portal.</p>
       <table style="border-collapse:collapse;width:100%">{rows_html}</table>
-      {link_html}
+      {buttons_html}
     </div>
     <div style="padding:12px 20px;background:#f9fafb;color:#9ca3af;font-size:11px;border-top:1px solid #f1f5f9">
       You are receiving this email because customer-portal notifications are enabled for {shop_name}.
@@ -205,10 +225,24 @@ async def send_wrap_portal_action_notification(
         ts = datetime.now(timezone.utc).isoformat()
 
         portal_link = None
-        # Best-effort deep link if a public app URL is configured
-        app_url = (tenant.get("app_url") or tenant.get("portal_url") or "").rstrip("/")
-        if app_url and order.get("id"):
-            portal_link = f"{app_url}/orders/{order['id']}/items/{ticket_id}/wrap-command-center"
+        order_link = None
+        admin_messages_link = None
+        # Best-effort deep links if a frontend URL is configured. We accept any
+        # of: tenant.app_url, tenant.portal_url, env FRONTEND_URL, env
+        # REACT_APP_BACKEND_URL (single-domain SPA setup).
+        import os as _os
+        app_url = (
+            tenant.get("app_url")
+            or tenant.get("portal_url")
+            or _os.environ.get("FRONTEND_URL")
+            or _os.environ.get("REACT_APP_BACKEND_URL")
+            or ""
+        ).rstrip("/")
+        if app_url:
+            if order.get("id"):
+                order_link = f"{app_url}/orders/{order['id']}"
+                portal_link = f"{app_url}/orders/{order['id']}/items/{ticket_id}/wrap-command-center"
+            admin_messages_link = f"{app_url}/admin-portal"
 
         extra_rows = [(k, v) for k, v in extra.items()]
         subject = f"{meta['subject_label']} — Order #{order_number}"
@@ -224,7 +258,9 @@ async def send_wrap_portal_action_notification(
             item_name=item_name,
             timestamp=ts,
             extra_rows=extra_rows,
+            order_link=order_link,
             portal_link=portal_link,
+            admin_messages_link=admin_messages_link,
         )
 
         result = await EmailService().send_email(

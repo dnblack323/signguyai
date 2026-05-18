@@ -1,7 +1,6 @@
 // Phase 2E: Aftercare tab — real persistence + followup checklist.
 import { useEffect, useState } from 'react';
 import WrapSectionCard from '../WrapSectionCard';
-import WrapAIHelperCard from '../WrapAIHelperCard';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
@@ -59,9 +58,8 @@ export default function AftercareTab({
   const statusCls = STATUS_CLS[aftercare.aftercare_status || 'not_sent'] || STATUS_CLS.not_sent;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4">
-      <div className="space-y-3">
-        <WrapSectionCard
+    <div className="space-y-3" data-testid="aftercare-tab">
+      <WrapSectionCard
           title="Aftercare Status"
           icon={LifeBuoy}
           testId="aftercare-status"
@@ -137,19 +135,6 @@ export default function AftercareTab({
         <WrapSectionCard title="Aftercare PDF (placeholder)" icon={LifeBuoy} testId="aftercare-pdf">
           <p className="text-xs text-slate-500">Aftercare PDF generation will be connected in a later phase.</p>
         </WrapSectionCard>
-      </div>
-
-      <WrapAIHelperCard
-        title="Aftercare AI Helper"
-        testId="aftercare-ai-helper"
-        actions={[
-          { label: 'Draft Aftercare Email' },
-          { label: 'Schedule Follow-ups' },
-          { label: 'Summarize Care Tips' },
-          { label: 'Suggest Upsell' },
-          { label: 'Write Thank-You Message' },
-        ]}
-      />
     </div>
   );
 }

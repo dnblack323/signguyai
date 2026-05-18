@@ -350,7 +350,7 @@ export default function PricingTab({
       </div>
 
       <WrapAIHelperCard
-        title="Pricing AI Helper"
+        title="Quote Builder AI"
         testId="pricing-ai-helper"
         actions={[
           { label: 'Suggest Price' },
