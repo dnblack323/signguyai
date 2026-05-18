@@ -66,6 +66,39 @@ const AI_FALLBACK_OPTIONS = [
   { value: 'block', label: 'Block fallback' },
 ];
 
+/* ────────── HIDDEN FIELDS (Level 1 UI Cleanup) ────────── */
+// These fields remain in backend for compatibility but are hidden from main UI
+// They do not affect pricing calculations
+const HIDDEN_FIELDS_LEVEL_1 = [
+  // Unused labor rates (4)
+  'admin_hourly_rate',
+  'removal_hourly_rate',
+  'travel_hourly_rate',
+  'project_handling_hourly_rate',
+  // Minimum charges not enforced (8)
+  'minimum_design_charge',
+  'minimum_install_charge',
+  'minimum_removal_charge',
+  'minimum_vinyl_charge',
+  'minimum_print_charge',
+  'minimum_sign_charge',
+  'minimum_service_charge',
+  'minimum_wrap_charge',
+  // Setup fees not used (6)
+  'setup_fee_vinyl',
+  'setup_fee_print',
+  'setup_fee_apparel_screen',
+  'setup_fee_apparel_dtf',
+  'setup_fee_default',
+  'file_cleanup_fee_default',
+  // AI fallback settings (2)
+  'ai_fallback_behavior',
+  'ai_fallback_warnings_enabled',
+];
+
+// Helper to check if field should be hidden
+const isFieldHidden = (fieldName) => HIDDEN_FIELDS_LEVEL_1.includes(fieldName);
+
 const CUT_VINYL_USE_TYPES = [
   { value: 'indoor', label: 'Indoor' },
   { value: 'outdoor', label: 'Outdoor' },
