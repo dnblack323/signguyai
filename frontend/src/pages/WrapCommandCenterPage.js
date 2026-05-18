@@ -457,7 +457,7 @@ export default function WrapCommandCenterPage() {
                                       onDeleteIssue={handleDeleteInstallIssue}
                                       saveStatus={saveStatus}
                                     />;
-      case 'photos':       return <PhotosFilesTab />;
+      case 'photos':       return <PhotosFilesTab ticketId={itemId} />;
       case 'aftercare':    return <AftercareTab
                                       wrapData={wrapData}
                                       onSaveAftercare={handleSaveAftercare}

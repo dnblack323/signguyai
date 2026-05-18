@@ -482,6 +482,9 @@ class DamageMarker(BaseModel):
     severity: str = "Low"
     photo_placeholder: str = ""
     notes: str = ""
+    x_percent: Optional[float] = None
+    y_percent: Optional[float] = None
+    marker_label: Optional[str] = ""
     created_at: str = Field(default_factory=_now)
     created_by: str = ""
 
@@ -492,6 +495,9 @@ class DamageMarkerCreate(BaseModel):
     severity: str = "Low"
     photo_placeholder: str = ""
     notes: str = ""
+    x_percent: Optional[float] = None
+    y_percent: Optional[float] = None
+    marker_label: Optional[str] = ""
 
 
 class DamageMarkerUpdate(BaseModel):
@@ -500,6 +506,9 @@ class DamageMarkerUpdate(BaseModel):
     severity: Optional[str] = None
     photo_placeholder: Optional[str] = None
     notes: Optional[str] = None
+    x_percent: Optional[float] = None
+    y_percent: Optional[float] = None
+    marker_label: Optional[str] = None
 
 
 def _empty_inspection() -> dict:
@@ -510,6 +519,7 @@ def _empty_inspection() -> dict:
         "inspection_date": None,
         "customer_acknowledged": False,
         "customer_acknowledged_at": None,
+        "customer_visible": False,
         "inspection_notes": "",
         "damage_markers": [],
     }
@@ -521,6 +531,7 @@ class InspectionUpdate(BaseModel):
     inspected_by: Optional[str] = None
     inspection_date: Optional[str] = None
     customer_acknowledged: Optional[bool] = None
+    customer_visible: Optional[bool] = None
     inspection_notes: Optional[str] = None
 
 
@@ -822,6 +833,7 @@ def _serialize(doc: dict) -> dict:
     for k in INSTALL_CHECKLIST_KEYS:
         install_block["checklist"].setdefault(k, False)
     safe["inspection"].setdefault("damage_markers", [])
+    safe["inspection"].setdefault("customer_visible", False)
     for k in AFTERCARE_FOLLOWUP_KEYS:
         safe["aftercare"].setdefault(k, False)
         safe["aftercare"].setdefault(f"{k}_at", None)

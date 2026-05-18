@@ -600,7 +600,30 @@ async def get_portal_order_detail(
     job["conversations"] = conversations
 
     job["customer_status_timeline"] = build_customer_status_timeline(job, proofs, form_requests, job.get("invoice"))
-    
+
+    # ─────── Phase 2F: Vehicle Wrap Project section ───────
+    # If any line-item on this order is a wrap category, attach the
+    # customer-facing wrap summary so the portal can render its own
+    # "Vehicle Wrap Project" card. NO separate portal — this is part of the
+    # existing customer portal order detail response.
+    try:
+        from routes.wrap.core import _is_wrap_category  # local import to avoid circulars
+        from routes.wrap.portal import build_customer_facing_summary
+
+        wrap_items: List[Dict[str, Any]] = []
+        for ticket in items:
+            if _is_wrap_category(ticket.get("item_category")):
+                summary = await build_customer_facing_summary(
+                    tenant_id=customer.get("tenant_id"),
+                    ticket_id=ticket.get("id"),
+                    ticket=ticket,
+                )
+                wrap_items.append(summary)
+        if wrap_items:
+            job["wrap_items"] = wrap_items
+    except Exception as exc:  # noqa: BLE001 — wrap section is non-blocking
+        logger.warning(f"portal: failed to attach wrap_items for order {job_id}: {exc}")
+
     return job
 
 
@@ -1315,3 +1338,304 @@ async def download_portal_invoice_pdf(
     output.seek(0)
     return StreamingResponse(output, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename=invoice_{invoice['id'][:8].upper()}.pdf"})
 
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Phase 2F — Vehicle Wrap Project: customer actions
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# These endpoints let the customer-portal-authenticated customer act on a wrap
+# job ticket inside their own order: approve artwork, request revision,
+# acknowledge the contract, approve the quote, acknowledge the inspection
+# report, and acknowledge aftercare. They reuse the existing portal JWT auth
+# (`get_current_portal_customer`) and verify that the wrap ticket belongs to
+# an order owned by the authenticated customer. NO new portal, NO new tokens.
+
+
+async def _portal_load_wrap_ticket(customer: dict, job_id: str, ticket_id: str) -> dict:
+    """Look up a wrap-category job_ticket and verify it belongs to an order
+    owned by the customer. Raises 404/400 on failures.
+    """
+    from routes.wrap.core import _is_wrap_category  # local import
+
+    tenant_id = customer.get("tenant_id")
+    tenant_filter = {"tenant_id": tenant_id} if tenant_id else {}
+
+    # Verify the order exists and belongs to this customer
+    order = await db.orders.find_one(
+        {"id": job_id, "customer_id": customer["id"], **tenant_filter},
+        {"_id": 0, "id": 1},
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    ticket = await db.job_tickets.find_one(
+        {"id": ticket_id, "order_id": job_id, **tenant_filter},
+        {"_id": 0},
+    )
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Wrap item not found on this order")
+    if not _is_wrap_category(ticket.get("item_category")):
+        raise HTTPException(status_code=400, detail="This item is not a wrap")
+    return ticket
+
+
+def _customer_display_name(customer: dict) -> str:
+    name = (customer.get("name") or "").strip()
+    if name:
+        return name
+    bits = [customer.get("first_name"), customer.get("last_name")]
+    full = " ".join(b for b in bits if b).strip()
+    return full or customer.get("email") or "Customer"
+
+
+async def _portal_set_wrap_approval(tenant_id: str, ticket_id: str, key: str, value: bool):
+    """Mirror of wrap.core._set_approval but local to this module so we
+    don't fight a circular import at module load time.
+    """
+    from routes.wrap.core import APPROVAL_KEYS  # local import
+    if key not in APPROVAL_KEYS:
+        return
+    ts_key = f"{key}_at"
+    updates: Dict[str, Any] = {f"approvals.{key}": bool(value)}
+    now_iso = datetime.now(timezone.utc).isoformat()
+    if value:
+        # Idempotent: keep original timestamp if already true
+        doc = await db.wrap_data.find_one(
+            {"tenant_id": tenant_id, "ticket_id": ticket_id},
+            {"_id": 0, "approvals": 1},
+        ) or {}
+        existing_ts = ((doc.get("approvals") or {}).get(ts_key))
+        existing_val = bool(((doc.get("approvals") or {}).get(key)))
+        if not (existing_val and existing_ts):
+            updates[f"approvals.{ts_key}"] = now_iso
+    else:
+        updates[f"approvals.{ts_key}"] = None
+    updates["updated_at"] = now_iso
+    await db.wrap_data.update_one(
+        {"tenant_id": tenant_id, "ticket_id": ticket_id},
+        {"$set": updates},
+    )
+
+
+class _PortalRevisionPayload(BaseModel):
+    notes: Optional[str] = ""
+
+
+class _PortalAckPayload(BaseModel):
+    accepted_terms: Optional[bool] = True
+    signed_by: Optional[str] = None
+
+
+@router.post("/orders/{job_id}/wrap/{ticket_id}/approve-proof")
+async def portal_wrap_approve_proof(
+    job_id: str,
+    ticket_id: str,
+    customer: dict = Depends(get_current_portal_customer),
+):
+    ticket = await _portal_load_wrap_ticket(customer, job_id, ticket_id)
+    tenant_id = customer.get("tenant_id")
+    now_iso = datetime.now(timezone.utc).isoformat()
+    display_name = _customer_display_name(customer)
+    await db.wrap_data.update_one(
+        {"tenant_id": tenant_id, "ticket_id": ticket_id},
+        {"$set": {
+            "design.proof_status": "approved",
+            "design.proof_approved_at": now_iso,
+            "design.proof_approved_by": display_name,
+            "updated_at": now_iso,
+        }},
+    )
+    await _portal_set_wrap_approval(tenant_id, ticket_id, "proof_approved", True)
+    from routes.wrap.portal import build_customer_facing_summary
+    return await build_customer_facing_summary(tenant_id, ticket_id, ticket)
+
+
+@router.post("/orders/{job_id}/wrap/{ticket_id}/request-revision")
+async def portal_wrap_request_revision(
+    job_id: str,
+    ticket_id: str,
+    payload: _PortalRevisionPayload,
+    customer: dict = Depends(get_current_portal_customer),
+):
+    ticket = await _portal_load_wrap_ticket(customer, job_id, ticket_id)
+    tenant_id = customer.get("tenant_id")
+    now_iso = datetime.now(timezone.utc).isoformat()
+    display_name = _customer_display_name(customer)
+    revision_note = {
+        "id": str(uuid.uuid4()),
+        "notes": (payload.notes or "").strip(),
+        "requested_by": display_name,
+        "requested_at": now_iso,
+        "source": "customer_portal",
+    }
+    await db.wrap_data.update_one(
+        {"tenant_id": tenant_id, "ticket_id": ticket_id},
+        {
+            "$set": {
+                "design.proof_status": "revision_requested",
+                "design.last_revision_requested_at": now_iso,
+                "design.last_revision_requested_by": display_name,
+                "updated_at": now_iso,
+            },
+            "$push": {"design.revision_notes": revision_note},
+            "$inc": {"design.revision_count": 1},
+        },
+    )
+    # Make sure proof_approved is cleared (idempotent)
+    await _portal_set_wrap_approval(tenant_id, ticket_id, "proof_approved", False)
+    from routes.wrap.portal import build_customer_facing_summary
+    return await build_customer_facing_summary(tenant_id, ticket_id, ticket)
+
+
+@router.post("/orders/{job_id}/wrap/{ticket_id}/acknowledge-contract")
+async def portal_wrap_acknowledge_contract(
+    job_id: str,
+    ticket_id: str,
+    payload: _PortalAckPayload,
+    customer: dict = Depends(get_current_portal_customer),
+):
+    ticket = await _portal_load_wrap_ticket(customer, job_id, ticket_id)
+    tenant_id = customer.get("tenant_id")
+    now_iso = datetime.now(timezone.utc).isoformat()
+    display_name = (payload.signed_by or "").strip() or _customer_display_name(customer)
+    await db.wrap_data.update_one(
+        {"tenant_id": tenant_id, "ticket_id": ticket_id},
+        {"$set": {
+            "contract.contract_status": "signed",
+            "contract.signed_at": now_iso,
+            "contract.signed_by": display_name,
+            "contract.accepted_terms": bool(payload.accepted_terms),
+            "contract.signed_via": "customer_portal",
+            "updated_at": now_iso,
+        }},
+    )
+    await _portal_set_wrap_approval(tenant_id, ticket_id, "contract_signed", True)
+    from routes.wrap.portal import build_customer_facing_summary
+    return await build_customer_facing_summary(tenant_id, ticket_id, ticket)
+
+
+@router.post("/orders/{job_id}/wrap/{ticket_id}/approve-quote")
+async def portal_wrap_approve_quote(
+    job_id: str,
+    ticket_id: str,
+    customer: dict = Depends(get_current_portal_customer),
+):
+    ticket = await _portal_load_wrap_ticket(customer, job_id, ticket_id)
+    tenant_id = customer.get("tenant_id")
+    await _portal_set_wrap_approval(tenant_id, ticket_id, "quote_approved", True)
+    from routes.wrap.portal import build_customer_facing_summary
+    return await build_customer_facing_summary(tenant_id, ticket_id, ticket)
+
+
+@router.post("/orders/{job_id}/wrap/{ticket_id}/acknowledge-inspection")
+async def portal_wrap_acknowledge_inspection(
+    job_id: str,
+    ticket_id: str,
+    customer: dict = Depends(get_current_portal_customer),
+):
+    ticket = await _portal_load_wrap_ticket(customer, job_id, ticket_id)
+    tenant_id = customer.get("tenant_id")
+    # Inspection ack is only allowed when the report has been marked
+    # customer-visible by the shop. Otherwise reject — we don't want to
+    # silently expose data the shop hasn't released.
+    wrap_doc = await db.wrap_data.find_one(
+        {"tenant_id": tenant_id, "ticket_id": ticket_id},
+        {"_id": 0, "inspection": 1},
+    ) or {}
+    insp = wrap_doc.get("inspection") or {}
+    if not insp.get("customer_visible"):
+        raise HTTPException(
+            status_code=400,
+            detail="Inspection report has not been shared with you yet.",
+        )
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.wrap_data.update_one(
+        {"tenant_id": tenant_id, "ticket_id": ticket_id},
+        {"$set": {
+            "inspection.customer_acknowledged": True,
+            "inspection.customer_acknowledged_at": now_iso,
+            "inspection.inspection_status": "acknowledged",
+            "updated_at": now_iso,
+        }},
+    )
+    await _portal_set_wrap_approval(tenant_id, ticket_id, "inspection_acknowledged", True)
+    from routes.wrap.portal import build_customer_facing_summary
+    return await build_customer_facing_summary(tenant_id, ticket_id, ticket)
+
+
+@router.post("/orders/{job_id}/wrap/{ticket_id}/acknowledge-aftercare")
+async def portal_wrap_acknowledge_aftercare(
+    job_id: str,
+    ticket_id: str,
+    customer: dict = Depends(get_current_portal_customer),
+):
+    ticket = await _portal_load_wrap_ticket(customer, job_id, ticket_id)
+    tenant_id = customer.get("tenant_id")
+    now_iso = datetime.now(timezone.utc).isoformat()
+    # Idempotent: do not overwrite an existing customer_acknowledged_at
+    existing = await db.wrap_data.find_one(
+        {"tenant_id": tenant_id, "ticket_id": ticket_id},
+        {"_id": 0, "aftercare": 1},
+    ) or {}
+    existing_ts = ((existing.get("aftercare") or {}).get("customer_acknowledged_at"))
+    set_updates: Dict[str, Any] = {
+        "aftercare.customer_acknowledged": True,
+        "aftercare.customer_viewed": True,
+        "updated_at": now_iso,
+    }
+    if not existing_ts:
+        set_updates["aftercare.customer_acknowledged_at"] = now_iso
+    existing_viewed_ts = ((existing.get("aftercare") or {}).get("customer_viewed_at"))
+    if not existing_viewed_ts:
+        set_updates["aftercare.customer_viewed_at"] = now_iso
+    # Move aftercare status forward when it makes sense
+    cur_status = ((existing.get("aftercare") or {}).get("aftercare_status")) or ""
+    if cur_status in {"sent", "viewed", ""}:
+        set_updates["aftercare.aftercare_status"] = "acknowledged"
+    await db.wrap_data.update_one(
+        {"tenant_id": tenant_id, "ticket_id": ticket_id},
+        {"$set": set_updates},
+    )
+    from routes.wrap.portal import build_customer_facing_summary
+    return await build_customer_facing_summary(tenant_id, ticket_id, ticket)
+
+
+@router.get("/orders/{job_id}/wrap/{ticket_id}/files/{file_id}/content")
+async def portal_wrap_download_file(
+    job_id: str,
+    ticket_id: str,
+    file_id: str,
+    customer: dict = Depends(get_current_portal_customer),
+):
+    """Download a single customer_visible wrap file. Enforces order
+    ownership + customer_visible flag."""
+    import mimetypes as _mimetypes  # local to avoid touching top-level imports
+    from fastapi.responses import Response as FastAPIResponse
+
+    await _portal_load_wrap_ticket(customer, job_id, ticket_id)
+    file_doc = await db.wrap_files.find_one(
+        {
+            "id": file_id,
+            "ticket_id": ticket_id,
+            "tenant_id": customer.get("tenant_id"),
+            "customer_visible": True,
+        },
+        {"_id": 0},
+    )
+    if not file_doc:
+        raise HTTPException(status_code=404, detail="File not available")
+    media_type = (
+        file_doc.get("content_type")
+        or _mimetypes.guess_type(file_doc.get("filename", ""))[0]
+        or "application/octet-stream"
+    )
+    storage_path = file_doc.get("storage_path")
+    if not storage_path:
+        raise HTTPException(status_code=404, detail="File not available")
+    try:
+        content, content_type = get_object(storage_path)
+        media_type = content_type or media_type
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail="Failed to load file") from exc
+    return FastAPIResponse(content=content, media_type=media_type)

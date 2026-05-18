@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
 import { getPortalToken, getPortalCustomerName } from '../lib/authStorage';
+import PortalWrapProjectCard from '../components/portal/PortalWrapProjectCard';
 import { 
   Loader2, Briefcase, ChevronLeft, ChevronRight, FileText, 
   Clock, CheckCircle, Truck, Package, AlertCircle
@@ -171,34 +172,33 @@ export function PortalOrderDetail() {
   const [order, setOrder] = useState(null);
   const customerName = getPortalCustomerName() || 'Customer';
 
-  useEffect(() => {
-    const fetchOrder = async () => {
-      const token = getPortalToken();
-      if (!token) {
+  const fetchOrder = useCallback(async () => {
+    const token = getPortalToken();
+    if (!token) {
+      navigate('/customer-portal/login');
+      return;
+    }
+    try {
+      const response = await fetch(`${API_URL}/api/portal/orders/${orderId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setOrder(data);
+      } else if (response.status === 401) {
         navigate('/customer-portal/login');
-        return;
       }
-
-      try {
-        const response = await fetch(`${API_URL}/api/portal/orders/${orderId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setOrder(data);
-        } else if (response.status === 401) {
-          navigate('/customer-portal/login');
-        }
-      } catch (err) {
-        console.error('Error fetching order:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOrder();
+    } catch (err) {
+      console.error('Error fetching order:', err);
+    } finally {
+      setLoading(false);
+    }
   }, [navigate, orderId]);
+
+  useEffect(() => {
+    fetchOrder();
+  }, [fetchOrder]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
@@ -312,6 +312,16 @@ export function PortalOrderDetail() {
             </CardContent>
           </Card>
         )}
+
+        {/* Phase 2F: Vehicle Wrap Project section — only shown if order has wrap items */}
+        {order.wrap_items?.length > 0 && order.wrap_items.map((wrap) => (
+          <PortalWrapProjectCard
+            key={wrap.ticket_id}
+            orderId={orderId}
+            wrap={wrap}
+            onRefresh={fetchOrder}
+          />
+        ))}
 
         {/* Line Items */}
         {order.items?.length > 0 && (

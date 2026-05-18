@@ -1,12 +1,14 @@
-// Phase 2E: Inspection tab — real persistence + damage markers CRUD.
+// Phase 2E + 2F: Inspection tab — real persistence + damage markers CRUD
+// plus visual click-to-add damage diagram.
 import { useEffect, useState } from 'react';
 import WrapSectionCard from '../WrapSectionCard';
 import WrapAIHelperCard from '../WrapAIHelperCard';
+import WrapVehicleDiagram from '../WrapVehicleDiagram';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { Textarea } from '../../ui/textarea';
-import { ClipboardCheck, Plus, Pencil, Trash2, Check, X, AlertTriangle, Car } from 'lucide-react';
+import { ClipboardCheck, Plus, Pencil, Trash2, Check, X, AlertTriangle, Car, Eye } from 'lucide-react';
 
 const INSPECTION_STATUSES = ['not_started', 'in_progress', 'completed', 'acknowledged'];
 const DAMAGE_TYPES = [
@@ -28,8 +30,13 @@ const SEVERITY_CLS = {
 };
 
 function MarkerForm({ initial, onCancel, onSubmit, busy, testIdPrefix }) {
-  const [form, setForm] = useState(initial || { area: '', damage_type: 'Other Concern', severity: 'Low', photo_placeholder: '', notes: '' });
+  const [form, setForm] = useState(initial || {
+    area: '', damage_type: 'Other Concern', severity: 'Low',
+    photo_placeholder: '', notes: '', marker_label: '',
+    x_percent: null, y_percent: null,
+  });
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const hasPos = typeof form.x_percent === 'number' && typeof form.y_percent === 'number';
   return (
     <div className="p-3 bg-violet-50/50 rounded-md border border-violet-200 space-y-2" data-testid={`${testIdPrefix}-form`}>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
@@ -46,7 +53,20 @@ function MarkerForm({ initial, onCancel, onSubmit, busy, testIdPrefix }) {
             {SEVERITIES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
-        <div><Label className="text-xs">Photo Placeholder</Label><Input value={form.photo_placeholder} onChange={(e) => set('photo_placeholder', e.target.value)} data-testid={`${testIdPrefix}-photo`} /></div>
+        <div><Label className="text-xs">Marker Label</Label><Input value={form.marker_label || ''} onChange={(e) => set('marker_label', e.target.value)} placeholder="#1 / front left" data-testid={`${testIdPrefix}-label`} /></div>
+        <div className="md:col-span-2"><Label className="text-xs">Photo Placeholder</Label><Input value={form.photo_placeholder} onChange={(e) => set('photo_placeholder', e.target.value)} data-testid={`${testIdPrefix}-photo`} /></div>
+        <div className="md:col-span-2 flex items-end gap-2">
+          {hasPos ? (
+            <p className="text-[11px] text-violet-700" data-testid={`${testIdPrefix}-pos`}>
+              On diagram: {form.x_percent}% × {form.y_percent}%
+              <button type="button" className="ml-2 underline" onClick={() => { set('x_percent', null); set('y_percent', null); }}>
+                clear
+              </button>
+            </p>
+          ) : (
+            <p className="text-[11px] text-slate-500">No diagram position. (Optional — use the diagram above to pin.)</p>
+          )}
+        </div>
         <div className="md:col-span-4"><Label className="text-xs">Notes</Label><Textarea rows={2} value={form.notes} onChange={(e) => set('notes', e.target.value)} data-testid={`${testIdPrefix}-notes`} /></div>
       </div>
       <div className="flex items-center justify-end gap-2 pt-1">
@@ -70,11 +90,13 @@ export default function InspectionTab({
   const markers = inspection.damage_markers || [];
   const [form, setForm] = useState({
     inspection_status: 'not_started', vehicle_diagram_type: '', inspected_by: '',
-    inspection_date: '', inspection_notes: '',
+    inspection_date: '', inspection_notes: '', customer_visible: false,
   });
   const [dirty, setDirty] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [pendingPosition, setPendingPosition] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const [highlightedId, setHighlightedId] = useState(null);
   const busy = saveStatus === 'saving';
 
   useEffect(() => {
@@ -84,6 +106,7 @@ export default function InspectionTab({
       inspected_by: inspection.inspected_by || '',
       inspection_date: inspection.inspection_date || '',
       inspection_notes: inspection.inspection_notes || '',
+      customer_visible: !!inspection.customer_visible,
     });
     setDirty(false);
   }, [wrapData]);  // eslint-disable-line react-hooks/exhaustive-deps
@@ -97,9 +120,16 @@ export default function InspectionTab({
       inspected_by: form.inspected_by,
       inspection_date: form.inspection_date || null,
       inspection_notes: form.inspection_notes,
+      customer_visible: !!form.customer_visible,
     };
     const ok = await onSaveInspection?.(payload);
     if (ok) setDirty(false);
+  };
+
+  const openAddWithPosition = ({ x_percent, y_percent }) => {
+    setPendingPosition({ x_percent, y_percent });
+    setShowAdd(true);
+    setEditingId(null);
   };
 
   return (
@@ -133,7 +163,37 @@ export default function InspectionTab({
             <div><Label className="text-xs">Inspection Date</Label><Input type="date" value={form.inspection_date} onChange={(e) => set('inspection_date', e.target.value)} data-testid="insp-input-date" /></div>
             <div className="md:col-span-3"><Label className="text-xs">Inspection Notes</Label><Textarea rows={2} value={form.inspection_notes} onChange={(e) => set('inspection_notes', e.target.value)} data-testid="insp-input-notes" /></div>
           </div>
-          <p className="text-[11px] text-slate-500 mt-2">Visual drag-and-drop damage diagram will be added in a later phase.</p>
+
+          <div className="mt-3">
+            <WrapVehicleDiagram
+              diagramType={form.vehicle_diagram_type}
+              markers={markers}
+              selectedId={highlightedId}
+              onAdd={openAddWithPosition}
+              onSelect={(id) => {
+                setHighlightedId(id);
+                if (typeof window !== 'undefined') {
+                  const el = document.querySelector(`[data-testid="insp-marker-row-${id}"]`);
+                  if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+              }}
+              testId="insp-diagram-svg"
+            />
+          </div>
+
+          <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-100">
+            <input
+              type="checkbox"
+              id="insp-customer-visible"
+              checked={!!form.customer_visible}
+              onChange={(e) => set('customer_visible', e.target.checked)}
+              data-testid="insp-toggle-customer_visible"
+            />
+            <Label htmlFor="insp-customer-visible" className="text-sm">
+              Share inspection report with customer in Customer Portal
+            </Label>
+            <Eye className="h-3.5 w-3.5 text-slate-400" />
+          </div>
         </WrapSectionCard>
 
         <WrapSectionCard
@@ -142,7 +202,7 @@ export default function InspectionTab({
           testId="insp-damage"
           action={
             !showAdd && (
-              <Button size="sm" onClick={() => { setShowAdd(true); setEditingId(null); }} className="bg-violet-600 hover:bg-violet-700 text-white" data-testid="insp-add-marker-btn">
+              <Button size="sm" onClick={() => { setShowAdd(true); setEditingId(null); setPendingPosition(null); }} className="bg-violet-600 hover:bg-violet-700 text-white" data-testid="insp-add-marker-btn">
                 <Plus className="h-3.5 w-3.5 mr-1" /> Add Marker
               </Button>
             )
@@ -151,8 +211,17 @@ export default function InspectionTab({
           {showAdd && (
             <div className="mb-3">
               <MarkerForm
-                onCancel={() => setShowAdd(false)}
-                onSubmit={async (p) => { await onAddMarker?.(p); setShowAdd(false); }}
+                initial={pendingPosition ? {
+                  area: '', damage_type: 'Other Concern', severity: 'Low',
+                  photo_placeholder: '', notes: '', marker_label: '',
+                  x_percent: pendingPosition.x_percent, y_percent: pendingPosition.y_percent,
+                } : null}
+                onCancel={() => { setShowAdd(false); setPendingPosition(null); }}
+                onSubmit={async (p) => {
+                  await onAddMarker?.(p);
+                  setShowAdd(false);
+                  setPendingPosition(null);
+                }}
                 busy={busy}
                 testIdPrefix="insp-marker-add"
               />
@@ -162,7 +231,7 @@ export default function InspectionTab({
             <p className="text-sm text-slate-500 italic py-2" data-testid="insp-markers-empty">No damage markers logged.</p>
           ) : (
             <div className="space-y-2" data-testid="insp-markers-list">
-              {markers.map((m) => {
+              {markers.map((m, idx) => {
                 if (editingId === m.id) {
                   return (
                     <MarkerForm
@@ -175,19 +244,32 @@ export default function InspectionTab({
                     />
                   );
                 }
+                const hasPos = typeof m.x_percent === 'number' && typeof m.y_percent === 'number';
+                const isHighlighted = highlightedId === m.id;
                 return (
-                  <div key={m.id} className="flex flex-wrap items-center justify-between gap-3 p-2 border rounded-md bg-white" data-testid={`insp-marker-row-${m.id}`}>
+                  <div
+                    key={m.id}
+                    className={`flex flex-wrap items-center justify-between gap-3 p-2 border rounded-md transition-colors ${isHighlighted ? 'border-violet-400 bg-violet-50' : 'border-slate-200 bg-white'}`}
+                    data-testid={`insp-marker-row-${m.id}`}
+                    onClick={() => setHighlightedId(m.id)}
+                  >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
+                        {hasPos && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-violet-600 text-white">
+                            #{idx + 1}
+                          </span>
+                        )}
                         <p className="font-medium text-sm text-slate-800">{m.damage_type}</p>
                         {m.area && <span className="text-xs text-slate-500">@ {m.area}</span>}
+                        {m.marker_label && <span className="text-xs italic text-violet-600">{m.marker_label}</span>}
                         <span className={`text-[10px] uppercase px-1.5 py-0.5 rounded border ${SEVERITY_CLS[m.severity] || SEVERITY_CLS.Low}`}>{m.severity}</span>
                       </div>
                       {m.notes && <p className="text-xs text-slate-500">{m.notes}</p>}
                     </div>
                     <div className="flex items-center gap-1">
-                      <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => { setEditingId(m.id); setShowAdd(false); }} disabled={busy} data-testid={`insp-marker-edit-btn-${m.id}`}><Pencil className="h-3 w-3 mr-1" /> Edit</Button>
-                      <Button size="sm" variant="outline" className="text-xs h-7 text-rose-700 border-rose-200 hover:bg-rose-50" onClick={() => onDeleteMarker?.(m.id)} disabled={busy} data-testid={`insp-marker-delete-btn-${m.id}`}><Trash2 className="h-3 w-3 mr-1" /> Delete</Button>
+                      <Button size="sm" variant="outline" className="text-xs h-7" onClick={(e) => { e.stopPropagation(); setEditingId(m.id); setShowAdd(false); }} disabled={busy} data-testid={`insp-marker-edit-btn-${m.id}`}><Pencil className="h-3 w-3 mr-1" /> Edit</Button>
+                      <Button size="sm" variant="outline" className="text-xs h-7 text-rose-700 border-rose-200 hover:bg-rose-50" onClick={(e) => { e.stopPropagation(); onDeleteMarker?.(m.id); }} disabled={busy} data-testid={`insp-marker-delete-btn-${m.id}`}><Trash2 className="h-3 w-3 mr-1" /> Delete</Button>
                     </div>
                   </div>
                 );
@@ -210,7 +292,7 @@ export default function InspectionTab({
             {inspection.customer_acknowledged_at && <span className="text-[11px] text-emerald-700" data-testid="insp-ack-at">{new Date(inspection.customer_acknowledged_at).toLocaleString()}</span>}
           </div>
           <p className="text-[11px] text-slate-500 mt-2">
-            Mirrors into <span className="font-medium">approvals.inspection_acknowledged</span>.
+            Mirrors into <span className="font-medium">approvals.inspection_acknowledged</span>. The customer can also acknowledge from the Customer Portal once the report is marked customer-visible.
           </p>
         </WrapSectionCard>
       </div>
