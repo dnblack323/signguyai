@@ -1,7 +1,7 @@
 // Phase 2C: Modal that shows a generated "Updated Quote" email draft.
 // Pure presentation — editing subject/body and copy-to-clipboard live here.
 import { useEffect, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
@@ -39,6 +39,9 @@ export default function QuoteDraftModal({ open, onClose, draft }) {
       <DialogContent className="max-w-2xl" data-testid="quote-draft-modal">
         <DialogHeader>
           <DialogTitle>Draft Updated Quote Message</DialogTitle>
+          <DialogDescription>
+            Editable email draft built from this wrap's current pricing, vehicle, and customer info.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600" data-testid="quote-draft-meta">
