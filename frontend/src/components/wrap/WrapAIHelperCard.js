@@ -20,10 +20,16 @@ export default function WrapAIHelperCard({
     : 'from-violet-50 to-white border-violet-200';
   const titleTone = disabled ? 'text-slate-500' : 'text-violet-900';
   const iconTone = disabled ? 'text-slate-400' : 'text-violet-600';
+  // Derive a stable group slug from the title for automation testids.
+  const slug = (testId || title || 'wrap-ai')
+    .toString()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
   return (
     <Card
       className={`bg-gradient-to-b ${tone}`}
-      data-testid={testId || 'wrap-ai-helper'}
+      data-testid={`wrap-ai-helper-card-${slug}`}
     >
       <CardHeader className="pb-2">
         <CardTitle className={`text-sm font-semibold flex items-center gap-2 ${titleTone}`}>
