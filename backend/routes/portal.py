@@ -1469,18 +1469,38 @@ async def portal_wrap_request_revision(
         "requested_at": now_iso,
         "source": "customer_portal",
     }
+    # Pipeline update normalises legacy design.revision_notes (some old docs
+    # stored it as a string) into an array, then appends the revision note —
+    # all in a single round trip.
     await db.wrap_data.update_one(
         {"tenant_id": tenant_id, "ticket_id": ticket_id},
-        {
-            "$set": {
-                "design.proof_status": "revision_requested",
-                "design.last_revision_requested_at": now_iso,
-                "design.last_revision_requested_by": display_name,
-                "updated_at": now_iso,
+        [
+            {
+                "$set": {
+                    "design.revision_notes": {
+                        "$cond": [
+                            {"$isArray": "$design.revision_notes"},
+                            "$design.revision_notes",
+                            [],
+                        ]
+                    }
+                }
             },
-            "$push": {"design.revision_notes": revision_note},
-            "$inc": {"design.revision_count": 1},
-        },
+            {
+                "$set": {
+                    "design.proof_status": "revision_requested",
+                    "design.last_revision_requested_at": now_iso,
+                    "design.last_revision_requested_by": display_name,
+                    "design.revision_count": {
+                        "$add": [{"$ifNull": ["$design.revision_count", 0]}, 1]
+                    },
+                    "design.revision_notes": {
+                        "$concatArrays": ["$design.revision_notes", [revision_note]]
+                    },
+                    "updated_at": now_iso,
+                }
+            },
+        ],
     )
     # Make sure proof_approved is cleared (idempotent)
     await _portal_set_wrap_approval(tenant_id, ticket_id, "proof_approved", False)

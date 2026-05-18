@@ -1,0 +1,34 @@
+{
+  "summary": "Iteration 149 — RETEST of portal request-revision fix. ALL 34/34 backend tests in /app/backend/tests/test_iteration148_wrap_phase2f.py now PASS (7.46s). Previous critical bug (POST /api/portal/orders/{job_id}/wrap/{ticket_id}/request-revision returning 500 due to legacy string-typed design.revision_notes) is FIXED. The 2-stage aggregation-pipeline update in routes/portal.py correctly: (a) coerces design.revision_notes to an array via $cond+$isArray (legacy '' string normalized to []), then appends via $concatArrays; (b) increments design.revision_count via $add+$ifNull in the same pipeline. Direct Mongo inspection confirms after multiple invocations: design.revision_notes is now a list of 3 dict entries each with {id, notes, requested_by, requested_at, source='customer_portal'}; design.revision_count=3; design.proof_status='revision_requested'; design.last_revision_requested_at + last_revision_requested_by set; approvals.proof_approved=false. Endpoint returns 200 with the customer-facing summary (no internal field leakage — revision_count/revision_notes/last_revision_requested_* correctly stripped from response). Sanity GET /api/portal/orders/{order_id} returns wrap_items[] with all 14 safe keys (ticket_id, order_id, wrap_type, vehicle, design, contract, inspection, install, aftercare, pricing, approvals, pipeline_state, files, care_instructions) plus files_count/generated_at; no profit/margin/material_cost/labor_cost/internal_notes leak. No regressions introduced — refactor, diagram markers, inspection customer_visible, file CRUD (14 cats, 25MB cap, mime whitelist), 3 PDF generators, all 6 portal actions, cross-tenant 404, portal file download CV gating, negative public wrap-care 404 — all green.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration148_wrap_phase2f.py",
+    "/app/test_reports/pytest/iteration149_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Pipeline-update fix in routes/portal.py is robust against both legacy-string and array shapes via $cond+$isArray — no separate migration script required, but a one-time db.wrap_data.updateMany($type:'string' -> []) migration would still be a tidy housekeeping step.",
+    "Response from request-revision correctly returns the customer-facing summary (no internal field exposure of revision_count/revision_notes/last_revision_requested_* — only proof_status surfaces to the customer). Good security posture.",
+    "Mongo state verified end-to-end: design.revision_notes list grows correctly across multiple calls (3 entries after iter148 + iter149 runs); revision_count keeps in sync; proof_status flips to 'revision_requested'; approvals.proof_approved cleared. All side-effects from the spec land in one round trip.",
+    "routes/wrap/core.py is still ~2000 lines (carry-over from iter 147/148). Out-of-scope for this retest but still worth splitting in a future pass."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (34/34 passed in 7.46s; previously failing test_request_revision now green)",
+    "frontend": "N/A (frontend testing skipped per request)"
+  },
+  "test_credentials": "Admin: thesigntistslab@gmail.com / password123. Portal: taxtest_non@example.com / portal123 (customer 1eaeec1d-6fbb-48fa-aa96-ecc4298bdb8b).",
+  "seed_data_creation": "Fixture order_customer_swap (module-scoped) re-used from iter148 — temporarily swaps order 118b7377-...'s customer_id to portal customer 1eaeec1d-... and restores at teardown. Test side-effects accumulated on ticket aa0387f8-...: design.revision_notes now has 3 dict entries (1 from iter148 + 1 from iter149 pytest run + 1 from the sanity-check direct POST in this run); revision_count=3. inspection.customer_visible left =true. 1 marker added+deleted (clean). ~6 wrap_files uploaded+deleted in-test. The previously-existing 3 generated PDFs from iter148 remain. No new persistent orders/customers/tickets created.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 148 Phase 2F is now 100% green. The single bug (request-revision 500 on legacy revision_notes string) was resolved via a pipeline-update in routes/portal.py portal_wrap_request_revision: list[dict] pipeline argument to update_one performs both $cond/$isArray coercion to [] and $concatArrays append in one round trip, plus revision_count via $add+$ifNull. Full 34/34 suite green. No further action items. If main agent wants to add an explicit unit-test for the legacy-string-shape coercion (e.g. force design.revision_notes='' and assert post-call list shape), it would be a nice belt-and-braces addition but not strictly required — the integration test already exercises this path because the actual wrap_data doc started life with the legacy string shape pre-fix. Future scope: routes/wrap/core.py refactor (~2000 lines).",
+  "rca of the issue": "RCA confirmed FIXED in iter149: prior failure was a pymongo WriteError 'design.revision_notes must be an array but is of type string' on the simple $push. New implementation is a 2-stage pipeline update: stage 1 normalizes via $set: {design.revision_notes: {$cond:[{$isArray:'$design.revision_notes'}, '$design.revision_notes', []]}, design.revision_count: {$add:[{$ifNull:['$design.revision_count',0]},1]}, ...} stage 2 appends via $concatArrays. Verified by direct Mongo read after invocation: doc.design.revision_notes is list, len grows monotonically, design.revision_count increments, design.proof_status='revision_requested', design.last_revision_requested_at/by set, approvals.proof_approved=False — all side-effects from the spec land atomically. Endpoint returns 200 with safe customer-facing summary (no internal leakage). No regressions detected across the other 33 tests."
+}
