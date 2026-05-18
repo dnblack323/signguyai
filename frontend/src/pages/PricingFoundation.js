@@ -219,10 +219,10 @@ function ShopDefaultsTab({ settings, onChange, canEdit }) {
           <Row label="Production Rate" field="production_hourly_rate" suffix="/hr" hint="Shop floor production" />
           <Row label="Design Rate" field="design_hourly_rate" suffix="/hr" hint="Graphic design work" />
           <Row label="Install Rate" field="install_hourly_rate" suffix="/hr" hint="Field installation" />
-          <Row label="Removal Rate" field="removal_hourly_rate" suffix="/hr" hint="Removal labor" />
-          <Row label="Travel Rate" field="travel_hourly_rate" suffix="/hr" hint="Travel labor" />
-          <Row label="Admin Rate" field="admin_hourly_rate" suffix="/hr" hint="Admin / office labor" />
-          <Row label="Project Handling" field="project_handling_hourly_rate" suffix="/hr" hint="Project management" />
+          {!isFieldHidden('removal_hourly_rate') && <Row label="Removal Rate" field="removal_hourly_rate" suffix="/hr" hint="Removal labor" />}
+          {!isFieldHidden('travel_hourly_rate') && <Row label="Travel Rate" field="travel_hourly_rate" suffix="/hr" hint="Travel labor" />}
+          {!isFieldHidden('admin_hourly_rate') && <Row label="Admin Rate" field="admin_hourly_rate" suffix="/hr" hint="Admin / office labor" />}
+          {!isFieldHidden('project_handling_hourly_rate') && <Row label="Project Handling" field="project_handling_hourly_rate" suffix="/hr" hint="Project management" />}
         </CardContent>
       </Card>
       {/* Overhead / Waste / Markup */}
@@ -251,14 +251,14 @@ function ShopDefaultsTab({ settings, onChange, canEdit }) {
         <CardHeader className="pb-3"><CardTitle className="text-base text-gray-900">Minimum Charges</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Row label="Minimum Order" field="minimum_order" />
-          <Row label="Minimum Design" field="minimum_design_charge" />
-          <Row label="Minimum Install" field="minimum_install_charge" />
-          <Row label="Minimum Removal" field="minimum_removal_charge" />
-          <Row label="Min Vinyl" field="minimum_vinyl_charge" />
-          <Row label="Min Print" field="minimum_print_charge" />
-          <Row label="Min Sign" field="minimum_sign_charge" />
-          <Row label="Min Service" field="minimum_service_charge" />
-          <Row label="Min Wrap" field="minimum_wrap_charge" />
+          {!isFieldHidden('minimum_design_charge') && <Row label="Minimum Design" field="minimum_design_charge" />}
+          {!isFieldHidden('minimum_install_charge') && <Row label="Minimum Install" field="minimum_install_charge" />}
+          {!isFieldHidden('minimum_removal_charge') && <Row label="Minimum Removal" field="minimum_removal_charge" />}
+          {!isFieldHidden('minimum_vinyl_charge') && <Row label="Min Vinyl" field="minimum_vinyl_charge" />}
+          {!isFieldHidden('minimum_print_charge') && <Row label="Min Print" field="minimum_print_charge" />}
+          {!isFieldHidden('minimum_sign_charge') && <Row label="Min Sign" field="minimum_sign_charge" />}
+          {!isFieldHidden('minimum_service_charge') && <Row label="Min Service" field="minimum_service_charge" />}
+          {!isFieldHidden('minimum_wrap_charge') && <Row label="Min Wrap" field="minimum_wrap_charge" />}
         </CardContent>
       </Card>
       {/* Rush / Setup / Rounding / Deposit */}
@@ -267,12 +267,12 @@ function ShopDefaultsTab({ settings, onChange, canEdit }) {
         <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Row label="Rush Fee %" field="rush_fee_percentage" prefix="" suffix="%" hint="Added to total when rush" />
           <Row label="Rush Flat Fee" field="rush_fee_flat" />
-          <Row label="Default Setup Fee" field="setup_fee_default" />
-          <Row label="File Cleanup Fee" field="file_cleanup_fee_default" />
-          <Row label="Setup Fee — Vinyl" field="setup_fee_vinyl" />
-          <Row label="Setup Fee — Print" field="setup_fee_print" />
-          <Row label="Setup Fee — Screen" field="setup_fee_apparel_screen" />
-          <Row label="Setup Fee — DTF" field="setup_fee_apparel_dtf" />
+          {!isFieldHidden('setup_fee_default') && <Row label="Default Setup Fee" field="setup_fee_default" />}
+          {!isFieldHidden('file_cleanup_fee_default') && <Row label="File Cleanup Fee" field="file_cleanup_fee_default" />}
+          {!isFieldHidden('setup_fee_vinyl') && <Row label="Setup Fee — Vinyl" field="setup_fee_vinyl" />}
+          {!isFieldHidden('setup_fee_print') && <Row label="Setup Fee — Print" field="setup_fee_print" />}
+          {!isFieldHidden('setup_fee_apparel_screen') && <Row label="Setup Fee — Screen" field="setup_fee_apparel_screen" />}
+          {!isFieldHidden('setup_fee_apparel_dtf') && <Row label="Setup Fee — DTF" field="setup_fee_apparel_dtf" />}
           <Row label="Deposit %" field="deposit_percentage" prefix="" suffix="%" hint="Displayed on quotes" />
           <div className="space-y-1">
             <Label className="text-xs text-gray-500">Rounding Rule</Label>
@@ -342,22 +342,26 @@ function ShopDefaultsTab({ settings, onChange, canEdit }) {
           <Row label="Complexity Max" field="complexity_multiplier_max" prefix="" suffix="x" />
           <Row label="Install Complexity Base" field="install_complexity_multiplier_base" prefix="" suffix="x" />
           <Row label="Install Complexity Max" field="install_complexity_multiplier_max" prefix="" suffix="x" />
-          <div className="space-y-1 col-span-2">
-            <Label className="text-xs text-gray-500">AI Fallback Behavior</Label>
-            <Select value={settings.ai_fallback_behavior || 'warn'} onValueChange={(v) => up('ai_fallback_behavior', v)} disabled={!canEdit}>
-              <SelectTrigger className="h-8 text-sm" data-testid="shop-default-ai-fallback-behavior"><SelectValue /></SelectTrigger>
-              <SelectContent>{AI_FALLBACK_OPTIONS.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center gap-3 col-span-2">
-            <Switch
-              checked={settings.ai_fallback_warnings_enabled ?? true}
-              onCheckedChange={(v) => up('ai_fallback_warnings_enabled', v)}
-              disabled={!canEdit}
-              data-testid="shop-default-ai-fallback-warnings"
-            />
-            <Label className="text-sm">Show warnings when fallback rules are used</Label>
-          </div>
+          {!isFieldHidden('ai_fallback_behavior') && (
+            <div className="space-y-1 col-span-2">
+              <Label className="text-xs text-gray-500">AI Fallback Behavior</Label>
+              <Select value={settings.ai_fallback_behavior || 'warn'} onValueChange={(v) => up('ai_fallback_behavior', v)} disabled={!canEdit}>
+                <SelectTrigger className="h-8 text-sm" data-testid="shop-default-ai-fallback-behavior"><SelectValue /></SelectTrigger>
+                <SelectContent>{AI_FALLBACK_OPTIONS.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          )}
+          {!isFieldHidden('ai_fallback_warnings_enabled') && (
+            <div className="flex items-center gap-3 col-span-2">
+              <Switch
+                checked={settings.ai_fallback_warnings_enabled ?? true}
+                onCheckedChange={(v) => up('ai_fallback_warnings_enabled', v)}
+                disabled={!canEdit}
+                data-testid="shop-default-ai-fallback-warnings"
+              />
+              <Label className="text-sm">Show warnings when fallback rules are used</Label>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
