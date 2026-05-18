@@ -290,6 +290,10 @@ ANSWER_TO_FOUNDATION_MAP = {
         "target_path": ["category_defaults", "apparel", "default_decoration_cost"],
         "conversion_rule": "Direct copy (cost field)",
     },
+    "ap_tee_qty_12_two_side": {
+        "target_path": ["category_defaults", "apparel", "shop_pricing_table", "tee_two_side", "qty_12"],
+        "conversion_rule": "Direct copy (two-sided tee tier pricing)",
+    },
     "ap_hoodie_each": {
         "target_path": ["category_defaults", "apparel", "shop_pricing_table", "hoodie_one_side", "qty_24"],
         "conversion_rule": "Direct copy (hoodie tier pricing)",
@@ -476,23 +480,38 @@ def check_calculator_usage(path: List[str]) -> str:
     """
     Check if the calculator actually uses this field.
     
-    Returns 'used' | 'unused' | 'unknown'
+    Returns 'used' | 'stored_not_used' | 'benchmark_only' | 'unknown'
+    
+    Based on manual code review of:
+    - /app/backend/models/pricing.py (default values)
+    - /app/backend/routes/pricing.py (calculation logic)
+    - /app/backend/routes/job_tickets.py (order calculations)
     """
-    # Known used paths
-    KNOWN_USED = [
+    # Actively used in cost-plus calculations
+    ACTIVELY_USED = [
         ["design_hourly_rate"],
         ["production_hourly_rate"],
         ["install_hourly_rate"],
         ["target_profit_margin_percent"],
         ["minimum_order"],
+        ["deposit_percentage"],  # Used in deposit calculation
         ["category_defaults", "banners", "sell_rate_defaults", "base_rate"],
         ["category_defaults", "rigid_signs", "sell_rate_defaults", "base_rate"],
+        ["category_defaults", "rigid_signs", "sell_rate_defaults", "yard_sign_rate"],
         ["category_defaults", "cut_vinyl", "sell_rate_defaults", "base_rate"],
         ["category_defaults", "digital_print", "sell_rate_defaults", "base_rate"],
+        ["category_defaults", "digital_print", "sell_rate_defaults", "laminate_addon_per_sqft"],
         ["category_defaults", "vehicle_graphics", "sell_rate_defaults", "printed_wrap_per_sqft"],
+        ["category_defaults", "vehicle_graphics", "sell_rate_defaults", "color_change_per_sqft"],
+        ["category_defaults", "apparel", "default_blank_cost"],
+        ["category_defaults", "apparel", "default_decoration_cost"],
+        ["category_defaults", "services", "labor_rate_overrides", "design"],
+        ["category_defaults", "services", "labor_rate_overrides", "production"],
+        ["category_defaults", "services", "labor_rate_overrides", "install"],
+        ["category_defaults", "promotional", "default_markup_multiplier"],
     ]
     
-    # Known benchmark-only (not directly used in cost-plus math)
+    # Benchmark pricing (used for comparison, not in cost-plus math)
     BENCHMARK_ONLY = [
         ["category_defaults", "vehicle_graphics", "benchmarks", "package_door_lettering"],
         ["category_defaults", "vehicle_graphics", "benchmarks", "package_spot_graphics"],
@@ -501,9 +520,26 @@ def check_calculator_usage(path: List[str]) -> str:
         ["category_defaults", "apparel", "shop_pricing_table"],
     ]
     
-    # Check exact match
-    if path in KNOWN_USED:
+    # Stored but not currently used in calculations (floor/minimum values)
+    STORED_NOT_USED = [
+        ["category_defaults", "banners", "default_minimum_sell_price"],
+        ["category_defaults", "rigid_signs", "default_minimum_sell_price"],
+        ["category_defaults", "rigid_signs", "quantity_breaks", "qty_10_percent"],
+        ["category_defaults", "rigid_signs", "quantity_breaks", "qty_25_percent"],
+        ["category_defaults", "cut_vinyl", "default_minimum_sell_price"],
+        ["category_defaults", "services", "minimums", "design"],
+        ["category_defaults", "services", "minimums", "install"],
+        ["category_defaults", "promotional", "minimum_setup_fee"],
+        ["category_defaults", "promotional", "minimum_charge"],
+    ]
+    
+    # Check exact match for actively used
+    if path in ACTIVELY_USED:
         return "used"
+    
+    # Check exact match for stored but not used
+    if path in STORED_NOT_USED:
+        return "stored_not_used"
     
     # Check if path starts with benchmark path
     for benchmark_path in BENCHMARK_ONLY:
@@ -708,12 +744,23 @@ async def run_verification(tenant_id: str):
     
     used_count = len([r for r in mapping_results if r["calculator_uses"] == "used"])
     benchmark_count = len([r for r in mapping_results if r["calculator_uses"] == "benchmark_only"])
+    stored_not_used_count = len([r for r in mapping_results if r["calculator_uses"] == "stored_not_used"])
     unknown_count = len([r for r in mapping_results if r["calculator_uses"] == "unknown"])
     
-    print(f"Fields actively used in calculator:    {used_count}")
-    print(f"Benchmark-only (comparison pricing):   {benchmark_count}")
-    print(f"Unknown/unverified usage:              {unknown_count}")
+    print(f"Fields actively used in calculator:           {used_count}")
+    print(f"Benchmark-only (comparison pricing):          {benchmark_count}")
+    print(f"Stored but not currently used (minimums):     {stored_not_used_count}")
+    print(f"Unknown/unverified usage:                     {unknown_count}")
     print()
+    
+    # List stored but not used fields
+    if stored_not_used_count > 0:
+        print("📝 Stored but not currently used in calculations:")
+        for r in mapping_results:
+            if r["calculator_uses"] == "stored_not_used":
+                print(f"  • {r['question_text']} → {r['maps_to']}")
+        print("  (These are minimum/floor values that could be enforced in future)")
+        print()
     
     # Sample calculator before/after
     print("="*80)
@@ -840,6 +887,7 @@ async def run_verification(tenant_id: str):
             "calculator_usage": {
                 "used": used_count,
                 "benchmark_only": benchmark_count,
+                "stored_not_used": stored_not_used_count,
                 "unknown": unknown_count,
             },
         },

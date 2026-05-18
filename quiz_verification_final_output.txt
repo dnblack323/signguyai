@@ -1,0 +1,243 @@
+Usage: python quiz_mapping_verification.py <tenant_id>
+
+Attempting to find first tenant in database...
+✓ Found tenant: d9c5507b-879c-4bec-9736-1dc841334719
+
+
+================================================================================
+PRICING QUIZ MAPPING VERIFICATION TEST (DRY RUN)
+================================================================================
+
+Starting verification at: 2026-05-18T04:17:10.475924
+Tenant ID: d9c5507b-879c-4bec-9736-1dc841334719
+
+SAFETY: This is a READ-ONLY test. No pricing settings will be changed.
+
+Loading current Pricing Foundation settings...
+✓ Loaded Pricing Foundation (64 top-level keys)
+
+================================================================================
+STEP 1: GENERATING SAMPLE QUIZ ANSWERS
+================================================================================
+
+Generated 48 sample answers from 48 quiz questions:
+
+  [Shop Basics]
+    • Design hourly rate: $/hr82.65
+    • Production hourly rate: $/hr27.48
+    • Install hourly rate: $/hr96.45
+    • Target profit margin: %36.71
+    • Minimum order amount: $54.06
+    • Deposit required?: True
+    • Deposit %: %48.4
+
+  [Banners]
+    • 2ft × 4ft banner price: $63.58
+    • 3ft × 6ft banner price: $150.83
+    • 4ft × 8ft banner price: $223.58
+    • Hems/grommets included?: True
+
+  [Yard Signs / Coroplast]
+    • Price for 1 yard sign: $30.86
+    • Price for 10 yard signs: $16.86
+    • Price for 25 yard signs: $14.15
+    • Price for 50 yard signs: $11.6
+    • Stakes included?: False
+
+  [Rigid Signs]
+    • 4ft × 4ft coroplast: $185.59
+    • 4ft × 8ft coroplast: $367.34
+    • 4ft × 8ft ACM: $677.69
+    • 4ft × 8ft PVC: $542.59
+
+  [Cut Vinyl]
+    • 12in × 24in one-color: $22.17
+    • 24in × 36in one-color: $49.38
+    • 24in × 36in two-color: $91.7
+    • Minimum vinyl decal charge: $19.68
+
+  [Digital Print]
+    • 24in × 36in poster: $35.25
+    • 24in × 36in adhesive: $57.22
+    • 24in × 36in laminated adhesive: $89.59
+    • 4ft × 8ft printed panel: $351.94
+
+  [Vehicle Graphics]
+    • Basic pickup door lettering: $197.71
+    • Spot graphics on a van: $385.22
+    • Partial wrap on cargo van: $2051.51
+    • Full wrap on cargo van: $3528.18
+    • Printed wrap sell rate: $/sqft16.86
+    • Color-change wrap rate: $/sqft25.28
+
+  [Apparel]
+    • 12 × one-sided tees (each): $13.76
+    • 24 × one-sided tees (each): $10.57
+    • 12 × front-and-back tees: $20.12
+    • Average blank shirt cost: $4.84
+    • Average transfer cost: $2.13
+    • Hoodie price (per piece): $35.19
+
+  [Services]
+    • Design rate: $/hr92.35
+    • Production rate: $/hr25.76
+    • Install rate: $/hr98.09
+    • Minimum design charge: $44.17
+    • Minimum install charge: $127.93
+
+  [Promotional / Custom]
+    • Markup on outsourced items: %56.66
+    • Minimum setup fee: $21.96
+    • Minimum order amount: $83.46
+
+================================================================================
+STEP 2: RUNNING QUIZ-TO-PRICING MAPPING LOGIC
+================================================================================
+
+DETAILED QUESTION-BY-QUESTION MAPPING RESULTS:
+
+--------------------------------------------------------------------------------------------------------------------------------------------
+Question                            Answer       Maps To                                  Current    Simulated  Diff         Status              
+--------------------------------------------------------------------------------------------------------------------------------------------
+Design hourly rate                  82.65        design_hourly_rate                       85         82.65      -$2.35       Would Apply (Would  
+Production hourly rate              27.48        production_hourly_rate                   28         27.48      -$0.52       Would Apply (Would  
+Install hourly rate                 96.45        install_hourly_rate                      95         96.45      +$1.45       Would Apply (Would  
+Target profit margin                36.71        target_profit_margin_percent             40         36.71      -3.29%       Would Apply (Would  
+Minimum order amount                54.06        minimum_order                            50         54.06      +$4.06       Would Apply (Would  
+Deposit required?                   True         NOT MAPPED                               —          —          N/A          Not Mapped          
+Deposit %                           48.4         deposit_percentage                       50         48.4       -1.6%        Would Apply (Would  
+2ft × 4ft banner price              63.58        category_defaults → banners → sell_rate  —          7.77       N/A          Would Apply (No Cur 
+3ft × 6ft banner price              150.83       category_defaults → banners → sell_rate  —          7.77       N/A          Would Apply (No Cur 
+4ft × 8ft banner price              223.58       category_defaults → banners → sell_rate  —          7.77       N/A          Would Apply (No Cur 
+Hems/grommets included?             True         NOT MAPPED                               —          —          N/A          Not Mapped          
+Price for 1 yard sign               30.86        category_defaults → rigid_signs → defau  25.0       30.86      +$5.86       Would Apply (Would  
+Price for 10 yard signs             16.86        category_defaults → rigid_signs → quant  —          4.72       N/A          Would Apply (No Cur 
+Price for 25 yard signs             14.15        category_defaults → rigid_signs → sell_  —          4.72       N/A          Would Apply (No Cur 
+Price for 50 yard signs             11.6         category_defaults → rigid_signs → sell_  —          4.72       N/A          Would Apply (No Cur 
+Stakes included?                    False        NOT MAPPED                               —          —          N/A          Not Mapped          
+4ft × 4ft coroplast                 185.59       category_defaults → rigid_signs → sell_  —          15.3       N/A          Would Apply (No Cur 
+4ft × 8ft coroplast                 367.34       category_defaults → rigid_signs → sell_  —          15.3       N/A          Would Apply (No Cur 
+4ft × 8ft ACM                       677.69       category_defaults → rigid_signs → sell_  —          15.3       N/A          Would Apply (No Cur 
+4ft × 8ft PVC                       542.59       category_defaults → rigid_signs → sell_  —          15.3       N/A          Would Apply (No Cur 
+12in × 24in one-color               22.17        category_defaults → cut_vinyl → sell_ra  —          8.99       N/A          Would Apply (No Cur 
+24in × 36in one-color               49.38        category_defaults → cut_vinyl → sell_ra  —          8.99       N/A          Would Apply (No Cur 
+24in × 36in two-color               91.7         category_defaults → cut_vinyl → sell_ra  —          8.99       N/A          Would Apply (No Cur 
+Minimum vinyl decal charge          19.68        category_defaults → cut_vinyl → default  20.0       19.68      -$0.32       Would Apply (Would  
+24in × 36in poster                  35.25        category_defaults → digital_print → sel  —          8.8        N/A          Would Apply (No Cur 
+24in × 36in adhesive                57.22        category_defaults → digital_print → sel  —          8.8        N/A          Would Apply (No Cur 
+24in × 36in laminated adhesive      89.59        category_defaults → digital_print → sel  —          5.4        N/A          Would Apply (No Cur 
+4ft × 8ft printed panel             351.94       category_defaults → digital_print → sel  —          8.8        N/A          Would Apply (No Cur 
+Basic pickup door lettering         197.71       category_defaults → vehicle_graphics →   —          197.71     N/A          Would Apply (No Cur 
+Spot graphics on a van              385.22       category_defaults → vehicle_graphics →   —          385.22     N/A          Would Apply (No Cur 
+Partial wrap on cargo van           2051.51      category_defaults → vehicle_graphics →   —          2051.51    N/A          Would Apply (No Cur 
+Full wrap on cargo van              3528.18      category_defaults → vehicle_graphics →   —          3528.18    N/A          Would Apply (No Cur 
+Printed wrap sell rate              16.86        category_defaults → vehicle_graphics →   —          16.86      N/A          Would Apply (No Cur 
+Color-change wrap rate              25.28        category_defaults → vehicle_graphics →   —          25.28      N/A          Would Apply (No Cur 
+12 × one-sided tees (each)          13.76        category_defaults → apparel → shop_pric  —          13.76      N/A          Would Apply (No Cur 
+24 × one-sided tees (each)          10.57        category_defaults → apparel → shop_pric  —          10.57      N/A          Would Apply (No Cur 
+12 × front-and-back tees            20.12        category_defaults → apparel → shop_pric  —          20.12      N/A          Would Apply (No Cur 
+Average blank shirt cost            4.84         category_defaults → apparel → default_b  —          4.84       N/A          Would Apply (No Cur 
+Average transfer cost               2.13         category_defaults → apparel → default_d  —          2.13       N/A          Would Apply (No Cur 
+Hoodie price (per piece)            35.19        category_defaults → apparel → shop_pric  —          35.19      N/A          Would Apply (No Cur 
+Design rate                         92.35        category_defaults → services → labor_ra  —          92.35      N/A          Would Apply (No Cur 
+Production rate                     25.76        category_defaults → services → labor_ra  —          25.76      N/A          Would Apply (No Cur 
+Install rate                        98.09        category_defaults → services → labor_ra  —          98.09      N/A          Would Apply (No Cur 
+Minimum design charge               44.17        category_defaults → services → minimums  —          44.17      N/A          Would Apply (No Cur 
+Minimum install charge              127.93       category_defaults → services → minimums  —          127.93     N/A          Would Apply (No Cur 
+Markup on outsourced items          56.66        category_defaults → promotional → defau  —          1.57       N/A          Would Apply (No Cur 
+Minimum setup fee                   21.96        category_defaults → promotional → minim  —          21.96      N/A          Would Apply (No Cur 
+Minimum order amount                83.46        category_defaults → promotional → minim  —          83.46      N/A          Would Apply (No Cur 
+--------------------------------------------------------------------------------------------------------------------------------------------
+
+================================================================================
+STEP 3: MAPPING SUMMARY STATISTICS
+================================================================================
+
+Total quiz questions tested:        48
+Questions mapped successfully:      45
+Questions not mapped:               3
+Would apply (would change):         45
+Same as current value:              0
+Invalid/skipped answers:            0
+
+================================================================================
+STEP 4: CALCULATOR FIELD USAGE ANALYSIS
+================================================================================
+
+Fields actively used in calculator:           30
+Benchmark-only (comparison pricing):          8
+Stored but not currently used (minimums):     7
+Unknown/unverified usage:                     0
+
+📝 Stored but not currently used in calculations:
+  • Price for 1 yard sign → category_defaults → rigid_signs → default_minimum_sell_price
+  • Price for 10 yard signs → category_defaults → rigid_signs → quantity_breaks → qty_10_percent
+  • Minimum vinyl decal charge → category_defaults → cut_vinyl → default_minimum_sell_price
+  • Minimum design charge → category_defaults → services → minimums → design
+  • Minimum install charge → category_defaults → services → minimums → install
+  • Minimum setup fee → category_defaults → promotional → minimum_setup_fee
+  • Minimum order amount → category_defaults → promotional → minimum_charge
+  (These are minimum/floor values that could be enforced in future)
+
+================================================================================
+STEP 5: SAMPLE CALCULATOR BEFORE/AFTER COMPARISON
+================================================================================
+
+Example 1: 4ft × 8ft banner (32 sqft)
+  Current calculation:    32 sqft × $0.00/sqft = $0.00
+  Simulated calculation:  32 sqft × $7.77/sqft = $248.64
+  Difference:             $248.64
+
+Example 2: 4ft × 8ft coroplast sign (32 sqft)
+  Current calculation:    32 sqft × $0.00/sqft = $0.00
+  Simulated calculation:  32 sqft × $15.30/sqft = $489.60
+  Difference:             $489.60
+
+Example 3: 250 sqft vehicle wrap
+  Current calculation:    250 sqft × $0.00/sqft = $0.00
+  Simulated calculation:  250 sqft × $16.86/sqft = $4215.00
+  Difference:             $4215.00
+
+Example 4: 2 hours of design labor
+  Current calculation:    2 hrs × $85.00/hr = $170.00
+  Simulated calculation:  2 hrs × $82.65/hr = $165.30
+  Difference:             $-4.70
+
+Example 5: 3 hours of install labor
+  Current calculation:    3 hrs × $95.00/hr = $285.00
+  Simulated calculation:  3 hrs × $96.45/hr = $289.35
+  Difference:             $4.35
+
+================================================================================
+STEP 6: BROKEN OR UNUSED MAPPINGS
+================================================================================
+
+✓ No broken mappings detected.
+
+⚠️  UNMAPPED QUESTIONS (no Pricing Foundation target):
+  • Deposit required?
+  • Hems/grommets included?
+  • Stakes included?
+
+================================================================================
+STEP 7: RECOMMENDED FIXES & IMPROVEMENTS
+================================================================================
+
+1. Add mapping logic for 3 unmapped questions
+
+================================================================================
+SAFETY CONFIRMATION
+================================================================================
+
+✓ DRY RUN ONLY. No real pricing settings were changed.
+✓ Simulated 48 mappings without modifying database.
+✓ Current Pricing Foundation remains unchanged.
+
+================================================================================
+VERIFICATION COMPLETE
+================================================================================
+
+Completed at: 2026-05-18T04:17:10.536630
+
+📄 Full report saved to: /app/quiz_mapping_verification_report.json
+
