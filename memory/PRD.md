@@ -22,6 +22,10 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-05-18 — **Wrap Command Center — Tiny Hardening Pass**:
+  - **Item 1**: `_render_html` in `services/wrap_notifications.py` now `html.escape(..., quote=True)`s every href before rendering. Verified by injecting a `"><script>` payload — output safely contains `&quot;&gt;&lt;script&gt;`.
+  - **Item 2**: Already done — `WrapTabNavigation.js` line 18 already emits `data-testid={`wrap-tab-${t.id}`}` for every Wrap CC tab button. Previous iter151 "collision" was a top-level nav text-content matcher, not a missing testid.
+  - **Tested**: `pytest tests/test_iteration148_*.py tests/test_iteration150_*.py tests/test_iteration151_*.py` → **66/66 PASS (11.69s)**. No regressions.
 - 2026-05-18 — **Wrap Command Center — Launch Polish (Phase 2F follow-up #2)**:
   - **Email deep links** — `services/wrap_notifications._render_html` now renders 3 inline buttons in every shop notification: Open Order → `/orders/{order_id}`, Open Wrap Command Center → `/orders/{order_id}/items/{ticket_id}/wrap-command-center`, Respond in Admin Portal → `/admin-portal`. App URL resolves from `tenant.app_url > tenant.portal_url > FRONTEND_URL > REACT_APP_BACKEND_URL`. No app_url available → skips buttons cleanly.
   - **Wrap CC respond row** — new `wrap-header-respond-row` strip in `WrapCommandHeader` with three Link buttons: Open Order, Open Conversation (`/admin-portal`), Open Customer (`/customers`). Pure links to existing routes — NO template picker, NO message-type dropdown, NO new communication system.

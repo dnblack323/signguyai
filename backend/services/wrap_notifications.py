@@ -14,6 +14,7 @@ Design rules:
 - The caller is responsible for de-duplication; only invoke this helper when
   the wrap_data action actually transitions to a new state.
 """
+import html as _html
 from typing import Optional, Dict, Any
 from datetime import datetime, timezone
 
@@ -132,8 +133,9 @@ def _render_html(
         bg = color if primary else "#ffffff"
         fg = "#ffffff" if primary else color
         border = color
+        safe_href = _html.escape(str(href), quote=True)
         return (
-            f'<a href="{href}" style="display:inline-block;background:{bg};color:{fg};'
+            f'<a href="{safe_href}" style="display:inline-block;background:{bg};color:{fg};'
             f'border:1px solid {border};padding:9px 14px;border-radius:6px;'
             f'text-decoration:none;font-size:12px;font-weight:600;margin-right:6px;margin-top:6px">'
             f'{label}</a>'
