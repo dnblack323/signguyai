@@ -104,6 +104,7 @@ export default function PricingTab({
   header, wrapData,
   onSavePricing, onRecalculate, onApplyPrice,
   onAddMaterial, onUpdateMaterial, onDeleteMaterial,
+  onDraftQuoteMessage,
   saveStatus,
 }) {
   const coverage = wrapData?.coverage_summary || { total_billable_sqft: 0, total_raw_sqft: 0 };
@@ -182,6 +183,11 @@ export default function PricingTab({
               <Button size="sm" variant="outline" onClick={onRecalculate} disabled={busy} data-testid="pricing-recalc-btn"><Calculator className="h-3.5 w-3.5 mr-1" /> Recalculate</Button>
               <Button size="sm" onClick={handleSavePricing} disabled={busy} className="bg-violet-600 hover:bg-violet-700 text-white" data-testid="pricing-save-btn"><Save className="h-3.5 w-3.5 mr-1" /> Save Pricing</Button>
               <Button size="sm" variant="outline" onClick={onApplyPrice} disabled={busy} className="bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100" data-testid="pricing-apply-btn"><Send className="h-3.5 w-3.5 mr-1" /> Apply to Order</Button>
+              {snapshot && (
+                <Button size="sm" variant="outline" onClick={onDraftQuoteMessage} disabled={busy} className="bg-violet-50 border-violet-300 text-violet-800 hover:bg-violet-100" data-testid="pricing-draft-quote-btn">
+                  <Send className="h-3.5 w-3.5 mr-1" /> Draft Updated Quote
+                </Button>
+              )}
             </div>
           }
         >

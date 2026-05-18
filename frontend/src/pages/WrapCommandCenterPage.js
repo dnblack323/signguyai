@@ -28,6 +28,7 @@ import InstallTab from '../components/wrap/tabs/InstallTab';
 import PhotosFilesTab from '../components/wrap/tabs/PhotosFilesTab';
 import AftercareTab from '../components/wrap/tabs/AftercareTab';
 import AIAssistantTab from '../components/wrap/tabs/AIAssistantTab';
+import QuoteDraftModal from '../components/wrap/QuoteDraftModal';
 
 import { PLACEHOLDER_HEADER, isWrapCategory } from '../components/wrap/constants';
 import { getAuthToken } from '../lib/authStorage';
@@ -288,6 +289,86 @@ export default function WrapCommandCenterPage() {
     }
   }, [itemId, flashSaved]);
 
+  // ─── Phase 2C: Design / Contract / Approvals / Quote Draft ───
+  const doWrapPut = useCallback(async (path, body, successMsg) => {
+    setSaveStatus('saving');
+    try {
+      const res = await axios.put(`${API}/wrap/items/${itemId}${path}`, body, { headers: hdr() });
+      setWrapData(res.data || null);
+      flashSaved();
+      if (successMsg) toast.success(successMsg);
+      return true;
+    } catch (e) {
+      setSaveStatus('error');
+      const msg = e?.response?.data?.detail || e?.message || 'Failed';
+      setSaveError(msg);
+      toast.error('Save failed', { description: msg });
+      return false;
+    }
+  }, [itemId, flashSaved]);
+
+  const doWrapPost = useCallback(async (path, body, successMsg) => {
+    setSaveStatus('saving');
+    try {
+      const res = await axios.post(`${API}/wrap/items/${itemId}${path}`, body || {}, { headers: hdr() });
+      setWrapData(res.data || null);
+      flashSaved();
+      if (successMsg) toast.success(successMsg);
+      return res.data;
+    } catch (e) {
+      setSaveStatus('error');
+      const msg = e?.response?.data?.detail || e?.message || 'Failed';
+      setSaveError(msg);
+      toast.error('Action failed', { description: msg });
+      return null;
+    }
+  }, [itemId, flashSaved]);
+
+  const doWrapDelete = useCallback(async (path, successMsg) => {
+    setSaveStatus('saving');
+    try {
+      const res = await axios.delete(`${API}/wrap/items/${itemId}${path}`, { headers: hdr() });
+      setWrapData(res.data || null);
+      flashSaved();
+      if (successMsg) toast.success(successMsg);
+    } catch (e) {
+      setSaveStatus('error');
+      const msg = e?.response?.data?.detail || e?.message || 'Failed';
+      setSaveError(msg);
+      toast.error('Delete failed', { description: msg });
+    }
+  }, [itemId, flashSaved]);
+
+  const handleSaveDesign = useCallback((body) => doWrapPut('/design', body, 'Design saved'), [doWrapPut]);
+  const handleSendQuestionnaire = useCallback(() => doWrapPost('/design/send-questionnaire', {}, 'Design questionnaire marked as sent. Customer delivery will be connected in a later phase.'), [doWrapPost]);
+  const handleAddProof = useCallback((p) => doWrapPost('/design/proofs', p, 'Proof added'), [doWrapPost]);
+  const handleUpdateProof = useCallback((proofId, body) => doWrapPut(`/design/proofs/${proofId}`, body, 'Proof updated'), [doWrapPut]);
+  const handleDeleteProof = useCallback((proofId) => doWrapDelete(`/design/proofs/${proofId}`, 'Proof deleted'), [doWrapDelete]);
+
+  const handleSaveContract = useCallback((body) => doWrapPut('/contract', body, 'Contract saved'), [doWrapPut]);
+  const handleContractAction = useCallback((action, extra) => doWrapPost('/contract/action', { action, ...(extra || {}) }, `Contract: ${action.replace(/_/g, ' ')}`), [doWrapPost]);
+
+  const handleUpdateApprovals = useCallback((body) => doWrapPut('/approvals', body), [doWrapPut]);
+
+  const [quoteDraft, setQuoteDraft] = useState(null);
+  const [quoteOpen, setQuoteOpen] = useState(false);
+  const handleDraftQuoteMessage = useCallback(async () => {
+    setSaveStatus('saving');
+    try {
+      const res = await axios.post(`${API}/wrap/items/${itemId}/draft-updated-quote-message`, {}, { headers: hdr() });
+      if (res.data && res.data.subject) {
+        setQuoteDraft(res.data);
+        setQuoteOpen(true);
+      }
+      flashSaved();
+    } catch (e) {
+      setSaveStatus('error');
+      const msg = e?.response?.data?.detail || e?.message || 'Failed';
+      setSaveError(msg);
+      toast.error('Could not generate quote draft', { description: msg });
+    }
+  }, [itemId, flashSaved]);
+
   const renderTab = () => {
     switch (tab) {
       case 'overview':     return <OverviewTab header={header} />;
@@ -302,10 +383,26 @@ export default function WrapCommandCenterPage() {
                                       onAddMaterial={handleAddMaterial}
                                       onUpdateMaterial={handleUpdateMaterial}
                                       onDeleteMaterial={handleDeleteMaterial}
+                                      onDraftQuoteMessage={handleDraftQuoteMessage}
                                       saveStatus={saveStatus}
                                     />;
-      case 'design':       return <DesignTab />;
-      case 'contract':     return <ContractTab />;
+      case 'design':       return <DesignTab
+                                      wrapData={wrapData}
+                                      onSaveDesign={handleSaveDesign}
+                                      onSendQuestionnaire={handleSendQuestionnaire}
+                                      onAddProof={handleAddProof}
+                                      onUpdateProof={handleUpdateProof}
+                                      onDeleteProof={handleDeleteProof}
+                                      saveStatus={saveStatus}
+                                    />;
+      case 'contract':     return <ContractTab
+                                      wrapData={wrapData}
+                                      onSaveContract={handleSaveContract}
+                                      onContractAction={handleContractAction}
+                                      onUpdateApprovals={handleUpdateApprovals}
+                                      onDraftQuoteMessage={handleDraftQuoteMessage}
+                                      saveStatus={saveStatus}
+                                    />;
       case 'inspection':   return <InspectionTab />;
       case 'production':   return <ProductionTab />;
       case 'install':      return <InstallTab />;
@@ -328,7 +425,7 @@ export default function WrapCommandCenterPage() {
     <div className="min-h-screen bg-slate-50" data-testid="wrap-command-center-page">
       <WrapCommandHeader orderId={orderId} header={header} saveStatus={saveStatus} saveError={saveError} />
       <div className="px-4 sm:px-6 pt-3">
-        <WrapStatusBar currentStatus={header.status} testId="wrap-cc-status-bar" />
+        <WrapStatusBar currentStatus={header.status} pipelineState={wrapData?.pipeline_state} testId="wrap-cc-status-bar" />
       </div>
       <WrapTabNavigation activeTab={tab} onChange={setTab} />
       <div className="px-4 sm:px-6 py-4">
@@ -341,6 +438,7 @@ export default function WrapCommandCenterPage() {
           </div>
         </div>
       </div>
+      <QuoteDraftModal open={quoteOpen} onClose={() => setQuoteOpen(false)} draft={quoteDraft} />
     </div>
   );
 }
