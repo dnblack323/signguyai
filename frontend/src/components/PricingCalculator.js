@@ -65,8 +65,8 @@ const VINYL_TYPES = [
 
 // Print materials
 const PRINT_MATERIALS = [
-  { id: 'banner_13oz', name: '13oz Banner' },
-  { id: 'banner_18oz', name: '18oz Banner (Heavy)' },
+  { id: 'banner_13oz', name: '13 oz Banner' },
+  { id: 'banner_18oz', name: '18 oz Banner' },
   { id: 'vinyl_adhesive', name: 'Adhesive Vinyl' },
   { id: 'poster_paper', name: 'Poster Paper' },
   { id: 'canvas', name: 'Canvas' },
@@ -213,7 +213,7 @@ const COVERAGE_TYPES = [
 ];
 
 const WRAP_MATERIAL_DEFAULTS = [
-  { id: 'wrap_standard_calendared', name: 'Standard Calendared Vinyl' },
+  { id: 'wrap_standard_calendered', name: 'Standard Calendered Vinyl' },
   { id: 'wrap_premium_cast', name: 'Premium Cast Vinyl' },
   { id: 'wrap_cast_film', name: 'Wrap Cast Film' },
   { id: 'wrap_reflective', name: 'Reflective Vinyl' },
