@@ -10,7 +10,7 @@ import sys
 from datetime import datetime, timedelta
 
 # Configuration
-BASE_URL = "https://ticket-tracker-ai-1.preview.emergentagent.com/api"
+BASE_URL = "https://wrap-command-center.preview.emergentagent.com/api"
 LOGIN_EMAIL = "signguypa@gmail.com"
 LOGIN_PASSWORD = "Billnel323"
 
