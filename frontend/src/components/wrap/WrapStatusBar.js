@@ -17,9 +17,9 @@ const PIPELINE_KEY_MAP = {
   Design: null,
   'Proof Sent': 'proof_sent',
   Approved: 'proof_approved',
-  Production: null,
+  Production: 'production_complete',
   Inspection: null,
-  Install: null,
+  Install: 'install_complete',
   Aftercare: null,
   Complete: 'complete',
 };

@@ -350,6 +350,21 @@ export default function WrapCommandCenterPage() {
 
   const handleUpdateApprovals = useCallback((body) => doWrapPut('/approvals', body), [doWrapPut]);
 
+  // ─── Phase 2D: Production / Install ───
+  const handleSaveProduction = useCallback((body) => doWrapPut('/production', body, 'Production saved'), [doWrapPut]);
+  const handleToggleProductionChecklist = useCallback((key, value) => doWrapPut('/production', { [key]: value }), [doWrapPut]);
+  const handleLoadDefaultTasks = useCallback(() => doWrapPost('/production/tasks/load-defaults', {}, 'Default wrap tasks loaded'), [doWrapPost]);
+  const handleAddProductionTask = useCallback((p) => doWrapPost('/production/tasks', p, 'Task added'), [doWrapPost]);
+  const handleUpdateProductionTask = useCallback((id, p) => doWrapPut(`/production/tasks/${id}`, p), [doWrapPut]);
+  const handleDeleteProductionTask = useCallback((id) => doWrapDelete(`/production/tasks/${id}`, 'Task deleted'), [doWrapDelete]);
+
+  const handleSaveInstall = useCallback((body) => doWrapPut('/install', body, 'Install saved'), [doWrapPut]);
+  const handleInstallSignoffToggle = useCallback((v) => doWrapPut('/install', { customer_signoff: v }), [doWrapPut]);
+  const handleInstallChecklistToggle = useCallback((key, v) => doWrapPut('/install', { checklist: { [key]: v } }), [doWrapPut]);
+  const handleAddInstallIssue = useCallback((p) => doWrapPost('/install/issues', p, 'Issue logged'), [doWrapPost]);
+  const handleUpdateInstallIssue = useCallback((id, p) => doWrapPut(`/install/issues/${id}`, p), [doWrapPut]);
+  const handleDeleteInstallIssue = useCallback((id) => doWrapDelete(`/install/issues/${id}`, 'Issue deleted'), [doWrapDelete]);
+
   const [quoteDraft, setQuoteDraft] = useState(null);
   const [quoteOpen, setQuoteOpen] = useState(false);
   const handleDraftQuoteMessage = useCallback(async () => {
@@ -404,8 +419,26 @@ export default function WrapCommandCenterPage() {
                                       saveStatus={saveStatus}
                                     />;
       case 'inspection':   return <InspectionTab />;
-      case 'production':   return <ProductionTab />;
-      case 'install':      return <InstallTab />;
+      case 'production':   return <ProductionTab
+                                      wrapData={wrapData}
+                                      onSaveProduction={handleSaveProduction}
+                                      onToggleChecklist={handleToggleProductionChecklist}
+                                      onLoadDefaults={handleLoadDefaultTasks}
+                                      onAddTask={handleAddProductionTask}
+                                      onUpdateTask={handleUpdateProductionTask}
+                                      onDeleteTask={handleDeleteProductionTask}
+                                      saveStatus={saveStatus}
+                                    />;
+      case 'install':      return <InstallTab
+                                      wrapData={wrapData}
+                                      onSaveInstall={handleSaveInstall}
+                                      onSignoffToggle={handleInstallSignoffToggle}
+                                      onChecklistToggle={handleInstallChecklistToggle}
+                                      onAddIssue={handleAddInstallIssue}
+                                      onUpdateIssue={handleUpdateInstallIssue}
+                                      onDeleteIssue={handleDeleteInstallIssue}
+                                      saveStatus={saveStatus}
+                                    />;
       case 'photos':       return <PhotosFilesTab />;
       case 'aftercare':    return <AftercareTab />;
       case 'ai':           return <AIAssistantTab onJumpToTab={setTab} />;

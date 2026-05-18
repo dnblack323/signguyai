@@ -281,6 +281,185 @@ class ApprovalsUpdate(BaseModel):
     aftercare_sent: Optional[bool] = None
 
 
+# ────────── Phase 2D: Production / Install models ──────────
+PRODUCTION_CHECKLIST_KEYS = [
+    "files_ready", "materials_pulled", "printed", "laminated", "outgassed",
+    "trimmed", "panels_labeled", "install_kit_ready", "prep_complete", "ready_for_install",
+]
+
+PRODUCTION_STATUSES = {
+    "not_started", "files_ready", "printing", "printed", "laminated",
+    "trimming", "staged", "ready_for_install", "complete",
+}
+
+TASK_STATUSES = {"not_started", "in_progress", "blocked", "complete"}
+
+DEFAULT_WRAP_TASKS = [
+    "Review approved proof",
+    "Prepare print files",
+    "Check dimensions/panels",
+    "Print wrap panels",
+    "Laminate wrap panels",
+    "Outgas if required",
+    "Trim panels",
+    "Label panels",
+    "Pull install materials/tools",
+    "Stage for install",
+]
+
+
+class ProductionTask(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    task_name: str = ""
+    assigned_to: str = ""
+    status: str = "not_started"
+    estimated_minutes: Optional[int] = None
+    actual_minutes: Optional[int] = None
+    notes: str = ""
+    completed_at: Optional[str] = None
+
+
+class ProductionTaskCreate(BaseModel):
+    task_name: str = ""
+    assigned_to: str = ""
+    status: str = "not_started"
+    estimated_minutes: Optional[int] = None
+    notes: str = ""
+
+
+class ProductionTaskUpdate(BaseModel):
+    task_name: Optional[str] = None
+    assigned_to: Optional[str] = None
+    status: Optional[str] = None
+    estimated_minutes: Optional[int] = None
+    actual_minutes: Optional[int] = None
+    notes: Optional[str] = None
+
+
+def _empty_production() -> dict:
+    out = {
+        "production_status": "not_started",
+        "assigned_to": "",
+        "production_notes": "",
+        "tasks": [],
+    }
+    for k in PRODUCTION_CHECKLIST_KEYS:
+        out[k] = False
+        out[f"{k}_at"] = None
+    return out
+
+
+class ProductionUpdate(BaseModel):
+    production_status: Optional[str] = None
+    assigned_to: Optional[str] = None
+    production_notes: Optional[str] = None
+    # checklist booleans
+    files_ready: Optional[bool] = None
+    materials_pulled: Optional[bool] = None
+    printed: Optional[bool] = None
+    laminated: Optional[bool] = None
+    outgassed: Optional[bool] = None
+    trimmed: Optional[bool] = None
+    panels_labeled: Optional[bool] = None
+    install_kit_ready: Optional[bool] = None
+    prep_complete: Optional[bool] = None
+    ready_for_install: Optional[bool] = None
+
+
+# Install
+INSTALL_STATUSES = {
+    "not_scheduled", "scheduled", "vehicle_received", "in_progress",
+    "installed", "customer_picked_up", "complete",
+}
+
+INSTALL_CHECKLIST_KEYS = [
+    "vehicle_received", "vehicle_inspected", "surface_cleaned",
+    "old_graphics_removed", "panels_staged", "install_started",
+    "install_completed", "post_heated", "final_inspection_complete",
+    "customer_walkthrough_complete",
+]
+
+ISSUE_TYPES = {
+    "Misprint", "Wrong size panel", "Color issue", "Bad file",
+    "Installer mistake", "Vehicle issue", "Paint failure", "Adhesion issue",
+    "Weather issue", "Customer delay", "Material defect", "Other",
+}
+
+
+class InstallIssue(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    issue_type: str = "Other"
+    area: str = ""
+    description: str = ""
+    photo_placeholder: str = ""
+    resolved: bool = False
+    resolution_notes: str = ""
+    created_at: str = Field(default_factory=_now)
+    resolved_at: Optional[str] = None
+
+
+class InstallIssueCreate(BaseModel):
+    issue_type: str = "Other"
+    area: str = ""
+    description: str = ""
+    photo_placeholder: str = ""
+
+
+class InstallIssueUpdate(BaseModel):
+    issue_type: Optional[str] = None
+    area: Optional[str] = None
+    description: Optional[str] = None
+    photo_placeholder: Optional[str] = None
+    resolved: Optional[bool] = None
+    resolution_notes: Optional[str] = None
+
+
+def _empty_install_checklist() -> dict:
+    return {k: False for k in INSTALL_CHECKLIST_KEYS}
+
+
+def _empty_install() -> dict:
+    return {
+        "install_status": "not_scheduled",
+        "install_date": None,
+        "install_start_time": "",
+        "install_end_time": "",
+        "installer_name": "",
+        "helper_name": "",
+        "install_location": "",
+        "bay_needed": False,
+        "customer_dropoff_time": "",
+        "customer_pickup_time": "",
+        "hours_estimated": None,
+        "hours_actual": None,
+        "install_notes": "",
+        "completion_notes": "",
+        "customer_signoff": False,
+        "customer_signoff_at": None,
+        "issues": [],
+        "checklist": _empty_install_checklist(),
+    }
+
+
+class InstallUpdate(BaseModel):
+    install_status: Optional[str] = None
+    install_date: Optional[str] = None
+    install_start_time: Optional[str] = None
+    install_end_time: Optional[str] = None
+    installer_name: Optional[str] = None
+    helper_name: Optional[str] = None
+    install_location: Optional[str] = None
+    bay_needed: Optional[bool] = None
+    customer_dropoff_time: Optional[str] = None
+    customer_pickup_time: Optional[str] = None
+    hours_estimated: Optional[float] = None
+    hours_actual: Optional[float] = None
+    install_notes: Optional[str] = None
+    completion_notes: Optional[str] = None
+    customer_signoff: Optional[bool] = None
+    checklist: Optional[dict] = None  # partial map of keys to bool
+
+
 # ────────── helpers ──────────
 
 def _compute_area_sqft(width: Optional[float], height: Optional[float], unit: str, waste_percent: Optional[float]):
@@ -319,6 +498,8 @@ def _empty_doc(tenant_id: str, ticket_id: str, order_id: str) -> dict:
         "design": DesignBlock().model_dump(),
         "contract": ContractBlock().model_dump(),
         "approvals": _empty_approvals(),
+        "production": _empty_production(),
+        "install": _empty_install(),
         "created_at": _now(),
         "updated_at": _now(),
     }
@@ -467,6 +648,8 @@ def _pipeline_state(doc: dict) -> dict:
     approvals = doc.get("approvals") or {}
     contract = doc.get("contract") or {}
     design = doc.get("design") or {}
+    production = doc.get("production") or {}
+    install = doc.get("install") or {}
 
     out["measurements_complete"] = any(a.get("included") for a in areas)
     out["estimate_complete"] = bool(snapshot and snapshot.get("quoted_price"))
@@ -476,6 +659,10 @@ def _pipeline_state(doc: dict) -> dict:
     out["deposit_paid"] = bool(approvals.get("deposit_paid"))
     out["proof_sent"] = (design.get("proof_status") or "") in {"sent", "revision_requested"}
     out["proof_approved"] = (design.get("proof_status") or "") == "approved" or bool(approvals.get("proof_approved"))
+    out["production_complete"] = (production.get("production_status") or "") in {"complete", "ready_for_install"}
+    install_status = install.get("install_status") or ""
+    out["install_active"] = install_status in {"scheduled", "vehicle_received", "in_progress", "installed", "customer_picked_up"}
+    out["install_complete"] = install_status == "complete"
     out["complete"] = bool(approvals.get("final_signoff_completed"))
     return out
 
@@ -489,10 +676,21 @@ def _serialize(doc: dict) -> dict:
     safe.setdefault("design", DesignBlock().model_dump())
     safe.setdefault("contract", ContractBlock().model_dump())
     safe.setdefault("approvals", _empty_approvals())
-    # Backfill any missing approval keys on older docs
+    safe.setdefault("production", _empty_production())
+    safe.setdefault("install", _empty_install())
+    # Backfill any missing approval / production / install checklist keys on older docs
     for k in APPROVAL_KEYS:
         safe["approvals"].setdefault(k, False)
         safe["approvals"].setdefault(f"{k}_at", None)
+    for k in PRODUCTION_CHECKLIST_KEYS:
+        safe["production"].setdefault(k, False)
+        safe["production"].setdefault(f"{k}_at", None)
+    safe["production"].setdefault("tasks", [])
+    install_block = safe["install"]
+    install_block.setdefault("issues", [])
+    install_block.setdefault("checklist", {})
+    for k in INSTALL_CHECKLIST_KEYS:
+        install_block["checklist"].setdefault(k, False)
     safe["coverage_summary"] = _coverage_summary(safe.get("wrapped_areas") or [])
     safe["pipeline_state"] = _pipeline_state(safe)
     return safe
@@ -1142,4 +1340,250 @@ async def draft_updated_quote_message(
         "wrap_type": wrap_type,
         "customer_name": customer_name,
     }
+
+
+
+# ────────── Phase 2D: Production ──────────
+@router.put("/items/{ticket_id}/production")
+async def update_production(
+    ticket_id: str,
+    payload: ProductionUpdate,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    ticket = await _load_ticket_or_404(ticket_id, current_user.tenant_id)
+    await _get_or_create_doc(current_user.tenant_id, ticket)
+    updates = payload.model_dump(exclude_unset=True)
+    if updates.get("production_status") and updates["production_status"] not in PRODUCTION_STATUSES:
+        raise HTTPException(status_code=400, detail=f"Invalid production_status. Allowed: {sorted(PRODUCTION_STATUSES)}")
+
+    # Load current state for timestamp idempotency on checklist flips
+    doc = await _refresh_doc(current_user.tenant_id, ticket_id)
+    current_prod = (doc or {}).get("production") or {}
+    set_doc: dict = {"updated_at": _now()}
+    for k, v in updates.items():
+        if k in PRODUCTION_CHECKLIST_KEYS:
+            set_doc[f"production.{k}"] = bool(v)
+            ts_key = f"production.{k}_at"
+            if v:
+                existing_ts = current_prod.get(f"{k}_at")
+                if not existing_ts:
+                    set_doc[ts_key] = _now()
+            else:
+                set_doc[ts_key] = None
+        else:
+            set_doc[f"production.{k}"] = v
+    await db.wrap_data.update_one(
+        {"tenant_id": current_user.tenant_id, "ticket_id": ticket_id},
+        {"$set": set_doc},
+    )
+    return _serialize(await _refresh_doc(current_user.tenant_id, ticket_id))
+
+
+@router.post("/items/{ticket_id}/production/tasks")
+async def add_production_task(
+    ticket_id: str,
+    payload: ProductionTaskCreate,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    ticket = await _load_ticket_or_404(ticket_id, current_user.tenant_id)
+    await _get_or_create_doc(current_user.tenant_id, ticket)
+    if payload.status and payload.status not in TASK_STATUSES:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Allowed: {sorted(TASK_STATUSES)}")
+    task = ProductionTask(**payload.model_dump()).model_dump()
+    await db.wrap_data.update_one(
+        {"tenant_id": current_user.tenant_id, "ticket_id": ticket_id},
+        {"$push": {"production.tasks": task}, "$set": {"updated_at": _now()}},
+    )
+    return _serialize(await _refresh_doc(current_user.tenant_id, ticket_id))
+
+
+@router.post("/items/{ticket_id}/production/tasks/load-defaults")
+async def load_default_production_tasks(
+    ticket_id: str,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Append the 10 default wrap production tasks only when the task list is empty.
+    Safe to click multiple times — never duplicates."""
+    ticket = await _load_ticket_or_404(ticket_id, current_user.tenant_id)
+    await _get_or_create_doc(current_user.tenant_id, ticket)
+    doc = await _refresh_doc(current_user.tenant_id, ticket_id)
+    if (doc.get("production") or {}).get("tasks"):
+        # Idempotent — do not duplicate
+        return _serialize(doc)
+    tasks = [ProductionTask(task_name=name).model_dump() for name in DEFAULT_WRAP_TASKS]
+    await db.wrap_data.update_one(
+        {"tenant_id": current_user.tenant_id, "ticket_id": ticket_id},
+        {"$set": {"production.tasks": tasks, "updated_at": _now()}},
+    )
+    return _serialize(await _refresh_doc(current_user.tenant_id, ticket_id))
+
+
+@router.put("/items/{ticket_id}/production/tasks/{task_id}")
+async def update_production_task(
+    ticket_id: str,
+    task_id: str,
+    payload: ProductionTaskUpdate,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    ticket = await _load_ticket_or_404(ticket_id, current_user.tenant_id)
+    doc = await _refresh_doc(current_user.tenant_id, ticket_id)
+    if not doc:
+        await _get_or_create_doc(current_user.tenant_id, ticket)
+        doc = await _refresh_doc(current_user.tenant_id, ticket_id)
+    tasks = ((doc.get("production") or {}).get("tasks")) or []
+    updates = payload.model_dump(exclude_unset=True)
+    if updates.get("status") and updates["status"] not in TASK_STATUSES:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Allowed: {sorted(TASK_STATUSES)}")
+    found = False
+    for t in tasks:
+        if t.get("id") == task_id:
+            t.update(updates)
+            if updates.get("status") == "complete" and not t.get("completed_at"):
+                t["completed_at"] = _now()
+            elif updates.get("status") and updates["status"] != "complete":
+                t["completed_at"] = None
+            found = True
+            break
+    if not found:
+        raise HTTPException(status_code=404, detail="Task not found")
+    await db.wrap_data.update_one(
+        {"tenant_id": current_user.tenant_id, "ticket_id": ticket_id},
+        {"$set": {"production.tasks": tasks, "updated_at": _now()}},
+    )
+    return _serialize(await _refresh_doc(current_user.tenant_id, ticket_id))
+
+
+@router.delete("/items/{ticket_id}/production/tasks/{task_id}")
+async def delete_production_task(
+    ticket_id: str,
+    task_id: str,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    await _load_ticket_or_404(ticket_id, current_user.tenant_id)
+    await db.wrap_data.update_one(
+        {"tenant_id": current_user.tenant_id, "ticket_id": ticket_id},
+        {"$pull": {"production.tasks": {"id": task_id}}, "$set": {"updated_at": _now()}},
+    )
+    return _serialize(await _refresh_doc(current_user.tenant_id, ticket_id))
+
+
+# ────────── Phase 2D: Install ──────────
+@router.put("/items/{ticket_id}/install")
+async def update_install(
+    ticket_id: str,
+    payload: InstallUpdate,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    ticket = await _load_ticket_or_404(ticket_id, current_user.tenant_id)
+    await _get_or_create_doc(current_user.tenant_id, ticket)
+    updates = payload.model_dump(exclude_unset=True)
+    if updates.get("install_status") and updates["install_status"] not in INSTALL_STATUSES:
+        raise HTTPException(status_code=400, detail=f"Invalid install_status. Allowed: {sorted(INSTALL_STATUSES)}")
+    if "checklist" in updates and updates["checklist"] is not None:
+        bad = [k for k in updates["checklist"].keys() if k not in INSTALL_CHECKLIST_KEYS]
+        if bad:
+            raise HTTPException(status_code=400, detail=f"Unknown checklist keys: {bad}")
+
+    doc = await _refresh_doc(current_user.tenant_id, ticket_id)
+    current_install = (doc or {}).get("install") or {}
+    set_doc: dict = {"updated_at": _now()}
+    # customer_signoff timestamp idempotency
+    if "customer_signoff" in updates:
+        v = bool(updates["customer_signoff"])
+        set_doc["install.customer_signoff"] = v
+        if v and not current_install.get("customer_signoff_at"):
+            set_doc["install.customer_signoff_at"] = _now()
+        elif not v:
+            set_doc["install.customer_signoff_at"] = None
+        del updates["customer_signoff"]
+    # Checklist partial merge
+    if "checklist" in updates:
+        cl = current_install.get("checklist") or {}
+        for k, v in (updates["checklist"] or {}).items():
+            cl[k] = bool(v)
+        set_doc["install.checklist"] = cl
+        del updates["checklist"]
+    for k, v in updates.items():
+        set_doc[f"install.{k}"] = v
+
+    await db.wrap_data.update_one(
+        {"tenant_id": current_user.tenant_id, "ticket_id": ticket_id},
+        {"$set": set_doc},
+    )
+
+    # Mirror into approvals.final_signoff_completed when install completes
+    refreshed = await _refresh_doc(current_user.tenant_id, ticket_id)
+    install_block = (refreshed or {}).get("install") or {}
+    if install_block.get("customer_signoff") and install_block.get("install_status") == "complete":
+        await _set_approval(current_user.tenant_id, ticket_id, "final_signoff_completed", True)
+        refreshed = await _refresh_doc(current_user.tenant_id, ticket_id)
+    return _serialize(refreshed)
+
+
+@router.post("/items/{ticket_id}/install/issues")
+async def add_install_issue(
+    ticket_id: str,
+    payload: InstallIssueCreate,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    ticket = await _load_ticket_or_404(ticket_id, current_user.tenant_id)
+    await _get_or_create_doc(current_user.tenant_id, ticket)
+    if payload.issue_type and payload.issue_type not in ISSUE_TYPES:
+        raise HTTPException(status_code=400, detail=f"Invalid issue_type. Allowed: {sorted(ISSUE_TYPES)}")
+    issue = InstallIssue(**payload.model_dump()).model_dump()
+    await db.wrap_data.update_one(
+        {"tenant_id": current_user.tenant_id, "ticket_id": ticket_id},
+        {"$push": {"install.issues": issue}, "$set": {"updated_at": _now()}},
+    )
+    return _serialize(await _refresh_doc(current_user.tenant_id, ticket_id))
+
+
+@router.put("/items/{ticket_id}/install/issues/{issue_id}")
+async def update_install_issue(
+    ticket_id: str,
+    issue_id: str,
+    payload: InstallIssueUpdate,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    ticket = await _load_ticket_or_404(ticket_id, current_user.tenant_id)
+    doc = await _refresh_doc(current_user.tenant_id, ticket_id)
+    if not doc:
+        await _get_or_create_doc(current_user.tenant_id, ticket)
+        doc = await _refresh_doc(current_user.tenant_id, ticket_id)
+    issues = ((doc.get("install") or {}).get("issues")) or []
+    updates = payload.model_dump(exclude_unset=True)
+    if updates.get("issue_type") and updates["issue_type"] not in ISSUE_TYPES:
+        raise HTTPException(status_code=400, detail=f"Invalid issue_type. Allowed: {sorted(ISSUE_TYPES)}")
+    found = False
+    for i in issues:
+        if i.get("id") == issue_id:
+            i.update(updates)
+            if "resolved" in updates:
+                if updates["resolved"] and not i.get("resolved_at"):
+                    i["resolved_at"] = _now()
+                elif not updates["resolved"]:
+                    i["resolved_at"] = None
+            found = True
+            break
+    if not found:
+        raise HTTPException(status_code=404, detail="Issue not found")
+    await db.wrap_data.update_one(
+        {"tenant_id": current_user.tenant_id, "ticket_id": ticket_id},
+        {"$set": {"install.issues": issues, "updated_at": _now()}},
+    )
+    return _serialize(await _refresh_doc(current_user.tenant_id, ticket_id))
+
+
+@router.delete("/items/{ticket_id}/install/issues/{issue_id}")
+async def delete_install_issue(
+    ticket_id: str,
+    issue_id: str,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    await _load_ticket_or_404(ticket_id, current_user.tenant_id)
+    await db.wrap_data.update_one(
+        {"tenant_id": current_user.tenant_id, "ticket_id": ticket_id},
+        {"$pull": {"install.issues": {"id": issue_id}}, "$set": {"updated_at": _now()}},
+    )
+    return _serialize(await _refresh_doc(current_user.tenant_id, ticket_id))
 
