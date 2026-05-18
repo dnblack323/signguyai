@@ -18,10 +18,10 @@ const PIPELINE_KEY_MAP = {
   'Proof Sent': 'proof_sent',
   Approved: 'proof_approved',
   Production: 'production_complete',
-  Inspection: null,
+  Inspection: 'inspection_complete',
   Install: 'install_complete',
-  Aftercare: null,
-  Complete: 'complete',
+  Aftercare: 'aftercare_complete',
+  Complete: 'workflow_complete',
 };
 
 export default function WrapStatusBar({ currentStatus, pipelineState, testId }) {

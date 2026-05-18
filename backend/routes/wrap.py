@@ -460,6 +460,124 @@ class InstallUpdate(BaseModel):
     checklist: Optional[dict] = None  # partial map of keys to bool
 
 
+# ────────── Phase 2E: Inspection / Aftercare models ──────────
+INSPECTION_STATUSES = {"not_started", "in_progress", "completed", "acknowledged"}
+DAMAGE_TYPES = {
+    "Dent", "Scratch", "Rust", "Paint Chip", "Clear Coat Failure",
+    "Loose Trim", "Cracked Part", "Previous Wrap", "Adhesive Residue", "Other Concern",
+}
+SEVERITIES = {"Low", "Medium", "High", "Severe"}
+
+VEHICLE_DIAGRAM_TYPES = [
+    "Generic Van", "Generic Pickup", "Generic Box Truck", "Generic Trailer",
+    "Generic SUV", "Generic Sedan", "Generic Ambulance", "Generic Bus",
+    "Generic Race Car", "Custom / Other",
+]
+
+
+class DamageMarker(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    area: str = ""
+    damage_type: str = "Other Concern"
+    severity: str = "Low"
+    photo_placeholder: str = ""
+    notes: str = ""
+    created_at: str = Field(default_factory=_now)
+    created_by: str = ""
+
+
+class DamageMarkerCreate(BaseModel):
+    area: str = ""
+    damage_type: str = "Other Concern"
+    severity: str = "Low"
+    photo_placeholder: str = ""
+    notes: str = ""
+
+
+class DamageMarkerUpdate(BaseModel):
+    area: Optional[str] = None
+    damage_type: Optional[str] = None
+    severity: Optional[str] = None
+    photo_placeholder: Optional[str] = None
+    notes: Optional[str] = None
+
+
+def _empty_inspection() -> dict:
+    return {
+        "inspection_status": "not_started",
+        "vehicle_diagram_type": "",
+        "inspected_by": "",
+        "inspection_date": None,
+        "customer_acknowledged": False,
+        "customer_acknowledged_at": None,
+        "inspection_notes": "",
+        "damage_markers": [],
+    }
+
+
+class InspectionUpdate(BaseModel):
+    inspection_status: Optional[str] = None
+    vehicle_diagram_type: Optional[str] = None
+    inspected_by: Optional[str] = None
+    inspection_date: Optional[str] = None
+    customer_acknowledged: Optional[bool] = None
+    inspection_notes: Optional[str] = None
+
+
+AFTERCARE_STATUSES = {
+    "not_sent", "generated", "sent", "viewed",
+    "acknowledged", "followup_active", "complete",
+}
+
+AFTERCARE_FOLLOWUP_KEYS = ["followup_24h", "followup_7d", "followup_30d"]
+
+
+def _empty_aftercare() -> dict:
+    out = {
+        "aftercare_status": "not_sent",
+        "aftercare_template": "",
+        "aftercare_sent": False,
+        "aftercare_sent_at": None,
+        "sent_by": "",
+        "customer_viewed": False,
+        "customer_viewed_at": None,
+        "customer_acknowledged": False,
+        "customer_acknowledged_at": None,
+        "aftercare_notes": "",
+    }
+    for k in AFTERCARE_FOLLOWUP_KEYS:
+        out[k] = False
+        out[f"{k}_at"] = None
+    return out
+
+
+class AftercareUpdate(BaseModel):
+    aftercare_status: Optional[str] = None
+    aftercare_template: Optional[str] = None
+    sent_by: Optional[str] = None
+    aftercare_sent: Optional[bool] = None
+    customer_viewed: Optional[bool] = None
+    customer_acknowledged: Optional[bool] = None
+    followup_24h: Optional[bool] = None
+    followup_7d: Optional[bool] = None
+    followup_30d: Optional[bool] = None
+    aftercare_notes: Optional[str] = None
+
+
+# Phase 2E: Production Board stage mapping
+WRAP_PRODUCTION_TO_PB_STAGE = {
+    "not_started": "intake",
+    "files_ready": "intake",
+    "printing": "production",
+    "printed": "production",
+    "laminated": "finishing",
+    "trimming": "finishing",
+    "staged": "finishing",
+    "ready_for_install": "ready",
+    "complete": "ready",
+}
+
+
 # ────────── helpers ──────────
 
 def _compute_area_sqft(width: Optional[float], height: Optional[float], unit: str, waste_percent: Optional[float]):
@@ -500,6 +618,8 @@ def _empty_doc(tenant_id: str, ticket_id: str, order_id: str) -> dict:
         "approvals": _empty_approvals(),
         "production": _empty_production(),
         "install": _empty_install(),
+        "inspection": _empty_inspection(),
+        "aftercare": _empty_aftercare(),
         "created_at": _now(),
         "updated_at": _now(),
     }
@@ -650,6 +770,8 @@ def _pipeline_state(doc: dict) -> dict:
     design = doc.get("design") or {}
     production = doc.get("production") or {}
     install = doc.get("install") or {}
+    inspection = doc.get("inspection") or {}
+    aftercare = doc.get("aftercare") or {}
 
     out["measurements_complete"] = any(a.get("included") for a in areas)
     out["estimate_complete"] = bool(snapshot and snapshot.get("quoted_price"))
@@ -663,7 +785,14 @@ def _pipeline_state(doc: dict) -> dict:
     install_status = install.get("install_status") or ""
     out["install_active"] = install_status in {"scheduled", "vehicle_received", "in_progress", "installed", "customer_picked_up"}
     out["install_complete"] = install_status == "complete"
+    insp_status = inspection.get("inspection_status") or ""
+    out["inspection_active"] = insp_status in {"in_progress", "completed"}
+    out["inspection_complete"] = insp_status == "acknowledged" or bool(approvals.get("inspection_acknowledged"))
+    after_status = aftercare.get("aftercare_status") or ""
+    out["aftercare_active"] = after_status in {"generated", "sent", "viewed", "followup_active"}
+    out["aftercare_complete"] = bool(aftercare.get("aftercare_sent")) or bool(approvals.get("aftercare_sent"))
     out["complete"] = bool(approvals.get("final_signoff_completed"))
+    out["workflow_complete"] = out["install_complete"] and out["complete"] and out["aftercare_complete"]
     return out
 
 
@@ -678,7 +807,8 @@ def _serialize(doc: dict) -> dict:
     safe.setdefault("approvals", _empty_approvals())
     safe.setdefault("production", _empty_production())
     safe.setdefault("install", _empty_install())
-    # Backfill any missing approval / production / install checklist keys on older docs
+    safe.setdefault("inspection", _empty_inspection())
+    safe.setdefault("aftercare", _empty_aftercare())
     for k in APPROVAL_KEYS:
         safe["approvals"].setdefault(k, False)
         safe["approvals"].setdefault(f"{k}_at", None)
@@ -691,9 +821,58 @@ def _serialize(doc: dict) -> dict:
     install_block.setdefault("checklist", {})
     for k in INSTALL_CHECKLIST_KEYS:
         install_block["checklist"].setdefault(k, False)
+    safe["inspection"].setdefault("damage_markers", [])
+    for k in AFTERCARE_FOLLOWUP_KEYS:
+        safe["aftercare"].setdefault(k, False)
+        safe["aftercare"].setdefault(f"{k}_at", None)
     safe["coverage_summary"] = _coverage_summary(safe.get("wrapped_areas") or [])
     safe["pipeline_state"] = _pipeline_state(safe)
     return safe
+
+
+async def _sync_wrap_to_production_board(tenant_id: str, ticket_id: str, ticket: dict, production: dict):
+    """Phase 2E quick-win: mirror a single production_tasks doc per wrap ticket
+    so the existing Production Board can show wrap items on the right stage.
+
+    Idempotent: uses (tenant_id, job_ticket_id, source='wrap_command_center')
+    as the upsert key. Never duplicates and never touches non-wrap PB tasks.
+    """
+    status = (production or {}).get("production_status") or "not_started"
+    stage = WRAP_PRODUCTION_TO_PB_STAGE.get(status, "intake")
+    pb_status = "complete" if status == "complete" else (
+        "in_progress" if status in {"printing", "printed", "laminated", "trimming", "staged"}
+        else "not_started"
+    )
+    payload = {
+        "tenant_id": tenant_id,
+        "job_ticket_id": ticket_id,
+        "order_id": ticket.get("order_id", ""),
+        "source": "wrap_command_center",
+        "task_name": ticket.get("item_name") or "Wrap Item",
+        "department": "wrap",
+        "production_stage": stage,
+        "status": pb_status,
+        "assigned_to": (production or {}).get("assigned_to") or "",
+        "updated_at": _now(),
+    }
+    try:
+        existing = await db.production_tasks.find_one(
+            {"tenant_id": tenant_id, "job_ticket_id": ticket_id, "source": "wrap_command_center"},
+            {"_id": 0, "id": 1, "created_at": 1},
+        )
+        if existing:
+            await db.production_tasks.update_one(
+                {"tenant_id": tenant_id, "job_ticket_id": ticket_id, "source": "wrap_command_center"},
+                {"$set": payload},
+            )
+        else:
+            payload["id"] = str(uuid.uuid4())
+            payload["created_at"] = _now()
+            payload["stage_sequence"] = 0
+            await db.production_tasks.insert_one(payload.copy())
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Wrap→PB sync failed for ticket %s: %s", ticket_id, e)
+
 
 
 async def _sync_vehicle_to_ticket(tenant_id: str, ticket_id: str, vehicle: dict):
@@ -1376,7 +1555,12 @@ async def update_production(
         {"tenant_id": current_user.tenant_id, "ticket_id": ticket_id},
         {"$set": set_doc},
     )
-    return _serialize(await _refresh_doc(current_user.tenant_id, ticket_id))
+    # Phase 2E quick-win: mirror to existing Production Board
+    refreshed_for_pb = await _refresh_doc(current_user.tenant_id, ticket_id)
+    await _sync_wrap_to_production_board(
+        current_user.tenant_id, ticket_id, ticket, (refreshed_for_pb or {}).get("production") or {}
+    )
+    return _serialize(refreshed_for_pb)
 
 
 @router.post("/items/{ticket_id}/production/tasks")
@@ -1585,5 +1769,206 @@ async def delete_install_issue(
         {"tenant_id": current_user.tenant_id, "ticket_id": ticket_id},
         {"$pull": {"install.issues": {"id": issue_id}}, "$set": {"updated_at": _now()}},
     )
+    return _serialize(await _refresh_doc(current_user.tenant_id, ticket_id))
+
+
+
+# ────────── Phase 2E: Inspection ──────────
+@router.put("/items/{ticket_id}/inspection")
+async def update_inspection(
+    ticket_id: str,
+    payload: InspectionUpdate,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    ticket = await _load_ticket_or_404(ticket_id, current_user.tenant_id)
+    await _get_or_create_doc(current_user.tenant_id, ticket)
+    updates = payload.model_dump(exclude_unset=True)
+    if updates.get("inspection_status") and updates["inspection_status"] not in INSPECTION_STATUSES:
+        raise HTTPException(status_code=400, detail=f"Invalid inspection_status. Allowed: {sorted(INSPECTION_STATUSES)}")
+
+    doc = await _refresh_doc(current_user.tenant_id, ticket_id)
+    current = (doc or {}).get("inspection") or {}
+    set_doc: dict = {"updated_at": _now()}
+    customer_ack_change = None  # True/False/None
+    if "customer_acknowledged" in updates:
+        v = bool(updates["customer_acknowledged"])
+        set_doc["inspection.customer_acknowledged"] = v
+        if v:
+            if not current.get("customer_acknowledged_at"):
+                set_doc["inspection.customer_acknowledged_at"] = _now()
+            set_doc["inspection.inspection_status"] = "acknowledged"
+        else:
+            set_doc["inspection.customer_acknowledged_at"] = None
+        customer_ack_change = v
+        del updates["customer_acknowledged"]
+    for k, v in updates.items():
+        set_doc[f"inspection.{k}"] = v
+    await db.wrap_data.update_one(
+        {"tenant_id": current_user.tenant_id, "ticket_id": ticket_id},
+        {"$set": set_doc},
+    )
+    # Mirror approvals.inspection_acknowledged
+    if customer_ack_change is True:
+        await _set_approval(current_user.tenant_id, ticket_id, "inspection_acknowledged", True)
+    elif customer_ack_change is False:
+        await _set_approval(current_user.tenant_id, ticket_id, "inspection_acknowledged", False)
+    return _serialize(await _refresh_doc(current_user.tenant_id, ticket_id))
+
+
+@router.post("/items/{ticket_id}/inspection/damage-markers")
+async def add_damage_marker(
+    ticket_id: str,
+    payload: DamageMarkerCreate,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    ticket = await _load_ticket_or_404(ticket_id, current_user.tenant_id)
+    await _get_or_create_doc(current_user.tenant_id, ticket)
+    if payload.damage_type and payload.damage_type not in DAMAGE_TYPES:
+        raise HTTPException(status_code=400, detail=f"Invalid damage_type. Allowed: {sorted(DAMAGE_TYPES)}")
+    if payload.severity and payload.severity not in SEVERITIES:
+        raise HTTPException(status_code=400, detail=f"Invalid severity. Allowed: {sorted(SEVERITIES)}")
+    marker = DamageMarker(
+        **payload.model_dump(),
+        created_by=current_user.email if hasattr(current_user, "email") else "",
+    ).model_dump()
+    await db.wrap_data.update_one(
+        {"tenant_id": current_user.tenant_id, "ticket_id": ticket_id},
+        {"$push": {"inspection.damage_markers": marker}, "$set": {"updated_at": _now()}},
+    )
+    return _serialize(await _refresh_doc(current_user.tenant_id, ticket_id))
+
+
+@router.put("/items/{ticket_id}/inspection/damage-markers/{marker_id}")
+async def update_damage_marker(
+    ticket_id: str,
+    marker_id: str,
+    payload: DamageMarkerUpdate,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    ticket = await _load_ticket_or_404(ticket_id, current_user.tenant_id)
+    doc = await _refresh_doc(current_user.tenant_id, ticket_id)
+    if not doc:
+        await _get_or_create_doc(current_user.tenant_id, ticket)
+        doc = await _refresh_doc(current_user.tenant_id, ticket_id)
+    markers = ((doc.get("inspection") or {}).get("damage_markers")) or []
+    updates = payload.model_dump(exclude_unset=True)
+    if updates.get("damage_type") and updates["damage_type"] not in DAMAGE_TYPES:
+        raise HTTPException(status_code=400, detail=f"Invalid damage_type. Allowed: {sorted(DAMAGE_TYPES)}")
+    if updates.get("severity") and updates["severity"] not in SEVERITIES:
+        raise HTTPException(status_code=400, detail=f"Invalid severity. Allowed: {sorted(SEVERITIES)}")
+    found = False
+    for m in markers:
+        if m.get("id") == marker_id:
+            m.update(updates)
+            found = True
+            break
+    if not found:
+        raise HTTPException(status_code=404, detail="Damage marker not found")
+    await db.wrap_data.update_one(
+        {"tenant_id": current_user.tenant_id, "ticket_id": ticket_id},
+        {"$set": {"inspection.damage_markers": markers, "updated_at": _now()}},
+    )
+    return _serialize(await _refresh_doc(current_user.tenant_id, ticket_id))
+
+
+@router.delete("/items/{ticket_id}/inspection/damage-markers/{marker_id}")
+async def delete_damage_marker(
+    ticket_id: str,
+    marker_id: str,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    await _load_ticket_or_404(ticket_id, current_user.tenant_id)
+    await db.wrap_data.update_one(
+        {"tenant_id": current_user.tenant_id, "ticket_id": ticket_id},
+        {"$pull": {"inspection.damage_markers": {"id": marker_id}}, "$set": {"updated_at": _now()}},
+    )
+    return _serialize(await _refresh_doc(current_user.tenant_id, ticket_id))
+
+
+# ────────── Phase 2E: Aftercare ──────────
+@router.put("/items/{ticket_id}/aftercare")
+async def update_aftercare(
+    ticket_id: str,
+    payload: AftercareUpdate,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    ticket = await _load_ticket_or_404(ticket_id, current_user.tenant_id)
+    await _get_or_create_doc(current_user.tenant_id, ticket)
+    updates = payload.model_dump(exclude_unset=True)
+    if updates.get("aftercare_status") and updates["aftercare_status"] not in AFTERCARE_STATUSES:
+        raise HTTPException(status_code=400, detail=f"Invalid aftercare_status. Allowed: {sorted(AFTERCARE_STATUSES)}")
+
+    doc = await _refresh_doc(current_user.tenant_id, ticket_id)
+    current = (doc or {}).get("aftercare") or {}
+    set_doc: dict = {"updated_at": _now()}
+    aftercare_sent_change = None
+
+    # aftercare_sent — special handling
+    if "aftercare_sent" in updates:
+        v = bool(updates["aftercare_sent"])
+        set_doc["aftercare.aftercare_sent"] = v
+        if v:
+            if not current.get("aftercare_sent_at"):
+                set_doc["aftercare.aftercare_sent_at"] = _now()
+            if (current.get("aftercare_status") or "not_sent") in {"not_sent", "generated"}:
+                set_doc["aftercare.aftercare_status"] = "sent"
+        else:
+            set_doc["aftercare.aftercare_sent_at"] = None
+        aftercare_sent_change = v
+        del updates["aftercare_sent"]
+
+    # customer_viewed
+    if "customer_viewed" in updates:
+        v = bool(updates["customer_viewed"])
+        set_doc["aftercare.customer_viewed"] = v
+        if v:
+            if not current.get("customer_viewed_at"):
+                set_doc["aftercare.customer_viewed_at"] = _now()
+            if (current.get("aftercare_status") or "") in {"sent", "not_sent", "generated"}:
+                set_doc["aftercare.aftercare_status"] = "viewed"
+        else:
+            set_doc["aftercare.customer_viewed_at"] = None
+        del updates["customer_viewed"]
+
+    # customer_acknowledged
+    if "customer_acknowledged" in updates:
+        v = bool(updates["customer_acknowledged"])
+        set_doc["aftercare.customer_acknowledged"] = v
+        if v:
+            if not current.get("customer_acknowledged_at"):
+                set_doc["aftercare.customer_acknowledged_at"] = _now()
+            if (current.get("aftercare_status") or "") not in {"complete", "followup_active"}:
+                set_doc["aftercare.aftercare_status"] = "acknowledged"
+        else:
+            set_doc["aftercare.customer_acknowledged_at"] = None
+        del updates["customer_acknowledged"]
+
+    # follow-up toggles
+    for fk in AFTERCARE_FOLLOWUP_KEYS:
+        if fk in updates:
+            v = bool(updates[fk])
+            set_doc[f"aftercare.{fk}"] = v
+            if v:
+                if not current.get(f"{fk}_at"):
+                    set_doc[f"aftercare.{fk}_at"] = _now()
+            else:
+                set_doc[f"aftercare.{fk}_at"] = None
+            del updates[fk]
+
+    # remaining plain fields
+    for k, v in updates.items():
+        set_doc[f"aftercare.{k}"] = v
+
+    await db.wrap_data.update_one(
+        {"tenant_id": current_user.tenant_id, "ticket_id": ticket_id},
+        {"$set": set_doc},
+    )
+
+    # Mirror approvals.aftercare_sent
+    if aftercare_sent_change is True:
+        await _set_approval(current_user.tenant_id, ticket_id, "aftercare_sent", True)
+    elif aftercare_sent_change is False:
+        await _set_approval(current_user.tenant_id, ticket_id, "aftercare_sent", False)
+
     return _serialize(await _refresh_doc(current_user.tenant_id, ticket_id))
 

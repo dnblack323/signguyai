@@ -365,6 +365,16 @@ export default function WrapCommandCenterPage() {
   const handleUpdateInstallIssue = useCallback((id, p) => doWrapPut(`/install/issues/${id}`, p), [doWrapPut]);
   const handleDeleteInstallIssue = useCallback((id) => doWrapDelete(`/install/issues/${id}`, 'Issue deleted'), [doWrapDelete]);
 
+  // ─── Phase 2E: Inspection / Aftercare ───
+  const handleSaveInspection = useCallback((body) => doWrapPut('/inspection', body, 'Inspection saved'), [doWrapPut]);
+  const handleInspectionAckToggle = useCallback((v) => doWrapPut('/inspection', { customer_acknowledged: v }), [doWrapPut]);
+  const handleAddDamageMarker = useCallback((p) => doWrapPost('/inspection/damage-markers', p, 'Damage marker added'), [doWrapPost]);
+  const handleUpdateDamageMarker = useCallback((id, p) => doWrapPut(`/inspection/damage-markers/${id}`, p), [doWrapPut]);
+  const handleDeleteDamageMarker = useCallback((id) => doWrapDelete(`/inspection/damage-markers/${id}`, 'Marker deleted'), [doWrapDelete]);
+
+  const handleSaveAftercare = useCallback((body) => doWrapPut('/aftercare', body, 'Aftercare saved'), [doWrapPut]);
+  const handleAftercareToggle = useCallback((key, v) => doWrapPut('/aftercare', { [key]: v }), [doWrapPut]);
+
   const [quoteDraft, setQuoteDraft] = useState(null);
   const [quoteOpen, setQuoteOpen] = useState(false);
   const handleDraftQuoteMessage = useCallback(async () => {
@@ -386,7 +396,7 @@ export default function WrapCommandCenterPage() {
 
   const renderTab = () => {
     switch (tab) {
-      case 'overview':     return <OverviewTab header={header} />;
+      case 'overview':     return <OverviewTab wrapData={wrapData} header={header} onJumpToTab={setTab} />;
       case 'vehicle':      return <VehicleInfoTab wrapData={wrapData} onSave={handleSaveVehicle} saveStatus={saveStatus} />;
       case 'measurements': return <MeasurementsTab wrapData={wrapData} onAddArea={handleAddArea} onUpdateArea={handleUpdateArea} onDeleteArea={handleDeleteArea} saveStatus={saveStatus} />;
       case 'pricing':      return <PricingTab
@@ -418,7 +428,15 @@ export default function WrapCommandCenterPage() {
                                       onDraftQuoteMessage={handleDraftQuoteMessage}
                                       saveStatus={saveStatus}
                                     />;
-      case 'inspection':   return <InspectionTab />;
+      case 'inspection':   return <InspectionTab
+                                      wrapData={wrapData}
+                                      onSaveInspection={handleSaveInspection}
+                                      onAckToggle={handleInspectionAckToggle}
+                                      onAddMarker={handleAddDamageMarker}
+                                      onUpdateMarker={handleUpdateDamageMarker}
+                                      onDeleteMarker={handleDeleteDamageMarker}
+                                      saveStatus={saveStatus}
+                                    />;
       case 'production':   return <ProductionTab
                                       wrapData={wrapData}
                                       onSaveProduction={handleSaveProduction}
@@ -440,8 +458,13 @@ export default function WrapCommandCenterPage() {
                                       saveStatus={saveStatus}
                                     />;
       case 'photos':       return <PhotosFilesTab />;
-      case 'aftercare':    return <AftercareTab />;
-      case 'ai':           return <AIAssistantTab onJumpToTab={setTab} />;
+      case 'aftercare':    return <AftercareTab
+                                      wrapData={wrapData}
+                                      onSaveAftercare={handleSaveAftercare}
+                                      onToggleField={handleAftercareToggle}
+                                      saveStatus={saveStatus}
+                                    />;
+      case 'ai':           return <AIAssistantTab wrapData={wrapData} onJumpToTab={setTab} />;
       default:             return <OverviewTab header={header} />;
     }
   };
