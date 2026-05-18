@@ -1,0 +1,1504 @@
+{
+  "timestamp": "2026-05-18T04:24:13.297376",
+  "total_fields": 103,
+  "statistics": {
+    "STORED_DISPLAY": 45,
+    "USED_INDIRECTLY": 9,
+    "ACTIVELY_USED": 49,
+    "QUIZ_MAPPED_ONLY": 0,
+    "DEPRECATED": 0,
+    "UNUSED": 0,
+    "NEEDS_REVIEW": 0
+  },
+  "fields": [
+    {
+      "field_path": "admin_hourly_rate",
+      "classification": "STORED_DISPLAY",
+      "reason": "Found in models but not calculator: backend/pricing_foundation_field_usage_audit.py, backend/tests/test_pricing_foundation.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/tests/test_pricing_foundation.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "ai_estimation_rules",
+      "classification": "USED_INDIRECTLY",
+      "reason": "Affects calculation rules, multipliers, or AI behavior",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/server.py",
+        "backend/routes/pricing.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/PricingCalculator.js"
+      ]
+    },
+    {
+      "field_path": "ai_fallback_behavior",
+      "classification": "STORED_DISPLAY",
+      "reason": "Found in models but not calculator: backend/pricing_foundation_field_usage_audit.py, backend/models/pricing.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "ai_fallback_warnings_enabled",
+      "classification": "STORED_DISPLAY",
+      "reason": "Found in models but not calculator: backend/pricing_foundation_field_usage_audit.py, backend/models/pricing.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "application_time_per_sqft",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "banner_grommet_price_each",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/tests/test_iteration88_bug_fixes.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "banner_hemming_tape_price_per_linear_inch",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/tests/test_iteration88_bug_fixes.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "benchmark_rules",
+      "classification": "USED_INDIRECTLY",
+      "reason": "Affects calculation rules, multipliers, or AI behavior",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/server.py",
+        "backend/routes/pricing.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults",
+      "classification": "ACTIVELY_USED",
+      "reason": "Found in pricing logic: backend/quiz_mapping_verification.py, backend/server.py",
+      "backend_files": [
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/routes/job_tickets.py",
+        "backend/routes/pricing.py",
+        "backend/routes/ai.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/PricingCalculator.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.apparel",
+      "classification": "ACTIVELY_USED",
+      "reason": "Found in pricing logic: backend/pricing_foundation_field_usage_audit.py, backend/quiz_mapping_verification.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/services/workflow_engine.py",
+        "backend/services/sample_data.py",
+        "backend/services/facebook_ai.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/WorkflowTemplateManager.js",
+        "frontend/src/pages/OrderDetail.js",
+        "frontend/src/pages/Questionnaires.js",
+        "frontend/src/pages/NewOrderForm.js",
+        "frontend/src/pages/Jobs.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.apparel.default_blank_cost",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py"
+      ],
+      "frontend_files": [
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.apparel.default_decoration_cost",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py"
+      ],
+      "frontend_files": [
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.apparel.shop_pricing_table",
+      "classification": "STORED_DISPLAY",
+      "reason": "Benchmark/reference pricing - not used in cost-plus calculations",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/tests/test_apparel_pricing.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.banners",
+      "classification": "ACTIVELY_USED",
+      "reason": "Found in pricing logic: backend/quiz_mapping_verification.py, backend/server.py",
+      "backend_files": [
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/services/workflow_engine.py",
+        "backend/services/facebook_ai.py",
+        "backend/routes/profit_analytics.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/WorkflowTemplateManager.js",
+        "frontend/src/pages/OrderDetail.js",
+        "frontend/src/pages/JobTicketDetail.js",
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/pages/ProfitMarginAnalytics.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.banners.cost_multipliers",
+      "classification": "STORED_DISPLAY",
+      "reason": "Found in models but not calculator: backend/pricing_foundation_field_usage_audit.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py"
+      ],
+      "frontend_files": []
+    },
+    {
+      "field_path": "category_defaults.banners.default_minimum_sell_price",
+      "classification": "STORED_DISPLAY",
+      "reason": "Stored in database but not enforced in calculator",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/tests/test_banners_pricing.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.banners.sell_rate_defaults",
+      "classification": "STORED_DISPLAY",
+      "reason": "Found in models but not calculator: backend/quiz_mapping_verification.py, backend/server.py",
+      "backend_files": [
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.banners.sell_rate_defaults.base_rate",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.banners.sell_rate_defaults.large_format_rate",
+      "classification": "STORED_DISPLAY",
+      "reason": "Found in models but not calculator: backend/pricing_foundation_field_usage_audit.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py"
+      ],
+      "frontend_files": []
+    },
+    {
+      "field_path": "category_defaults.custom",
+      "classification": "ACTIVELY_USED",
+      "reason": "Found in pricing logic: backend/pricing_foundation_field_usage_audit.py, backend/quiz_mapping_verification.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/services/workflow_engine.py",
+        "backend/services/__init__.py",
+        "backend/services/stripe_service.py"
+      ],
+      "frontend_files": [
+        "frontend/src/App.js",
+        "frontend/src/utils/assistantPrefsApi.js",
+        "frontend/src/config/legacyNavConfig.js",
+        "frontend/src/pages/AppointmentDetailPage.js",
+        "frontend/src/pages/CompanySettings.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.custom.default_markup_multiplier",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/routes/job_tickets.py",
+        "backend/routes/onboarding.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/PricingCalculator.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.cut_vinyl",
+      "classification": "ACTIVELY_USED",
+      "reason": "Found in pricing logic: backend/pricing_foundation_field_usage_audit.py, backend/quiz_mapping_verification.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/services/workflow_engine.py",
+        "backend/routes/profit_analytics.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/WorkflowTemplateManager.js",
+        "frontend/src/pages/OrderDetail.js",
+        "frontend/src/pages/Jobs.js",
+        "frontend/src/pages/JobTicketDetail.js",
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.cut_vinyl.default_minimum_sell_price",
+      "classification": "STORED_DISPLAY",
+      "reason": "Stored in database but not enforced in calculator",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/tests/test_banners_pricing.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.cut_vinyl.sell_rate_defaults",
+      "classification": "STORED_DISPLAY",
+      "reason": "Found in models but not calculator: backend/pricing_foundation_field_usage_audit.py, backend/quiz_mapping_verification.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.cut_vinyl.sell_rate_defaults.base_rate",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.digital_print",
+      "classification": "ACTIVELY_USED",
+      "reason": "Found in pricing logic: backend/pricing_foundation_field_usage_audit.py, backend/quiz_mapping_verification.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/routes/profit_analytics.py",
+        "backend/routes/job_tickets.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/OrderDetail.js",
+        "frontend/src/pages/Jobs.js",
+        "frontend/src/pages/JobTicketDetail.js",
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/pages/ProfitMarginAnalytics.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.digital_print.sell_rate_defaults",
+      "classification": "STORED_DISPLAY",
+      "reason": "Found in models but not calculator: backend/pricing_foundation_field_usage_audit.py, backend/quiz_mapping_verification.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.digital_print.sell_rate_defaults.base_rate",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.digital_print.sell_rate_defaults.laminate_addon_per_sqft",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py"
+      ],
+      "frontend_files": [
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.promotional",
+      "classification": "ACTIVELY_USED",
+      "reason": "Found in pricing logic: backend/pricing_foundation_field_usage_audit.py, backend/quiz_mapping_verification.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/services/facebook_ai.py",
+        "backend/config/stripe_config.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/Jobs.js",
+        "frontend/src/pages/AITools.js",
+        "frontend/src/pages/FeaturesPage.js",
+        "frontend/src/pages/Products.js",
+        "frontend/src/pages/Webstores.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.promotional.default_markup_multiplier",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/routes/job_tickets.py",
+        "backend/routes/onboarding.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/PricingCalculator.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.promotional.minimum_charge",
+      "classification": "STORED_DISPLAY",
+      "reason": "Stored in database but not enforced in calculator",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/routes/job_tickets.py",
+        "backend/tests/test_pricing_foundation.py",
+        "backend/tests/test_banners_pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/DynamicCategoryFields.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.promotional.minimum_setup_fee",
+      "classification": "STORED_DISPLAY",
+      "reason": "Stored in database but not enforced in calculator",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py"
+      ],
+      "frontend_files": [
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.rigid_signs",
+      "classification": "ACTIVELY_USED",
+      "reason": "Found in pricing logic: backend/pricing_foundation_field_usage_audit.py, backend/quiz_mapping_verification.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/services/workflow_engine.py",
+        "backend/routes/profit_analytics.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/WorkflowTemplateManager.js",
+        "frontend/src/pages/OrderDetail.js",
+        "frontend/src/pages/Jobs.js",
+        "frontend/src/pages/JobTicketDetail.js",
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.rigid_signs.default_minimum_sell_price",
+      "classification": "STORED_DISPLAY",
+      "reason": "Stored in database but not enforced in calculator",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/tests/test_banners_pricing.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.rigid_signs.quantity_breaks",
+      "classification": "STORED_DISPLAY",
+      "reason": "Found in models but not calculator: backend/pricing_foundation_field_usage_audit.py, backend/quiz_mapping_verification.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/tests/test_pricing_foundation.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.rigid_signs.quantity_breaks.qty_10_percent",
+      "classification": "STORED_DISPLAY",
+      "reason": "Stored in database but not enforced in calculator",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py"
+      ],
+      "frontend_files": [
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.rigid_signs.quantity_breaks.qty_25_percent",
+      "classification": "STORED_DISPLAY",
+      "reason": "Stored in database but not enforced in calculator",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py"
+      ],
+      "frontend_files": [
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.rigid_signs.sell_rate_defaults",
+      "classification": "STORED_DISPLAY",
+      "reason": "Found in models but not calculator: backend/pricing_foundation_field_usage_audit.py, backend/quiz_mapping_verification.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.rigid_signs.sell_rate_defaults.base_rate",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.rigid_signs.sell_rate_defaults.yard_sign_rate",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py"
+      ],
+      "frontend_files": [
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.services",
+      "classification": "ACTIVELY_USED",
+      "reason": "Found in pricing logic: backend/pricing_foundation_field_usage_audit.py, backend/quiz_mapping_verification.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/main.py",
+        "backend/services/object_storage.py",
+        "backend/services/digest_scheduler.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/OrderDetail.js",
+        "frontend/src/pages/Jobs.js",
+        "frontend/src/pages/JobTicketDetail.js",
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/pages/ProfitMarginAnalytics.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.services.labor_rate_overrides",
+      "classification": "STORED_DISPLAY",
+      "reason": "Found in models but not calculator: backend/pricing_foundation_field_usage_audit.py, backend/quiz_mapping_verification.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py"
+      ],
+      "frontend_files": [
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.services.labor_rate_overrides.design",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/services/workflow_engine.py",
+        "backend/services/facebook_ai.py",
+        "backend/services/founders_config.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/WorkflowTemplateManager.js",
+        "frontend/src/pages/OrderDetail.js",
+        "frontend/src/pages/NewOrderForm.js",
+        "frontend/src/pages/AboutPage.js",
+        "frontend/src/pages/Jobs.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.services.labor_rate_overrides.install",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/services/workflow_engine.py",
+        "backend/services/sample_data.py",
+        "backend/services/facebook_ai.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/WorkflowTemplateManager.js",
+        "frontend/src/pages/OrderDetail.js",
+        "frontend/src/pages/NewOrderForm.js",
+        "frontend/src/pages/Jobs.js",
+        "frontend/src/pages/JobTicketDetail.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.services.labor_rate_overrides.production",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/services/ai_assistant_actions.py",
+        "backend/services/workflow_engine.py",
+        "backend/services/productivity_query.py"
+      ],
+      "frontend_files": [
+        "frontend/src/App.js",
+        "frontend/src/pages/WorkflowTemplateManager.js",
+        "frontend/src/pages/ProductionBoard.js",
+        "frontend/src/pages/OrderDetail.js",
+        "frontend/src/pages/Quotes.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.services.minimums",
+      "classification": "ACTIVELY_USED",
+      "reason": "Found in pricing logic: backend/pricing_foundation_field_usage_audit.py, backend/quiz_mapping_verification.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/routes/platform_admin.py",
+        "backend/routes/job_tickets.py",
+        "backend/tests/test_services_pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/DynamicCategoryFields.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.services.minimums.design",
+      "classification": "STORED_DISPLAY",
+      "reason": "Stored in database but not enforced in calculator",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/services/workflow_engine.py",
+        "backend/services/facebook_ai.py",
+        "backend/services/founders_config.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/WorkflowTemplateManager.js",
+        "frontend/src/pages/OrderDetail.js",
+        "frontend/src/pages/NewOrderForm.js",
+        "frontend/src/pages/AboutPage.js",
+        "frontend/src/pages/Jobs.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.services.minimums.install",
+      "classification": "STORED_DISPLAY",
+      "reason": "Stored in database but not enforced in calculator",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/services/workflow_engine.py",
+        "backend/services/sample_data.py",
+        "backend/services/facebook_ai.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/WorkflowTemplateManager.js",
+        "frontend/src/pages/OrderDetail.js",
+        "frontend/src/pages/NewOrderForm.js",
+        "frontend/src/pages/Jobs.js",
+        "frontend/src/pages/JobTicketDetail.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.vehicle_graphics",
+      "classification": "ACTIVELY_USED",
+      "reason": "Found in pricing logic: backend/pricing_foundation_field_usage_audit.py, backend/quiz_mapping_verification.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/routes/profit_analytics.py",
+        "backend/routes/job_tickets.py",
+        "backend/routes/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/Jobs.js",
+        "frontend/src/components/LivePricingPreview.js",
+        "frontend/src/components/PricingCalculator.js",
+        "frontend/src/components/wrap/constants.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.vehicle_graphics.benchmarks",
+      "classification": "STORED_DISPLAY",
+      "reason": "Benchmark/reference pricing - not used in cost-plus calculations",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/routes/profit_analytics.py",
+        "backend/routes/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/CompanySettings.js",
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/pages/PricingSetup.js",
+        "frontend/src/pages/OnboardingHub.js",
+        "frontend/src/pages/docs/GettingStarted.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.vehicle_graphics.benchmarks.package_door_lettering",
+      "classification": "STORED_DISPLAY",
+      "reason": "Benchmark/reference pricing - not used in cost-plus calculations",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py"
+      ],
+      "frontend_files": [
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.vehicle_graphics.benchmarks.package_full_wrap",
+      "classification": "STORED_DISPLAY",
+      "reason": "Benchmark/reference pricing - not used in cost-plus calculations",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py"
+      ],
+      "frontend_files": [
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.vehicle_graphics.benchmarks.package_partial_wrap",
+      "classification": "STORED_DISPLAY",
+      "reason": "Benchmark/reference pricing - not used in cost-plus calculations",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py"
+      ],
+      "frontend_files": [
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.vehicle_graphics.benchmarks.package_spot_graphics",
+      "classification": "STORED_DISPLAY",
+      "reason": "Benchmark/reference pricing - not used in cost-plus calculations",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py"
+      ],
+      "frontend_files": [
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.vehicle_graphics.sell_rate_defaults",
+      "classification": "STORED_DISPLAY",
+      "reason": "Found in models but not calculator: backend/pricing_foundation_field_usage_audit.py, backend/quiz_mapping_verification.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.vehicle_graphics.sell_rate_defaults.color_change_per_sqft",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py"
+      ],
+      "frontend_files": [
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "category_defaults.vehicle_graphics.sell_rate_defaults.printed_wrap_per_sqft",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py"
+      ],
+      "frontend_files": [
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "complexity_multiplier_base",
+      "classification": "USED_INDIRECTLY",
+      "reason": "Affects calculation rules, multipliers, or AI behavior",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/server.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "complexity_multiplier_max",
+      "classification": "USED_INDIRECTLY",
+      "reason": "Affects calculation rules, multipliers, or AI behavior",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/server.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "default_markup_percent",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/tests/test_iteration134.py",
+        "backend/tests/test_pricing.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": []
+    },
+    {
+      "field_path": "deposit_percentage",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/tests/test_pricing_foundation.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "design_hourly_rate",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/routes/job_tickets.py",
+        "backend/routes/onboarding.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "file_cleanup_fee_default",
+      "classification": "STORED_DISPLAY",
+      "reason": "Found in models but not calculator: backend/pricing_foundation_field_usage_audit.py, backend/server.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/server.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "global_calc_rules",
+      "classification": "USED_INDIRECTLY",
+      "reason": "Affects calculation rules, multipliers, or AI behavior",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/server.py",
+        "backend/routes/pricing.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "hardware_accessories",
+      "classification": "ACTIVELY_USED",
+      "reason": "Found in pricing logic: backend/pricing_foundation_field_usage_audit.py, backend/server.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/server.py",
+        "backend/routes/job_tickets.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/PricingCalculator.js"
+      ]
+    },
+    {
+      "field_path": "hourly_rate",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/services/ai_assistant_actions.py",
+        "backend/routes/employees.py",
+        "backend/routes/job_time.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/Payroll.js",
+        "frontend/src/pages/EmployeePortalProfile.js",
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/pages/PayrollDashboard.js",
+        "frontend/src/pages/AITools.js"
+      ]
+    },
+    {
+      "field_path": "install_complexity_multiplier_base",
+      "classification": "USED_INDIRECTLY",
+      "reason": "Affects calculation rules, multipliers, or AI behavior",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "install_complexity_multiplier_max",
+      "classification": "USED_INDIRECTLY",
+      "reason": "Affects calculation rules, multipliers, or AI behavior",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "install_hourly_rate",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/tests/test_pricing_foundation.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "laminate_time_per_sqft",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "material_markup_percent",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "materials",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/services/ai_assistant_actions.py",
+        "backend/routes/webstores.py",
+        "backend/routes/platform_admin.py",
+        "backend/routes/profit_analytics.py"
+      ],
+      "frontend_files": [
+        "frontend/src/App.js",
+        "frontend/src/pages/NewOrderForm.js",
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/pages/PricingSettings.js",
+        "frontend/src/pages/AITools.js"
+      ]
+    },
+    {
+      "field_path": "mileage_rate",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "minimum_design_charge",
+      "classification": "STORED_DISPLAY",
+      "reason": "Stored in database but not enforced in calculator",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/tests/test_pricing_foundation.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "minimum_install_charge",
+      "classification": "STORED_DISPLAY",
+      "reason": "Stored in database but not enforced in calculator",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/server.py",
+        "backend/tests/test_pricing_foundation.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "minimum_order",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/services/tier_config.py",
+        "backend/routes/job_tickets.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "minimum_print_charge",
+      "classification": "STORED_DISPLAY",
+      "reason": "Stored in database but not enforced in calculator",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/tests/test_pricing_foundation.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "minimum_removal_charge",
+      "classification": "STORED_DISPLAY",
+      "reason": "Stored in database but not enforced in calculator",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "minimum_service_charge",
+      "classification": "STORED_DISPLAY",
+      "reason": "Stored in database but not enforced in calculator",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/tests/test_pricing_foundation.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "minimum_sign_charge",
+      "classification": "STORED_DISPLAY",
+      "reason": "Stored in database but not enforced in calculator",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/tests/test_pricing_foundation.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "minimum_travel_charge",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "minimum_vinyl_charge",
+      "classification": "STORED_DISPLAY",
+      "reason": "Stored in database but not enforced in calculator",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/tests/test_pricing_foundation.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "minimum_wrap_charge",
+      "classification": "STORED_DISPLAY",
+      "reason": "Stored in database but not enforced in calculator",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/tests/test_pricing_foundation.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "print_time_per_sqft",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "production_hourly_rate",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/routes/job_tickets.py",
+        "backend/routes/onboarding.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/pages/OnboardingHub.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "project_handling_hourly_rate",
+      "classification": "STORED_DISPLAY",
+      "reason": "Found in models but not calculator: backend/pricing_foundation_field_usage_audit.py, backend/models/pricing.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "quantity_breaks",
+      "classification": "USED_INDIRECTLY",
+      "reason": "Affects calculation rules, multipliers, or AI behavior",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/tests/test_pricing_foundation.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "removal_hourly_rate",
+      "classification": "STORED_DISPLAY",
+      "reason": "Found in models but not calculator: backend/pricing_foundation_field_usage_audit.py, backend/server.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/server.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "rounding_rule",
+      "classification": "USED_INDIRECTLY",
+      "reason": "Affects calculation rules, multipliers, or AI behavior",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/server.py",
+        "backend/tests/test_pricing_foundation.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "rush_fee_flat",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "rush_fee_percentage",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/server.py",
+        "backend/tests/test_pricing_foundation.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "selling_price_benchmarks",
+      "classification": "STORED_DISPLAY",
+      "reason": "Benchmark/reference pricing - not used in cost-plus calculations",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/server.py",
+        "backend/routes/profit_analytics.py",
+        "backend/routes/pricing.py",
+        "backend/routes/pricing_setup.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "setup_fee_apparel_dtf",
+      "classification": "STORED_DISPLAY",
+      "reason": "Found in models but not calculator: backend/pricing_foundation_field_usage_audit.py, backend/tests/test_pricing_foundation.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/tests/test_pricing_foundation.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "setup_fee_apparel_screen",
+      "classification": "STORED_DISPLAY",
+      "reason": "Found in models but not calculator: backend/pricing_foundation_field_usage_audit.py, backend/tests/test_pricing_foundation.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/tests/test_pricing_foundation.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "setup_fee_default",
+      "classification": "STORED_DISPLAY",
+      "reason": "Found in models but not calculator: backend/pricing_foundation_field_usage_audit.py, backend/server.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/server.py",
+        "backend/tests/test_pricing_foundation.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "setup_fee_print",
+      "classification": "STORED_DISPLAY",
+      "reason": "Found in models but not calculator: backend/pricing_foundation_field_usage_audit.py, backend/server.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/server.py",
+        "backend/tests/test_pricing_foundation.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "setup_fee_vinyl",
+      "classification": "STORED_DISPLAY",
+      "reason": "Found in models but not calculator: backend/pricing_foundation_field_usage_audit.py, backend/tests/test_pricing_foundation.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/tests/test_pricing_foundation.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "target_profit_margin_percent",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/quiz_mapping_verification.py",
+        "backend/server.py",
+        "backend/routes/job_tickets.py",
+        "backend/routes/onboarding.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js",
+        "frontend/src/components/PricingCalculator.js",
+        "frontend/src/components/pricing/PricingSetupQuiz.js"
+      ]
+    },
+    {
+      "field_path": "tenant_id",
+      "classification": "ACTIVELY_USED",
+      "reason": "Found in pricing logic: backend/pricing_foundation_field_usage_audit.py, backend/core_runtime.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/core_runtime.py",
+        "backend/server.py",
+        "backend/services/ai_assistant_actions.py",
+        "backend/services/workflow_engine.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PlatformAdminAuditLog.js",
+        "frontend/src/pages/PlatformAdminEmailLogs.js",
+        "frontend/src/pages/EmployeePortalLogin.js",
+        "frontend/src/pages/PlatformAdminTenantDetail.js",
+        "frontend/src/lib/authStorage.js"
+      ]
+    },
+    {
+      "field_path": "travel_hourly_rate",
+      "classification": "STORED_DISPLAY",
+      "reason": "Found in models but not calculator: backend/pricing_foundation_field_usage_audit.py, backend/models/pricing.py",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "waste_percentage",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/server.py",
+        "backend/tests/test_pricing_foundation.py",
+        "backend/tests/test_banners_pricing.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    },
+    {
+      "field_path": "weeding_time_per_sqft",
+      "classification": "ACTIVELY_USED",
+      "reason": "Verified in calculator code - directly affects price output",
+      "backend_files": [
+        "backend/pricing_foundation_field_usage_audit.py",
+        "backend/models/pricing.py"
+      ],
+      "frontend_files": [
+        "frontend/src/pages/PricingFoundation.js"
+      ]
+    }
+  ]
+}
