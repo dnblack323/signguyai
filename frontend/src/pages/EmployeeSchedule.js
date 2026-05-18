@@ -97,20 +97,19 @@ export default function EmployeeSchedule() {
     try {
       for (let i = 0; i < DAYS.length; i++) {
         const day = schedule[i];
-        const date = weekDates[i];
         await axios.post(`${API}/api/payroll/schedule`, {
           employee_id: selectedEmployeeId,
-          day_of_week: day.day_of_week,
-          date,
-          start_time: day.start_time || null,
-          end_time: day.end_time || null,
-          is_off: day.is_off,
+          week_start: weekStart,
+          day: day.day_of_week,
+          start_time: day.start_time || '',
+          end_time: day.end_time || '',
           notes: day.notes || '',
         }, { headers: hdr() });
       }
       toast.success('Schedule saved');
       setHasChanges(false);
-    } catch {
+    } catch (error) {
+      console.error('Failed to save schedule:', error);
       toast.error('Failed to save schedule');
     } finally {
       setSaving(false);

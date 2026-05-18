@@ -901,12 +901,24 @@ async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, default
     vinyl_cost = waste_adjusted_area * vinyl_cost_per_sqft
     material_cost = vinyl_cost + transfer_tape_cost
 
-    base_hours_per_sqft = float(category_config.get("production_labor_hours_per_sqft", category_config.get("default_labor_hours_per_sqft", 0.2)) or 0)
-    min_prod_hours = float(category_config.get("min_production_labor_hours_per_item", 0.25) or 0)
-    per_piece_hours = billable_area_per_piece * base_hours_per_sqft
-    per_piece_hours = max(per_piece_hours, min_prod_hours)
-    production_hours = per_piece_hours * quantity
+    # ===== PRODUCTION LABOR =====
+    # Try new minute-based system first
+    labor_minutes, shop_labor_rate, include_labor = get_labor_minutes_and_rate(
+        "cut_vinyl", defaults, category_config, quantity
+    )
+    
+    if labor_minutes > 0:
+        # Use new minute-based labor
+        base_production_hours = labor_minutes / 60.0
+    else:
+        # Fallback to old hours-based system
+        base_hours_per_sqft = float(category_config.get("production_labor_hours_per_sqft", category_config.get("default_labor_hours_per_sqft", 0.2)) or 0)
+        min_prod_hours = float(category_config.get("min_production_labor_hours_per_item", 0.25) or 0)
+        per_piece_hours = billable_area_per_piece * base_hours_per_sqft
+        per_piece_hours = max(per_piece_hours, min_prod_hours)
+        base_production_hours = per_piece_hours * quantity
 
+    # Apply complexity multipliers
     color_count = max(int(data.num_colors or category_config.get("default_number_of_colors", 1) or 1), 1)
     color_multipliers = category_config.get("color_multipliers", {})
     if color_count >= 4:
@@ -919,12 +931,30 @@ async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, default
     weeding_complexity = data.weeding_complexity or category_config.get("default_weeding_complexity", "simple")
     weeding_mult = float(category_config.get("weeding_multipliers", {}).get(weeding_complexity, 1.0) or 1.0)
 
-    production_hours *= color_mult * weeding_mult
+    production_hours = base_production_hours * color_mult * weeding_mult
 
+    # Get labor rates
+    labor_rates = defaults.get("labor_rates", {})
+    production_rate = float(labor_rates.get("production", {}).get("hourly_rate", defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75))) or 0)
+    design_rate = float(labor_rates.get("design", {}).get("hourly_rate", defaults.get("design_hourly_rate", 85)) or 0)
+    install_rate = float(labor_rates.get("installation", {}).get("hourly_rate", defaults.get("install_hourly_rate", 95)) or 0)
+
+    # Calculate production cost with new labor inclusion logic
+    if labor_minutes > 0 and not include_labor:
+        production_cost = 0  # Track internally only, not charged
+    else:
+        production_cost = production_hours * (shop_labor_rate if labor_minutes > 0 else production_rate)
+
+    # ===== DESIGN CHARGE =====
+    charge_separately, default_design_rate, included_minutes = get_design_charge_config(defaults)
     design_hours = 0
+    design_cost = 0
+    
     if data.artwork_ready:
         design_hours = 0
+        design_cost = 0
     elif data.artwork_needed or data.artwork_needed is None:
+        # Calculate design time
         base_design_time = float(category_config.get("default_design_time_hours", 0.5) or 0)
         design_complexity = data.design_complexity or category_config.get("default_design_complexity", "simple")
         design_mult = {
@@ -934,14 +964,16 @@ async def calculate_cut_vinyl(data: JobItemPricingData, quantity: float, default
             "extreme": 2.0,
         }.get(design_complexity, 1.0)
         design_hours = base_design_time * design_mult
-
-    labor_rates = defaults.get("labor_rates", {})
-    production_rate = float(labor_rates.get("production", {}).get("hourly_rate", defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75))) or 0)
-    design_rate = float(labor_rates.get("design", {}).get("hourly_rate", defaults.get("design_hourly_rate", 85)) or 0)
-    install_rate = float(labor_rates.get("installation", {}).get("hourly_rate", defaults.get("install_hourly_rate", 95)) or 0)
-
-    production_cost = production_hours * production_rate
-    design_cost = design_hours * design_rate
+        
+        # Apply new design charge logic
+        if charge_separately == "no":
+            design_cost = 0  # Design included in price, not charged separately
+        else:
+            # Deduct included minutes before charging
+            design_minutes = design_hours * 60
+            billable_design_minutes = max(0, design_minutes - included_minutes)
+            billable_design_hours = billable_design_minutes / 60.0
+            design_cost = billable_design_hours * default_design_rate
 
     file_cleanup_fee = 0
     if data.file_cleanup_needed:
@@ -1287,29 +1319,48 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
     contour_type = (data.contour_cut_type or category_config.get("default_contour_cut_type", "none"))
     contour_mult = float(category_config.get("contour_cut_multipliers", {}).get(contour_type, 1.0) or 1.0)
 
-    base_prod_hours_per_sqft = float(category_config.get("production_labor_hours_per_sqft", category_config.get("default_labor_hours_per_sqft", 0.08)) or 0)
-    min_prod_hours = float(category_config.get("min_production_labor_hours_per_item", 0.2) or 0)
-    per_piece_prod_hours = billable_area_per_piece * base_prod_hours_per_sqft * quality_mult * contour_mult
-    per_piece_prod_hours = max(per_piece_prod_hours, min_prod_hours)
-    production_hours = per_piece_prod_hours * quantity
+    # ===== PRODUCTION LABOR =====
+    # Try new minute-based system first
+    labor_minutes, shop_labor_rate, include_labor = get_labor_minutes_and_rate(
+        "digital_print", defaults, category_config, quantity
+    )
+    
+    if labor_minutes > 0:
+        # Use new minute-based labor
+        base_production_hours = labor_minutes / 60.0
+    else:
+        # Fallback to old hours-based system
+        base_prod_hours_per_sqft = float(category_config.get("production_labor_hours_per_sqft", category_config.get("default_labor_hours_per_sqft", 0.08)) or 0)
+        min_prod_hours = float(category_config.get("min_production_labor_hours_per_item", 0.2) or 0)
+        per_piece_prod_hours = billable_area_per_piece * base_prod_hours_per_sqft * quality_mult * contour_mult
+        per_piece_prod_hours = max(per_piece_prod_hours, min_prod_hours)
+        base_production_hours = per_piece_prod_hours * quantity
 
+    # Apply complexity multiplier
     complexity_mult = get_complexity_multiplier(
         int(data.complexity or 1),
         float(defaults.get("complexity_multiplier_base", 1.0) or 1.0),
         float(defaults.get("complexity_multiplier_max", 1.5) or 1.5)
     )
-    production_hours *= complexity_mult
+    production_hours = base_production_hours * complexity_mult
 
+    # Piece separation labor
     separation_hours = 0
     if data.piece_separation_required:
         count = max(int(data.separated_piece_count or 0), 0)
         separation_rate = float(category_config.get("piece_separation_hours_per_piece", 0.02) or 0)
         separation_hours = count * separation_rate
 
+    # ===== DESIGN CHARGE =====
+    charge_separately, default_design_rate, included_minutes = get_design_charge_config(defaults)
     design_hours = 0
+    design_cost = 0
+    
     if data.artwork_ready:
         design_hours = 0
+        design_cost = 0
     elif data.artwork_needed or data.artwork_needed is None:
+        # Calculate design time
         base_design_time = float(category_config.get("default_design_time_hours", 0.5) or 0)
         design_complexity = (data.design_complexity or category_config.get("default_design_complexity", "simple"))
         design_mult = {
@@ -1319,16 +1370,31 @@ async def calculate_digital_print(data: JobItemPricingData, quantity: float, def
             "extreme": 2.0,
         }.get(design_complexity, 1.0)
         design_hours = base_design_time * design_mult
+        
+        # Apply new design charge logic
+        if charge_separately == "no":
+            design_cost = 0  # Design included in price, not charged separately
+        else:
+            # Deduct included minutes before charging
+            design_minutes = design_hours * 60
+            billable_design_minutes = max(0, design_minutes - included_minutes)
+            billable_design_hours = billable_design_minutes / 60.0
+            design_cost = billable_design_hours * default_design_rate
 
+    # Get labor rates
     labor_rates = defaults.get("labor_rates", {})
     production_rate = float(labor_rates.get("production", {}).get("hourly_rate", defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75))) or 0)
     design_rate = float(labor_rates.get("design", {}).get("hourly_rate", defaults.get("design_hourly_rate", 85)) or 0)
     install_rate = float(labor_rates.get("installation", {}).get("hourly_rate", defaults.get("install_hourly_rate", 95)) or 0)
 
-    production_labor_cost = production_hours * production_rate
+    # Calculate production cost with new labor inclusion logic
+    if labor_minutes > 0 and not include_labor:
+        production_labor_cost = 0  # Track internally only, not charged
+    else:
+        production_labor_cost = production_hours * (shop_labor_rate if labor_minutes > 0 else production_rate)
+    
     mounting_labor_cost = mounting_hours * production_rate
     separation_labor_cost = separation_hours * production_rate
-    design_cost = design_hours * design_rate
 
     install_hours = 0
     install_cost = 0
@@ -1710,24 +1776,50 @@ async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defau
 
     graphic_face_cost = waste_adjusted_area * graphic_cost_per_sqft * sided_mult
 
-    base_hours_per_sqft = float(category_config.get("production_labor_hours_per_sqft", category_config.get("default_labor_hours_per_sqft", 0.15)) or 0)
-    min_prod_hours = float(category_config.get("min_production_labor_hours_per_item", 0.2) or 0)
-    per_piece_hours = billable_area_per_piece * base_hours_per_sqft
-    per_piece_hours = max(per_piece_hours, min_prod_hours)
-    production_hours = per_piece_hours * quantity * thickness_mult * shape_mult * sided_mult
+    # ===== PRODUCTION LABOR =====
+    # Try new minute-based system first
+    labor_minutes, shop_labor_rate, include_labor = get_labor_minutes_and_rate(
+        "rigid_signs", defaults, category_config, quantity
+    )
+    
+    if labor_minutes > 0:
+        # Use new minute-based labor
+        base_production_hours = labor_minutes / 60.0
+    else:
+        # Fallback to old hours-based system
+        base_hours_per_sqft = float(category_config.get("production_labor_hours_per_sqft", category_config.get("default_labor_hours_per_sqft", 0.15)) or 0)
+        min_prod_hours = float(category_config.get("min_production_labor_hours_per_item", 0.2) or 0)
+        per_piece_hours = billable_area_per_piece * base_hours_per_sqft
+        per_piece_hours = max(per_piece_hours, min_prod_hours)
+        base_production_hours = per_piece_hours * quantity
 
+    # Apply multipliers for rigid signs
+    production_hours = base_production_hours * thickness_mult * shape_mult * sided_mult
+
+    # Get labor rates
     labor_rates = defaults.get("labor_rates", {})
     production_rate = float(labor_rates.get("production", {}).get("hourly_rate", defaults.get("production_hourly_rate", defaults.get("hourly_rate", 75))) or 0)
     design_rate = float(labor_rates.get("design", {}).get("hourly_rate", defaults.get("design_hourly_rate", 85)) or 0)
     install_rate = float(labor_rates.get("installation", {}).get("hourly_rate", defaults.get("install_hourly_rate", 95)) or 0)
 
-    production_cost = production_hours * production_rate
+    # Calculate production cost with new labor inclusion logic
+    if labor_minutes > 0 and not include_labor:
+        production_cost = 0  # Track internally only, not charged
+    else:
+        production_cost = production_hours * (shop_labor_rate if labor_minutes > 0 else production_rate)
+    
     mounting_cost = mounting_hours * production_rate
 
+    # ===== DESIGN CHARGE =====
+    charge_separately, default_design_rate, included_minutes = get_design_charge_config(defaults)
     design_hours = 0
+    design_cost = 0
+    
     if data.artwork_ready:
         design_hours = 0
+        design_cost = 0
     elif data.artwork_needed or data.artwork_needed is None:
+        # Calculate design time
         base_design_time = float(category_config.get("default_design_time_hours", 0.5) or 0)
         design_complexity = data.design_complexity or "simple"
         design_mult = {
@@ -1737,7 +1829,16 @@ async def calculate_rigid_signs(data: JobItemPricingData, quantity: float, defau
             "extreme": 2.0,
         }.get(design_complexity, 1.0)
         design_hours = base_design_time * design_mult
-    design_cost = design_hours * design_rate
+        
+        # Apply new design charge logic
+        if charge_separately == "no":
+            design_cost = 0  # Design included in price, not charged separately
+        else:
+            # Deduct included minutes before charging
+            design_minutes = design_hours * 60
+            billable_design_minutes = max(0, design_minutes - included_minutes)
+            billable_design_hours = billable_design_minutes / 60.0
+            design_cost = billable_design_hours * default_design_rate
 
     install_hours = 0
     install_cost = 0
@@ -2704,28 +2805,56 @@ async def calculate_vehicle_graphics(data: JobItemPricingData, quantity: float, 
     helper_rate = float(cfg.get("second_installer_rate_per_hour", 35.0) or 35.0)
     removal_rate = float(labor_rates.get("removal", {}).get("hourly_rate", defaults.get("removal_hourly_rate", 65)) or 65)
 
-    # ===== Base production / prep labor =====
-    base_hrs_per_sqft = float(cfg.get("production_labor_hours_per_sqft", 0.12) or 0.12)
-    min_prod_hrs = float(cfg.get("min_production_labor_hours_per_item", 1.0) or 1.0)
-    per_piece_prod_hours = max(estimated_area_per_vehicle * base_hrs_per_sqft, min_prod_hrs)
-    production_hours = per_piece_prod_hours * quantity
-    production_cost = production_hours * production_rate
+    # ===== PRODUCTION / PREP LABOR =====
+    # Try new minute-based system first
+    labor_minutes, shop_labor_rate, include_labor = get_labor_minutes_and_rate(
+        "vehicle_wraps", defaults, cfg, quantity
+    )
+    
+    if labor_minutes > 0:
+        # Use new minute-based labor
+        production_hours = labor_minutes / 60.0
+        if include_labor:
+            production_cost = production_hours * shop_labor_rate
+        else:
+            production_cost = 0  # Track internally only
+    else:
+        # Fallback to old hours-based system
+        base_hrs_per_sqft = float(cfg.get("production_labor_hours_per_sqft", 0.12) or 0.12)
+        min_prod_hrs = float(cfg.get("min_production_labor_hours_per_item", 1.0) or 1.0)
+        per_piece_prod_hours = max(estimated_area_per_vehicle * base_hrs_per_sqft, min_prod_hrs)
+        production_hours = per_piece_prod_hours * quantity
+        production_cost = production_hours * production_rate
 
-    # ===== Design labor =====
+    # ===== DESIGN LABOR =====
+    charge_separately, default_design_rate, included_minutes = get_design_charge_config(defaults)
     design_hours = 0.0
+    design_cost = 0.0
     artwork_ready = bool(data.artwork_ready)
     artwork_needed = data.artwork_needed
+    
     if artwork_ready:
         design_hours = 0.0
+        design_cost = 0.0
     else:
         needed = artwork_needed if artwork_needed is not None else True
         if needed:
+            # Calculate design time
             design_time_map = cfg.get("design_time_by_coverage_hours", {}) or {}
             base_design = float(design_time_map.get(coverage_key, design_time_map.get("partial", 1.5)) or 1.5)
             dc = (data.design_complexity or cfg.get("default_design_complexity", "medium")).lower()
             dc_mult = float(cfg.get("design_complexity_multipliers", {}).get(dc, 1.0) or 1.0)
             design_hours = base_design * dc_mult
-    design_cost = design_hours * design_rate
+            
+            # Apply new design charge logic
+            if charge_separately == "no":
+                design_cost = 0  # Design included in price, not charged separately
+            else:
+                # Deduct included minutes before charging
+                design_minutes = design_hours * 60
+                billable_design_minutes = max(0, design_minutes - included_minutes)
+                billable_design_hours = billable_design_minutes / 60.0
+                design_cost = billable_design_hours * default_design_rate
 
     # ===== Surface prep =====
     prep_scope = (data.surface_prep_level or cfg.get("default_surface_prep", "none")).lower()
@@ -3945,18 +4074,43 @@ async def calculate_apparel(data: JobItemPricingData, quantity: float, defaults:
         decoration_material_per_piece = float(method_cfg["material_cost_per_sqin"] or 0) * 80.0
     total_decoration_material_cost = decoration_material_per_piece * qty
 
+    # ===== LABOR CALCULATION (PRODUCTION + DESIGN) =====
     labor_rates = defaults.get("labor_rates", {}) or {}
     prod_rate = float(labor_rates.get("production", {}).get("hourly_rate", defaults.get("production_hourly_rate", 28)) or 28)
-    labor_minutes_per_piece = float(cfg.get("apparel_labor_minutes_per_piece", 1.5) or 1.5) + float(cfg.get("apparel_handling_labor_minutes_per_piece", 0.5) or 0.5)
-    labor_hours = (labor_minutes_per_piece * qty) / 60.0
-    labor_cost_total = labor_hours * prod_rate
+    
+    # Try new minute-based system via apparel helper
+    labor_minutes = get_apparel_labor_minutes(defaults, cfg, qty)
+    if labor_minutes > 0:
+        # Use new minute-based labor calculation
+        labor_hours = labor_minutes / 60.0
+        labor_cost_total = labor_hours * prod_rate
+        # For breakdown compatibility (used below)
+        labor_minutes_per_piece = labor_minutes / qty if qty > 0 else 0
+    else:
+        # Fallback to old per-piece calculation
+        labor_minutes_per_piece = float(cfg.get("apparel_labor_minutes_per_piece", 1.5) or 1.5) + float(cfg.get("apparel_handling_labor_minutes_per_piece", 0.5) or 0.5)
+        labor_hours = (labor_minutes_per_piece * qty) / 60.0
+        labor_cost_total = labor_hours * prod_rate
 
-    # Design labor (when artwork needed)
+    # ===== DESIGN CHARGE =====
+    charge_separately, default_design_rate, included_minutes = get_design_charge_config(defaults)
     design_cost = 0.0
+    design_hours = 0.0
+    
     if not artwork_ready and artwork_needed:
-        design_rate = float(labor_rates.get("design", {}).get("hourly_rate", defaults.get("design_hourly_rate", 85)) or 85)
+        # Calculate design time
         design_hours = float({"simple": 0.25, "medium": 0.5, "complex": 1.0, "extreme": 1.5}.get(complexity_key, 0.25))
-        design_cost = design_hours * design_rate
+        
+        # Apply new design charge logic
+        if charge_separately == "no":
+            design_cost = 0  # Design included in price, not charged separately
+        else:
+            # Deduct included minutes before charging
+            design_minutes = design_hours * 60
+            billable_design_minutes = max(0, design_minutes - included_minutes)
+            billable_design_hours = billable_design_minutes / 60.0
+            design_cost = billable_design_hours * default_design_rate
+        
         labor_hours += design_hours
     labor_cost_total += design_cost
 
