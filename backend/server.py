@@ -346,6 +346,77 @@ def calculate_overhead_cost(base_cost: float, labor_hours: float, defaults: dict
     return (base_cost * (overhead_percent / 100)) + (labor_hours * shop_overhead_per_hour)
 
 
+
+def get_labor_minutes_and_rate(
+    category_key: str,
+    defaults: dict,
+    cfg: dict,
+    quantity: float = 1.0,
+    is_yard_sign: bool = False,
+) -> tuple[float, float, bool]:
+    """
+    Get production labor minutes and rate from new quiz-based Pricing Foundation fields.
+    
+    Returns: (production_minutes, shop_labor_rate, include_in_price)
+    Falls back to old hours-based calculation if new fields don't exist.
+    """
+    # Get global labor config
+    labor_config = defaults.get("labor", {})
+    shop_labor_rate = float(labor_config.get("shop_labor_rate", 75.0) or 75.0)
+    include_in_price = labor_config.get("include_labor_in_price", True)
+    if include_in_price is None:
+        include_in_price = True
+    
+    # Get category-specific production minutes
+    category_defaults = defaults.get("category_defaults", {}).get(category_key, {})
+    
+    # Special handling for yard signs (quantity-based)
+    if is_yard_sign:
+        setup_minutes = category_defaults.get("yard_sign_setup_minutes")
+        minutes_per_sign = category_defaults.get("yard_sign_minutes_per_sign")
+        if setup_minutes is not None and minutes_per_sign is not None:
+            total_minutes = float(setup_minutes) + (quantity * float(minutes_per_sign))
+            return (total_minutes, shop_labor_rate, include_in_price)
+    
+    # Regular categories
+    production_minutes_basic = category_defaults.get("production_minutes_basic")
+    if production_minutes_basic:
+        return (float(production_minutes_basic), shop_labor_rate, include_in_price)
+    
+    # Fallback to old system (return 0 to signal fallback needed)
+    return (0.0, shop_labor_rate, include_in_price)
+
+
+def get_design_charge_config(defaults: dict) -> tuple[str, float, float]:
+    """
+    Get design charge configuration from new quiz-based fields.
+    
+    Returns: (charge_separately, design_rate, included_minutes)
+    charge_separately values: "yes", "no", "sometimes"
+    """
+    design_config = defaults.get("design", {})
+    charge_separately = design_config.get("charge_design_separately", "yes")
+    if isinstance(charge_separately, bool):
+        charge_separately = "yes" if charge_separately else "no"
+    default_design_rate = float(design_config.get("default_design_rate", 85.0) or 85.0)
+    included_minutes = float(design_config.get("included_design_minutes", 30.0) or 30.0)
+    
+    return (charge_separately, default_design_rate, included_minutes)
+
+
+def get_apparel_labor_minutes(
+    defaults: dict,
+    cfg: dict,
+    quantity: float,
+) -> float:
+    """Get apparel labor minutes: setup + (per-item × quantity)"""
+    category_defaults = defaults.get("category_defaults", {}).get("apparel", {})
+    setup_minutes = float(category_defaults.get("setup_minutes_per_order", 15.0) or 15.0)
+    minutes_per_item = float(category_defaults.get("production_minutes_per_item", 3.0) or 3.0)
+    return setup_minutes + (quantity * minutes_per_item)
+
+
+
 def resolve_selling_price(total_cost: float, markup_multiplier: float, target_margin_percent: float) -> float:
     safe_total_cost = max(float(total_cost or 0), 0)
     safe_markup = max(float(markup_multiplier or 1), 1.0)
@@ -2106,11 +2177,26 @@ async def calculate_banners(data: JobItemPricingData, quantity: float, defaults:
     finishing_rate = float(labor_rates.get("finishing", {}).get("hourly_rate", production_rate) or production_rate)
     install_minimum = float(labor_rates.get("installation", {}).get("minimum_charge", defaults.get("minimum_install_charge", 0)) or 0)
 
-    base_hrs_per_sqft = float(cfg.get("production_labor_hours_per_sqft", 0.10) or 0)
-    min_prod_hrs = float(cfg.get("min_production_labor_hours_per_item", 0.20) or 0)
-    per_piece_hours = max(billable_area_per_piece * base_hrs_per_sqft, min_prod_hrs)
-    production_hours = per_piece_hours * quantity
-    production_cost = production_hours * production_rate
+    # ===== PRODUCTION LABOR =====
+    # Try new minute-based system first
+    labor_minutes, shop_labor_rate, include_labor = get_labor_minutes_and_rate(
+        "banners", defaults, cfg, quantity
+    )
+    
+    if labor_minutes > 0:
+        # Use new minute-based labor
+        production_hours = labor_minutes / 60.0
+        if include_labor:
+            production_cost = production_hours * shop_labor_rate
+        else:
+            production_cost = 0  # Track internally only
+    else:
+        # Fallback to old hours-based system
+        base_hrs_per_sqft = float(cfg.get("production_labor_hours_per_sqft", 0.10) or 0)
+        min_prod_hrs = float(cfg.get("min_production_labor_hours_per_item", 0.20) or 0)
+        per_piece_hours = max(billable_area_per_piece * base_hrs_per_sqft, min_prod_hrs)
+        production_hours = per_piece_hours * quantity
+        production_cost = production_hours * production_rate
 
     # Design labor
     design_hours = 0.0
