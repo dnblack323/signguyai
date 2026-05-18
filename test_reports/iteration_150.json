@@ -1,0 +1,40 @@
+{
+  "summary": "Iteration 150 — Phase 2F follow-up: shop-email notifications on portal wrap actions. All 19 new tests in /app/backend/tests/test_iteration150_wrap_notifications.py PASS (5.03s), and all 34 regression tests in test_iteration148_wrap_phase2f.py STILL PASS (6.18s). Total 53/53 green. Validated: helper module shape (send_wrap_portal_action_notification + 5 private helpers + ACTION_META with exactly the 6 required keys); recipient resolution priority (notification_email > business_email > email > owner_email, returns None on no email); subject labels match spec ('Wrap Proof Approved', 'Wrap Revision Requested', 'Wrap Contract Signed', 'Wrap Quote Approved', 'Wrap Inspection Acknowledged', 'Wrap Aftercare Acknowledged'); HTML body safety (no profit/material_cost/labor_cost/internal_notes/damage_notes/install_notes leak — only safe fields render); helper never raises (unknown action returns {sent:False, reason:'unknown_action'}; garbage tenant/ticket returns {sent:False, reason:'no_shop_email'}; injected exception in EmailService.send_email is swallowed); idempotency on 4 ack endpoints (proof_approved, quote_approved, contract_signed, aftercare_acknowledged) verified via Mongo email_logs side-channel — second call adds ZERO new rows because the false→true guard short-circuits the dispatch at the route level; request-revision is NOT idempotent (revision_count increments on every call); inspection ack requires inspection.customer_visible=true; all 6 portal endpoints return 200 even without SENDGRID_API_KEY configured (no 500s); approve-proof persists approvals.proof_approved=true. SENDGRID_API_KEY is NOT configured in preview env — verified that send_email short-circuits with {success:False, error:'Email service not configured'} and the dispatcher gracefully returns {sent:False, reason:'send_failed'} without raising — customer-facing endpoints continue to return 200 with the customer_facing_summary payload.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration150_wrap_notifications.py",
+    "/app/test_reports/pytest/iteration150_results.xml",
+    "/app/test_reports/pytest/iteration150_regression_148.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "services/wrap_notifications.py is clean (~240 lines, one public coroutine, 5 helpers, ACTION_META dict). Internal-data exclusion is enforced by construction: only the explicit safe fields are passed into _render_html. No risk of accidental field leak unless a future caller passes a sensitive value as an extra row.",
+    "Idempotency guards live in routes/portal.py at the call site (was_X flag read BEFORE the wrap_data update, then 'if not was_X: dispatch'). This pattern is correct and verified by the email_logs side-channel test — second calls insert zero new logs.",
+    "request-revision intentionally lacks an idempotency guard and dispatches every call. Verified: revision_count increments and a new email_log attempt fires on each call.",
+    "_resolve_shop_email validates via simple '@' substring — could be tightened with email-format regex, but adequate for this use-case (tenant fields are admin-managed).",
+    "EmailService is INSTANTIATED PER CALL inside the helper (`EmailService().send_email(...)`) instead of reusing the module-level `email_service` singleton at the bottom of services/email_service.py. Functionally fine (no state), but inconsistent with how other modules import the singleton. Minor — not blocking.",
+    "Helper try/except is broad (catches Exception) which is correct here — we MUST NOT propagate. The exception detail is logged via logger.warning, so observability is preserved.",
+    "Carry-over from iter149: routes/wrap/core.py is still ~2000 lines. Out of scope for this iteration but worth splitting in a future pass."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration150_wrap_notifications.py (new — 19 tests)"
+  ],
+  "success_rate": {
+    "backend": "100% (19/19 new tests + 34/34 regression = 53/53 passed)",
+    "frontend": "N/A (frontend testing skipped per request)"
+  },
+  "test_credentials": "Admin: thesigntistslab@gmail.com / password123. Portal: taxtest_non@example.com / portal123 (customer 1eaeec1d-6fbb-48fa-aa96-ecc4298bdb8b).",
+  "seed_data_creation": "Reused module-scoped fixture order_customer_swap (from iter148/149) on order 118b7377-... + ticket aa0387f8-.... Side-effects on the existing wrap_data doc: design.revision_notes grew by 3 entries (revision_count now ~7+); design.proof_status='revision_requested'; approvals.proof_approved last left True by approve-proof tests then later cleared by revision-request tests; approvals.quote_approved/contract_signed/inspection_acknowledged left True; aftercare.aftercare_status='acknowledged'. No new persistent orders/customers/tickets created. inspection.customer_visible left =true.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iter150 follow-up to Phase 2F is 100% green (53/53). New file: /app/backend/tests/test_iteration150_wrap_notifications.py — 4 test classes: TestHelperModuleShape (7 unit tests, no HTTP), TestPortalEndpointsFailureIsolation (6 HTTP tests against real endpoints), TestIdempotencyViaEmailLogs (5 tests using email_logs row-count as a deterministic side-channel), TestDispatchCallOrder (1 monkeypatched test). Pattern of `_LOOP = asyncio.new_event_loop()` + module-level singleton `_mongo_db()` works around motor's loop-binding when mixing sync HTTP requests with async Mongo reads. SENDGRID_API_KEY remains unset in preview — email_logs collection is therefore not actually written on first calls either (send_email short-circuits before insert), which makes the idempotency tests trivially pass — but the same test would still detect a regression if SENDGRID got configured: a non-idempotent endpoint would produce after > before. The pattern is future-proof. Future scope: routes/wrap/core.py refactor (~2000 lines, carry-over from iter147/148).",
+  "rca of the issue": "N/A — no bugs found. The new helper services/wrap_notifications.py + 6 dispatcher call-sites in routes/portal.py all behave per spec: idempotent ack dispatches (false→true guard), non-idempotent revision dispatch, recipient resolution priority, body-safety (no internal field leak), failure isolation (200 always, even with SENDGRID unconfigured)."
+}

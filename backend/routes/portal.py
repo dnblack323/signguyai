@@ -1435,6 +1435,13 @@ async def portal_wrap_approve_proof(
 ):
     ticket = await _portal_load_wrap_ticket(customer, job_id, ticket_id)
     tenant_id = customer.get("tenant_id")
+    # Idempotency guard: only notify on the first transition to approved
+    pre = await db.wrap_data.find_one(
+        {"tenant_id": tenant_id, "ticket_id": ticket_id},
+        {"_id": 0, "approvals.proof_approved": 1},
+    ) or {}
+    was_approved = bool(((pre.get("approvals") or {}).get("proof_approved")))
+
     now_iso = datetime.now(timezone.utc).isoformat()
     display_name = _customer_display_name(customer)
     await db.wrap_data.update_one(
@@ -1447,6 +1454,16 @@ async def portal_wrap_approve_proof(
         }},
     )
     await _portal_set_wrap_approval(tenant_id, ticket_id, "proof_approved", True)
+
+    if not was_approved:
+        from services.wrap_notifications import send_wrap_portal_action_notification
+        await send_wrap_portal_action_notification(
+            tenant_id=tenant_id,
+            ticket_id=ticket_id,
+            action_key="proof_approved",
+            extra={"Approved by": display_name},
+        )
+
     from routes.wrap.portal import build_customer_facing_summary
     return await build_customer_facing_summary(tenant_id, ticket_id, ticket)
 
@@ -1504,6 +1521,20 @@ async def portal_wrap_request_revision(
     )
     # Make sure proof_approved is cleared (idempotent)
     await _portal_set_wrap_approval(tenant_id, ticket_id, "proof_approved", False)
+
+    # Revisions are intentionally NOT de-duped — every request has unique notes
+    # and the shop should see each one.
+    from services.wrap_notifications import send_wrap_portal_action_notification
+    await send_wrap_portal_action_notification(
+        tenant_id=tenant_id,
+        ticket_id=ticket_id,
+        action_key="revision_requested",
+        extra={
+            "Requested by": display_name,
+            "Notes": (payload.notes or "").strip()[:500] or "(no notes)",
+        },
+    )
+
     from routes.wrap.portal import build_customer_facing_summary
     return await build_customer_facing_summary(tenant_id, ticket_id, ticket)
 
@@ -1517,6 +1548,13 @@ async def portal_wrap_acknowledge_contract(
 ):
     ticket = await _portal_load_wrap_ticket(customer, job_id, ticket_id)
     tenant_id = customer.get("tenant_id")
+    # Idempotency guard
+    pre = await db.wrap_data.find_one(
+        {"tenant_id": tenant_id, "ticket_id": ticket_id},
+        {"_id": 0, "approvals.contract_signed": 1},
+    ) or {}
+    was_signed = bool(((pre.get("approvals") or {}).get("contract_signed")))
+
     now_iso = datetime.now(timezone.utc).isoformat()
     display_name = (payload.signed_by or "").strip() or _customer_display_name(customer)
     await db.wrap_data.update_one(
@@ -1531,6 +1569,16 @@ async def portal_wrap_acknowledge_contract(
         }},
     )
     await _portal_set_wrap_approval(tenant_id, ticket_id, "contract_signed", True)
+
+    if not was_signed:
+        from services.wrap_notifications import send_wrap_portal_action_notification
+        await send_wrap_portal_action_notification(
+            tenant_id=tenant_id,
+            ticket_id=ticket_id,
+            action_key="contract_signed",
+            extra={"Signed by": display_name, "Accepted terms": "Yes" if payload.accepted_terms else "No"},
+        )
+
     from routes.wrap.portal import build_customer_facing_summary
     return await build_customer_facing_summary(tenant_id, ticket_id, ticket)
 
@@ -1543,7 +1591,23 @@ async def portal_wrap_approve_quote(
 ):
     ticket = await _portal_load_wrap_ticket(customer, job_id, ticket_id)
     tenant_id = customer.get("tenant_id")
+    pre = await db.wrap_data.find_one(
+        {"tenant_id": tenant_id, "ticket_id": ticket_id},
+        {"_id": 0, "approvals.quote_approved": 1},
+    ) or {}
+    was_approved = bool(((pre.get("approvals") or {}).get("quote_approved")))
+
     await _portal_set_wrap_approval(tenant_id, ticket_id, "quote_approved", True)
+
+    if not was_approved:
+        from services.wrap_notifications import send_wrap_portal_action_notification
+        await send_wrap_portal_action_notification(
+            tenant_id=tenant_id,
+            ticket_id=ticket_id,
+            action_key="quote_approved",
+            extra={"Approved by": _customer_display_name(customer)},
+        )
+
     from routes.wrap.portal import build_customer_facing_summary
     return await build_customer_facing_summary(tenant_id, ticket_id, ticket)
 
@@ -1569,6 +1633,7 @@ async def portal_wrap_acknowledge_inspection(
             status_code=400,
             detail="Inspection report has not been shared with you yet.",
         )
+    was_acked = bool(insp.get("customer_acknowledged"))
     now_iso = datetime.now(timezone.utc).isoformat()
     await db.wrap_data.update_one(
         {"tenant_id": tenant_id, "ticket_id": ticket_id},
@@ -1580,6 +1645,16 @@ async def portal_wrap_acknowledge_inspection(
         }},
     )
     await _portal_set_wrap_approval(tenant_id, ticket_id, "inspection_acknowledged", True)
+
+    if not was_acked:
+        from services.wrap_notifications import send_wrap_portal_action_notification
+        await send_wrap_portal_action_notification(
+            tenant_id=tenant_id,
+            ticket_id=ticket_id,
+            action_key="inspection_acknowledged",
+            extra={"Acknowledged by": _customer_display_name(customer)},
+        )
+
     from routes.wrap.portal import build_customer_facing_summary
     return await build_customer_facing_summary(tenant_id, ticket_id, ticket)
 
@@ -1598,6 +1673,7 @@ async def portal_wrap_acknowledge_aftercare(
         {"tenant_id": tenant_id, "ticket_id": ticket_id},
         {"_id": 0, "aftercare": 1},
     ) or {}
+    was_acked = bool(((existing.get("aftercare") or {}).get("customer_acknowledged")))
     existing_ts = ((existing.get("aftercare") or {}).get("customer_acknowledged_at"))
     set_updates: Dict[str, Any] = {
         "aftercare.customer_acknowledged": True,
@@ -1617,6 +1693,16 @@ async def portal_wrap_acknowledge_aftercare(
         {"tenant_id": tenant_id, "ticket_id": ticket_id},
         {"$set": set_updates},
     )
+
+    if not was_acked:
+        from services.wrap_notifications import send_wrap_portal_action_notification
+        await send_wrap_portal_action_notification(
+            tenant_id=tenant_id,
+            ticket_id=ticket_id,
+            action_key="aftercare_acknowledged",
+            extra={"Acknowledged by": _customer_display_name(customer)},
+        )
+
     from routes.wrap.portal import build_customer_facing_summary
     return await build_customer_facing_summary(tenant_id, ticket_id, ticket)
 
