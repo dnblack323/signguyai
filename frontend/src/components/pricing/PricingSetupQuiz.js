@@ -145,6 +145,34 @@ const SECTIONS = [
       { key: 'pc_min_order',             label: 'Minimum order amount',       prefix: '$', suffix: '/order' },
     ],
   },
+  {
+    key: 'labor_design',
+    title: 'Labor & Design Time',
+    description: 'Realistic production and design time assumptions to avoid overestimating labor costs.',
+    questions: [
+      { key: 'shop_labor_rate', label: 'Normal shop labor rate', prefix: '$', suffix: '/hr', help: 'Your standard production labor rate per hour.' },
+      { key: 'include_labor_in_price', label: 'Include production labor in customer pricing?', type: 'choice', options: [
+        { value: 'yes', label: 'Yes - include labor in price' },
+        { value: 'no', label: 'No - track internally only' },
+      ], help: 'If "No", labor is tracked but not added to customer quotes.' },
+      { key: 'charge_design_separately', label: 'Charge separately for design/artwork?', type: 'choice', options: [
+        { value: 'yes', label: 'Yes' },
+        { value: 'no', label: 'No' },
+        { value: 'sometimes', label: 'Sometimes' },
+      ], help: 'Whether design is billed as a separate line item.' },
+      { key: 'default_design_rate', label: 'Design/artwork rate', prefix: '$', suffix: '/hr', help: 'Hourly rate for graphic design work.' },
+      { key: 'included_design_minutes', label: 'Basic design minutes included', prefix: '', suffix: ' mins', help: 'Free design time before charging extra.' },
+      { key: 'banner_production_minutes', label: 'Basic banner production/finishing minutes', prefix: '', suffix: ' mins', help: 'Total time for a simple banner (e.g., 20 mins).' },
+      { key: 'rigid_sign_production_minutes', label: 'Basic rigid sign production/finishing minutes', prefix: '', suffix: ' mins', help: 'Total time for a simple rigid sign (e.g., 20 mins).' },
+      { key: 'yard_sign_setup_minutes', label: 'Yard sign batch setup minutes', prefix: '', suffix: ' mins', help: 'One-time setup per batch (e.g., 10 mins).' },
+      { key: 'yard_sign_minutes_per_sign', label: 'Yard sign production minutes per sign', prefix: '', suffix: ' mins', help: 'Time per individual yard sign (e.g., 2 mins).' },
+      { key: 'cut_vinyl_production_minutes', label: 'Basic cut vinyl production/weeding minutes', prefix: '', suffix: ' mins', help: 'Total time for a simple vinyl job (e.g., 30 mins).' },
+      { key: 'digital_print_production_minutes', label: 'Basic decal/print production/finishing minutes', prefix: '', suffix: ' mins', help: 'Total time for simple digital print (e.g., 20 mins).' },
+      { key: 'vehicle_lettering_setup_minutes', label: 'Simple vehicle lettering setup/production minutes', prefix: '', suffix: ' mins', help: 'Time for basic vehicle lettering (e.g., 60 mins).' },
+      { key: 'apparel_setup_minutes', label: 'Apparel order setup minutes', prefix: '', suffix: ' mins', help: 'Setup time per apparel order (e.g., 15 mins).' },
+      { key: 'apparel_minutes_per_item', label: 'Apparel production minutes per item', prefix: '', suffix: ' mins', help: 'Time per individual apparel piece (e.g., 3 mins).' },
+    ],
+  },
 ];
 
 // ─────────── Helpers ───────────
@@ -788,6 +816,134 @@ function buildSuggestions(rawAnswers) {
     confidence: 'high', section: 'Promotional / Custom',
   });
 
+  // ────────── Labor & Design Time ──────────
+  const shopLaborRate = num(answers.shop_labor_rate);
+  const includeLaborInPrice = answers.include_labor_in_price || 'yes';
+  const chargeDesignSeparately = answers.charge_design_separately || 'yes';
+  const defaultDesignRate = num(answers.default_design_rate);
+  const includedDesignMinutes = num(answers.included_design_minutes);
+  const bannerProdMins = num(answers.banner_production_minutes);
+  const rigidSignProdMins = num(answers.rigid_sign_production_minutes);
+  const yardSignSetupMins = num(answers.yard_sign_setup_minutes);
+  const yardSignMinsPerSign = num(answers.yard_sign_minutes_per_sign);
+  const cutVinylProdMins = num(answers.cut_vinyl_production_minutes);
+  const digitalPrintProdMins = num(answers.digital_print_production_minutes);
+  const vehicleLetteringMins = num(answers.vehicle_lettering_setup_minutes);
+  const apparelSetupMins = num(answers.apparel_setup_minutes);
+  const apparelMinsPerItem = num(answers.apparel_minutes_per_item);
+
+  if (shopLaborRate) add({
+    id: 'shop_labor_rate', field: 'Labor — shop labor rate',
+    path: ['labor', 'shop_labor_rate'],
+    suggestedValue: r2(shopLaborRate),
+    sourceAnswer: `$${shopLaborRate}/hr`,
+    confidence: 'high', section: 'Labor & Design Time',
+  });
+  
+  add({
+    id: 'include_labor_in_price', field: 'Labor — include in price',
+    path: ['labor', 'include_labor_in_price'],
+    suggestedValue: includeLaborInPrice === 'yes',
+    sourceAnswer: includeLaborInPrice === 'yes' ? 'Include in price' : 'Track internally only',
+    confidence: 'high', section: 'Labor & Design Time',
+  });
+
+  add({
+    id: 'charge_design_separately', field: 'Design — charge separately',
+    path: ['design', 'charge_design_separately'],
+    suggestedValue: chargeDesignSeparately,
+    sourceAnswer: chargeDesignSeparately === 'yes' ? 'Yes' : (chargeDesignSeparately === 'no' ? 'No' : 'Sometimes'),
+    confidence: 'high', section: 'Labor & Design Time',
+  });
+
+  if (defaultDesignRate) add({
+    id: 'default_design_rate', field: 'Design — hourly rate',
+    path: ['design', 'default_design_rate'],
+    suggestedValue: r2(defaultDesignRate),
+    sourceAnswer: `$${defaultDesignRate}/hr`,
+    confidence: 'high', section: 'Labor & Design Time',
+  });
+
+  if (includedDesignMinutes) add({
+    id: 'included_design_minutes', field: 'Design — included minutes',
+    path: ['design', 'included_design_minutes'],
+    suggestedValue: r1(includedDesignMinutes),
+    sourceAnswer: `${includedDesignMinutes} mins`,
+    confidence: 'high', section: 'Labor & Design Time',
+  });
+
+  if (bannerProdMins) add({
+    id: 'banner_production_minutes', field: 'Banners — production minutes',
+    path: ['category_defaults', 'banners', 'production_minutes_basic'],
+    suggestedValue: r1(bannerProdMins),
+    sourceAnswer: `${bannerProdMins} mins`,
+    confidence: 'high', section: 'Labor & Design Time',
+  });
+
+  if (rigidSignProdMins) add({
+    id: 'rigid_sign_production_minutes', field: 'Rigid Signs — production minutes',
+    path: ['category_defaults', 'rigid_signs', 'production_minutes_basic'],
+    suggestedValue: r1(rigidSignProdMins),
+    sourceAnswer: `${rigidSignProdMins} mins`,
+    confidence: 'high', section: 'Labor & Design Time',
+  });
+
+  if (yardSignSetupMins) add({
+    id: 'yard_sign_setup_minutes', field: 'Yard Signs — setup minutes',
+    path: ['category_defaults', 'rigid_signs', 'yard_sign_setup_minutes'],
+    suggestedValue: r1(yardSignSetupMins),
+    sourceAnswer: `${yardSignSetupMins} mins`,
+    confidence: 'high', section: 'Labor & Design Time',
+  });
+
+  if (yardSignMinsPerSign) add({
+    id: 'yard_sign_minutes_per_sign', field: 'Yard Signs — minutes per sign',
+    path: ['category_defaults', 'rigid_signs', 'yard_sign_minutes_per_sign'],
+    suggestedValue: r1(yardSignMinsPerSign),
+    sourceAnswer: `${yardSignMinsPerSign} mins/sign`,
+    confidence: 'high', section: 'Labor & Design Time',
+  });
+
+  if (cutVinylProdMins) add({
+    id: 'cut_vinyl_production_minutes', field: 'Cut Vinyl — production minutes',
+    path: ['category_defaults', 'cut_vinyl', 'production_minutes_basic'],
+    suggestedValue: r1(cutVinylProdMins),
+    sourceAnswer: `${cutVinylProdMins} mins`,
+    confidence: 'high', section: 'Labor & Design Time',
+  });
+
+  if (digitalPrintProdMins) add({
+    id: 'digital_print_production_minutes', field: 'Digital Print — production minutes',
+    path: ['category_defaults', 'digital_print', 'production_minutes_basic'],
+    suggestedValue: r1(digitalPrintProdMins),
+    sourceAnswer: `${digitalPrintProdMins} mins`,
+    confidence: 'high', section: 'Labor & Design Time',
+  });
+
+  if (vehicleLetteringMins) add({
+    id: 'vehicle_lettering_setup_minutes', field: 'Vehicle Graphics — lettering minutes',
+    path: ['category_defaults', 'vehicle_graphics', 'lettering_setup_minutes'],
+    suggestedValue: r1(vehicleLetteringMins),
+    sourceAnswer: `${vehicleLetteringMins} mins`,
+    confidence: 'high', section: 'Labor & Design Time',
+  });
+
+  if (apparelSetupMins) add({
+    id: 'apparel_setup_minutes', field: 'Apparel — setup minutes',
+    path: ['category_defaults', 'apparel', 'setup_minutes_per_order'],
+    suggestedValue: r1(apparelSetupMins),
+    sourceAnswer: `${apparelSetupMins} mins`,
+    confidence: 'high', section: 'Labor & Design Time',
+  });
+
+  if (apparelMinsPerItem) add({
+    id: 'apparel_minutes_per_item', field: 'Apparel — minutes per item',
+    path: ['category_defaults', 'apparel', 'production_minutes_per_item'],
+    suggestedValue: r1(apparelMinsPerItem),
+    sourceAnswer: `${apparelMinsPerItem} mins/item`,
+    confidence: 'high', section: 'Labor & Design Time',
+  });
+
   return out;
 }
 
@@ -806,6 +962,29 @@ function QuestionRow({ q, value, onChange }) {
           onCheckedChange={(v) => onChange(q.key, v)}
           data-testid={`quiz-bool-${q.key}`}
         />
+      </div>
+    );
+  }
+  if (q.type === 'choice') {
+    return (
+      <div className="p-3 bg-slate-50 rounded-lg" data-testid={`quiz-q-${q.key}`}>
+        <Label className="text-sm">{q.label}</Label>
+        {q.help && <p className="text-xs text-slate-500 mt-0.5 mb-2">{q.help}</p>}
+        <div className="mt-2 space-y-2">
+          {q.options.map((opt) => (
+            <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name={q.key}
+                value={opt.value}
+                checked={value === opt.value}
+                onChange={(e) => onChange(q.key, e.target.value)}
+                className="w-4 h-4"
+              />
+              <span className="text-sm">{opt.label}</span>
+            </label>
+          ))}
+        </div>
       </div>
     );
   }

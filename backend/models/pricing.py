@@ -337,6 +337,7 @@ class PricingDefaults(BaseModel):
             "default_labor_types": ["production"],
             "sell_rate_defaults": {},
             "ai_prefill_overrides": {},
+            "production_minutes_basic": 20.0,
             "default_print_media_key": "printable_adhesive_vinyl",
             "default_ink_material_key": "digital_print_ink",
             "available_print_media_keys": [
@@ -400,13 +401,14 @@ class PricingDefaults(BaseModel):
             "default_markup_multiplier": 2.4,
             "target_profit_margin_percent": 42.0,
             "minimum_charge": 150.0,
-            "default_material_keys": ["wrap_standard_calendared", "wrap_laminate_gloss"],
+            "default_material_keys": ["wrap_standard_calendered", "wrap_laminate_gloss"],
             "default_hardware_keys": [],
             "default_labor_types": ["installation", "design"],
             "sell_rate_defaults": {},
             "ai_prefill_overrides": {},
+            "lettering_setup_minutes": 60.0,
             # Materials foundation
-            "default_wrap_material_key": "wrap_standard_calendared",
+            "default_wrap_material_key": "wrap_standard_calendered",
             "available_wrap_material_keys": [
                 "wrap_standard_calendared",
                 "wrap_premium_cast",
@@ -515,6 +517,7 @@ class PricingDefaults(BaseModel):
             "default_labor_types": ["production"],
             "sell_rate_defaults": {},
             "ai_prefill_overrides": {},
+            "production_minutes_basic": 20.0,
             "default_banner_material_key": "banner_13oz",
             "available_banner_material_keys": [
                 "banner_13oz",
@@ -600,6 +603,9 @@ class PricingDefaults(BaseModel):
             "default_labor_types": ["production", "installation"],
             "sell_rate_defaults": {},
             "ai_prefill_overrides": {},
+            "production_minutes_basic": 20.0,
+            "yard_sign_setup_minutes": 10.0,
+            "yard_sign_minutes_per_sign": 2.0,
             "default_substrate_key": "coroplast_4mm",
             "available_substrate_keys": [
                 "coroplast_4mm",
@@ -687,6 +693,7 @@ class PricingDefaults(BaseModel):
             "default_labor_types": ["production"],
             "sell_rate_defaults": {},
             "ai_prefill_overrides": {},
+            "production_minutes_basic": 30.0,
             "default_vinyl_type_key": "oracal_651",
             "available_vinyl_type_keys": [
                 "oracal_651",
@@ -770,6 +777,8 @@ class PricingDefaults(BaseModel):
             "default_labor_types": ["production"],
             "sell_rate_defaults": {},
             "ai_prefill_overrides": {},
+            "setup_minutes_per_order": 15.0,
+            "production_minutes_per_item": 3.0,
             # ===== Decoration method architecture (structural support for all methods) =====
             "default_decoration_method": "htv",
             "available_decoration_methods": [
@@ -1200,6 +1209,19 @@ class PricingDefaults(BaseModel):
     setup_fee_print: float = 25.0
     setup_fee_apparel_screen: float = 35.0
     setup_fee_apparel_dtf: float = 20.0
+    
+    # Labor configuration
+    labor: Dict[str, Any] = Field(default_factory=lambda: {
+        "shop_labor_rate": 75.0,
+        "include_labor_in_price": True,
+    })
+    
+    # Design configuration
+    design: Dict[str, Any] = Field(default_factory=lambda: {
+        "default_design_rate": 85.0,
+        "charge_design_separately": "yes",
+        "included_design_minutes": 30.0,
+    })
     
     # Quantity break thresholds and discounts
     quantity_breaks: Dict[str, Any] = Field(default_factory=lambda: {
