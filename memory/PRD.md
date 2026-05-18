@@ -22,6 +22,13 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-05-18 — **Wrap Command Center — Shop Email Notifications (Phase 2F follow-up)**:
+  - New helper `services/wrap_notifications.py` (`send_wrap_portal_action_notification`) builds + dispatches a SendGrid email via the existing `EmailService` on every customer portal wrap action.
+  - **6 actions wired in `routes/portal.py`** with idempotency guards (false→true transition only): `approve-proof` → "Wrap Proof Approved", `acknowledge-contract` → "Wrap Contract Signed", `approve-quote` → "Wrap Quote Approved", `acknowledge-inspection` → "Wrap Inspection Acknowledged", `acknowledge-aftercare` → "Wrap Aftercare Acknowledged". `request-revision` → "Wrap Revision Requested" fires every time (each request has unique notes).
+  - **Recipient resolution**: `tenant.notification_email > business_email > email > owner_email`. No email on tenant → log + skip, customer action still 200.
+  - **Failure isolation**: dispatch is wrapped in broad try/except + logger.warning. SendGrid not configured / API failure / Mongo error in helper → customer action still returns 200 with the customer-facing summary.
+  - **Body safety**: only safe fields render (shop name, customer name+email, order #, item name, wrap type, vehicle, timestamp, action-specific extras). No profit/margin/material cost/labor cost/internal/damage/install notes leak — enforced by construction.
+  - **Tested**: testing_agent_v3_fork iteration 150 → 19/19 new tests + 34/34 regression (test_iteration148) = **53/53 backend pass** (5.03s + 6.18s). Frontend untouched. New test file: `/app/backend/tests/test_iteration150_wrap_notifications.py`.
 - 2026-05-18 — **Wrap Command Center Phase 2F (Polish + Customer Portal Integration)**:
   - **Backend refactor**: `routes/wrap.py` split into a `routes/wrap/` package — `__init__.py` aggregates `core.py` (all Phase 1-2E logic) + `files.py` + `portal.py` + `pdfs.py` sub-routers under the same `/wrap` prefix. All existing endpoint paths and response shapes preserved.
   - **Visual damage diagram**: New `WrapVehicleDiagram` SVG component (10 generic vehicle outlines). Click-to-arm then click-to-add marker captures `x_percent`/`y_percent` (0-100). New `DamageMarker.x_percent/y_percent/marker_label` fields persist round-trip via existing POST/PUT `inspection/damage-markers`. Selected marker syncs between SVG circle and list row. Severity-color-coded.
