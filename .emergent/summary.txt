@@ -1,61 +1,66 @@
-<analysis>**original_problem_statement**: The app must serve as a robust SaaS for sign shops with fully functioning AI tools, an actionable chat assistant, and seamless Stripe transactions for both the tenant and their webstore customers. Recently, the focus shifted to fixing production bugs, heavily upgrading the AI Assistant to perform actual tool-calling, and optimizing the UX of the Production Board to handle crowded ticket views. PRODUCT REQUIREMENTS: A full-stack business management app with customer management, quoting, invoicing, job tracking, and Stripe Connect integrations.
+<analysis>**original_problem_statement**: The app must serve as a robust SaaS for sign shops with fully functioning AI tools, an actionable chat assistant, and seamless Stripe transactions. PRODUCT REQUIREMENTS: A full-stack business management app with customer management, quoting, invoicing, job tracking, and Stripe Connect integrations. *New Goal:* Cleanup and optimize the Pricing Foundation by hiding unused UI fields, resolving duplicate dropdown options, and transitioning the pricing calculator from unrealistic square-foot-based labor hours to accurate, category-specific minute-based labor tracking.
 
 **User's preferred language**: English (INSTRUCT next agent to respond in English only)
 
-**what currently exists?** 
-A full-stack SaaS app featuring robust AI tools, complete platform admin operations, custom tenant hierarchy, Stripe Connect integrations, a highly capable tool-calling AI assistant (with proactive nudges and CRM capabilities), and an optimized Production Board with a kanban workflow that supports Focus mode and per-order rollups to eliminate clutter.
+**what currently exists?**: A full-stack SaaS app featuring robust AI tools, complete platform admin operations, custom tenant hierarchy, Wrap Command Center, and a comprehensive Pricing Calculator. The backend Pricing Models and frontend quiz have been successfully updated with new minute-based labor and design charge fields. Safe cosmetic cleanup of unused Pricing Foundation UI fields and duplicate material dropdowns is complete. The backend  has been partially updated (helpers injected,  updated).
 
 **Last working item**: 
-    - Last item agent was working: Upgrading the  UI. The user complained that having every stage visible at once made it too crowded. The agent implemented a Hybrid solution (Per-order rollup + Focus mode toggle) where only the active step is visible, and the next step appears upon task completion. 
-    - Status: USER VERIFICATION PENDING
-    - Agent Testing Done: Y
-    - Which testing method agent to use? screenshot tool / manual testing by curl
+    - Last item agent was working: The agent sent an  tool call to get user approval on the plan to finish updating the core pricing calculator logic in  to use minute-based labor and design charge fields. Currently waiting for the user's response to proceed.
+    - Status: IN PROGRESS
+    - Agent Testing Done: N
+    - Which testing method agent to use? backend testing via  or  against the pricing calculation endpoint () using the sample test cases provided by the user.
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:  
-  - Issue 1: High Material Cost Calculation in Production Pricing Foundation (P0)
-     - Attempted fixes: User shared a screenshot showing a 20.96 material cost for a 96x48 Coroplast sign, stating it does not make sense. Agent investigated and found the Preview environment calculates a correct 2.24. The issue is likely caused by the user inflating values in their *Production* Pricing Foundation settings (e.g., entering retail price instead of wholesale for , bumping , or increasing waste %). 
-     - Next debug checklist: Follow up with the user on their Pricing Foundation values in their production environment. The agent previously asked the user for this info, but the user ignored the question and pivoted to the Production Board task. Guide the user on how to fix this in their live environment.
-     - Why fix this issue and what will be achieved with the fix? Resolves the user's confusion about high pricing math and ensures accurate quoting.
-     - Status: BLOCKED (Waiting on user reply/acknowledgment).
+  - Issue 1: High Material Cost Calculation in Production Pricing Foundation (P1)
+     - Attempted fixes: Agent previously proved via logs/tests that the environment math is correct and the issue lies in the user's settings.
+     - Next debug checklist: Await user acknowledgment.
+     - Why fix this issue and what will be achieved with the fix? Resolves user confusion about high pricing math.
+     - Status: BLOCKED (Waiting on user reply/acknowledgment)
      - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? NA (User configuration issue).
-     - Blocked on other issue: User input regarding their production settings.
-
-  - Issue 2: Meta OAuth / Webhook End-to-End Verification (P1)
+     - Should Test frontend/backend/both after fix? NA
+     - Blocked on other issue: User input
+  - Issue 2: Meta OAuth / Webhook End-to-End Verification (P2)
      - Attempted fixes: NA
      - Next debug checklist: Await User Meta app configuration.
      - Why fix this issue and what will be achieved with the fix? Completes social integration.
      - Status: BLOCKED
      - Is recurring issue? N
      - Should Test frontend/backend/both after fix? both
-     - Blocked on other issue: User Meta app config.
+     - Blocked on other issue: User Meta app config
+  - Issue 3: Real Generative Fill / Logo Refresher Image-to-Image logic (P2)
+     - Attempted fixes: NA
+     - Next debug checklist: Build out proper Img2Img endpoints (tools are currently hidden from UI).
+     - Why fix this issue and what will be achieved with the fix? Activates hidden design tools.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? both
+     - Blocked on other issue: NA
 
 **In progress Task List**: 
-   None
+  - Task 1: Update Remaining Calculator Logic for Minute-Based Labor & Design Charges (P0)
+     - Where to resume: Await user response to , then open  and continue updating the remaining category calculator functions (, , , , , ). Replace their old production labor and design fee logic with calls to the injected  and  helper functions.
+     - What will be achieved with this? Stops the calculator from assuming several unrealistic hours for simple items, utilizing the new exact-minute fields set in the Pricing Foundation.
+     - Status: IN PROGRESS
+     - Should Test frontend/backend/both after fix? backend (verify exact calculation formulas against testing output samples).
+     - Blocked on something: Waiting on user's reply to the plan sent via .
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
-    - P1: Add Confirm / Reject Quick Action buttons directly inside Appointment Notification emails.
-    - P2: Work-ticket PDF endpoint ().
-    - P2: Platform Admin Phase 2 Extensions: Add Internal Notes and User invite flow to the Platform Admin Tenant Detail page.
-
+    - P3: Platform Admin Phase 2 Extensions: Add Internal Notes and User invite flow to the Platform Admin Tenant Detail page.
+    
     Future Tasks:
-    - P3: Platform Admin Phase 3/4 Extensions.
-    - P3: Meta Messenger Phase 2.
-    - P3: Decide final home for hidden .
+    - P4: Admin Portal communication template system (Daily digest emails, template picker, message categories, AI message generation).
+    - P4: Platform Admin Phase 3/4 Extensions.
+    - P4: Meta Messenger Phase 2.
+    - P4: Shop-side digest email.
 
 **Completed work in this session**
-- Completed AI Assistant Pass 5: Wired up  and  tools to the frontend () and backend commit endpoints. (DONE)
-- Made AI-set reminders actionable in the Dashboard  with full dismiss routing. (DONE)
-- Implemented Focus Mode and Per-order rollup toggles on the Production Board Kanban view to reduce visual clutter. (DONE)
+- Sent plan to user via  tool for finalizing the  calculator updates (Pending Response).
+*(Note: Most actual code completion like the 14 new minute-based Labor/Design questions and the injection of calculator helpers were completed right before this session fork).*
 
 **Earlier issues found/mentioned but not fixed**
-   - Issue 1: Real Generative Fill / Logo Refresher Image-to-Image logic
-   - Debug checklist: Build out proper Img2Img endpoints (currently tools are hidden from UI).
-   - Why to solve this issue and what will be achieved with this? Activates the hidden design tools.
-   - Should Test frontend/backend/both after fix: both
-   - Is recurring issue? N
+   - None
 
 **Known issue recurrence from previous fork**
   - Issue recurrence in previous fork: None
@@ -63,59 +68,49 @@ A full-stack SaaS app featuring robust AI tools, complete platform admin operati
   - Status: RESOLVED
 
 **Code Architecture**
-- Backend: FastAPI. Routing split across modular files.
-- Frontend: React + Shadcn UI + Tailwind.
-- AI Assistant: Main chat completion in . Tool registry, definitions, and commit actions extracted to .
-- Payment: Custom Stripe Connect wrapper in  / .
+- Backend: FastAPI. All complex pricing mathematical logic resides in  ( and its category sub-functions). Pricing schemas and default structures live in .
+- Frontend: React + Shadcn UI + Tailwind.  holds the main admin UI for pricing settings;  controls the initial configuration logic.
 
 **Key Technical Concepts**
-- **AI Tool Router**: Uses a pre-router LLM call () to classify intent. Short-circuits the main chat response.
-- **Production Board State**: Uses React state to manage kanban columns (). Now includes a  and  logic to dynamically hide empty stages or group multiple tasks under one order card.
+- **Minute-Based Labor Transition**: Moving away from  assumptions for basic items. Logic checks  and calculates based on  (or category equivalents) divided by 60, multiplied by .
+- **Design Charge Rules**: Design fees are isolated. If  is false/No, fee is /bin/bash. If Yes, it deducts  from the job's total design time before applying the .
+- **Non-Destructive Cleanup**: Cleanup actions are strictly additive or UI-hiding. Backend fields, material IDs, and old stored order aliases remain intact to prevent historical data corruption.
 
 **key DB schema**
-  - : {tenant_id, user_id, messages[]}
-  - : added 
+  - : Houses , , and  dictionaries containing default rates and minute estimates.
 
 **changes in tech stack**
   - None
 
 **All files of reference** 
-  -  (Updated with Focus mode and rollup logic)
-  -  (Updated to handle new AI tools and reminder dismissals)
-  -  (Updated for nudges endpoint)
-  -  (Updated  for  and )
-  -  (Updated to trigger dismiss actions)
+  -  (Currently being updated with new labor functions)
+  - 
+  - 
+  - 
 
 **Areas that need refactoring**: 
-- The massive  array was discussed for a mini-refactor (extracting static config to ).
+-  is extremely large (~4500 lines) and could benefit from extracting calculator logic into separate files in the future. (Do NOT refactor this right now; stick to the user's specific request).
 
 **key api endpoints**
-- 
-- 
-- 
--  
-- 
+-  (Core pricing generation endpoint)
 
 **Critical Info for New Agent** 
-- **Environments**: The user has deployed the app to production (). You are working strictly in the **PREVIEW** environment. The user frequently uploads screenshots from their Production environment. If an issue cannot be replicated in preview (like the P0 High Material Cost issue), it is likely a configuration mismatch in their production database. You cannot modify the production DB, so you must guide the user on how to update their own settings via the UI.
+- **DO NOT** delete any backend database fields, DB schema keys, or rewrite historical orders while updating calculator logic.
+- **DO NOT** add the full 50-question labor quiz. The user only wanted the 14 essential fields added (which is already complete).
+- Helper functions  and  are ALREADY injected in . Your job is to wire up the remaining category functions (, , , , , ) to use them once the user confirms your plan.
 
 **documents and test reports created in this job** 
-  - 
-  - 
-  - 
+  -  (from previous run)
+  -  (from previous run)
 
 **Last 10 User Messages and any pending HUMAN messages** 
-1. *User*: Asked for the Production Board to only show active steps instead of all stages to reduce clutter.
-2. *Agent*: Offered Options A, B, C, and D for solving the Production board clutter.
-3. *User*: Responded C (Selected Hybrid: Per-order rollup + Focus mode toggle). (Agent successfully implemented this).
-4. *User*: Uploaded screenshot complaining about high material costs (20.96 for Coroplast).
-5. *Agent*: Proved via logs/tests that the preview environment math is correct (2.24) and explained the issue lies in the user's Production Pricing Foundation settings. Asked the user for clarification. (User ignored this and moved to the Production board request).
-6. *Agent*: Finished and verified AI Assistant Pass 5.
-7. *User*: Approved plan for AI Assistant Pass 5.
+ - *User*: Please use ask_human tool and confirm your plan now.
+ - *User*: [Tool result: Question has been sent to the user. Waiting for response]
+ - *Status*: Pending Human Message. The next agent will wake up to the user's answer to the plan approval.
 
 **Project Health Check:**
-- Broken: None currently identified.
-- Mocked: Meta OAuth.
+- Broken: None
+- Mocked: Meta OAuth
 
 **3rd Party Integrations** 
 - Stripe (Payments) — requires User API Key
@@ -123,21 +118,29 @@ A full-stack SaaS app featuring robust AI tools, complete platform admin operati
 - OpenAI GPT-4o-mini & GPT-4o (Chat & AI Tools) — uses Emergent LLM Key
 
 **Testing status**
-  - Testing agent used after significant changes: YES
+  - Testing agent used after significant changes: NO (Testing pending for core  modifications).
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: 
-  - Known regressions: None currently.
+  - Test files created: None
+  - Known regressions: None
 
 **Credentials to test flow:**
 - Admin/Tenant:  / 
-- Stripe Owner Portal test:  /  
 
 **What agent forgot to execute**
-- The agent properly diagnosed the user's issue with High Material Costs in the Pricing Foundation, but the user ignored the agent's question and pivoted to requesting a UI change on the Production Board. The agent finished the job after fixing the UI, but forgot to remind/follow up with the user regarding the unresolved Pricing Foundation configuration issue in their production app.
+- The agent successfully paused to use  as requested. No tasks were forgotten; the agent is simply waiting for user permission to continue updating , , , , , and  in .
 
 **Debugging checklist for current issue**
-    Issue: High Material Cost Calculation in Production Pricing Foundation (User Configuration).
+    Issue: Update remaining category pricing calculators to use minute-based labor logic.
 
-    Frontend/Backend files to check: NA (Code logic is sound, verified via tests).
+    Backend files to check: 
+    - 
     
-    Next Action: Remind the user about the previous finding. Ask them to check their Production Pricing Foundation -> Materials & Substrates tab for Coroplast 4mm , direct-print consumable cost, and waste %. Guide them to adjust these values to reflect wholesale cost rather than retail markup.</analysis>
+    Checklist:
+    1. Await user confirmation from .
+    2. Search for , , , , , .
+    3. Replace their old hourly labor derivations (e.g., , ) with the new injected  helper function using category-specific keys like .
+    4. Ensure yard signs use: .
+    5. Ensure apparel uses: .
+    6. Ensure  helper is correctly called.
+    7. Verify outputs strictly conform to the 5 testing output samples provided by the user in the previous thread.
+    8. Execute quick verification using Python script or cURL against .</analysis>
