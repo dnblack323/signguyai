@@ -256,9 +256,11 @@ export default function Questionnaires() {
     if (!sendEmail.trim() || !sendDialog) return;
     setSending(true);
     try {
-      await api.post(`/questionnaires/${sendDialog.id}/send-email`, {
+      await axios.post(`${API_URL}/api/questionnaires/${sendDialog.id}/send-email`, {
         email: sendEmail,
         public_url: window.location.origin,
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
       toast.success(`Questionnaire sent to ${sendEmail}`);
       setSendDialog(null);
