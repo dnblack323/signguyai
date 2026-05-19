@@ -775,6 +775,134 @@ async def create_document_from_ai(
     return result
 
 
+async def get_template_variables(tenant_id: str, customer_id: Optional[str] = None, job_id: Optional[str] = None) -> dict:
+    """Get all available template variables for replacement"""
+    from datetime import datetime
+    
+    variables = {
+        "today_date": datetime.now().strftime("%B %d, %Y"),
+        "today_short": datetime.now().strftime("%m/%d/%Y"),
+        "current_year": str(datetime.now().year),
+    }
+    
+    # Get tenant info
+    tenant = await db.tenants.find_one({"tenant_id": tenant_id}, {"_id": 0})
+    if tenant:
+        variables.update({
+            "company_name": tenant.get("company_name", ""),
+            "company_address": tenant.get("address", ""),
+            "company_city": tenant.get("city", ""),
+            "company_state": tenant.get("state", ""),
+            "company_zip": tenant.get("zip_code", ""),
+            "company_phone": tenant.get("phone", ""),
+            "company_email": tenant.get("email", ""),
+            "company_website": tenant.get("website", ""),
+            "logo_url": tenant.get("logo_url", ""),
+        })
+    
+    # Get customer info
+    if customer_id:
+        customer = await db.customers.find_one({"id": customer_id, "tenant_id": tenant_id}, {"_id": 0})
+        if customer:
+            variables.update({
+                "customer_name": customer.get("name", customer.get("contact_name", "")),
+                "customer_email": customer.get("email", ""),
+                "customer_phone": customer.get("phone", ""),
+                "customer_company": customer.get("company", ""),
+                "customer_address": customer.get("address", ""),
+                "customer_city": customer.get("city", ""),
+                "customer_state": customer.get("state", ""),
+                "customer_zip": customer.get("zip_code", ""),
+            })
+    
+    # Get order/job info
+    if job_id:
+        job = await db.orders.find_one({"id": job_id, "tenant_id": tenant_id}, {"_id": 0})
+        if job:
+            variables.update({
+                "order_id": job.get("order_id", job.get("id", "")),
+                "order_date": job.get("created_at", "")[:10] if job.get("created_at") else "",
+                "order_status": job.get("status", ""),
+                "order_total": f"${job.get('total', 0):.2f}" if job.get("total") else "$0.00",
+                "order_subtotal": f"${job.get('subtotal', 0):.2f}" if job.get("subtotal") else "$0.00",
+                "order_tax": f"${job.get('tax', 0):.2f}" if job.get("tax") else "$0.00",
+                "due_date": job.get("due_date", "")[:10] if job.get("due_date") else "",
+            })
+    
+    return variables
+
+
+def replace_template_variables(content: str, variables: dict) -> str:
+    """Replace {{variable_name}} placeholders in content with actual values"""
+    import re
+    
+    # Find all {{variable}} patterns
+    pattern = r'\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}'
+    
+    def replacer(match):
+        var_name = match.group(1)
+        return str(variables.get(var_name, match.group(0)))  # Keep placeholder if variable not found
+    
+    return re.sub(pattern, replacer, content)
+
+
+@router.post("/{document_id}/populate-from-template")
+async def populate_document_from_template(
+    document_id: str,
+    customer_id: Optional[str] = None,
+    job_id: Optional[str] = None,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    """Create a populated copy of a template document with real data"""
+    
+    # Get the template document
+    template = await db.documents.find_one(
+        {"id": document_id, "tenant_id": current_user.tenant_id, "is_template": True},
+        {"_id": 0}
+    )
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Get template variables
+    variables = await get_template_variables(current_user.tenant_id, customer_id, job_id)
+    
+    # Replace variables in name and description
+    new_name = replace_template_variables(template["name"], variables)
+    new_description = replace_template_variables(template.get("description", ""), variables) if template.get("description") else None
+    
+    # Create a new document (copy of template with populated data)
+    new_doc = Document(
+        id=str(uuid.uuid4()),
+        tenant_id=current_user.tenant_id,
+        name=new_name,
+        description=new_description,
+        category=template["category"],
+        file_type=template["file_type"],
+        file_size=template["file_size"],
+        file_data=template.get("file_data"),
+        storage_path=template.get("storage_path"),
+        storage_backend=template.get("storage_backend"),
+        file_url=template.get("file_url"),
+        original_filename=replace_template_variables(template["original_filename"], variables),
+        is_template=False,  # This is an instance, not a template
+        tags=template.get("tags", []),
+        linked_jobs=[job_id] if job_id else [],
+        linked_customers=[customer_id] if customer_id else [],
+        uploaded_by=current_user.id,
+        created_at=datetime.now(timezone.utc).isoformat(),
+        updated_at=datetime.now(timezone.utc).isoformat()
+    )
+    
+    # Insert new document
+    await db.documents.insert_one(new_doc.model_dump())
+    
+    return {
+        "message": "Document created from template with populated data",
+        "document": new_doc.model_dump(),
+        "variables_used": list(variables.keys())
+    }
+
+
 @router.post("/generate-pdf")
 async def generate_pdf_from_content(
     input: PDFGenerateRequest,
