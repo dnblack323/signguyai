@@ -465,7 +465,8 @@ export default function Documents() {
                   return (
                     <TableRow 
                       key={doc.id} 
-                      className={idx % 2 === 0 ? '' : 'bg-muted/30'}
+                      className={`${idx % 2 === 0 ? '' : 'bg-muted/30'} cursor-pointer hover:bg-muted/50 transition-colors`}
+                      onClick={() => handleView(doc)}
                       data-testid={`document-row-${doc.id}`}
                     >
                       <TableCell>
@@ -498,15 +499,7 @@ export default function Documents() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleView(doc)}
-                            title="View details"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                        <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -515,14 +508,6 @@ export default function Documents() {
                             className="text-primary hover:text-primary"
                           >
                             <Send className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleView(doc)}
-                            title="View document"
-                          >
-                            <Eye className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
@@ -758,15 +743,20 @@ export default function Documents() {
                   <CheckCircle2 className="h-3 w-3 mr-1" /> Template
                 </Badge>
               )}
-
-              <SignatureSection
-                parentRecordType={selectedDoc.category === 'customer_form' ? 'form' : 'document'}
-                parentRecordId={selectedDoc.id}
-                orderId={(selectedDoc.linked_jobs || [])[0]}
-                signatureType={selectedDoc.category === 'customer_form' ? 'terms_acknowledgment' : 'terms_acknowledgment'}
-                documentVersion={String(selectedDoc.updated_at || selectedDoc.created_at || '')}
-                title="Document Signature"
-              />
+              
+              <Separator />
+              
+              {/* Signature Section - Moved to end before actions */}
+              <div>
+                <SignatureSection
+                  parentRecordType={selectedDoc.category === 'customer_form' ? 'form' : 'document'}
+                  parentRecordId={selectedDoc.id}
+                  orderId={(selectedDoc.linked_jobs || [])[0]}
+                  signatureType={selectedDoc.category === 'customer_form' ? 'terms_acknowledgment' : 'terms_acknowledgment'}
+                  documentVersion={String(selectedDoc.updated_at || selectedDoc.created_at || '')}
+                  title="Document Signature"
+                />
+              </div>
               
               <Separator />
               
