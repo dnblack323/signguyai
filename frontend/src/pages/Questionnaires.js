@@ -5,7 +5,8 @@ import {
   Plus, FileText, Settings, Trash2, Copy, Eye, EyeOff,
   ChevronDown, ChevronUp, GripVertical, X, Check,
   Car, SignpostBig, Shirt, FileQuestion, Layers,
-  ExternalLink, Users, Clock, BarChart3, Sparkles, Send, Loader2 as Loader2Icon
+  ExternalLink, Users, Clock, BarChart3, Sparkles, Send, 
+  Loader2 as Loader2Icon, Mail, Globe
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
@@ -18,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { useAuth } from '../context/AuthContext';
+import { useApp } from '../context/AppContext';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -89,6 +91,7 @@ export default function Questionnaires() {
   useEffect(() => {
     fetchQuestionnaires();
     fetchTemplates();
+    fetchCustomers();
   }, []);
 
   const fetchQuestionnaires = async () => {
@@ -248,26 +251,59 @@ export default function Questionnaires() {
     toast.success('Link copied to clipboard!');
   };
 
+  // Send dialog
   const [sendDialog, setSendDialog] = useState(null);
   const [sendEmail, setSendEmail] = useState('');
+  const [sendMethod, setSendMethod] = useState('email'); // 'email' or 'portal'
+  const [sendCustomerId, setSendCustomerId] = useState('');
+  const [sendMessage, setSendMessage] = useState('');
+  const [sendNotifyCustomer, setSendNotifyCustomer] = useState(true);
+  const [sendRequireSignature, setSendRequireSignature] = useState(false);
   const [sending, setSending] = useState(false);
 
   const handleSendEmail = async () => {
-    if (!sendEmail.trim() || !sendDialog) return;
+    if (sendMethod === 'email' && !sendEmail.trim()) {
+      toast.error('Please enter an email address');
+      return;
+    }
+    if (sendMethod === 'portal' && !sendCustomerId) {
+      toast.error('Please select a customer');
+      return;
+    }
+    
     setSending(true);
     try {
-      await axios.post(`${API_URL}/api/questionnaires/${sendDialog.id}/send-email`, {
-        email: sendEmail,
-        public_url: window.location.origin,
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      toast.success(`Questionnaire sent to ${sendEmail}`);
+      if (sendMethod === 'email') {
+        await axios.post(`${API_URL}/api/questionnaires/${sendDialog.id}/send-email`, {
+          email: sendEmail,
+          message: sendMessage,
+          require_signature: sendRequireSignature,
+          public_url: window.location.origin,
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success(`Questionnaire sent to ${sendEmail}`);
+      } else {
+        await axios.post(`${API_URL}/api/questionnaires/${sendDialog.id}/send-to-portal`, {
+          customer_id: sendCustomerId,
+          message: sendMessage,
+          notify_customer: sendNotifyCustomer,
+          require_signature: sendRequireSignature,
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success('Questionnaire sent to customer portal');
+      }
       setSendDialog(null);
       setSendEmail('');
+      setSendMessage('');
+      setSendCustomerId('');
+      setSendRequireSignature(false);
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to send');
-    } finally { setSending(false); }
+    } finally { 
+      setSending(false); 
+    }
   };
 
   const resetForm = () => {
@@ -794,30 +830,167 @@ export default function Questionnaires() {
         </DialogContent>
       </Dialog>
 
-      {/* Send via Email Dialog */}
-      <Dialog open={!!sendDialog} onOpenChange={() => setSendDialog(null)}>
-        <DialogContent className="sm:max-w-[400px]">
+      {/* Send Dialog */}
+      <Dialog open={!!sendDialog} onOpenChange={() => {
+        setSendDialog(null);
+        setSendMethod('email');
+        setSendEmail('');
+        setSendMessage('');
+        setSendCustomerId('');
+        setSendRequireSignature(false);
+      }}>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Send Questionnaire</DialogTitle>
             <DialogDescription>{sendDialog?.name}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Recipient Email</Label>
-              <Input
-                type="email"
-                value={sendEmail}
-                onChange={(e) => setSendEmail(e.target.value)}
-                placeholder="customer@example.com"
-                className="mt-1"
-                data-testid="send-questionnaire-email-input"
-              />
+          
+          {sendDialog && (
+            <div className="space-y-4">
+              {/* Questionnaire info */}
+              <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30">
+                <FileQuestion className="h-8 w-8 text-primary" />
+                <div>
+                  <p className="font-medium">{sendDialog.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {sendDialog.questions?.length || 0} questions
+                  </p>
+                </div>
+              </div>
+              
+              {/* Send method selection */}
+              <div className="space-y-2">
+                <Label>Send Method</Label>
+                <Tabs value={sendMethod} onValueChange={setSendMethod}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="email" className="flex items-center gap-1.5 text-xs">
+                      <Mail className="h-3.5 w-3.5" /> Email Link
+                    </TabsTrigger>
+                    <TabsTrigger value="portal" className="flex items-center gap-1.5 text-xs">
+                      <Globe className="h-3.5 w-3.5" /> Portal
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+                <p className="text-xs text-muted-foreground">
+                  {sendMethod === 'email' && 'Send link via email — customer clicks to complete form.'}
+                  {sendMethod === 'portal' && 'Add to customer portal — customer completes when ready.'}
+                </p>
+              </div>
+              
+              {/* Email or Customer selection */}
+              {sendMethod === 'email' ? (
+                <div className="space-y-2">
+                  <Label>Recipient Email *</Label>
+                  <Input
+                    type="email"
+                    value={sendEmail}
+                    onChange={(e) => setSendEmail(e.target.value)}
+                    placeholder="customer@example.com"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Select Customer *</Label>
+                  <Select value={sendCustomerId} onValueChange={setSendCustomerId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a customer..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers?.map(customer => (
+                        <SelectItem key={customer.id} value={customer.id}>
+                          {customer.name || customer.contact_name} 
+                          {customer.email && ` (${customer.email})`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              
+              {/* Message */}
+              <div className="space-y-2">
+                <Label>Message (optional)</Label>
+                <Textarea
+                  value={sendMessage}
+                  onChange={(e) => setSendMessage(e.target.value)}
+                  placeholder="Add a personal message to the customer..."
+                  rows={3}
+                />
+              </div>
+              
+              {/* Signature required */}
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border">
+                <div>
+                  <Label>Require Signature</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Customer must sign before submitting
+                  </p>
+                </div>
+                <Switch
+                  checked={sendRequireSignature}
+                  onCheckedChange={setSendRequireSignature}
+                />
+              </div>
+              
+              {/* Method-specific options */}
+              {sendMethod === 'portal' && (
+                <div className="flex items-center justify-between p-3 rounded-lg border border-border">
+                  <div>
+                    <Label>Send Email Notification</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Email customer that a form is ready in their portal
+                    </p>
+                  </div>
+                  <Switch
+                    checked={sendNotifyCustomer}
+                    onCheckedChange={setSendNotifyCustomer}
+                  />
+                </div>
+              )}
+              
+              {/* Info box */}
+              <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                <p className="text-sm">
+                  {sendMethod === 'email' ? (
+                    <>
+                      <Mail className="h-4 w-4 inline mr-2" />
+                      Customer will receive an email with a link to complete the questionnaire.
+                      {sendRequireSignature && ' Signature will be required before submission.'}
+                    </>
+                  ) : (
+                    <>
+                      <Globe className="h-4 w-4 inline mr-2" />
+                      The questionnaire will be added to the customer&apos;s portal.
+                      {sendNotifyCustomer && ' They will receive an email notification.'}
+                      {sendRequireSignature && ' Signature will be required before submission.'}
+                    </>
+                  )}
+                </p>
+              </div>
+              
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setSendDialog(null)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSendEmail} 
+                  disabled={sending || (sendMethod === 'email' ? !sendEmail.trim() : !sendCustomerId)}
+                >
+                  {sending ? (
+                    <>
+                      <Loader2Icon className="w-4 h-4 animate-spin mr-2" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      {sendMethod === 'email' ? 'Send via Email' : 'Send to Portal'}
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
-            <Button onClick={handleSendEmail} disabled={sending || !sendEmail.trim()} className="w-full" data-testid="send-questionnaire-submit-btn">
-              {sending ? <Loader2Icon className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
-              Send via Email
-            </Button>
-          </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
