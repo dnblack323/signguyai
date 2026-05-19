@@ -152,6 +152,7 @@ import DocsQuotesJobs from "./pages/docs/DocsQuotesJobs";
 import DocsInvoicing from "./pages/docs/DocsInvoicing";
 import DocsPricingCalculator from "./pages/docs/DocsPricingCalculator";
 import DocsAITools from "./pages/docs/DocsAITools";
+import DocsWrapCommandCenter from "./pages/docs/DocsWrapCommandCenter";
 import DocsTimeTracking from "./pages/docs/DocsTimeTracking";
 import DocsEmployees from "./pages/docs/DocsEmployees";
 import DocsFAQ from "./pages/docs/DocsFAQ";
@@ -320,6 +321,7 @@ function App() {
                   <Route path="invoicing" element={<DocsInvoicing />} />
                   <Route path="pricing-calculator" element={<DocsPricingCalculator />} />
                   <Route path="ai-tools" element={<DocsAITools />} />
+                  <Route path="wrap-command-center" element={<DocsWrapCommandCenter />} />
                   <Route path="time-tracking" element={<DocsTimeTracking />} />
                   <Route path="employees" element={<DocsEmployees />} />
                   <Route path="webstores" element={<DocsWebstores />} />

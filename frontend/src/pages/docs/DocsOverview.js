@@ -34,6 +34,13 @@ const primaryLinks = [
     color: 'bg-purple-500/10 text-purple-400 border-purple-500/20'
   },
   {
+    title: 'Wrap Command Center',
+    description: '12-tab vehicle wrap management system covering measurements, pricing, design, installation, and more.',
+    href: '/docs/wrap-command-center',
+    icon: Briefcase,
+    color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
+  },
+  {
     title: 'Invoicing & Payments',
     description: 'Invoices, portal invoice viewing, PDF download, Stripe-connected payments, and payment tracking.',
     href: '/docs/invoicing',

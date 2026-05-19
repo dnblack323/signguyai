@@ -19,7 +19,8 @@ export default function LandingPage() {
     { icon: Calendar, title: 'Unified Productivity', desc: 'Calendar, Kanban, Task List, Dashboard' },
     { icon: Receipt, title: 'Invoicing', desc: 'Get paid faster with online payments' },
     { icon: Clock, title: 'Time & Payroll', desc: 'Track time and pay your team' },
-    { icon: Sparkles, title: 'AI Tools', desc: '15+ tools for text, images, and analysis' },
+    { icon: Sparkles, title: 'AI Tools', desc: '25+ AI tools for design, text, and analysis' },
+    { icon: Cpu, title: 'Wrap Command Center', desc: '12-tab vehicle wrap management system', badge: 'New' },
     { icon: Store, title: 'Webstores', desc: 'Sell online with custom stores' },
   ];
 
@@ -219,7 +220,14 @@ export default function LandingPage() {
             {featureHighlights.map((feature) => {
               const Icon = feature.icon;
               return (
-                <div key={feature.title} className="p-6 bg-white/5 border border-white/10 rounded-xl">
+                <div key={feature.title} className="p-6 bg-white/5 border border-white/10 rounded-xl relative">
+                  {feature.badge && (
+                    <div className="absolute top-3 right-3">
+                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                        {feature.badge}
+                      </Badge>
+                    </div>
+                  )}
                   <div className="w-12 h-12 bg-violet-500/20 rounded-lg flex items-center justify-center mb-4">
                     <Icon className="w-6 h-6 text-violet-400" />
                   </div>
