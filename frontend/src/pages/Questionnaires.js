@@ -27,6 +27,7 @@ const categoryIcons = {
   signage: SignpostBig,
   apparel: Shirt,
   print: FileText,
+  web_stores: ExternalLink,
   custom: Layers,
   general: FileQuestion,
 };
@@ -58,6 +59,7 @@ const questionTypes = [
   { value: 'checkbox', label: 'Checkboxes' },
   { value: 'date', label: 'Date Picker' },
   { value: 'file_upload', label: 'File Upload' },
+  { value: 'signature', label: 'Signature' },
   { value: 'heading', label: 'Section Heading' },
   { value: 'paragraph', label: 'Paragraph Text' },
 ];
@@ -584,6 +586,7 @@ export default function Questionnaires() {
                     <SelectItem value="signage">Signage</SelectItem>
                     <SelectItem value="apparel">Apparel</SelectItem>
                     <SelectItem value="print">Print</SelectItem>
+                    <SelectItem value="web_stores">Web Stores</SelectItem>
                     <SelectItem value="general">General</SelectItem>
                   </SelectContent>
                 </Select>
