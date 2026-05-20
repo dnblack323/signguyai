@@ -96,14 +96,14 @@ const BANNER_TEMPLATES = [
 ];
 
 const BANNER_ADDON_DEFAULTS = [
-  { key: 'hems', label: 'Hems', pricing_type: 'included', flat_fee: 0, unit_fee: 0, qty: 1 },
-  { key: 'grommets', label: 'Grommets', pricing_type: 'each', flat_fee: 0, unit_fee: 1.00, qty: 4 },
-  { key: 'brackets', label: 'Brackets', pricing_type: 'each', flat_fee: 0, unit_fee: 20.00, qty: 0 },
-  { key: 'other_hardware', label: 'Other Hardware', pricing_type: 'flat_fee', flat_fee: 0, unit_fee: 0, qty: 1 },
-  { key: 'pole_pockets', label: 'Pole Pockets', pricing_type: 'flat_fee', flat_fee: 15.00, unit_fee: 0, qty: 1 },
-  { key: 'design', label: 'Design', pricing_type: 'flat_fee', flat_fee: 35.00, unit_fee: 0, qty: 1 },
-  { key: 'setup_fee', label: 'Setup Fee', pricing_type: 'flat_fee', flat_fee: 15.00, unit_fee: 0, qty: 1 },
-  { key: 'install', label: 'Install', pricing_type: 'flat_fee', flat_fee: 0, unit_fee: 0, qty: 1 },
+  { key: 'hems', label: 'Hems', pricing_type: 'included', flat_fee: 0, unit_fee: 0, qty: 1, default_labor_minutes: 0, rate_source: 'production_rate' },
+  { key: 'grommets', label: 'Grommets', pricing_type: 'each', flat_fee: 0, unit_fee: 1.00, qty: 4, default_labor_minutes: 0, rate_source: 'production_rate' },
+  { key: 'brackets', label: 'Brackets', pricing_type: 'each', flat_fee: 0, unit_fee: 20.00, qty: 0, default_labor_minutes: 5, rate_source: 'production_rate' },
+  { key: 'other_hardware', label: 'Other Hardware', pricing_type: 'flat_fee', flat_fee: 0, unit_fee: 0, qty: 1, default_labor_minutes: 0, rate_source: 'production_rate' },
+  { key: 'pole_pockets', label: 'Pole Pockets', pricing_type: 'flat_fee', flat_fee: 15.00, unit_fee: 0, qty: 1, default_labor_minutes: 5, rate_source: 'production_rate' },
+  { key: 'design', label: 'Design', pricing_type: 'flat_fee', flat_fee: 35.00, unit_fee: 0, qty: 1, default_labor_minutes: 30, rate_source: 'design_rate' },
+  { key: 'setup_fee', label: 'Setup Fee', pricing_type: 'flat_fee', flat_fee: 15.00, unit_fee: 0, qty: 1, default_labor_minutes: 0, rate_source: 'production_rate' },
+  { key: 'install', label: 'Install', pricing_type: 'flat_fee', flat_fee: 0, unit_fee: 0, qty: 1, default_labor_minutes: 0, rate_source: 'install_rate' },
 ];
 
 const PRINT_QUALITY_MODES = [
@@ -342,6 +342,7 @@ export default function PricingCalculator({
   const [error, setError] = useState(null);
   const [overrideEnabled, setOverrideEnabled] = useState(false);
   const [overridePrice, setOverridePrice] = useState('');
+  const [bannerBreakdownExpanded, setBannerBreakdownExpanded] = useState(false);
   const [description, setDescription] = useState('');
   const [orderItemName, setOrderItemName] = useState('');
   const [notes, setNotes] = useState('');
@@ -767,6 +768,124 @@ export default function PricingCalculator({
       banner_addons: newAddons,
     }));
     toast.success(`${template.name} template applied`);
+  };
+
+  // ===== BANNER COMPARE METHODS =====
+  const computeBannerCompareMethods = () => {
+    if (!foundationDefaults) return null;
+    const catDefaults = getBannersCategoryDefaults();
+
+    // Area
+    const unit = (pricingData.unit_of_measure || 'feet').toLowerCase();
+    const w = Number(pricingData.width_inches || 0);
+    const h = Number(pricingData.length_inches || 0);
+    const sqftPerPiece = unit === 'feet' ? w * h : (w * h) / 144;
+    const qty = Number(quantity || 1);
+    const totalSqft = sqftPerPiece * qty;
+    if (sqftPerPiece <= 0) return null;
+
+    // Material
+    const matOptions = getBannerMaterialOptions();
+    const matKey = pricingData.banner_material_key || '';
+    const mat = matOptions.find((m) => (m.key || m.id) === matKey);
+
+    // Shop cost & waste
+    const costPerSqft = Number(mat?.cost_per_sqft || mat?.shop_cost_per_sqft || 0);
+    const wastePercent = Number(mat?.waste_percent || catDefaults.waste_percentage || 8);
+    const wasteAdjCostPerSqft = costPerSqft * (1 + wastePercent / 100);
+
+    // Retail rate — priority chain
+    const materialRetailRates = catDefaults.material_retail_rates || [];
+    const matRetailEntry = materialRetailRates.find((r) =>
+      r.material_id === matKey
+      || (r.material_name && mat?.name && r.material_name.toLowerCase() === mat.name.toLowerCase())
+    );
+    const retailRatePerSqft = Number(
+      matRetailEntry?.default_retail_rate_per_sqft
+      || mat?.sell_rate_per_sqft
+      || mat?.suggested_material_charge_per_sqft
+      || catDefaults.default_retail_rate_per_sqft
+      || 8.00
+    );
+
+    // Add-on fees and labor
+    const addons = pricingData.banner_addons || [];
+    const addonFees = addons.reduce((sum, a) => {
+      if (a.pricing_type === 'flat_fee') return sum + Number(a.flat_fee || 0);
+      if (a.pricing_type === 'each') return sum + Number(a.unit_fee || 0) * Number(a.qty || 1);
+      return sum;
+    }, 0);
+
+    // Separate add-on labor by rate source
+    let generalAddonLaborMin = 0;
+    let designAddonLaborMin = 0;
+    let installAddonLaborMin = 0;
+    addons.forEach((addon) => {
+      const def = BANNER_ADDON_DEFAULTS.find((d) => d.key === addon.key);
+      const lm = Number(def?.default_labor_minutes || 0);
+      if (def?.rate_source === 'design_rate') designAddonLaborMin += lm;
+      else if (def?.rate_source === 'install_rate') installAddonLaborMin += lm;
+      else generalAddonLaborMin += lm;
+    });
+
+    // Labor rates
+    const laborRates = foundationDefaults.labor_rates || {};
+    const prodRate = Number(laborRates.production?.hourly_rate || foundationDefaults.production_hourly_rate || foundationDefaults.hourly_rate || 75);
+    const designRate = Number(laborRates.design?.hourly_rate || foundationDefaults.design_hourly_rate || 85);
+    const installRate = Number(laborRates.installation?.hourly_rate || foundationDefaults.install_hourly_rate || 95);
+
+    // Base labor minutes from wizard/category settings
+    const setupMin = Number(catDefaults.setup_minutes || 10);
+    const productionMin = Number(catDefaults.production_minutes || 15);
+    const minPerSqft = Number(catDefaults.minutes_per_sqft || 0);
+    const baseLaborMin = (setupMin + productionMin + minPerSqft * sqftPerPiece) * qty;
+    const totalGeneralLaborMin = baseLaborMin + generalAddonLaborMin;
+
+    // Labor costs
+    const generalLaborCost = (totalGeneralLaborMin / 60) * prodRate;
+    const designLaborCost = (designAddonLaborMin / 60) * designRate;
+    const installLaborCost = (installAddonLaborMin / 60) * installRate;
+    const totalLaborCost = generalLaborCost + designLaborCost + installLaborCost;
+    const totalLaborMin = totalGeneralLaborMin + designAddonLaborMin + installAddonLaborMin;
+
+    // Minimum charge
+    const minimumCharge = Number(
+      catDefaults.minimum_charge || catDefaults.default_minimum_sell_price || 35
+    ) * qty;
+
+    // Price Per Sq Ft method
+    const retailBase = retailRatePerSqft * totalSqft;
+    const ppsqftRaw = retailBase + addonFees;
+    const pricePerSqftTotal = Math.max(ppsqftRaw, minimumCharge);
+    const ppsqftMinApplied = ppsqftRaw < minimumCharge;
+
+    // Detailed Material + Labor method
+    const materialCost = wasteAdjCostPerSqft * totalSqft;
+    const detailedRaw = materialCost + totalLaborCost + addonFees;
+    const detailedTotal = Math.max(detailedRaw, minimumCharge);
+    const detailedMinApplied = detailedRaw < minimumCharge;
+
+    // Recommendation: higher of the two
+    const recommendedPrice = Math.max(pricePerSqftTotal, detailedTotal);
+    const recommendedMethod = pricePerSqftTotal >= detailedTotal ? 'price_per_sqft' : 'detailed';
+    const diff = Math.abs(pricePerSqftTotal - detailedTotal);
+
+    return {
+      sqftPerPiece, totalSqft, qty,
+      matName: mat?.name || matKey,
+      costPerSqft, wastePercent, wasteAdjCostPerSqft,
+      retailRatePerSqft, retailBase,
+      addonFees,
+      setupMin, productionMin, minPerSqft,
+      baseLaborMin, totalGeneralLaborMin, designAddonLaborMin, installAddonLaborMin,
+      totalLaborMin, prodRate, designRate, installRate,
+      generalLaborCost, designLaborCost, installLaborCost, totalLaborCost,
+      materialCost,
+      minimumCharge,
+      pricePerSqftTotal, ppsqftMinApplied,
+      detailedTotal, detailedMinApplied,
+      recommendedPrice, recommendedMethod, diff,
+    };
   };
 
   const resolveBannerDefaults = () => {
@@ -2800,6 +2919,196 @@ export default function PricingCalculator({
                 </div>
               )}
             </div>
+
+            {/* Banner Compare Methods */}
+            {(() => {
+              const c = computeBannerCompareMethods();
+              if (!c) return null;
+              return (
+                <div className="border rounded-lg overflow-hidden" data-testid="banner-compare-methods">
+                  {/* Header */}
+                  <div className="bg-gray-50 px-4 py-3 border-b flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-gray-800 text-sm">Compare Pricing Methods</p>
+                      <p className="text-xs text-gray-500">{c.totalSqft.toFixed(2)} sq ft · {c.matName} · Qty {c.qty}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setBannerBreakdownExpanded((v) => !v)}
+                      className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                      data-testid="banner-compare-toggle-breakdown"
+                    >
+                      {bannerBreakdownExpanded ? 'Hide Details' : 'Show Details'}
+                    </button>
+                  </div>
+
+                  {/* Two-column method comparison */}
+                  <div className="grid grid-cols-2 divide-x">
+                    {/* Price Per Sq Ft */}
+                    <div className="p-4 space-y-2" data-testid="banner-compare-ppsqft">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Price Per Sq Ft</p>
+                      <div className="text-xs text-gray-600 space-y-1">
+                        <div className="flex justify-between">
+                          <span>{c.totalSqft.toFixed(2)} sqft × ${c.retailRatePerSqft.toFixed(2)}</span>
+                          <span>${c.retailBase.toFixed(2)}</span>
+                        </div>
+                        {c.addonFees > 0 && (
+                          <div className="flex justify-between">
+                            <span>Add-ons</span>
+                            <span>${c.addonFees.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {c.ppsqftMinApplied && (
+                          <div className="text-amber-600 text-xs">Min applied: ${c.minimumCharge.toFixed(2)}</div>
+                        )}
+                      </div>
+                      <div className="pt-2 border-t flex items-center justify-between">
+                        <span className="font-bold text-base" data-testid="banner-compare-ppsqft-total">
+                          ${c.pricePerSqftTotal.toFixed(2)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => { setOverrideEnabled(true); setOverridePrice(c.pricePerSqftTotal.toFixed(2)); }}
+                          className="text-xs px-2 py-1 border rounded hover:bg-gray-50"
+                          data-testid="banner-compare-use-ppsqft"
+                        >
+                          Use
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Detailed M+L */}
+                    <div className="p-4 space-y-2" data-testid="banner-compare-detailed">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Detailed Material + Labor</p>
+                      <div className="text-xs text-gray-600 space-y-1">
+                        <div className="flex justify-between">
+                          <span>Material ({c.wastePercent}% waste adj.)</span>
+                          <span>${c.materialCost.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Labor ({c.totalLaborMin.toFixed(0)} min)</span>
+                          <span>${c.totalLaborCost.toFixed(2)}</span>
+                        </div>
+                        {c.addonFees > 0 && (
+                          <div className="flex justify-between">
+                            <span>Add-ons</span>
+                            <span>${c.addonFees.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {c.detailedMinApplied && (
+                          <div className="text-amber-600 text-xs">Min applied: ${c.minimumCharge.toFixed(2)}</div>
+                        )}
+                      </div>
+                      <div className="pt-2 border-t flex items-center justify-between">
+                        <span className="font-bold text-base" data-testid="banner-compare-detailed-total">
+                          ${c.detailedTotal.toFixed(2)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => { setOverrideEnabled(true); setOverridePrice(c.detailedTotal.toFixed(2)); }}
+                          className="text-xs px-2 py-1 border rounded hover:bg-gray-50"
+                          data-testid="banner-compare-use-detailed"
+                        >
+                          Use
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Expandable breakdown */}
+                  {bannerBreakdownExpanded && (
+                    <div className="border-t bg-gray-50 p-4 text-xs text-gray-700 space-y-3" data-testid="banner-compare-breakdown">
+                      <div>
+                        <p className="font-semibold text-gray-700 mb-1">Area</p>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+                          <span className="text-gray-500">Sq ft / piece:</span><span>{c.sqftPerPiece.toFixed(2)} sqft</span>
+                          <span className="text-gray-500">Total sq ft (×{c.qty}):</span><span>{c.totalSqft.toFixed(2)} sqft</span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-700 mb-1">Material</p>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+                          <span className="text-gray-500">Selected material:</span><span>{c.matName}</span>
+                          <span className="text-gray-500">Shop cost/sqft:</span><span>${c.costPerSqft.toFixed(2)}</span>
+                          <span className="text-gray-500">Waste:</span><span>{c.wastePercent}%</span>
+                          <span className="text-gray-500">Waste-adj cost/sqft:</span><span>${c.wasteAdjCostPerSqft.toFixed(4)}</span>
+                          <span className="text-gray-500">Total material cost:</span><span>${c.materialCost.toFixed(2)}</span>
+                          <span className="text-gray-500">Retail rate/sqft:</span><span>${c.retailRatePerSqft.toFixed(2)}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-700 mb-1">Labor</p>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+                          <span className="text-gray-500">Setup:</span><span>{c.setupMin} min</span>
+                          <span className="text-gray-500">Production:</span><span>{c.productionMin} min{c.minPerSqft > 0 ? ` + ${c.minPerSqft}/sqft` : ''}</span>
+                          <span className="text-gray-500">Add-on labor (production):</span><span>{(c.totalGeneralLaborMin - c.baseLaborMin).toFixed(0)} min</span>
+                          {c.designAddonLaborMin > 0 && <><span className="text-gray-500">Add-on labor (design):</span><span>{c.designAddonLaborMin} min @ ${c.designRate}/hr</span></>}
+                          {c.installAddonLaborMin > 0 && <><span className="text-gray-500">Add-on labor (install):</span><span>{c.installAddonLaborMin} min @ ${c.installRate}/hr</span></>}
+                          <span className="text-gray-500">Production rate:</span><span>${c.prodRate}/hr</span>
+                          <span className="text-gray-500">Total labor cost:</span><span>${c.totalLaborCost.toFixed(2)}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-700 mb-1">Pricing</p>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+                          <span className="text-gray-500">Price/sqft method total:</span><span>${c.pricePerSqftTotal.toFixed(2)}{c.ppsqftMinApplied ? ' (min)' : ''}</span>
+                          <span className="text-gray-500">Detailed method total:</span><span>${c.detailedTotal.toFixed(2)}{c.detailedMinApplied ? ' (min)' : ''}</span>
+                          <span className="text-gray-500">Difference:</span><span>${c.diff.toFixed(2)}</span>
+                          <span className="text-gray-500">Minimum charge:</span><span>${c.minimumCharge.toFixed(2)}</span>
+                          <span className="text-gray-500">Recommended:</span><span className="font-semibold">${c.recommendedPrice.toFixed(2)} ({c.recommendedMethod === 'price_per_sqft' ? 'Price/SqFt' : 'Detailed'})</span>
+                          {overrideEnabled && overridePrice && <><span className="text-gray-500">Manual override:</span><span className="font-semibold text-blue-700">${parseFloat(overridePrice || 0).toFixed(2)}</span></>}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recommended price + override row */}
+                  <div className="border-t p-4 bg-teal-50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-medium text-teal-700 uppercase tracking-wide">
+                        Recommended · {c.recommendedMethod === 'price_per_sqft' ? 'Price Per Sq Ft' : 'Detailed M+L'}
+                        {' '}is ${c.diff.toFixed(2)} higher
+                      </p>
+                      <p className="text-2xl font-bold text-teal-800" data-testid="banner-compare-recommended">
+                        ${c.recommendedPrice.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 items-center flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => { setOverrideEnabled(true); setOverridePrice(c.recommendedPrice.toFixed(2)); }}
+                        className="px-3 py-1.5 bg-teal-600 text-white text-sm rounded hover:bg-teal-700 font-medium"
+                        data-testid="banner-compare-use-recommended"
+                      >
+                        Use Recommended
+                      </button>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-gray-500">Override:</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="Manual price"
+                          className="border rounded px-2 py-1 text-sm w-28 h-8"
+                          value={overrideEnabled ? overridePrice : ''}
+                          onChange={(e) => { setOverrideEnabled(true); setOverridePrice(e.target.value); }}
+                          data-testid="banner-compare-manual-override"
+                        />
+                        {overrideEnabled && (
+                          <button
+                            type="button"
+                            onClick={() => { setOverrideEnabled(false); setOverridePrice(''); }}
+                            className="text-xs text-gray-400 hover:text-red-500"
+                            data-testid="banner-compare-clear-override"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         );
       }
