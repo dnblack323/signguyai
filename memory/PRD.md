@@ -22,6 +22,16 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-05-21 — **Customer Portal: Webstores Tab for Assigned Owners (COMPLETE)**:
+  - **Backend** (`routes/portal.py`): Added `GET /api/portal/webstores`, `GET /api/portal/webstores/{id}`, `POST /api/portal/webstores/{id}/stripe-onboarding`, `POST /api/portal/webstores/{id}/stripe-refresh`, `POST /api/portal/webstores/{id}/stripe-login-link`. Assignment rule: `webstore.owner_email == customer.email` (case-insensitive) AND `tenant_id` matches. All endpoints enforce assignment server-side via `_portal_load_assigned_webstore` (returns 404 — never leaks existence).
+  - **Sanitization** (`_sanitize_webstore_for_portal_owner`): whitelist-only output — strips `tenant_id`, `owner_user_id`, and raw `locked_settings` cost/profit fields. Only safe locked-settings keys (`shipping_fee`, `handling_fee`, `shipping_handling_*`) are exposed read-only.
+  - **Dashboard** (`/api/portal/dashboard`): added `stats.assigned_webstores` + top-level `has_webstores`. Counter uses case-insensitive regex so nav-tab visibility never disagrees with the list endpoint.
+  - **Stripe Express onboarding**: reuses the exact same `webstore_owners.py` Stripe Express flow (Account.create with transfers+card_payments capabilities, AccountLink, login_link). NO duplicate Stripe code.
+  - **Frontend** (`PortalDashboard.js`): `PortalLayout` fetches `/api/portal/webstores` once per mount and conditionally inserts a `Webstores` nav item (data-testid=`portal-nav-webstores`) between Appointments and Profile.
+  - **Frontend** (`PortalWebstores.js`): new page at `/customer-portal/webstores`. Per-store card with: store name + type + status badge, public store link + Copy + QR (data-testid=`portal-store-qr`), Stripe onboarding/refresh/dashboard buttons, Event Details (Event Stores), Fundraiser Summary (donations/profit_allocated/total_raised + progress bar gated on `fundraiser_enabled && show_progress_bar && goal > 0`), Questionnaire status block, read-only Financial Summary (with Lock badge), Recent Orders. All financial controls clearly marked read-only.
+  - **App.js**: added `<Route path='/customer-portal/webstores' element={<PortalWebstores />} />`.
+  - **Tested**: `/app/test_reports/iteration_158.json` → **100% backend (16/16), 100% frontend**. Cross-tenant isolation verified — a portal user from tenant T1 cannot see a webstore in tenant T2 even if the email matches. Sanitization sweep confirmed no `tenant_id` / cost / profit fields leak.
+
 - 2026-05-21 — **Part 4: Event Store Fundraiser Money Logic & Checkout Donations (COMPLETE)**:
   - **Backend** (`routes/stripe_connect.py`): `WebstoreCheckoutRequest` accepts optional `donation_amount`. `create_webstore_checkout` now:
     - Server-side validates donations (rejects if `allow_checkout_donations=false`; requires preset match or `allow_custom_donation=true`).

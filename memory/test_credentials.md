@@ -48,6 +48,17 @@
 - Tenant: d9c5507b-879c-4bec-9736-1dc841334719 (Signtists Lab)
 - Used for: verifying GET `/api/payroll/*` returns 403 for staff (security fix 2026-04-26)
 
+## Customer Portal — Webstores tab test users (added 2026-05-21, Iteration 158)
+- Positive case (assigned to webstore):
+  - Email: demo-fundraiser@rysoccer.example
+  - Password: TestPortal123!
+  - Tenant: b05a87f3-5d3f-45f9-b629-aec53bd78418
+  - Assigned webstore id: 3dae02a7-0e2c-4ba1-a639-df19833161fc (Demo Fundraiser Store, fundraiser)
+- Negative case (no assigned webstores; Webstores tab should be hidden):
+  - Email: portalreg_1776974524@example.com
+  - Password: TestNeg123!
+  - Tenant: d9c5507b-879c-4bec-9736-1dc841334719
+
 ## Webstore Owner Connect — Stripe Express test flow notes (added 2026-02-12)
 - New role: `webstore_owner` (created by `/api/owner-portal/signup` from a portal-invite token)
 - Owner Portal page: `/owner-portal` (login UI + dashboard, JWT stored in `localStorage.owner_portal_token`)

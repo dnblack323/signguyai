@@ -482,10 +482,15 @@ async def get_portal_dashboard(customer: dict = Depends(get_current_portal_custo
 
     # Count webstores assigned to this portal user (by owner_email).
     # Used by the portal nav to conditionally render the Webstores tab.
+    # Case-insensitive match — mirrors the list/detail endpoints below so the
+    # nav-tab visibility and the page contents never disagree.
     assigned_webstore_count = 0
     customer_email = (customer.get("email") or "").strip().lower()
     if customer_email:
-        ws_query: Dict[str, Any] = {"owner_email": customer_email}
+        import re as _re_email
+        ws_query: Dict[str, Any] = {
+            "owner_email": {"$regex": f"^{_re_email.escape(customer_email)}$", "$options": "i"},
+        }
         if customer.get("tenant_id"):
             ws_query["tenant_id"] = customer["tenant_id"]
         assigned_webstore_count = await db.webstores_v2.count_documents(ws_query)
