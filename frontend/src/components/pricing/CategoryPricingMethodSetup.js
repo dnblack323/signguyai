@@ -9,6 +9,7 @@ import {
   Settings2, CheckCircle, AlertCircle, Calculator, Package, Scissors,
   Printer, Square, Shirt, Car, Wrench, Tag, PenTool, DollarSign,
 } from 'lucide-react';
+import BannerSetupWizard from './BannerSetupWizard';
 
 const PRICING_METHODS = [
   { value: 'flat_price', label: 'Flat Price' },
@@ -120,7 +121,9 @@ const STATUS_OPTIONS = [
   { value: 'needs_review', label: 'Needs Review', color: 'amber', icon: AlertCircle },
 ];
 
-export default function CategoryPricingMethodSetup({ settings, onChange, onSetupCategory, onTestCategory }) {
+export default function CategoryPricingMethodSetup({ settings, materials, onChange, onSetupCategory, onTestCategory }) {
+  const [bannerWizardOpen, setBannerWizardOpen] = useState(false);
+  
   const categoryMethods = settings?.category_pricing_methods || {};
   const categoryStatus = settings?.category_setup_status || {};
 
@@ -144,6 +147,15 @@ export default function CategoryPricingMethodSetup({ settings, onChange, onSetup
       ...settings,
       category_setup_status: updated,
     });
+  };
+
+  const handleBannerSetup = () => {
+    setBannerWizardOpen(true);
+  };
+
+  const handleBannerWizardSave = (updatedSettings) => {
+    onChange(updatedSettings);
+    setBannerWizardOpen(false);
   };
 
   return (
@@ -229,7 +241,7 @@ export default function CategoryPricingMethodSetup({ settings, onChange, onSetup
                     size="sm"
                     variant="outline"
                     className="flex-1 h-8 text-xs"
-                    onClick={() => onSetupCategory && onSetupCategory(cat.id)}
+                    onClick={() => cat.id === 'banners' ? handleBannerSetup() : (onSetupCategory && onSetupCategory(cat.id))}
                   >
                     <Settings2 className="h-3 w-3 mr-1" />
                     Setup
@@ -249,6 +261,15 @@ export default function CategoryPricingMethodSetup({ settings, onChange, onSetup
           );
         })}
       </div>
+
+      {/* Banner Setup Wizard */}
+      <BannerSetupWizard
+        open={bannerWizardOpen}
+        onClose={() => setBannerWizardOpen(false)}
+        settings={settings}
+        materials={materials || []}
+        onSave={handleBannerWizardSave}
+      />
     </div>
   );
 }

@@ -3329,6 +3329,7 @@ export default function PricingFoundation() {
           <TabsContent value="category_methods">
             <CategoryPricingMethodSetup
               settings={settings}
+              materials={materials}
               onChange={handleSettingsChange}
               onSetupCategory={(catId) => {
                 toast.info(`Setup wizard for ${catId} coming in next phase`);
