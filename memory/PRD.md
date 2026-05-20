@@ -22,6 +22,14 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-05-20 — **Fundraiser Field Structure Fix (Part 3 fix) (COMPLETE)**:
+  - Fixed incorrect `SAFE_MAP` in `apply_questionnaire_answers_to_event_store`: "Fundraiser Name" now maps to `fundraiser_name` (not `event_name`), "Fundraiser Description" → `fundraiser_description`, "Fundraiser Goal Amount" → `fundraiser_goal_amount` (with float coercion). Added 11 more fundraiser mappings with proper type coercion (bool: yes/no→True/False, float: string→float).
+  - Added 17 dedicated fundraiser fields to `Webstore`, `WebstoreCreate`, `WebstoreUpdate`: `fundraiser_enabled`, `fundraiser_name`, `fundraiser_description`, `fundraiser_goal_amount` (optional), `show_progress_bar`, `allow_checkout_donations`, `donation_amount_options`, `allow_custom_donation`, `profit_allocation_enabled`, `profit_allocation_type`, `profit_allocation_percentage`, `fixed_amount_per_item`, `fundraiser_cap_amount`, `include_donations_in_progress`, `include_profit_allocation_in_progress`, `show_total_raised_publicly`, `show_supporter_names`. Plus aggregate totals: `total_donations`, `total_profit_allocated`, `manual_adjustments`, `total_raised`.
+  - Fixed missing `WebstoreUpdate` class declaration (accidentally removed in prior edit — caused ruff F821 lint error).
+  - Updated `WEBSTORE_PUBLIC_FIELDS` to include fundraiser public fields.
+  - Frontend (`Webstores.js`): Added `fundraiserEdits` state, `handleSaveFundraiserSettings`, Fundraiser Settings card in Event Store settings tab with all fundraiser fields. Progress bar toggle disables when goal amount is empty.
+  - **Tested**: iteration_156.json → **27/27 backend PASS, 100% frontend PASS**.
+
 - 2026-05-20 — **Part 3: Event Store Questionnaire Integration (COMPLETE)**:
   - **Backend** (`models/questionnaires.py`):
     - Added 18 fundraiser questions as Section 4.5 to `event_web_store_setup` template (orders 44-61): fundraiser_enabled, fundraiser_name, fundraiser_description, fundraiser_goal_amount (optional), show_progress_bar, allow_checkout_donations, donation_amount_options, allow_custom_donation, profit_allocation_enabled, profit_allocation_type, profit_allocation_percentage, fixed_amount_per_item, fundraiser_cap_amount, include_donations_in_progress, include_profit_allocation_in_progress, show_total_raised_publicly, show_supporter_names. Template now has 87 questions total.
