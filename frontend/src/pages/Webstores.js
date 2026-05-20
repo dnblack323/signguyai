@@ -58,6 +58,7 @@ const storeTypes = [
   { value: 'business', label: 'Business (B2B)', icon: Building2, description: 'Employee apparel & company stores' },
   { value: 'fundraiser', label: 'Fundraiser', icon: Heart, description: 'Campaigns with profit sharing' },
   { value: 'creator', label: 'Creator', icon: User, description: 'Individual merch with commission' },
+  { value: 'event', label: 'Event Store', icon: CalendarDays, description: 'Event merchandise & order deadlines' },
 ];
 
 const getStoreTypeIcon = (type) => {
@@ -70,6 +71,7 @@ const getStoreTypeColor = (type) => {
     business: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
     fundraiser: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
     creator: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+    event: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
   };
   return colors[type] || 'bg-gray-500/20 text-gray-400';
 };
@@ -150,6 +152,12 @@ export default function Webstores() {
   
   // Create store loading state (prevent double-click)
   const [creatingStore, setCreatingStore] = useState(false);
+
+  // Settings-tab local edit state for event/locked fields
+  const [eventEdits, setEventEdits] = useState({});
+  const [lockedEdits, setLockedEdits] = useState({});
+  const [savingEvent, setSavingEvent] = useState(false);
+  const [savingLocked, setSavingLocked] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -167,6 +175,32 @@ export default function Webstores() {
     fundraiser_profit_percent: 40,
     creator_commission_type: 'percentage',
     creator_commission_value: 20,
+    // Event-store fields
+    event_name: '',
+    event_type: '',
+    event_start_date: '',
+    event_end_date: '',
+    event_location: '',
+    order_deadline: '',
+    pickup_delivery_date: '',
+    pickup_delivery_instructions: '',
+    auto_close_after_deadline: false,
+    allow_late_orders: false,
+    // Tenant-controlled locked settings
+    locked_settings: {
+      base_item_cost: '',
+      production_cost: '',
+      retail_price: '',
+      store_owner_profit: '',
+      profit_split: '',
+      setup_fee: '',
+      shipping_fee: '',
+      handling_fee: '',
+      shipping_handling_enabled: false,
+      shipping_handling_fee: '',
+      shipping_handling_label: '',
+      shipping_handling_description: '',
+    },
   });
   const apiRef = useRef({
     getWebstores,
@@ -282,6 +316,32 @@ export default function Webstores() {
       fundraiser_profit_percent: 40,
       creator_commission_type: 'percentage',
       creator_commission_value: 20,
+      // Event-store fields
+      event_name: '',
+      event_type: '',
+      event_start_date: '',
+      event_end_date: '',
+      event_location: '',
+      order_deadline: '',
+      pickup_delivery_date: '',
+      pickup_delivery_instructions: '',
+      auto_close_after_deadline: false,
+      allow_late_orders: false,
+      // Locked settings
+      locked_settings: {
+        base_item_cost: '',
+        production_cost: '',
+        retail_price: '',
+        store_owner_profit: '',
+        profit_split: '',
+        setup_fee: '',
+        shipping_fee: '',
+        handling_fee: '',
+        shipping_handling_enabled: false,
+        shipping_handling_fee: '',
+        shipping_handling_label: '',
+        shipping_handling_description: '',
+      },
     });
     setLogoPreview(null);
     setLogoFile(null);
@@ -416,7 +476,13 @@ export default function Webstores() {
     setCreatingStore(true);
     
     try {
-      const newStore = await createWebstore(formData);
+      // Clean empty strings from locked_settings before sending to backend
+      // (Pydantic Optional[float] fields reject empty strings)
+      const cleanedLockedSettings = Object.fromEntries(
+        Object.entries(formData.locked_settings || {}).map(([k, v]) => [k, v === '' ? null : v])
+      );
+      const payload = { ...formData, locked_settings: cleanedLockedSettings };
+      const newStore = await createWebstore(payload);
       
       // If a logo file was selected, upload it to the new store
       if (logoFile && newStore?.id) {
@@ -487,6 +553,35 @@ export default function Webstores() {
     setLogoFile(null);
     setBannerPreview(null);
     setBannerFile(null);
+
+    // Initialise event/locked edit state from the store record
+    setEventEdits({
+      event_name: store.event_name || '',
+      event_type: store.event_type || '',
+      event_start_date: store.event_start_date || '',
+      event_end_date: store.event_end_date || '',
+      event_location: store.event_location || '',
+      order_deadline: store.order_deadline || '',
+      pickup_delivery_date: store.pickup_delivery_date || '',
+      pickup_delivery_instructions: store.pickup_delivery_instructions || '',
+      auto_close_after_deadline: store.auto_close_after_deadline || false,
+      allow_late_orders: store.allow_late_orders || false,
+    });
+    const ls = store.locked_settings || {};
+    setLockedEdits({
+      base_item_cost: ls.base_item_cost ?? '',
+      production_cost: ls.production_cost ?? '',
+      retail_price: ls.retail_price ?? '',
+      store_owner_profit: ls.store_owner_profit ?? '',
+      profit_split: ls.profit_split ?? '',
+      setup_fee: ls.setup_fee ?? '',
+      shipping_fee: ls.shipping_fee ?? '',
+      handling_fee: ls.handling_fee ?? '',
+      shipping_handling_enabled: ls.shipping_handling_enabled || false,
+      shipping_handling_fee: ls.shipping_handling_fee ?? '',
+      shipping_handling_label: ls.shipping_handling_label || '',
+      shipping_handling_description: ls.shipping_handling_description || '',
+    });
     
     // Reset create product form state
     setShowCreateProduct(false);
@@ -723,6 +818,43 @@ export default function Webstores() {
       await loadData();
     } catch (err) {
       toast.error('Failed to update visibility');
+    }
+  };
+
+  const handleSaveEventSettings = async () => {
+    if (!selectedStore) return;
+    setSavingEvent(true);
+    try {
+      await updateWebstore(selectedStore.id, { ...eventEdits });
+      setSelectedStore({ ...selectedStore, ...eventEdits });
+      toast.success('Event settings saved');
+      await loadData();
+    } catch (err) {
+      toast.error('Failed to save event settings');
+    } finally {
+      setSavingEvent(false);
+    }
+  };
+
+  const handleSaveLockedSettings = async () => {
+    if (!selectedStore) return;
+    setSavingLocked(true);
+    // Convert empty string numbers to null before sending
+    const cleaned = Object.fromEntries(
+      Object.entries(lockedEdits).map(([k, v]) => {
+        if (v === '') return [k, null];
+        return [k, v];
+      })
+    );
+    try {
+      await updateWebstore(selectedStore.id, { locked_settings: cleaned });
+      setSelectedStore({ ...selectedStore, locked_settings: cleaned });
+      toast.success('Financial settings saved');
+      await loadData();
+    } catch (err) {
+      toast.error('Failed to save financial settings');
+    } finally {
+      setSavingLocked(false);
     }
   };
 
@@ -994,8 +1126,216 @@ export default function Webstores() {
                 </>
               )}
 
-              {/* Visibility */}
+              {/* Event Store Settings */}
+              {formData.store_type === 'event' && (
+                <>
+                  <Separator />
+                  <div className="space-y-4">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <CalendarDays className="h-4 w-4 text-orange-400" />
+                      Event Details
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2 col-span-2">
+                        <Label>Event Name</Label>
+                        <Input
+                          value={formData.event_name}
+                          onChange={(e) => setFormData({ ...formData, event_name: e.target.value })}
+                          placeholder="e.g., Johnson Benefit Dinner 2026"
+                          data-testid="event-name-input"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Event Type</Label>
+                        <Select
+                          value={formData.event_type || ''}
+                          onValueChange={(val) => setFormData({ ...formData, event_type: val })}
+                        >
+                          <SelectTrigger data-testid="event-type-select">
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="one_time">One-time event</SelectItem>
+                            <SelectItem value="annual">Annual event</SelectItem>
+                            <SelectItem value="seasonal">Seasonal event</SelectItem>
+                            <SelectItem value="recurring">Recurring event</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Event Location</Label>
+                        <Input
+                          value={formData.event_location}
+                          onChange={(e) => setFormData({ ...formData, event_location: e.target.value })}
+                          placeholder="Venue or city"
+                          data-testid="event-location-input"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Event Start Date</Label>
+                        <Input
+                          type="date"
+                          value={formData.event_start_date}
+                          onChange={(e) => setFormData({ ...formData, event_start_date: e.target.value })}
+                          data-testid="event-start-date-input"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Event End Date</Label>
+                        <Input
+                          type="date"
+                          value={formData.event_end_date}
+                          onChange={(e) => setFormData({ ...formData, event_end_date: e.target.value })}
+                          data-testid="event-end-date-input"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Order Deadline</Label>
+                        <Input
+                          type="date"
+                          value={formData.order_deadline}
+                          onChange={(e) => setFormData({ ...formData, order_deadline: e.target.value })}
+                          data-testid="event-order-deadline-input"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Pickup / Delivery Date</Label>
+                        <Input
+                          type="date"
+                          value={formData.pickup_delivery_date}
+                          onChange={(e) => setFormData({ ...formData, pickup_delivery_date: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2 col-span-2">
+                        <Label>Pickup / Delivery Instructions</Label>
+                        <Textarea
+                          value={formData.pickup_delivery_instructions}
+                          onChange={(e) => setFormData({ ...formData, pickup_delivery_instructions: e.target.value })}
+                          placeholder="e.g., Items will be available for pickup at the venue check-in table"
+                          rows={2}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Auto-close after deadline</Label>
+                        <p className="text-xs text-muted-foreground">Stop accepting orders after the deadline date</p>
+                      </div>
+                      <Switch
+                        checked={formData.auto_close_after_deadline}
+                        onCheckedChange={(checked) => setFormData({ ...formData, auto_close_after_deadline: checked })}
+                        data-testid="auto-close-switch"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Allow late orders</Label>
+                        <p className="text-xs text-muted-foreground">Accept orders after deadline with a late notice</p>
+                      </div>
+                      <Switch
+                        checked={formData.allow_late_orders}
+                        onCheckedChange={(checked) => setFormData({ ...formData, allow_late_orders: checked })}
+                        data-testid="allow-late-orders-switch"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Locked (Admin-Controlled) Financial Settings */}
               <Separator />
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-medium text-sm">Admin-Controlled Financial Settings</h4>
+                  <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-400 border-amber-500/30">Tenant Only</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground -mt-2">
+                  These fields are locked and cannot be changed by store owners. Leave blank to configure later.
+                </p>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { key: 'base_item_cost', label: 'Base Item Cost ($)' },
+                    { key: 'production_cost', label: 'Production Cost ($)' },
+                    { key: 'retail_price', label: 'Retail Price ($)' },
+                    { key: 'store_owner_profit', label: 'Owner Profit ($)' },
+                    { key: 'profit_split', label: 'Profit Split (%)' },
+                    { key: 'setup_fee', label: 'Setup Fee ($)' },
+                    { key: 'shipping_fee', label: 'Shipping Fee ($)' },
+                    { key: 'handling_fee', label: 'Handling Fee ($)' },
+                  ].map(({ key, label }) => (
+                    <div key={key} className="space-y-1">
+                      <Label className="text-xs">{label}</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={formData.locked_settings[key]}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          locked_settings: { ...formData.locked_settings, [key]: e.target.value }
+                        })}
+                        className="h-8 text-sm"
+                        data-testid={`locked-${key}-input`}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm">Shipping &amp; Handling Bundle</Label>
+                    <p className="text-xs text-muted-foreground">Replace individual fees with a single bundled rate</p>
+                  </div>
+                  <Switch
+                    checked={formData.locked_settings.shipping_handling_enabled}
+                    onCheckedChange={(checked) => setFormData({
+                      ...formData,
+                      locked_settings: { ...formData.locked_settings, shipping_handling_enabled: checked }
+                    })}
+                    data-testid="sh-enabled-switch"
+                  />
+                </div>
+                {formData.locked_settings.shipping_handling_enabled && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Bundle Fee ($)</Label>
+                      <Input
+                        type="number" min="0" step="0.01"
+                        value={formData.locked_settings.shipping_handling_fee}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          locked_settings: { ...formData.locked_settings, shipping_handling_fee: e.target.value }
+                        })}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Label (shown to customer)</Label>
+                      <Input
+                        value={formData.locked_settings.shipping_handling_label}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          locked_settings: { ...formData.locked_settings, shipping_handling_label: e.target.value }
+                        })}
+                        placeholder="e.g., Shipping & Handling"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1 col-span-2">
+                      <Label className="text-xs">Description (optional)</Label>
+                      <Input
+                        value={formData.locked_settings.shipping_handling_description}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          locked_settings: { ...formData.locked_settings, shipping_handling_description: e.target.value }
+                        })}
+                        placeholder="Shown at checkout"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Visibility */}
               <Separator />
               <div className="flex items-center justify-between">
@@ -1934,6 +2274,235 @@ export default function Webstores() {
                           <p className="text-muted-foreground text-xs">Description</p>
                           <p className="font-medium">{selectedStore.description || '-'}</p>
                         </div>
+                        {selectedStore.store_slug && (
+                          <div className="col-span-2">
+                            <p className="text-muted-foreground text-xs">Store Slug</p>
+                            <p className="font-mono text-sm">{selectedStore.store_slug}</p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Event Store Settings — only visible for event stores */}
+                  {selectedStore.store_type === 'event' && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <CalendarDays className="h-4 w-4 text-orange-400" />
+                          Event Settings
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1 col-span-2">
+                            <Label className="text-xs">Event Name</Label>
+                            <Input
+                              value={eventEdits.event_name || ''}
+                              onChange={(e) => setEventEdits({ ...eventEdits, event_name: e.target.value })}
+                              placeholder="e.g., Johnson Benefit Dinner 2026"
+                              data-testid="edit-event-name-input"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Event Type</Label>
+                            <Select
+                              value={eventEdits.event_type || ''}
+                              onValueChange={(val) => setEventEdits({ ...eventEdits, event_type: val })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="one_time">One-time event</SelectItem>
+                                <SelectItem value="annual">Annual event</SelectItem>
+                                <SelectItem value="seasonal">Seasonal event</SelectItem>
+                                <SelectItem value="recurring">Recurring event</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Event Location</Label>
+                            <Input
+                              value={eventEdits.event_location || ''}
+                              onChange={(e) => setEventEdits({ ...eventEdits, event_location: e.target.value })}
+                              placeholder="Venue or city"
+                              data-testid="edit-event-location-input"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Event Start Date</Label>
+                            <Input
+                              type="date"
+                              value={eventEdits.event_start_date || ''}
+                              onChange={(e) => setEventEdits({ ...eventEdits, event_start_date: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Event End Date</Label>
+                            <Input
+                              type="date"
+                              value={eventEdits.event_end_date || ''}
+                              onChange={(e) => setEventEdits({ ...eventEdits, event_end_date: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Order Deadline</Label>
+                            <Input
+                              type="date"
+                              value={eventEdits.order_deadline || ''}
+                              onChange={(e) => setEventEdits({ ...eventEdits, order_deadline: e.target.value })}
+                              data-testid="edit-order-deadline-input"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Pickup / Delivery Date</Label>
+                            <Input
+                              type="date"
+                              value={eventEdits.pickup_delivery_date || ''}
+                              onChange={(e) => setEventEdits({ ...eventEdits, pickup_delivery_date: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-1 col-span-2">
+                            <Label className="text-xs">Pickup / Delivery Instructions</Label>
+                            <Textarea
+                              value={eventEdits.pickup_delivery_instructions || ''}
+                              onChange={(e) => setEventEdits({ ...eventEdits, pickup_delivery_instructions: e.target.value })}
+                              placeholder="e.g., Items available at the venue check-in table"
+                              rows={2}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label className="text-sm">Auto-close after deadline</Label>
+                            <p className="text-xs text-muted-foreground">Stop accepting orders after deadline</p>
+                          </div>
+                          <Switch
+                            checked={eventEdits.auto_close_after_deadline || false}
+                            onCheckedChange={(checked) => setEventEdits({ ...eventEdits, auto_close_after_deadline: checked })}
+                            data-testid="edit-auto-close-switch"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label className="text-sm">Allow late orders</Label>
+                            <p className="text-xs text-muted-foreground">Accept orders after deadline with a notice</p>
+                          </div>
+                          <Switch
+                            checked={eventEdits.allow_late_orders || false}
+                            onCheckedChange={(checked) => setEventEdits({ ...eventEdits, allow_late_orders: checked })}
+                            data-testid="edit-allow-late-orders-switch"
+                          />
+                        </div>
+                        <div className="flex justify-end">
+                          <Button
+                            size="sm"
+                            onClick={handleSaveEventSettings}
+                            disabled={savingEvent}
+                            data-testid="save-event-settings-btn"
+                          >
+                            {savingEvent ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                            Save Event Settings
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Tenant-Controlled Financial Settings */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <DollarSign className="h-4 w-4" />
+                        Admin-Controlled Financial Settings
+                        <Badge variant="outline" className="text-xs ml-auto bg-amber-500/10 text-amber-400 border-amber-500/30">
+                          Tenant Only
+                        </Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-xs text-muted-foreground">
+                        These values are set by your shop and cannot be modified by store owners.
+                      </p>
+                      <div className="grid grid-cols-3 gap-3">
+                        {[
+                          { key: 'base_item_cost', label: 'Base Item Cost ($)' },
+                          { key: 'production_cost', label: 'Production Cost ($)' },
+                          { key: 'retail_price', label: 'Retail Price ($)' },
+                          { key: 'store_owner_profit', label: 'Owner Profit ($)' },
+                          { key: 'profit_split', label: 'Profit Split (%)' },
+                          { key: 'setup_fee', label: 'Setup Fee ($)' },
+                          { key: 'shipping_fee', label: 'Shipping Fee ($)' },
+                          { key: 'handling_fee', label: 'Handling Fee ($)' },
+                        ].map(({ key, label }) => (
+                          <div key={key} className="space-y-1">
+                            <Label className="text-xs">{label}</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={lockedEdits[key] ?? ''}
+                              onChange={(e) => setLockedEdits({ ...lockedEdits, [key]: e.target.value })}
+                              className="h-8 text-sm"
+                              data-testid={`edit-locked-${key}-input`}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <Separator />
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-sm">Shipping &amp; Handling Bundle</Label>
+                          <p className="text-xs text-muted-foreground">Replace individual fees with a single rate</p>
+                        </div>
+                        <Switch
+                          checked={lockedEdits.shipping_handling_enabled || false}
+                          onCheckedChange={(checked) => setLockedEdits({ ...lockedEdits, shipping_handling_enabled: checked })}
+                          data-testid="edit-sh-enabled-switch"
+                        />
+                      </div>
+                      {lockedEdits.shipping_handling_enabled && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Bundle Fee ($)</Label>
+                            <Input
+                              type="number" min="0" step="0.01"
+                              value={lockedEdits.shipping_handling_fee ?? ''}
+                              onChange={(e) => setLockedEdits({ ...lockedEdits, shipping_handling_fee: e.target.value })}
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Label</Label>
+                            <Input
+                              value={lockedEdits.shipping_handling_label || ''}
+                              onChange={(e) => setLockedEdits({ ...lockedEdits, shipping_handling_label: e.target.value })}
+                              placeholder="Shipping & Handling"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1 col-span-2">
+                            <Label className="text-xs">Description (shown at checkout)</Label>
+                            <Input
+                              value={lockedEdits.shipping_handling_description || ''}
+                              onChange={(e) => setLockedEdits({ ...lockedEdits, shipping_handling_description: e.target.value })}
+                              placeholder="Optional description"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex justify-end">
+                        <Button
+                          size="sm"
+                          onClick={handleSaveLockedSettings}
+                          disabled={savingLocked}
+                          data-testid="save-locked-settings-btn"
+                        >
+                          {savingLocked ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                          Save Financial Settings
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>

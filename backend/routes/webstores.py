@@ -64,6 +64,7 @@ class WebstoreType(str, Enum):
     BUSINESS = "business"
     FUNDRAISER = "fundraiser"
     CREATOR = "creator"
+    EVENT = "event"
 
 class WebstoreStatus(str, Enum):
     ACTIVE = "active"
@@ -94,6 +95,30 @@ APPAREL_TIER_DEFAULTS = {
 # Common sizes for apparel and decals
 APPAREL_SIZES = ["XS", "S", "M", "L", "XL", "2XL", "3XL"]
 DECAL_SIZES = ["Small (3\")", "Medium (6\")", "Large (12\")", "XL (18\")", "Custom"]
+
+
+class LockedSettings(BaseModel):
+    """Tenant-controlled financial and operational settings.
+
+    These values are set and locked by the shop admin (tenant).
+    They MUST NOT be overwritten by questionnaire answers, store-owner
+    actions, or any other non-admin flow.
+    """
+    # Pricing / cost breakdown
+    base_item_cost: Optional[float] = None
+    production_cost: Optional[float] = None
+    retail_price: Optional[float] = None
+    store_owner_profit: Optional[float] = None
+    profit_split: Optional[float] = None        # % of net profit to store owner
+    # Individual fees
+    setup_fee: Optional[float] = None
+    shipping_fee: Optional[float] = None
+    handling_fee: Optional[float] = None
+    # Shipping & handling bundle (overrides individual fees when enabled)
+    shipping_handling_enabled: bool = False
+    shipping_handling_fee: Optional[float] = None
+    shipping_handling_label: Optional[str] = None
+    shipping_handling_description: Optional[str] = None
 
 
 # Webstore-order status lifecycle — used for validated status transitions.
@@ -246,6 +271,22 @@ class Webstore(BaseModel):
     owner_portal_enabled: bool = False
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    # ── Event-store specific fields ──────────────────────────────────────────
+    event_name: Optional[str] = None
+    event_type: Optional[str] = None        # one_time | annual | seasonal | recurring
+    event_start_date: Optional[str] = None
+    event_end_date: Optional[str] = None
+    event_location: Optional[str] = None
+    order_deadline: Optional[str] = None
+    pickup_delivery_date: Optional[str] = None
+    pickup_delivery_instructions: Optional[str] = None
+    auto_close_after_deadline: bool = False
+    allow_late_orders: bool = False
+    # ── Tenant-controlled locked financial settings ──────────────────────────
+    # Source of truth for costs/fees/splits. Not editable by store owners.
+    locked_settings: LockedSettings = Field(default_factory=LockedSettings)
+    # ── SEO slug (read-only after creation) ─────────────────────────────────
+    store_slug: Optional[str] = None
 
 
 class WebstoreCreate(BaseModel):
@@ -266,6 +307,19 @@ class WebstoreCreate(BaseModel):
     seo_title: Optional[str] = None
     seo_description: Optional[str] = None
     og_image: Optional[str] = None
+    # Event-store fields
+    event_name: Optional[str] = None
+    event_type: Optional[str] = None
+    event_start_date: Optional[str] = None
+    event_end_date: Optional[str] = None
+    event_location: Optional[str] = None
+    order_deadline: Optional[str] = None
+    pickup_delivery_date: Optional[str] = None
+    pickup_delivery_instructions: Optional[str] = None
+    auto_close_after_deadline: bool = False
+    allow_late_orders: bool = False
+    # Tenant-controlled locked settings (admin-only)
+    locked_settings: Optional[Dict[str, Any]] = None
 
 
 class WebstoreUpdate(BaseModel):
@@ -286,6 +340,19 @@ class WebstoreUpdate(BaseModel):
     seo_title: Optional[str] = None
     seo_description: Optional[str] = None
     og_image: Optional[str] = None
+    # Event-store fields
+    event_name: Optional[str] = None
+    event_type: Optional[str] = None
+    event_start_date: Optional[str] = None
+    event_end_date: Optional[str] = None
+    event_location: Optional[str] = None
+    order_deadline: Optional[str] = None
+    pickup_delivery_date: Optional[str] = None
+    pickup_delivery_instructions: Optional[str] = None
+    auto_close_after_deadline: Optional[bool] = None
+    allow_late_orders: Optional[bool] = None
+    # Tenant-controlled locked settings (admin-only)
+    locked_settings: Optional[Dict[str, Any]] = None
 
 
 class WebstoreProduct(BaseModel):
@@ -405,7 +472,10 @@ def _normalize_webstore_doc(raw: Dict[str, Any], tenant_id: str) -> Dict[str, An
         "corporate": "business",
     }
     store_type = legacy_type_map.get(store_type, store_type)
-    if store_type not in {WebstoreType.BUSINESS.value, WebstoreType.FUNDRAISER.value, WebstoreType.CREATOR.value}:
+    if store_type not in {
+        WebstoreType.BUSINESS.value, WebstoreType.FUNDRAISER.value,
+        WebstoreType.CREATOR.value, WebstoreType.EVENT.value,
+    }:
         store_type = WebstoreType.BUSINESS.value
     doc["store_type"] = store_type
 
@@ -447,6 +517,10 @@ def _normalize_webstore_doc(raw: Dict[str, Any], tenant_id: str) -> Dict[str, An
     doc["is_public"] = bool(doc.get("is_public", True))
     doc["created_at"] = doc.get("created_at") or now_iso
     doc["updated_at"] = doc.get("updated_at") or doc["created_at"]
+
+    # Ensure locked_settings is a dict (never None) so Pydantic can coerce it
+    if not isinstance(doc.get("locked_settings"), dict):
+        doc["locked_settings"] = {}
 
     return doc
 
@@ -551,6 +625,30 @@ async def _ensure_main_order_bridge(
         {"$set": {"order_id": order_id, "updated_at": now_iso}},
     )
     return order_id
+
+
+# ============== SLUG HELPER ==============
+
+import re as _re
+
+async def _generate_unique_slug(name: str, tenant_id: str) -> str:
+    """Generate a unique URL-safe slug from a store name.
+
+    Slugs are stored for future slug-based routing. They do not break the
+    existing /store/{storeId} route.  Duplicate names within a tenant get
+    a numeric suffix: johnson-benefit-dinner-2026-2, -3, etc.
+    """
+    base = _re.sub(r"[^a-z0-9\s-]", "", name.lower())
+    base = _re.sub(r"[\s_]+", "-", base).strip("-")[:60] or "store"
+    slug = base
+    counter = 1
+    while await db.webstores_v2.find_one(
+        {"tenant_id": tenant_id, "store_slug": slug},
+        {"_id": 0, "id": 1},
+    ):
+        slug = f"{base}-{counter}"
+        counter += 1
+    return slug
 
 
 # ============== ROUTERS ==============
@@ -904,6 +1002,7 @@ async def create_webstore(
     if existing:
         raise HTTPException(status_code=409, detail="A webstore with this name already exists.")
     branding = WebstoreBranding(**(input.branding or {}))
+    store_slug = await _generate_unique_slug(input.name, current_user.tenant_id)
     webstore = Webstore(
         tenant_id=current_user.tenant_id,
         name=input.name,
@@ -923,6 +1022,21 @@ async def create_webstore(
         seo_title=input.seo_title,
         seo_description=input.seo_description,
         og_image=input.og_image,
+        # Event-store fields
+        event_name=input.event_name,
+        event_type=input.event_type,
+        event_start_date=input.event_start_date,
+        event_end_date=input.event_end_date,
+        event_location=input.event_location,
+        order_deadline=input.order_deadline,
+        pickup_delivery_date=input.pickup_delivery_date,
+        pickup_delivery_instructions=input.pickup_delivery_instructions,
+        auto_close_after_deadline=input.auto_close_after_deadline,
+        allow_late_orders=input.allow_late_orders,
+        # Tenant-controlled locked settings
+        locked_settings=LockedSettings(**(input.locked_settings or {})),
+        # URL slug
+        store_slug=store_slug,
     )
     doc = webstore.model_dump()
     await db.webstores_v2.insert_one(doc)
