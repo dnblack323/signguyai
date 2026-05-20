@@ -22,6 +22,13 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-05-22 — **Storefront "Share this fundraiser" button (COMPLETE)**:
+  - Frontend-only addition in `Storefront.js`. Gated by `store_type==='event' && fundraiser_enabled` — never appears on business/creator/legacy-fundraiser stores.
+  - Placed below the fundraiser progress bar, above the supporters strip. `data-testid="fundraiser-share-button"`.
+  - Uses `navigator.share` when available; otherwise falls back to copying the share message to clipboard. Silently ignores `AbortError` (user cancelled share sheet). Last-resort textarea+`execCommand` fallback for very old browsers.
+  - Share message variants honor spec: includes goal+raised when goal>0; falls back to "Help support this event fundraiser" when fundraiser_name is missing.
+  - **Verified via screenshot**: share button present on event store with fundraiser, absent on business store. No backend changes; no impact on donations, progress bar, supporters strip, or checkout.
+
 - 2026-05-22 — **Event Store Polish Pass (COMPLETE)**:
   - **Supporters strip** (`GET /api/storefront/{id}/supporters`): public Top Donors / Recent Supporters list for Event Store fundraisers, gated by `show_supporter_names` (no/yes_with_permission/yes_all). Mongo projection limits the payload to `{name, amount, created_at}` only — never exposes email/phone/payment fields. `yes_with_permission` falls back to "Anonymous Supporter" when the donor didn't opt in.
   - **Donor consent** plumbed through: `WebstoreCheckoutRequest.donor_consent` → Stripe metadata → `payment_transactions` → `WebstoreOrderCreate.donor_consent` → `webstore_orders_v2.donor_consent`. Storefront shows a consent checkbox only when `show_supporter_names='yes_with_permission'` AND a donation is selected.

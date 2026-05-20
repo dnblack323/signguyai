@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -23,7 +23,7 @@ import {
 import { formatCurrency } from '../lib/utils';
 import { 
   ShoppingCart, Plus, Minus, Trash2, Package, CheckCircle,
-  Store, Heart, Building2, User, ArrowLeft, X
+  Store, Heart, Building2, User, ArrowLeft, X, Share2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -245,6 +245,57 @@ export default function Storefront() {
   const progressPct = fundraiserGoal > 0
     ? Math.min(100, (totalRaised / fundraiserGoal) * 100)
     : 0;
+
+  // Polish: Share-this-fundraiser button — Event Store + fundraiser only.
+  const showShareButton = store?.store_type === 'event' && !!store?.fundraiser_enabled;
+  const buildShareMessage = useCallback(() => {
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    const name = (store?.fundraiser_name || '').trim();
+    const goal = Number(store?.fundraiser_goal_amount || 0);
+    const raised = Number(store?.total_raised || 0);
+    let lead;
+    if (!name) {
+      lead = 'Help support this event fundraiser.';
+    } else if (goal > 0) {
+      lead = `Help support ${name}. We've raised ${formatCurrency(raised)} of our ${formatCurrency(goal)} goal.`;
+    } else {
+      lead = `Help support ${name}.`;
+    }
+    return { title: name || 'Event Fundraiser', text: `${lead} Shop or donate here: ${url}`, url };
+  }, [store]);
+
+  const handleShareFundraiser = useCallback(async () => {
+    const payload = buildShareMessage();
+    try {
+      if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+        await navigator.share(payload);
+        toast.success('Thanks for sharing!');
+        return;
+      }
+    } catch (err) {
+      // User cancelled the share sheet — silently ignore AbortError; for
+      // any other error, fall through to the clipboard fallback.
+      if (err && err.name === 'AbortError') return;
+    }
+    try {
+      const fallbackText = payload.text;
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(fallbackText);
+        toast.success('Fundraiser link copied — paste it anywhere!');
+      } else {
+        // Last-resort fallback for very old browsers.
+        const ta = document.createElement('textarea');
+        ta.value = fallbackText;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        toast.success('Fundraiser link copied — paste it anywhere!');
+      }
+    } catch (_) {
+      toast.error('Could not share — try copying the page URL.');
+    }
+  }, [buildShareMessage]);
 
   // Polish: supporters strip — Event Stores only, when allowed AND there
   // are supporters. The backend already enforces all the gates; the UI
@@ -469,7 +520,7 @@ export default function Storefront() {
       </header>
 
       {/* Banner / Description */}
-      {(store.description || store.store_type === 'fundraiser' || showFundraiserProgress) && (
+      {(store.description || store.store_type === 'fundraiser' || showFundraiserProgress || showShareButton) && (
         <div 
           className="border-b border-border"
           style={{ backgroundColor: primaryColor + '10' }}
@@ -521,6 +572,23 @@ export default function Storefront() {
                     {store.fundraiser_description}
                   </p>
                 )}
+              </div>
+            )}
+
+            {/* Share this fundraiser — only on Event Stores with fundraiser_enabled. */}
+            {showShareButton && (
+              <div className="mt-3 flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleShareFundraiser}
+                  className="gap-2"
+                  style={{ borderColor: primaryColor, color: primaryColor }}
+                  data-testid="fundraiser-share-button"
+                >
+                  <Share2 className="h-4 w-4" />
+                  Share this fundraiser
+                </Button>
               </div>
             )}
 
