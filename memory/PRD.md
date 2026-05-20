@@ -22,7 +22,25 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
-- 2026-05-20 — **Phase 2A Banner Compare Methods (COMPLETE)**:
+- 2026-05-20 — **Event Store Foundation + Tenant-Controlled Locked Settings (COMPLETE)**:
+  - **Backend** (`routes/webstores.py`):
+    - Added `EVENT = "event"` to `WebstoreType` enum (4th type alongside business, fundraiser, creator).
+    - Fixed `_normalize_webstore_doc`: added EVENT to the valid type set so event stores are no longer coerced to "business".
+    - Added `LockedSettings` Pydantic model (tenant-controlled: base_item_cost, production_cost, retail_price, store_owner_profit, profit_split, setup_fee, shipping_fee, handling_fee, shipping_handling_enabled/fee/label/description).
+    - Added event-specific fields to `Webstore`, `WebstoreCreate`, `WebstoreUpdate`: event_name, event_type, event_start_date, event_end_date, event_location, order_deadline, pickup_delivery_date, pickup_delivery_instructions, auto_close_after_deadline, allow_late_orders.
+    - Added `locked_settings: LockedSettings` to Webstore model; `Optional[Dict]` in Create/Update.
+    - Added `store_slug` field with `_generate_unique_slug()` helper (async uniqueness check per tenant).
+    - `WEBSTORE_PUBLIC_FIELDS` updated: event public fields added, locked_settings intentionally excluded (security).
+    - `_normalize_webstore_doc` ensures `locked_settings` is always a dict before Pydantic coercion.
+  - **Frontend** (`Webstores.js`):
+    - Added Event Store as 4th storeType (CalendarDays icon, orange badge).
+    - Extended `formData` / `resetForm` with all event + locked_settings fields.
+    - Added empty-string→null sanitization for locked_settings in `handleCreateStore` (prevents 500 on creation).
+    - Create dialog: Event-specific section (event_name, event_type, start/end dates, location, order_deadline, pickup fields, auto_close/allow_late toggles).
+    - Create dialog: Admin-Controlled Financial Settings section (8 fee/cost fields + shipping_handling bundle, "Tenant Only" badge).
+    - Detail Settings tab: Event Settings card (edit + save), Admin-Controlled Financial Settings card (edit + save).
+    - Added `lockedEdits`, `eventEdits`, `savingLocked`, `savingEvent` state + `handleSaveEventSettings`, `handleSaveLockedSettings` handlers.
+  - **Tested**: iteration_154.json → **16/16 backend PASS, 100% frontend PASS**. Bug found and fixed (empty locked_settings empty-string validation error). All existing store types unaffected.
   - **Frontend** (`PricingCalculator.js`): Added `computeBannerCompareMethods()` function using foundationDefaults (material cost_per_sqft, sell_rate_per_sqft, labor_rates, category waste/minutes/minimum), `bannerBreakdownExpanded` state, updated `BANNER_ADDON_DEFAULTS` with `default_labor_minutes` and `rate_source`; added full Compare Methods UI panel at end of banners case block with two-column Price Per SqFt vs Detailed M+L comparison, recommended price (higher of two), Use/Use Recommended buttons (sets overrideEnabled+overridePrice), manual override input with clear button, expandable detailed breakdown showing all formula inputs.
   - Formula: PricePerSqFt = retailRate×sqft+addonFees (max minimum). Detailed = wasteAdjCost×sqft + laborMin/60×prodRate + addonFees (max minimum). Recommended = max of both.
   - **Tested**: iteration_153.json → **20/20 frontend PASS**. Math verified: Small Pole Banner = $60.00/$35.08/$60.00 recommended. Large Pole = $95.00/$39.80/$95.00. All Use/override/breakdown features verified.
