@@ -71,6 +71,9 @@ export default function OrderDetail() {
   const [orderFiles, setOrderFiles] = useState([]);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [orderFileThumbs, setOrderFileThumbs] = useState({});
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [templates, setTemplates] = useState([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [drawings, setDrawings] = useState([]);
   const [showDrawingModal, setShowDrawingModal] = useState(false);
   const [drawingMarkupImage, setDrawingMarkupImage] = useState(null);
@@ -347,6 +350,35 @@ export default function OrderDetail() {
       toast.success('File deleted');
       setOrderFiles(prev => prev.filter(f => f.id !== fileId));
     } catch { toast.error('Failed to delete file'); }
+  };
+
+  const fetchTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const res = await axios.get(`${API}/documents?filter=templates`, { headers: hdr() });
+      setTemplates(res.data.filter(d => d.is_template));
+    } catch (err) {
+      toast.error('Failed to load templates');
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  const handleUseTemplate = async (template) => {
+    try {
+      const res = await axios.post(`${API}/documents/${template.id}/populate-from-template`, {
+        customer_id: order?.customer_id,
+        job_id: id
+      }, { headers: hdr() });
+      
+      toast.success(`Created "${template.name}" with your order data!`);
+      setShowTemplateSelector(false);
+      
+      const filesRes = await axios.get(`${API}/orders/${id}/files`, { headers: hdr() });
+      setOrderFiles(filesRes.data || []);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to use template');
+    }
   };
 
   const getFileContentUrl = async (file) => {
@@ -977,7 +1009,18 @@ export default function OrderDetail() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500">{orderFiles.length} file{orderFiles.length !== 1 ? 's' : ''} attached</p>
-            <div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  fetchTemplates();
+                  setShowTemplateSelector(true);
+                }}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Use Template
+              </Button>
               <input type="file" multiple onChange={handleFileUpload} className="hidden" id="order-detail-file-input" />
               <label htmlFor="order-detail-file-input">
                 <Button asChild variant="outline" size="sm" className="gap-2 cursor-pointer" disabled={uploadingFile}>
@@ -1180,6 +1223,56 @@ export default function OrderDetail() {
         <DialogContent className="sm:max-w-[760px]">
           <DialogHeader><DialogTitle>{previewFile?.label || 'Artwork Preview'}</DialogTitle></DialogHeader>
           {previewFile?.contentUrl && <img src={previewFile.contentUrl} alt={previewFile.label} className="w-full max-h-[70vh] object-contain rounded-lg" />}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Template Selector Dialog */}
+      <Dialog open={showTemplateSelector} onOpenChange={setShowTemplateSelector}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Use Document Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Select a template to create a document for this order. All variables will be automatically filled.
+            </p>
+            
+            {loadingTemplates ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : templates.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+                <p className="text-sm text-muted-foreground">No templates available</p>
+              </div>
+            ) : (
+              <div className="grid gap-2 max-h-[400px] overflow-y-auto">
+                {templates.map(template => (
+                  <Card 
+                    key={template.id}
+                    className="cursor-pointer hover:border-primary transition-colors"
+                    onClick={() => handleUseTemplate(template)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <FileText className="h-4 w-4 text-primary" />
+                            <h4 className="font-medium">{template.name}</h4>
+                          </div>
+                          {template.description && (
+                            <p className="text-sm text-muted-foreground text-xs">{template.description}</p>
+                          )}
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
