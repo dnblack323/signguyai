@@ -17,20 +17,47 @@ import { toast } from 'sonner';
 import { useAuth, Permission } from '../context/AuthContext';
 import { getAuthToken } from '../lib/authStorage';
 import PricingSetupQuiz from '../components/pricing/PricingSetupQuiz';
+import ShopRateQuiz from '../components/pricing/ShopRateQuiz';
+import CategoryPricingMethodSetup from '../components/pricing/CategoryPricingMethodSetup';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const hdr = () => ({ Authorization: `Bearer ${getAuthToken()}`, 'Content-Type': 'application/json' });
 
 /* ────────── CONSTANTS ────────── */
 const MATERIAL_CATEGORIES = [
-  { value: 'print_material', label: 'Print / Banner' },
-  { value: 'vinyl', label: 'Vinyl' },
-  { value: 'substrate', label: 'Substrates / Boards' },
-  { value: 'apparel', label: 'Apparel / Garments' },
-  { value: 'decoration', label: 'Decoration Methods' },
-  { value: 'lamination', label: 'Lamination' },
-  { value: 'hardware', label: 'Hardware / Mounting' },
+  { value: 'banner_material', label: 'Banner Material' },
+  { value: 'printable_vinyl', label: 'Printable Vinyl' },
+  { value: 'laminate', label: 'Laminate' },
+  { value: 'cut_vinyl', label: 'Cut Vinyl' },
+  { value: 'transfer_tape', label: 'Transfer Tape' },
+  { value: 'wrap_film', label: 'Wrap Film' },
+  { value: 'coroplast', label: 'Coroplast' },
+  { value: 'acm', label: 'ACM' },
+  { value: 'pvc', label: 'PVC' },
+  { value: 'acrylic', label: 'Acrylic' },
+  { value: 'apparel_blank', label: 'Apparel Blank' },
+  { value: 'hardware', label: 'Hardware' },
   { value: 'other', label: 'Other' },
+];
+
+const PURCHASE_TYPES = [
+  { value: 'roll', label: 'Roll' },
+  { value: 'sheet', label: 'Sheet' },
+  { value: 'each', label: 'Each / Unit' },
+  { value: 'linear_ft', label: 'Linear Foot' },
+  { value: 'sqft', label: 'Square Foot' },
+  { value: 'yard', label: 'Yard' },
+  { value: 'custom', label: 'Custom' },
+];
+
+const WIDTH_UNITS = [
+  { value: 'inches', label: 'Inches' },
+  { value: 'feet', label: 'Feet' },
+];
+
+const LENGTH_UNITS = [
+  { value: 'feet', label: 'Feet' },
+  { value: 'yards', label: 'Yards' },
 ];
 
 const HARDWARE_CATEGORIES = [
@@ -176,11 +203,51 @@ const parseCsvList = (value) => String(value || '')
 const listToCsv = (value) => (value || []).join(', ');
 const blankMaterial = (cat = '') => ({
   id: `mat-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-  key: '', name: '', category: cat || 'vinyl', subtype: '', brand: '', vendor: '',
-  thickness: '', width_inches: 0, length_inches: 0, roll_sheet_size: '',
-  purchase_unit: '', purchase_cost: 0, cost_per_unit: 0, unit_type: 'sqft',
-  cost_per_sqft: 0, cost_per_linear_foot: 0, sell_rate_per_sqft: 0,
-  waste_factor: 0, waste_override: 0, compatible_categories: [], is_active: true, notes: '',
+  key: '', 
+  name: '', 
+  category: cat || 'banner_material', 
+  purchase_type: 'roll', // roll, sheet, each, linear_ft, sqft, yard, custom
+  
+  // Roll material fields
+  roll_width: 0,
+  roll_width_unit: 'inches',
+  roll_length: 0,
+  roll_length_unit: 'feet',
+  roll_cost: 0,
+  
+  // Sheet material fields
+  sheet_width: 0,
+  sheet_height: 0,
+  sheet_cost: 0,
+  
+  // Each/unit fields
+  unit_cost: 0,
+  
+  // Linear foot fields
+  linear_ft_cost: 0,
+  
+  // Calculated fields
+  shop_cost_per_sqft: 0, // calculated
+  shop_cost_each: 0, // for unit purchases
+  
+  // Waste and markup
+  waste_percent: 0,
+  waste_adjusted_cost_per_sqft: 0, // calculated
+  markup_percent: 0, // optional
+  suggested_material_charge_per_sqft: 0, // calculated if markup entered
+  manual_material_charge_per_sqft: 0, // optional override
+  suggested_material_charge_each: 0, // for unit purchases
+  manual_material_charge_each: 0,
+  
+  // Legacy fields (kept for backward compatibility but not primary)
+  cost_per_sqft: 0, // legacy
+  cost_per_unit: 0, // legacy
+  
+  brand: '', 
+  vendor: '',
+  compatible_categories: [], 
+  is_active: true, 
+  notes: '',
 });
 const blankHardware = (cat = '') => ({
   id: `hw-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -468,6 +535,49 @@ function MaterialsLibraryTab({ materials, setMaterials, canEdit }) {
 }
 
 function MaterialRow({ mat, editing, canEdit, onToggleEdit, onChange, onRemove }) {
+  // Calculate derived values
+  const purchaseType = mat.purchase_type || 'roll';
+  
+  // Roll calculation
+  const rollWidthFeet = mat.roll_width_unit === 'inches' ? n(mat.roll_width) / 12 : n(mat.roll_width);
+  const rollLengthFeet = mat.roll_length_unit === 'yards' ? n(mat.roll_length) * 3 : n(mat.roll_length);
+  const rollTotalSqFt = rollWidthFeet * rollLengthFeet;
+  const rollShopCostPerSqFt = rollTotalSqFt > 0 ? n(mat.roll_cost) / rollTotalSqFt : 0;
+  
+  // Sheet calculation
+  const sheetSqFt = (n(mat.sheet_width) * n(mat.sheet_height)) / 144; // inches to sqft
+  const sheetShopCostPerSqFt = sheetSqFt > 0 ? n(mat.sheet_cost) / sheetSqFt : 0;
+  
+  // Determine shop cost based on purchase type
+  let shopCostPerSqFt = 0;
+  let shopCostEach = 0;
+  if (purchaseType === 'roll') shopCostPerSqFt = rollShopCostPerSqFt;
+  else if (purchaseType === 'sheet') shopCostPerSqFt = sheetShopCostPerSqFt;
+  else if (purchaseType === 'each') shopCostEach = n(mat.unit_cost);
+  else if (purchaseType === 'linear_ft') shopCostPerSqFt = n(mat.linear_ft_cost); // assuming 1ft width for display
+  else if (purchaseType === 'sqft') shopCostPerSqFt = n(mat.cost_per_sqft) || n(mat.shop_cost_per_sqft);
+  
+  // Waste-adjusted cost
+  const wasteAdjustedCost = shopCostPerSqFt * (1 + n(mat.waste_percent) / 100);
+  
+  // Suggested material charge (if markup entered)
+  const suggestedCharge = n(mat.markup_percent) > 0 
+    ? wasteAdjustedCost * (1 + n(mat.markup_percent) / 100)
+    : 0;
+  
+  // Update material object with calculated values when editing
+  if (editing) {
+    if (mat.shop_cost_per_sqft !== shopCostPerSqFt) {
+      onChange('shop_cost_per_sqft', shopCostPerSqFt);
+    }
+    if (mat.waste_adjusted_cost_per_sqft !== wasteAdjustedCost) {
+      onChange('waste_adjusted_cost_per_sqft', wasteAdjustedCost);
+    }
+    if (mat.suggested_material_charge_per_sqft !== suggestedCharge) {
+      onChange('suggested_material_charge_per_sqft', suggestedCharge);
+    }
+  }
+  
   if (!editing) {
     return (
       <div className="flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0 group" data-testid={`material-row-${mat.id}`}>
@@ -475,12 +585,22 @@ function MaterialRow({ mat, editing, canEdit, onToggleEdit, onChange, onRemove }
           <div className={`w-2 h-2 rounded-full ${mat.is_active ? 'bg-green-500' : 'bg-gray-300'}`} />
           <div className="min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">{mat.name || mat.key}</p>
-            <p className="text-[10px] text-gray-400 truncate">{mat.key}{mat.brand ? ` — ${mat.brand}` : ''}</p>
+            <p className="text-[10px] text-gray-400 truncate">
+              {mat.key}{mat.brand ? ` — ${mat.brand}` : ''} • {purchaseType}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-4 text-xs text-gray-600">
-          <span>${f2(mat.cost_per_unit)} / {mat.unit_type}</span>
-          {n(mat.sell_rate_per_sqft) > 0 && <span className="text-green-600">Sell: ${f2(mat.sell_rate_per_sqft)}/sqft</span>}
+          {purchaseType === 'each' ? (
+            <span className="text-gray-700">Shop: ${f2(shopCostEach)} ea</span>
+          ) : (
+            <span className="text-gray-700">Shop: ${f2(shopCostPerSqFt)}/sqft</span>
+          )}
+          {(n(mat.manual_material_charge_per_sqft) > 0 || suggestedCharge > 0) && (
+            <span className="text-green-600">
+              Charge: ${f2(n(mat.manual_material_charge_per_sqft) || suggestedCharge)}/sqft
+            </span>
+          )}
           {canEdit && (
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={onToggleEdit} data-testid={`material-edit-toggle-${mat.id}`}><Edit2 className="h-3 w-3" /></Button>
@@ -498,33 +618,107 @@ function MaterialRow({ mat, editing, canEdit, onToggleEdit, onChange, onRemove }
         <div><Label className="text-[10px]">Name</Label><Input className="h-7 text-xs" value={mat.name} onChange={(e) => onChange('name', e.target.value)} data-testid={`material-${mat.id}-name`} /></div>
         <div><Label className="text-[10px]">Brand</Label><Input className="h-7 text-xs" value={mat.brand || ''} onChange={(e) => onChange('brand', e.target.value)} data-testid={`material-${mat.id}-brand`} /></div>
         <div><Label className="text-[10px]">Vendor</Label><Input className="h-7 text-xs" value={mat.vendor || ''} onChange={(e) => onChange('vendor', e.target.value)} data-testid={`material-${mat.id}-vendor`} /></div>
-        <div><Label className="text-[10px]">Subtype</Label><Input className="h-7 text-xs" value={mat.subtype || ''} onChange={(e) => onChange('subtype', e.target.value)} data-testid={`material-${mat.id}-subtype`} /></div>
-        <div><Label className="text-[10px]">Thickness</Label><Input className="h-7 text-xs" value={mat.thickness || ''} onChange={(e) => onChange('thickness', e.target.value)} data-testid={`material-${mat.id}-thickness`} /></div>
-        <div><Label className="text-[10px]">Width (in)</Label><Input type="number" className="h-7 text-xs" value={mat.width_inches || ''} onChange={(e) => onChange('width_inches', n(e.target.value))} data-testid={`material-${mat.id}-width`} /></div>
-        <div><Label className="text-[10px]">Length (in)</Label><Input type="number" className="h-7 text-xs" value={mat.length_inches || ''} onChange={(e) => onChange('length_inches', n(e.target.value))} data-testid={`material-${mat.id}-length`} /></div>
-        <div><Label className="text-[10px]">Roll / Sheet Size</Label><Input className="h-7 text-xs" value={mat.roll_sheet_size || ''} onChange={(e) => onChange('roll_sheet_size', e.target.value)} placeholder='e.g. 24"x50yd' data-testid={`material-${mat.id}-roll-size`} /></div>
-        <div><Label className="text-[10px]">Purchase Unit</Label><Input className="h-7 text-xs" value={mat.purchase_unit || ''} onChange={(e) => onChange('purchase_unit', e.target.value)} placeholder="roll, sheet, each" data-testid={`material-${mat.id}-purchase-unit`} /></div>
-        <div><Label className="text-[10px]">Purchase Cost</Label><Input type="number" className="h-7 text-xs" value={mat.purchase_cost || ''} onChange={(e) => onChange('purchase_cost', n(e.target.value))} data-testid={`material-${mat.id}-purchase-cost`} /></div>
-        <div><Label className="text-[10px]">Cost / Unit</Label><Input type="number" className="h-7 text-xs" value={mat.cost_per_unit} onChange={(e) => onChange('cost_per_unit', n(e.target.value))} data-testid={`material-${mat.id}-cost-unit`} /></div>
+        
         <div>
-          <Label className="text-[10px]">Unit Type</Label>
-          <Select value={mat.unit_type} onValueChange={(v) => onChange('unit_type', v)}>
-            <SelectTrigger className="h-7 text-xs" data-testid={`material-${mat.id}-unit-type`}><SelectValue /></SelectTrigger>
-            <SelectContent>{UNIT_TYPES.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}</SelectContent>
+          <Label className="text-[10px]">Purchase Type</Label>
+          <Select value={purchaseType} onValueChange={(v) => onChange('purchase_type', v)}>
+            <SelectTrigger className="h-7 text-xs" data-testid={`material-${mat.id}-purchase-type`}><SelectValue /></SelectTrigger>
+            <SelectContent>{PURCHASE_TYPES.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}</SelectContent>
           </Select>
         </div>
-        <div><Label className="text-[10px]">Cost / Sq Ft</Label><Input type="number" className="h-7 text-xs" value={mat.cost_per_sqft || ''} onChange={(e) => onChange('cost_per_sqft', n(e.target.value))} data-testid={`material-${mat.id}-cost-sqft`} /></div>
-        <div><Label className="text-[10px]">Cost / Linear Ft</Label><Input type="number" className="h-7 text-xs" value={mat.cost_per_linear_foot || ''} onChange={(e) => onChange('cost_per_linear_foot', n(e.target.value))} data-testid={`material-${mat.id}-cost-linear`} /></div>
-        <div><Label className="text-[10px]">Sell Rate / Sq Ft</Label><Input type="number" className="h-7 text-xs" value={mat.sell_rate_per_sqft || ''} onChange={(e) => onChange('sell_rate_per_sqft', n(e.target.value))} data-testid={`material-${mat.id}-sell-rate`} /></div>
-        <div><Label className="text-[10px]">Waste Factor %</Label><Input type="number" className="h-7 text-xs" value={mat.waste_factor || ''} onChange={(e) => onChange('waste_factor', n(e.target.value))} data-testid={`material-${mat.id}-waste-factor`} /></div>
-        <div><Label className="text-[10px]">Waste Override %</Label><Input type="number" className="h-7 text-xs" value={mat.waste_override || ''} onChange={(e) => onChange('waste_override', n(e.target.value))} data-testid={`material-${mat.id}-waste-override`} /></div>
-        <div className="col-span-2"><Label className="text-[10px]">Compatible Categories</Label><Input className="h-7 text-xs" value={listToCsv(mat.compatible_categories)} onChange={(e) => onChange('compatible_categories', parseCsvList(e.target.value))} placeholder="cut_vinyl, banners" data-testid={`material-${mat.id}-compatible`} /></div>
-        <div className="flex items-center gap-2 pt-4">
+      </div>
+      
+      {/* Roll material inputs */}
+      {purchaseType === 'roll' && (
+        <div className="bg-blue-50 border border-blue-200 rounded p-2 space-y-2">
+          <p className="text-xs font-medium text-blue-900">Roll Material</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div><Label className="text-[10px]">Roll Width</Label><Input type="number" className="h-7 text-xs" value={mat.roll_width || ''} onChange={(e) => onChange('roll_width', n(e.target.value))} /></div>
+            <div>
+              <Label className="text-[10px]">Width Unit</Label>
+              <Select value={mat.roll_width_unit || 'inches'} onValueChange={(v) => onChange('roll_width_unit', v)}>
+                <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>{WIDTH_UNITS.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label className="text-[10px]">Roll Length</Label><Input type="number" className="h-7 text-xs" value={mat.roll_length || ''} onChange={(e) => onChange('roll_length', n(e.target.value))} /></div>
+            <div>
+              <Label className="text-[10px]">Length Unit</Label>
+              <Select value={mat.roll_length_unit || 'feet'} onValueChange={(v) => onChange('roll_length_unit', v)}>
+                <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>{LENGTH_UNITS.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2"><Label className="text-[10px]">Roll Cost ($)</Label><Input type="number" className="h-7 text-xs" value={mat.roll_cost || ''} onChange={(e) => onChange('roll_cost', n(e.target.value))} /></div>
+            <div className="col-span-2 bg-white rounded p-2 text-xs">
+              <strong>Shop Cost/Sq Ft:</strong> ${f2(rollShopCostPerSqFt)}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Sheet material inputs */}
+      {purchaseType === 'sheet' && (
+        <div className="bg-green-50 border border-green-200 rounded p-2 space-y-2">
+          <p className="text-xs font-medium text-green-900">Sheet Material</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div><Label className="text-[10px]">Sheet Width (in)</Label><Input type="number" className="h-7 text-xs" value={mat.sheet_width || ''} onChange={(e) => onChange('sheet_width', n(e.target.value))} /></div>
+            <div><Label className="text-[10px]">Sheet Height (in)</Label><Input type="number" className="h-7 text-xs" value={mat.sheet_height || ''} onChange={(e) => onChange('sheet_height', n(e.target.value))} /></div>
+            <div className="col-span-2"><Label className="text-[10px]">Sheet Cost ($)</Label><Input type="number" className="h-7 text-xs" value={mat.sheet_cost || ''} onChange={(e) => onChange('sheet_cost', n(e.target.value))} /></div>
+            <div className="col-span-2 bg-white rounded p-2 text-xs">
+              <strong>Shop Cost/Sq Ft:</strong> ${f2(sheetShopCostPerSqFt)}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Each/unit inputs */}
+      {purchaseType === 'each' && (
+        <div className="bg-purple-50 border border-purple-200 rounded p-2 space-y-2">
+          <p className="text-xs font-medium text-purple-900">Each / Unit Material</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div><Label className="text-[10px]">Unit Cost ($)</Label><Input type="number" className="h-7 text-xs" value={mat.unit_cost || ''} onChange={(e) => onChange('unit_cost', n(e.target.value))} /></div>
+            <div className="bg-white rounded p-2 text-xs flex items-center">
+              <strong>Shop Cost Each:</strong> ${f2(shopCostEach)}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Linear foot inputs */}
+      {purchaseType === 'linear_ft' && (
+        <div className="bg-amber-50 border border-amber-200 rounded p-2 space-y-2">
+          <p className="text-xs font-medium text-amber-900">Linear Foot Material</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div><Label className="text-[10px]">Cost Per Linear Ft ($)</Label><Input type="number" className="h-7 text-xs" value={mat.linear_ft_cost || ''} onChange={(e) => onChange('linear_ft_cost', n(e.target.value))} /></div>
+          </div>
+        </div>
+      )}
+      
+      {/* Waste and markup */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-gray-100 rounded p-2">
+        <div><Label className="text-[10px]">Waste %</Label><Input type="number" className="h-7 text-xs" value={mat.waste_percent || ''} onChange={(e) => onChange('waste_percent', n(e.target.value))} /></div>
+        <div className="col-span-1 bg-white rounded p-2 text-xs flex items-center">
+          <div><strong>Waste-Adj Cost:</strong> ${f2(wasteAdjustedCost)}/sqft</div>
+        </div>
+        <div><Label className="text-[10px]">Markup % (Optional)</Label><Input type="number" className="h-7 text-xs" value={mat.markup_percent || ''} onChange={(e) => onChange('markup_percent', n(e.target.value))} placeholder="e.g. 40" /></div>
+        <div className="col-span-1 bg-white rounded p-2 text-xs flex items-center">
+          <div><strong>Suggested Charge:</strong> {suggestedCharge > 0 ? `$${f2(suggestedCharge)}/sqft` : 'N/A'}</div>
+        </div>
+        <div className="col-span-2"><Label className="text-[10px]">Manual Material Charge/Sq Ft (Optional)</Label><Input type="number" className="h-7 text-xs" value={mat.manual_material_charge_per_sqft || ''} onChange={(e) => onChange('manual_material_charge_per_sqft', n(e.target.value))} placeholder="Override suggested" /></div>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-2">
+        <div className="col-span-2"><Label className="text-[10px]">Compatible Categories</Label><Input className="h-7 text-xs" value={listToCsv(mat.compatible_categories)} onChange={(e) => onChange('compatible_categories', parseCsvList(e.target.value))} placeholder="banners, rigid_signs" data-testid={`material-${mat.id}-compatible`} /></div>
+        <div className="flex items-center gap-2 pt-2">
           <Switch checked={mat.is_active} onCheckedChange={(v) => onChange('is_active', v)} data-testid={`material-${mat.id}-active`} />
           <Label className="text-xs">{mat.is_active ? 'Active' : 'Inactive'}</Label>
         </div>
       </div>
       <div><Label className="text-[10px]">Notes</Label><Textarea className="text-xs min-h-[40px]" value={mat.notes || ''} onChange={(e) => onChange('notes', e.target.value)} data-testid={`material-${mat.id}-notes`} /></div>
+      <div className="bg-blue-50 border border-blue-200 rounded p-2 text-xs text-blue-900">
+        💡 <strong>Shop Cost</strong> = what this material costs you. <strong>Suggested Charge</strong> = optional reference based on markup. Customer retail rates belong in Category Pricing Rules.
+      </div>
       <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onToggleEdit} data-testid={`material-${mat.id}-done`}>Done</Button>
     </div>
   );
@@ -2802,15 +2996,17 @@ function RawSettingsJsonPanel({ settings, materials, hardwareAccessories }) {
 // only filter the TabsTrigger/TabsContent rendering so all data, all save
 // behavior, and all forms stay intact.
 const TAB_MODE_MAP = {
-  defaults:   { simple: true,  advanced: true,  audit: false },
-  materials:  { simple: true,  advanced: true,  audit: false },
-  hardware:   { simple: false, advanced: true,  audit: false },
-  labor:      { simple: true,  advanced: true,  audit: false },
-  categories: { simple: false, advanced: true,  audit: false },
-  ai:         { simple: false, advanced: true,  audit: false },
-  benchmarks: { simple: false, advanced: true,  audit: false },
-  global:     { simple: false, advanced: true,  audit: false },
-  review:     { simple: false, advanced: false, audit: true  },
+  defaults:         { simple: true,  advanced: true,  audit: false },
+  shop_rate:        { simple: true,  advanced: true,  audit: false },
+  materials:        { simple: true,  advanced: true,  audit: false },
+  hardware:         { simple: false, advanced: true,  audit: false },
+  labor:            { simple: true,  advanced: true,  audit: false },
+  categories:       { simple: false, advanced: true,  audit: false },
+  category_methods: { simple: true,  advanced: true,  audit: false },
+  ai:               { simple: false, advanced: true,  audit: false },
+  benchmarks:       { simple: false, advanced: true,  audit: false },
+  global:           { simple: false, advanced: true,  audit: false },
+  review:           { simple: false, advanced: false, audit: true  },
 };
 
 /* ────────── MAIN PAGE ────────── */
@@ -2843,6 +3039,7 @@ export default function PricingFoundation() {
 
   // Phase 6: Pricing Setup Quiz dialog state
   const [quizOpen, setQuizOpen] = useState(false);
+  const [shopRateQuizOpen, setShopRateQuizOpen] = useState(false);
   const handleQuizApply = (nextSettings) => {
     // Merge the quiz output into the in-memory settings. The user must still
     // click "Save All" to persist (unless they had no other pending changes —
@@ -3007,6 +3204,9 @@ export default function PricingFoundation() {
           {TAB_MODE_MAP.defaults[mode] && (
             <TabsTrigger value="defaults" className="gap-1 text-sm" data-testid="tab-defaults"><DollarSign className="h-3.5 w-3.5" /> Shop Defaults</TabsTrigger>
           )}
+          {TAB_MODE_MAP.shop_rate[mode] && (
+            <TabsTrigger value="shop_rate" className="gap-1 text-sm" data-testid="tab-shop-rate"><Calculator className="h-3.5 w-3.5" /> Shop Rate</TabsTrigger>
+          )}
           {TAB_MODE_MAP.materials[mode] && (
             <TabsTrigger value="materials" className="gap-1 text-sm" data-testid="tab-materials"><Package className="h-3.5 w-3.5" /> Materials</TabsTrigger>
           )}
@@ -3018,6 +3218,9 @@ export default function PricingFoundation() {
           )}
           {TAB_MODE_MAP.categories[mode] && (
             <TabsTrigger value="categories" className="gap-1 text-sm" data-testid="tab-categories"><Layers3 className="h-3.5 w-3.5" /> Category Rules</TabsTrigger>
+          )}
+          {TAB_MODE_MAP.category_methods[mode] && (
+            <TabsTrigger value="category_methods" className="gap-1 text-sm" data-testid="tab-category-methods"><Settings2 className="h-3.5 w-3.5" /> Category Methods</TabsTrigger>
           )}
           {TAB_MODE_MAP.ai[mode] && (
             <TabsTrigger value="ai" className="gap-1 text-sm" data-testid="tab-ai"><Sparkles className="h-3.5 w-3.5" /> AI Rules</TabsTrigger>
@@ -3036,6 +3239,52 @@ export default function PricingFoundation() {
         {TAB_MODE_MAP.defaults[mode] && (
           <TabsContent value="defaults">
             <ShopDefaultsTab settings={settings} onChange={handleSettingsChange} canEdit={canEdit} />
+          </TabsContent>
+        )}
+
+        {TAB_MODE_MAP.shop_rate[mode] && (
+          <TabsContent value="shop_rate">
+            <div className="space-y-4">
+              {settings?.shop_rate_quiz_completed && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Current Shop Rate</CardTitle>
+                    <CardDescription>Calculated from your overhead, labor cost, and profit buffer</CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div>
+                      <Label className="text-xs text-gray-500">Default Shop Rate</Label>
+                      <div className="text-lg font-semibold text-violet-700">${settings.default_shop_rate || 0}/hr</div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-500">Production Rate</Label>
+                      <div className="text-lg font-semibold">${settings.production_hourly_rate || 0}/hr</div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-500">Design Rate</Label>
+                      <div className="text-lg font-semibold">${settings.design_hourly_rate || 0}/hr</div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-500">Install Rate</Label>
+                      <div className="text-lg font-semibold">${settings.install_hourly_rate || 0}/hr</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-900 mb-2">
+                  <strong>Shop Rate Calculator</strong>
+                </p>
+                <p className="text-xs text-blue-700 mb-3">
+                  Calculate your loaded hourly shop rate including wages, overhead, payroll burden, and profit buffer.
+                  This rate should be used in detailed material + labor pricing methods.
+                </p>
+                <Button onClick={() => setShopRateQuizOpen(true)} className="bg-violet-600 hover:bg-violet-700">
+                  <Calculator className="h-4 w-4 mr-2" />
+                  {settings?.shop_rate_quiz_completed ? 'Recalculate' : 'Calculate'} Shop Rate
+                </Button>
+              </div>
+            </div>
           </TabsContent>
         )}
 
@@ -3060,6 +3309,21 @@ export default function PricingFoundation() {
         {TAB_MODE_MAP.categories[mode] && (
           <TabsContent value="categories">
             <CategoryRulesTab settings={settings} onChange={handleSettingsChange} canEdit={canEdit} materials={materials} />
+          </TabsContent>
+        )}
+
+        {TAB_MODE_MAP.category_methods[mode] && (
+          <TabsContent value="category_methods">
+            <CategoryPricingMethodSetup
+              settings={settings}
+              onChange={handleSettingsChange}
+              onSetupCategory={(catId) => {
+                toast.info(`Setup wizard for ${catId} coming in next phase`);
+              }}
+              onTestCategory={(catId) => {
+                toast.info(`Test calculator for ${catId} coming in next phase`);
+              }}
+            />
           </TabsContent>
         )}
 
@@ -3101,6 +3365,16 @@ export default function PricingFoundation() {
         onClose={() => setQuizOpen(false)}
         settings={settings}
         onApply={handleQuizApply}
+      />
+
+      {/* Shop Rate Quiz dialog */}
+      <ShopRateQuiz
+        open={shopRateQuizOpen}
+        onClose={() => setShopRateQuizOpen(false)}
+        onApply={(result) => {
+          handleSettingsChange({ ...settings, ...result });
+          setShopRateQuizOpen(false);
+        }}
       />
     </div>
   );
