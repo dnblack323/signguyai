@@ -22,6 +22,20 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-05-20 — **Part 3: Event Store Questionnaire Integration (COMPLETE)**:
+  - **Backend** (`models/questionnaires.py`):
+    - Added 18 fundraiser questions as Section 4.5 to `event_web_store_setup` template (orders 44-61): fundraiser_enabled, fundraiser_name, fundraiser_description, fundraiser_goal_amount (optional), show_progress_bar, allow_checkout_donations, donation_amount_options, allow_custom_donation, profit_allocation_enabled, profit_allocation_type, profit_allocation_percentage, fixed_amount_per_item, fundraiser_cap_amount, include_donations_in_progress, include_profit_allocation_in_progress, show_total_raised_publicly, show_supporter_names. Template now has 87 questions total.
+    - Shifted existing Section 5 (Stripe Connect) orders 44→62 and Section 6 (Final Approval) orders 53→71.
+    - Added `webstore_id`, `prefill_answers`, `locked_answer_ids`, `last_sent_at` to `Questionnaire` model.
+  - **Backend** (`routes/webstores.py`):
+    - `GET /{webstore_id}/questionnaire` — returns questionnaire status (linked/unlinked, status, last_sent_at, response count, latest response).
+    - `POST /{webstore_id}/questionnaire/send` — idempotent: creates questionnaire from template (once per webstore), prefills event fields (Event Name, location, dates) and locks tenant financial fields (profit_per_item → locked from `store_owner_profit`), activates questionnaire, sends email via SendGrid. Reusing same questionnaire_id on re-send.
+    - `POST /{webstore_id}/questionnaire/apply-answers` — maps safe questionnaire answers to Event Store fields. Never touches `locked_settings`. Returns applied_fields and suggested_changes for admin review.
+  - **Frontend** (`context/AppContext.js`): Added `getWebstoreQuestionnaire`, `sendWebstoreQuestionnaire`, `applyWebstoreQuestionnaireAnswers`.
+  - **Frontend** (`PublicQuestionnaire.js`): Applies `prefill_answers` on load, renders `locked_answer_ids` questions as read-only with amber Lock + "Set by store provider" badge. Passes `webstore_id` in submission. Locked fields skip required validation.
+  - **Frontend** (`Webstores.js`): Questionnaire status card in Event Store settings tab (status, last sent, responses, linked badge). Send dialog with email/message override + amber lock notice. "Resend Questionnaire", "View Form", "Apply Safe Answers" buttons.
+  - **Tested**: iteration_155.json → **23/23 backend PASS, 17/17 frontend PASS**.
+
 - 2026-05-20 — **Event Store Foundation + Tenant-Controlled Locked Settings (COMPLETE)**:
   - **Backend** (`routes/webstores.py`):
     - Added `EVENT = "event"` to `WebstoreType` enum (4th type alongside business, fundraiser, creator).
