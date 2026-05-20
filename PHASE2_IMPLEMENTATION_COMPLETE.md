@@ -424,7 +424,7 @@ git revert HEAD
 sudo supervisorctl restart backend
 
 # 3. Verify rollback
-curl -X POST https://minute-calc-engine.preview.emergentagent.com/api/pricing/calculate \
+curl -X POST https://job-tracker-pro-32.preview.emergentagent.com/api/pricing/calculate \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"category":"rigid_signs","pricing_data":{"width_inches":24,"height_inches":36},"quantity":1}'

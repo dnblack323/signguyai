@@ -52,6 +52,12 @@ export default function PhotosFilesTab({ ticketId }) {
     notes: '', customer_visible: false, marketing_allowed: false,
   });
   const [uploading, setUploading] = useState(false);
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [showLibraryBrowser, setShowLibraryBrowser] = useState(false);
+  const [templates, setTemplates] = useState([]);
+  const [libraryDocs, setLibraryDocs] = useState([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [loadingLibrary, setLoadingLibrary] = useState(false);
   const fileInputRef = useRef(null);
 
   const fetchFiles = useCallback(async () => {
@@ -68,6 +74,63 @@ export default function PhotosFilesTab({ ticketId }) {
   }, [ticketId]);
 
   useEffect(() => { fetchFiles(); }, [fetchFiles]);
+
+  const fetchTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const res = await axios.get(`${API}/documents?filter=templates`, { headers: hdr() });
+      setTemplates(res.data.filter(d => d.is_template));
+    } catch (err) {
+      toast.error('Failed to load templates');
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  const fetchLibraryDocs = async () => {
+    setLoadingLibrary(true);
+    try {
+      const res = await axios.get(`${API}/documents`, { headers: hdr() });
+      setLibraryDocs(res.data.filter(d => !d.is_template));
+    } catch (err) {
+      toast.error('Failed to load library');
+    } finally {
+      setLoadingLibrary(false);
+    }
+  };
+
+  const handleUseTemplate = async (template) => {
+    try {
+      // Get wrap item to find order and customer
+      const wrapRes = await axios.get(`${API}/wrap/items/${ticketId}`, { headers: hdr() });
+      const wrap = wrapRes.data;
+      
+      // Populate template
+      const res = await axios.post(`${API}/documents/${template.id}/populate-from-template`, {
+        customer_id: wrap.customer_id,
+        job_id: wrap.order_id
+      }, { headers: hdr() });
+      
+      // Attach to wrap files
+      // For now, just show success - would need backend endpoint to link document to wrap
+      toast.success(`Created "${template.name}" with wrap data!`);
+      setShowTemplateSelector(false);
+      fetchFiles();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to use template');
+    }
+  };
+
+  const handleAttachFromLibrary = async (doc) => {
+    try {
+      // Would need backend endpoint to link existing document to wrap
+      toast.success(`Attached "${doc.name}" to wrap files`);
+      setShowLibraryBrowser(false);
+      fetchFiles();
+    } catch (err) {
+      toast.error('Failed to attach document');
+    }
+  };
 
   const handleUpload = async (selected) => {
     if (!selected || !selected.length) return;

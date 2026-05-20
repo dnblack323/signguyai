@@ -10,7 +10,7 @@ import sys
 from datetime import datetime, timedelta
 
 # Configuration
-BASE_URL = "https://minute-calc-engine.preview.emergentagent.com/api"
+BASE_URL = "https://job-tracker-pro-32.preview.emergentagent.com/api"
 LOGIN_EMAIL = "signguypa@gmail.com"
 LOGIN_PASSWORD = "Billnel323"
 
