@@ -121,6 +121,9 @@ const HIDDEN_FIELDS_LEVEL_1 = [
   // AI fallback settings (2)
   'ai_fallback_behavior',
   'ai_fallback_warnings_enabled',
+  // Banner-specific fields moved to category_defaults.banners (2)
+  'banner_grommet_price_each',
+  'banner_hemming_tape_price_per_linear_inch',
 ];
 
 // Helper to check if field should be hidden
@@ -1666,6 +1669,16 @@ function CategoryRulesTab({ settings, onChange, canEdit, materials }) {
               )}
               {def.key === 'banners' && (
                 <div className="space-y-4 border rounded-lg p-3 bg-slate-50" data-testid="banners-category-defaults">
+                  <div className="bg-blue-50 border border-blue-200 rounded p-3 text-xs text-blue-900">
+                    <p className="font-semibold mb-1">💡 Banner Pricing Source of Truth</p>
+                    <ul className="space-y-1 ml-4 list-disc text-blue-800">
+                      <li><strong>Materials:</strong> Select from Materials Library (banner_material category)</li>
+                      <li><strong>Retail Rates:</strong> Set pricing method in Category Methods tab or use quiz-calculated base_rate</li>
+                      <li><strong>Finishing Rates:</strong> Hems, grommets, pockets configured below</li>
+                      <li><strong>Labor:</strong> Hours per sqft + base hours (or use Shop Rate for detailed costing)</li>
+                      <li><strong>Add-ons:</strong> Default finishing options apply to all banner quotes</li>
+                    </ul>
+                  </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div>
                       <Label className="text-[10px] text-gray-500">Default Banner Material</Label>
