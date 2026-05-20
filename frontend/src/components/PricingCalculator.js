@@ -74,6 +74,38 @@ const PRINT_MATERIALS = [
   { id: 'perforated', name: 'Perforated Window Film' },
 ];
 
+const BANNER_TEMPLATES = [
+  {
+    key: 'small_pole_banner',
+    name: 'Small Pole Banner',
+    width: 18,
+    height: 36,
+    unit: 'inches',
+    material_key: '18oz_banner',
+    default_addons: ['pole_pockets'],
+  },
+  {
+    key: 'large_pole_banner',
+    name: 'Large Pole Banner',
+    width: 24,
+    height: 48,
+    unit: 'inches',
+    material_key: '18oz_banner',
+    default_addons: ['pole_pockets'],
+  },
+];
+
+const BANNER_ADDON_DEFAULTS = [
+  { key: 'hems', label: 'Hems', pricing_type: 'included', flat_fee: 0, unit_fee: 0, qty: 1 },
+  { key: 'grommets', label: 'Grommets', pricing_type: 'each', flat_fee: 0, unit_fee: 1.00, qty: 4 },
+  { key: 'brackets', label: 'Brackets', pricing_type: 'each', flat_fee: 0, unit_fee: 20.00, qty: 0 },
+  { key: 'other_hardware', label: 'Other Hardware', pricing_type: 'flat_fee', flat_fee: 0, unit_fee: 0, qty: 1 },
+  { key: 'pole_pockets', label: 'Pole Pockets', pricing_type: 'flat_fee', flat_fee: 15.00, unit_fee: 0, qty: 1 },
+  { key: 'design', label: 'Design', pricing_type: 'flat_fee', flat_fee: 35.00, unit_fee: 0, qty: 1 },
+  { key: 'setup_fee', label: 'Setup Fee', pricing_type: 'flat_fee', flat_fee: 15.00, unit_fee: 0, qty: 1 },
+  { key: 'install', label: 'Install', pricing_type: 'flat_fee', flat_fee: 0, unit_fee: 0, qty: 1 },
+];
+
 const PRINT_QUALITY_MODES = [
   { value: 'draft', label: 'Draft' },
   { value: 'standard', label: 'Standard' },
@@ -681,14 +713,10 @@ export default function PricingCalculator({
     );
     if (filtered.length) return filtered;
     return [
-      { key: 'banner_13oz', name: '13 oz Banner' },
-      { key: 'banner_18oz', name: '18 oz Banner' },
-      { key: 'banner_mesh', name: 'Mesh Banner' },
-      { key: 'banner_blockout', name: 'Blockout Banner' },
-      { key: 'banner_pole', name: 'Pole Banner Material' },
-      { key: 'banner_fabric', name: 'Fabric Display Banner' },
-      { key: 'banner_double_sided', name: 'Double-Sided Banner Material' },
-      { key: 'banner_custom', name: 'Specialty / Custom Banner Material' },
+      { key: '13oz_banner', name: '13 oz Banner' },
+      { key: '18oz_banner', name: '18 oz Banner' },
+      { key: 'mesh_banner', name: 'Standard Mesh Banner' },
+      { key: 'fabric_banner', name: 'Standard Fabric Banner' },
     ];
   };
 
@@ -712,6 +740,33 @@ export default function PricingCalculator({
 
   const updateBannerField = (field, value) => {
     setPricingData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const applyBannerTemplate = (templateKey) => {
+    const template = BANNER_TEMPLATES.find((t) => t.key === templateKey);
+    if (!template) return;
+    const materialOptions = getBannerMaterialOptions();
+    const matched = materialOptions.find(
+      (m) => (m.key || m.id) === template.material_key || m.name?.toLowerCase().includes('18 oz')
+    );
+    const existingAddons = pricingData.banner_addons || [];
+    const newAddons = [...existingAddons];
+    template.default_addons.forEach((addonKey) => {
+      if (!newAddons.some((a) => a.key === addonKey)) {
+        const def = BANNER_ADDON_DEFAULTS.find((d) => d.key === addonKey);
+        if (def) newAddons.push({ ...def, active: true });
+      }
+    });
+    setPricingData((prev) => ({
+      ...prev,
+      width_inches: template.width,
+      length_inches: template.height,
+      unit_of_measure: template.unit,
+      banner_material_key: matched ? (matched.key || matched.id) : template.material_key,
+      product_type: template.name,
+      banner_addons: newAddons,
+    }));
+    toast.success(`${template.name} template applied`);
   };
 
   const resolveBannerDefaults = () => {
@@ -975,9 +1030,20 @@ export default function PricingCalculator({
   const handleAddItem = () => {
     if (!calculation && !overrideEnabled) return;
 
-    const finalPrice = overrideEnabled && overridePrice 
+    let finalPrice = overrideEnabled && overridePrice 
       ? parseFloat(overridePrice) 
       : calculation?.selling_price || calculation?.suggested_price || 0;
+
+    // Banner add-ons: safely add to total when not using manual override
+    let bannerAddonTotal = 0;
+    if (category === 'banners' && !overrideEnabled) {
+      bannerAddonTotal = (pricingData.banner_addons || []).reduce((sum, a) => {
+        if (a.pricing_type === 'flat_fee') return sum + Number(a.flat_fee || 0);
+        if (a.pricing_type === 'each') return sum + Number(a.unit_fee || 0) * Number(a.qty || 1);
+        return sum;
+      }, 0);
+      finalPrice += bannerAddonTotal;
+    }
 
     const totalCost = calculation?.total_cost || calculation?.production_cost || 0;
     const profitAmount = finalPrice - totalCost;
@@ -2316,6 +2382,37 @@ export default function PricingCalculator({
               </div>
             </div>
 
+            {/* Quick Templates */}
+            <div>
+              <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Quick Templates</Label>
+              <div className="flex gap-2 flex-wrap mt-2">
+                {BANNER_TEMPLATES.map((t) => (
+                  <Button
+                    key={t.key}
+                    variant="outline"
+                    size="sm"
+                    type="button"
+                    onClick={() => applyBannerTemplate(t.key)}
+                    className="text-xs h-8"
+                    data-testid={`banner-template-${t.key}`}
+                  >
+                    {t.name}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Product Type */}
+            <div>
+              <Label>Product Type</Label>
+              <Input
+                value={pricingData.product_type || ''}
+                onChange={(e) => updateBannerField('product_type', e.target.value)}
+                placeholder="e.g., Pole Banner, Step-and-Repeat, Event Banner"
+                data-testid="banners-product-type"
+              />
+            </div>
+
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div>
                 <Label>Width</Label>
@@ -2606,6 +2703,103 @@ export default function PricingCalculator({
                 </div>
               </div>
             )}
+
+            {/* Banner Add-ons */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="font-medium">Add-ons</Label>
+                <Select
+                  value=""
+                  onValueChange={(key) => {
+                    if (!key) return;
+                    const existing = pricingData.banner_addons || [];
+                    if (existing.some((a) => a.key === key)) return;
+                    const def = BANNER_ADDON_DEFAULTS.find((d) => d.key === key);
+                    if (def) updateBannerField('banner_addons', [...existing, { ...def, active: true }]);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-44 text-xs" data-testid="banners-add-addon-select">
+                    <SelectValue placeholder="+ Add add-on" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BANNER_ADDON_DEFAULTS.filter(
+                      (d) => !(pricingData.banner_addons || []).some((a) => a.key === d.key)
+                    ).map((d) => (
+                      <SelectItem key={d.key} value={d.key}>{d.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {(pricingData.banner_addons || []).length > 0 && (
+                <div className="space-y-2" data-testid="banners-addons-list">
+                  {(pricingData.banner_addons || []).map((addon, idx) => {
+                    const lineTotal = addon.pricing_type === 'each'
+                      ? Number(addon.unit_fee || 0) * Number(addon.qty || 1)
+                      : addon.pricing_type === 'flat_fee'
+                      ? Number(addon.flat_fee || 0)
+                      : 0;
+                    return (
+                      <div key={addon.key} className="grid grid-cols-12 gap-1 items-center p-2 bg-gray-50 rounded text-sm" data-testid={`banner-addon-row-${addon.key}`}>
+                        <div className="col-span-3 text-sm font-medium truncate">{addon.label}</div>
+                        {addon.pricing_type === 'flat_fee' && (
+                          <>
+                            <div className="col-span-3">
+                              <Input
+                                type="number"
+                                value={addon.flat_fee}
+                                onChange={(e) => {
+                                  const updated = [...(pricingData.banner_addons || [])];
+                                  updated[idx] = { ...updated[idx], flat_fee: Number(e.target.value) || 0 };
+                                  updateBannerField('banner_addons', updated);
+                                }}
+                                className="h-7 text-xs"
+                                data-testid={`banner-addon-flat-fee-${addon.key}`}
+                              />
+                            </div>
+                            <div className="col-span-3 text-xs text-gray-500">flat fee</div>
+                            <div className="col-span-2 text-right font-medium">${lineTotal.toFixed(2)}</div>
+                            <div className="col-span-1 text-right">
+                              <button type="button" onClick={() => updateBannerField('banner_addons', (pricingData.banner_addons || []).filter((_, i) => i !== idx))} className="text-gray-400 hover:text-red-500 text-sm leading-none" data-testid={`banner-addon-remove-${addon.key}`}>×</button>
+                            </div>
+                          </>
+                        )}
+                        {addon.pricing_type === 'each' && (
+                          <>
+                            <div className="col-span-2">
+                              <Input type="number" value={addon.qty} onChange={(e) => { const u = [...(pricingData.banner_addons || [])]; u[idx] = { ...u[idx], qty: Number(e.target.value) || 0 }; updateBannerField('banner_addons', u); }} className="h-7 text-xs" data-testid={`banner-addon-qty-${addon.key}`} />
+                            </div>
+                            <div className="col-span-2">
+                              <Input type="number" value={addon.unit_fee} onChange={(e) => { const u = [...(pricingData.banner_addons || [])]; u[idx] = { ...u[idx], unit_fee: Number(e.target.value) || 0 }; updateBannerField('banner_addons', u); }} className="h-7 text-xs" data-testid={`banner-addon-unit-fee-${addon.key}`} />
+                            </div>
+                            <div className="col-span-2 text-xs text-gray-500">each</div>
+                            <div className="col-span-2 text-right font-medium">${lineTotal.toFixed(2)}</div>
+                            <div className="col-span-1 text-right">
+                              <button type="button" onClick={() => updateBannerField('banner_addons', (pricingData.banner_addons || []).filter((_, i) => i !== idx))} className="text-gray-400 hover:text-red-500 text-sm leading-none" data-testid={`banner-addon-remove-${addon.key}`}>×</button>
+                            </div>
+                          </>
+                        )}
+                        {addon.pricing_type === 'included' && (
+                          <>
+                            <div className="col-span-6 text-xs text-gray-500 italic">Included in price</div>
+                            <div className="col-span-2 text-right text-gray-400">$0.00</div>
+                            <div className="col-span-1 text-right">
+                              <button type="button" onClick={() => updateBannerField('banner_addons', (pricingData.banner_addons || []).filter((_, i) => i !== idx))} className="text-gray-400 hover:text-red-500 text-sm leading-none" data-testid={`banner-addon-remove-${addon.key}`}>×</button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                  <div className="flex justify-end text-sm font-semibold pt-1 border-t" data-testid="banners-addons-total">
+                    Add-ons Total: ${(pricingData.banner_addons || []).reduce((sum, a) => {
+                      if (a.pricing_type === 'flat_fee') return sum + Number(a.flat_fee || 0);
+                      if (a.pricing_type === 'each') return sum + Number(a.unit_fee || 0) * Number(a.qty || 1);
+                      return sum;
+                    }, 0).toFixed(2)}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         );
       }
@@ -3301,6 +3495,31 @@ export default function PricingCalculator({
                     )}
                   </div>
 
+                  {/* Banner Add-ons Summary in Results */}
+                  {category === 'banners' && !overrideEnabled && (pricingData.banner_addons || []).length > 0 && (() => {
+                    const addonTotal = (pricingData.banner_addons || []).reduce((sum, a) => {
+                      if (a.pricing_type === 'flat_fee') return sum + Number(a.flat_fee || 0);
+                      if (a.pricing_type === 'each') return sum + Number(a.unit_fee || 0) * Number(a.qty || 1);
+                      return sum;
+                    }, 0);
+                    return addonTotal > 0 ? (
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm" data-testid="banners-addon-results-summary">
+                        <div className="flex justify-between text-gray-700">
+                          <span>Base price</span>
+                          <span>{formatCurrency(calculation.selling_price || calculation.suggested_price)}</span>
+                        </div>
+                        <div className="flex justify-between text-blue-700 font-medium">
+                          <span>Add-ons</span>
+                          <span>+{formatCurrency(addonTotal)}</span>
+                        </div>
+                        <div className="flex justify-between font-bold text-gray-900 border-t border-blue-200 mt-1 pt-1">
+                          <span>Total with add-ons</span>
+                          <span>{formatCurrency((calculation.selling_price || calculation.suggested_price) + addonTotal)}</span>
+                        </div>
+                      </div>
+                    ) : null;
+                  })()}
+
                   {/* Notes */}
                   <div>
                     <Label>Notes (optional)</Label>
@@ -3314,27 +3533,35 @@ export default function PricingCalculator({
                   </div>
 
                   {/* Final Price & Add Button */}
-                  <div className="flex items-center justify-between p-4 bg-teal-500 rounded-lg">
-                    <div className="text-white">
-                      <p className="text-sm opacity-80">Final Price</p>
-                      <p className="text-3xl font-bold">
-                        {formatCurrency(
-                          overrideEnabled && overridePrice 
-                            ? parseFloat(overridePrice) 
-                            : (calculation.selling_price || calculation.suggested_price)
-                        )}
-                      </p>
-                    </div>
-                    <Button 
-                      size="lg"
-                      onClick={handleAddItem}
-                      className="bg-white text-teal-600 hover:bg-teal-50"
-                      data-testid="pricing-add-item-button"
-                    >
-                      <CheckCircle className="h-5 w-5 mr-2" />
-                      Add Item
-                    </Button>
-                  </div>
+                  {(() => {
+                    const bannerAddonAmt = (category === 'banners' && !overrideEnabled)
+                      ? (pricingData.banner_addons || []).reduce((sum, a) => {
+                          if (a.pricing_type === 'flat_fee') return sum + Number(a.flat_fee || 0);
+                          if (a.pricing_type === 'each') return sum + Number(a.unit_fee || 0) * Number(a.qty || 1);
+                          return sum;
+                        }, 0)
+                      : 0;
+                    const displayPrice = (overrideEnabled && overridePrice)
+                      ? parseFloat(overridePrice)
+                      : (calculation.selling_price || calculation.suggested_price) + bannerAddonAmt;
+                    return (
+                      <div className="flex items-center justify-between p-4 bg-teal-500 rounded-lg">
+                        <div className="text-white">
+                          <p className="text-sm opacity-80">Final Price</p>
+                          <p className="text-3xl font-bold">{formatCurrency(displayPrice)}</p>
+                        </div>
+                        <Button
+                          size="lg"
+                          onClick={handleAddItem}
+                          className="bg-white text-teal-600 hover:bg-teal-50"
+                          data-testid="pricing-add-item-button"
+                        >
+                          <CheckCircle className="h-5 w-5 mr-2" />
+                          Add Item
+                        </Button>
+                      </div>
+                    );
+                  })()}
                 </div>
               ) : (
                 <div className="text-center py-8 text-slate-500">

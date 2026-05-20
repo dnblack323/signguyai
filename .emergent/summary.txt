@@ -1,26 +1,34 @@
-<analysis>**original_problem_statement**: The app must serve as a robust SaaS for sign shops with fully functioning AI tools, an actionable chat assistant, and seamless Stripe transactions. PRODUCT REQUIREMENTS: A full-stack business management app with customer management, quoting, invoicing, job tracking, and Stripe Connect integrations. *New Goal:* Cleanup and optimize the Pricing Foundation by hiding unused UI fields, resolving duplicate dropdown options, and transitioning the pricing calculator from unrealistic square-foot-based labor hours to accurate, category-specific minute-based labor tracking.
+<analysis>**original_problem_statement**: A full-stack SaaS app for sign shops featuring customer management, quoting, invoicing, job tracking, AI tools, and Stripe integration. *Recent Goals:* Overhaul the Pricing Foundation and Pricing Calculator in phased steps. Phase 1 focuses on building a Shop Rate Quiz and Category Pricing Method setup framework. Phase 2 focuses on category-by-category integration, starting with Banners. Materials Library should be the source of truth for shop costs, while Category settings hold retail rates. 
 
 **User's preferred language**: English (INSTRUCT next agent to respond in English only)
 
-**what currently exists?**: A full-stack SaaS app featuring robust AI tools, complete platform admin operations, custom tenant hierarchy, Wrap Command Center, and a comprehensive Pricing Calculator. The backend Pricing Models and frontend quiz have been successfully updated with new minute-based labor and design charge fields. Safe cosmetic cleanup of unused Pricing Foundation UI fields and duplicate material dropdowns is complete. The backend  has been partially updated (helpers injected,  updated).
+**what currently exists?**: The app features a heavily updated Pricing Foundation UI. Phase 1 (Shop Rate Quiz, Category Pricing Methods, Materials Library cleanup) and Phase 2A Step 1 (Banner source-of-truth cleanup) are complete. The  component has been created and wired into the UI. However, the main quote tool () still relies on legacy hardcoded material arrays and lacks the new Banner templates/add-ons functionality.
 
 **Last working item**: 
-    - Last item agent was working: The agent sent an  tool call to get user approval on the plan to finish updating the core pricing calculator logic in  to use minute-based labor and design charge fields. Currently waiting for the user's response to proceed.
+    - Last item agent was working: Phase 2A Step 2B — Banner Calculator Integration. The agent was attempting to update  to replace the hardcoded  array with dynamic active Banner Materials from the Materials Library, and add Small/Large Pole Banner templates with Pole Pockets add-ons. 
     - Status: IN PROGRESS
     - Agent Testing Done: N
-    - Which testing method agent to use? backend testing via  or  against the pricing calculation endpoint () using the sample test cases provided by the user.
+    - Which testing method agent to use? screenshot tool (for frontend UI changes in ) and curl/python -c (to verify backend payload parsing)
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:  
-  - Issue 1: High Material Cost Calculation in Production Pricing Foundation (P1)
-     - Attempted fixes: Agent previously proved via logs/tests that the environment math is correct and the issue lies in the user's settings.
-     - Next debug checklist: Await user acknowledgment.
-     - Why fix this issue and what will be achieved with the fix? Resolves user confusion about high pricing math.
-     - Status: BLOCKED (Waiting on user reply/acknowledgment)
+  - Issue 1:  script failing to seed (P1)
+     - Attempted fixes: Agent wrote a python script to seed starter banner materials but it found 0  documents/tenants, leaving the materials unseeded.
+     - Next debug checklist: Check  logic. Ensure it targets the correct active tenant/user ID from the DB or fallback gracefully so starter materials exist for the calculator.
+     - Why fix this issue and what will be achieved with the fix? Ensures the new dynamic Banner material dropdown has data to display, preventing empty states.
+     - Status: IN PROGRESS
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? backend
+     - Blocked on other issue: None
+  - Issue 2: High Material Cost Calculation in Production Pricing Foundation (P2)
+     - Attempted fixes: Awaiting user acknowledgment from a past fork.
+     - Next debug checklist: Wait for user reply.
+     - Why fix this issue and what will be achieved with the fix? Resolves confusion about math logic.
+     - Status: BLOCKED
      - Is recurring issue? N
      - Should Test frontend/backend/both after fix? NA
      - Blocked on other issue: User input
-  - Issue 2: Meta OAuth / Webhook End-to-End Verification (P2)
+  - Issue 3: Meta OAuth / Webhook End-to-End Verification (P2)
      - Attempted fixes: NA
      - Next debug checklist: Await User Meta app configuration.
      - Why fix this issue and what will be achieved with the fix? Completes social integration.
@@ -28,119 +36,141 @@
      - Is recurring issue? N
      - Should Test frontend/backend/both after fix? both
      - Blocked on other issue: User Meta app config
-  - Issue 3: Real Generative Fill / Logo Refresher Image-to-Image logic (P2)
-     - Attempted fixes: NA
-     - Next debug checklist: Build out proper Img2Img endpoints (tools are currently hidden from UI).
-     - Why fix this issue and what will be achieved with the fix? Activates hidden design tools.
-     - Status: NOT STARTED
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? both
-     - Blocked on other issue: NA
 
 **In progress Task List**: 
-  - Task 1: Update Remaining Calculator Logic for Minute-Based Labor & Design Charges (P0)
-     - Where to resume: Await user response to , then open  and continue updating the remaining category calculator functions (, , , , , ). Replace their old production labor and design fee logic with calls to the injected  and  helper functions.
-     - What will be achieved with this? Stops the calculator from assuming several unrealistic hours for simple items, utilizing the new exact-minute fields set in the Pricing Foundation.
+  - Task 1: Phase 2A Step 2B — Update  for Banners (P0)
+     - Where to resume: .
+     - What will be achieved with this? Wires the newly built Banner Wizard logic to the actual calculator. Needs dynamic material dropdowns (from Materials Library where category is ), Small/Large Pole Banner templates, and an Add-ons dropdown.
      - Status: IN PROGRESS
-     - Should Test frontend/backend/both after fix? backend (verify exact calculation formulas against testing output samples).
-     - Blocked on something: Waiting on user's reply to the plan sent via .
+     - Should Test frontend/backend/both after fix? Frontend
+     - Blocked on something: The previous agent stopped due to token limit constraints.
+  - Task 2: Add Template Selector to Wrap Command Center Files Tab (P1)
+     - Where to resume:  (Postponed by user in favor of the pricing overhaul).
+     - What will be achieved with this? Allows users to quickly attach pre-filled templates to a wrap job.
+     - Status: BLOCKED (User pivoted priorities)
+     - Should Test frontend/backend/both after fix? Both
+     - Blocked on something: Currently paused for Pricing overhaul.
+  - Task 3: Verify AI Document Creator saves to Library (P1)
+     - Where to resume: .
+     - What will be achieved with this? Ensures AI-generated documents insert properly into the DB.
+     - Status: NOT STARTED
+     - Should Test frontend/backend/both after fix? Backend
+     - Blocked on something: None
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
-    - P3: Platform Admin Phase 2 Extensions: Add Internal Notes and User invite flow to the Platform Admin Tenant Detail page.
-    
+    - P1: Yard Signs Pricing Setup and Calculator Integration (Next category after Banners).
+    - P1: Rigid Signs, Digital Print, Cut Vinyl, Vehicle Graphics Category Integrations.
+    - P3: Platform Admin Phase 2 Extensions (Internal Notes, User invite flow).
     Future Tasks:
-    - P4: Admin Portal communication template system (Daily digest emails, template picker, message categories, AI message generation).
+    - P4: Admin Portal communication template system.
     - P4: Platform Admin Phase 3/4 Extensions.
     - P4: Meta Messenger Phase 2.
-    - P4: Shop-side digest email.
 
 **Completed work in this session**
-- Sent plan to user via  tool for finalizing the  calculator updates (Pending Response).
-*(Note: Most actual code completion like the 14 new minute-based Labor/Design questions and the injection of calculator helpers were completed right before this session fork).*
+- Pricing Foundation & Materials Library Audit (DONE)
+- Materials Library UI labels and calculation cleanup (DONE)
+- Built and integrated  into Pricing Foundation (DONE)
+- Built and integrated  (DONE)
+- Built  and wired it to open from Banners setup card (DONE)
+- Cleaned up Banner source-of-truth fields in  (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-   - None
+   - Issue 1: Seed script  failed due to missing tenant  structure.
+   - Debug checklist: Manually seed or adjust script to properly find/create the document, or use the UI to save settings to initialize it.
+   - Why to solve this issue and what will be achieved with this? The  update depends on active banner materials existing in the database.
+   - Should Test frontend/backend/both after fix: backend
+   - Is recurring issue? N
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: None
   - Recurrence count: 0
   - Status: RESOLVED
 
 **Code Architecture**
-- Backend: FastAPI. All complex pricing mathematical logic resides in  ( and its category sub-functions). Pricing schemas and default structures live in .
-- Frontend: React + Shadcn UI + Tailwind.  holds the main admin UI for pricing settings;  controls the initial configuration logic.
+- Frontend: React + Shadcn UI.  handles global shop pricing configs.  handles quote generation logic. 
+- Backend: FastAPI.  contains monolithic pricing calculation endpoints (needs care when modifying).
+- Contexts:  for app-wide state,  for user tokens.
 
 **Key Technical Concepts**
-- **Minute-Based Labor Transition**: Moving away from  assumptions for basic items. Logic checks  and calculates based on  (or category equivalents) divided by 60, multiplied by .
-- **Design Charge Rules**: Design fees are isolated. If  is false/No, fee is /bin/bash. If Yes, it deducts  from the job's total design time before applying the .
-- **Non-Destructive Cleanup**: Cleanup actions are strictly additive or UI-hiding. Backend fields, material IDs, and old stored order aliases remain intact to prevent historical data corruption.
+- **Pricing Overhaul Structure:** Materials Library strictly stores *shop costs* and optional suggested references. Category Settings (like ) strictly store the *retail sell rates*. Do NOT treat material cost records as customer-facing retail rates.
+- **Shop Rate:** Calculated loaded labor rate includes overhead. Do NOT double count overhead in detailed calculator logic.
 
 **key DB schema**
-  - : Houses , , and  dictionaries containing default rates and minute estimates.
+  - : Global shop pricing configurations.
+  - : Material records (shop cost, waste%, markup%).
+  - 
 
 **changes in tech stack**
   - None
 
 **All files of reference** 
-  -  (Currently being updated with new labor functions)
-  - 
-  - 
+  -  (Created this session)
+  -  (Created this session)
+  -  (Created this session)
+  -  (Created this session)
+  -  (Updated heavily)
+  -  (Needs updating for Task 1)
   - 
 
 **Areas that need refactoring**: 
--  is extremely large (~4500 lines) and could benefit from extracting calculator logic into separate files in the future. (Do NOT refactor this right now; stick to the user's specific request).
+-  is over 3,500 lines. The agent bailed twice citing its size. Use precise targeted  edits rather than trying to overwrite large chunks.
 
 **key api endpoints**
--  (Core pricing generation endpoint)
+- 
 
 **Critical Info for New Agent** 
-- **DO NOT** delete any backend database fields, DB schema keys, or rewrite historical orders while updating calculator logic.
-- **DO NOT** add the full 50-question labor quiz. The user only wanted the 14 essential fields added (which is already complete).
-- Helper functions  and  are ALREADY injected in . Your job is to wire up the remaining category functions (, , , , , ) to use them once the user confirms your plan.
+- **DO NOT Refactor:** The user explicitly warned *against* broad refactoring of the calculator right now. Only perform the specific Phase 2A Step 2B changes requested.
+- **DO NOT Move to other categories:** Finish Banner integration in  before moving to Yard Signs or anything else.
+- The  hardcoded array must be removed *only* for the Banner calculator section, replacing it with an active query of the Materials Library. Do not touch other categories' dropdowns.
+- Overhead is built into the new Shop Rate logic. Do not add overhead as a separate line item.
 
 **documents and test reports created in this job** 
-  -  (from previous run)
-  -  (from previous run)
+  - 
+  - 
+  - 
+  - 
+  - 
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - *User*: Please use ask_human tool and confirm your plan now.
- - *User*: [Tool result: Question has been sent to the user. Waiting for response]
- - *Status*: Pending Human Message. The next agent will wake up to the user's answer to the plan approval.
+ 1. User: Choose Option B, but keep it tightly focused... Materials library cleanup, basic integration... (DONE)
+ 2. User: Proceed with Phase 2A Step 1: Banner foundation cleanup... (DONE)
+ 3. User: Proceed with Phase 2A Step 2: Banner Setup Wizard, starter banner materials... (PARTIAL)
+ 4. User: Continue Phase 2A and finish Banner implementation... CategoryPricingMethodSetup.js does not open BannerSetupWizard yet... (DONE)
+ 5. User: Proceed with Option A: Complete Banner Calculator Integration now... Do not move to another category. (ABORTED BY AGENT)
+ 6. User: Do not move to Yard Signs yet. Complete Banner calculator integration now, but break it into one focused implementation step: PHASE 2A STEP 2B — Banner Calculator Integration, Part 1... Replace material dropdown... Add templates... Add Add-ons dropdown... Keep calculations safe. (IN PROGRESS)
+ *Pending*: The agent needs to execute the  edits outlined in the most recent user message.
 
 **Project Health Check:**
-- Broken: None
-- Mocked: Meta OAuth
+- Broken:  script failing to seed materials.
+- Mocked: Meta OAuth.
 
 **3rd Party Integrations** 
 - Stripe (Payments) — requires User API Key
 - SendGrid (Emails) — requires User API Key
-- OpenAI GPT-4o-mini & GPT-4o (Chat & AI Tools) — uses Emergent LLM Key
+- OpenAI GPT-4o-mini & GPT-4o — uses Emergent LLM Key
 
 **Testing status**
-  - Testing agent used after significant changes: NO (Testing pending for core  modifications).
+  - Testing agent used after significant changes: NO
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: None
+  - Test files created: None this session.
   - Known regressions: None
 
 **Credentials to test flow:**
 - Admin/Tenant:  / 
 
 **What agent forgot to execute**
-- The agent successfully paused to use  as requested. No tasks were forgotten; the agent is simply waiting for user permission to continue updating , , , , , and  in .
+- The agent entirely avoided modifying  to implement Phase 2A Step 2B, stating the file was too large and the token limit was reached. The next agent MUST fulfill the instructions from the last user message to update  specifically for Banners.
+- The  script was written but it hit a  error and didn't actually populate the database with the required 18 oz Banner / 13 oz Banner materials. This needs to be resolved so the UI has data to load.
 
 **Debugging checklist for current issue**
-    Issue: Update remaining category pricing calculators to use minute-based labor logic.
-
-    Backend files to check: 
-    - 
+    Issue: Replacing hardcoded Banner materials and adding Add-on/Template functionality in 
     
+    Frontend files to check: 
+    - 
+  
     Checklist:
-    1. Await user confirmation from .
-    2. Search for , , , , , .
-    3. Replace their old hourly labor derivations (e.g., , ) with the new injected  helper function using category-specific keys like .
-    4. Ensure yard signs use: .
-    5. Ensure apparel uses: .
-    6. Ensure  helper is correctly called.
-    7. Verify outputs strictly conform to the 5 testing output samples provided by the user in the previous thread.
-    8. Execute quick verification using Python script or cURL against .</analysis>
+    1. Search for  inside .
+    2. Review the  logic and rewire it to look at  where .
+    3. Add UI inputs specifically for Product Type Text Field, Template Selector (Small Pole Banner, Large Pole Banner), and Add-ons.
+    4. Validate standard calculations remain unbroken before moving to Compare Methods UI formatting.
+    5. Test thoroughly using screenshot tool.</analysis>

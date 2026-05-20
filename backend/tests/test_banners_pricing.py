@@ -18,7 +18,7 @@ import os
 from datetime import datetime
 
 # Production URL from frontend/.env
-BASE_URL = "https://job-tracker-pro-32.preview.emergentagent.com"
+BASE_URL = "https://banner-calc-preview.preview.emergentagent.com"
 
 # Production credentials from test_credentials.md
 TEST_EMAIL = "signguypa@gmail.com"

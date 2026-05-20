@@ -27,6 +27,43 @@ from server import (
 
 router = APIRouter(prefix="/pricing", tags=["Pricing"])
 
+# Starter banner materials auto-injected when banner settings are first saved
+_STARTER_BANNER_MATERIALS = [
+    {
+        'id': 'mat-13oz_banner', 'key': '13oz_banner', 'name': '13 oz Banner',
+        'category': 'banner_material', 'purchase_type': 'roll',
+        'shop_cost_per_sqft': 0.45, 'waste_percent': 10, 'markup_percent': 40,
+        'suggested_material_charge_per_sqft': 8.00, 'manual_material_charge_per_sqft': 0,
+        'is_active': True, 'compatible_categories': ['banners'],
+        'notes': 'Standard 13 oz vinyl banner material.',
+    },
+    {
+        'id': 'mat-18oz_banner', 'key': '18oz_banner', 'name': '18 oz Banner',
+        'category': 'banner_material', 'purchase_type': 'roll',
+        'shop_cost_per_sqft': 0.75, 'waste_percent': 10, 'markup_percent': 35,
+        'suggested_material_charge_per_sqft': 10.00, 'manual_material_charge_per_sqft': 0,
+        'is_active': True, 'compatible_categories': ['banners'],
+        'notes': 'Heavy-duty 18 oz vinyl banner material.',
+    },
+    {
+        'id': 'mat-mesh_banner', 'key': 'mesh_banner', 'name': 'Standard Mesh Banner',
+        'category': 'banner_material', 'purchase_type': 'roll',
+        'shop_cost_per_sqft': 0.90, 'waste_percent': 10, 'markup_percent': 30,
+        'suggested_material_charge_per_sqft': 11.00, 'manual_material_charge_per_sqft': 0,
+        'is_active': True, 'compatible_categories': ['banners'],
+        'notes': 'Mesh banner material for windy conditions.',
+    },
+    {
+        'id': 'mat-fabric_banner', 'key': 'fabric_banner', 'name': 'Standard Fabric Banner',
+        'category': 'banner_material', 'purchase_type': 'roll',
+        'shop_cost_per_sqft': 1.20, 'waste_percent': 10, 'markup_percent': 25,
+        'suggested_material_charge_per_sqft': 12.00, 'manual_material_charge_per_sqft': 0,
+        'is_active': True, 'compatible_categories': ['banners'],
+        'notes': 'Fabric banner material for pole banners.',
+    },
+]
+_STARTER_BANNER_KEYS = {m['key'] for m in _STARTER_BANNER_MATERIALS}
+
 
 def _normalize_pricing_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     normalized = dict(payload or {})
@@ -204,6 +241,13 @@ async def update_pricing_defaults(
             **current_defaults.get("global_calc_rules", {}),
             **updates.get("global_calc_rules", {}),
         }
+
+    # Auto-inject starter banner materials only when none exist yet
+    if 'category_defaults' in updates and 'banners' in updates.get('category_defaults', {}):
+        existing_banner_mats = [m for m in merged.get('materials', []) if m.get('category') == 'banner_material']
+        if not existing_banner_mats:
+            for mat in _STARTER_BANNER_MATERIALS:
+                merged.setdefault('materials', []).append(dict(mat))
 
     merged["tenant_id"] = tenant_id
     merged["updated_at"] = datetime.now(timezone.utc).isoformat()
