@@ -84,6 +84,7 @@ import PortalProfile from "./pages/PortalProfile";
 import PortalDocuments from "./pages/PortalDocuments";
 import { PortalQuotes, PortalInvoices, PortalAppointments } from "./pages/PortalPages";
 import { PortalForms, PortalFormDetail } from "./pages/PortalForms";
+import PortalWebstores from "./pages/PortalWebstores";
 
 // Employee Portal Pages
 import EmployeePortalLogin from "./pages/EmployeePortalLogin";
@@ -366,6 +367,7 @@ function App() {
                 <Route path="/customer-portal/proofs" element={<PortalProofs />} />
                 <Route path="/customer-portal/proofs/:proofId" element={<PortalProofDetail />} />
                 <Route path="/customer-portal/appointments" element={<PortalAppointments />} />
+                <Route path="/customer-portal/webstores" element={<PortalWebstores />} />
                 <Route path="/customer-portal/profile" element={<PortalProfile />} />
                 
                 {/* Employee Portal Routes - Separate Auth */}

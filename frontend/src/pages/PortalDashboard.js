@@ -8,7 +8,7 @@ import { getPortalToken, clearPortalToken, clearPortalCustomerId, clearPortalCus
 import { 
   Loader2, LogOut, FileText, Briefcase, Receipt, MessageSquare, 
   Image, Bell, Calendar, User, ChevronRight, Home, Settings,
-  ExternalLink, Clock, CheckCircle, AlertCircle
+  ExternalLink, Clock, CheckCircle, AlertCircle, Store
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -16,6 +16,7 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 // Portal Layout Wrapper
 function PortalLayout({ children, activeNav, customerName }) {
   const navigate = useNavigate();
+  const [hasWebstores, setHasWebstores] = useState(false);
 
   const handleLogout = () => {
     clearPortalToken();
@@ -23,6 +24,24 @@ function PortalLayout({ children, activeNav, customerName }) {
     clearPortalCustomerName();
     navigate('/customer-portal/login');
   };
+
+  // Single cheap call to know whether to render the Webstores tab.
+  // We fetch /api/portal/webstores once per layout mount — list is bounded
+  // (max 100) and filtered by tenant + owner_email so it's tiny.
+  useEffect(() => {
+    let cancelled = false;
+    const token = getPortalToken();
+    if (!token) return;
+    fetch(`${API_URL}/api/portal/webstores`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((rows) => {
+        if (!cancelled) setHasWebstores(Array.isArray(rows) && rows.length > 0);
+      })
+      .catch(() => { /* nav still works if this fails */ });
+    return () => { cancelled = true; };
+  }, []);
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/customer-portal' },
@@ -34,6 +53,11 @@ function PortalLayout({ children, activeNav, customerName }) {
     { id: 'messages', label: 'Messages', icon: MessageSquare, path: '/customer-portal/messages' },
     { id: 'proofs', label: 'Artwork Approvals', icon: Image, path: '/customer-portal/proofs' },
     { id: 'appointments', label: 'Appointments', icon: Calendar, path: '/customer-portal/appointments' },
+    // Conditionally inserted Webstores tab — appears ONLY when the
+    // portal user is the assigned owner of one or more webstores.
+    ...(hasWebstores
+      ? [{ id: 'webstores', label: 'Webstores', icon: Store, path: '/customer-portal/webstores' }]
+      : []),
     { id: 'profile', label: 'Profile', icon: User, path: '/customer-portal/profile' },
   ];
 

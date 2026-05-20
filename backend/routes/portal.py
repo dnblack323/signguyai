@@ -21,6 +21,7 @@ from pydantic import BaseModel
 import jwt
 import uuid
 import base64
+import os
 from io import BytesIO
 
 from reportlab.lib.pagesizes import letter
@@ -478,7 +479,17 @@ async def get_portal_dashboard(customer: dict = Depends(get_current_portal_custo
         {"customer_id": customer_id, "status": "pending"},
         {"_id": 0}
     ).sort("created_at", -1).limit(5).to_list(5)
-    
+
+    # Count webstores assigned to this portal user (by owner_email).
+    # Used by the portal nav to conditionally render the Webstores tab.
+    assigned_webstore_count = 0
+    customer_email = (customer.get("email") or "").strip().lower()
+    if customer_email:
+        ws_query: Dict[str, Any] = {"owner_email": customer_email}
+        if customer.get("tenant_id"):
+            ws_query["tenant_id"] = customer["tenant_id"]
+        assigned_webstore_count = await db.webstores_v2.count_documents(ws_query)
+
     return {
         "stats": {
             "total_quotes": total_quotes,
@@ -490,8 +501,10 @@ async def get_portal_dashboard(customer: dict = Depends(get_current_portal_custo
             "pending_forms": pending_forms,
             "recent_documents": unread_docs,
             "overdue_invoices": len([inv for inv in combined_invoices if inv.get("status") == "overdue"]),
-            "paid_invoices": len([inv for inv in combined_invoices if inv.get("status") == "paid"])
+            "paid_invoices": len([inv for inv in combined_invoices if inv.get("status") == "paid"]),
+            "assigned_webstores": assigned_webstore_count,
         },
+        "has_webstores": assigned_webstore_count > 0,
         "upcoming_appointments": upcoming_appointments,
         "recent_jobs": recent_jobs,
         "recent_invoices": recent_invoices,
@@ -1745,3 +1758,322 @@ async def portal_wrap_download_file(
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=500, detail="Failed to load file") from exc
     return FastAPIResponse(content=content, media_type=media_type)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Customer Portal — Webstores tab
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Lets customer-portal users (db.customers) who are also assigned as the
+# owner of one or more webstores see their stores from inside the existing
+# customer portal. NO new portal, NO new auth — reuses the portal JWT and
+# the existing webstore_owners.py Stripe onboarding flow.
+#
+# Assignment rule: a webstore is considered owned by the customer when
+#   webstore.owner_email (case-insensitive) == customer.email
+# AND webstore.tenant_id == customer.tenant_id.
+#
+# Sanitization: never expose tenant_id, raw locked_settings cost/profit, or
+# any field the store owner is not allowed to edit. Shipping/handling is
+# safe to surface read-only (it's already public on the storefront).
+
+
+def _sanitize_webstore_for_portal_owner(ws: Dict[str, Any]) -> Dict[str, Any]:
+    """Reduce a webstore doc to what the customer-portal Webstores tab can show.
+
+    - Includes safe summary + fundraiser totals + event fields + Stripe state.
+    - Excludes tenant_id, raw locked_settings cost/profit, owner_user_id, and
+      anything that would let the store owner bypass tenant admin controls.
+    """
+    if not isinstance(ws, dict):
+        return {}
+
+    locked = ws.get("locked_settings") or {}
+    # Only the shipping/handling subset is exposed read-only.
+    locked_public = {
+        "shipping_fee": locked.get("shipping_fee"),
+        "handling_fee": locked.get("handling_fee"),
+        "shipping_handling_enabled": bool(locked.get("shipping_handling_enabled")),
+        "shipping_handling_fee": locked.get("shipping_handling_fee"),
+        "shipping_handling_label": locked.get("shipping_handling_label"),
+        "shipping_handling_description": locked.get("shipping_handling_description"),
+    }
+
+    branding_raw = ws.get("branding") if isinstance(ws.get("branding"), dict) else {}
+    branding = {
+        "logo_url": branding_raw.get("logo_url") or ws.get("logo_url"),
+        "primary_color": branding_raw.get("primary_color") or "#0D9488",
+        "banner_url": branding_raw.get("banner_url") or ws.get("banner_url"),
+    }
+
+    return {
+        # Identity / display
+        "id": ws.get("id"),
+        "name": ws.get("name"),
+        "store_type": ws.get("store_type"),
+        "status": ws.get("status"),
+        "store_slug": ws.get("store_slug"),
+        "description": ws.get("description"),
+        "owner_name": ws.get("owner_name"),
+        "owner_email": ws.get("owner_email"),
+        "branding": branding,
+        "is_public": bool(ws.get("is_public", True)),
+        # Event-store fields (safe — already public on the storefront)
+        "event_name": ws.get("event_name"),
+        "event_type": ws.get("event_type"),
+        "event_start_date": ws.get("event_start_date"),
+        "event_end_date": ws.get("event_end_date"),
+        "event_location": ws.get("event_location"),
+        "order_deadline": ws.get("order_deadline"),
+        "pickup_delivery_date": ws.get("pickup_delivery_date"),
+        "pickup_delivery_instructions": ws.get("pickup_delivery_instructions"),
+        "auto_close_after_deadline": bool(ws.get("auto_close_after_deadline")),
+        "allow_late_orders": bool(ws.get("allow_late_orders")),
+        # Fundraiser config (read-only on the portal — tenant controls these)
+        "fundraiser_enabled": bool(ws.get("fundraiser_enabled")),
+        "fundraiser_name": ws.get("fundraiser_name"),
+        "fundraiser_description": ws.get("fundraiser_description"),
+        "fundraiser_goal_amount": ws.get("fundraiser_goal_amount"),
+        "show_progress_bar": bool(ws.get("show_progress_bar")),
+        "allow_checkout_donations": bool(ws.get("allow_checkout_donations")),
+        "allow_custom_donation": bool(ws.get("allow_custom_donation")),
+        "donation_amount_options": ws.get("donation_amount_options"),
+        # Fundraiser running totals (the whole point of the portal tab)
+        "total_donations": float(ws.get("total_donations") or 0),
+        "total_profit_allocated": float(ws.get("total_profit_allocated") or 0),
+        "total_raised": float(ws.get("total_raised") or 0),
+        "manual_adjustments": float(ws.get("manual_adjustments") or 0),
+        # Sales summary — basic, owner-safe
+        "total_sales": float(ws.get("total_sales") or 0),
+        "total_orders": int(ws.get("total_orders") or 0),
+        "payout_owed": float(ws.get("payout_owed") or 0),
+        "payout_paid": float(ws.get("payout_paid") or 0),
+        # Stripe Express onboarding (owner-side)
+        "owner_stripe_account_id": ws.get("owner_stripe_account_id"),
+        "owner_stripe_charges_enabled": bool(ws.get("owner_stripe_charges_enabled")),
+        "owner_stripe_payouts_enabled": bool(ws.get("owner_stripe_payouts_enabled")),
+        "owner_stripe_details_submitted": bool(ws.get("owner_stripe_details_submitted")),
+        # Read-only locked subset (shipping/handling only)
+        "locked_settings": locked_public,
+        # Timestamps
+        "created_at": ws.get("created_at"),
+        "updated_at": ws.get("updated_at"),
+    }
+
+
+async def _portal_load_assigned_webstore(customer: Dict[str, Any], webstore_id: str) -> Dict[str, Any]:
+    """Fetch a webstore doc only if the customer is assigned to it.
+
+    Assignment: webstore.owner_email (case-insensitive) matches the
+    customer's email AND tenant_id matches. Raises 404 otherwise so we
+    never leak existence of stores the customer doesn't own.
+    """
+    email = (customer.get("email") or "").strip().lower()
+    if not email:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+    query: Dict[str, Any] = {"id": webstore_id, "owner_email": email}
+    if customer.get("tenant_id"):
+        query["tenant_id"] = customer["tenant_id"]
+    ws = await db.webstores_v2.find_one(query, {"_id": 0})
+    if not ws:
+        # Try a case-insensitive match if the stored email isn't normalized.
+        import re as _re
+        ws = await db.webstores_v2.find_one(
+            {
+                "id": webstore_id,
+                "owner_email": {"$regex": f"^{_re.escape(email)}$", "$options": "i"},
+                **({"tenant_id": customer["tenant_id"]} if customer.get("tenant_id") else {}),
+            },
+            {"_id": 0},
+        )
+    if not ws:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+    return ws
+
+
+async def _portal_list_assigned_webstores(customer: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Return all webstores assigned to this customer-portal user."""
+    email = (customer.get("email") or "").strip().lower()
+    if not email:
+        return []
+    import re as _re
+    query: Dict[str, Any] = {
+        "owner_email": {"$regex": f"^{_re.escape(email)}$", "$options": "i"},
+    }
+    if customer.get("tenant_id"):
+        query["tenant_id"] = customer["tenant_id"]
+    rows = await db.webstores_v2.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return rows
+
+
+@router.get("/webstores")
+async def list_portal_webstores(customer: dict = Depends(get_current_portal_customer)):
+    """List webstores assigned to the current customer-portal user."""
+    rows = await _portal_list_assigned_webstores(customer)
+    return [_sanitize_webstore_for_portal_owner(r) for r in rows]
+
+
+@router.get("/webstores/{webstore_id}")
+async def get_portal_webstore_detail(
+    webstore_id: str,
+    customer: dict = Depends(get_current_portal_customer),
+):
+    """Full sanitized detail for one assigned webstore, plus recent orders
+    and questionnaire status (Event Stores)."""
+    ws = await _portal_load_assigned_webstore(customer, webstore_id)
+    sanitized = _sanitize_webstore_for_portal_owner(ws)
+
+    # Public storefront URL (frontend builds the full link).
+    sanitized["public_path"] = f"/store/{ws['id']}"
+
+    # Recent orders for this webstore (basic count + last 10 entries).
+    recent_orders_cursor = db.webstore_orders_v2.find(
+        {"webstore_id": webstore_id},
+        {
+            "_id": 0,
+            "id": 1, "customer_name": 1, "customer_email": 1,
+            "subtotal": 1, "donation_amount": 1, "profit_allocation_amount": 1,
+            "shipping_handling_amount": 1, "grand_total": 1, "commission_amount": 1,
+            "status": 1, "created_at": 1, "stripe_session_id": 1,
+        },
+    ).sort("created_at", -1).limit(10)
+    recent_orders = await recent_orders_cursor.to_list(10)
+    sanitized["recent_orders"] = recent_orders
+
+    # Questionnaire status (Event Stores only, but cheap to include).
+    questionnaire = await db.questionnaires.find_one(
+        {"webstore_id": webstore_id},
+        {"_id": 0, "id": 1, "name": 1, "status": 1, "response_count": 1,
+         "last_sent_at": 1, "updated_at": 1},
+    )
+    latest_response = None
+    if questionnaire:
+        latest_response = await db.questionnaire_responses.find_one(
+            {"questionnaire_id": questionnaire["id"]},
+            {"_id": 0, "id": 1, "submitted_at": 1, "customer_name": 1,
+             "applied_to_webstore": 1},
+            sort=[("submitted_at", -1)],
+        )
+    sanitized["questionnaire"] = {
+        "linked": bool(questionnaire),
+        "questionnaire": questionnaire,
+        "latest_response": latest_response,
+    }
+
+    return sanitized
+
+
+class _PortalStripeOnboardRequest(BaseModel):
+    return_url: str
+    refresh_url: str
+
+
+@router.post("/webstores/{webstore_id}/stripe-onboarding")
+async def start_portal_webstore_stripe_onboarding(
+    webstore_id: str,
+    body: _PortalStripeOnboardRequest,
+    customer: dict = Depends(get_current_portal_customer),
+):
+    """Reuse the webstore_owners Stripe Express onboarding flow from inside
+    the customer portal. Creates an Express account if needed and returns
+    a fresh AccountLink URL the owner can use to complete onboarding.
+    """
+    ws = await _portal_load_assigned_webstore(customer, webstore_id)
+
+    # Lazy import — avoids circular deps and reuses the canonical Stripe code.
+    import stripe as _stripe
+    _stripe.api_key = os.environ.get("STRIPE_SECRET_KEY") or os.environ.get("STRIPE_API_KEY")
+
+    account_id = ws.get("owner_stripe_account_id")
+    try:
+        if not account_id:
+            account = _stripe.Account.create(
+                type="express",
+                email=ws.get("owner_email") or customer.get("email"),
+                capabilities={
+                    "transfers": {"requested": True},
+                    "card_payments": {"requested": True},
+                },
+                metadata={
+                    "signguy_webstore_id": ws["id"],
+                    "signguy_tenant_id": ws.get("tenant_id") or "",
+                    "signguy_source": "customer_portal",
+                },
+            )
+            account_id = account.id
+            await db.webstores_v2.update_one(
+                {"id": ws["id"]},
+                {"$set": {
+                    "owner_stripe_account_id": account_id,
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }},
+            )
+
+        link = _stripe.AccountLink.create(
+            account=account_id,
+            return_url=body.return_url,
+            refresh_url=body.refresh_url,
+            type="account_onboarding",
+        )
+        return {"url": link.url, "account_id": account_id}
+    except _stripe.error.StripeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+@router.post("/webstores/{webstore_id}/stripe-refresh")
+async def refresh_portal_webstore_stripe_status(
+    webstore_id: str,
+    customer: dict = Depends(get_current_portal_customer),
+):
+    """Pull the latest charges_enabled/payouts_enabled/details_submitted from
+    Stripe and update the webstore doc. Returns the refreshed flags."""
+    ws = await _portal_load_assigned_webstore(customer, webstore_id)
+    account_id = ws.get("owner_stripe_account_id")
+    if not account_id:
+        return {
+            "ready": False,
+            "charges_enabled": False,
+            "payouts_enabled": False,
+            "details_submitted": False,
+        }
+
+    import stripe as _stripe
+    _stripe.api_key = os.environ.get("STRIPE_SECRET_KEY") or os.environ.get("STRIPE_API_KEY")
+    try:
+        account = _stripe.Account.retrieve(account_id)
+    except _stripe.error.StripeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+    flags = {
+        "owner_stripe_account_id": account_id,
+        "owner_stripe_charges_enabled": bool(account.charges_enabled),
+        "owner_stripe_payouts_enabled": bool(account.payouts_enabled),
+        "owner_stripe_details_submitted": bool(account.details_submitted),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.webstores_v2.update_one({"id": ws["id"]}, {"$set": flags})
+    return {
+        "ready": flags["owner_stripe_charges_enabled"],
+        "charges_enabled": flags["owner_stripe_charges_enabled"],
+        "payouts_enabled": flags["owner_stripe_payouts_enabled"],
+        "details_submitted": flags["owner_stripe_details_submitted"],
+    }
+
+
+@router.post("/webstores/{webstore_id}/stripe-login-link")
+async def portal_webstore_stripe_login_link(
+    webstore_id: str,
+    customer: dict = Depends(get_current_portal_customer),
+):
+    """One-time Stripe Express dashboard link for the assigned store owner."""
+    ws = await _portal_load_assigned_webstore(customer, webstore_id)
+    if not ws.get("owner_stripe_account_id"):
+        raise HTTPException(status_code=400, detail="Stripe onboarding not started yet")
+    import stripe as _stripe
+    _stripe.api_key = os.environ.get("STRIPE_SECRET_KEY") or os.environ.get("STRIPE_API_KEY")
+    try:
+        link = _stripe.Account.create_login_link(ws["owner_stripe_account_id"])
+        return {"url": link.url}
+    except _stripe.error.StripeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+

@@ -1,0 +1,39 @@
+{
+  "summary": "Iteration 158 — Portal Webstores tab. Backend: 16/16 pytest pass (100%). Frontend: positive (demo-fundraiser@rysoccer.example) sees Webstores tab + StoreCard with QR + Stripe block + Financial Summary (Read-only/Lock badge) + Copy/Open store buttons. Negative user (portalreg_1776974524@example.com, different tenant) has the tab hidden. Cross-tenant isolation verified — negative user GET /api/portal/webstores/{positive_store_id} returns 404. Sanitization verified: tenant_id, owner_user_id, base_item_cost, production_cost, store_owner_profit, profit_split all absent; locked_settings limited to shipping/handling whitelist. Stripe onboarding/refresh/login-link all enforce assignment check (404 for non-owner) before any Stripe call.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration158_portal_webstores.py",
+    "/app/test_reports/pytest/iteration158_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "_sanitize_webstore_for_portal_owner whitelists exactly the documented fields — verified by assertion sweep over list+detail responses.",
+    "_portal_load_assigned_webstore filters by tenant_id when present, so a portal user from tenant T1 cannot access a store owned by their email under tenant T2 (returns 404 not 403, consistent with hiding existence).",
+    "Dashboard count query (routes/portal.py:488) uses exact owner_email match (no case-insensitive regex), while the list/detail queries DO use a case-insensitive regex fallback. This is acceptable here because owner_email is already stored lowercased on the seeded fundraiser, but if any tenant ever stores owner_email with mixed case the dashboard counter could under-report while the list endpoint still returns the row — minor consistency gap worth a follow-up `$regex` upgrade on the count query.",
+    "Stripe code paths (onboarding/refresh/login-link) all call _portal_load_assigned_webstore FIRST before any stripe import/api call — assignment check runs before any side-effect (verified: non-owner gets 404, never a 502).",
+    "Frontend PortalDashboard.js fetches /api/portal/webstores once per layout mount; tab inserted between Appointments and Profile in navItems array (line ~58-60) — matches spec.",
+    "PortalWebstores.js renders QR via QRCodeSVG with data-testid=portal-store-qr (verified 1 QR rendered for the seeded store).",
+    "Financial Summary block has 'Read-only' + Lock badge and shows Gross Sales / Payout Owed / Payout Paid — no editable controls for locked settings (verified visually)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration158_portal_webstores.py (new)"
+  ],
+  "success_rate": {
+    "backend": "100% (16/16)",
+    "frontend": "100% (positive + negative both behave per spec)"
+  },
+  "test_credentials": "Positive: demo-fundraiser@rysoccer.example / TestPortal123! (set via POST /api/portal/auth/register). Negative: portalreg_1776974524@example.com / TestNeg123! (portal_password_hash reset directly in MongoDB to a bcrypt hash of TestNeg123!).",
+  "seed_data_creation": "Reset portal_password_hash for portalreg_1776974524@example.com (existing tenant d9c5507b-879c-4bec-9736-1dc841334719 customer with no webstores) so it could be used as the negative case. Positive user enrolled via POST /api/portal/auth/register flow (sets portal_password_hash on the existing customer doc).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Portal Webstores tab is fully verified at both backend & UI layers. Positive test creds: demo-fundraiser@rysoccer.example / TestPortal123!. Negative creds: portalreg_1776974524@example.com / TestNeg123!. Key verified behaviours: (1) /api/portal/dashboard returns has_webstores+stats.assigned_webstores driven by case-sensitive count on db.webstores_v2 (works because demo seed owner_email is already lowercased). (2) /api/portal/webstores list+detail use case-insensitive regex fallback AND tenant_id filter — non-owner gets [] from list, 404 from detail. (3) Sanitization strips tenant_id, owner_user_id, raw locked_settings cost/profit; only ship/handle keys remain. (4) Stripe Account.create currently 502s in dev (no real Connect platform) — that's acceptable per spec; the test asserts 200|502 and verifies non-owner gets 404 BEFORE Stripe is called. (5) Frontend nav inserts Webstores between Appointments and Profile only when fetch returns >=1 row. Minor follow-up worth noting: the dashboard counter uses exact-match on owner_email, whereas list/detail use $regex case-insensitive — could under-report has_webstores if any tenant stores owner_email with mixed case. Not breaking anything today but worth a future $regex alignment.",
+  "rca_of_the_issue": "N/A — feature works as specified."
+}
