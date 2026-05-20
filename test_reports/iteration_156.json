@@ -1,0 +1,62 @@
+{
+  "summary": "Iteration 156: Fundraiser Field Structure Fix (Part 3). Backend: 27/27 tests pass (100%). Frontend: All scenarios verified. The critical bug fix — 'Fundraiser Name' now maps to fundraiser_name (NOT event_name) in apply-answers SAFE_MAP — is verified and working correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration156_fundraiser_fields.py",
+    "/app/test_reports/pytest/iteration156_fundraiser_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "QuestionnaireResponseCreate model requires 'questionnaire_id' in body (not just in URL). Test confirmed this is enforced — any client submitting questionnaire must include questionnaire_id in the JSON body alongside answers.",
+    "apply-answers is idempotent and safe to call multiple times — confirmed via tests.",
+    "handleSaveFundraiserSettings in Webstores.js calls loadData() after save which reloads the webstore list. The selectedStore state is updated via setSelectedStore() before loadData(). On subsequent modal open, the fundraiserEdits state is correctly initialized from the fresh store data. This flow works correctly.",
+    "Progress bar toggle properly shows as enabled (not disabled) when goal_amount=3000 and disabled when goal_amount=0/empty — correct behavior as per spec."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration156_fundraiser_fields.py"
+  ],
+  "success_rate": {
+    "backend": "100% (27/27 tests pass)",
+    "frontend": "100% (all scenarios verified)"
+  },
+  "test_credentials": "thesigntistslab@gmail.com / password123",
+  "seed_data_creation": "Backend tests create and cleanup TEST_Fundraiser_Event_Store_*, TEST_ApplyAnswers_Store_*, TEST_Business_Store_156_*, TEST_Creator_Store_156_*, TEST_NoQ_Store_* automatically. UI test used existing 'Gala Test 2026 UI' store (id: bf406578-1c57-4449-ab13-66736f3c2842) — fundraiser settings saved: fundraiser_enabled=true, fundraiser_name='Youth Fund', fundraiser_goal_amount=3000.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Fundraiser Field Structure Fix (Part 3) fully tested and verified. Key changes verified: (1) 17 dedicated fundraiser fields added to Webstore/WebstoreCreate/WebstoreUpdate models — all save/load correctly. (2) apply-answers SAFE_MAP correctly maps 'Fundraiser Name'→fundraiser_name (NOT event_name), 'Fundraiser Description'→fundraiser_description, 'Fundraiser Goal Amount ($)'→fundraiser_goal_amount (float coercion). Event fields remain separate: 'Event Name'→event_name, 'Event Location'→event_location. (3) Fundraiser Settings card visible in Settings & Branding tab with fundraiser-enabled-switch, fundraiser-name-input, fundraiser-goal-input, save-fundraiser-settings-btn data-testids. (4) Profit allocation type dropdown has 3 options: percentage, fixed_per_item, manual. (5) Progress bar toggle enabled/disabled based on goal_amount presence. Previous test store: 'Gala Test 2026 UI' (id: bf406578-1c57-4449-ab13-66736f3c2842).",
+  "verified_test_scenarios": [
+    "✓ Event Store created with fundraiser_name='Gala Fund', fundraiser_goal_amount=5000, profit_allocation_type='percentage', profit_allocation_percentage=20",
+    "✓ fundraiser_name='Gala Fund' != event_name='Test Gala 2026' (separate, independent fields)",
+    "✓ PUT update: fundraiser_name, fundraiser_goal_amount, show_progress_bar, allow_checkout_donations updated correctly",
+    "✓ PUT update does NOT change locked_settings",
+    "✓ Questionnaire submitted successfully with all required fields (Customer Name, 8 agreement checkboxes, Customer Signature, Date) + Fundraiser Name, Fundraiser Description, Fundraiser Goal Amount",
+    "✓ apply-answers SAFE_MAP: 'Fundraiser Name' → fundraiser_name='Youth Scholarship Fund' (NOT event_name)",
+    "✓ apply-answers: event_name='Spring Gala 2026' from 'Event Name' question (unchanged behavior)",
+    "✓ apply-answers: fundraiser_description='Raising funds for student scholarships' from 'Fundraiser Description'",
+    "✓ apply-answers: fundraiser_goal_amount=10000.0 from 'Fundraiser Goal Amount ($)' (string→float coercion)",
+    "✓ apply-answers: event_location='Grand Ballroom' from 'Event Location'",
+    "✓ locked_settings.store_owner_profit NOT modified by apply-answers",
+    "✓ apply-answers returns applied_fields with all expected fundraiser/event keys",
+    "✓ apply-answers returns 404 when no questionnaire linked to store",
+    "✓ SAFE_MAP source code: 'Fundraiser Name' maps to 'fundraiser_name' (NOT 'event_name')",
+    "✓ Business store: created without fundraiser fields, default fundraiser_enabled=false",
+    "✓ Creator store: created without fundraiser fields",
+    "✓ Business store questionnaire endpoint returns linked=False (unaffected)",
+    "✓ Fundraiser Settings card visible in Settings & Branding tab (event store only)",
+    "✓ Fundraiser Enabled toggle works, shows/hides form fields",
+    "✓ fundraiser_name='Youth Fund' saved and persisted (verified via UI reload + API)",
+    "✓ fundraiser_goal_amount=3000.0 saved and persisted",
+    "✓ Progress bar toggle NOT disabled when goal=3000",
+    "✓ Profit allocation type dropdown: 3 options present (Percentage, Fixed amount per item, Manual)",
+    "✓ Save Fundraiser Settings: toast 'Fundraiser settings saved' appears",
+    "✓ Event Store Questionnaire card visible below Fundraiser Settings"
+  ]
+}

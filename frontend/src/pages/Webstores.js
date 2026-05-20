@@ -158,8 +158,10 @@ export default function Webstores() {
   // Settings-tab local edit state for event/locked fields
   const [eventEdits, setEventEdits] = useState({});
   const [lockedEdits, setLockedEdits] = useState({});
+  const [fundraiserEdits, setFundraiserEdits] = useState({});
   const [savingEvent, setSavingEvent] = useState(false);
   const [savingLocked, setSavingLocked] = useState(false);
+  const [savingFundraiser, setSavingFundraiser] = useState(false);
 
   // Event Store questionnaire state
   const [questionnaireStatus, setQuestionnaireStatus] = useState(null);   // null = not loaded
@@ -197,6 +199,24 @@ export default function Webstores() {
     pickup_delivery_instructions: '',
     auto_close_after_deadline: false,
     allow_late_orders: false,
+    // Event-store fundraiser fields
+    fundraiser_enabled: false,
+    fundraiser_name: '',
+    fundraiser_description: '',
+    fundraiser_goal_amount: '',
+    show_progress_bar: false,
+    allow_checkout_donations: false,
+    donation_amount_options: '',
+    allow_custom_donation: false,
+    profit_allocation_enabled: false,
+    profit_allocation_type: '',
+    profit_allocation_percentage: '',
+    fixed_amount_per_item: '',
+    fundraiser_cap_amount: '',
+    include_donations_in_progress: true,
+    include_profit_allocation_in_progress: true,
+    show_total_raised_publicly: false,
+    show_supporter_names: '',
     // Tenant-controlled locked settings
     locked_settings: {
       base_item_cost: '',
@@ -338,6 +358,24 @@ export default function Webstores() {
       pickup_delivery_instructions: '',
       auto_close_after_deadline: false,
       allow_late_orders: false,
+      // Event-store fundraiser fields
+      fundraiser_enabled: false,
+      fundraiser_name: '',
+      fundraiser_description: '',
+      fundraiser_goal_amount: '',
+      show_progress_bar: false,
+      allow_checkout_donations: false,
+      donation_amount_options: '',
+      allow_custom_donation: false,
+      profit_allocation_enabled: false,
+      profit_allocation_type: '',
+      profit_allocation_percentage: '',
+      fixed_amount_per_item: '',
+      fundraiser_cap_amount: '',
+      include_donations_in_progress: true,
+      include_profit_allocation_in_progress: true,
+      show_total_raised_publicly: false,
+      show_supporter_names: '',
       // Locked settings
       locked_settings: {
         base_item_cost: '',
@@ -592,6 +630,27 @@ export default function Webstores() {
       shipping_handling_fee: ls.shipping_handling_fee ?? '',
       shipping_handling_label: ls.shipping_handling_label || '',
       shipping_handling_description: ls.shipping_handling_description || '',
+    });
+
+    // Fundraiser edits state
+    setFundraiserEdits({
+      fundraiser_enabled: store.fundraiser_enabled || false,
+      fundraiser_name: store.fundraiser_name || '',
+      fundraiser_description: store.fundraiser_description || '',
+      fundraiser_goal_amount: store.fundraiser_goal_amount ?? '',
+      show_progress_bar: store.show_progress_bar || false,
+      allow_checkout_donations: store.allow_checkout_donations || false,
+      donation_amount_options: store.donation_amount_options || '',
+      allow_custom_donation: store.allow_custom_donation || false,
+      profit_allocation_enabled: store.profit_allocation_enabled || false,
+      profit_allocation_type: store.profit_allocation_type || '',
+      profit_allocation_percentage: store.profit_allocation_percentage ?? '',
+      fixed_amount_per_item: store.fixed_amount_per_item ?? '',
+      fundraiser_cap_amount: store.fundraiser_cap_amount ?? '',
+      include_donations_in_progress: store.include_donations_in_progress ?? true,
+      include_profit_allocation_in_progress: store.include_profit_allocation_in_progress ?? true,
+      show_total_raised_publicly: store.show_total_raised_publicly || false,
+      show_supporter_names: store.show_supporter_names || '',
     });
 
     // Load questionnaire status for event stores
@@ -861,6 +920,28 @@ export default function Webstores() {
       toast.error('Failed to save event settings');
     } finally {
       setSavingEvent(false);
+    }
+  };
+
+  const handleSaveFundraiserSettings = async () => {
+    if (!selectedStore) return;
+    setSavingFundraiser(true);
+    // Sanitize: convert empty strings to null for numeric fields
+    const cleaned = Object.fromEntries(
+      Object.entries(fundraiserEdits).map(([k, v]) => {
+        if (v === '') return [k, null];
+        return [k, v];
+      })
+    );
+    try {
+      await updateWebstore(selectedStore.id, cleaned);
+      setSelectedStore({ ...selectedStore, ...cleaned });
+      toast.success('Fundraiser settings saved');
+      await loadData();
+    } catch (err) {
+      toast.error('Failed to save fundraiser settings');
+    } finally {
+      setSavingFundraiser(false);
     }
   };
 
@@ -2482,6 +2563,218 @@ export default function Webstores() {
                           >
                             {savingEvent ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                             Save Event Settings
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Event Store Questionnaire — send, status, apply */}
+                  {selectedStore.store_type === 'event' && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Heart className="h-4 w-4 text-pink-400" />
+                          Fundraiser Settings
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label className="text-sm">Fundraiser Enabled</Label>
+                            <p className="text-xs text-muted-foreground">Is this store raising funds for a cause?</p>
+                          </div>
+                          <Switch
+                            checked={fundraiserEdits.fundraiser_enabled || false}
+                            onCheckedChange={(v) => setFundraiserEdits({ ...fundraiserEdits, fundraiser_enabled: v })}
+                            data-testid="fundraiser-enabled-switch"
+                          />
+                        </div>
+                        {fundraiserEdits.fundraiser_enabled && (
+                          <>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1 col-span-2">
+                                <Label className="text-xs">Fundraiser Name</Label>
+                                <Input
+                                  value={fundraiserEdits.fundraiser_name || ''}
+                                  onChange={(e) => setFundraiserEdits({ ...fundraiserEdits, fundraiser_name: e.target.value })}
+                                  placeholder="e.g., Gala Fund, Team Spirit Fund"
+                                  data-testid="fundraiser-name-input"
+                                />
+                              </div>
+                              <div className="space-y-1 col-span-2">
+                                <Label className="text-xs">Fundraiser Description</Label>
+                                <Textarea
+                                  value={fundraiserEdits.fundraiser_description || ''}
+                                  onChange={(e) => setFundraiserEdits({ ...fundraiserEdits, fundraiser_description: e.target.value })}
+                                  placeholder="What will the funds be used for?"
+                                  rows={2}
+                                  data-testid="fundraiser-description-input"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Goal Amount ($) <span className="text-muted-foreground">(optional)</span></Label>
+                                <Input
+                                  type="number" min="0" step="0.01"
+                                  value={fundraiserEdits.fundraiser_goal_amount ?? ''}
+                                  onChange={(e) => setFundraiserEdits({ ...fundraiserEdits, fundraiser_goal_amount: e.target.value })}
+                                  placeholder="Leave blank for open-ended"
+                                  data-testid="fundraiser-goal-input"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Fundraiser Cap ($) <span className="text-muted-foreground">(optional)</span></Label>
+                                <Input
+                                  type="number" min="0" step="0.01"
+                                  value={fundraiserEdits.fundraiser_cap_amount ?? ''}
+                                  onChange={(e) => setFundraiserEdits({ ...fundraiserEdits, fundraiser_cap_amount: e.target.value })}
+                                  placeholder="Stop allocating after this amount"
+                                />
+                              </div>
+                            </div>
+
+                            <Separator />
+
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <Label className="text-sm">Show Progress Bar</Label>
+                                <p className="text-xs text-muted-foreground">Requires goal amount &gt; 0</p>
+                              </div>
+                              <Switch
+                                checked={fundraiserEdits.show_progress_bar || false}
+                                onCheckedChange={(v) => setFundraiserEdits({ ...fundraiserEdits, show_progress_bar: v })}
+                                disabled={!fundraiserEdits.fundraiser_goal_amount}
+                                data-testid="show-progress-bar-switch"
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <Label className="text-sm">Show Total Raised Publicly</Label>
+                                <p className="text-xs text-muted-foreground">Display raised amount on the storefront</p>
+                              </div>
+                              <Switch
+                                checked={fundraiserEdits.show_total_raised_publicly || false}
+                                onCheckedChange={(v) => setFundraiserEdits({ ...fundraiserEdits, show_total_raised_publicly: v })}
+                                data-testid="show-total-raised-switch"
+                              />
+                            </div>
+
+                            <Separator />
+
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <Label className="text-sm">Allow Checkout Donations</Label>
+                                <p className="text-xs text-muted-foreground">Customers can add a donation at checkout</p>
+                              </div>
+                              <Switch
+                                checked={fundraiserEdits.allow_checkout_donations || false}
+                                onCheckedChange={(v) => setFundraiserEdits({ ...fundraiserEdits, allow_checkout_donations: v })}
+                                data-testid="allow-donations-switch"
+                              />
+                            </div>
+                            {fundraiserEdits.allow_checkout_donations && (
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1 col-span-2">
+                                  <Label className="text-xs">Donation Amount Options</Label>
+                                  <Input
+                                    value={fundraiserEdits.donation_amount_options || ''}
+                                    onChange={(e) => setFundraiserEdits({ ...fundraiserEdits, donation_amount_options: e.target.value })}
+                                    placeholder="e.g., $5, $10, $25, $50"
+                                  />
+                                </div>
+                                <div className="flex items-center justify-between col-span-2">
+                                  <Label className="text-sm">Allow Custom Amount</Label>
+                                  <Switch
+                                    checked={fundraiserEdits.allow_custom_donation || false}
+                                    onCheckedChange={(v) => setFundraiserEdits({ ...fundraiserEdits, allow_custom_donation: v })}
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            <Separator />
+
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <Label className="text-sm">Profit Allocation</Label>
+                                <p className="text-xs text-muted-foreground">Allocate a portion of each sale to the fundraiser</p>
+                              </div>
+                              <Switch
+                                checked={fundraiserEdits.profit_allocation_enabled || false}
+                                onCheckedChange={(v) => setFundraiserEdits({ ...fundraiserEdits, profit_allocation_enabled: v })}
+                                data-testid="profit-allocation-switch"
+                              />
+                            </div>
+                            {fundraiserEdits.profit_allocation_enabled && (
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1 col-span-2">
+                                  <Label className="text-xs">Allocation Type</Label>
+                                  <Select
+                                    value={fundraiserEdits.profit_allocation_type || ''}
+                                    onValueChange={(v) => setFundraiserEdits({ ...fundraiserEdits, profit_allocation_type: v })}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="percentage">Percentage of each sale</SelectItem>
+                                      <SelectItem value="fixed_per_item">Fixed amount per item</SelectItem>
+                                      <SelectItem value="manual">Manual (decide after store closes)</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                {fundraiserEdits.profit_allocation_type === 'percentage' && (
+                                  <div className="space-y-1 col-span-2">
+                                    <Label className="text-xs">Allocation %</Label>
+                                    <Input
+                                      type="number" min="0" max="100" step="0.1"
+                                      value={fundraiserEdits.profit_allocation_percentage ?? ''}
+                                      onChange={(e) => setFundraiserEdits({ ...fundraiserEdits, profit_allocation_percentage: e.target.value })}
+                                    />
+                                  </div>
+                                )}
+                                {fundraiserEdits.profit_allocation_type === 'fixed_per_item' && (
+                                  <div className="space-y-1 col-span-2">
+                                    <Label className="text-xs">Amount Per Item ($)</Label>
+                                    <Input
+                                      type="number" min="0" step="0.01"
+                                      value={fundraiserEdits.fixed_amount_per_item ?? ''}
+                                      onChange={(e) => setFundraiserEdits({ ...fundraiserEdits, fixed_amount_per_item: e.target.value })}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            <Separator />
+
+                            <div className="space-y-1">
+                              <Label className="text-xs">Show Supporter Names</Label>
+                              <Select
+                                value={fundraiserEdits.show_supporter_names || ''}
+                                onValueChange={(v) => setFundraiserEdits({ ...fundraiserEdits, show_supporter_names: v })}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select option" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="no">No — keep anonymous</SelectItem>
+                                  <SelectItem value="yes_with_permission">Yes, if customer consents</SelectItem>
+                                  <SelectItem value="yes_all">Yes, show all supporters</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </>
+                        )}
+                        <div className="flex justify-end">
+                          <Button
+                            size="sm"
+                            onClick={handleSaveFundraiserSettings}
+                            disabled={savingFundraiser}
+                            data-testid="save-fundraiser-settings-btn"
+                          >
+                            {savingFundraiser ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                            Save Fundraiser Settings
                           </Button>
                         </div>
                       </CardContent>

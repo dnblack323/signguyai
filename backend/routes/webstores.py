@@ -282,6 +282,32 @@ class Webstore(BaseModel):
     pickup_delivery_instructions: Optional[str] = None
     auto_close_after_deadline: bool = False
     allow_late_orders: bool = False
+    # ── Event-store fundraiser fields ────────────────────────────────────────
+    # These are distinct from the legacy fundraiser_* fields used by
+    # store_type=fundraiser stores. They are owned by Event Store setup and
+    # are populated primarily through the event_web_store_setup questionnaire.
+    fundraiser_enabled: bool = False
+    fundraiser_name: Optional[str] = None
+    fundraiser_description: Optional[str] = None
+    fundraiser_goal_amount: Optional[float] = None  # Optional — no progress bar if None/0
+    show_progress_bar: bool = False                  # Only meaningful when goal_amount > 0
+    allow_checkout_donations: bool = False
+    donation_amount_options: Optional[str] = None   # e.g. "$5, $10, $25"
+    allow_custom_donation: bool = False
+    profit_allocation_enabled: bool = False
+    profit_allocation_type: Optional[str] = None    # percentage | fixed_per_item | manual | na
+    profit_allocation_percentage: Optional[float] = None
+    fixed_amount_per_item: Optional[float] = None
+    fundraiser_cap_amount: Optional[float] = None
+    include_donations_in_progress: bool = True
+    include_profit_allocation_in_progress: bool = True
+    show_total_raised_publicly: bool = False
+    show_supporter_names: Optional[str] = None      # yes_with_permission | yes_all | no
+    # Running totals — updated as orders arrive
+    total_donations: float = 0.0
+    total_profit_allocated: float = 0.0
+    manual_adjustments: float = 0.0
+    total_raised: float = 0.0   # total_donations + total_profit_allocated + manual_adjustments
     # ── Tenant-controlled locked financial settings ──────────────────────────
     # Source of truth for costs/fees/splits. Not editable by store owners.
     locked_settings: LockedSettings = Field(default_factory=LockedSettings)
@@ -318,6 +344,24 @@ class WebstoreCreate(BaseModel):
     pickup_delivery_instructions: Optional[str] = None
     auto_close_after_deadline: bool = False
     allow_late_orders: bool = False
+    # Event-store fundraiser fields
+    fundraiser_enabled: bool = False
+    fundraiser_name: Optional[str] = None
+    fundraiser_description: Optional[str] = None
+    fundraiser_goal_amount: Optional[float] = Field(default=None, ge=0)
+    show_progress_bar: bool = False
+    allow_checkout_donations: bool = False
+    donation_amount_options: Optional[str] = None
+    allow_custom_donation: bool = False
+    profit_allocation_enabled: bool = False
+    profit_allocation_type: Optional[str] = None
+    profit_allocation_percentage: Optional[float] = Field(default=None, ge=0, le=100)
+    fixed_amount_per_item: Optional[float] = Field(default=None, ge=0)
+    fundraiser_cap_amount: Optional[float] = Field(default=None, ge=0)
+    include_donations_in_progress: bool = True
+    include_profit_allocation_in_progress: bool = True
+    show_total_raised_publicly: bool = False
+    show_supporter_names: Optional[str] = None
     # Tenant-controlled locked settings (admin-only)
     locked_settings: Optional[Dict[str, Any]] = None
 
@@ -351,6 +395,24 @@ class WebstoreUpdate(BaseModel):
     pickup_delivery_instructions: Optional[str] = None
     auto_close_after_deadline: Optional[bool] = None
     allow_late_orders: Optional[bool] = None
+    # Event-store fundraiser fields
+    fundraiser_enabled: Optional[bool] = None
+    fundraiser_name: Optional[str] = None
+    fundraiser_description: Optional[str] = None
+    fundraiser_goal_amount: Optional[float] = Field(default=None, ge=0)
+    show_progress_bar: Optional[bool] = None
+    allow_checkout_donations: Optional[bool] = None
+    donation_amount_options: Optional[str] = None
+    allow_custom_donation: Optional[bool] = None
+    profit_allocation_enabled: Optional[bool] = None
+    profit_allocation_type: Optional[str] = None
+    profit_allocation_percentage: Optional[float] = Field(default=None, ge=0, le=100)
+    fixed_amount_per_item: Optional[float] = Field(default=None, ge=0)
+    fundraiser_cap_amount: Optional[float] = Field(default=None, ge=0)
+    include_donations_in_progress: Optional[bool] = None
+    include_profit_allocation_in_progress: Optional[bool] = None
+    show_total_raised_publicly: Optional[bool] = None
+    show_supporter_names: Optional[str] = None
     # Tenant-controlled locked settings (admin-only)
     locked_settings: Optional[Dict[str, Any]] = None
 
@@ -665,10 +727,22 @@ storefront_router = APIRouter(prefix="/storefront", tags=["Storefront (Public)"]
 WEBSTORE_PUBLIC_FIELDS = [
     "id", "name", "store_type", "owner_name", "description",
     "status", "is_public", "branding",
+    # Legacy fundraiser-type fields (store_type=fundraiser stores)
     "fundraiser_goal", "fundraiser_start_date", "fundraiser_end_date",
     "total_sales", "total_orders",
     "seo_title", "seo_description", "og_image",
-    "checkout_enabled", "checkout_status", "checkout_message"
+    "checkout_enabled", "checkout_status", "checkout_message",
+    # Event-store fields (non-financial)
+    "event_name", "event_type", "event_start_date", "event_end_date",
+    "event_location", "order_deadline", "pickup_delivery_date",
+    "pickup_delivery_instructions",
+    # Event-store fundraiser public fields
+    "fundraiser_enabled", "fundraiser_name", "fundraiser_description",
+    "fundraiser_goal_amount", "show_progress_bar",
+    "show_total_raised_publicly", "show_supporter_names",
+    "total_donations", "total_profit_allocated", "total_raised",
+    # Slug for future URL routing
+    "store_slug",
 ]
 
 def sanitize_webstore_for_public(webstore: dict) -> dict:
@@ -1033,6 +1107,24 @@ async def create_webstore(
         pickup_delivery_instructions=input.pickup_delivery_instructions,
         auto_close_after_deadline=input.auto_close_after_deadline,
         allow_late_orders=input.allow_late_orders,
+        # Event-store fundraiser fields
+        fundraiser_enabled=input.fundraiser_enabled,
+        fundraiser_name=input.fundraiser_name,
+        fundraiser_description=input.fundraiser_description,
+        fundraiser_goal_amount=input.fundraiser_goal_amount,
+        show_progress_bar=input.show_progress_bar,
+        allow_checkout_donations=input.allow_checkout_donations,
+        donation_amount_options=input.donation_amount_options,
+        allow_custom_donation=input.allow_custom_donation,
+        profit_allocation_enabled=input.profit_allocation_enabled,
+        profit_allocation_type=input.profit_allocation_type,
+        profit_allocation_percentage=input.profit_allocation_percentage,
+        fixed_amount_per_item=input.fixed_amount_per_item,
+        fundraiser_cap_amount=input.fundraiser_cap_amount,
+        include_donations_in_progress=input.include_donations_in_progress,
+        include_profit_allocation_in_progress=input.include_profit_allocation_in_progress,
+        show_total_raised_publicly=input.show_total_raised_publicly,
+        show_supporter_names=input.show_supporter_names,
         # Tenant-controlled locked settings
         locked_settings=LockedSettings(**(input.locked_settings or {})),
         # URL slug
@@ -2613,25 +2705,84 @@ async def apply_questionnaire_answers_to_event_store(
             return None
         return val
 
-    # ── Safe field mappings (store owner editable, directly applied) ──
-    SAFE_MAP = {
-        "Event Name": "event_name",
-        "Event Date": "event_start_date",
-        "Event Location": "event_location",
-        "When do you want the store to launch?": "event_start_date",
-        "When should the store close?": "event_end_date",
-        "If pickup is available, what pickup location should be shown?": "pickup_delivery_instructions",
-        "Pickup date / time instructions": "pickup_delivery_instructions",
-        "Fundraiser Name": "event_name",          # Store in event_name context
-        "Fundraiser Description": "description",
+    def _as_bool(val) -> Optional[bool]:
+        """Convert questionnaire yes/no answers to bool."""
+        if val is None:
+            return None
+        if isinstance(val, bool):
+            return val
+        if isinstance(val, str):
+            return val.lower() in ("yes", "true", "1", "yes_all", "yes_with_permission")
+        return None
+
+    def _as_float(val) -> Optional[float]:
+        """Convert questionnaire number answers to float."""
+        if val is None:
+            return None
+        try:
+            return float(val)
+        except (TypeError, ValueError):
+            return None
+
+    # ── Safe field mappings ──────────────────────────────────────────────────
+    # All keys are the exact question labels from the event_web_store_setup template.
+    # Values are the Webstore model field names.
+    # Bool/float fields are coerced; string fields map directly.
+    # NOTE: locked_settings fields are NEVER in this map — they must go through admin.
+    SAFE_MAP: dict[str, tuple] = {
+        # (store_field, coerce_fn or None)
+        # ── Event fields ──
+        "Event Name":                   ("event_name",                   None),
+        "Event Date":                   ("event_start_date",             None),
+        "Event Location":               ("event_location",               None),
+        "When do you want the store to launch?":  ("event_start_date",   None),
+        "When should the store close?": ("event_end_date",               None),
+        "If pickup is available, what pickup location should be shown?":
+                                        ("pickup_delivery_instructions",  None),
+        "Pickup date / time instructions":
+                                        ("pickup_delivery_instructions",  None),
+        # ── Fundraiser fields ──
+        "Is this store raising funds for a cause or organization?":
+                                        ("fundraiser_enabled",           _as_bool),
+        "Fundraiser Name":              ("fundraiser_name",              None),
+        "Fundraiser Description":       ("fundraiser_description",       None),
+        "Fundraiser Goal Amount ($)":   ("fundraiser_goal_amount",       _as_float),
+        "Should a fundraiser progress bar be shown on the store?":
+                                        ("show_progress_bar",            _as_bool),
+        "Should customers be able to add a donation at checkout?":
+                                        ("allow_checkout_donations",     _as_bool),
+        "Donation amount options to offer at checkout":
+                                        ("donation_amount_options",      None),
+        "Should customers be able to enter a custom donation amount?":
+                                        ("allow_custom_donation",        _as_bool),
+        "Should a portion of each product sale be allocated to the fundraiser?":
+                                        ("profit_allocation_enabled",    _as_bool),
+        "Profit allocation type":       ("profit_allocation_type",       None),
+        "Profit allocation percentage (%)":
+                                        ("profit_allocation_percentage", _as_float),
+        "Fixed profit allocation amount per item ($)":
+                                        ("fixed_amount_per_item",        _as_float),
+        "Maximum fundraiser cap amount ($)":
+                                        ("fundraiser_cap_amount",        _as_float),
+        "Include checkout donations in fundraiser progress total?":
+                                        ("include_donations_in_progress", _as_bool),
+        "Include product sale profit allocation in fundraiser progress total?":
+                                        ("include_profit_allocation_in_progress", _as_bool),
+        "Show total amount raised publicly on the store?":
+                                        ("show_total_raised_publicly",   _as_bool),
+        "Show supporter names on the store?":
+                                        ("show_supporter_names",         None),
     }
 
     applied: dict = {}
     suggested_changes: list = []
     now = datetime.now(timezone.utc).isoformat()
 
-    for label, store_field in SAFE_MAP.items():
-        val = _answer(label)
+    for label, (store_field, coerce_fn) in SAFE_MAP.items():
+        raw_val = _answer(label)
+        if raw_val is None:
+            continue
+        val = coerce_fn(raw_val) if coerce_fn else raw_val
         if val is None:
             continue
         q_id = q_label_to_id.get(label)
