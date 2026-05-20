@@ -22,6 +22,15 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-05-22 — **Event Store Polish Pass (COMPLETE)**:
+  - **Supporters strip** (`GET /api/storefront/{id}/supporters`): public Top Donors / Recent Supporters list for Event Store fundraisers, gated by `show_supporter_names` (no/yes_with_permission/yes_all). Mongo projection limits the payload to `{name, amount, created_at}` only — never exposes email/phone/payment fields. `yes_with_permission` falls back to "Anonymous Supporter" when the donor didn't opt in.
+  - **Donor consent** plumbed through: `WebstoreCheckoutRequest.donor_consent` → Stripe metadata → `payment_transactions` → `WebstoreOrderCreate.donor_consent` → `webstore_orders_v2.donor_consent`. Storefront shows a consent checkbox only when `show_supporter_names='yes_with_permission'` AND a donation is selected.
+  - **One-time assignment notification**: `_ensure_webstore_assignment_notifications` idempotently seeds a `webstore_assigned` notification when the portal user fetches `/api/portal/webstores` for the first time. Dedup key = `(customer_id, notification_type, related_id)`.
+  - **Portal notification endpoints**: `GET /api/portal/notifications` (with `unread_only` + `notification_type` filters), `POST /api/portal/notifications/{id}/dismiss`, `POST /api/portal/notifications/dismiss-all`. Cross-customer 404 enforced.
+  - **Owner Checklist** (`PortalWebstores.js`): per-store checklist (assigned, questionnaire, stripe, live, first_order, fundraiser) derived purely from existing data. Hint text for each pending item.
+  - **Admin Event Store Setup Checklist** (`GET /api/webstores/v2/{id}/event-setup-checklist`): 10-item structured checklist with `required_count`, `required_done`, `percent_complete`. Card rendered above Event Settings on the admin detail dialog; gated on `store_type==='event'`.
+  - **Tested**: `/app/test_reports/iteration_159.json` → **96% backend (26/27 + 1 benign skip), 100% frontend**. PII sanitization, tenant scoping, idempotent notification seeding, and consent gating all verified.
+
 - 2026-05-21 — **Customer Portal: Webstores Tab for Assigned Owners (COMPLETE)**:
   - **Backend** (`routes/portal.py`): Added `GET /api/portal/webstores`, `GET /api/portal/webstores/{id}`, `POST /api/portal/webstores/{id}/stripe-onboarding`, `POST /api/portal/webstores/{id}/stripe-refresh`, `POST /api/portal/webstores/{id}/stripe-login-link`. Assignment rule: `webstore.owner_email == customer.email` (case-insensitive) AND `tenant_id` matches. All endpoints enforce assignment server-side via `_portal_load_assigned_webstore` (returns 404 — never leaks existence).
   - **Sanitization** (`_sanitize_webstore_for_portal_owner`): whitelist-only output — strips `tenant_id`, `owner_user_id`, and raw `locked_settings` cost/profit fields. Only safe locked-settings keys (`shipping_fee`, `handling_fee`, `shipping_handling_*`) are exposed read-only.
