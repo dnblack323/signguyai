@@ -404,6 +404,7 @@ async def finalize_webstore_stripe_checkout(session_id: str) -> Optional[dict]:
             donation_amount=float(ptx.get("donation_amount") or 0),
             profit_allocation_amount=float(ptx.get("profit_allocation_amount") or 0),
             shipping_handling_amount=float(ptx.get("shipping_handling_amount") or 0),
+            donor_consent=bool(ptx.get("donor_consent")),
         )
     except ValidationError as exc:
         logger.error(f"finalize_webstore_stripe_checkout: invalid payload {exc}")

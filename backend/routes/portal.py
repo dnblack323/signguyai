@@ -1915,7 +1915,118 @@ async def _portal_list_assigned_webstores(customer: Dict[str, Any]) -> List[Dict
 async def list_portal_webstores(customer: dict = Depends(get_current_portal_customer)):
     """List webstores assigned to the current customer-portal user."""
     rows = await _portal_list_assigned_webstores(customer)
+    # Polish: one-time notification per assignment, dismissible.
+    # Idempotent — duplicate calls only insert when the row is missing.
+    await _ensure_webstore_assignment_notifications(customer, rows)
     return [_sanitize_webstore_for_portal_owner(r) for r in rows]
+
+
+async def _ensure_webstore_assignment_notifications(
+    customer: Dict[str, Any],
+    webstores: List[Dict[str, Any]],
+) -> None:
+    """For each assigned webstore, ensure a one-time `webstore_assigned`
+    notification exists for this customer. Idempotent — uses
+    (customer_id, notification_type, related_id) as the dedup key.
+    """
+    if not customer or not customer.get("id") or not webstores:
+        return
+    customer_id = customer["id"]
+    for ws in webstores:
+        ws_id = ws.get("id")
+        if not ws_id:
+            continue
+        # Skip if a notification already exists for this assignment.
+        existing = await db.customer_notifications.find_one(
+            {
+                "customer_id": customer_id,
+                "notification_type": "webstore_assigned",
+                "related_id": ws_id,
+            },
+            {"_id": 0, "id": 1},
+        )
+        if existing:
+            continue
+        store_name = ws.get("name") or "your store"
+        cta_link = "/customer-portal/webstores"
+        stripe_ready = bool(ws.get("owner_stripe_charges_enabled"))
+        message = (
+            f"You've been assigned as the owner of {store_name}. "
+            + ("Visit the Webstores tab to manage your store."
+               if stripe_ready
+               else "Complete Stripe onboarding to start receiving payouts.")
+        )
+        notification = CustomerNotification(
+            tenant_id=customer.get("tenant_id") or ws.get("tenant_id"),
+            customer_id=customer_id,
+            notification_type="webstore_assigned",
+            title="New webstore assignment",
+            message=message,
+            link=cta_link,
+            related_id=ws_id,
+        )
+        try:
+            await db.customer_notifications.insert_one(notification.model_dump())
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(f"Failed to seed webstore_assigned notification: {exc}")
+
+
+@router.get("/notifications")
+async def list_portal_notifications(
+    unread_only: bool = False,
+    notification_type: Optional[str] = None,
+    customer: dict = Depends(get_current_portal_customer),
+):
+    """List portal notifications for the current customer.
+
+    Filters:
+      - unread_only=true → only is_read=false rows
+      - notification_type → exact match (e.g., "webstore_assigned")
+    """
+    query: Dict[str, Any] = {"customer_id": customer["id"]}
+    if unread_only:
+        query["is_read"] = False
+    if notification_type:
+        query["notification_type"] = notification_type
+    rows = await db.customer_notifications.find(
+        query, {"_id": 0}
+    ).sort("created_at", -1).limit(50).to_list(50)
+    return rows
+
+
+@router.post("/notifications/{notification_id}/dismiss")
+async def dismiss_portal_notification(
+    notification_id: str,
+    customer: dict = Depends(get_current_portal_customer),
+):
+    """Mark a single notification as read (dismissible by the customer).
+
+    Returns 404 (not 403) if the notification doesn't belong to the
+    customer — keeps notification existence private.
+    """
+    res = await db.customer_notifications.update_one(
+        {"id": notification_id, "customer_id": customer["id"]},
+        {"$set": {"is_read": True, "dismissed_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    return {"ok": True, "id": notification_id}
+
+
+@router.post("/notifications/dismiss-all")
+async def dismiss_all_portal_notifications(
+    notification_type: Optional[str] = None,
+    customer: dict = Depends(get_current_portal_customer),
+):
+    """Bulk-dismiss notifications (optionally filtered by type)."""
+    q: Dict[str, Any] = {"customer_id": customer["id"], "is_read": False}
+    if notification_type:
+        q["notification_type"] = notification_type
+    res = await db.customer_notifications.update_many(
+        q,
+        {"$set": {"is_read": True, "dismissed_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    return {"ok": True, "dismissed": res.modified_count}
 
 
 @router.get("/webstores/{webstore_id}")

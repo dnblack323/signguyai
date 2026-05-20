@@ -479,6 +479,10 @@ class WebstoreOrder(BaseModel):
     donation_amount: float = 0.0
     profit_allocation_amount: float = 0.0
     shipping_handling_amount: float = 0.0
+    # Polish: donor opted in to show their name on the public supporters
+    # strip. Only meaningful when donation_amount > 0 AND the store has
+    # show_supporter_names = "yes_with_permission".
+    donor_consent: bool = False
     grand_total: float = 0.0
     # Tracks whether this order's donation/profit-allocation has been rolled
     # into the parent webstore's totals. Used to make webhook + status_check
@@ -511,6 +515,7 @@ class WebstoreOrderCreate(BaseModel):
     donation_amount: Optional[float] = Field(default=0.0, ge=0)
     profit_allocation_amount: Optional[float] = Field(default=0.0, ge=0)
     shipping_handling_amount: Optional[float] = Field(default=0.0, ge=0)
+    donor_consent: Optional[bool] = False
 
 
 def _coerce_float(value: Any, default: float = 0.0) -> float:
@@ -992,6 +997,70 @@ async def get_public_store(webstore_id: str):
     public_webstore["checkout_status"] = checkout["status"]
     public_webstore["checkout_message"] = checkout["message"]
     return public_webstore
+
+
+@storefront_router.get("/{webstore_id}/supporters")
+async def get_public_store_supporters(webstore_id: str, limit: int = 5):
+    """Public Top Donors / Recent Supporters strip.
+
+    Returns the most recent N supporters (donation_amount > 0) for an Event
+    Store fundraiser. Honors `show_supporter_names`:
+      - "no"                 → endpoint returns []  (UI hides the strip)
+      - "yes_with_permission"→ shows name only when donor opted in
+                               (`donor_consent=True` on the order doc); others
+                               fall back to "Anonymous Supporter"
+      - "yes_all"            → shows names whenever available
+    Never exposes email, phone, payment metadata, or session ids.
+    """
+    if limit <= 0 or limit > 10:
+        limit = 5
+
+    ws = await db.webstores_v2.find_one(
+        {"id": webstore_id},
+        {"_id": 0, "store_type": 1, "fundraiser_enabled": 1,
+         "show_supporter_names": 1, "is_public": 1, "status": 1},
+    )
+    if not ws or not ws.get("is_public", True) or ws.get("status") != "active":
+        raise HTTPException(status_code=404, detail="Store not found")
+
+    # Only Event Stores with fundraiser_enabled expose supporters.
+    if ws.get("store_type") != "event" or not ws.get("fundraiser_enabled"):
+        return []
+
+    show_mode = (ws.get("show_supporter_names") or "no").lower()
+    if show_mode == "no":
+        return []
+
+    orders = await db.webstore_orders_v2.find(
+        {
+            "webstore_id": webstore_id,
+            "donation_amount": {"$gt": 0},
+            "status": {"$nin": ["cancelled", "refunded"]},
+        },
+        {
+            "_id": 0,
+            "id": 1, "customer_name": 1, "donation_amount": 1,
+            "donor_consent": 1, "created_at": 1,
+        },
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+
+    out = []
+    for o in orders:
+        donation = round(float(o.get("donation_amount") or 0), 2)
+        if donation <= 0:
+            continue
+        if show_mode == "yes_with_permission":
+            allow_name = bool(o.get("donor_consent"))
+        else:  # yes_all
+            allow_name = True
+        raw_name = (o.get("customer_name") or "").strip()
+        display_name = raw_name if (allow_name and raw_name) else "Anonymous Supporter"
+        out.append({
+            "name": display_name,
+            "amount": donation,
+            "created_at": o.get("created_at"),
+        })
+    return out
 
 
 @storefront_router.get("/{webstore_id}/products")
@@ -2468,6 +2537,7 @@ async def create_webstore_order(input: WebstoreOrderCreate):
         donation_amount=donation_amount,
         profit_allocation_amount=profit_allocation_amount,
         shipping_handling_amount=shipping_handling_amount,
+        donor_consent=bool(input.donor_consent and donation_amount > 0),
         grand_total=round(subtotal + shipping_handling_amount + donation_amount, 2),
         notes=input.notes,
         job_id=job.id,  # Link to auto-created job
@@ -2663,6 +2733,120 @@ async def get_webstore_questionnaire_status(
         "linked": True,
         "questionnaire": questionnaire,
         "latest_response": latest_response,
+    }
+
+
+@webstores_router.get("/{webstore_id}/event-setup-checklist")
+async def get_event_store_setup_checklist(
+    webstore_id: str,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Admin Event Store quick-status checklist.
+
+    Returns a structured list of setup steps with completion flags. All
+    values are derived from existing data (no separate tracking table).
+    """
+    webstore = await db.webstores_v2.find_one(
+        {"id": webstore_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0},
+    )
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+
+    # Event details — at minimum we want event_name + dates (start or end)
+    # plus either an order_deadline or a pickup_delivery_date.
+    has_event_basics = bool(
+        webstore.get("event_name")
+        and (webstore.get("event_start_date") or webstore.get("event_end_date"))
+    )
+    has_event_logistics = bool(
+        webstore.get("order_deadline") or webstore.get("pickup_delivery_date")
+    )
+    event_details_complete = bool(has_event_basics and has_event_logistics)
+
+    # Questionnaire status — sent + completed + applied
+    questionnaire = await db.questionnaires.find_one(
+        {"webstore_id": webstore_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0, "id": 1, "status": 1, "last_sent_at": 1, "response_count": 1},
+    )
+    questionnaire_sent = bool(questionnaire and questionnaire.get("last_sent_at"))
+    latest_response = None
+    questionnaire_completed = False
+    safe_answers_applied = False
+    if questionnaire:
+        latest_response = await db.questionnaire_responses.find_one(
+            {"questionnaire_id": questionnaire["id"]},
+            {"_id": 0, "id": 1, "submitted_at": 1, "applied_to_webstore": 1},
+            sort=[("submitted_at", -1)],
+        )
+        questionnaire_completed = bool(latest_response and latest_response.get("submitted_at"))
+        safe_answers_applied = bool(latest_response and latest_response.get("applied_to_webstore"))
+
+    # Stripe onboarding (owner-side)
+    stripe_invite_sent = bool(
+        await db.webstore_owner_invites.find_one(
+            {"webstore_id": webstore_id, "tenant_id": current_user.tenant_id},
+            {"_id": 0, "id": 1},
+        )
+        or webstore.get("owner_stripe_account_id")
+    )
+    stripe_complete = bool(webstore.get("owner_stripe_charges_enabled"))
+
+    # Products assigned to this webstore
+    products_count = await db.webstore_products.count_documents({
+        "webstore_id": webstore_id,
+    })
+    products_assigned = products_count > 0
+
+    # Store live = status==active
+    store_live = (webstore.get("status") == "active")
+
+    # First order received
+    first_order = await db.webstore_orders_v2.find_one(
+        {"webstore_id": webstore_id},
+        {"_id": 0, "id": 1, "created_at": 1},
+        sort=[("created_at", 1)],
+    )
+    first_order_received = bool(first_order)
+
+    fundraiser_enabled = bool(webstore.get("fundraiser_enabled"))
+
+    items = [
+        {"key": "event_details", "label": "Event details completed", "done": event_details_complete,
+         "hint": None if event_details_complete else "Add event name, dates, and order deadline."},
+        {"key": "questionnaire_sent", "label": "Setup questionnaire sent", "done": questionnaire_sent,
+         "hint": None if questionnaire_sent else "Send the setup questionnaire to the store owner."},
+        {"key": "questionnaire_completed", "label": "Questionnaire completed by owner",
+         "done": questionnaire_completed,
+         "hint": None if questionnaire_completed else "Waiting on the store owner to submit."},
+        {"key": "safe_answers_applied", "label": "Safe answers applied to store",
+         "done": safe_answers_applied,
+         "hint": None if safe_answers_applied else "Review and apply the submitted answers."},
+        {"key": "stripe_invite_sent", "label": "Stripe onboarding invite sent", "done": stripe_invite_sent,
+         "hint": None if stripe_invite_sent else "Send a Quick Connect or Owner Portal invite."},
+        {"key": "stripe_complete", "label": "Stripe onboarding complete", "done": stripe_complete,
+         "hint": None if stripe_complete else "Owner still needs to finish Stripe onboarding."},
+        {"key": "fundraiser_enabled", "label": "Fundraiser enabled (optional)", "done": fundraiser_enabled,
+         "optional": True,
+         "hint": None if fundraiser_enabled else "Toggle on in Event Settings if this is a fundraiser."},
+        {"key": "products_assigned", "label": "Products assigned to store", "done": products_assigned,
+         "hint": None if products_assigned else "Assign at least one product from the catalog."},
+        {"key": "store_live", "label": "Store live (status = active)", "done": store_live,
+         "hint": None if store_live else "Activate the store once Stripe + products are ready."},
+        {"key": "first_order_received", "label": "First order received", "done": first_order_received,
+         "optional": True,
+         "hint": None if first_order_received else "No orders yet — share the public store link to launch."},
+    ]
+    # Required steps for the headline "complete" percent.
+    required = [i for i in items if not i.get("optional")]
+    done = sum(1 for i in required if i["done"])
+    return {
+        "webstore_id": webstore_id,
+        "store_type": webstore.get("store_type"),
+        "items": items,
+        "required_count": len(required),
+        "required_done": done,
+        "percent_complete": round((done / len(required)) * 100) if required else 0,
     }
 
 

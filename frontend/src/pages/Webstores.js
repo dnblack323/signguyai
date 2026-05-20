@@ -39,7 +39,7 @@ import {
   ExternalLink, Check, X, Settings, Copy, Link2, BarChart3,
   Upload, ImageIcon, CreditCard, AlertTriangle, Loader2, Palette,
   QrCode, Download, Shirt, Sticker, Gift, CalendarDays, Search,
-  Mail, Lock, ClipboardCheck, Send
+  Mail, Lock, ClipboardCheck, Send, ListChecks, CheckCircle2
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
@@ -105,6 +105,7 @@ export default function Webstores() {
     getStripeConnectStatus, createStripeConnectAccount,
     createProduct,
     getWebstoreQuestionnaire, sendWebstoreQuestionnaire, applyWebstoreQuestionnaireAnswers,
+    getWebstoreEventChecklist,
   } = useApp();
   
   const [loading, setLoading] = useState(true);
@@ -166,6 +167,8 @@ export default function Webstores() {
   // Event Store questionnaire state
   const [questionnaireStatus, setQuestionnaireStatus] = useState(null);   // null = not loaded
   const [loadingQuestionnaire, setLoadingQuestionnaire] = useState(false);
+  // Event Store setup checklist (admin side)
+  const [eventChecklist, setEventChecklist] = useState(null);
   const [showSendDialog, setShowSendDialog] = useState(false);
   const [sendingQuestionnaire, setSendingQuestionnaire] = useState(false);
   const [applyingAnswers, setApplyingAnswers] = useState(false);
@@ -666,8 +669,17 @@ export default function Webstores() {
       } finally {
         setLoadingQuestionnaire(false);
       }
+      // Load admin Event Store setup checklist
+      setEventChecklist(null);
+      try {
+        const ck = await getWebstoreEventChecklist(store.id);
+        setEventChecklist(ck);
+      } catch (err) {
+        console.error('Could not load event setup checklist', err);
+      }
     } else {
       setQuestionnaireStatus(null);
+      setEventChecklist(null);
     }
     
     // Reset create product form state
@@ -2442,6 +2454,47 @@ export default function Webstores() {
                       </div>
                     </CardContent>
                   </Card>
+
+                  {/* Event Store Setup Checklist — admin quick-status card */}
+                  {selectedStore.store_type === 'event' && eventChecklist && (
+                    <Card data-testid="admin-event-checklist-card">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <ListChecks className="h-4 w-4 text-teal-500" />
+                          Event Store Setup
+                          <span className="ml-auto text-xs font-medium text-slate-500" data-testid="admin-event-checklist-progress">
+                            {eventChecklist.required_done} / {eventChecklist.required_count} ({eventChecklist.percent_complete}%)
+                          </span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-1.5">
+                        {eventChecklist.items.map((item) => (
+                          <div
+                            key={item.key}
+                            className="flex items-start gap-2 text-sm"
+                            data-testid={`admin-event-checklist-${item.key}-${item.done ? 'done' : 'todo'}`}
+                          >
+                            {item.done ? (
+                              <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-600 shrink-0" />
+                            ) : (
+                              <div className="h-4 w-4 mt-0.5 rounded-full border border-slate-300 shrink-0" />
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className={item.done ? 'line-through text-slate-400' : 'text-slate-700 font-medium'}>
+                                {item.label}
+                                {item.optional && !item.done && (
+                                  <span className="text-slate-400 font-normal"> (optional)</span>
+                                )}
+                              </p>
+                              {!item.done && item.hint && (
+                                <p className="text-xs text-slate-500 mt-0.5">{item.hint}</p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  )}
 
                   {/* Event Store Settings — only visible for event stores */}
                   {selectedStore.store_type === 'event' && (

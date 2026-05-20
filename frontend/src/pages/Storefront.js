@@ -43,6 +43,7 @@ export default function Storefront() {
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [processingCheckout, setProcessingCheckout] = useState(false);
   const [verifyingPayment, setVerifyingPayment] = useState(false);
+  const [supporters, setSupporters] = useState([]);
   
   const [customerInfo, setCustomerInfo] = useState({
     name: '',
@@ -57,6 +58,9 @@ export default function Storefront() {
   const [donationAmount, setDonationAmount] = useState(0);
   const [donationMode, setDonationMode] = useState('none'); // 'none' | 'preset' | 'custom'
   const [customDonation, setCustomDonation] = useState('');
+  // Polish: donor consent toggle — only relevant when store has
+  // show_supporter_names="yes_with_permission" AND user is donating.
+  const [donorConsent, setDonorConsent] = useState(false);
 
   useEffect(() => {
     loadStore();
@@ -138,6 +142,17 @@ export default function Storefront() {
       const productsRes = await fetch(`${API}/api/storefront/${storeId}/products`);
       const productsData = await productsRes.json();
       setProducts(productsData);
+
+      // Fetch recent supporters (Event Store fundraisers only — endpoint
+      // returns [] for non-event/non-fundraiser stores or when names are
+      // hidden, so we can safely call it unconditionally).
+      try {
+        const supRes = await fetch(`${API}/api/storefront/${storeId}/supporters?limit=5`);
+        if (supRes.ok) {
+          const sup = await supRes.json();
+          setSupporters(Array.isArray(sup) ? sup : []);
+        }
+      } catch (_) { /* non-critical */ }
     } catch (err) {
       console.error('Error loading store:', err);
       toast.error('Store not found');
@@ -231,6 +246,17 @@ export default function Storefront() {
     ? Math.min(100, (totalRaised / fundraiserGoal) * 100)
     : 0;
 
+  // Polish: supporters strip — Event Stores only, when allowed AND there
+  // are supporters. The backend already enforces all the gates; the UI
+  // just needs to know whether to render the section.
+  const showSupporters = store?.store_type === 'event'
+    && !!store?.fundraiser_enabled
+    && ((store?.show_supporter_names || 'no').toLowerCase() !== 'no')
+    && Array.isArray(supporters)
+    && supporters.length > 0;
+  const supporterNameMode = (store?.show_supporter_names || 'no').toLowerCase();
+  const supportersRequireConsent = supporterNameMode === 'yes_with_permission';
+
   const handleCheckout = async (e) => {
     e.preventDefault();
     if (processingCheckout) return;
@@ -272,6 +298,9 @@ export default function Storefront() {
           notes: customerInfo.notes
         },
         donation_amount: donationsEnabled ? effectiveDonation : 0,
+        donor_consent: donationsEnabled && effectiveDonation > 0
+          ? (supportersRequireConsent ? donorConsent : (supporterNameMode === 'yes_all'))
+          : false,
       };
 
       // Use clean origin URL (without query params)
@@ -492,6 +521,28 @@ export default function Storefront() {
                     {store.fundraiser_description}
                   </p>
                 )}
+              </div>
+            )}
+
+            {/* Recent supporters strip (Event Store fundraiser only). */}
+            {showSupporters && (
+              <div className="mt-4" data-testid="supporters-strip">
+                <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                  Recent Supporters
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {supporters.map((s, idx) => (
+                    <div
+                      key={`${s.created_at || idx}-${idx}`}
+                      className="flex items-center gap-2 rounded-full border bg-white/60 px-3 py-1.5 text-xs shadow-sm"
+                      data-testid={`supporter-chip-${idx}`}
+                    >
+                      <Heart className="h-3 w-3" style={{ color: primaryColor }} />
+                      <span className="font-medium text-foreground">{s.name}</span>
+                      <span className="text-muted-foreground">{formatCurrency(s.amount)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -739,6 +790,21 @@ export default function Storefront() {
                       data-testid="donation-custom-input"
                     />
                   </div>
+                )}
+                {/* Donor consent (only when names require permission). */}
+                {effectiveDonation > 0 && supportersRequireConsent && (
+                  <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer" data-testid="donor-consent-label">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5"
+                      checked={donorConsent}
+                      onChange={(e) => setDonorConsent(e.target.checked)}
+                      data-testid="donor-consent-checkbox"
+                    />
+                    <span>
+                      Show my name as a supporter on this fundraiser. If unchecked, your donation appears as <em>Anonymous Supporter</em>.
+                    </span>
+                  </label>
                 )}
               </div>
             )}

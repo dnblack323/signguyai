@@ -119,6 +119,10 @@ class WebstoreCheckoutRequest(BaseModel):
     # Part 4: Optional checkout donation (in dollars). Server validates against
     # the store's donation_amount_options + allow_custom_donation flags.
     donation_amount: Optional[float] = Field(default=0.0, ge=0)
+    # Polish: donor consent flag — only used when donation_amount > 0 and
+    # the store has show_supporter_names="yes_with_permission". The donor
+    # actively opts in to show their name on the supporters strip.
+    donor_consent: Optional[bool] = False
 
 
 class FeePreview(BaseModel):
@@ -895,6 +899,7 @@ async def create_webstore_checkout(
     # 2) Donation: only valid when allow_checkout_donations=true. Validated
     #    against the store's preset list + allow_custom_donation flag.
     donation_amount = round(float(checkout_data.donation_amount or 0), 2)
+    donor_consent = bool(checkout_data.donor_consent and donation_amount > 0)
     donations_enabled = bool(webstore.get("allow_checkout_donations"))
     if donation_amount > 0:
         if not donations_enabled:
@@ -1008,6 +1013,7 @@ async def create_webstore_checkout(
                 "profit_allocation_amount": f"{profit_allocation_amount:.2f}",
                 "shipping_handling_amount": f"{shipping_handling_amount:.2f}",
                 "fundraiser_enabled": "true" if webstore.get("fundraiser_enabled") else "false",
+                "donor_consent": "true" if donor_consent else "false",
             }
         )
         
@@ -1030,6 +1036,7 @@ async def create_webstore_checkout(
             "donation_amount": donation_amount,
             "profit_allocation_amount": profit_allocation_amount,
             "shipping_handling_amount": shipping_handling_amount,
+            "donor_consent": donor_consent,
             "created_at": datetime.now(timezone.utc).isoformat()
         })
         

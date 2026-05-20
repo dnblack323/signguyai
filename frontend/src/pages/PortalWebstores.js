@@ -8,7 +8,7 @@ import { Separator } from '../components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import {
   Loader2, Store, ExternalLink, Copy, CheckCircle, AlertCircle, Lock,
-  Heart, Calendar, MapPin, Truck, Receipt, Activity, FileText,
+  Heart, Calendar, MapPin, Truck, Receipt, Activity, FileText, X, ListChecks,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getPortalToken, getPortalCustomerName } from '../lib/authStorage';
@@ -278,6 +278,138 @@ function RecentOrdersBlock({ orders }) {
   );
 }
 
+function OwnerChecklist({ store }) {
+  // Derive checklist purely from data already on the sanitized store doc.
+  const questionnaire = store.questionnaire || {};
+  const qSubmitted = !!questionnaire.latest_response?.submitted_at;
+  const stripeReady = !!store.owner_stripe_charges_enabled;
+  const storeLive = store.status === 'active';
+  const firstOrder = Array.isArray(store.recent_orders) && store.recent_orders.length > 0;
+  const fundraiserEnabled = !!store.fundraiser_enabled;
+  const isEvent = store.store_type === 'event';
+
+  const items = [
+    { key: 'assigned', label: 'Store assigned to you', done: true },
+    ...(isEvent
+      ? [{ key: 'questionnaire', label: 'Setup questionnaire completed', done: qSubmitted,
+           hint: qSubmitted ? null : 'Watch your email for the setup questionnaire from the sign shop.' }]
+      : []),
+    { key: 'stripe', label: 'Stripe onboarding complete', done: stripeReady,
+      hint: stripeReady ? null : 'Click "Complete Stripe Onboarding" above to start receiving payouts.' },
+    { key: 'live', label: 'Store live (accepting orders)', done: storeLive,
+      hint: storeLive ? null : 'The sign shop activates the store once Stripe + products are ready.' },
+    { key: 'first_order', label: 'First order received', done: firstOrder, optional: true,
+      hint: firstOrder ? null : 'Share your public store link to launch — copy the link above.' },
+    ...(isEvent
+      ? [{ key: 'fundraiser', label: 'Fundraiser enabled', done: fundraiserEnabled, optional: true,
+           hint: fundraiserEnabled ? null : 'Optional — your sign shop can enable a fundraiser for this event.' }]
+      : []),
+  ];
+
+  const required = items.filter((i) => !i.optional);
+  const doneCount = required.filter((i) => i.done).length;
+  const pct = required.length === 0 ? 0 : Math.round((doneCount / required.length) * 100);
+
+  return (
+    <div className="rounded-md border bg-white p-3 space-y-2" data-testid="portal-store-owner-checklist">
+      <div className="flex items-center gap-2 text-slate-800">
+        <ListChecks className="h-4 w-4" />
+        <p className="font-medium text-sm">Onboarding Checklist</p>
+        <span className="ml-auto text-xs font-semibold text-slate-600" data-testid="portal-store-checklist-progress">
+          {doneCount} / {required.length} ({pct}%)
+        </span>
+      </div>
+      <ul className="space-y-1.5">
+        {items.map((i) => (
+          <li
+            key={i.key}
+            className="flex items-start gap-2 text-xs"
+            data-testid={`portal-store-checklist-${i.key}-${i.done ? 'done' : 'todo'}`}
+          >
+            {i.done ? (
+              <CheckCircle className="h-3.5 w-3.5 mt-0.5 text-green-600 shrink-0" />
+            ) : (
+              <div className="h-3.5 w-3.5 mt-0.5 rounded-full border border-slate-300 shrink-0" />
+            )}
+            <div className="min-w-0">
+              <p className={i.done ? 'line-through text-slate-400' : 'text-slate-700 font-medium'}>
+                {i.label} {i.optional && !i.done && <span className="text-slate-400">(optional)</span>}
+              </p>
+              {!i.done && i.hint && <p className="text-slate-500">{i.hint}</p>}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+
+function AssignmentNotificationBanner({ onDismissed }) {
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    const token = getPortalToken();
+    if (!token) return;
+    setLoading(true);
+    try {
+      const res = await fetch(
+        `${API_URL}/api/portal/notifications?notification_type=webstore_assigned&unread_only=true`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      const data = res.ok ? await res.json() : [];
+      setNotifications(Array.isArray(data) ? data : []);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const dismiss = async (id) => {
+    const token = getPortalToken();
+    try {
+      const res = await fetch(`${API_URL}/api/portal/notifications/${id}/dismiss`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to dismiss');
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      if (onDismissed) onDismissed();
+    } catch (err) {
+      toast.error('Could not dismiss notification');
+    }
+  };
+
+  if (loading || notifications.length === 0) return null;
+
+  return (
+    <div className="mb-6 space-y-2" data-testid="portal-webstore-assignment-banner">
+      {notifications.map((n) => (
+        <Alert key={n.id} className="border-teal-200 bg-teal-50" data-testid={`portal-assignment-notif-${n.id}`}>
+          <CheckCircle className="h-4 w-4 text-teal-700" />
+          <AlertTitle className="flex items-center gap-2 text-teal-900">
+            {n.title}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="ml-auto h-7 px-2 text-teal-700 hover:bg-teal-100"
+              onClick={() => dismiss(n.id)}
+              data-testid={`portal-assignment-notif-dismiss-${n.id}`}
+              aria-label="Dismiss notification"
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </AlertTitle>
+          <AlertDescription className="text-teal-900 text-sm">{n.message}</AlertDescription>
+        </Alert>
+      ))}
+    </div>
+  );
+}
+
+
 function StoreCard({ store, onChanged }) {
   const [busy, setBusy] = useState(null);
   const [detail, setDetail] = useState(store);
@@ -412,6 +544,8 @@ function StoreCard({ store, onChanged }) {
           busyAction={busy}
         />
 
+        <OwnerChecklist store={detail} />
+
         <EventDetails store={detail} />
         <FundraiserSummary store={detail} />
         <QuestionnaireBlock store={detail} />
@@ -481,6 +615,8 @@ export default function PortalWebstores() {
           Manage the storefronts you've been assigned as the owner. Pricing and fees are set by your sign shop.
         </p>
       </div>
+
+      <AssignmentNotificationBanner />
 
       {loading && (
         <div className="flex items-center justify-center py-20">

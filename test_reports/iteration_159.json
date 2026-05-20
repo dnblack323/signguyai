@@ -1,0 +1,38 @@
+{
+  "summary": "Iteration 159 — Event Store polish pass (supporters strip, donor_consent, portal notifications, owner checklist, admin event setup checklist). Backend: 26 passed / 1 skipped (benign ordering — dismiss-all wiped unread set before dismiss-one ran). Frontend: storefront supporters strip + chips render correctly with PII sanitization; portal assignment banner + dismiss + owner checklist verified; admin event-checklist-card code-review confirmed (correct test-id, gated by `store_type === 'event' && eventChecklist`). PII guards confirmed: customer_email/phone/stripe_session_id/cost/profit absent from supporters payload. Cross-tenant guard on checklist endpoint verified (404 for foreign tenant). Cross-customer guard on portal notifications verified (dismiss-other returns 404).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration159_event_store_polish.py",
+    "/app/test_reports/pytest/iteration159_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Supporters endpoint (routes/webstores.py:1002) gating is layered correctly: 404 when store inactive/non-public, [] when not event+fundraiser, [] when show_supporter_names='no'. Final row projection only emits {name, amount, created_at} — PII columns are not selected from Mongo in the first place.",
+    "yes_with_permission mode falls back to 'Anonymous Supporter' when donor_consent=false; verified with both consenting and non-consenting seeded rows.",
+    "Checklist endpoint correctly tenant-scopes via {id, tenant_id: current_user.tenant_id} — cross-tenant probe returns 404 (verified).",
+    "Checklist done flags are pure derivations from existing collections (no tracking table) — store_live flip via direct status change instantly reflects in next GET.",
+    "Portal notification dismiss-one uses (id, customer_id) update_one — matched_count==0 returns 404, prevents enumeration. Cross-customer dismiss verified to return 404.",
+    "_ensure_webstore_assignment_notifications dedup key is (customer_id, notification_type, related_id) — 3 consecutive GET /api/portal/webstores calls produce exactly 1 notification row (verified).",
+    "Frontend admin Event Store Setup card (Webstores.js:2459) correctly gates on `selectedStore.store_type === 'event' && eventChecklist` so creator/business/fundraiser stores never render it. Card sits above Event Settings card per spec.",
+    "Storefront supporters-strip + chip test-ids (Storefront.js:529, 538) match spec; donor-consent-checkbox (Storefront.js:802) is conditionally rendered — verified absent when show_supporter_names='yes_all' (correct).",
+    "Portal OwnerChecklist (PortalWebstores.js:314) omits questionnaire/fundraiser items for non-event stores — confirmed visually on Demo Fundraiser Store (5 items including assigned/stripe/live/first_order; no questionnaire row)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration159_event_store_polish.py (new — 27 tests)"
+  ],
+  "success_rate": {
+    "backend": "96% (26/27 — 1 benign skip)",
+    "frontend": "100% (storefront strip + portal banner/dismiss/checklist + admin card code gate)"
+  },
+  "test_credentials": "Admin: thesigntistslab@gmail.com / password123. Portal positive: demo-fundraiser@rysoccer.example / TestPortal123!. Portal negative: portalreg_1776974524@example.com / TestNeg123!.",
+  "seed_data_creation": "Inserted 3 TEST_iter159_* rows into webstore_orders_v2 for webstore bf406578-1c57-4449-ab13-66736f3c2842 with donation_amount > 0 and donor_consent True/False mix (Alice/$50/consent, Bob/$25/no-consent, Charlie/$100/consent). Force-flipped that webstore to status=active + show_supporter_names=yes_all + fundraiser_enabled=true (PUT endpoint is gated by Stripe onboarding which is mocked in dev; direct DB write was the only path). Test fixture snapshots+restores those flags. Reset is_read=False on existing webstore_assigned notification so the portal banner test could exercise dismiss.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All four polish-pass features pass spec. The supporters endpoint is the only NEW public storefront route — PII sanitization is enforced both at the Mongo projection layer and at the response-shape layer. The donor-consent checkbox on the storefront only renders when both (a) show_supporter_names='yes_with_permission' AND (b) effectiveDonation > 0 — to manually exercise, set the store's show_supporter_names to 'yes_with_permission' and pick a donation preset. The admin Event Setup card lives inside the Settings/Branding section of the webstore detail dialog (below Event Details, above Event Settings), gated on store_type==='event' and the fetched eventChecklist object; non-event stores never render it. The portal AssignmentNotificationBanner auto-fetches /api/portal/notifications?notification_type=webstore_assigned&unread_only=true on mount; dismissing posts to /api/portal/notifications/{id}/dismiss and the banner removes that row from local state immediately. Test seed data (TEST_iter159_* orders) was left in place for re-runs — clean it via db.webstore_orders_v2.delete_many({'id': {'$regex': '^TEST_iter159_'}}) when no longer needed.",
+  "rca_of_the_issue": "N/A — feature works as specified."
+}

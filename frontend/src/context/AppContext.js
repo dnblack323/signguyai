@@ -668,6 +668,11 @@ export const AppProvider = ({ children }) => {
     return res.data;
   };
 
+  const getWebstoreEventChecklist = async (webstoreId) => {
+    const res = await api.get(`/webstores/v2/${webstoreId}/event-setup-checklist`);
+    return res.data;
+  };
+
   // Tenant / Company Settings
   const fetchTenant = useCallback(async () => {
     try {
@@ -767,6 +772,7 @@ export const AppProvider = ({ children }) => {
     getWebstoreAnalytics,
     // Event Store Questionnaire
     getWebstoreQuestionnaire, sendWebstoreQuestionnaire, applyWebstoreQuestionnaireAnswers,
+    getWebstoreEventChecklist,
     // Tenant / Company Settings
     tenant, fetchTenant, getTenant, updateTenant,
     // Stripe Connect
