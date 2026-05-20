@@ -52,6 +52,12 @@ export default function Storefront() {
     notes: ''
   });
 
+  // Part 4: donation selection state ($amount + custom mode).
+  // null = no donation selected.
+  const [donationAmount, setDonationAmount] = useState(0);
+  const [donationMode, setDonationMode] = useState('none'); // 'none' | 'preset' | 'custom'
+  const [customDonation, setCustomDonation] = useState('');
+
   useEffect(() => {
     loadStore();
     
@@ -182,6 +188,49 @@ export default function Storefront() {
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const checkoutEnabled = store?.checkout_enabled !== false;
 
+  // Part 4: Event Store fundraiser + checkout extras (all sourced from the
+  // public store payload; locked_settings is a pre-sanitized subset that
+  // only contains shipping/handling info — no cost or profit data).
+  const lockedSettings = store?.locked_settings || {};
+  const shippingHandlingEnabled = !!lockedSettings.shipping_handling_enabled;
+  const shippingHandlingFee = Number(
+    shippingHandlingEnabled
+      ? (lockedSettings.shipping_handling_fee || 0)
+      : (Number(lockedSettings.shipping_fee || 0) + Number(lockedSettings.handling_fee || 0))
+  ) || 0;
+  const shippingHandlingLabel = shippingHandlingEnabled
+    ? (lockedSettings.shipping_handling_label || 'Shipping & Handling')
+    : 'Shipping & Handling';
+
+  // Effective donation amount based on the current selection mode.
+  let effectiveDonation = 0;
+  if (donationMode === 'preset') {
+    effectiveDonation = Number(donationAmount) || 0;
+  } else if (donationMode === 'custom') {
+    const v = parseFloat(customDonation);
+    effectiveDonation = Number.isFinite(v) && v > 0 ? v : 0;
+  }
+  effectiveDonation = Math.max(0, Math.round(effectiveDonation * 100) / 100);
+
+  const donationsEnabled = !!store?.allow_checkout_donations;
+  const donationPresets = Array.isArray(store?.donation_presets) ? store.donation_presets : [];
+  const allowCustomDonation = !!store?.allow_custom_donation;
+
+  const grandTotal = Math.round((cartTotal + shippingHandlingFee + effectiveDonation) * 100) / 100;
+
+  // Fundraiser progress bar conditions:
+  //  - fundraiser_enabled MUST be true
+  //  - show_progress_bar MUST be true
+  //  - fundraiser_goal_amount > 0
+  const fundraiserGoal = Number(store?.fundraiser_goal_amount || 0);
+  const showFundraiserProgress = !!store?.fundraiser_enabled
+    && !!store?.show_progress_bar
+    && fundraiserGoal > 0;
+  const totalRaised = Number(store?.total_raised || 0);
+  const progressPct = fundraiserGoal > 0
+    ? Math.min(100, (totalRaised / fundraiserGoal) * 100)
+    : 0;
+
   const handleCheckout = async (e) => {
     e.preventDefault();
     if (processingCheckout) return;
@@ -196,6 +245,16 @@ export default function Storefront() {
 
     setProcessingCheckout(true);
     try {
+      // Validate donation: if user selected 'custom', must have a positive value
+      if (donationMode === 'custom') {
+        const cv = parseFloat(customDonation);
+        if (!Number.isFinite(cv) || cv <= 0) {
+          setProcessingCheckout(false);
+          toast.error('Please enter a valid donation amount or choose No donation.');
+          return;
+        }
+      }
+
       // Create Stripe checkout session
       const checkoutPayload = {
         items: cart.map(item => ({
@@ -211,7 +270,8 @@ export default function Storefront() {
           phone: customerInfo.phone,
           shipping_address: customerInfo.shipping_address,
           notes: customerInfo.notes
-        }
+        },
+        donation_amount: donationsEnabled ? effectiveDonation : 0,
       };
 
       // Use clean origin URL (without query params)
@@ -251,6 +311,7 @@ export default function Storefront() {
       case 'business': return Building2;
       case 'fundraiser': return Heart;
       case 'creator': return User;
+      case 'event': return Heart;
       default: return Store;
     }
   };
@@ -379,7 +440,7 @@ export default function Storefront() {
       </header>
 
       {/* Banner / Description */}
-      {(store.description || store.store_type === 'fundraiser') && (
+      {(store.description || store.store_type === 'fundraiser' || showFundraiserProgress) && (
         <div 
           className="border-b border-border"
           style={{ backgroundColor: primaryColor + '10' }}
@@ -405,6 +466,32 @@ export default function Storefront() {
                     }}
                   />
                 </div>
+              </div>
+            )}
+            {/* Event Store fundraiser progress bar (Part 4). */}
+            {showFundraiserProgress && (
+              <div className="mt-4" data-testid="fundraiser-progress-bar">
+                <div className="flex justify-between text-sm mb-2">
+                  <span>
+                    {store.fundraiser_name
+                      ? `${store.fundraiser_name} — Progress`
+                      : 'Fundraiser Progress'}
+                  </span>
+                  <span className="font-bold" data-testid="fundraiser-progress-amount">
+                    {formatCurrency(totalRaised)} / {formatCurrency(fundraiserGoal)}
+                  </span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
+                  <div
+                    className="h-3 rounded-full transition-all"
+                    style={{ width: `${progressPct}%`, backgroundColor: primaryColor }}
+                  />
+                </div>
+                {store.fundraiser_description && (
+                  <p className="text-xs text-muted-foreground mt-2" data-testid="fundraiser-description">
+                    {store.fundraiser_description}
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -591,8 +678,73 @@ export default function Storefront() {
               </div>
             </div>
 
+            {/* Donation block (Event Store fundraiser, optional) */}
+            {donationsEnabled && (
+              <div className="rounded-lg border bg-card p-4 space-y-3" data-testid="checkout-donation-block">
+                <div className="flex items-center gap-2">
+                  <Heart className="h-4 w-4" style={{ color: primaryColor }} />
+                  <p className="font-medium text-sm">Add a donation (optional)</p>
+                </div>
+                {store.fundraiser_description && (
+                  <p className="text-xs text-muted-foreground">{store.fundraiser_description}</p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant={donationMode === 'none' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => { setDonationMode('none'); setDonationAmount(0); setCustomDonation(''); }}
+                    style={donationMode === 'none' ? { backgroundColor: primaryColor } : undefined}
+                    data-testid="donation-none-button"
+                  >
+                    No thanks
+                  </Button>
+                  {donationPresets.map((amt) => (
+                    <Button
+                      key={amt}
+                      type="button"
+                      variant={donationMode === 'preset' && donationAmount === amt ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => { setDonationMode('preset'); setDonationAmount(amt); setCustomDonation(''); }}
+                      style={donationMode === 'preset' && donationAmount === amt ? { backgroundColor: primaryColor } : undefined}
+                      data-testid={`donation-preset-${amt}`}
+                    >
+                      {formatCurrency(amt)}
+                    </Button>
+                  ))}
+                  {allowCustomDonation && (
+                    <Button
+                      type="button"
+                      variant={donationMode === 'custom' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => { setDonationMode('custom'); setDonationAmount(0); }}
+                      style={donationMode === 'custom' ? { backgroundColor: primaryColor } : undefined}
+                      data-testid="donation-custom-toggle"
+                    >
+                      Custom
+                    </Button>
+                  )}
+                </div>
+                {donationMode === 'custom' && allowCustomDonation && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">$</span>
+                    <Input
+                      type="number"
+                      min="1"
+                      step="0.01"
+                      value={customDonation}
+                      onChange={(e) => setCustomDonation(e.target.value)}
+                      placeholder="Enter amount"
+                      className="max-w-[140px]"
+                      data-testid="donation-custom-input"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Order Summary */}
-            <div className="p-4 bg-muted/30 rounded-lg">
+            <div className="p-4 bg-muted/30 rounded-lg" data-testid="checkout-order-summary">
               <h4 className="font-medium mb-2">Order Summary</h4>
               <div className="space-y-1 text-sm">
                 {cart.map(item => (
@@ -601,11 +753,29 @@ export default function Storefront() {
                     <span>{formatCurrency(item.price * item.quantity)}</span>
                   </div>
                 ))}
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span>{formatCurrency(cartTotal)}</span>
+                </div>
+                {shippingHandlingFee > 0 && (
+                  <div className="flex justify-between text-muted-foreground" data-testid="checkout-shipping-handling-row">
+                    <span>{shippingHandlingLabel}</span>
+                    <span>{formatCurrency(shippingHandlingFee)}</span>
+                  </div>
+                )}
+                {effectiveDonation > 0 && (
+                  <div className="flex justify-between text-muted-foreground" data-testid="checkout-donation-row">
+                    <span>Donation</span>
+                    <span>{formatCurrency(effectiveDonation)}</span>
+                  </div>
+                )}
               </div>
               <Separator className="my-2" />
               <div className="flex justify-between font-bold">
                 <span>Total</span>
-                <span style={{ color: primaryColor }}>{formatCurrency(cartTotal)}</span>
+                <span style={{ color: primaryColor }} data-testid="checkout-grand-total">
+                  {formatCurrency(grandTotal)}
+                </span>
               </div>
             </div>
 

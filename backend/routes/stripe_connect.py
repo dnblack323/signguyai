@@ -116,6 +116,9 @@ class WebstoreCheckoutRequest(BaseModel):
     """Request body for webstore checkout"""
     items: list[WebstoreCheckoutItem]
     customer_info: WebstoreCustomerInfo
+    # Part 4: Optional checkout donation (in dollars). Server validates against
+    # the store's donation_amount_options + allow_custom_donation flags.
+    donation_amount: Optional[float] = Field(default=0.0, ge=0)
 
 
 class FeePreview(BaseModel):
@@ -862,7 +865,118 @@ async def create_webstore_checkout(
     
     if not line_items or total_amount <= 0:
         raise HTTPException(status_code=400, detail="Invalid order items")
-    
+
+    # ============== PART 4: Event Store fundraiser & shipping/handling =========
+    # All values below are derived server-side from locked_settings + store
+    # config — the frontend is never trusted with cost/fee math.
+    locked = webstore.get("locked_settings") or {}
+
+    # 1) Shipping/handling: pulled from locked_settings (or bundle when set).
+    if locked.get("shipping_handling_enabled"):
+        shipping_handling_amount = float(locked.get("shipping_handling_fee") or 0)
+        shipping_handling_label = locked.get("shipping_handling_label") or "Shipping & Handling"
+    else:
+        ship = float(locked.get("shipping_fee") or 0)
+        hand = float(locked.get("handling_fee") or 0)
+        shipping_handling_amount = round(ship + hand, 2)
+        shipping_handling_label = "Shipping & Handling"
+    shipping_handling_amount = max(round(shipping_handling_amount, 2), 0.0)
+
+    if shipping_handling_amount > 0:
+        line_items.append({
+            "price_data": {
+                "currency": "usd",
+                "unit_amount": int(round(shipping_handling_amount * 100)),
+                "product_data": {"name": shipping_handling_label},
+            },
+            "quantity": 1,
+        })
+
+    # 2) Donation: only valid when allow_checkout_donations=true. Validated
+    #    against the store's preset list + allow_custom_donation flag.
+    donation_amount = round(float(checkout_data.donation_amount or 0), 2)
+    donations_enabled = bool(webstore.get("allow_checkout_donations"))
+    if donation_amount > 0:
+        if not donations_enabled:
+            raise HTTPException(
+                status_code=400,
+                detail="This store is not accepting donations at checkout",
+            )
+        # Parse presets from the store's donation_amount_options string.
+        presets_raw = webstore.get("donation_amount_options") or ""
+        import re as _re_d
+        preset_vals: list[float] = []
+        for tok in _re_d.split(r"[\s,;|]+", str(presets_raw)):
+            cleaned = tok.replace("$", "").replace(",", "").strip()
+            if not cleaned:
+                continue
+            try:
+                v = float(cleaned)
+                if v > 0:
+                    preset_vals.append(round(v, 2))
+            except ValueError:
+                pass
+        allow_custom = bool(webstore.get("allow_custom_donation"))
+        matches_preset = any(abs(donation_amount - p) < 0.005 for p in preset_vals)
+        if not matches_preset and not allow_custom:
+            raise HTTPException(
+                status_code=400,
+                detail="Donation amount must match one of the allowed preset amounts",
+            )
+        line_items.append({
+            "price_data": {
+                "currency": "usd",
+                "unit_amount": int(round(donation_amount * 100)),
+                "product_data": {"name": "Donation"},
+            },
+            "quantity": 1,
+        })
+
+    # 3) Profit allocation: server-only computation. Stored on the payment
+    #    transaction so the webhook/finalize step can roll it into
+    #    total_profit_allocated without trusting any client-supplied value.
+    profit_allocation_amount = 0.0
+    if (webstore.get("store_type") == "event"
+            and webstore.get("profit_allocation_enabled")):
+        alloc_type = (webstore.get("profit_allocation_type") or "").lower()
+        # Approximate profit ≈ sum((retail − base_cost) × qty) so the value
+        # available at checkout matches what create_webstore_order will see.
+        approx_profit = 0.0
+        total_qty = 0
+        for v in validated_items:
+            prod = await db.products.find_one(
+                {"id": v["product_id"], "tenant_id": tenant_id},
+                {"_id": 0, "base_cost": 1, "variants": 1},
+            )
+            unit_cost = float((prod or {}).get("base_cost") or 0)
+            if v.get("variant_id"):
+                for variant in (prod or {}).get("variants") or []:
+                    if variant.get("id") == v["variant_id"]:
+                        unit_cost += float(variant.get("additional_cost") or 0)
+                        break
+            qty = int(v.get("quantity") or 1)
+            total_qty += qty
+            approx_profit += max(float(v["price"]) - unit_cost, 0.0) * qty
+        if alloc_type == "percentage":
+            pct = float(webstore.get("profit_allocation_percentage") or 0)
+            if pct > 0 and approx_profit > 0:
+                profit_allocation_amount = approx_profit * (pct / 100.0)
+        elif alloc_type == "fixed_per_item":
+            per_item = float(webstore.get("fixed_amount_per_item") or 0)
+            if per_item > 0:
+                profit_allocation_amount = per_item * total_qty
+        cap = webstore.get("fundraiser_cap_amount")
+        if cap is not None and float(cap) > 0:
+            already = float(webstore.get("total_profit_allocated") or 0)
+            remaining = max(float(cap) - already, 0.0)
+            profit_allocation_amount = min(profit_allocation_amount, remaining)
+        profit_allocation_amount = round(max(profit_allocation_amount, 0.0), 2)
+
+    # Final grand total includes products + shipping/handling + donation.
+    # Profit allocation is NOT added — it comes out of the shop's profit,
+    # not the customer's wallet.
+    total_amount = round(total_amount + shipping_handling_amount + donation_amount, 2)
+
     # Calculate platform fee: webstore tier gets +2% surcharge on top of base
     total_cents = int(total_amount * 100)
     platform_fee_cents = calculate_platform_fee_cents(tier, total_cents, is_webstore=True)
@@ -889,7 +1003,11 @@ async def create_webstore_checkout(
                 "customer_email": customer_info.email or "",
                 "customer_phone": customer_info.phone or "",
                 "shipping_address": customer_info.shipping_address or "",
-                "platform_fee_percent": str(fee_percent * 100)
+                "platform_fee_percent": str(fee_percent * 100),
+                "donation_amount": f"{donation_amount:.2f}",
+                "profit_allocation_amount": f"{profit_allocation_amount:.2f}",
+                "shipping_handling_amount": f"{shipping_handling_amount:.2f}",
+                "fundraiser_enabled": "true" if webstore.get("fundraiser_enabled") else "false",
             }
         )
         
@@ -909,6 +1027,9 @@ async def create_webstore_checkout(
             "connected_account_id": account_id,
             "customer_info": customer_info.model_dump(),
             "items": validated_items,
+            "donation_amount": donation_amount,
+            "profit_allocation_amount": profit_allocation_amount,
+            "shipping_handling_amount": shipping_handling_amount,
             "created_at": datetime.now(timezone.utc).isoformat()
         })
         

@@ -475,6 +475,15 @@ class WebstoreOrder(BaseModel):
     total_cost: float = 0
     total_profit: float = 0
     commission_amount: float = 0
+    # Part 4: Event Store fundraiser amounts captured at checkout.
+    donation_amount: float = 0.0
+    profit_allocation_amount: float = 0.0
+    shipping_handling_amount: float = 0.0
+    grand_total: float = 0.0
+    # Tracks whether this order's donation/profit-allocation has been rolled
+    # into the parent webstore's totals. Used to make webhook + status_check
+    # totals idempotent across duplicate Stripe events.
+    fundraiser_totals_applied: bool = False
     status: str = "pending"
     job_id: Optional[str] = None
     notes: Optional[str] = None
@@ -497,6 +506,11 @@ class WebstoreOrderCreate(BaseModel):
     # W17: optional client-supplied key — a resubmit with the same key within
     # the last hour returns the existing order instead of creating a duplicate.
     idempotency_key: Optional[str] = Field(default=None, max_length=128)
+    # Part 4: Event Store fundraiser fields — server-validated, server-computed.
+    # Set by finalize_webstore_stripe_checkout from the locked Stripe session.
+    donation_amount: Optional[float] = Field(default=0.0, ge=0)
+    profit_allocation_amount: Optional[float] = Field(default=0.0, ge=0)
+    shipping_handling_amount: Optional[float] = Field(default=0.0, ge=0)
 
 
 def _coerce_float(value: Any, default: float = 0.0) -> float:
@@ -741,13 +755,170 @@ WEBSTORE_PUBLIC_FIELDS = [
     "fundraiser_goal_amount", "show_progress_bar",
     "show_total_raised_publicly", "show_supporter_names",
     "total_donations", "total_profit_allocated", "total_raised",
+    # Donation/checkout fields (used by Storefront donation UI)
+    "allow_checkout_donations", "donation_amount_options",
+    "allow_custom_donation",
     # Slug for future URL routing
     "store_slug",
 ]
 
+
+def _parse_donation_presets(raw: Optional[str]) -> List[float]:
+    """Parse a comma/space/dollar-sign separated string of donation presets.
+
+    Accepts values like "$5, $10, $25" or "5 10 25" → [5.0, 10.0, 25.0].
+    Filters non-numeric/negative entries. Returns at most 8 presets to keep
+    the UI sane.
+    """
+    if not raw:
+        return []
+    import re as _re_d
+    tokens = _re_d.split(r"[\s,;|]+", str(raw))
+    out: List[float] = []
+    for tok in tokens:
+        cleaned = tok.replace("$", "").replace(",", "").strip()
+        if not cleaned:
+            continue
+        try:
+            val = float(cleaned)
+        except ValueError:
+            continue
+        if val > 0 and val not in out:
+            out.append(val)
+        if len(out) >= 8:
+            break
+    return out
+
+
+def _public_locked_settings(locked: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Strip locked_settings down to ONLY the fields safe to expose publicly.
+
+    Public fields: shipping_fee, handling_fee, plus the shipping+handling
+    bundle (label/description/fee/enabled). Internal cost/profit/split fields
+    are NEVER exposed.
+    """
+    if not isinstance(locked, dict):
+        return {}
+    return {
+        "shipping_fee": locked.get("shipping_fee"),
+        "handling_fee": locked.get("handling_fee"),
+        "shipping_handling_enabled": bool(locked.get("shipping_handling_enabled")),
+        "shipping_handling_fee": locked.get("shipping_handling_fee"),
+        "shipping_handling_label": locked.get("shipping_handling_label"),
+        "shipping_handling_description": locked.get("shipping_handling_description"),
+    }
+
+
+def _compute_shipping_handling_total(locked: Optional[Dict[str, Any]]) -> float:
+    """Return the per-order shipping+handling fee from locked_settings.
+
+    Honors the shipping_handling_enabled bundle when set; otherwise sums
+    the individual shipping_fee and handling_fee fields. Always pulled from
+    locked_settings — never from the frontend.
+    """
+    if not isinstance(locked, dict):
+        return 0.0
+    if locked.get("shipping_handling_enabled"):
+        return round(float(locked.get("shipping_handling_fee") or 0), 2)
+    ship = float(locked.get("shipping_fee") or 0)
+    hand = float(locked.get("handling_fee") or 0)
+    return round(ship + hand, 2)
+
+
+def compute_event_profit_allocation(
+    webstore: Dict[str, Any],
+    order_items: List[Any],
+    total_profit: float,
+) -> float:
+    """Compute the fundraiser profit-allocation amount for an Event Store order.
+
+    Honors the store's profit_allocation_type setting:
+      - "percentage": % of total_profit (profit_allocation_percentage)
+      - "fixed_per_item": fixed_amount_per_item × total quantity
+      - "manual" / "na" / unknown: 0 (handled out-of-band by the shop owner)
+
+    Returns 0 if profit_allocation_enabled is false. Always non-negative,
+    rounded to 2 decimals. Caps the result at fundraiser_cap_amount (minus
+    what's already been allocated) when the cap is set.
+    """
+    if not webstore.get("profit_allocation_enabled"):
+        return 0.0
+
+    alloc_type = (webstore.get("profit_allocation_type") or "").lower()
+    raw_amount = 0.0
+
+    if alloc_type == "percentage":
+        pct = float(webstore.get("profit_allocation_percentage") or 0)
+        if pct > 0 and total_profit > 0:
+            raw_amount = total_profit * (pct / 100.0)
+    elif alloc_type == "fixed_per_item":
+        per_item = float(webstore.get("fixed_amount_per_item") or 0)
+        if per_item > 0:
+            qty = sum(int(getattr(i, "quantity", 0) or 0) for i in order_items)
+            raw_amount = per_item * qty
+    # "manual" / "na" / other: 0 — store owner records adjustments manually.
+
+    if raw_amount <= 0:
+        return 0.0
+
+    # Apply optional cap.
+    cap = webstore.get("fundraiser_cap_amount")
+    if cap is not None and float(cap) > 0:
+        already_allocated = float(webstore.get("total_profit_allocated") or 0)
+        remaining = max(float(cap) - already_allocated, 0.0)
+        raw_amount = min(raw_amount, remaining)
+
+    return round(max(raw_amount, 0.0), 2)
+
+
+async def _apply_fundraiser_totals(
+    order_id: str,
+    webstore_id: str,
+    donation_amount: float,
+    profit_allocation_amount: float,
+) -> bool:
+    """Idempotently add donation + profit-allocation to the webstore totals.
+
+    Uses a conditional update on the order's `fundraiser_totals_applied`
+    flag so duplicate webhook deliveries (or success-URL retries) cannot
+    double-count toward total_raised.
+
+    Returns True when the increment was applied (first time), False otherwise.
+    """
+    donation_amount = round(float(donation_amount or 0), 2)
+    profit_allocation_amount = round(float(profit_allocation_amount or 0), 2)
+    if donation_amount <= 0 and profit_allocation_amount <= 0:
+        return False
+
+    # Conditional flip: only increment if this order hasn't been counted yet.
+    res = await db.webstore_orders_v2.update_one(
+        {"id": order_id, "fundraiser_totals_applied": {"$ne": True}},
+        {"$set": {"fundraiser_totals_applied": True,
+                  "fundraiser_totals_applied_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    if res.modified_count == 0:
+        return False
+
+    total_added = round(donation_amount + profit_allocation_amount, 2)
+    await db.webstores_v2.update_one(
+        {"id": webstore_id},
+        {"$inc": {
+            "total_donations": donation_amount,
+            "total_profit_allocated": profit_allocation_amount,
+            "total_raised": total_added,
+        }}
+    )
+    return True
+
 def sanitize_webstore_for_public(webstore: dict) -> dict:
     """Return only safe fields for public consumption"""
     safe = {k: webstore.get(k) for k in WEBSTORE_PUBLIC_FIELDS if k in webstore}
+
+    # Expose donation presets as a parsed list (the raw string stays too).
+    safe["donation_presets"] = _parse_donation_presets(webstore.get("donation_amount_options"))
+
+    # Expose only the public subset of locked_settings (shipping/handling).
+    safe["locked_settings"] = _public_locked_settings(webstore.get("locked_settings"))
 
     # Backward compatibility: older docs may store banner/logo on top-level
     # keys (banner_url/logo_url or *_image_data) instead of branding.
@@ -2025,6 +2196,22 @@ async def create_webstore_order(input: WebstoreOrderCreate):
                 f"Idempotent order replay matched key={idempotency_key[:8]}… "
                 f"returning existing order {existing.get('id')}"
             )
+            # Safety: if a prior partial run never rolled this order's
+            # donation/profit-allocation into fundraiser totals, do it now.
+            # _apply_fundraiser_totals is itself idempotent (flag-guarded).
+            try:
+                d_amt = float(existing.get("donation_amount") or 0)
+                p_amt = float(existing.get("profit_allocation_amount") or 0)
+                if (d_amt > 0 or p_amt > 0) and not existing.get("fundraiser_totals_applied"):
+                    await _apply_fundraiser_totals(
+                        order_id=existing["id"],
+                        webstore_id=input.webstore_id,
+                        donation_amount=d_amt,
+                        profit_allocation_amount=p_amt,
+                    )
+                    existing["fundraiser_totals_applied"] = True
+            except Exception as exc:
+                logger.exception(f"backfill fundraiser totals failed: {exc}")
             return existing
 
     # Get webstore
@@ -2186,6 +2373,24 @@ async def create_webstore_order(input: WebstoreOrderCreate):
         else:
             commission_amount = webstore.get("creator_commission_value", 0)
     # Business stores: no commission (shop keeps all profit)
+
+    # ==================== FUNDRAISER PROFIT ALLOCATION (Event Stores) =========
+    # We accept the server-computed allocation passed in from
+    # finalize_webstore_stripe_checkout (it's locked from the Stripe session
+    # metadata at checkout time). As a defensive recompute, we also derive
+    # it from locked_settings + store config and use whichever is smaller —
+    # that way the frontend can never inflate the allocation.
+    donation_amount = round(float(input.donation_amount or 0), 2)
+    shipping_handling_amount = round(float(input.shipping_handling_amount or 0), 2)
+    profit_allocation_amount = round(float(input.profit_allocation_amount or 0), 2)
+    if profit_allocation_amount > 0 and store_type == "event":
+        server_recomputed = compute_event_profit_allocation(
+            webstore=webstore,
+            order_items=order_items,
+            total_profit=total_profit,
+        )
+        # Trust the smaller of the two so the frontend can never inflate.
+        profit_allocation_amount = round(min(profit_allocation_amount, server_recomputed), 2)
     
     # ==================== CUSTOMER & JOB CREATION ====================
     
@@ -2260,6 +2465,10 @@ async def create_webstore_order(input: WebstoreOrderCreate):
         total_cost=total_cost,
         total_profit=total_profit,
         commission_amount=commission_amount,
+        donation_amount=donation_amount,
+        profit_allocation_amount=profit_allocation_amount,
+        shipping_handling_amount=shipping_handling_amount,
+        grand_total=round(subtotal + shipping_handling_amount + donation_amount, 2),
         notes=input.notes,
         job_id=job.id,  # Link to auto-created job
         status="processing",  # Already in processing since job was created
@@ -2302,7 +2511,17 @@ async def create_webstore_order(input: WebstoreOrderCreate):
             "total_profit": total_profit,
         }}
     )
-    
+
+    # Roll donation + profit-allocation into fundraiser totals (idempotent).
+    if (donation_amount > 0 or profit_allocation_amount > 0) and store_type == "event":
+        await _apply_fundraiser_totals(
+            order_id=order.id,
+            webstore_id=input.webstore_id,
+            donation_amount=donation_amount,
+            profit_allocation_amount=profit_allocation_amount,
+        )
+        order_doc["fundraiser_totals_applied"] = True
+
     logger.info(f"Order {order.id} created with auto-created job {job.id}")
     
     return order_doc
