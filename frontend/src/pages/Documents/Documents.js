@@ -306,6 +306,18 @@ export default function Documents() {
     }
   };
 
+  const handleSeedTemplates = async () => {
+    try {
+      const res = await api.post('/documents/seed-default-templates');
+      toast.success(res.data.message);
+      if (res.data.added.length > 0) {
+        await loadData();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to add templates');
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in" data-testid="documents-page">
       {/* Header */}
@@ -319,6 +331,15 @@ export default function Documents() {
           </p>
         </div>
         <div className="flex gap-2">
+          {stats?.templates === 0 && (
+            <Button 
+              variant="outline"
+              onClick={handleSeedTemplates}
+              title="Add default document templates"
+            >
+              <Plus className="h-4 w-4 mr-2" /> Add Default Templates
+            </Button>
+          )}
           <Button 
             variant="outline"
             onClick={() => navigate('/ai-tools?tool=document_composer')}

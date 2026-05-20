@@ -903,6 +903,277 @@ async def populate_document_from_template(
     }
 
 
+@router.post("/seed-default-templates")
+async def seed_default_templates(current_user: UserInDB = Depends(get_current_active_user)):
+    """Add the 4 default document templates for this tenant"""
+    
+    templates = [
+        {
+            "name": "Vehicle Wrap Aftercare Instructions",
+            "description": "Complete care and maintenance guide for vehicle wraps",
+            "category": "warranty",
+            "content": """# Vehicle Wrap Care & Maintenance Guide
+
+**Customer:** {{customer_name}}
+**Company:** {{customer_company}}
+**Installation Date:** {{today_date}}
+**Order ID:** {{order_id}}
+
+## First 7 Days - CRITICAL
+⚠️ DO NOT WASH for 7 days
+- No automatic car washes
+- No pressure washers
+- Park in shade
+- No wax/protectants
+
+## Washing (After 7 Days)
+**Hand wash:** Cool water, pH neutral soap, soft cloth
+**Touchless OK:** Pressure <2000 PSI, 12+ inches away, 90° angle
+**❌ Brush washes:** NOT recommended
+
+## AVOID
+❌ Abrasives ❌ Wax ❌ Petroleum cleaners ❌ High pressure on seams
+
+## Spot Cleaning
+1. Soak with warm soapy water
+2. Gently wipe
+3. Stubborn spots: isopropyl alcohol
+4. Never scrape
+
+## Warranty
+**Coverage:** Defects, fading, adhesive failure
+**Not covered:** Improper care, accidents, wear
+
+## Lifespan
+Cast vinyl: 5-7 years | Calendared: 3-5 years
+
+## Contact
+{{company_name}} | {{company_phone}} | {{company_email}}
+
+Customer signature: _________________ Date: _________""",
+            "tags": ["aftercare", "vehicle wrap", "warranty"]
+        },
+        {
+            "name": "Decal & Sticker Aftercare Instructions",
+            "description": "Care guide for decals and vinyl graphics",
+            "category": "warranty",
+            "content": """# Decal & Vinyl Graphics Care
+
+**Customer:** {{customer_name}}
+**Company:** {{customer_company}}
+**Installation Date:** {{today_date}}
+
+## First 48 Hours - CRITICAL
+⚠️ DO NOT WASH OR WET for 48 hours
+- Let adhesive bond
+- Avoid touching
+- Keep out of rain
+
+## Cleaning (After 48 Hours)
+**Hand wash:** Mild soap, warm water, soft cloth
+**Pressure wash OK:** <1200 PSI, 12+ inches, 90° angle, ❌ not at edges
+
+## AVOID
+❌ Abrasives ❌ Harsh chemicals ❌ Brush washes ❌ Waxing over decals
+
+## Lifespan
+Indoor: 5-7 years | Outdoor: 3-5 years
+
+## Warranty
+**Contact:** {{company_name}} | {{company_phone}}
+
+Customer signature: _________________ Date: _________""",
+            "tags": ["aftercare", "decals", "warranty"]
+        },
+        {
+            "name": "Vehicle Wrap Pre-Installation Checklist",
+            "description": "Pre-prep checklist for vehicle wrap installations",
+            "category": "internal",
+            "content": """# Pre-Installation Checklist
+
+**Customer:** {{customer_name}} | **Order:** {{order_id}}
+**Vehicle:** _____________ | **Date:** {{today_date}}
+**Inspector:** _____________
+
+## Customer Requirements
+- [ ] Fuel 1/4+ full
+- [ ] Exterior washed
+- [ ] Interior clean, items removed
+- [ ] Keys provided
+- [ ] Alarm instructions
+
+## Vehicle Disclosure
+- [ ] Existing damage documented (photos)
+- [ ] Previous wraps disclosed
+- [ ] Paint condition noted
+- [ ] Body work history disclosed
+- [ ] Modifications noted
+
+## Shop Inspection
+- [ ] Clean, no tar/sap/wax
+- [ ] Paint not peeling
+- [ ] Panel fitment normal
+- [ ] Trim secure
+- [ ] Lights intact
+
+## Preparation
+- [ ] Clay bar needed?
+- [ ] Degreasing?
+- [ ] Alcohol wipe (required)
+- [ ] Polishing needed?
+
+## Disassembly
+- [ ] Door handles
+- [ ] Emblems
+- [ ] Trim pieces
+- [ ] Mirrors
+- [ ] Gas door
+
+## Documentation
+- [ ] 12+ photos taken
+- [ ] Damage documented
+
+## Materials
+- [ ] Vinyl inspected
+- [ ] Design confirmed
+- [ ] Print quality checked
+- [ ] Lamination cured
+
+## Workspace
+- [ ] Bay cleaned
+- [ ] Temp 65-85°F
+- [ ] Tools ready
+
+## Team
+**Lead:** _________ **Assistant:** _________ **Est. Time:** ___ hrs
+
+**Ready:** ☐ Yes ☐ No
+
+{{company_name}} | {{company_phone}}""",
+            "tags": ["pre-prep", "checklist", "internal"]
+        },
+        {
+            "name": "Post-Installation Quality Check & Delivery",
+            "description": "Post-install inspection and delivery checklist",
+            "category": "internal",
+            "content": """# Post-Installation QC & Delivery
+
+**Customer:** {{customer_name}} | **Order:** {{order_id}}
+**Vehicle:** _____________ | **Date:** {{today_date}}
+**Inspector:** _____________
+
+## Quality Check
+- [ ] No bubbles/air pockets
+- [ ] No wrinkles
+- [ ] Seams aligned
+- [ ] Colors consistent
+- [ ] Design aligned
+- [ ] No overstretch
+
+## Panel Check
+**Hood:** [ ] Smooth [ ] Edges tucked [ ] Centered
+**Bumper:** [ ] Curves good [ ] No lifting
+**Doors:** [ ] Handles wrapped [ ] Trim clean [ ] Gaps uniform
+**Roof:** [ ] Smooth [ ] Edges done [ ] Antenna OK
+**Trunk:** [ ] Sealed [ ] Clean
+**Notes:** _____________________
+
+## Edges & Finishing
+- [ ] All edges sealed
+- [ ] Post-heated
+- [ ] Excess trimmed
+- [ ] Jambs finished
+- [ ] Gas door done
+
+## Reinstallation
+- [ ] Handles, emblems, mirrors, trim, lights, antenna, plates
+
+## Functionality
+- [ ] Doors/hood/trunk open/close
+- [ ] Windows roll
+- [ ] Mirrors adjust
+- [ ] Sensors work
+- [ ] Wipers clear
+
+## Cleaning
+- [ ] Exterior washed
+- [ ] Wrap wiped clean
+- [ ] Glass cleaned
+- [ ] Interior vacuumed
+- [ ] No adhesive residue
+
+## Documentation
+- [ ] 15+ photos taken
+- [ ] Before/after ready
+
+## Delivery Package
+- [ ] Aftercare instructions
+- [ ] Warranty card
+- [ ] Business cards
+
+## Customer Acceptance
+- [ ] Vehicle inspected
+- [ ] Customer satisfied
+- [ ] Instructions received
+- [ ] Form signed
+
+**Issues:** _____________________
+**Payment:** $_______ **Received:** [ ]
+
+**Follow-up scheduled:** _______
+
+**Released:** ☐ Yes | **Satisfied:** ☐ Yes ☐ No
+
+{{company_name}} | {{company_phone}}""",
+            "tags": ["post-install", "checklist", "quality"]
+        }
+    ]
+    
+    added = []
+    skipped = []
+    
+    for template_data in templates:
+        # Check if already exists
+        existing = await db.documents.find_one({
+            "tenant_id": current_user.tenant_id,
+            "name": template_data["name"],
+            "is_template": True
+        })
+        
+        if existing:
+            skipped.append(template_data["name"])
+            continue
+        
+        # Create template document
+        doc = Document(
+            id=str(uuid.uuid4()),
+            tenant_id=current_user.tenant_id,
+            name=template_data["name"],
+            description=template_data["description"],
+            category=template_data["category"],
+            file_type="text/markdown",
+            file_size=len(template_data["content"].encode('utf-8')),
+            file_data=template_data["content"],
+            original_filename=f"{template_data['name'].lower().replace(' ', '_')}.md",
+            is_template=True,
+            tags=template_data["tags"],
+            linked_jobs=[],
+            linked_customers=[],
+            uploaded_by=current_user.id,
+            created_at=datetime.now(timezone.utc).isoformat(),
+            updated_at=datetime.now(timezone.utc).isoformat()
+        )
+        
+        await db.documents.insert_one(doc.model_dump())
+        added.append(template_data["name"])
+    
+    return {
+        "message": f"Added {len(added)} template(s), skipped {len(skipped)} existing",
+        "added": added,
+        "skipped": skipped
+    }
+
+
 @router.post("/generate-pdf")
 async def generate_pdf_from_content(
     input: PDFGenerateRequest,
