@@ -13,7 +13,7 @@ import uuid
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://banner-calc-preview.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://ai-signage-platform.preview.emergentagent.com").rstrip("/")
 EMAIL = "signguypa@gmail.com"
 PASSWORD = "Billnel323"
 
