@@ -1,0 +1,61 @@
+{
+  "summary": "Comprehensive testing of Part 3: Event Store Questionnaire Integration. Backend: 23/23 tests passed (100%). Frontend: All 17 test scenarios verified via Playwright. Feature fully functional.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Send Event Store Questionnaire Dialog",
+        "issues": [
+          "Email field shows owner_email as placeholder/hint rather than as a pre-filled value. The field is empty by default and the label says 'Leave blank to use store owner email on file.' Feature spec says 'prefilled with owner_email' — current behavior is correct functionally but uses placeholder approach. Acceptable design pattern but worth noting for clarity."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration155_questionnaire_webstore.py",
+    "/app/test_reports/pytest/iteration155_questionnaire_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "apply-answers SAFE_MAP: 'Fundraiser Name' maps to event_name field and 'Fundraiser Description' maps to description — this is slightly confusing semantically. Fundraiser name should probably map to a fundraiser_name field, not event_name. Current behavior is an acceptable MVP decision but worth revisiting.",
+    "The send endpoint only locks the profit field when store_owner_profit is NOT None. If store_owner_profit is null/not set, the field is not locked. This is correct behavior but admin should be aware.",
+    "Idempotency verified: re-sending uses same questionnaire_id and updates last_sent_at (status remains active). Clean implementation.",
+    "locked_settings are correctly never overwritten by questionnaire submission — verified by apply-answers filtering out locked_ids from applied fields."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration155_questionnaire_webstore.py"
+  ],
+  "success_rate": {
+    "backend": "100% (23/23 tests pass)",
+    "frontend": "100% (all 17 test scenarios verified)"
+  },
+  "test_credentials": "thesigntistslab@gmail.com / password123",
+  "seed_data_creation": "Created TEST event store 'Test Gala 2026' via UI (store_id: 8de5d95f-1d21-48dd-9a04-1f1f11898fad). Questionnaire d211917d-5bef-428d-98de-a74591814bd8 linked. Backend tests create/cleanup TEST_Questionnaire_Event_Store_* and TEST_Business_Store_* automatically.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Event Store Questionnaire (Part 3) fully implemented and tested. Key flows: (1) Send questionnaire from Settings tab of event store → creates questionnaire from event_web_store_setup template (87 questions) with prefill_answers={event_name, owner_email for stripe} and locked_answer_ids=[profit_per_item]. (2) Public questionnaire URL: /questionnaire/{id} shows form with Fundraiser Settings section, prefilled Event Name, and locked profit field with amber 'Set by store provider' badge. (3) Idempotency: re-sending reuses same questionnaire_id. (4) Business/Creator stores unaffected (no questionnaire card in settings). Key data-testids: send-questionnaire-btn, resend-questionnaire-btn, view-questionnaire-btn, apply-answers-btn, send-email-input, send-message-input, confirm-send-questionnaire-btn. Test event store ID: 8de5d95f-1d21-48dd-9a04-1f1f11898fad, Questionnaire ID: d211917d-5bef-428d-98de-a74591814bd8.",
+  "verified_test_scenarios": [
+    "✓ Login with thesigntistslab@gmail.com / password123",
+    "✓ Navigate to /webstores, create Event Store: 'Test Gala 2026', owner_email='test@example.com', locked_settings.store_owner_profit=8.50",
+    "✓ Open Event Store detail, navigate to Settings tab",
+    "✓ 'Event Store Questionnaire' card visible with 'Send Event Store Questionnaire' button",
+    "✓ Send dialog opens with email field (placeholder=test@example.com) and custom message textarea",
+    "✓ Amber lock notice visible: 'Tenant-controlled financial values (locked settings) will be shown as read-only...'",
+    "✓ Click Send Questionnaire → toast: 'Questionnaire sent to test@example.com'",
+    "✓ Questionnaire status card updates: 'Linked' green badge, Status: active, Last Sent date, Responses count",
+    "✓ Public questionnaire opens at /questionnaire/{id} with 87 questions (verified via API)",
+    "✓ Fundraiser Settings section exists with heading + 18 fundraiser questions",
+    "✓ Event Name field is prefilled with 'Test Gala 2026'",
+    "✓ Profit field shows as read-only/disabled with 'Set by store provider' amber badge, value '$8.50 per item'",
+    "✓ Idempotency: second send reuses same questionnaire_id (backend test)",
+    "✓ GET /api/webstores/v2/{id}/questionnaire returns linked=true after sending",
+    "✓ Business store Settings tab: no Event Store Questionnaire card (unaffected)",
+    "✓ Template has 87 questions total (69 original + 18 fundraiser)",
+    "✓ Fundraiser Goal Amount ($) is Optional (not required, description says 'Optional. Leave blank...')"
+  ]
+}

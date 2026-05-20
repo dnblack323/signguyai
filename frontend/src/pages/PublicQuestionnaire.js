@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { 
   CheckCircle, AlertCircle, Upload, Calendar as CalendarIcon,
-  Loader2, FileText
+  Loader2, FileText, Lock
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
@@ -13,6 +13,7 @@ import { Textarea } from '../components/ui/textarea';
 import { Checkbox } from '../components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -30,6 +31,9 @@ export default function PublicQuestionnaire() {
   });
   const [errors, setErrors] = useState({});
 
+  // Locked question IDs and prefill data (from questionnaire.locked_answer_ids / prefill_answers)
+  const [lockedIds, setLockedIds] = useState(new Set());
+
   useEffect(() => {
     fetchQuestionnaire();
   }, [questionnaireId]);
@@ -37,15 +41,21 @@ export default function PublicQuestionnaire() {
   const fetchQuestionnaire = async () => {
     try {
       const response = await axios.get(`${API_URL}/api/questionnaires/public/${questionnaireId}`);
-      setQuestionnaire(response.data);
+      const qData = response.data;
+      setQuestionnaire(qData);
       
-      // Initialize answers object
+      // Load locked question IDs
+      const locked = new Set(qData.locked_answer_ids || []);
+      setLockedIds(locked);
+
+      // Merge prefill_answers with type-aware defaults
+      const prefills = qData.prefill_answers || {};
       const initialAnswers = {};
-      response.data.questions?.forEach(q => {
+      qData.questions?.forEach(q => {
         if (q.type === 'checkbox' || q.type === 'multi_select') {
-          initialAnswers[q.id] = [];
+          initialAnswers[q.id] = prefills[q.id] ?? [];
         } else {
-          initialAnswers[q.id] = '';
+          initialAnswers[q.id] = prefills[q.id] ?? '';
         }
       });
       setAnswers(initialAnswers);
@@ -69,6 +79,8 @@ export default function PublicQuestionnaire() {
     }
 
     questionnaire?.questions?.forEach(q => {
+      // Skip validation for locked fields — they already have prefilled values
+      if (lockedIds.has(q.id)) return;
       if (q.required && q.type !== 'heading' && q.type !== 'paragraph') {
         const answer = answers[q.id];
         if (!answer || (Array.isArray(answer) && answer.length === 0)) {
@@ -95,7 +107,8 @@ export default function PublicQuestionnaire() {
         questionnaire_id: questionnaireId,
         answers,
         customer_name: customerInfo.name,
-        customer_email: customerInfo.email
+        customer_email: customerInfo.email,
+        webstore_id: questionnaire?.webstore_id || null,
       });
       setSubmitted(true);
     } catch (error) {
@@ -124,6 +137,15 @@ export default function PublicQuestionnaire() {
 
   const renderQuestion = (question) => {
     const hasError = errors[question.id];
+    const isLocked = lockedIds.has(question.id);
+
+    // Locked field wrapper: show value as read-only with a "Set by store provider" badge
+    const LockedBadge = () => (
+      <span className="inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full
+                        bg-amber-500/15 text-amber-400 border border-amber-500/30 text-xs font-medium">
+        <Lock className="h-3 w-3" /> Set by store provider
+      </span>
+    );
 
     switch (question.type) {
       case 'heading':
@@ -146,18 +168,23 @@ export default function PublicQuestionnaire() {
       case 'phone':
         return (
           <div className="space-y-2">
-            <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
-              {question.label} {question.required && <span className="text-destructive">*</span>}
-            </Label>
+            <div className="flex items-center flex-wrap gap-1">
+              <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
+                {question.label} {question.required && !isLocked && <span className="text-destructive">*</span>}
+              </Label>
+              {isLocked && <LockedBadge />}
+            </div>
             {question.description && (
               <p className="text-xs text-slate-400">{question.description}</p>
             )}
             <Input
               type={question.type}
               value={answers[question.id] || ''}
-              onChange={(e) => updateAnswer(question.id, e.target.value)}
+              onChange={(e) => !isLocked && updateAnswer(question.id, e.target.value)}
               placeholder={question.placeholder}
-              className={hasError ? 'border-destructive' : ''}
+              className={`${hasError ? 'border-destructive' : ''} ${isLocked ? 'opacity-60 cursor-not-allowed bg-slate-800/50' : ''}`}
+              readOnly={isLocked}
+              disabled={isLocked}
             />
             {hasError && <p className="text-xs text-destructive">{hasError}</p>}
           </div>
@@ -166,18 +193,23 @@ export default function PublicQuestionnaire() {
       case 'textarea':
         return (
           <div className="space-y-2">
-            <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
-              {question.label} {question.required && <span className="text-destructive">*</span>}
-            </Label>
+            <div className="flex items-center flex-wrap gap-1">
+              <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
+                {question.label} {question.required && !isLocked && <span className="text-destructive">*</span>}
+              </Label>
+              {isLocked && <LockedBadge />}
+            </div>
             {question.description && (
               <p className="text-xs text-slate-400">{question.description}</p>
             )}
             <Textarea
               value={answers[question.id] || ''}
-              onChange={(e) => updateAnswer(question.id, e.target.value)}
+              onChange={(e) => !isLocked && updateAnswer(question.id, e.target.value)}
               placeholder={question.placeholder}
               rows={4}
-              className={hasError ? 'border-destructive' : ''}
+              className={`${hasError ? 'border-destructive' : ''} ${isLocked ? 'opacity-60 cursor-not-allowed bg-slate-800/50' : ''}`}
+              readOnly={isLocked}
+              disabled={isLocked}
             />
             {hasError && <p className="text-xs text-destructive">{hasError}</p>}
           </div>
@@ -186,15 +218,23 @@ export default function PublicQuestionnaire() {
       case 'number':
         return (
           <div className="space-y-2">
-            <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
-              {question.label} {question.required && <span className="text-destructive">*</span>}
-            </Label>
+            <div className="flex items-center flex-wrap gap-1">
+              <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
+                {question.label} {question.required && !isLocked && <span className="text-destructive">*</span>}
+              </Label>
+              {isLocked && <LockedBadge />}
+            </div>
+            {question.description && (
+              <p className="text-xs text-slate-400">{question.description}</p>
+            )}
             <Input
               type="number"
               value={answers[question.id] || ''}
-              onChange={(e) => updateAnswer(question.id, e.target.value)}
+              onChange={(e) => !isLocked && updateAnswer(question.id, e.target.value)}
               placeholder={question.placeholder}
-              className={hasError ? 'border-destructive' : ''}
+              className={`${hasError ? 'border-destructive' : ''} ${isLocked ? 'opacity-60 cursor-not-allowed bg-slate-800/50' : ''}`}
+              readOnly={isLocked}
+              disabled={isLocked}
             />
             {hasError && <p className="text-xs text-destructive">{hasError}</p>}
           </div>
@@ -203,14 +243,19 @@ export default function PublicQuestionnaire() {
       case 'date':
         return (
           <div className="space-y-2">
-            <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
-              {question.label} {question.required && <span className="text-destructive">*</span>}
-            </Label>
+            <div className="flex items-center flex-wrap gap-1">
+              <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
+                {question.label} {question.required && !isLocked && <span className="text-destructive">*</span>}
+              </Label>
+              {isLocked && <LockedBadge />}
+            </div>
             <Input
               type="date"
               value={answers[question.id] || ''}
-              onChange={(e) => updateAnswer(question.id, e.target.value)}
-              className={hasError ? 'border-destructive' : ''}
+              onChange={(e) => !isLocked && updateAnswer(question.id, e.target.value)}
+              className={`${hasError ? 'border-destructive' : ''} ${isLocked ? 'opacity-60 cursor-not-allowed bg-slate-800/50' : ''}`}
+              readOnly={isLocked}
+              disabled={isLocked}
             />
             {hasError && <p className="text-xs text-destructive">{hasError}</p>}
           </div>
@@ -219,27 +264,39 @@ export default function PublicQuestionnaire() {
       case 'select':
         return (
           <div className="space-y-2">
-            <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
-              {question.label} {question.required && <span className="text-destructive">*</span>}
-            </Label>
+            <div className="flex items-center flex-wrap gap-1">
+              <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
+                {question.label} {question.required && !isLocked && <span className="text-destructive">*</span>}
+              </Label>
+              {isLocked && <LockedBadge />}
+            </div>
             {question.description && (
               <p className="text-xs text-slate-400">{question.description}</p>
             )}
-            <Select
-              value={answers[question.id] || ''}
-              onValueChange={(value) => updateAnswer(question.id, value)}
-            >
-              <SelectTrigger className={hasError ? 'border-destructive' : ''}>
-                <SelectValue placeholder="Select an option..." />
-              </SelectTrigger>
-              <SelectContent>
-                {question.options?.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isLocked ? (
+              <Input
+                value={answers[question.id] || ''}
+                readOnly
+                disabled
+                className="opacity-60 cursor-not-allowed bg-slate-800/50"
+              />
+            ) : (
+              <Select
+                value={answers[question.id] || ''}
+                onValueChange={(value) => updateAnswer(question.id, value)}
+              >
+                <SelectTrigger className={hasError ? 'border-destructive' : ''}>
+                  <SelectValue placeholder="Select an option..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {question.options?.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             {hasError && <p className="text-xs text-destructive">{hasError}</p>}
           </div>
         );
@@ -248,19 +305,23 @@ export default function PublicQuestionnaire() {
         return (
           <div className="space-y-2">
             <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
-              {question.label} {question.required && <span className="text-destructive">*</span>}
+              {question.label} {question.required && !isLocked && <span className="text-destructive">*</span>}
             </Label>
             {question.description && (
               <p className="text-xs text-slate-400">{question.description}</p>
             )}
             <RadioGroup
               value={answers[question.id] || ''}
-              onValueChange={(value) => updateAnswer(question.id, value)}
+              onValueChange={(value) => !isLocked && updateAnswer(question.id, value)}
               className="space-y-2"
             >
               {question.options?.map((option) => (
-                <div key={option.value} className="flex items-center space-x-2">
-                  <RadioGroupItem value={option.value} id={`${question.id}-${option.value}`} />
+                <div key={option.value} className={`flex items-center space-x-2 ${isLocked ? 'opacity-60' : ''}`}>
+                  <RadioGroupItem
+                    value={option.value}
+                    id={`${question.id}-${option.value}`}
+                    disabled={isLocked}
+                  />
                   <Label htmlFor={`${question.id}-${option.value}`} className="font-normal text-slate-300">
                     {option.label}
                   </Label>
@@ -276,18 +337,19 @@ export default function PublicQuestionnaire() {
         return (
           <div className="space-y-2">
             <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
-              {question.label} {question.required && <span className="text-destructive">*</span>}
+              {question.label} {question.required && !isLocked && <span className="text-destructive">*</span>}
             </Label>
             {question.description && (
               <p className="text-xs text-slate-400">{question.description}</p>
             )}
             <div className="space-y-2">
               {question.options?.map((option) => (
-                <div key={option.value} className="flex items-center space-x-2">
+                <div key={option.value} className={`flex items-center space-x-2 ${isLocked ? 'opacity-60' : ''}`}>
                   <Checkbox
                     id={`${question.id}-${option.value}`}
                     checked={(answers[question.id] || []).includes(option.value)}
-                    onCheckedChange={() => toggleCheckbox(question.id, option.value)}
+                    onCheckedChange={() => !isLocked && toggleCheckbox(question.id, option.value)}
+                    disabled={isLocked}
                   />
                   <Label htmlFor={`${question.id}-${option.value}`} className="font-normal text-slate-300">
                     {option.label}

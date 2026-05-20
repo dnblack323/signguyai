@@ -652,6 +652,22 @@ export const AppProvider = ({ children }) => {
     return res.data;
   };
 
+  // Event Store Questionnaire
+  const getWebstoreQuestionnaire = async (webstoreId) => {
+    const res = await api.get(`/webstores/v2/${webstoreId}/questionnaire`);
+    return res.data;
+  };
+
+  const sendWebstoreQuestionnaire = async (webstoreId, data) => {
+    const res = await api.post(`/webstores/v2/${webstoreId}/questionnaire/send`, data);
+    return res.data;
+  };
+
+  const applyWebstoreQuestionnaireAnswers = async (webstoreId) => {
+    const res = await api.post(`/webstores/v2/${webstoreId}/questionnaire/apply-answers`);
+    return res.data;
+  };
+
   // Tenant / Company Settings
   const fetchTenant = useCallback(async () => {
     try {
@@ -749,6 +765,8 @@ export const AppProvider = ({ children }) => {
     uploadWebstoreLogo, uploadWebstoreBanner,
     // Webstore Analytics
     getWebstoreAnalytics,
+    // Event Store Questionnaire
+    getWebstoreQuestionnaire, sendWebstoreQuestionnaire, applyWebstoreQuestionnaireAnswers,
     // Tenant / Company Settings
     tenant, fetchTenant, getTenant, updateTenant,
     // Stripe Connect

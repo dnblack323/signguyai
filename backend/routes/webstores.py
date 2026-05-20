@@ -2309,3 +2309,357 @@ async def create_job_from_order(
     )
     
     return {"message": "Job created", "job_id": job.id}
+
+
+# ============== EVENT STORE QUESTIONNAIRE ENDPOINTS ==============
+
+class SendEventStoreQuestionnairePayload(BaseModel):
+    email: Optional[str] = None          # override; falls back to owner_email
+    customer_name: Optional[str] = None  # override; falls back to owner_name
+    message: Optional[str] = None        # optional custom email intro
+    public_url: Optional[str] = None     # frontend origin for building the link
+
+
+@webstores_router.get("/{webstore_id}/questionnaire")
+async def get_webstore_questionnaire_status(
+    webstore_id: str,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Return the questionnaire linked to an Event Store, plus the latest response summary."""
+    webstore = await db.webstores_v2.find_one(
+        {"id": webstore_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0, "id": 1, "name": 1, "store_type": 1},
+    )
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+
+    questionnaire = await db.questionnaires.find_one(
+        {"webstore_id": webstore_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0, "id": 1, "name": 1, "status": 1,
+         "response_count": 1, "last_sent_at": 1, "updated_at": 1},
+    )
+    if not questionnaire:
+        return {"linked": False, "questionnaire": None, "latest_response": None}
+
+    responses = await db.questionnaire_responses.find(
+        {"questionnaire_id": questionnaire["id"]},
+        {"_id": 0, "id": 1, "submitted_at": 1, "customer_name": 1, "customer_email": 1,
+         "applied_to_webstore": 1},
+    ).sort("submitted_at", -1).limit(1).to_list(1)
+    latest_response = responses[0] if responses else None
+
+    return {
+        "linked": True,
+        "questionnaire": questionnaire,
+        "latest_response": latest_response,
+    }
+
+
+@webstores_router.post("/{webstore_id}/questionnaire/send")
+async def send_event_store_questionnaire(
+    webstore_id: str,
+    payload: SendEventStoreQuestionnairePayload,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """
+    Ensure an event_web_store_setup questionnaire exists for this Event Store,
+    set it to ACTIVE, pre-fill/lock tenant-controlled fields, and email it to
+    the store owner.
+
+    The questionnaire is created from the template exactly once per webstore.
+    Re-sending uses the same questionnaire document (idempotent).
+    locked_settings values are pre-filled in the questionnaire but NEVER auto-applied
+    back from store-owner answers — only admin can do that via apply-answers.
+    """
+    from services.email_service import email_service
+    from models.questionnaires import (
+        Questionnaire, Question, QuestionType, QuestionnaireCategory,
+        QuestionnaireStatus, QUESTIONNAIRE_TEMPLATES,
+    )
+
+    webstore = await db.webstores_v2.find_one(
+        {"id": webstore_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0},
+    )
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+
+    # Idempotent: reuse existing questionnaire if one is already linked
+    existing = await db.questionnaires.find_one(
+        {"webstore_id": webstore_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0, "id": 1},
+    )
+
+    if existing:
+        questionnaire_id = existing["id"]
+        now = datetime.now(timezone.utc).isoformat()
+        await db.questionnaires.update_one(
+            {"id": questionnaire_id},
+            {"$set": {"status": "active", "last_sent_at": now, "updated_at": now}},
+        )
+    else:
+        # Create from template
+        template = QUESTIONNAIRE_TEMPLATES.get("event_web_store_setup")
+        if not template:
+            raise HTTPException(status_code=500, detail="event_web_store_setup template not found")
+
+        questions: list[Question] = []
+        for i, q in enumerate(template["questions"]):
+            questions.append(Question(
+                id=str(uuid.uuid4()),
+                type=QuestionType(q["type"]),
+                label=q["label"],
+                description=q.get("description"),
+                placeholder=q.get("placeholder"),
+                required=q.get("required", False),
+                options=[{"value": o["value"], "label": o["label"]}
+                         for o in q.get("options", [])],
+                order=q.get("order", i),
+                accept_file_types=q.get("accept_file_types"),
+                max_file_size_mb=q.get("max_file_size_mb", 10),
+            ))
+
+        # ── Build prefill/locked maps from event fields + locked_settings ──
+        ls = webstore.get("locked_settings") or {}
+        prefill_answers: dict = {}
+        locked_answer_ids: list = []
+
+        # Map of question label → prefill value (from event store fields)
+        store_prefills = {
+            "Event Name": webstore.get("event_name"),
+            "Event Date": webstore.get("event_start_date"),
+            "Event Location": webstore.get("event_location"),
+            "What should the store be called?": webstore.get("name"),
+            "Pickup date / time instructions": webstore.get("pickup_delivery_instructions"),
+        }
+        # Map of question label → locked value (from locked_settings, admin-controlled)
+        locked_prefills = {
+            "If adding profit, how much should be added per item?": (
+                f"${float(ls['store_owner_profit']):.2f} per item"
+                if ls.get("store_owner_profit") is not None else None
+            ),
+            "Best email to receive the Stripe Connect setup link": webstore.get("owner_email"),
+        }
+
+        for q_obj in questions:
+            label = q_obj.label
+            val = store_prefills.get(label)
+            if val:
+                prefill_answers[q_obj.id] = val
+            locked_val = locked_prefills.get(label)
+            if locked_val:
+                prefill_answers[q_obj.id] = locked_val
+                locked_answer_ids.append(q_obj.id)
+
+        now = datetime.now(timezone.utc).isoformat()
+        q_doc = Questionnaire(
+            id=str(uuid.uuid4()),
+            tenant_id=current_user.tenant_id,
+            name=f"Event Store Setup — {webstore['name']}",
+            description=template["description"],
+            category=QuestionnaireCategory(template["category"]),
+            questions=questions,
+            status=QuestionnaireStatus.ACTIVE,
+            created_at=now,
+            updated_at=now,
+            created_by=current_user.id,
+            webstore_id=webstore_id,
+            prefill_answers=prefill_answers,
+            locked_answer_ids=locked_answer_ids,
+            last_sent_at=now,
+        )
+        await db.questionnaires.insert_one(q_doc.model_dump())
+        questionnaire_id = q_doc.id
+
+    # ── Resolve recipient ──
+    to_email = (payload.email or "").strip() or webstore.get("owner_email", "")
+    if not to_email:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "No email address found for the store owner. "
+                "Add an owner email to the store or provide one in the request."
+            ),
+        )
+
+    # ── Build public link ──
+    origin = (payload.public_url or os.environ.get("META_PUBLIC_URL", "") or "").rstrip("/")
+    link = (
+        f"{origin}/questionnaire/{questionnaire_id}"
+        if origin
+        else f"/questionnaire/{questionnaire_id}"
+    )
+
+    # ── Tenant branding ──
+    tenant = await db.tenants.find_one({"tenant_id": current_user.tenant_id}, {"_id": 0})
+    company_name = (tenant or {}).get("company_name") or "SignGuy AI"
+
+    greeting_name = (
+        (payload.customer_name or webstore.get("owner_name") or "").strip() or "there"
+    )
+    intro = payload.message or (
+        f"We need a few details to set up the event web store for "
+        f"<strong>{webstore.get('name')}</strong>. "
+        "Please complete the questionnaire below at your earliest convenience."
+    )
+
+    subject = f"Event Store Setup: {webstore.get('name')} — Please Complete"
+    html_content = f"""
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;
+                padding:24px;color:#0F172A;">
+      <h2 style="color:#0F172A;margin-bottom:8px;">Event Web Store Setup</h2>
+      <p style="color:#475569;margin-top:0;">From {company_name}</p>
+      <p>Hi {greeting_name},</p>
+      <p>{intro}</p>
+      <p style="margin:28px 0;">
+        <a href="{link}"
+           style="background:#F97316;color:#ffffff;padding:12px 24px;
+                  border-radius:8px;text-decoration:none;display:inline-block;
+                  font-weight:600;">
+          Complete Event Store Setup
+        </a>
+      </p>
+      <p style="color:#475569;font-size:13px;">
+        Or copy &amp; paste this link:<br/>
+        <a href="{link}" style="color:#F97316;">{link}</a>
+      </p>
+      <hr style="border:none;border-top:1px solid #E2E8F0;margin:24px 0;"/>
+      <p style="color:#94A3B8;font-size:12px;">Sent by {company_name}</p>
+    </div>
+    """
+    plain_content = (
+        f"Event Store Setup: {webstore.get('name')}\n\n"
+        f"Hi {greeting_name},\n\n{intro}\n\nOpen: {link}\n\n— {company_name}"
+    )
+
+    result = await email_service.send_email(
+        to_email=to_email,
+        subject=subject,
+        html_content=html_content,
+        plain_content=plain_content,
+        tenant_id=current_user.tenant_id,
+    )
+
+    if not result.get("success"):
+        # Email failed but questionnaire was created — still usable via link
+        return {
+            "success": False,
+            "questionnaire_id": questionnaire_id,
+            "link": link,
+            "email_sent": False,
+            "email": to_email,
+            "warning": (
+                result.get("error")
+                or "Email sending failed. Check SendGrid configuration. "
+                   "Share the link manually."
+            ),
+        }
+
+    return {
+        "success": True,
+        "questionnaire_id": questionnaire_id,
+        "link": link,
+        "email_sent": True,
+        "email": to_email,
+    }
+
+
+@webstores_router.post("/{webstore_id}/questionnaire/apply-answers")
+async def apply_questionnaire_answers_to_event_store(
+    webstore_id: str,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """
+    Map safe questionnaire answers into Event Store fields.
+
+    NEVER touches locked_settings — those remain admin-controlled.
+    Returns applied_fields (immediately saved) and suggested_changes
+    (fields that would overwrite locked values; saved for admin review only).
+    """
+    webstore = await db.webstores_v2.find_one(
+        {"id": webstore_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0},
+    )
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+
+    questionnaire = await db.questionnaires.find_one(
+        {"webstore_id": webstore_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0},
+    )
+    if not questionnaire:
+        raise HTTPException(status_code=404, detail="No questionnaire is linked to this event store")
+
+    # Latest response
+    responses = await db.questionnaire_responses.find(
+        {"questionnaire_id": questionnaire["id"]},
+        {"_id": 0},
+    ).sort("submitted_at", -1).limit(1).to_list(1)
+    if not responses:
+        raise HTTPException(status_code=404, detail="No questionnaire responses found")
+    response = responses[0]
+
+    # Build label → question_id map
+    q_label_to_id = {q["label"]: q["id"] for q in questionnaire.get("questions", [])}
+    answers = response.get("answers", {})
+    locked_ids = set(questionnaire.get("locked_answer_ids") or [])
+
+    def _answer(label: str):
+        q_id = q_label_to_id.get(label)
+        if not q_id:
+            return None
+        val = answers.get(q_id)
+        if not val or (isinstance(val, list) and len(val) == 0):
+            return None
+        return val
+
+    # ── Safe field mappings (store owner editable, directly applied) ──
+    SAFE_MAP = {
+        "Event Name": "event_name",
+        "Event Date": "event_start_date",
+        "Event Location": "event_location",
+        "When do you want the store to launch?": "event_start_date",
+        "When should the store close?": "event_end_date",
+        "If pickup is available, what pickup location should be shown?": "pickup_delivery_instructions",
+        "Pickup date / time instructions": "pickup_delivery_instructions",
+        "Fundraiser Name": "event_name",          # Store in event_name context
+        "Fundraiser Description": "description",
+    }
+
+    applied: dict = {}
+    suggested_changes: list = []
+    now = datetime.now(timezone.utc).isoformat()
+
+    for label, store_field in SAFE_MAP.items():
+        val = _answer(label)
+        if val is None:
+            continue
+        q_id = q_label_to_id.get(label)
+        if q_id in locked_ids:
+            # Locked field — save as suggested, do not auto-apply
+            suggested_changes.append({
+                "field": store_field,
+                "label": label,
+                "suggested_value": val,
+                "reason": "This field is locked (set by store provider). Admin review required.",
+            })
+        else:
+            applied[store_field] = val
+
+    if applied:
+        applied["updated_at"] = now
+        await db.webstores_v2.update_one({"id": webstore_id}, {"$set": applied})
+        await db.questionnaire_responses.update_one(
+            {"id": response["id"]},
+            {"$set": {"applied_to_webstore": True, "applied_at": now}},
+        )
+
+    return {
+        "applied_fields": {k: v for k, v in applied.items() if k != "updated_at"},
+        "suggested_changes": suggested_changes,
+        "response_id": response["id"],
+        "message": (
+            f"Applied {len(applied) - (1 if 'updated_at' in applied else 0)} field(s)."
+            + (f" {len(suggested_changes)} field(s) require admin review." if suggested_changes else "")
+        ),
+    }

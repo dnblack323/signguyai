@@ -38,7 +38,8 @@ import {
   Eye, Edit2, Trash2, Package, DollarSign, TrendingUp,
   ExternalLink, Check, X, Settings, Copy, Link2, BarChart3,
   Upload, ImageIcon, CreditCard, AlertTriangle, Loader2, Palette,
-  QrCode, Download, Shirt, Sticker, Gift, CalendarDays, Search
+  QrCode, Download, Shirt, Sticker, Gift, CalendarDays, Search,
+  Mail, Lock, ClipboardCheck, Send
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
@@ -102,7 +103,8 @@ export default function Webstores() {
     createJobFromOrder, recordPayout, getWebstorePayouts,
     uploadWebstoreLogo, uploadWebstoreBanner,
     getStripeConnectStatus, createStripeConnectAccount,
-    createProduct
+    createProduct,
+    getWebstoreQuestionnaire, sendWebstoreQuestionnaire, applyWebstoreQuestionnaireAnswers,
   } = useApp();
   
   const [loading, setLoading] = useState(true);
@@ -158,6 +160,15 @@ export default function Webstores() {
   const [lockedEdits, setLockedEdits] = useState({});
   const [savingEvent, setSavingEvent] = useState(false);
   const [savingLocked, setSavingLocked] = useState(false);
+
+  // Event Store questionnaire state
+  const [questionnaireStatus, setQuestionnaireStatus] = useState(null);   // null = not loaded
+  const [loadingQuestionnaire, setLoadingQuestionnaire] = useState(false);
+  const [showSendDialog, setShowSendDialog] = useState(false);
+  const [sendingQuestionnaire, setSendingQuestionnaire] = useState(false);
+  const [applyingAnswers, setApplyingAnswers] = useState(false);
+  const [sendEmailOverride, setSendEmailOverride] = useState('');
+  const [sendMessageOverride, setSendMessageOverride] = useState('');
   
   // Form state
   const [formData, setFormData] = useState({
@@ -582,6 +593,23 @@ export default function Webstores() {
       shipping_handling_label: ls.shipping_handling_label || '',
       shipping_handling_description: ls.shipping_handling_description || '',
     });
+
+    // Load questionnaire status for event stores
+    if (store.store_type === 'event') {
+      setQuestionnaireStatus(null);
+      setLoadingQuestionnaire(true);
+      try {
+        const qs = await getWebstoreQuestionnaire(store.id);
+        setQuestionnaireStatus(qs);
+      } catch (err) {
+        console.error('Could not load questionnaire status', err);
+        setQuestionnaireStatus({ linked: false, questionnaire: null, latest_response: null });
+      } finally {
+        setLoadingQuestionnaire(false);
+      }
+    } else {
+      setQuestionnaireStatus(null);
+    }
     
     // Reset create product form state
     setShowCreateProduct(false);
@@ -855,6 +883,56 @@ export default function Webstores() {
       toast.error('Failed to save financial settings');
     } finally {
       setSavingLocked(false);
+    }
+  };
+
+  const handleSendQuestionnaire = async () => {
+    if (!selectedStore) return;
+    setSendingQuestionnaire(true);
+    try {
+      const origin = window.location.origin;
+      const result = await sendWebstoreQuestionnaire(selectedStore.id, {
+        email: sendEmailOverride || undefined,
+        message: sendMessageOverride || undefined,
+        public_url: origin,
+      });
+      if (result.email_sent) {
+        toast.success(`Questionnaire sent to ${result.email}`);
+      } else {
+        toast.warning(`Questionnaire created but email failed. Share this link manually:\n${result.link}`);
+      }
+      setShowSendDialog(false);
+      setSendEmailOverride('');
+      setSendMessageOverride('');
+      // Refresh questionnaire status
+      const qs = await getWebstoreQuestionnaire(selectedStore.id);
+      setQuestionnaireStatus(qs);
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || 'Failed to send questionnaire');
+    } finally {
+      setSendingQuestionnaire(false);
+    }
+  };
+
+  const handleApplyQuestionnaireAnswers = async () => {
+    if (!selectedStore) return;
+    setApplyingAnswers(true);
+    try {
+      const result = await applyWebstoreQuestionnaireAnswers(selectedStore.id);
+      const count = Object.keys(result.applied_fields || {}).length;
+      const suggested = (result.suggested_changes || []).length;
+      toast.success(
+        `Applied ${count} field${count !== 1 ? 's' : ''} to event store.`
+        + (suggested ? ` ${suggested} field(s) require admin review.` : '')
+      );
+      // Refresh store data
+      await loadData();
+      const qs = await getWebstoreQuestionnaire(selectedStore.id);
+      setQuestionnaireStatus(qs);
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || 'Failed to apply answers');
+    } finally {
+      setApplyingAnswers(false);
     }
   };
 
@@ -2408,6 +2486,198 @@ export default function Webstores() {
                         </div>
                       </CardContent>
                     </Card>
+                  )}
+
+                  {/* Event Store Questionnaire — send, status, apply */}
+                  {selectedStore.store_type === 'event' && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <ClipboardCheck className="h-4 w-4 text-orange-400" />
+                          Event Store Questionnaire
+                          {questionnaireStatus?.linked && (
+                            <Badge className="ml-auto text-xs bg-green-500/20 text-green-400 border-green-500/30">
+                              Linked
+                            </Badge>
+                          )}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {loadingQuestionnaire ? (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Loading questionnaire status...
+                          </div>
+                        ) : questionnaireStatus?.linked ? (
+                          <>
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              <div>
+                                <p className="text-xs text-muted-foreground">Status</p>
+                                <Badge className={`text-xs mt-1 ${
+                                  questionnaireStatus.questionnaire?.status === 'active'
+                                    ? 'bg-green-500/20 text-green-400'
+                                    : 'bg-yellow-500/20 text-yellow-400'
+                                }`}>
+                                  {questionnaireStatus.questionnaire?.status || 'draft'}
+                                </Badge>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground">Last Sent</p>
+                                <p className="font-medium text-xs">
+                                  {questionnaireStatus.questionnaire?.last_sent_at
+                                    ? new Date(questionnaireStatus.questionnaire.last_sent_at).toLocaleDateString()
+                                    : 'Not sent yet'}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground">Responses</p>
+                                <p className="font-medium">
+                                  {questionnaireStatus.questionnaire?.response_count ?? 0}
+                                </p>
+                              </div>
+                              {questionnaireStatus.latest_response && (
+                                <div>
+                                  <p className="text-xs text-muted-foreground">Last Submitted</p>
+                                  <p className="font-medium text-xs">
+                                    {new Date(questionnaireStatus.latest_response.submitted_at).toLocaleDateString()}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                            {questionnaireStatus.latest_response?.applied_to_webstore && (
+                              <div className="flex items-center gap-2 text-xs text-green-400 bg-green-500/10 rounded p-2">
+                                <Check className="h-3 w-3" />
+                                Answers have been applied to this store.
+                              </div>
+                            )}
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setShowSendDialog(true)}
+                                data-testid="resend-questionnaire-btn"
+                              >
+                                <Mail className="h-4 w-4 mr-2" />
+                                Resend Questionnaire
+                              </Button>
+                              {questionnaireStatus.questionnaire?.id && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => window.open(`/questionnaire/${questionnaireStatus.questionnaire.id}`, '_blank')}
+                                  data-testid="view-questionnaire-btn"
+                                >
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View Form
+                                </Button>
+                              )}
+                              {questionnaireStatus.latest_response && (
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  onClick={handleApplyQuestionnaireAnswers}
+                                  disabled={applyingAnswers}
+                                  data-testid="apply-answers-btn"
+                                  className="bg-orange-500 hover:bg-orange-600 text-white"
+                                >
+                                  {applyingAnswers
+                                    ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    : <Check className="h-4 w-4 mr-2" />}
+                                  Apply Safe Answers
+                                </Button>
+                              )}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-sm text-muted-foreground">
+                              Send the <strong>Event Store Setup Questionnaire</strong> to the store owner to collect event details, fulfillment preferences, fundraiser settings, and Stripe Connect information.
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Tenant-controlled financial values will be shown as read-only. Store owner answers will not overwrite your locked settings.
+                            </p>
+                            <Button
+                              size="sm"
+                              onClick={() => setShowSendDialog(true)}
+                              className="bg-orange-500 hover:bg-orange-600 text-white"
+                              data-testid="send-questionnaire-btn"
+                            >
+                              <Send className="h-4 w-4 mr-2" />
+                              Send Event Store Questionnaire
+                            </Button>
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Send Questionnaire Dialog */}
+                  {showSendDialog && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+                      <Card className="w-full max-w-md mx-4">
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Mail className="h-5 w-5 text-orange-400" />
+                            Send Event Store Questionnaire
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Send To (email)</Label>
+                            <Input
+                              type="email"
+                              value={sendEmailOverride}
+                              onChange={(e) => setSendEmailOverride(e.target.value)}
+                              placeholder={selectedStore?.owner_email || 'Store owner email'}
+                              data-testid="send-email-input"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Leave blank to use the store owner email on file.
+                            </p>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Custom Message (optional)</Label>
+                            <Textarea
+                              value={sendMessageOverride}
+                              onChange={(e) => setSendMessageOverride(e.target.value)}
+                              placeholder="Add a personal note to include in the email..."
+                              rows={3}
+                              data-testid="send-message-input"
+                            />
+                          </div>
+                          <div className="bg-amber-500/10 border border-amber-500/20 rounded p-3 text-xs text-amber-400">
+                            <Lock className="h-3 w-3 inline mr-1" />
+                            Tenant-controlled financial values (locked settings) will be shown as read-only in the questionnaire. Store owner answers cannot overwrite them.
+                          </div>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setShowSendDialog(false);
+                                setSendEmailOverride('');
+                                setSendMessageOverride('');
+                              }}
+                              disabled={sendingQuestionnaire}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={handleSendQuestionnaire}
+                              disabled={sendingQuestionnaire}
+                              className="bg-orange-500 hover:bg-orange-600 text-white"
+                              data-testid="confirm-send-questionnaire-btn"
+                            >
+                              {sendingQuestionnaire
+                                ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                : <Send className="h-4 w-4 mr-2" />}
+                              Send Questionnaire
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
                   )}
 
                   {/* Tenant-Controlled Financial Settings */}

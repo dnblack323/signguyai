@@ -115,6 +115,14 @@ class Questionnaire(BaseModel):
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     created_by: Optional[str] = None
+    # Event Store linkage
+    webstore_id: Optional[str] = None
+    # Prefilled answer values keyed by question ID (auto-filled in public form)
+    prefill_answers: Optional[Dict[str, Any]] = None
+    # Question IDs that are locked (read-only, shown as "Set by store provider")
+    locked_answer_ids: Optional[List[str]] = None
+    # ISO timestamp of last email send
+    last_sent_at: Optional[str] = None
 
 
 class QuestionnaireResponseCreate(BaseModel):
@@ -594,76 +602,159 @@ QUESTIONNAIRE_TEMPLATES = {
                 {"value": "no", "label": "No"}
             ], "order": 43},
             
+            # Section 4.5: Fundraiser Settings
+            {"type": "heading", "label": "Fundraiser Settings", "order": 44},
+            {"type": "select", "label": "Is this store raising funds for a cause or organization?",
+             "options": [
+                 {"value": "yes", "label": "Yes"},
+                 {"value": "no", "label": "No"},
+                 {"value": "maybe", "label": "Maybe / Not sure"}
+             ], "order": 45},
+            {"type": "text", "label": "Fundraiser Name",
+             "description": "e.g., Gala Fund, Team Spirit Fund", "order": 46},
+            {"type": "textarea", "label": "Fundraiser Description",
+             "description": "What will the funds be used for?", "order": 47},
+            {"type": "number", "label": "Fundraiser Goal Amount ($)",
+             "description": "Optional. Leave blank if you do not have a specific goal. "
+                            "Donations and profit allocation can still be accepted without a set goal.",
+             "order": 48},
+            {"type": "select", "label": "Should a fundraiser progress bar be shown on the store?",
+             "description": "Only applies when a fundraiser goal amount is set.",
+             "options": [
+                 {"value": "yes", "label": "Yes, show progress toward the goal"},
+                 {"value": "no", "label": "No, do not show a progress bar"},
+                 {"value": "not_sure", "label": "Not sure"}
+             ], "order": 49},
+            {"type": "select", "label": "Should customers be able to add a donation at checkout?",
+             "options": [
+                 {"value": "yes", "label": "Yes"},
+                 {"value": "no", "label": "No"},
+                 {"value": "not_sure", "label": "Not sure"}
+             ], "order": 50},
+            {"type": "text", "label": "Donation amount options to offer at checkout",
+             "description": "e.g., $5, $10, $25, $50 — leave blank to allow any amount",
+             "order": 51},
+            {"type": "select", "label": "Should customers be able to enter a custom donation amount?",
+             "options": [
+                 {"value": "yes", "label": "Yes"},
+                 {"value": "no", "label": "No"}
+             ], "order": 52},
+            {"type": "select",
+             "label": "Should a portion of each product sale be allocated to the fundraiser?",
+             "description": "Example: $5 from each shirt sold goes to the cause.",
+             "options": [
+                 {"value": "yes", "label": "Yes"},
+                 {"value": "no", "label": "No"},
+                 {"value": "not_sure", "label": "Not sure"}
+             ], "order": 53},
+            {"type": "select", "label": "Profit allocation type",
+             "description": "How should the fundraiser portion be calculated?",
+             "options": [
+                 {"value": "percentage", "label": "Percentage of each sale"},
+                 {"value": "fixed_per_item", "label": "Fixed dollar amount per item"},
+                 {"value": "manual", "label": "Manual — we decide after the store closes"},
+                 {"value": "na", "label": "Not applicable"}
+             ], "order": 54},
+            {"type": "number", "label": "Profit allocation percentage (%)",
+             "description": "Only if percentage allocation is selected above.", "order": 55},
+            {"type": "number", "label": "Fixed profit allocation amount per item ($)",
+             "description": "Only if fixed amount per item is selected above.", "order": 56},
+            {"type": "number", "label": "Maximum fundraiser cap amount ($)",
+             "description": "Optional. Stop allocating to fundraiser once this amount is reached.",
+             "order": 57},
+            {"type": "select", "label": "Include checkout donations in fundraiser progress total?",
+             "options": [
+                 {"value": "yes", "label": "Yes"},
+                 {"value": "no", "label": "No"}
+             ], "order": 58},
+            {"type": "select",
+             "label": "Include product sale profit allocation in fundraiser progress total?",
+             "options": [
+                 {"value": "yes", "label": "Yes"},
+                 {"value": "no", "label": "No"}
+             ], "order": 59},
+            {"type": "select", "label": "Show total amount raised publicly on the store?",
+             "options": [
+                 {"value": "yes", "label": "Yes"},
+                 {"value": "no", "label": "No"}
+             ], "order": 60},
+            {"type": "select", "label": "Show supporter names on the store?",
+             "options": [
+                 {"value": "yes_with_permission", "label": "Yes, if customer consents"},
+                 {"value": "yes_all", "label": "Yes, show all supporters"},
+                 {"value": "no", "label": "No, keep supporters anonymous"}
+             ], "order": 61},
+
             # Section 5: Stripe Connect Payment Setup
-            {"type": "heading", "label": "Stripe Connect Payment Setup", "order": 44},
-            {"type": "paragraph", "label": "To allow payments from this web store to go directly to your bank account, we use Stripe Connect. You will receive a secure setup link where you can enter your business, identity, tax, and banking information directly through Stripe.\n\nWe do not collect or store your full bank account information through this form. Stripe may require verification before payouts can begin.\n\nThe store may accept payments before payouts are fully available, but funds cannot be sent to your bank account until Stripe Connect setup is completed and approved.", "order": 45},
+            {"type": "heading", "label": "Stripe Connect Payment Setup", "order": 62},
+            {"type": "paragraph", "label": "To allow payments from this web store to go directly to your bank account, we use Stripe Connect. You will receive a secure setup link where you can enter your business, identity, tax, and banking information directly through Stripe.\n\nWe do not collect or store your full bank account information through this form. Stripe may require verification before payouts can begin.\n\nThe store may accept payments before payouts are fully available, but funds cannot be sent to your bank account until Stripe Connect setup is completed and approved.", "order": 63},
             {"type": "select", "label": "Who should receive the payments from this web store?", "options": [
                 {"value": "individual", "label": "Individual"},
                 {"value": "business", "label": "Business"},
                 {"value": "organization", "label": "Organization"},
                 {"value": "school", "label": "School / team / group"},
                 {"value": "other", "label": "Other"}
-            ], "order": 46},
-            {"type": "text", "label": "Legal name or business name for payment account", "order": 47},
-            {"type": "email", "label": "Email address to use for Stripe setup", "order": 48},
-            {"type": "phone", "label": "Phone number for Stripe setup", "order": 49},
+            ], "order": 64},
+            {"type": "text", "label": "Legal name or business name for payment account", "order": 65},
+            {"type": "email", "label": "Email address to use for Stripe setup", "order": 66},
+            {"type": "phone", "label": "Phone number for Stripe setup", "order": 67},
             {"type": "select", "label": "Do you already have a Stripe account?", "options": [
                 {"value": "yes", "label": "Yes"},
                 {"value": "no", "label": "No"},
                 {"value": "not_sure", "label": "Not sure"}
-            ], "order": 50},
+            ], "order": 68},
             {"type": "select", "label": "Who will complete the Stripe Connect setup?", "options": [
                 {"value": "me", "label": "Me"},
                 {"value": "business_owner", "label": "Business owner"},
                 {"value": "treasurer", "label": "Treasurer"},
                 {"value": "event_organizer", "label": "Event organizer"},
                 {"value": "other", "label": "Other"}
-            ], "order": 51},
-            {"type": "email", "label": "Best email to receive the Stripe Connect setup link", "order": 52},
-            
+            ], "order": 69},
+            {"type": "email", "label": "Best email to receive the Stripe Connect setup link", "order": 70},
+
             # Section 6: Final Approval and Signature
-            {"type": "heading", "label": "Final Approval and Signature", "order": 53},
-            {"type": "text", "label": "Who should review the store before it goes live?", "order": 54},
+            {"type": "heading", "label": "Final Approval and Signature", "order": 71},
+            {"type": "text", "label": "Who should review the store before it goes live?", "order": 72},
             {"type": "select", "label": "Do you want to approve product names, pricing, images, and descriptions before launch?", "options": [
                 {"value": "yes", "label": "Yes"},
                 {"value": "no", "label": "No"}
-            ], "order": 55},
+            ], "order": 73},
             {"type": "select", "label": "Do you want a store preview link before launch?", "options": [
                 {"value": "yes", "label": "Yes"},
                 {"value": "no", "label": "No"}
-            ], "order": 56},
-            
+            ], "order": 74},
+
             # Final Store Setup Agreement
-            {"type": "paragraph", "label": "Final Store Setup Agreement", "description": "Please read and acknowledge the following statements before signing.", "order": 57},
+            {"type": "paragraph", "label": "Final Store Setup Agreement", "description": "Please read and acknowledge the following statements before signing.", "order": 75},
             {"type": "checkbox", "label": "I understand the store will be built based on the information, artwork, pricing, product details, fulfillment details, and payment information provided.", "required": True, "options": [
                 {"value": "agree", "label": "I understand"}
-            ], "order": 58},
+            ], "order": 76},
             {"type": "checkbox", "label": "I understand missing or incorrect information may delay the store launch.", "required": True, "options": [
                 {"value": "agree", "label": "I understand"}
-            ], "order": 59},
+            ], "order": 77},
             {"type": "checkbox", "label": "I understand the store will not launch until product details, pricing, artwork, fulfillment settings, and payment setup are approved.", "required": True, "options": [
                 {"value": "agree", "label": "I understand"}
-            ], "order": 60},
+            ], "order": 78},
             {"type": "checkbox", "label": "I understand changes after launch may affect orders, pricing, production timelines, customer experience, and reporting.", "required": True, "options": [
                 {"value": "agree", "label": "I understand"}
-            ], "order": 61},
+            ], "order": 79},
             {"type": "checkbox", "label": "I understand Stripe Connect setup must be completed before payouts can be sent to your bank account, and Stripe may require identity, business, tax, and banking information before payouts can begin.", "required": True, "options": [
                 {"value": "agree", "label": "I understand"}
-            ], "order": 62},
+            ], "order": 80},
             {"type": "checkbox", "label": "I understand payment processing fees and any agreed platform/store fees may be deducted from online transactions, and payouts are sent according to Stripe's payout schedule.", "required": True, "options": [
                 {"value": "agree", "label": "I understand"}
-            ], "order": 63},
+            ], "order": 81},
             {"type": "checkbox", "label": "I understand customer-provided artwork, logos, images, names, and sponsor files must be approved for use by the customer or organization submitting this form.", "required": True, "options": [
                 {"value": "agree", "label": "I understand"}
-            ], "order": 64},
+            ], "order": 82},
             {"type": "checkbox", "label": "I understand production timelines depend on final store approval, payment setup, artwork readiness, order volume, product availability, fulfillment method, and whether submitted artwork is usable for print.", "required": True, "options": [
                 {"value": "agree", "label": "I understand"}
-            ], "order": 65},
-            
+            ], "order": 83},
+
             # Signature Fields
-            {"type": "text", "label": "Customer Name", "required": True, "order": 66},
-            {"type": "signature", "label": "Customer Signature", "required": True, "order": 67},
-            {"type": "date", "label": "Date", "required": True, "order": 68}
+            {"type": "text", "label": "Customer Name", "required": True, "order": 84},
+            {"type": "signature", "label": "Customer Signature", "required": True, "order": 85},
+            {"type": "date", "label": "Date", "required": True, "order": 86}
         ]
     }
 }
