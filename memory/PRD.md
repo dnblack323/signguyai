@@ -22,6 +22,29 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-05-21 — **Part 4: Event Store Fundraiser Money Logic & Checkout Donations (COMPLETE)**:
+  - **Backend** (`routes/stripe_connect.py`): `WebstoreCheckoutRequest` accepts optional `donation_amount`. `create_webstore_checkout` now:
+    - Server-side validates donations (rejects if `allow_checkout_donations=false`; requires preset match or `allow_custom_donation=true`).
+    - Pulls shipping/handling from `webstore.locked_settings` only — honors `shipping_handling_enabled` bundle, otherwise sums `shipping_fee` + `handling_fee`. Adds a Stripe line item.
+    - Server-computes `profit_allocation_amount` from store config (`profit_allocation_type=percentage|fixed_per_item|manual`, `fundraiser_cap_amount`). Never trusts the frontend.
+    - Stores `donation_amount`, `profit_allocation_amount`, `shipping_handling_amount`, `fundraiser_enabled` in Stripe metadata + the `payment_transactions` row.
+  - **Backend** (`services/stripe_service.py`): `finalize_webstore_stripe_checkout` passes donation/profit-allocation/shipping-handling through to `WebstoreOrderCreate`.
+  - **Backend** (`routes/webstores.py`):
+    - `WebstoreOrder` model: added `donation_amount`, `profit_allocation_amount`, `shipping_handling_amount`, `grand_total`, `fundraiser_totals_applied` fields.
+    - `WebstoreOrderCreate` accepts the same fields (with `ge=0`).
+    - New helpers: `_parse_donation_presets`, `_public_locked_settings`, `_compute_shipping_handling_total`, `compute_event_profit_allocation`, `_apply_fundraiser_totals` (idempotent flag-guarded increment).
+    - `create_webstore_order` runs server-side recomputation of profit allocation (`min(supplied, server_recomputed)`), persists donation/allocation/grand_total on the order, and rolls fundraiser totals into `total_donations`, `total_profit_allocated`, `total_raised` exactly once via the `fundraiser_totals_applied` flag.
+    - Idempotency-replay branch also back-fills fundraiser totals if a prior partial run missed them.
+    - Defensive: `base_cost = float(product.get('base_cost') or 0)` and `unit_price = … or 0` so legacy products without `base_cost` no longer 500.
+    - Public storefront sanitizer (`sanitize_webstore_for_public`) now exposes `allow_checkout_donations`, `donation_amount_options`, `allow_custom_donation`, plus parsed `donation_presets` and a pre-sanitized `locked_settings` (ONLY shipping/handling — cost/profit/split fields stripped).
+  - **Frontend** (`pages/Storefront.js`):
+    - Reads `locked_settings.shipping_handling_*` (and `shipping_fee`/`handling_fee`) to compute the server-locked S&H fee — displays it as a line in the order summary.
+    - Donation block (`data-testid=checkout-donation-block`) renders when `allow_checkout_donations=true`. Presets from `donation_presets`. Custom amount input when `allow_custom_donation=true`.
+    - Fundraiser progress bar (`data-testid=fundraiser-progress-bar`) renders ONLY when `fundraiser_enabled && show_progress_bar && fundraiser_goal_amount > 0`. Uses `total_raised / fundraiser_goal_amount`.
+    - Order summary shows shipping/handling row, donation row, and grand total (`= subtotal + S&H + donation`).
+    - Submits `donation_amount` to the checkout API.
+  - **Tested**: `/app/test_reports/iteration_157.json` → **100% backend (6/6), 100% frontend**. Idempotent fundraiser totals verified end-to-end (second call with same `idempotency_key=stripe:<sid>` does NOT double-count). Public storefront verified to NEVER leak `base_item_cost`, `production_cost`, `store_owner_profit`, `profit_split`, `profit_allocation_percentage`.
+
 - 2026-05-20 — **Fundraiser Field Structure Fix (Part 3 fix) (COMPLETE)**:
   - Fixed incorrect `SAFE_MAP` in `apply_questionnaire_answers_to_event_store`: "Fundraiser Name" now maps to `fundraiser_name` (not `event_name`), "Fundraiser Description" → `fundraiser_description`, "Fundraiser Goal Amount" → `fundraiser_goal_amount` (with float coercion). Added 11 more fundraiser mappings with proper type coercion (bool: yes/no→True/False, float: string→float).
   - Added 17 dedicated fundraiser fields to `Webstore`, `WebstoreCreate`, `WebstoreUpdate`: `fundraiser_enabled`, `fundraiser_name`, `fundraiser_description`, `fundraiser_goal_amount` (optional), `show_progress_bar`, `allow_checkout_donations`, `donation_amount_options`, `allow_custom_donation`, `profit_allocation_enabled`, `profit_allocation_type`, `profit_allocation_percentage`, `fixed_amount_per_item`, `fundraiser_cap_amount`, `include_donations_in_progress`, `include_profit_allocation_in_progress`, `show_total_raised_publicly`, `show_supporter_names`. Plus aggregate totals: `total_donations`, `total_profit_allocated`, `manual_adjustments`, `total_raised`.

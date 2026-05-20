@@ -2319,8 +2319,8 @@ async def create_webstore_order(input: WebstoreOrderCreate):
         }, {"_id": 0})
         
         unit_price = (assignment.get("price_override") if assignment and assignment.get("price_override") 
-                      else product["retail_price"])
-        base_cost = product["base_cost"]
+                      else product.get("retail_price") or 0)
+        base_cost = float(product.get("base_cost") or 0)
         
         # Validate price is non-negative
         if unit_price < 0:
