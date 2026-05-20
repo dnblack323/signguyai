@@ -22,6 +22,10 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-05-20 — **Phase 2A Step 2B — Banner Calculator Integration (COMPLETE)**:
+  - **Backend** (`routes/pricing.py`): Auto-injects 4 starter banner materials (13 oz, 18 oz, Standard Mesh, Standard Fabric) into `pricing_configuration` when banner settings are first saved and no banner materials exist yet. Prevents duplicates by checking existing `banner_material` category count.
+  - **Frontend** (`PricingCalculator.js`): Added `BANNER_TEMPLATES` + `BANNER_ADDON_DEFAULTS` constants; updated `getBannerMaterialOptions()` fallback to use correct starter keys; added `applyBannerTemplate()` function; added Quick Templates section (Small Pole Banner 18×36in, Large Pole Banner 24×48in); added Product Type text field; added Add-ons section (8 add-ons: Hems, Grommets, Brackets, Other Hardware, Pole Pockets, Design, Setup Fee, Install) with editable fees; add-ons total included in Final Price; templates auto-inject Pole Pockets add-on.
+  - **Tested**: iteration_152.json → **15/15 frontend PASS**. All banner features verified: material dropdown from DB, both templates fill correct dimensions and material, add-ons auto/manual, add-ons affect final price, non-banner calculators unaffected, Banner Wizard accessible.
 - 2026-05-18 — **Wrap Command Center — Tiny Hardening Pass**:
   - **Item 1**: `_render_html` in `services/wrap_notifications.py` now `html.escape(..., quote=True)`s every href before rendering. Verified by injecting a `"><script>` payload — output safely contains `&quot;&gt;&lt;script&gt;`.
   - **Item 2**: Already done — `WrapTabNavigation.js` line 18 already emits `data-testid={`wrap-tab-${t.id}`}` for every Wrap CC tab button. Previous iter151 "collision" was a top-level nav text-content matcher, not a missing testid.
