@@ -305,7 +305,12 @@ def _filter_items(items: Iterable[ProductivityItem], filters: Dict[str, Any]) ->
     search = (filters.get("search") or "").strip().lower()
     include_completed = filters.get("include_completed", False)
     start_dt = _parse_dt(filters.get("start_date"))
-    end_dt = _parse_dt(filters.get("end_date"))
+    # Parse end_date as end-of-day so appointments/shifts that start during the day aren't excluded
+    _raw_end = filters.get("end_date")
+    if _raw_end and len(str(_raw_end)) == 10:
+        end_dt = _parse_dt(f"{_raw_end}T23:59:59")
+    else:
+        end_dt = _parse_dt(_raw_end)
 
     filtered: List[ProductivityItem] = []
     for item in items:

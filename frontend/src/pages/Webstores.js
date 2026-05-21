@@ -220,16 +220,10 @@ export default function Webstores() {
     include_profit_allocation_in_progress: true,
     show_total_raised_publicly: false,
     show_supporter_names: '',
-    // Tenant-controlled locked settings
+    // Tenant-controlled locked settings — only store-level fees here.
+    // Per-product pricing (base_item_cost, production_cost, retail_price, etc.)
+    // lives at the product assignment level, not the store level.
     locked_settings: {
-      base_item_cost: '',
-      production_cost: '',
-      retail_price: '',
-      store_owner_profit: '',
-      profit_split: '',
-      setup_fee: '',
-      shipping_fee: '',
-      handling_fee: '',
       shipping_handling_enabled: false,
       shipping_handling_fee: '',
       shipping_handling_label: '',
@@ -528,12 +522,27 @@ export default function Webstores() {
     setCreatingStore(true);
     
     try {
-      // Clean empty strings from locked_settings before sending to backend
-      // (Pydantic Optional[float] fields reject empty strings)
+      // Clean empty strings → null for all Optional[float] and Optional[date] fields.
+      // Pydantic rejects "" for Optional[float]; sending null is correct.
+      const FLOAT_FIELDS = [
+        'fundraiser_goal_amount', 'profit_allocation_percentage',
+        'fixed_amount_per_item', 'fundraiser_cap_amount', 'fundraiser_goal',
+      ];
+      const DATE_FIELDS = [
+        'fundraiser_start_date', 'fundraiser_end_date',
+        'event_start_date', 'event_end_date',
+        'order_deadline', 'pickup_delivery_date',
+      ];
+      const sanitizeTop = (data) => {
+        const out = { ...data };
+        FLOAT_FIELDS.forEach((k) => { if (out[k] === '' || out[k] === undefined) out[k] = null; });
+        DATE_FIELDS.forEach((k) => { if (out[k] === '' || out[k] === undefined) out[k] = null; });
+        return out;
+      };
       const cleanedLockedSettings = Object.fromEntries(
         Object.entries(formData.locked_settings || {}).map(([k, v]) => [k, v === '' ? null : v])
       );
-      const payload = { ...formData, locked_settings: cleanedLockedSettings };
+      const payload = sanitizeTop({ ...formData, locked_settings: cleanedLockedSettings });
       const newStore = await createWebstore(payload);
       
       // If a logo file was selected, upload it to the new store
@@ -585,7 +594,12 @@ export default function Webstores() {
       }
     } catch (err) {
       console.error('Failed to create webstore:', err);
-      toast.error(err.response?.data?.detail || 'Failed to create webstore');
+      const rawDetail = err.response?.data?.detail;
+      const errMsg = !rawDetail ? 'Failed to create webstore'
+        : typeof rawDetail === 'string' ? rawDetail
+        : Array.isArray(rawDetail) ? rawDetail.map((e) => e.msg || JSON.stringify(e)).join('; ')
+        : 'Failed to create webstore';
+      toast.error(errMsg);
     } finally {
       setCreatingStore(false);
     }
@@ -620,15 +634,19 @@ export default function Webstores() {
       allow_late_orders: store.allow_late_orders || false,
     });
     const ls = store.locked_settings || {};
+    // Only store-level shipping/handling fields are editable here.
+    // Product-level fields (base_item_cost, production_cost, etc.) belong at product level.
     setLockedEdits({
-      base_item_cost: ls.base_item_cost ?? '',
-      production_cost: ls.production_cost ?? '',
-      retail_price: ls.retail_price ?? '',
-      store_owner_profit: ls.store_owner_profit ?? '',
-      profit_split: ls.profit_split ?? '',
-      setup_fee: ls.setup_fee ?? '',
-      shipping_fee: ls.shipping_fee ?? '',
-      handling_fee: ls.handling_fee ?? '',
+      // Keep these read if previously stored (backward compat) but don't expose edit UI
+      _legacy_base_item_cost: ls.base_item_cost,
+      _legacy_production_cost: ls.production_cost,
+      _legacy_retail_price: ls.retail_price,
+      _legacy_store_owner_profit: ls.store_owner_profit,
+      _legacy_profit_split: ls.profit_split,
+      _legacy_setup_fee: ls.setup_fee,
+      _legacy_shipping_fee: ls.shipping_fee,
+      _legacy_handling_fee: ls.handling_fee,
+      // Editable store-level fields:
       shipping_handling_enabled: ls.shipping_handling_enabled || false,
       shipping_handling_fee: ls.shipping_handling_fee ?? '',
       shipping_handling_label: ls.shipping_handling_label || '',
@@ -689,7 +707,9 @@ export default function Webstores() {
       description: '',
       category: 'other',
       base_cost: '',
-      retail_price: ''
+      retail_price: '',
+      production_cost: '',
+      setup_fee: '',
     });
     
     setIsDetailDialogOpen(true);
@@ -812,12 +832,16 @@ export default function Webstores() {
     setCreatingProduct(true);
     try {
       // Create the product with images
+      const productionCost = parseFloat(newProductData.production_cost) || 0;
+      const setupFee = parseFloat(newProductData.setup_fee) || 0;
       const newProduct = await createProduct({
         name: newProductData.name,
         description: newProductData.description,
         category: newProductData.category,
         base_cost: baseCost,
         retail_price: retailPrice,
+        ...(productionCost > 0 && { production_cost: productionCost }),
+        ...(setupFee > 0 && { setup_fee: setupFee }),
         images: productImages
       });
       
@@ -844,7 +868,9 @@ export default function Webstores() {
         description: '',
         category: 'other',
         base_cost: '',
-        retail_price: ''
+        retail_price: '',
+        production_cost: '',
+        setup_fee: '',
       });
       setProductImages([]);
       setProductImagePreviews([]);
@@ -923,13 +949,20 @@ export default function Webstores() {
   const handleSaveEventSettings = async () => {
     if (!selectedStore) return;
     setSavingEvent(true);
+    // Sanitize empty strings for optional date/string fields
+    const cleaned = Object.fromEntries(
+      Object.entries(eventEdits).map(([k, v]) => [k, v === '' ? null : v])
+    );
     try {
-      await updateWebstore(selectedStore.id, { ...eventEdits });
-      setSelectedStore({ ...selectedStore, ...eventEdits });
+      await updateWebstore(selectedStore.id, cleaned);
+      setSelectedStore({ ...selectedStore, ...cleaned });
       toast.success('Event settings saved');
       await loadData();
     } catch (err) {
-      toast.error('Failed to save event settings');
+      const rawDetail = err?.response?.data?.detail;
+      toast.error(typeof rawDetail === 'string' ? rawDetail
+        : Array.isArray(rawDetail) ? rawDetail.map((e) => e.msg || JSON.stringify(e)).join('; ')
+        : 'Failed to save event settings');
     } finally {
       setSavingEvent(false);
     }
@@ -960,20 +993,19 @@ export default function Webstores() {
   const handleSaveLockedSettings = async () => {
     if (!selectedStore) return;
     setSavingLocked(true);
-    // Convert empty string numbers to null before sending
+    // Strip legacy read-only fields and convert empty strings to null
     const cleaned = Object.fromEntries(
-      Object.entries(lockedEdits).map(([k, v]) => {
-        if (v === '') return [k, null];
-        return [k, v];
-      })
+      Object.entries(lockedEdits)
+        .filter(([k]) => !k.startsWith('_legacy_'))
+        .map(([k, v]) => [k, v === '' ? null : v])
     );
     try {
       await updateWebstore(selectedStore.id, { locked_settings: cleaned });
       setSelectedStore({ ...selectedStore, locked_settings: cleaned });
-      toast.success('Financial settings saved');
+      toast.success('Shipping settings saved');
       await loadData();
     } catch (err) {
-      toast.error('Failed to save financial settings');
+      toast.error('Failed to save shipping settings');
     } finally {
       setSavingLocked(false);
     }
@@ -1001,7 +1033,10 @@ export default function Webstores() {
       const qs = await getWebstoreQuestionnaire(selectedStore.id);
       setQuestionnaireStatus(qs);
     } catch (err) {
-      toast.error(err?.response?.data?.detail || 'Failed to send questionnaire');
+      const rawDetail = err?.response?.data?.detail;
+      toast.error(typeof rawDetail === 'string' ? rawDetail
+        : Array.isArray(rawDetail) ? rawDetail.map((e) => e.msg || JSON.stringify(e)).join('; ')
+        : 'Failed to send questionnaire');
     } finally {
       setSendingQuestionnaire(false);
     }
@@ -1023,7 +1058,10 @@ export default function Webstores() {
       const qs = await getWebstoreQuestionnaire(selectedStore.id);
       setQuestionnaireStatus(qs);
     } catch (err) {
-      toast.error(err?.response?.data?.detail || 'Failed to apply answers');
+      const rawDetail = err?.response?.data?.detail;
+      toast.error(typeof rawDetail === 'string' ? rawDetail
+        : Array.isArray(rawDetail) ? rawDetail.map((e) => e.msg || JSON.stringify(e)).join('; ')
+        : 'Failed to apply answers');
     } finally {
       setApplyingAnswers(false);
     }
@@ -1413,44 +1451,16 @@ export default function Webstores() {
                 </>
               )}
 
-              {/* Locked (Admin-Controlled) Financial Settings */}
+              {/* Store-Level Shipping & Handling Fee */}
               <Separator />
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <h4 className="font-medium text-sm">Admin-Controlled Financial Settings</h4>
-                  <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-400 border-amber-500/30">Tenant Only</Badge>
+                  <h4 className="font-medium text-sm">Shipping &amp; Handling Fee</h4>
+                  <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-400 border-amber-500/30">Store-Level</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground -mt-2">
-                  These fields are locked and cannot be changed by store owners. Leave blank to configure later.
+                  A flat per-order fee shown at checkout. Per-product costs (base cost, production, retail price) are set when adding products to this store.
                 </p>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { key: 'base_item_cost', label: 'Base Item Cost ($)' },
-                    { key: 'production_cost', label: 'Production Cost ($)' },
-                    { key: 'retail_price', label: 'Retail Price ($)' },
-                    { key: 'store_owner_profit', label: 'Owner Profit ($)' },
-                    { key: 'profit_split', label: 'Profit Split (%)' },
-                    { key: 'setup_fee', label: 'Setup Fee ($)' },
-                    { key: 'shipping_fee', label: 'Shipping Fee ($)' },
-                    { key: 'handling_fee', label: 'Handling Fee ($)' },
-                  ].map(({ key, label }) => (
-                    <div key={key} className="space-y-1">
-                      <Label className="text-xs">{label}</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={formData.locked_settings[key]}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          locked_settings: { ...formData.locked_settings, [key]: e.target.value }
-                        })}
-                        className="h-8 text-sm"
-                        data-testid={`locked-${key}-input`}
-                      />
-                    </div>
-                  ))}
-                </div>
                 <div className="flex items-center justify-between">
                   <div>
                     <Label className="text-sm">Shipping &amp; Handling Bundle</Label>
@@ -1849,6 +1859,10 @@ export default function Webstores() {
           // Reset store products when closing to prevent state leakage
           setStoreProducts([]);
           setLoadingStoreDetails(false);
+          // Reset questionnaire overlay so it never persists to next opened store
+          setShowSendDialog(false);
+          setSendEmailOverride('');
+          setSendMessageOverride('');
         }
       }}>
         <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
@@ -1979,6 +1993,32 @@ export default function Webstores() {
                                 placeholder="0.00"
                                 className="h-9"
                                 data-testid="new-product-price"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Production Cost</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={newProductData.production_cost}
+                                onChange={(e) => setNewProductData({ ...newProductData, production_cost: e.target.value })}
+                                placeholder="0.00"
+                                className="h-9"
+                                data-testid="new-product-production-cost"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Setup Fee</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={newProductData.setup_fee}
+                                onChange={(e) => setNewProductData({ ...newProductData, setup_fee: e.target.value })}
+                                placeholder="0.00"
+                                className="h-9"
+                                data-testid="new-product-setup-fee"
                               />
                             </div>
                             {/* Product Images (up to 3) */}
@@ -3026,47 +3066,21 @@ export default function Webstores() {
                     </div>
                   )}
 
-                  {/* Tenant-Controlled Financial Settings */}
+                  {/* Tenant-Controlled Shipping & Handling Fee */}
                   <Card>
                     <CardHeader className="pb-3">
                       <CardTitle className="text-base flex items-center gap-2">
                         <DollarSign className="h-4 w-4" />
-                        Admin-Controlled Financial Settings
+                        Shipping &amp; Handling Fee
                         <Badge variant="outline" className="text-xs ml-auto bg-amber-500/10 text-amber-400 border-amber-500/30">
-                          Tenant Only
+                          Store-Level
                         </Badge>
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <p className="text-xs text-muted-foreground">
-                        These values are set by your shop and cannot be modified by store owners.
+                        A flat per-order fee charged at checkout. Per-product costs (base cost, production cost, retail price, owner profit) are configured when adding products to this store.
                       </p>
-                      <div className="grid grid-cols-3 gap-3">
-                        {[
-                          { key: 'base_item_cost', label: 'Base Item Cost ($)' },
-                          { key: 'production_cost', label: 'Production Cost ($)' },
-                          { key: 'retail_price', label: 'Retail Price ($)' },
-                          { key: 'store_owner_profit', label: 'Owner Profit ($)' },
-                          { key: 'profit_split', label: 'Profit Split (%)' },
-                          { key: 'setup_fee', label: 'Setup Fee ($)' },
-                          { key: 'shipping_fee', label: 'Shipping Fee ($)' },
-                          { key: 'handling_fee', label: 'Handling Fee ($)' },
-                        ].map(({ key, label }) => (
-                          <div key={key} className="space-y-1">
-                            <Label className="text-xs">{label}</Label>
-                            <Input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={lockedEdits[key] ?? ''}
-                              onChange={(e) => setLockedEdits({ ...lockedEdits, [key]: e.target.value })}
-                              className="h-8 text-sm"
-                              data-testid={`edit-locked-${key}-input`}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                      <Separator />
                       <div className="flex items-center justify-between">
                         <div>
                           <Label className="text-sm">Shipping &amp; Handling Bundle</Label>
@@ -3117,7 +3131,7 @@ export default function Webstores() {
                           data-testid="save-locked-settings-btn"
                         >
                           {savingLocked ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                          Save Financial Settings
+                          Save Shipping Settings
                         </Button>
                       </div>
                     </CardContent>

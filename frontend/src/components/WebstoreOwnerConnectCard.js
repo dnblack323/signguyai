@@ -1,209 +1,186 @@
-import { useEffect, useState, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Badge } from '../components/ui/badge';
-import { CheckCircle2, AlertTriangle, Link2, Mail, Loader2, ExternalLink, ShieldCheck } from 'lucide-react';
-import { toast } from 'sonner';
-import { useApp } from '../context/AppContext';
-
 /**
- * Webstore-detail "Owner Stripe Connect" card. Lets a tenant invite the
- * webstore owner to onboard with Stripe Express in two ways:
- *   - Quick Connect (magic link, no SignGuy account)
- *   - Owner Portal (creates a SignGuy login + Stripe Express)
- *
- * Once the owner finishes onboarding, the card shows live status and
- * unlocks the "Activate Store" gate on the webstore.
+ * Webstore-detail "Owner Stripe Connect" card.
+ * Lets a tenant invite the store owner and tracks their Stripe onboarding status.
+ * Light-mode compatible design with proper text contrast.
  */
-export default function WebstoreOwnerConnectCard({ webstore, onChanged }) {
-  const { api } = useApp();
+import { useState, useCallback } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { CreditCard, RefreshCw, Loader2, Mail, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { useApp } from '../context/AppContext';
+import { toast } from 'sonner';
+
+export default function WebstoreOwnerConnectCard({ webstore }) {
+  const { getWebstoreOwnerOnboardingStatus, sendWebstoreOwnerOnboardingEmail } = useApp();
+
   const [status, setStatus] = useState(null);
-  const [loadingStatus, setLoadingStatus] = useState(true);
+  const [loadingStatus, setLoadingStatus] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
   const [inviteEmail, setInviteEmail] = useState(webstore?.owner_email || '');
-  const [inviteName, setInviteName] = useState(webstore?.owner_name || '');
-  const [sending, setSending] = useState(null); // 'quick' | 'portal' | null
-  const [lastLink, setLastLink] = useState(null);
 
   const fetchStatus = useCallback(async () => {
     if (!webstore?.id) return;
     setLoadingStatus(true);
     try {
-      const { data } = await api.get(`/webstore-owners/${webstore.id}/owner-status`);
-      setStatus(data);
+      const s = await getWebstoreOwnerOnboardingStatus(webstore.id);
+      setStatus(s);
     } catch (err) {
-      console.error('fetch owner-status failed', err);
+      console.error('Failed to fetch Stripe onboarding status', err);
+      setStatus(null);
     } finally {
       setLoadingStatus(false);
     }
-  }, [api, webstore?.id]);
+  }, [webstore?.id, getWebstoreOwnerOnboardingStatus]);
 
-  useEffect(() => { fetchStatus(); }, [fetchStatus]);
-
-  const sendInvite = async (variant /* 'quick' | 'portal' */) => {
+  const sendInvite = async () => {
     if (!inviteEmail.trim()) {
-      toast.error('Owner email is required');
+      toast.error('Enter an email address first');
       return;
     }
-    setSending(variant);
+    setSendingEmail(true);
     try {
-      const path = variant === 'portal'
-        ? `/webstore-owners/${webstore.id}/invite/portal`
-        : `/webstore-owners/${webstore.id}/invite/quick`;
-      const { data } = await api.post(path, {
-        email: inviteEmail.trim(),
-        name: inviteName.trim() || undefined,
-        public_url: window.location.origin,
-      });
-      toast.success(data.message || 'Invite sent');
-      setLastLink(data.invite_url);
-      onChanged?.();
+      const result = await sendWebstoreOwnerOnboardingEmail(webstore.id, inviteEmail.trim());
+      if (result?.sent) {
+        toast.success(`Onboarding email sent to ${inviteEmail}`);
+      } else {
+        toast.warning(result?.message || 'Email may not have been delivered — check your SendGrid logs');
+      }
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to send invite');
+      const rawDetail = err?.response?.data?.detail;
+      toast.error(typeof rawDetail === 'string' ? rawDetail
+        : Array.isArray(rawDetail) ? rawDetail.map((e) => e.msg || JSON.stringify(e)).join('; ')
+        : 'Failed to send invite email');
     } finally {
-      setSending(null);
+      setSendingEmail(false);
     }
   };
 
-  const copyLink = () => {
-    if (!lastLink) return;
-    navigator.clipboard.writeText(lastLink);
-    toast.success('Link copied');
+  // Status display helpers
+  const connected = status?.stripe_onboarding_complete;
+  const onboardingPending = status?.stripe_account_id && !connected;
+  const notConnected = !status || (!status.stripe_account_id && !connected);
+
+  const StatusBadge = () => {
+    if (loadingStatus) return (
+      <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+        <Loader2 className="h-3 w-3 animate-spin" /> Checking...
+      </Badge>
+    );
+    if (connected) return (
+      <Badge className="flex items-center gap-1 text-xs bg-emerald-100 text-emerald-700 border border-emerald-200">
+        <CheckCircle2 className="h-3 w-3" /> Connected
+      </Badge>
+    );
+    if (onboardingPending) return (
+      <Badge className="flex items-center gap-1 text-xs bg-amber-100 text-amber-700 border border-amber-200">
+        <Clock className="h-3 w-3" /> Onboarding Pending
+      </Badge>
+    );
+    return (
+      <Badge variant="outline" className="flex items-center gap-1 text-xs text-gray-500 border-gray-300">
+        <AlertCircle className="h-3 w-3" /> Not Connected
+      </Badge>
+    );
   };
 
-  const ready = status?.ready_to_activate;
-  const acctId = status?.owner_stripe_account_id;
-
   return (
-    <Card className="bg-[#111826] border-[#1E293B]" data-testid="owner-connect-card">
+    <Card className="border border-border bg-card">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between gap-3">
-          <CardTitle className="text-white flex items-center gap-2 text-base">
-            <ShieldCheck className="h-4 w-4 text-[#2F8BFB]" />
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-base flex items-center gap-2 text-card-foreground">
+            <CreditCard className="h-4 w-4 text-primary" />
             Owner Stripe Connection
           </CardTitle>
-          {loadingStatus ? (
-            <Badge variant="outline" className="text-slate-400 border-slate-600">Checking…</Badge>
-          ) : ready ? (
-            <Badge className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-              <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Connected
-            </Badge>
-          ) : acctId ? (
-            <Badge className="bg-amber-500/15 text-amber-300 border border-amber-500/30">
-              <AlertTriangle className="h-3.5 w-3.5 mr-1" /> Pending Stripe verification
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="text-slate-400 border-slate-600">Not connected</Badge>
-          )}
+          <div className="flex items-center gap-2">
+            <StatusBadge />
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={fetchStatus}
+              disabled={loadingStatus}
+              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+              title="Refresh status"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${loadingStatus ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {ready ? (
-          <div className="text-sm text-slate-300 space-y-2">
-            <p>
-              <strong className="text-white">{status?.owner_name || 'Owner'}</strong> is fully onboarded
-              with Stripe. Their commission will be auto-deposited on every completed order — no manual payout
-              needed.
-            </p>
-            <p className="text-slate-400 text-xs">
-              Stripe account: <span className="font-mono text-slate-300">{acctId}</span>
-            </p>
-            <div className="pt-1">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={fetchStatus}
-                className="text-slate-300 border-slate-600"
-                data-testid="owner-refresh-status-btn"
-              >
-                Refresh status
-              </Button>
+        <p className="text-sm text-muted-foreground">
+          The store owner must connect a Stripe account to receive payouts. Send them an onboarding link via email.
+        </p>
+
+        {connected && status?.stripe_account_id && (
+          <div className="flex items-start gap-2 rounded-md bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-700">
+            <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-medium">Stripe account connected</p>
+              <p className="text-xs text-emerald-600 mt-0.5 font-mono">{status.stripe_account_id}</p>
             </div>
           </div>
-        ) : (
-          <>
-            <div className="bg-amber-500/5 border border-amber-500/20 rounded-md p-3 text-sm text-amber-100">
-              <p className="font-medium text-amber-200 mb-1">Store cannot go Active yet.</p>
-              <p className="text-amber-100/80">
-                {acctId
-                  ? 'Owner started onboarding but hasn\'t finished Stripe identity / bank verification.'
-                  : 'Send the owner a Stripe connect link below. They\'ll get paid automatically once an order completes.'}
-              </p>
+        )}
+
+        {onboardingPending && (
+          <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-700">
+            <Clock className="h-4 w-4 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-medium">Onboarding link sent — awaiting owner completion</p>
+              <p className="text-xs text-amber-600 mt-0.5">Resend the email if the owner hasn't finished setup.</p>
             </div>
+          </div>
+        )}
 
-            <div className="grid sm:grid-cols-2 gap-3">
-              <div>
-                <Label className="text-slate-200 text-xs">Owner Email</Label>
-                <Input
-                  type="email"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  placeholder="owner@example.com"
-                  className="mt-1"
-                  data-testid="owner-invite-email-input"
-                />
-              </div>
-              <div>
-                <Label className="text-slate-200 text-xs">Owner Name (optional)</Label>
-                <Input
-                  value={inviteName}
-                  onChange={(e) => setInviteName(e.target.value)}
-                  placeholder="Their full name"
-                  className="mt-1"
-                  data-testid="owner-invite-name-input"
-                />
-              </div>
-            </div>
+        {notConnected && !loadingStatus && (
+          <div className="flex items-start gap-2 rounded-md bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700">
+            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+            <p>Click "Check Status" to load the current Stripe onboarding state, or send the onboarding email below.</p>
+          </div>
+        )}
 
-            <div className="grid sm:grid-cols-2 gap-2">
-              <Button
-                onClick={() => sendInvite('quick')}
-                disabled={sending !== null || !inviteEmail.trim()}
-                className="bg-[#2F8BFB] hover:bg-[#2F8BFB]/90"
-                data-testid="owner-invite-quick-btn"
-              >
-                {sending === 'quick' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
-                Send Quick Connect Link
-              </Button>
-              <Button
-                onClick={() => sendInvite('portal')}
-                disabled={sending !== null || !inviteEmail.trim()}
-                variant="outline"
-                className="text-slate-200 border-slate-600 hover:bg-slate-800"
-                data-testid="owner-invite-portal-btn"
-              >
-                {sending === 'portal' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ExternalLink className="h-4 w-4 mr-2" />}
-                Create Owner Portal
-              </Button>
-            </div>
+        {/* Invite / resend email */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium text-foreground">
+            {connected ? 'Resend Onboarding Email' : 'Invite Store Owner'}
+          </Label>
+          <div className="flex gap-2">
+            <Input
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder={webstore?.owner_email || 'owner@example.com'}
+              className="flex-1"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={sendInvite}
+              disabled={sendingEmail}
+              data-testid="send-stripe-invite-btn"
+              className="shrink-0"
+            >
+              {sendingEmail
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <><Mail className="h-4 w-4 mr-1.5" /> Send</>}
+            </Button>
+          </div>
+        </div>
 
-            <p className="text-xs text-slate-400">
-              <strong className="text-slate-300">Quick:</strong> No login needed — owner clicks the link, connects Stripe, gets paid.{' '}
-              <strong className="text-slate-300">Portal:</strong> Owner creates a SignGuy account they can log into to track commissions.
-            </p>
-
-            {lastLink && (
-              <div className="border border-slate-700 rounded-md p-2 flex items-center gap-2 text-xs">
-                <Link2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                <span className="text-slate-400 truncate flex-1" title={lastLink}>{lastLink}</span>
-                <Button size="sm" variant="ghost" onClick={copyLink} className="h-7 text-slate-300">Copy</Button>
-              </div>
-            )}
-
-            <div className="pt-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={fetchStatus}
-                className="text-slate-400 hover:text-white"
-                data-testid="owner-refresh-status-btn"
-              >
-                Refresh status
-              </Button>
-            </div>
-          </>
+        {!status && !loadingStatus && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={fetchStatus}
+            className="w-full"
+            data-testid="check-stripe-status-btn"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Check Status
+          </Button>
         )}
       </CardContent>
     </Card>
