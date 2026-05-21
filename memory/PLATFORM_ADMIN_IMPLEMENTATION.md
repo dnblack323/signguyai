@@ -95,20 +95,20 @@ python promote_to_platform_admin.py --list
 
 ### Login as Platform Admin:
 ```bash
-curl -X POST "https://ai-signage-platform.preview.emergentagent.com/api/auth/login" \
+curl -X POST "https://sign-shop-saas.preview.emergentagent.com/api/auth/login" \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@example.com","password":"password123"}'
 ```
 
 ### Get Tenant List:
 ```bash
-curl -X GET "https://ai-signage-platform.preview.emergentagent.com/api/platform-admin/tenants" \
+curl -X GET "https://sign-shop-saas.preview.emergentagent.com/api/platform-admin/tenants" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 ### Start Impersonation:
 ```bash
-curl -X POST "https://ai-signage-platform.preview.emergentagent.com/api/platform-admin/impersonate" \
+curl -X POST "https://sign-shop-saas.preview.emergentagent.com/api/platform-admin/impersonate" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"target_user_id":"USER_ID_HERE"}'

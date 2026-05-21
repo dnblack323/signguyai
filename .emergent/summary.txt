@@ -1,14 +1,14 @@
-<analysis>**original_problem_statement**: A full-stack SaaS app for sign shops featuring customer management, quoting, invoicing, job tracking, AI tools, Stripe integration, and webstores. Recent goals focus on overhauling the Pricing Foundation and Pricing Calculator (currently focused on the Banners category integration) and managing Webstore types / Questionnaires.
+<analysis>**original_problem_statement**: A full-stack SaaS app for sign shops featuring customer management, quoting, invoicing, job tracking, AI tools, Stripe integration, and webstores. The primary focus is fully building out a fourth Webstore type: Event Store, integrating it with an existing detailed  questionnaire, implementing locked financial settings, and wiring up robust fundraiser, donation, and profit-allocation logic during checkout. PRODUCT REQUIREMENTS: Event stores must support optional fundraiser tracking, checkout donations, locked settings, safe mapping from questionnaires, and accurate Stripe tracking without double-counting on webhooks. 
 
 **User's preferred language**: English (INSTRUCT next agent to respond in English only)
 
-**what currently exists?**: The app features a heavily updated Pricing Foundation UI. For the main quote tool (), the Banners section has been completely overhauled to use dynamic active materials from the DB, templates (Small/Large Pole Banners), Add-ons, and a comprehensive Compare Methods UI (calculating Price Per Sq Ft vs. Detailed Material + Labor). Additionally, Webstore types (business, fundraiser, creator) exist, and a comprehensive 69-question Event Web Store Setup Questionnaire template is fully defined in the backend models.
+**what currently exists?**: The app currently supports , , , and  Webstore types. The Event Store foundation is now 100% fully implemented and polished, including fundraiser money logic, checkout donations, Stripe webhooks, a Customer Portal Webstores tab for store owners, admin/owner onboarding checklists, a top supporters display, and frontend sharing capabilities.
 
 **Last working item**: 
-    - Last item agent was working: Answering the user's inquiry regarding the Event Webstore Questionnaire. The agent confirmed the  template exists in  but noted that an actual  webstore type is not yet defined in the codebase.
-    - Status: USER VERIFICATION PENDING
-    - Agent Testing Done: Y (Testing agent was heavily used for the Pricing Calculator implementation)
-    - Which testing method agent to use? NA (Waiting on user response)
+    - Last item agent was working: Implementing a Share this fundraiser button on the Storefront for Event Stores using the native  API (with a clipboard fallback).
+    - Status: FINISHED
+    - Agent Testing Done: Y (via screenshot tool)
+    - Which testing method agent to use? N/A (Task is fully complete and tested)
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:  
@@ -31,11 +31,11 @@
 
 **In progress Task List**: 
   - Task 1: Add Template Selector to Wrap Command Center Files Tab (P1)
-     - Where to resume:  (Postponed by user in favor of the pricing overhaul).
+     - Where to resume:  
      - What will be achieved with this? Allows users to quickly attach pre-filled templates to a wrap job.
      - Status: BLOCKED
      - Should Test frontend/backend/both after fix? Both
-     - Blocked on something: Currently paused for Pricing overhaul.
+     - Blocked on something: Currently paused by user for Pricing/Webstore overhaul.
   - Task 2: Verify AI Document Creator saves to Library (P1)
      - Where to resume: .
      - What will be achieved with this? Ensures AI-generated documents insert properly into the DB.
@@ -45,7 +45,6 @@
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
-    - P1: Build  Webstore type and connect the  questionnaire to the webstore onboarding flow (Pending user confirmation from recent chat).
     - P1: Yard Signs Pricing Setup and Calculator Integration (Next category after Banners).
     - P1: Rigid Signs, Digital Print, Cut Vinyl, Vehicle Graphics Category Integrations.
     - P3: Platform Admin Phase 2 Extensions (Internal Notes, User invite flow).
@@ -55,71 +54,78 @@
     - P4: Meta Messenger Phase 2.
 
 **Completed work in this session**
-- Phase 2A Step 2B — Banner Calculator Integration: Replaced hardcoded PRINT_MATERIALS with active DB materials, added Templates and Add-ons in  (DONE)
-- Implemented backend injection to seed starter Banner materials gracefully without duplicates (DONE)
-- Phase 2A Compare Methods for Banners: Added side-by-side comparison for Price Per Sq Ft vs. Detailed Material + Labor, with recommendation and manual override logic (DONE)
-- Verified existence and shared structure of  Questionnaire with the user (DONE)
+- Part 4: Event Store fundraiser money logic, checkout donations, profit allocation, server-side Stripe webhook total tracking (, ) (DONE)
+- Added Webstores tab inside the existing customer portal for assigned webstore owners, featuring read-only financial summaries and Stripe onboarding status (DONE)
+- Event Store Polish Pass: Top Donors/Supporters strip, customer portal notifications on owner assignment, and setup checklists for both Admin and Owners (DONE)
+- Added Share this fundraiser button on Storefront (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-None. All current scope tasks were successfully completed.
+None.
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork:  script failing.
-  - Recurrence count: 0 (Issue bypassed by graceful backend injection logic in this session).
+  - Issue recurrence in previous fork: None reported. 
+  - Recurrence count: 0
   - Status: RESOLVED
 
 **Code Architecture**
-- Frontend: React + Shadcn UI.  handles global shop pricing configs.  handles quote generation logic.  handles forms.
-- Backend: FastAPI.  contains monolithic pricing calculation endpoints.  stores form templates.
+- Frontend: React + Shadcn UI.  for admin control.  for public catalog.  and  for customer portal. 
+- Backend: FastAPI.  is the massive controller for CRUD + models.  manages Stripe checkout sessions and webhooks.  for customer portal scoped endpoints.
 
 **Key Technical Concepts**
-- **Pricing Overhaul Structure:** Materials Library strictly stores *shop costs*. Category Settings strictly store the *retail sell rates*. Compare Methods calculates Price/Sqft vs Detailed Material+Labor (which uses cost * waste + labor minutes * shop rate + add-ons). Shop rate already includes overhead.
-- **Webstores & Questionnaires:** Webstores are tenant storefronts with Stripe checkout. Questionnaires are comprehensive JSON-based templates that are rendered for client intake.
+- **Webstore Models:** Models are inline in . 
+- **Locked Settings:** The  dictionary is the *absolute source of truth* for fees, costs, retail prices, shipping fees, and profit splits. Store owners cannot overwrite these values.
+- **Idempotency:** Strict idempotency is maintained in  order creation and Stripe webhook processing to prevent double-counting totals.
 
 **key DB schema**
-  - : Global shop pricing configurations.
-  - : Material records.
-  - : Stores user-submitted questionnaire responses based on templates.
+  - : Stores configurations (, ,  fields).
+  - : Handles order logic with , , and idempotency keys.
+  - : Stores portal notifications (used for store owner assignment alerts).
 
 **changes in tech stack**
   - None
 
 **All files of reference** 
-  -  (Updated heavily for Banners and Compare Methods)
-  -  (Updated to gracefully inject missing starter banner materials)
-  -  (Contains  template)
-  -  (Contains  enum)
+  - 
+  - 
+  - 
+  -  
+  - 
+  -  
 
 **Areas that need refactoring**: 
--  is over 3,700 lines. Use precise targeted  edits rather than trying to overwrite large chunks.
+-  is extremely long. **DO NOT refactor it.** Use targeted .
 
 **key api endpoints**
 - 
 - 
+- 
+- 
 
 **Critical Info for New Agent** 
-- **DO NOT Refactor:** The user explicitly warned *against* broad refactoring of  right now. 
-- **User Focus:** The Banners section is done for now. The user was about to move to Yard Signs, but suddenly shifted to asking about the **Event Webstore Questionnaire**. 
-- The 69-question  template exists in . However, an  webstore type is NOT yet present in the  enum (only business, fundraiser, creator exist). 
-- Wait for the user to confirm what they want to do with this questionnaire (e.g., build the actual  webstore type) before writing code. DO NOT jump back to Yard Signs until the Webstore inquiry is resolved.
+- **DO NOT Refactor:** The user explicitly warned against rebuilding the questionnaire or changing existing webstore behaviors. 
+- **Locked Settings:** Ensure any new backend webstore calculation pulls from  rather than trusting frontend input for costs/fees/payout splits.
+- The Event Store and Webstore components requested by the user are fully built and tested successfully. The agent should ask the user to choose the next task from the backlog (likely Yard Signs Pricing Setup).
 
 **documents and test reports created in this job** 
+  -  (Backend/Frontend Checkout Tests)
+  -  (Customer Portal Webstores Test)
+  -  (Polish features test)
   - 
-  - 
-  -  (Updated with Banners implementation progress)
 
 **Last 10 User Messages and any pending HUMAN messages** 
- 1. User: Please use ask_human tool and confirm your plan now. (DONE)
- 2. User: Proceed, but adjust the plan slightly... Make Banner materials available... Update PricingCalculator.js for the Banner section only... Keep existing calculations intact (DONE)
- 3. User: Yes, add the Compare Methods view for Banners now, then we will move to Yard Signs. Keep this focused only on Banners... Do not work on Yard Signs yet. (DONE)
- 4. User: DID WE CREATE AN EVENT WEBSTORE? (DONE - Agent checked and explained no 'event' webstore type exists, only business/fundraiser/creator) 
- 5. User: DID WE CREATE THE EVENT WEBSORE QUESTIONARE? I NEED A WEBSTORE TYPE FOR EVENTS LIKE BUSINESS, FUNDRAISER AND CREATOR. THOSE 3 ALREADY EXIST, CORRECT? (DONE)
- 6. User: WE DEFINETLY CREATED A VERY LONG DETAILED EVENT WEBSTORE QUESTIONARE.. U CONFIRMED IT IN AN EARLIER CONVERSATION. 
- *Pending*: The agent confirmed the template exists in  and provided the breakdown. The agent asked the user what they want to build next (the  webstore type, or linking the questionnaire to onboarding). Waiting on user response.
+ 1. User: Confirmed the plan to implement Part 4 (Fundraiser checkout) and requested testing agent verification.
+ 2. Agent: Executed Part 4, tested successfully (Iteration 157).
+ 3. User: Requested Webstores tab inside the existing customer portal for assigned webstore owners.
+ 4. Agent: Implemented portal backend routes and frontend tabs, tested successfully (Iteration 158).
+ 5. User: Requested Event Store polish pass (Supporters strip, assignment notifications, admin/owner checklists).
+ 6. Agent: Implemented polish features, tested successfully (Iteration 159).
+ 7. User: Requested Share this fundraiser button on Storefront.
+ 8. Agent: Implemented, tested via screenshot tool, and finished the task cleanly.
+ *Pending*: None. Await user instruction or prompt user to select the next task from the backlog.
 
 **Project Health Check:**
-- Broken: None
-- Mocked: Meta OAuth.
+Broken: None.
+Mocked: Meta OAuth.
 
 **3rd Party Integrations** 
 - Stripe (Payments) — requires User API Key
@@ -127,25 +133,17 @@ None. All current scope tasks were successfully completed.
 - OpenAI GPT-4o-mini & GPT-4o — uses Emergent LLM Key
 
 **Testing status**
-  - Testing agent used after significant changes: YES (iteration 152 and 153 for Banner additions and Compare Methods)
+  - Testing agent used after significant changes: YES (Iterations 157, 158, 159). 100% pass rates on final runs.
   - Troubleshoot agent used after agent stuck in loop: NO
   - Test files created: None
   - Known regressions: None
 
 **Credentials to test flow:**
 - Admin/Tenant:  / 
+- Webstore Owner Customer Portal:  / 
 
 **What agent forgot to execute**
-- The agent executed all explicit requirements flawlessly. They correctly stopped execution to clarify the Event Webstore request before writing unprompted code.
+- N/A. All requested tasks within the session were cleanly executed and thoroughly tested. 
 
 **Debugging checklist for current issue**
-    Issue: User inquiry regarding the Event Webstore Questionnaire and Event Webstore Type
-    
-    Backend files to check: 
-    -  (Contains the  template)
-    -  (Contains the  enum where  might need to be added)
-  
-    Checklist:
-    1. Await user instructions on whether they want to add  as a 4th Webstore Type.
-    2. If yes, add  to  in .
-    3. Update frontend logic ( or related creation modala) to support selecting Event as a store type and routing them to the existing  questionnaire.</analysis>
+    Issue: None. Tasks are complete. Agent should prompt the user to transition to the Upcoming Tasks (e.g., Yard Signs Pricing Setup).</analysis>
