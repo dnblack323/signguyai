@@ -22,6 +22,13 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-05-21 — **Event Store P0 Bug Fixes (COMPLETE)**:
+  - **Issue 1**: Product-level fields (`base_item_cost`, `production_cost`, etc.) removed from store create form and Settings financial card. Store forms now only show per-order Shipping & Handling Fee. Product-level pricing moved to Products tab product creation form.
+  - **Issue 2**: Fixed black screen on Event Store create — `handleCreateStore` sanitizes all `Optional[float]` and `Optional[date]` fields to `null` (not empty string) before POST. Fixed `toast.error(array)` to safely stringify Pydantic 422 detail arrays.
+  - **Issue 3**: Fixed questionnaire tab black screen — `showSendDialog` now resets on detail dialog close.
+  - **Issue 4**: `WebstoreOwnerConnectCard` rewritten with light-mode CSS variables replacing hardcoded dark colors.
+  - Tested: iteration_161.json → 100% (14/14).
+
 - 2026-05-22 — **Storefront "Share this fundraiser" button (COMPLETE)**:
   - Frontend-only addition in `Storefront.js`. Gated by `store_type==='event' && fundraiser_enabled` — never appears on business/creator/legacy-fundraiser stores.
   - Placed below the fundraiser progress bar, above the supporters strip. `data-testid="fundraiser-share-button"`.

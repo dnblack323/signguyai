@@ -373,16 +373,8 @@ export default function Webstores() {
       include_profit_allocation_in_progress: true,
       show_total_raised_publicly: false,
       show_supporter_names: '',
-      // Locked settings
+      // Locked settings — only store-level shipping/handling
       locked_settings: {
-        base_item_cost: '',
-        production_cost: '',
-        retail_price: '',
-        store_owner_profit: '',
-        profit_split: '',
-        setup_fee: '',
-        shipping_fee: '',
-        handling_fee: '',
         shipping_handling_enabled: false,
         shipping_handling_fee: '',
         shipping_handling_label: '',
