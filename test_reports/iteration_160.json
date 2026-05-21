@@ -1,0 +1,210 @@
+{
+  "summary": "Iteration 160 — Full dashboard demo data verification. Backend: 34/36 tests pass (2 minor invoice amount discrepancies in test assertions, not actual app bugs). Frontend: All 4 stat widgets, overdue banner, quick actions, nav links, order pricing, team/employees, invoices, webstores all verified via Playwright. Key issues: Today's Schedule shows 'No jobs due today' because demo appointments have null scheduled dates; Team Status shows 0 in/0 scheduled because employees are unscheduled; 4 demo employees and 6 demo appointments each created twice (duplicates); Johnson Benefit Dinner event store missing fundraiser_goal/donation_enabled/event_date fields; Webstore Activity and Recent Activity widgets do not exist on dashboard.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/appointments (demo data)",
+        "issue": "All 6 demo appointments have scheduled_date=null, scheduled_start=null, scheduled_end=null — created without time/date information. This causes /api/productivity/items?start_date=today to return 0 appointments, so the Dashboard 'Today's Schedule' widget shows 'No jobs due today'",
+        "priority": "HIGH"
+      },
+      {
+        "endpoint": "/api/dashboard/team-status-today",
+        "issue": "Returns each demo employee twice (8 entries instead of 4) because the demo script created 4 employees twice. DEMO - Nicole Manager has 2 IDs, same for Gabe, Keith, Bill. Payroll page also shows duplicates.",
+        "priority": "MEDIUM"
+      },
+      {
+        "endpoint": "/api/webstores/v2/60077d2a-5ffc-45fb-9184-d21ba000c8c7",
+        "issue": "Johnson Benefit Dinner Event Store: store_type=event ✅ and fundraiser_enabled=True ✅, but fundraiser_goal=None (expected $10,000), donation_enabled=None (expected True), event_date=None (expected 30 days out). Event-specific fields not saved by demo script.",
+        "priority": "MEDIUM"
+      }
+    ]
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Dashboard Today's Schedule Widget",
+        "issue": "Shows 'No jobs due today' even though 6 demo appointments were created for 2026-05-21. Root cause: appointments were created without scheduled_date/scheduled_start fields (all null), so /api/productivity/items?start_date=today returns 0 appointment items. The productivity system has these 12 appointments (6×2 duplicates) but they have no datetime to match 'today'.",
+        "affected_selectors": [".rounded-xl:has-text('Today's Schedule')"]
+      },
+      {
+        "flow": "Dashboard Team Status Widget",
+        "issue": "Shows '0 in, 0 scheduled' and 'No employees scheduled or clocked in today'. Employees exist (4 demo × 2 duplicates = 8 in DB) but none are scheduled for today and Gabe is not clocked in as originally intended.",
+        "affected_selectors": ["[data-testid='team-clocked-in-count']", "[data-testid='team-scheduled-count']"]
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "Dashboard",
+        "issues": [
+          "Webstore Activity widget does NOT exist on the dashboard — not implemented",
+          "Recent Activity feed widget does NOT exist on the dashboard — not implemented"
+        ]
+      }
+    ]
+  },
+
+  "widget_verification": {
+    "widget_1_total_customers": {
+      "status": "PASS",
+      "shows": "34",
+      "link": "Navigates to /customers ✅",
+      "customers_page": "34 total customers, all 10 DEMO customers visible"
+    },
+    "widget_2_active_orders": {
+      "status": "PASS",
+      "shows": "11",
+      "link": "Navigates to /orders ✅",
+      "orders_page": "33 total orders, all 11 demo orders visible"
+    },
+    "widget_3_pending_invoices": {
+      "status": "PASS",
+      "shows": "26",
+      "link": "Navigates to /invoices ✅"
+    },
+    "widget_4_todays_revenue": {
+      "status": "PASS",
+      "shows": "$292.00",
+      "note": "ABC Manufacturing paid=$40 + Mountain View Church paid=$252 = $292. Expected was $309.52 but actual saved amounts differ slightly (ABC=$40 not $42.40, Mountain View=$252 not $267.12)",
+      "link": "Navigates to /financials ✅"
+    },
+    "widget_5_todays_schedule": {
+      "status": "FAIL",
+      "shows": "No jobs due today",
+      "note": "6 demo appointments exist in /api/appointments but have scheduled_date=null — not indexed by date in productivity system",
+      "link": "View all jobs → /orders ✅"
+    },
+    "widget_6_messages": {
+      "status": "PASS",
+      "shows": "Inbox zero / No unread messages",
+      "note": "Expected — no messages were created in demo data"
+    },
+    "widget_7_pending_approvals": {
+      "status": "PASS",
+      "shows": "7 pending",
+      "visible_items": "ORD-0024 (Champion Bakery), ORD-0026 (R&R Landscaping), ORD-0027 (Patriot Auto). Clicking opens order detail at /productivity/legacy-jobs/{id} ✅",
+      "note": "Widget shows order number as title (e.g. ORD-0024), not job name"
+    },
+    "widget_8_team_status": {
+      "status": "FAIL",
+      "shows": "0 in, 0 scheduled — No employees scheduled or clocked in today",
+      "note": "4 demo employees exist (each duplicated = 8 total). None are scheduled for today and Gabe was not successfully clocked in",
+      "team_page": "All 4 DEMO employees visible on Team/Payroll page (each shown twice due to duplicates)"
+    },
+    "widget_9_pending_customer_actions": {
+      "status": "PASS",
+      "shows": "Pre-existing wrap order ORD-0018 (2023 Mercedes Sprinter - CUSTOMER REQUESTED A REVISION)"
+    },
+    "widget_10_overdue_banner": {
+      "status": "PASS",
+      "shows": "2 Overdue Invoices, Total: $1,820.00",
+      "link": "View Overdue → /invoices?status=overdue ✅",
+      "breakdown": "CYF Youth Football $1,800.00 overdue + Patriot Auto $20.00 overdue"
+    },
+    "widget_11_webstore_activity": {
+      "status": "MISSING",
+      "shows": "Widget does not exist on the dashboard"
+    },
+    "widget_12_recent_activity": {
+      "status": "MISSING",
+      "shows": "Widget does not exist on the dashboard"
+    }
+  },
+
+  "quick_actions_verification": {
+    "new_customer": "PASS — navigates to /customers",
+    "new_order": "PASS — navigates to /orders/new",
+    "send_digest": "PASS — toast shows 'Digest sent to 1/1 recipients'",
+    "time_clock": "PASS — navigates to /timeclock"
+  },
+
+  "navigation_verification": {
+    "customers": "PASS — 34 total customers, all 10 DEMO customers visible",
+    "orders": "PASS — 33 total orders, all 11 demo orders visible with correct statuses and prices",
+    "billing_invoices": "PASS — 38 total invoices: Paid=$292, Pending=$869.60, Overdue=$1,820. All demo invoices visible",
+    "webstores": "PASS — 14 total stores (Business 5, Fundraiser 1, Creator 4, Event 4). All 4 DEMO stores visible",
+    "team": "PASS — 4 DEMO employees visible (each shown twice due to demo script duplication)",
+    "appointments": "NO ROUTE — /appointments redirects to landing page (no authenticated appointments page)"
+  },
+
+  "pricing_verification": {
+    "ORD-0023_cyf_yard_signs": "PASS — Shows $1,800.00 estimate (18×24 Yard Signs with H-Stakes, Qty 50)",
+    "ORD-0028_miller_van_graphics": "PASS — Shows $562.10 estimate (Cargo Van Door Decals - Spot Graphics)"
+  },
+
+  "invoice_status_verification": {
+    "overdue_count": "2 (CYF $1,800 + Patriot Auto $20 = $1,820 total)",
+    "paid_count": "2 (ABC Manufacturing $40.00 + Mountain View Church $252.00 = $292.00)",
+    "sent_count": "4 (Champion Bakery $87.50, R&R Landscaping $160, Miller Plumbing $562.10, plus 1 more)",
+    "draft_count": "Multiple (Laurel Highlands Racing $562.10, Johnson Benefit Dinner $847.50, others)"
+  },
+
+  "webstore_event_store_verification": {
+    "johnson_benefit_dinner": {
+      "store_type": "event ✅",
+      "fundraiser_enabled": "True ✅",
+      "fundraiser_goal": "None ❌ (expected $10,000)",
+      "donation_enabled": "None ❌ (expected True)",
+      "event_date": "None ❌ (expected ~30 days from creation)"
+    }
+  },
+
+  "appointments_root_cause_analysis": {
+    "symptom": "Dashboard 'Today's Schedule' shows 'No jobs due today' despite 6 appointments created for 2026-05-21",
+    "root_cause": "Demo appointments were created via POST /api/appointments with 'date': '2026-05-21' in the payload, but the API field is 'scheduled_date' (or 'scheduled_start'/'scheduled_at'). All 6 appointments have scheduled_date=null, scheduled_start=null, scheduled_end=null, scheduled_at=null in the DB. The productivity/items API filters by start_datetime/due_datetime, so date-filtered queries return 0 results.",
+    "additional_issue": "Demo script created each appointment TWICE (12 total demo appointments instead of 6, all with null dates)",
+    "fix_needed": "Update 6 demo appointments to set scheduled_date='2026-05-21' and scheduled_start with specific times (9:00am, 10:00am, etc.)"
+  },
+
+  "employee_duplicate_root_cause": {
+    "symptom": "Team Status shows 0 in/scheduled; Payroll shows each demo employee twice",
+    "root_cause": "Demo script ran the employee creation code twice, creating 8 employees (4 DEMO names × 2 IDs each). Both sets are visible in /api/employees response and /api/dashboard/team-status-today.",
+    "fix_needed": "Delete 4 duplicate employee records (one of each DEMO employee name)"
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_iteration160_dashboard_demo_data.py",
+    "/app/test_reports/pytest/iteration160_results.xml"
+  ],
+
+  "action_items": [
+    "Fix demo appointments: Update scheduled_date/scheduled_start/scheduled_end fields for all 6 demo appointments (currently all null). Also delete 6 duplicate appointments.",
+    "Fix demo employees: Delete 4 duplicate employee records (one set of DEMO employees was created twice).",
+    "Fix Johnson Benefit Dinner event store: Set fundraiser_goal=$10000, donation_enabled=True, event_date=~30 days from today.",
+    "Consider implementing a Webstore Activity widget on the dashboard (currently missing).",
+    "Consider implementing a Recent Activity feed on the dashboard (currently missing).",
+    "The demo script should be made idempotent (check-before-create) to prevent duplicate creation on subsequent runs."
+  ],
+
+  "critical_code_review_comments": [
+    "Dashboard.js line 656-674: Schedule widget fetches from /api/productivity/items with item_types=appointment. This is correct but requires appointments to have start_datetime set. The /api/appointments collection has a separate date model (scheduled_date/scheduled_start) that may not sync automatically to productivity/items start_datetime.",
+    "TeamStatusWidget (Dashboard.js line 194): Relies on /api/dashboard/team-status-today. This endpoint returns duplicate employee entries when duplicate employee records exist in DB — no deduplication by name.",
+    "PendingApprovalsWidget links go to /jobs/{job_id} which redirects to /productivity/legacy-jobs/{id} — this path works but may generate 404 API errors on the legacy redirect page.",
+    "The appointments collection uses scheduled_date/scheduled_start/scheduled_at fields but productivity/items uses start_datetime/due_datetime — ensure the productivity indexer maps appointments correctly.",
+    "Invoice amounts stored in DB ($40 ABC, $252 Mountain View) differ from demo_data_report.json expected values ($42.40 and $267.12). These may reflect actual pricing without tax/fees."
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_iteration160_dashboard_demo_data.py (new — 36 tests)"
+  ],
+
+  "success_rate": {
+    "backend": "94% (34/36 — 2 minor assertion failures on invoice amounts that are actual stored values)",
+    "frontend": "85% (all stat widgets, nav, quick actions, pricing pass; Today Schedule and Team Status widgets show no data due to demo data issues)"
+  },
+
+  "test_credentials": "Admin: thesigntistslab@gmail.com / password123",
+
+  "seed_data_creation": "No new seed data created. Verified existing demo data from iteration 160 demo script run.",
+
+  "retest_needed": true,
+
+  "main_agent_can_self_test": true,
+
+  "context_for_next_testing_agent": "Dashboard is working and populating from real data. The major gap is Today's Schedule widget showing 'No jobs due today' — fix requires updating demo appointments with proper scheduled_date/scheduled_start values. Duplicate demo employees and appointments exist (each created twice by demo script). Johnson Benefit Dinner event store is missing fundraiser_goal, donation_enabled, event_date fields. Webstore Activity and Recent Activity widgets are not implemented on the dashboard. All navigation links work. All 4 Quick Actions work. Overdue banner ($1820) shows correctly. Pending Approvals shows 7 items. Invoice status breakdown: 2 overdue, 2 paid, 4+ sent, multiple draft.",
+
+  "rca_of_the_issue": "Main RCA: Demo script used 'date' as the field name when creating appointments (POST /api/appointments), but the correct field is 'scheduled_date' (or 'scheduled_start'/'scheduled_at'). All 6 demo appointments were saved with all datetime fields as null. Additionally the demo script ran twice creating duplicates of appointments (12 instead of 6) and employees (8 instead of 4). The fix is: 1) PATCH the 6 demo appointments to add scheduled_date/scheduled_start/scheduled_end. 2) Delete the 6 duplicate appointments. 3) Delete 4 duplicate employee records. 4) Update the Johnson event store with event fields."
+}

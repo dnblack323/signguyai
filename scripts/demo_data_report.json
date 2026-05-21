@@ -1,0 +1,369 @@
+{
+  "customers": [
+    {
+      "name": "DEMO - Champion Bakery",
+      "id": "51bf2873-5b40-44a4-aea3-085603885112",
+      "email": "champion@champbakery.example"
+    },
+    {
+      "name": "DEMO - Miller Plumbing",
+      "id": "637ccdc0-653f-4bd0-bbda-78da965c8742",
+      "email": "office@millerplumbing.example"
+    },
+    {
+      "name": "DEMO - Laurel Highlands Racing",
+      "id": "037d6608-3e39-4cd8-ab5b-820d5e1d1710",
+      "email": "team@lhracing.example"
+    },
+    {
+      "name": "DEMO - Connellsville Youth Football",
+      "id": "fe0a7960-efd3-44aa-b38d-09278ced3ff9",
+      "email": "director@cyfootball.example"
+    },
+    {
+      "name": "DEMO - ABC Manufacturing",
+      "id": "f833be9d-9837-497a-8c7f-c2159f68ce19",
+      "email": "marketing@abcmfg.example"
+    },
+    {
+      "name": "DEMO - Johnson Benefit Dinner",
+      "id": "95beb86a-d5c5-4d69-abec-a8795f906e27",
+      "email": "event@johnsonfoundation.example"
+    },
+    {
+      "name": "DEMO - Mountain View Church",
+      "id": "a1583b31-6348-495b-844b-63af7b069b39",
+      "email": "office@mountainviewchurch.example"
+    },
+    {
+      "name": "DEMO - R&R Landscaping",
+      "id": "ed76b8bf-ee41-47f3-bdc8-f13c1389c0a7",
+      "email": "info@rrlandscaping.example"
+    },
+    {
+      "name": "DEMO - Smith Family Reunion",
+      "id": "3577c215-df34-4fcf-96ff-bfc15a3d9cf0",
+      "email": "committee@smithreunion.example"
+    },
+    {
+      "name": "DEMO - Patriot Auto Sales",
+      "id": "4551e008-e97e-4813-ba8e-6a0e68e87189",
+      "email": "sales@patriotauto.example"
+    }
+  ],
+  "orders": [
+    {
+      "order_number": "ORD-0023",
+      "title": "50 Yard Signs - CYF Season 2026",
+      "id": "95bdf2c6-baf7-4249-ad79-c5231a18ff64",
+      "customer": "DEMO - Connellsville Youth Football"
+    },
+    {
+      "order_number": "ORD-0024",
+      "title": "4x8 Grand Opening Banner",
+      "id": "0f2c006b-8add-400e-824c-890b73f2cb74",
+      "customer": "DEMO - Champion Bakery"
+    },
+    {
+      "order_number": "ORD-0025",
+      "title": "4x8 ACM Entrance Sign",
+      "id": "ea405513-fbc9-4598-9529-74fbb4992a4c",
+      "customer": "DEMO - ABC Manufacturing"
+    },
+    {
+      "order_number": "ORD-0026",
+      "title": "Truck Door Decals - 4 vehicles",
+      "id": "bf4446a3-b081-4a57-919c-7e375bd7f11e",
+      "customer": "DEMO - R&R Landscaping"
+    },
+    {
+      "order_number": "ORD-0027",
+      "title": "Showroom Window Lettering",
+      "id": "f3692132-7a12-45ed-ac38-51943ec2f4ed",
+      "customer": "DEMO - Patriot Auto Sales"
+    },
+    {
+      "order_number": "ORD-0028",
+      "title": "Service Van Door Graphics - 2026",
+      "id": "9a0fb2d8-7e1d-44e1-b3b0-06aabc02c551",
+      "customer": "DEMO - Miller Plumbing"
+    },
+    {
+      "order_number": "ORD-0029",
+      "title": "24 Spirit Shirts - Mountain View Church",
+      "id": "cd4dd39c-c4ef-4a46-bbf1-c43ddfff22bd",
+      "customer": "DEMO - Mountain View Church"
+    },
+    {
+      "order_number": "ORD-0030",
+      "title": "Race Trailer Full Wrap - 2026 Season",
+      "id": "36a57405-656d-4f06-91c7-9841de328680",
+      "customer": "DEMO - Laurel Highlands Racing"
+    },
+    {
+      "order_number": "ORD-0031",
+      "title": "Annual Benefit Dinner Signage Package",
+      "id": "2d50de47-875f-4ec2-b4e6-97160f262304",
+      "customer": "DEMO - Johnson Benefit Dinner"
+    },
+    {
+      "order_number": "ORD-0032",
+      "title": "10 Yard Signs - Smith Reunion 2026",
+      "id": "d682a5c5-3b56-4fae-9b54-5599edbe39f0",
+      "customer": "DEMO - Smith Family Reunion"
+    },
+    {
+      "order_number": "ORD-0033",
+      "title": "3x6 Daily Specials Banner",
+      "id": "7939d1bb-f352-423a-805b-743ada035b92",
+      "customer": "DEMO - Champion Bakery"
+    }
+  ],
+  "job_tickets": [
+    {
+      "id": "378c1e7b-0360-4ac5-be5b-53a12c144cde",
+      "item": "18x24 Yard Signs with H-Stakes",
+      "price": 1800.0
+    },
+    {
+      "id": "6cb68239-8e1d-4cb0-af45-665dbf62e408",
+      "item": "4x8 13oz Outdoor Banner - Hems & Grommets",
+      "price": 87.5
+    },
+    {
+      "id": "61af191b-9f62-4d4a-8c38-fba4d4ccbe67",
+      "item": "4x8 ACM/Dibond Directional Sign",
+      "price": 40.0
+    },
+    {
+      "id": "52ecc59d-23f2-4d68-bcea-dc3289d82fa7",
+      "item": "24x36 Truck Door Decals - Laminated",
+      "price": 160.0
+    },
+    {
+      "id": "ff1d6346-31a9-4cac-aa43-94d2c26fb31a",
+      "item": "Showroom Window Lettering - Oracal 651",
+      "price": 20.0
+    },
+    {
+      "id": "77bfbd66-207a-44f1-b23a-741072a89d71",
+      "item": "Cargo Van Door Decals - Spot Graphics",
+      "price": 562.1
+    },
+    {
+      "id": "6c71044c-eb93-415b-b248-3d2a28c2fb08",
+      "item": "24x Church Spirit Shirts - HTV 2-Color",
+      "price": 252.0
+    },
+    {
+      "id": "1624f6db-36cf-4bea-ac96-4a256be7cd23",
+      "item": "Race Trailer Full Wrap - Sponsor Graphics",
+      "price": 562.1
+    },
+    {
+      "id": "7e635681-f4ee-4dea-b3cf-48663bc18fbc",
+      "item": "Table Tent Signs - 11x17 Foamboard",
+      "price": 760.0
+    },
+    {
+      "id": "066a29b4-9da8-4bb4-a9da-87e619927a30",
+      "item": "4x8 Welcome Banner - Event Premium",
+      "price": 87.5
+    },
+    {
+      "id": "48b4c963-9b8f-46d8-9c8f-412255a69bd2",
+      "item": "18x24 Yard Signs - Reunion Directional",
+      "price": 380.0
+    },
+    {
+      "id": "f4934522-b293-47bc-9a5b-1f861ad903c3",
+      "item": "3x6 Indoor Banner - Daily Specials",
+      "price": 87.5
+    }
+  ],
+  "invoices": [
+    {
+      "id": "7cb85fad-4c72-4611-af1a-06bf22525599",
+      "status": "overdue",
+      "customer": "DEMO - Connellsville Youth Football",
+      "total": 1908.0
+    },
+    {
+      "id": "ed8f5f08-6a15-491e-af67-85d1c5d103f0",
+      "status": "sent",
+      "customer": "DEMO - Champion Bakery",
+      "total": 92.75
+    },
+    {
+      "id": "d466f653-f1b5-4d51-884d-07fb7563459c",
+      "status": "paid",
+      "customer": "DEMO - ABC Manufacturing",
+      "total": 42.4
+    },
+    {
+      "id": "9e09448d-dc55-4252-9055-83e2022ed3c7",
+      "status": "sent",
+      "customer": "DEMO - R&R Landscaping",
+      "total": 169.6
+    },
+    {
+      "id": "6dbd2339-aad9-40a6-a988-b0c81a1ff1a0",
+      "status": "overdue",
+      "customer": "DEMO - Patriot Auto Sales",
+      "total": 21.2
+    },
+    {
+      "id": "77f58a46-1a69-44b5-b8ba-6c0121076a86",
+      "status": "sent",
+      "customer": "DEMO - Miller Plumbing",
+      "total": 595.83
+    },
+    {
+      "id": "7db279e5-e4df-4c94-99b8-8040a2b6572d",
+      "status": "paid",
+      "customer": "DEMO - Mountain View Church",
+      "total": 267.12
+    },
+    {
+      "id": "4717bbdd-313e-47ab-823a-3c323ae1b785",
+      "status": "draft",
+      "customer": "DEMO - Laurel Highlands Racing",
+      "total": 595.83
+    },
+    {
+      "id": "75f8b342-0a34-4573-896f-447c96f14230",
+      "status": "draft",
+      "customer": "DEMO - Johnson Benefit Dinner",
+      "total": 898.35
+    },
+    {
+      "id": "2fb0a506-61aa-4233-8c78-977a25f15fdf",
+      "status": "partial",
+      "customer": "DEMO - Laurel Highlands Racing",
+      "total": 595.83
+    }
+  ],
+  "appointments": [
+    {
+      "id": "050636e7-88df-46e9-845a-4fa16abbc834",
+      "title": "Miller Plumbing Van Drop-Off",
+      "date": "2026-05-21"
+    },
+    {
+      "id": "cd7aa929-9fdc-4e7c-be9b-dad60d42cfef",
+      "title": "Champion Bakery Banner Production Review",
+      "date": "2026-05-21"
+    },
+    {
+      "id": "67961962-88cc-4265-b48b-5c525fe70585",
+      "title": "CYF Yard Sign Printing - Production",
+      "date": "2026-05-21"
+    },
+    {
+      "id": "ffaf5a02-052c-466d-b54e-9eeea970d53b",
+      "title": "ABC Mfg Sign Installation",
+      "date": "2026-05-21"
+    },
+    {
+      "id": "f7ed592b-603a-4aeb-9684-3147d796e649",
+      "title": "Patriot Auto - Customer Pickup",
+      "date": "2026-05-21"
+    },
+    {
+      "id": "c0c775b8-3eeb-44eb-b441-c131f1a69ec2",
+      "title": "R&R Landscaping Design Review",
+      "date": "2026-05-21"
+    }
+  ],
+  "employees": [
+    {
+      "id": "a73f3a36-9af6-4cf4-b5f2-b64d0fd58915",
+      "name": "DEMO - Nicole Manager",
+      "role": "manager"
+    },
+    {
+      "id": "5fd39564-c677-4507-b0ae-9d6bebb7b393",
+      "name": "DEMO - Gabe Production",
+      "role": "staff"
+    },
+    {
+      "id": "7b57c5fa-526e-4d8e-a740-c8c9508b28eb",
+      "name": "DEMO - Keith Installer",
+      "role": "staff"
+    },
+    {
+      "id": "0b3b7788-3e01-45f6-b0af-037c48b60990",
+      "name": "DEMO - Bill Owner",
+      "role": "owner"
+    }
+  ],
+  "webstores": [
+    {
+      "id": "fb8cb09f-77da-4ce0-b84a-cecac6ea2e16",
+      "name": "DEMO - Laurel Highlands Racing Gear",
+      "type": "creator"
+    },
+    {
+      "id": "4d33df5b-768a-4118-ba72-3eedbfe3b179",
+      "name": "DEMO - Champion Bakery Branded Merch",
+      "type": "business"
+    },
+    {
+      "id": "1a23c96f-272e-4c29-a3d4-aa852bef64c8",
+      "name": "DEMO - Mountain View Church Fundraiser",
+      "type": "fundraiser"
+    },
+    {
+      "id": "60077d2a-5ffc-45fb-9184-d21ba000c8c7",
+      "name": "DEMO - Johnson Benefit Dinner Store",
+      "type": "event"
+    }
+  ],
+  "pricing_captured": [
+    {
+      "item": "50x Yard Signs 18x24",
+      "price": 1800.0
+    },
+    {
+      "item": "4x8 Banner 13oz",
+      "price": 87.5
+    },
+    {
+      "item": "4x8 ACM Rigid Sign",
+      "price": 40.0
+    },
+    {
+      "item": "Digital Print Decals 24x36 x4",
+      "price": 160.0
+    },
+    {
+      "item": "Cut Vinyl Storefront Lettering 36x72",
+      "price": 20.0
+    },
+    {
+      "item": "Van Door Decals (partial)",
+      "price": 562.1
+    },
+    {
+      "item": "24x Church T-Shirts HTV",
+      "price": 252.0
+    },
+    {
+      "item": "Race Trailer Full Wrap",
+      "price": 562.1
+    },
+    {
+      "item": "10x Yard Signs 18x24 Quick",
+      "price": 380.0
+    },
+    {
+      "item": "3x6 Banner 13oz Quick",
+      "price": 87.5
+    },
+    {
+      "item": "Event Signage Package (20 table signs + banner)",
+      "price": 847.5
+    }
+  ],
+  "errors": []
+}
