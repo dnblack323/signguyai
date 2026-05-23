@@ -22,6 +22,18 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-05-23 — **Phase 1: Backend Dashboard Contracts + Truth Fixes (COMPLETE)**:
+  - **Fix 1**: `GET /api/dashboard/stats` — `active_jobs`/`active_orders` now count from `db.orders` with `_ACTIVE_ORDER_STATUSES` list (not legacy `db.jobs`). Backward-compat `active_jobs` key preserved; new `active_orders` key added.
+  - **Fix 2**: `GET /api/dashboard/stats` — `pending_invoices` excludes `draft`; only `sent`/`overdue` are counted.
+  - **Fix 3**: `GET /api/dashboard/stats` — `today_revenue` uses regex prefix match (`^YYYY-MM-DD`) for robust ISO/date-only string handling.
+  - **Deprecation comments**: `GET /api/dashboard/todays-schedule` and `GET /api/dashboard/clocked-in` marked `[DEPRECATED]` in docstrings.
+  - **New**: `GET /api/dashboard/summary-v2` — 6-metric severity dashboard (due_today, overdue, awaiting_approval, unread_messages, in_production, unpaid_invoices) with `last_updated_at`.
+  - **New**: `GET /api/dashboard/today-command-center` — due order items, appointments/installs, team status (reuses timeclock logic).
+  - **New**: `GET /api/dashboard/production-snapshot` — stage counts (queued/printing/finishing/install/complete), bottlenecks, at-risk items.
+  - **New**: `GET /api/dashboard/customer-attention` — unread conversations, proofs+signatures pending (sorted by urgency_score desc), quote followups.
+  - **New**: `GET /api/dashboard/financial-attention` — unpaid/overdue/due_this_week/recent_payments with top_records (max 3 per section).
+  - **Tests**: `test_phase1_dashboard.py` — 49/49 pass; covers contract shape, empty-dataset, tenant isolation, top_records cap, urgency ordering, backward-compat.
+
 - 2026-05-21 — **Event Store P0 Bug Fixes (COMPLETE)**:
   - **Issue 1**: Product-level fields (`base_item_cost`, `production_cost`, etc.) removed from store create form and Settings financial card. Store forms now only show per-order Shipping & Handling Fee. Product-level pricing moved to Products tab product creation form.
   - **Issue 2**: Fixed black screen on Event Store create — `handleCreateStore` sanitizes all `Optional[float]` and `Optional[date]` fields to `null` (not empty string) before POST. Fixed `toast.error(array)` to safely stringify Pydantic 422 detail arrays.

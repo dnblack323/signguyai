@@ -1,28 +1,31 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { formatCurrency, formatDate } from '../lib/utils';
-import { 
-  Users, FileText, Briefcase, Receipt, TrendingUp, 
+import {
+  Users, FileText, Briefcase, Receipt, TrendingUp,
   AlertTriangle, Plus, ArrowRight, Clock, MessageSquare,
   CheckCircle, Calendar, UserCheck, Coffee, Sun, Sunset, Moon,
-  ChevronRight, Eye, Sparkles, Download, Send, ExternalLink
+  ChevronRight, Eye, Sparkles, Download, Send, ExternalLink,
+  BarChart2, DollarSign, TrendingDown, Package, Layers,
+  RefreshCw, XCircle, Zap
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
 import OnboardingChecklist from '../components/OnboardingChecklist';
 import AssistantNudgesWidget from '../components/AssistantNudgesWidget';
 import PendingCustomerActionsWidget from '../components/dashboard/PendingCustomerActionsWidget';
-import { FoundersBadge, CreditMeter } from '../components/founders';
-import { CreditPurchaseModal } from '../components/credits/CreditBalance';
+import { FoundersBadge } from '../components/founders';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { getAuthToken } from '../lib/authStorage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-// Get greeting based on time of day
+// ─────────────────────────────────────────────
+// Shared helpers
+// ─────────────────────────────────────────────
 const getGreeting = () => {
   const hour = new Date().getHours();
   if (hour < 12) return { text: 'Good morning', icon: Sun, color: 'text-amber-500' };
@@ -30,8 +33,24 @@ const getGreeting = () => {
   return { text: 'Good evening', icon: Moon, color: 'text-indigo-400' };
 };
 
+const formatLastUpdated = (isoStr) => {
+  if (!isoStr) return '';
+  try {
+    return `Last updated at ${new Date(isoStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  } catch { return ''; }
+};
+
+const getSeverityStyles = (severity) => {
+  if (severity === 'red') return { badge: 'bg-red-500/15 text-red-400', dot: '#EF4444' };
+  if (severity === 'amber') return { badge: 'bg-amber-500/15 text-amber-400', dot: '#F59E0B' };
+  return { badge: 'bg-gray-500/10 text-gray-400', dot: '#6B7280' };
+};
+
+// ─────────────────────────────────────────────
+// StatCard — unchanged
+// ─────────────────────────────────────────────
 const StatCard = ({ title, value, icon: Icon, subtitle, href, accentColor = 'var(--accent)' }) => (
-  <div 
+  <div
     className="rounded-xl p-4 sm:p-6 transition-all duration-200 hover:shadow-md group"
     style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}
   >
@@ -39,9 +58,7 @@ const StatCard = ({ title, value, icon: Icon, subtitle, href, accentColor = 'var
       <div className="space-y-1 sm:space-y-2 flex-1 min-w-0">
         <p className="text-xs sm:text-sm font-medium truncate" style={{ color: 'var(--text-muted)' }}>{title}</p>
         <p className="text-2xl sm:text-3xl font-bold font-heading tracking-tight" style={{ color: 'var(--text)' }}>{value}</p>
-        {subtitle && (
-          <p className="text-xs hidden sm:block" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>
-        )}
+        {subtitle && <p className="text-xs hidden sm:block" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>}
       </div>
       <div className="p-2 sm:p-3 rounded-lg transition-transform group-hover:scale-110 flex-shrink-0 ml-2" style={{ backgroundColor: `${accentColor}15` }}>
         <Icon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: accentColor }} />
@@ -58,140 +75,223 @@ const StatCard = ({ title, value, icon: Icon, subtitle, href, accentColor = 'var
 );
 
 const getStatusBadgeStyles = (status) => {
-  // High-contrast badge styles for readability
   const styles = {
-    quoted: { backgroundColor: '#2F8BFB', color: '#FFFFFF' },           // Blue with white text
-    in_production: { backgroundColor: '#F59E0B', color: '#000000' },    // Amber with black text for contrast
-    complete: { backgroundColor: '#22C55E', color: '#FFFFFF' },         // Green with white text
-    delivered: { backgroundColor: '#22C55E', color: '#FFFFFF' },        // Green with white text
-    overdue: { backgroundColor: '#EF4444', color: '#FFFFFF' },          // Red with white text
-    paid: { backgroundColor: '#22C55E', color: '#FFFFFF' },             // Green with white text
-    sent: { backgroundColor: '#8B5CF6', color: '#FFFFFF' },             // Purple with white text
-    draft: { backgroundColor: '#6B7280', color: '#FFFFFF' },            // Gray with white text
-    working: { backgroundColor: '#22C55E', color: '#FFFFFF' },          // Green with white text
-    on_break: { backgroundColor: '#F59E0B', color: '#000000' },         // Amber with black text
-    urgent: { backgroundColor: '#EF4444', color: '#FFFFFF' },           // Red with white text
-    pending: { backgroundColor: '#F59E0B', color: '#000000' },          // Amber with black text
-    approved: { backgroundColor: '#2F8BFB', color: '#FFFFFF' },         // Blue with white text
+    quoted: { backgroundColor: '#2F8BFB', color: '#FFFFFF' },
+    in_production: { backgroundColor: '#F59E0B', color: '#000000' },
+    printing: { backgroundColor: '#F59E0B', color: '#000000' },
+    finishing: { backgroundColor: '#8B5CF6', color: '#FFFFFF' },
+    complete: { backgroundColor: '#22C55E', color: '#FFFFFF' },
+    delivered: { backgroundColor: '#22C55E', color: '#FFFFFF' },
+    overdue: { backgroundColor: '#EF4444', color: '#FFFFFF' },
+    paid: { backgroundColor: '#22C55E', color: '#FFFFFF' },
+    sent: { backgroundColor: '#8B5CF6', color: '#FFFFFF' },
+    draft: { backgroundColor: '#6B7280', color: '#FFFFFF' },
+    working: { backgroundColor: '#22C55E', color: '#FFFFFF' },
+    on_break: { backgroundColor: '#F59E0B', color: '#000000' },
+    urgent: { backgroundColor: '#EF4444', color: '#FFFFFF' },
+    rush: { backgroundColor: '#EF4444', color: '#FFFFFF' },
+    pending: { backgroundColor: '#F59E0B', color: '#000000' },
+    approved: { backgroundColor: '#2F8BFB', color: '#FFFFFF' },
+    queued: { backgroundColor: '#6B7280', color: '#FFFFFF' },
   };
   return styles[status] || styles.draft;
 };
 
-// Pending Approvals Widget
-const PendingApprovalsWidget = ({ approvals }) => {
-  if (!approvals || approvals.length === 0) {
-    return (
-      <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
-        <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
-          <div className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-emerald-500" />
-            <h2 className="font-heading text-base font-semibold" style={{ color: 'var(--text)' }}>
-              Pending Approvals
-            </h2>
-          </div>
-          <span className="text-xs px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500">All clear</span>
-        </div>
-        <div className="p-6 text-center">
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No proofs awaiting approval</p>
-        </div>
+// ─────────────────────────────────────────────
+// Shared card shell
+// ─────────────────────────────────────────────
+const CardShell = ({ icon: Icon, iconColor = 'text-blue-500', title, badge, lastUpdatedAt, children, headerRight }) => (
+  <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+    <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
+      <div className="flex items-center gap-2 min-w-0">
+        <Icon className={`h-4 w-4 flex-shrink-0 ${iconColor}`} />
+        <h2 className="font-heading text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{title}</h2>
+        {badge}
       </div>
-    );
-  }
-
-  return (
-    <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
-      <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
-        <div className="flex items-center gap-2">
-          <Eye className="h-5 w-5 text-amber-500" />
-          <h2 className="font-heading text-base font-semibold" style={{ color: 'var(--text)' }}>
-            Pending Approvals
-          </h2>
-        </div>
-        <span className="text-xs px-2 py-1 rounded-full bg-amber-500/10 text-amber-500 font-medium">
-          {approvals.length} pending
-        </span>
-      </div>
-      <div className="p-4 space-y-2">
-        {approvals.slice(0, 3).map(approval => (
-          <Link key={approval.id} to={`/jobs/${approval.job_id}`}>
-            <div 
-              className="flex items-center justify-between p-3 rounded-lg transition-all duration-150 hover:shadow-sm cursor-pointer"
-              style={{ backgroundColor: 'var(--surface-2)', border: '1px solid transparent' }}
-            >
-              <div>
-                <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>{approval.job_name}</p>
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{approval.customer_name}</p>
-              </div>
-              <ChevronRight className="h-4 w-4" style={{ color: 'var(--text-muted)' }} />
-            </div>
-          </Link>
-        ))}
+      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+        {lastUpdatedAt && (
+          <span className="text-xs hidden sm:inline" style={{ color: 'var(--text-muted)' }}>{formatLastUpdated(lastUpdatedAt)}</span>
+        )}
+        {headerRight}
       </div>
     </div>
+    <div className="p-4">{children}</div>
+  </div>
+);
+
+const ErrorState = ({ message = 'Could not load data.', onRetry }) => (
+  <div className="flex flex-col items-center gap-2 py-4">
+    <XCircle className="h-5 w-5 text-red-400" />
+    <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>{message}</p>
+    {onRetry && (
+      <button onClick={onRetry} className="flex items-center gap-1 text-xs text-blue-400 hover:underline">
+        <RefreshCw className="h-3 w-3" /> Retry
+      </button>
+    )}
+  </div>
+);
+
+const LoadingSpinner = () => (
+  <div className="flex justify-center py-5">
+    <div className="animate-spin rounded-full h-5 w-5 border-b-2" style={{ borderColor: 'var(--accent)' }} />
+  </div>
+);
+
+// ─────────────────────────────────────────────
+// Row 1 — Severity Strip (summary-v2)
+// ─────────────────────────────────────────────
+const STRIP_METRICS = [
+  { key: 'due_today',          label: 'Due Today',         icon: Clock,          href: '/orders' },
+  { key: 'overdue',            label: 'Overdue',           icon: AlertTriangle,  href: '/orders' },
+  { key: 'awaiting_approval',  label: 'Awaiting Approval', icon: Eye,            href: '/approvals' },
+  { key: 'unread_messages',    label: 'Unread Messages',   icon: MessageSquare,  href: '/admin-portal?tab=messages' },
+  { key: 'in_production',      label: 'In Production',     icon: Package,        href: '/orders' },
+  { key: 'unpaid_invoices',    label: 'Unpaid Invoices',   icon: Receipt,        href: '/invoices' },
+];
+
+const SeverityStripWidget = ({ data, loading, error, onRetry }) => {
+  if (loading) return (
+    <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
+      {STRIP_METRICS.map(m => (
+        <div key={m.key} className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--surface)' }} />
+      ))}
+    </div>
   );
-};
-
-// Unread Messages Widget
-const MessagesWidget = ({ messages }) => {
-  if (!messages || messages.length === 0) {
-    return (
-      <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
-        <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
-          <div className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-blue-500" />
-            <h2 className="font-heading text-base font-semibold" style={{ color: 'var(--text)' }}>
-              Messages
-            </h2>
-          </div>
-          <span className="text-xs px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500">Inbox zero</span>
-        </div>
-        <div className="p-6 text-center">
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No unread messages</p>
-        </div>
-      </div>
-    );
-  }
-
-  const totalUnread = messages.reduce((sum, m) => sum + m.unread_count, 0);
 
   return (
-    <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
-      <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
-        <div className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-blue-500" />
-          <h2 className="font-heading text-base font-semibold" style={{ color: 'var(--text)' }}>
-            Messages
-          </h2>
-        </div>
-        <span className="text-xs px-2 py-1 rounded-full bg-blue-500/10 text-blue-500 font-medium">
-          {totalUnread} unread
-        </span>
-      </div>
-      <div className="p-4 space-y-2">
-        {messages.slice(0, 3).map(msg => (
-          <div 
-            key={msg.conversation_id}
-            className="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-150 hover:shadow-sm"
-            style={{ backgroundColor: 'var(--surface-2)' }}
-          >
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="font-medium text-sm truncate" style={{ color: 'var(--text)' }}>{msg.customer_name}</p>
-                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center">
-                  {msg.unread_count}
+    <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3" data-testid="severity-strip">
+      {STRIP_METRICS.map(({ key, label, icon: Icon, href }) => {
+        const metric = data?.metrics?.[key] || { count: 0, severity: 'neutral' };
+        const { badge } = getSeverityStyles(metric.severity);
+        return (
+          <Link key={key} to={href} data-testid={`severity-${key}`}>
+            <div
+              className="rounded-xl px-3 py-3 flex flex-col gap-1 transition-all hover:shadow-md"
+              style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}
+            >
+              <div className="flex items-center justify-between">
+                <Icon className="h-4 w-4" style={{ color: 'var(--text-muted)' }} />
+                <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${badge}`}>
+                  {metric.count}
                 </span>
               </div>
-              <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{msg.last_message}</p>
+              <p className="text-xs leading-tight" style={{ color: 'var(--text-muted)' }}>{label}</p>
             </div>
-          </div>
-        ))}
-      </div>
+          </Link>
+        );
+      })}
     </div>
   );
 };
 
-// Team Status Widget — Shows who's scheduled today and clock-in status
-const TeamStatusWidget = ({ teamStatus }) => {
+// ─────────────────────────────────────────────
+// Row 2 — Today Command Center widgets
+// ─────────────────────────────────────────────
+
+// Due Order Items Today
+const ScheduleWidget = ({ items = [], lastUpdatedAt, loading, error, onRetry }) => {
+  const badge = items.length > 0 && (
+    <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 font-medium ml-1">{items.length}</span>
+  );
+  return (
+    <CardShell
+      icon={Calendar}
+      iconColor="text-purple-500"
+      title="Due Today"
+      badge={badge}
+      lastUpdatedAt={lastUpdatedAt}
+      headerRight={
+        <Link to="/orders">
+          <span className="text-xs text-blue-400 hover:underline">View all orders</span>
+        </Link>
+      }
+    >
+      {loading ? <LoadingSpinner /> : error ? <ErrorState onRetry={onRetry} /> : items.length === 0 ? (
+        <div className="text-center py-3">
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No order items due today.</p>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {items.slice(0, 5).map(item => (
+            <Link key={item.order_item_id} to={item.order_id ? `/orders/${item.order_id}` : '/orders'} data-testid={`schedule-item-${item.order_item_id}`}>
+              <div
+                className="flex items-center justify-between p-2.5 rounded-lg transition-all duration-150 hover:shadow-sm cursor-pointer"
+                style={{
+                  backgroundColor: item.priority === 'urgent' || item.priority === 'rush' ? 'var(--danger-soft)' : 'var(--surface-2)',
+                  border: item.priority === 'urgent' || item.priority === 'rush' ? '1px solid var(--danger)' : '1px solid transparent',
+                }}
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate" style={{ color: 'var(--text)' }}>{item.item_name}</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{item.customer_name}</p>
+                </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                  {(item.priority === 'urgent' || item.priority === 'rush') && <AlertTriangle className="h-3.5 w-3.5 text-red-400" />}
+                  <span className="px-1.5 py-0.5 rounded-full text-xs font-medium" style={getStatusBadgeStyles(item.stage)}>
+                    {item.stage}
+                  </span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </CardShell>
+  );
+};
+
+// Appointments / Installs Today
+const AppointmentsWidget = ({ items = [], lastUpdatedAt, loading, error, onRetry }) => {
+  return (
+    <CardShell
+      icon={Calendar}
+      iconColor="text-blue-400"
+      title="Appointments Today"
+      lastUpdatedAt={lastUpdatedAt}
+      headerRight={
+        <Link to="/productivity?view=calendar">
+          <span className="text-xs text-blue-400 hover:underline">Calendar</span>
+        </Link>
+      }
+    >
+      {loading ? <LoadingSpinner /> : error ? <ErrorState onRetry={onRetry} /> : items.length === 0 ? (
+        <div className="text-center py-3">
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No appointments scheduled today.</p>
+          <Link to="/productivity?view=calendar">
+            <Button size="sm" variant="outline" className="mt-2 text-xs">
+              <Calendar className="h-3 w-3 mr-1" /> Open Calendar
+            </Button>
+          </Link>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {items.slice(0, 4).map(appt => (
+            <div
+              key={appt.appointment_id}
+              className="flex items-center justify-between p-2.5 rounded-lg"
+              style={{ backgroundColor: 'var(--surface-2)' }}
+              data-testid={`appt-${appt.appointment_id}`}
+            >
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm truncate" style={{ color: 'var(--text)' }}>{appt.title}</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  {appt.customer_name}
+                  {appt.start_at && ` · ${new Date(appt.start_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                </p>
+              </div>
+              <span className="px-1.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ml-2" style={getStatusBadgeStyles(appt.status)}>
+                {appt.type?.replace('_', ' ') || 'appt'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </CardShell>
+  );
+};
+
+// Team Status Today — unchanged data structure, updated empty state
+const TeamStatusWidget = ({ teamStatus, lastUpdatedAt, loading, error, onRetry }) => {
   const scheduled = (teamStatus?.employees || []).filter(e => e.is_scheduled);
   const unscheduledClockedIn = (teamStatus?.employees || []).filter(e => !e.is_scheduled && e.clock_status !== 'not_clocked_in');
 
@@ -201,337 +301,526 @@ const TeamStatusWidget = ({ teamStatus }) => {
     if (status === 'finished') return <Clock className="h-4 w-4 text-blue-400" />;
     return <Clock className="h-4 w-4 text-gray-400" />;
   };
+  const getStatusLabel = (s) => ({ working: 'Clocked In', on_break: 'On Break', finished: 'Finished' }[s] || 'Not In');
+  const getStatusBadge = (s) => ({
+    working: { backgroundColor: '#22C55E', color: '#FFFFFF' },
+    on_break: { backgroundColor: '#F59E0B', color: '#000000' },
+    finished: { backgroundColor: '#6B7280', color: '#FFFFFF' },
+  }[s] || { backgroundColor: '#EF444433', color: '#EF4444' });
 
-  const getStatusLabel = (status) => {
-    if (status === 'working') return 'Clocked In';
-    if (status === 'on_break') return 'On Break';
-    if (status === 'finished') return 'Finished';
-    return 'Not In';
-  };
+  const badge = (
+    <div className="flex items-center gap-1.5 ml-1">
+      <span className="text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 font-medium" data-testid="team-clocked-in-count">
+        {teamStatus?.clocked_in_count || 0} in
+      </span>
+      <span className="text-xs px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-500 font-medium" data-testid="team-scheduled-count">
+        {teamStatus?.scheduled_count || 0} sched
+      </span>
+    </div>
+  );
 
-  const getStatusBadge = (status) => {
-    if (status === 'working') return { backgroundColor: '#22C55E', color: '#FFFFFF' };
-    if (status === 'on_break') return { backgroundColor: '#F59E0B', color: '#000000' };
-    if (status === 'finished') return { backgroundColor: '#6B7280', color: '#FFFFFF' };
-    return { backgroundColor: '#EF444433', color: '#EF4444' };
-  };
+  return (
+    <CardShell
+      icon={Users}
+      iconColor="text-emerald-500"
+      title="Team Status"
+      badge={badge}
+      lastUpdatedAt={lastUpdatedAt}
+    >
+      {loading ? <LoadingSpinner /> : error ? <ErrorState onRetry={onRetry} /> : (
+        <>
+          {scheduled.length > 0 && (
+            <div className="mb-2">
+              <p className="text-xs font-medium uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Scheduled Today</p>
+              <div className="space-y-1.5">
+                {scheduled.map(emp => (
+                  <div key={emp.employee_id} className="flex items-center justify-between p-2.5 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }} data-testid={`team-status-${emp.employee_id}`}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: emp.clock_status === 'working' ? 'rgba(34,197,94,0.15)' : emp.clock_status === 'on_break' ? 'rgba(245,158,11,0.15)' : 'rgba(107,114,128,0.1)' }}>
+                        {getStatusIcon(emp.clock_status)}
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>{emp.employee_name}</p>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                          {emp.shift_start && emp.shift_end ? `${emp.shift_start}–${emp.shift_end}` : 'Scheduled'}
+                          {emp.clocked_in_at && ` · in ${new Date(emp.clocked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="px-1.5 py-0.5 rounded-full text-xs font-medium" style={getStatusBadge(emp.clock_status)}>{getStatusLabel(emp.clock_status)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {unscheduledClockedIn.length > 0 && (
+            <div className="mb-2">
+              <p className="text-xs font-medium uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Clocked In (Unscheduled)</p>
+              <div className="space-y-1.5">
+                {unscheduledClockedIn.map(emp => (
+                  <div key={emp.employee_id} className="flex items-center justify-between p-2.5 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }} data-testid={`team-status-unscheduled-${emp.employee_id}`}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(34,197,94,0.15)' }}>
+                        {getStatusIcon(emp.clock_status)}
+                      </div>
+                      <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>{emp.employee_name}</p>
+                    </div>
+                    <span className="px-1.5 py-0.5 rounded-full text-xs font-medium" style={getStatusBadge(emp.clock_status)}>{getStatusLabel(emp.clock_status)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {scheduled.length === 0 && unscheduledClockedIn.length === 0 && (
+            <div className="text-center py-3">
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No team schedule for today. Set schedule.</p>
+              <Link to="/payroll?tab=schedule">
+                <Button size="sm" variant="outline" className="mt-2 text-xs">
+                  <Calendar className="h-3 w-3 mr-1" /> Set Schedule
+                </Button>
+              </Link>
+            </div>
+          )}
+          {(scheduled.length > 0 || unscheduledClockedIn.length > 0) && (
+            <div className="flex items-center justify-between pt-2 mt-1" style={{ borderTop: '1px solid var(--border-light)' }}>
+              <Link to="/payroll?tab=schedule">
+                <span className="text-xs text-blue-400 hover:underline flex items-center gap-1"><Calendar className="h-3 w-3" /> Schedule</span>
+              </Link>
+              <Link to="/timeclock">
+                <span className="text-xs text-blue-400 hover:underline flex items-center gap-1"><Clock className="h-3 w-3" /> Time Clock</span>
+              </Link>
+            </div>
+          )}
+        </>
+      )}
+    </CardShell>
+  );
+};
+
+// ─────────────────────────────────────────────
+// Row 3 — Production Snapshot
+// ─────────────────────────────────────────────
+const STAGE_COLORS = {
+  queued:   { bg: 'bg-gray-500/15',   text: 'text-gray-400',   label: 'Queued' },
+  printing: { bg: 'bg-amber-500/15',  text: 'text-amber-400',  label: 'Printing' },
+  finishing:{ bg: 'bg-purple-500/15', text: 'text-purple-400', label: 'Finishing' },
+  install:  { bg: 'bg-blue-500/15',   text: 'text-blue-400',   label: 'Install' },
+  complete: { bg: 'bg-emerald-500/15',text: 'text-emerald-400',label: 'Complete' },
+};
+
+const ProductionSnapshotWidget = ({ data, loading, error, onRetry }) => {
+  const stages = data?.order_items_by_stage || {};
+  const atRisk = data?.at_risk || [];
+  const bottlenecks = data?.bottlenecks || [];
+
+  const _reasonLabel = (r) => ({
+    overdue: 'Overdue',
+    due_within_24h_not_started: 'Due Soon',
+    blocked: 'Blocked',
+  }[r] || r);
+  const _reasonColor = (r) => ({
+    overdue: { backgroundColor: '#EF4444', color: '#FFFFFF' },
+    due_within_24h_not_started: { backgroundColor: '#F59E0B', color: '#000000' },
+    blocked: { backgroundColor: '#6B7280', color: '#FFFFFF' },
+  }[r] || { backgroundColor: '#6B7280', color: '#FFFFFF' });
 
   return (
     <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
-      <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
+      <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
         <div className="flex items-center gap-2">
-          <Users className="h-5 w-5 text-emerald-500" />
-          <h2 className="font-heading text-base font-semibold" style={{ color: 'var(--text)' }}>
-            Team Status
-          </h2>
+          <BarChart2 className="h-4 w-4 text-blue-400" />
+          <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Production Snapshot</h2>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 font-medium" data-testid="team-clocked-in-count">
-            {teamStatus?.clocked_in_count || 0} in
-          </span>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 font-medium" data-testid="team-scheduled-count">
-            {teamStatus?.scheduled_count || 0} scheduled
-          </span>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {data?.last_updated_at && <span className="text-xs hidden sm:inline" style={{ color: 'var(--text-muted)' }}>{formatLastUpdated(data.last_updated_at)}</span>}
+          <Link to="/orders" data-testid="production-board-link">
+            <span className="text-xs text-blue-400 hover:underline">Production Board</span>
+          </Link>
         </div>
       </div>
-      <div className="p-4">
-        {/* Scheduled Today Section */}
-        {scheduled.length > 0 && (
-          <div className="mb-3">
-            <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
-              Scheduled Today
-            </p>
-            <div className="space-y-1.5">
-              {scheduled.map(emp => (
-                <div
-                  key={emp.employee_id}
-                  className="flex items-center justify-between p-2.5 rounded-lg"
-                  style={{ backgroundColor: 'var(--surface-2)' }}
-                  data-testid={`team-status-${emp.employee_id}`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: emp.clock_status === 'working' ? 'rgba(34,197,94,0.15)' : emp.clock_status === 'on_break' ? 'rgba(245,158,11,0.15)' : 'rgba(107,114,128,0.1)' }}
-                    >
-                      {getStatusIcon(emp.clock_status)}
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>{emp.employee_name}</p>
-                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                        {emp.shift_start && emp.shift_end ? `${emp.shift_start} - ${emp.shift_end}` : 'Scheduled'}
-                        {emp.clocked_in_at && ` · In since ${new Date(emp.clocked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
-                      </p>
-                    </div>
-                  </div>
-                  <span
-                    className="px-2 py-0.5 rounded-full text-xs font-medium"
-                    style={getStatusBadge(emp.clock_status)}
-                  >
-                    {getStatusLabel(emp.clock_status)}
-                  </span>
+      {loading ? <div className="p-4"><LoadingSpinner /></div> : error ? <div className="p-4"><ErrorState onRetry={onRetry} /></div> : (
+        <div className="p-4 space-y-4">
+          {/* Stage counts */}
+          <div className="grid grid-cols-5 gap-2" data-testid="production-stages">
+            {Object.entries(STAGE_COLORS).map(([key, style]) => (
+              <div key={key} className="flex flex-col items-center gap-1 p-2 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }}>
+                <span className={`text-xl font-bold font-heading ${style.text}`}>{stages[key] ?? 0}</span>
+                <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${style.bg} ${style.text}`}>{style.label}</span>
+              </div>
+            ))}
+          </div>
+          {/* At-risk + bottlenecks */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* At risk */}
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>At Risk</p>
+              {atRisk.length === 0 ? (
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No production bottlenecks right now.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {atRisk.slice(0, 4).map(item => (
+                    <Link key={item.order_item_id} to={item.order_id ? `/orders/${item.order_id}` : '/orders'} data-testid={`at-risk-${item.order_item_id}`}>
+                      <div className="flex items-center justify-between p-2 rounded-lg hover:shadow-sm" style={{ backgroundColor: 'var(--surface-2)' }}>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate" style={{ color: 'var(--text)' }}>{item.item_name || item.order_number}</p>
+                          {item.order_number && <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{item.order_number}</p>}
+                        </div>
+                        <span className="ml-2 px-1.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0" style={_reasonColor(item.reason)}>
+                          {_reasonLabel(item.reason)}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
                 </div>
-              ))}
+              )}
+            </div>
+            {/* Bottlenecks */}
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Bottlenecks</p>
+              {bottlenecks.length === 0 ? (
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No production bottlenecks right now.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {bottlenecks.slice(0, 3).map(b => (
+                    <div key={b.stage} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }}>
+                      <div>
+                        <p className="text-xs font-medium capitalize" style={{ color: 'var(--text)' }}>{b.stage}</p>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{b.oldest_item_age_hours}h oldest</p>
+                      </div>
+                      <span className="text-sm font-bold" style={{ color: 'var(--text)' }}>{b.backlog_count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-        )}
-
-        {/* Unscheduled but Clocked In */}
-        {unscheduledClockedIn.length > 0 && (
-          <div className="mb-3">
-            <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
-              Clocked In (Unscheduled)
-            </p>
-            <div className="space-y-1.5">
-              {unscheduledClockedIn.map(emp => (
-                <div
-                  key={emp.employee_id}
-                  className="flex items-center justify-between p-2.5 rounded-lg"
-                  style={{ backgroundColor: 'var(--surface-2)' }}
-                  data-testid={`team-status-unscheduled-${emp.employee_id}`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(34,197,94,0.15)' }}>
-                      {getStatusIcon(emp.clock_status)}
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>{emp.employee_name}</p>
-                      {emp.clocked_in_at && (
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                          Since {new Date(emp.clocked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <span
-                    className="px-2 py-0.5 rounded-full text-xs font-medium"
-                    style={getStatusBadge(emp.clock_status)}
-                  >
-                    {getStatusLabel(emp.clock_status)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Empty state */}
-        {scheduled.length === 0 && unscheduledClockedIn.length === 0 && (
-          <div className="text-center py-4">
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No employees scheduled or clocked in today</p>
-            <Link to="/payroll?tab=schedule">
-              <Button size="sm" variant="outline" className="mt-3 text-xs">
-                <Calendar className="h-3 w-3 mr-1" /> Set Up Schedule
-              </Button>
-            </Link>
-          </div>
-        )}
-
-        {/* Footer link */}
-        {(scheduled.length > 0 || unscheduledClockedIn.length > 0) && (
-          <div className="flex items-center justify-between pt-2 mt-2" style={{ borderTop: '1px solid var(--border-light)' }}>
-            <Link to="/payroll?tab=schedule">
-              <span className="text-xs text-blue-500 hover:underline flex items-center gap-1">
-                <Calendar className="h-3 w-3" /> View Schedule
-              </span>
-            </Link>
-            <Link to="/timeclock">
-              <span className="text-xs text-blue-500 hover:underline flex items-center gap-1">
-                <Clock className="h-3 w-3" /> Time Clock
-              </span>
-            </Link>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
 
-// Today's Schedule Widget
-const ScheduleWidget = ({ schedule }) => {
+// ─────────────────────────────────────────────
+// Row 4 — Customer Attention widgets
+// ─────────────────────────────────────────────
+
+// Unread Messages — clickable rows
+const MessagesWidget = ({ data, loading, error, onRetry }) => {
+  const messages = data?.unread_conversations || [];
+  const totalUnread = messages.reduce((sum, m) => sum + (m.unread_count || 0), 0);
+
+  const badge = messages.length > 0 && (
+    <span className="text-xs px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-medium ml-1">{totalUnread} unread</span>
+  );
+
   return (
-    <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
-      <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
-        <div className="flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-purple-500" />
-          <h2 className="font-heading text-base font-semibold" style={{ color: 'var(--text)' }}>
-            Today's Schedule
-          </h2>
-        </div>
-        <Link to="/orders">
-          <span className="text-xs text-blue-500 hover:underline">View all jobs</span>
+    <CardShell
+      icon={MessageSquare}
+      iconColor="text-blue-500"
+      title="Messages"
+      badge={messages.length === 0 ? <span className="text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 ml-1">Inbox zero</span> : badge}
+      lastUpdatedAt={data?.last_updated_at}
+      headerRight={
+        <Link to="/admin-portal?tab=messages">
+          <span className="text-xs text-blue-400 hover:underline">All messages</span>
         </Link>
-      </div>
-      <div className="p-4">
-        {(!schedule || schedule.length === 0) ? (
-          <div className="text-center py-4">
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No jobs due today</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {schedule.slice(0, 4).map(item => (
-              <Link key={item.id} to="/orders">
-                <div 
-                  className="flex items-center justify-between p-3 rounded-lg transition-all duration-150 hover:shadow-sm cursor-pointer"
-                  style={{ 
-                    backgroundColor: item.priority === 'overdue' ? 'var(--danger-soft)' : 'var(--surface-2)',
-                    border: item.priority === 'overdue' ? '1px solid var(--danger)' : '1px solid transparent'
-                  }}
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate" style={{ color: 'var(--text)' }}>{item.name}</p>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{item.customer_name}</p>
-                  </div>
+      }
+    >
+      {loading ? <LoadingSpinner /> : error ? <ErrorState onRetry={onRetry} /> : messages.length === 0 ? (
+        <div className="text-center py-3">
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No unread customer messages.</p>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {messages.slice(0, 3).map(msg => (
+            <Link key={msg.conversation_id} to="/admin-portal?tab=messages" data-testid={`message-row-${msg.conversation_id}`}>
+              <div className="flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-all duration-150 hover:shadow-sm" style={{ backgroundColor: 'var(--surface-2)' }}>
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    {item.priority === 'overdue' && (
-                      <AlertTriangle className="h-4 w-4 text-red-500" />
-                    )}
-                    <span 
-                      className="px-2 py-0.5 rounded-full text-xs font-medium"
-                      style={getStatusBadgeStyles(item.status)}
-                    >
-                      {item.status.replace('_', ' ')}
+                    <p className="font-medium text-sm truncate" style={{ color: 'var(--text)' }}>{msg.customer_name}</p>
+                    <span className="flex-shrink-0 w-4 h-4 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center">
+                      {msg.unread_count}
                     </span>
                   </div>
+                  <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{msg.last_message_preview}</p>
+                </div>
+                <ChevronRight className="h-3.5 w-3.5 ml-2 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </CardShell>
+  );
+};
+
+// Pending Approvals & Signatures — links to /approvals
+const PendingApprovalsWidget = ({ data, loading, error, onRetry }) => {
+  const approvals = data?.approvals_signatures_pending || [];
+  const badge = approvals.length > 0
+    ? <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-medium ml-1">{approvals.length} pending</span>
+    : <span className="text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 ml-1">All clear</span>;
+
+  return (
+    <CardShell
+      icon={approvals.length > 0 ? Eye : CheckCircle}
+      iconColor={approvals.length > 0 ? 'text-amber-500' : 'text-emerald-500'}
+      title="Pending Approvals"
+      badge={badge}
+      lastUpdatedAt={data?.last_updated_at}
+      headerRight={
+        <Link to="/approvals">
+          <span className="text-xs text-blue-400 hover:underline">All approvals</span>
+        </Link>
+      }
+    >
+      {loading ? <LoadingSpinner /> : error ? <ErrorState onRetry={onRetry} /> : approvals.length === 0 ? (
+        <div className="text-center py-3">
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No approvals pending. Send a new proof.</p>
+          <Link to="/approvals">
+            <Button size="sm" variant="outline" className="mt-2 text-xs">
+              <Send className="h-3 w-3 mr-1" /> Send Proof
+            </Button>
+          </Link>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {approvals.slice(0, 4).map(item => (
+            <Link key={item.record_id} to="/approvals" data-testid={`approval-${item.record_id}`}>
+              <div className="flex items-center justify-between p-2.5 rounded-lg transition-all duration-150 hover:shadow-sm cursor-pointer" style={{ backgroundColor: 'var(--surface-2)', border: '1px solid transparent' }}>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate" style={{ color: 'var(--text)' }}>{item.order_number || item.customer_name}</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    {item.customer_name} · {item.type} · {item.age_hours < 1 ? '<1h' : `${Math.round(item.age_hours)}h`} ago
+                  </p>
+                </div>
+                <ChevronRight className="h-3.5 w-3.5 ml-2 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </CardShell>
+  );
+};
+
+// Quote Follow-Ups
+const QuoteFollowupsWidget = ({ data, loading, error, onRetry }) => {
+  const quotes = data?.quote_followups || [];
+  const badge = quotes.length > 0 && (
+    <span className="text-xs px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 font-medium ml-1">{quotes.length}</span>
+  );
+
+  return (
+    <CardShell
+      icon={Send}
+      iconColor="text-purple-500"
+      title="Quote Follow-Ups"
+      badge={badge}
+      lastUpdatedAt={data?.last_updated_at}
+      headerRight={
+        <Link to="/orders?filter=quote_sent">
+          <span className="text-xs text-blue-400 hover:underline">All quotes</span>
+        </Link>
+      }
+    >
+      {loading ? <LoadingSpinner /> : error ? <ErrorState onRetry={onRetry} /> : quotes.length === 0 ? (
+        <div className="text-center py-3">
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No pending quote follow-ups.</p>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {quotes.slice(0, 4).map(q => (
+            <div key={q.quote_id} className="flex items-center justify-between p-2.5 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }} data-testid={`quote-followup-${q.quote_id}`}>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm truncate" style={{ color: 'var(--text)' }}>{q.customer_name}</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  {formatCurrency(q.quote_total)} · {Math.round(q.age_days)}d old
+                </p>
+              </div>
+              <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-medium flex-shrink-0 ml-2">
+                {Math.round(q.age_days)}d
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </CardShell>
+  );
+};
+
+// ─────────────────────────────────────────────
+// Row 5 — Financial Attention
+// ─────────────────────────────────────────────
+const FinancialSectionCard = ({ title, icon: Icon, iconColor, data: section, emptyText, href }) => (
+  <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+    <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
+      <div className="flex items-center gap-1.5">
+        <Icon className={`h-4 w-4 ${iconColor}`} />
+        <span className="text-sm font-semibold font-heading" style={{ color: 'var(--text)' }}>{title}</span>
+      </div>
+      {section?.count > 0 && (
+        <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${iconColor.includes('red') ? 'bg-red-500/10 text-red-400' : iconColor.includes('amber') ? 'bg-amber-500/10 text-amber-400' : 'bg-blue-500/10 text-blue-400'}`}>
+          {section.count}
+        </span>
+      )}
+    </div>
+    <div className="p-3">
+      {!section || section.count === 0 ? (
+        <p className="text-xs text-center py-2" style={{ color: 'var(--text-muted)' }}>{emptyText}</p>
+      ) : (
+        <>
+          <p className="text-lg font-bold font-heading mb-2" style={{ color: 'var(--text)' }}>{formatCurrency(section.total_amount)}</p>
+          <div className="space-y-1">
+            {(section.top_records || []).map((rec, i) => (
+              <Link key={rec.invoice_id || i} to={href || '/invoices'}>
+                <div className="flex items-center justify-between text-xs py-1 hover:opacity-80" style={{ borderTop: i > 0 ? '1px solid var(--border-light)' : 'none' }}>
+                  <span className="truncate flex-1" style={{ color: 'var(--text-muted)' }}>{rec.customer_name}</span>
+                  <span className="font-medium ml-2 flex-shrink-0" style={{ color: 'var(--text)' }}>{formatCurrency(rec.amount)}</span>
                 </div>
               </Link>
             ))}
           </div>
-        )}
+        </>
+      )}
+    </div>
+  </div>
+);
+
+const FinancialAttentionRow = ({ data, loading, error, onRetry }) => {
+  if (loading) return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {[1,2,3,4].map(i => <div key={i} className="h-32 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--surface)' }} />)}
+    </div>
+  );
+  if (error) return <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}><ErrorState onRetry={onRetry} /></div>;
+
+  return (
+    <div data-testid="financial-attention-row">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <DollarSign className="h-4 w-4 text-emerald-400" />
+          <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Financial Attention</h2>
+        </div>
+        <div className="flex items-center gap-2">
+          {data?.last_updated_at && <span className="text-xs hidden sm:inline" style={{ color: 'var(--text-muted)' }}>{formatLastUpdated(data.last_updated_at)}</span>}
+          <Link to="/invoices"><span className="text-xs text-blue-400 hover:underline">All invoices</span></Link>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <FinancialSectionCard title="Unpaid" icon={Receipt} iconColor="text-amber-400" data={data?.unpaid} emptyText="No unpaid invoices." href="/invoices?status=sent" />
+        <FinancialSectionCard title="Overdue" icon={AlertTriangle} iconColor="text-red-400" data={data?.overdue} emptyText="No overdue invoices." href="/invoices?status=overdue" />
+        <FinancialSectionCard title="Due This Week" icon={Clock} iconColor="text-blue-400" data={data?.due_this_week} emptyText="Nothing due this week." href="/invoices" />
+        <FinancialSectionCard title="Recent Payments" icon={TrendingUp} iconColor="text-emerald-400" data={data?.recent_payments} emptyText="No recent payments." href="/invoices?status=paid" />
       </div>
     </div>
   );
 };
 
-// Recent AI Documents Widget
+// ─────────────────────────────────────────────
+// Row 6 — Quick Actions (enhanced)
+// ─────────────────────────────────────────────
+const QuickActionBtn = ({ to, onClick, icon: Icon, iconColor, label, testId, disabled }) => {
+  const inner = (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full flex items-center justify-start gap-2 px-3 sm:px-4 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 hover:shadow-sm disabled:opacity-50"
+      style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
+      data-testid={testId}
+    >
+      <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" style={{ color: iconColor || 'var(--accent)' }} />
+      <span className="truncate">{label}</span>
+    </button>
+  );
+  return to ? <Link to={to}>{inner}</Link> : inner;
+};
+
+const QuickActions = ({ onSendDigest, sendingDigest }) => (
+  <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+    <div className="px-5 py-3.5" style={{ borderBottom: '1px solid var(--border-light)' }}>
+      <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Quick Actions</h2>
+    </div>
+    <div className="p-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+      <QuickActionBtn to="/orders/new"             icon={Plus}        iconColor="var(--accent)"  label="New Order"            testId="quick-add-quote" />
+      <QuickActionBtn to="/customers"              icon={Plus}        iconColor="var(--accent)"  label="New Customer"         testId="quick-add-customer" />
+      <QuickActionBtn to="/orders"                 icon={Briefcase}   iconColor="#2F8BFB"        label="Production Board"     testId="quick-production-board" />
+      <QuickActionBtn to="/productivity?view=calendar" icon={Calendar} iconColor="#8B5CF6"      label="Open Calendar"        testId="quick-open-calendar" />
+      <QuickActionBtn to="/approvals"              icon={Send}        iconColor="#F59E0B"        label="Send Approval"        testId="quick-send-approval" />
+      <QuickActionBtn to="/invoices/new"           icon={FileText}    iconColor="#10B981"        label="Create Invoice"       testId="quick-create-invoice" />
+      <QuickActionBtn to="/ai-assistant"           icon={Sparkles}    iconColor="#8B5CF6"        label="AI Assistant"         testId="quick-ai-assistant" />
+      <QuickActionBtn
+        onClick={onSendDigest}
+        disabled={sendingDigest}
+        icon={Send} iconColor="#8B5CF6"
+        label={sendingDigest ? 'Sending…' : 'Send Digest'}
+        testId="quick-send-digest"
+      />
+      <QuickActionBtn to="/timeclock"              icon={Clock}       iconColor="var(--accent)"  label="Time Clock"           testId="quick-clock-in" />
+    </div>
+  </div>
+);
+
+// RecentAIDocumentsWidget — unchanged
 const RecentAIDocumentsWidget = ({ documents }) => {
   const handleDownload = async (doc) => {
     try {
       const token = getAuthToken();
-      const res = await axios.get(`${API}/documents/${doc.id}/download`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await axios.get(`${API}/documents/${doc.id}/download`, { headers: { Authorization: `Bearer ${token}` } });
       const { file_data, file_type, original_filename } = res.data;
-      
-      const byteCharacters = atob(file_data);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: file_type });
-      
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = original_filename;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      const bytes = atob(file_data);
+      const arr = new Uint8Array(bytes.length).map((_, i) => bytes.charCodeAt(i));
+      const url = URL.createObjectURL(new Blob([arr], { type: file_type }));
+      const a = Object.assign(document.createElement('a'), { href: url, download: original_filename });
+      document.body.appendChild(a); a.click(); URL.revokeObjectURL(url); document.body.removeChild(a);
       toast.success('Document downloaded');
-    } catch (err) {
-      toast.error('Failed to download');
-    }
+    } catch { toast.error('Failed to download'); }
   };
 
   const handleView = async (doc) => {
     try {
       const token = getAuthToken();
-      const res = await axios.get(`${API}/documents/${doc.id}/download`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await axios.get(`${API}/documents/${doc.id}/download`, { headers: { Authorization: `Bearer ${token}` } });
       const { file_data, file_type } = res.data;
-      
-      const byteCharacters = atob(file_data);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: file_type });
-      const url = window.URL.createObjectURL(blob);
-      window.open(url, '_blank');
-    } catch (err) {
-      toast.error('Failed to open document');
-    }
+      const bytes = atob(file_data);
+      const arr = new Uint8Array(bytes.length).map((_, i) => bytes.charCodeAt(i));
+      window.open(URL.createObjectURL(new Blob([arr], { type: file_type })), '_blank');
+    } catch { toast.error('Failed to open document'); }
   };
 
   const getToolName = (tags) => {
     const toolTag = tags?.find(t => t !== 'ai-generated');
-    const toolNames = {
-      'document_composer': 'Document Composer',
-      'business_copywriter': 'Business Copywriter',
-      'blog_creator': 'Blog Creator',
-      'email_template': 'Email Generator',
-      'job_post_creator': 'Order Post Creator',
-      'social_media_creator': 'Social Media Creator'
-    };
-    return toolNames[toolTag] || 'AI Tool';
+    return ({ document_composer: 'Composer', business_copywriter: 'Copywriter', blog_creator: 'Blog', email_template: 'Email', job_post_creator: 'Order Post', social_media_creator: 'Social' }[toolTag]) || 'AI Tool';
   };
 
   return (
     <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
-      <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
+      <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
         <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-purple-500" />
-          <h2 className="font-heading text-base font-semibold" style={{ color: 'var(--text)' }}>
-            Recent AI Documents
-          </h2>
+          <Sparkles className="h-4 w-4 text-purple-500" />
+          <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Recent AI Documents</h2>
         </div>
-        <Link to="/ai-tools">
-          <span className="text-xs text-purple-500 hover:underline flex items-center gap-1">
-            Create new <ArrowRight className="h-3 w-3" />
-          </span>
-        </Link>
+        <Link to="/ai-tools"><span className="text-xs text-purple-400 hover:underline flex items-center gap-1">Create new <ArrowRight className="h-3 w-3" /></span></Link>
       </div>
       <div className="p-4">
-        {(!documents || documents.length === 0) ? (
-          <div className="text-center py-6">
-            <Sparkles className="h-8 w-8 mx-auto mb-2 text-purple-500/30" />
+        {!documents?.length ? (
+          <div className="text-center py-4">
+            <Sparkles className="h-7 w-7 mx-auto mb-2 text-purple-500/30" />
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No AI documents yet</p>
-            <Link to="/ai-tools">
-              <Button size="sm" variant="outline" className="mt-3 text-purple-500 border-purple-500/30">
-                <Plus className="h-3 w-3 mr-1" /> Create Document
-              </Button>
-            </Link>
+            <Link to="/ai-tools"><Button size="sm" variant="outline" className="mt-2 text-xs text-purple-500 border-purple-500/30"><Plus className="h-3 w-3 mr-1" /> Create</Button></Link>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {documents.map(doc => (
-              <div 
-                key={doc.id}
-                className="flex items-center justify-between p-3 rounded-lg transition-all duration-150 hover:shadow-sm"
-                style={{ backgroundColor: 'var(--surface-2)', border: '1px solid transparent' }}
-              >
-                <div className="flex-1 min-w-0 mr-3">
+              <div key={doc.id} className="flex items-center justify-between p-2.5 rounded-lg" style={{ backgroundColor: 'var(--surface-2)', border: '1px solid transparent' }}>
+                <div className="flex-1 min-w-0 mr-2">
                   <p className="font-medium text-sm truncate" style={{ color: 'var(--text)' }}>{doc.name}</p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {getToolName(doc.tags)} • {formatDate(doc.created_at)}
-                  </p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{getToolName(doc.tags)} · {formatDate(doc.created_at)}</p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button 
-                    onClick={() => handleView(doc)}
-                    className="p-1.5 rounded-md hover:bg-purple-500/10 transition-colors"
-                    title="View"
-                  >
-                    <Eye className="h-4 w-4 text-purple-500" />
-                  </button>
-                  <button 
-                    onClick={() => handleDownload(doc)}
-                    className="p-1.5 rounded-md hover:bg-purple-500/10 transition-colors"
-                    title="Download"
-                  >
-                    <Download className="h-4 w-4 text-purple-500" />
-                  </button>
-                  <Link to="/documents">
-                    <button 
-                      className="p-1.5 rounded-md hover:bg-purple-500/10 transition-colors"
-                      title="Send to customer"
-                    >
-                      <Send className="h-4 w-4 text-purple-500" />
-                    </button>
-                  </Link>
+                  <button onClick={() => handleView(doc)} className="p-1.5 rounded-md hover:bg-purple-500/10 transition-colors" title="View"><Eye className="h-3.5 w-3.5 text-purple-500" /></button>
+                  <button onClick={() => handleDownload(doc)} className="p-1.5 rounded-md hover:bg-purple-500/10 transition-colors" title="Download"><Download className="h-3.5 w-3.5 text-purple-500" /></button>
                 </div>
               </div>
             ))}
@@ -542,176 +831,137 @@ const RecentAIDocumentsWidget = ({ documents }) => {
   );
 };
 
-const QuickActions = ({ onSendDigest, sendingDigest }) => (
-  <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
-    <div className="px-4 sm:px-6 py-3 sm:py-4" style={{ borderBottom: '1px solid var(--border-light)' }}>
-      <h2 className="font-heading text-sm sm:text-base font-semibold" style={{ color: 'var(--text)' }}>
-        Quick Actions
-      </h2>
-    </div>
-    <div className="p-3 sm:p-4 grid grid-cols-2 gap-2 sm:gap-3">
-      <Link to="/customers">
-        <button 
-          className="w-full flex items-center justify-start gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 hover:shadow-sm"
-          style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
-          data-testid="quick-add-customer"
-        >
-          <Plus className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" style={{ color: 'var(--accent)' }} /> 
-          <span className="truncate">New Customer</span>
-        </button>
-      </Link>
-      <Link to="/orders/new">
-        <button 
-          className="w-full flex items-center justify-start gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 hover:shadow-sm"
-          style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
-          data-testid="quick-add-quote"
-        >
-          <Plus className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" style={{ color: 'var(--accent)' }} /> 
-          <span className="truncate">New Order</span>
-        </button>
-      </Link>
-      <button 
-        onClick={onSendDigest}
-        disabled={sendingDigest}
-        className="w-full flex items-center justify-start gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 hover:shadow-sm disabled:opacity-50"
-        style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
-        data-testid="quick-send-digest"
-      >
-        <Send className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" style={{ color: '#8B5CF6' }} /> 
-        <span className="truncate">{sendingDigest ? 'Sending...' : "Send Digest"}</span>
-      </button>
-      <Link to="/timeclock">
-        <button 
-          className="w-full flex items-center justify-start gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 hover:shadow-sm"
-          style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
-          data-testid="quick-clock-in"
-        >
-          <Clock className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" style={{ color: 'var(--accent)' }} /> 
-          <span className="truncate">Time Clock</span>
-        </button>
-      </Link>
-    </div>
-  </div>
-);
-
+// ─────────────────────────────────────────────
+// Main Dashboard component
+// ─────────────────────────────────────────────
 export default function Dashboard() {
   const { user } = useAuth();
-  const { 
-    fetchDashboardStats, fetchCustomers, fetchJobs, fetchInvoices,
-    dashboardStats, customers, jobs, invoices 
-  } = useApp();
-  const [loading, setLoading] = useState(true);
-  const [pendingApprovals, setPendingApprovals] = useState([]);
-  const [unreadMessages, setUnreadMessages] = useState([]);
-  const [clockedInEmployees, setClockedInEmployees] = useState([]);
-  const [teamStatusToday, setTeamStatusToday] = useState(null);
-  const [todaysSchedule, setTodaysSchedule] = useState([]);
-  const [recentAIDocs, setRecentAIDocs] = useState([]);
-  const [sendingDigest, setSendingDigest] = useState(false);
-  
-  // Invoice preview modal state
-  const [previewInvoiceId, setPreviewInvoiceId] = useState(null);
+  const { fetchDashboardStats, dashboardStats } = useApp();
+
+  // V1 data
+  const [summaryV2,          setSummaryV2]          = useState(null);
+  const [commandCenter,      setCommandCenter]      = useState(null);
+  const [productionSnapshot, setProductionSnapshot] = useState(null);
+  const [customerAttention,  setCustomerAttention]  = useState(null);
+  const [financialAttention, setFinancialAttention] = useState(null);
+  const [recentAIDocs,       setRecentAIDocs]       = useState([]);
+
+  // Per-section loading/error states
+  const [loadingSummary,    setLoadingSummary]    = useState(true);
+  const [loadingCommand,    setLoadingCommand]    = useState(true);
+  const [loadingProduction, setLoadingProduction] = useState(true);
+  const [loadingCustomer,   setLoadingCustomer]   = useState(true);
+  const [loadingFinancial,  setLoadingFinancial]  = useState(true);
+
+  const [errorSummary,    setErrorSummary]    = useState(false);
+  const [errorCommand,    setErrorCommand]    = useState(false);
+  const [errorProduction, setErrorProduction] = useState(false);
+  const [errorCustomer,   setErrorCustomer]   = useState(false);
+  const [errorFinancial,  setErrorFinancial]  = useState(false);
+
+  const [loading,        setLoading]        = useState(true);
+  const [sendingDigest,  setSendingDigest]  = useState(false);
+  const [previewInvoiceId,   setPreviewInvoiceId]   = useState(null);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
-  
-  const greeting = getGreeting();
+
+  const greeting     = getGreeting();
   const GreetingIcon = greeting.icon;
 
-  const handleInvoiceClick = (invoiceId) => {
-    setPreviewInvoiceId(invoiceId);
-    setIsInvoiceModalOpen(true);
-  };
+  const getHeaders = () => ({ Authorization: `Bearer ${getAuthToken()}` });
+
+  // Individual section fetchers (used for initial load + retry)
+  const fetchSummary = useCallback(async () => {
+    setLoadingSummary(true); setErrorSummary(false);
+    try {
+      const res = await axios.get(`${API}/dashboard/summary-v2`, { headers: getHeaders() });
+      setSummaryV2(res.data);
+    } catch (err) { console.warn('[Dashboard] summary-v2 failed', err); setErrorSummary(true); }
+    setLoadingSummary(false);
+  }, []);
+
+  const fetchCommandCenter = useCallback(async () => {
+    setLoadingCommand(true); setErrorCommand(false);
+    try {
+      const res = await axios.get(`${API}/dashboard/today-command-center`, { headers: getHeaders() });
+      setCommandCenter(res.data);
+    } catch (err) { console.warn('[Dashboard] today-command-center failed', err); setErrorCommand(true); }
+    setLoadingCommand(false);
+  }, []);
+
+  const fetchProductionSnapshot = useCallback(async () => {
+    setLoadingProduction(true); setErrorProduction(false);
+    try {
+      const res = await axios.get(`${API}/dashboard/production-snapshot`, { headers: getHeaders() });
+      setProductionSnapshot(res.data);
+    } catch (err) { console.warn('[Dashboard] production-snapshot failed', err); setErrorProduction(true); }
+    setLoadingProduction(false);
+  }, []);
+
+  const fetchCustomerAttention = useCallback(async () => {
+    setLoadingCustomer(true); setErrorCustomer(false);
+    try {
+      const res = await axios.get(`${API}/dashboard/customer-attention`, { headers: getHeaders() });
+      setCustomerAttention(res.data);
+    } catch (err) { console.warn('[Dashboard] customer-attention failed', err); setErrorCustomer(true); }
+    setLoadingCustomer(false);
+  }, []);
+
+  const fetchFinancialAttention = useCallback(async () => {
+    setLoadingFinancial(true); setErrorFinancial(false);
+    try {
+      const res = await axios.get(`${API}/dashboard/financial-attention`, { headers: getHeaders() });
+      setFinancialAttention(res.data);
+    } catch (err) { console.warn('[Dashboard] financial-attention failed', err); setErrorFinancial(true); }
+    setLoadingFinancial(false);
+  }, []);
+
+  useEffect(() => {
+    const loadAll = async () => {
+      setLoading(true);
+      await Promise.all([
+        fetchDashboardStats(),
+        fetchSummary(),
+        fetchCommandCenter(),
+        fetchProductionSnapshot(),
+        fetchCustomerAttention(),
+        fetchFinancialAttention(),
+        axios.get(`${API}/dashboard/recent-ai-documents`, { headers: getHeaders() })
+          .then(res => setRecentAIDocs(res.data))
+          .catch(err => console.warn('[Dashboard] recent-ai-documents failed', err)),
+      ]);
+      setLoading(false);
+    };
+    loadAll();
+  }, []);
 
   const handleSendDigest = async () => {
     setSendingDigest(true);
     try {
-      const token = getAuthToken();
-      const res = await axios.post(`${API}/digest/send`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await axios.post(`${API}/digest/send`, {}, { headers: getHeaders() });
       toast.success(res.data.message || 'Daily digest sent!');
-    } catch (err) {
+    } catch {
       toast.error('Failed to send digest. Check Settings > Daily Digest to add recipients.');
     }
     setSendingDigest(false);
   };
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      const token = getAuthToken();
-      const headers = { Authorization: `Bearer ${token}` };
-      
-      try {
-        const today = new Date().toISOString().slice(0, 10);
-        // Fetch all dashboard data in parallel
-        await Promise.all([
-          fetchDashboardStats(),
-          fetchCustomers(),
-          fetchJobs(),
-          fetchInvoices(),
-          // Fetch new widget data
-          axios.get(`${API}/dashboard/unread-messages`, { headers }).then(res => setUnreadMessages(res.data)).catch(() => {}),
-          axios.get(`${API}/dashboard/clocked-in`, { headers }).then(res => setClockedInEmployees(res.data)).catch(() => {}),
-          axios.get(`${API}/dashboard/team-status-today`, { headers }).then(res => setTeamStatusToday(res.data)).catch(() => {}),
-          axios.get(`${API}/productivity/items`, {
-            headers,
-            params: {
-              start_date: today,
-              end_date: today,
-              include_completed: false,
-              item_types: 'job,production_task,appointment,schedule_shift',
-            }
-          }).then(res => {
-            const items = res.data?.items || [];
-            setTodaysSchedule(items.map(item => ({
-              id: item.uid,
-              name: item.title,
-              customer_name: item.customer_name || item.assigned_user_name || item.source_label,
-              due_date: (item.start_datetime || item.due_datetime || '').slice(0, 10),
-              status: item.status,
-              priority: item.priority,
-            })));
-          }).catch(() => {}),
-          axios.get(`${API}/productivity/items`, {
-            headers,
-            params: {
-              include_completed: false,
-              statuses: 'pending,awaiting_approval,awaiting_quote,awaiting_review',
-              item_types: 'job,production_task',
-            }
-          }).then(res => {
-            const items = res.data?.items || [];
-            setPendingApprovals(items.map(item => ({
-              id: item.uid,
-              job_id: item.related_order_id || item.related_job_id || item.related_job_ticket_id || item.source_id,
-              job_name: item.title,
-              customer_name: item.customer_name || 'Unknown',
-              created_at: item.start_datetime || item.due_datetime || '',
-              status: item.status,
-            })));
-          }).catch(() => {}),
-          axios.get(`${API}/dashboard/recent-ai-documents`, { headers }).then(res => setRecentAIDocs(res.data)).catch(() => {}),
-        ]);
-      } catch (err) {
-        console.error('Error loading dashboard:', err);
-      }
-      setLoading(false);
-    };
-    loadData();
-  }, []);
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--accent)' }}></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--accent)' }} />
       </div>
     );
   }
 
+  const dueItems   = commandCenter?.due_order_items_today        || [];
+  const appts      = commandCenter?.appointments_installs_today  || [];
+  const teamStatus = commandCenter?.team_status_today            || null;
+  const cmdLastUpdated = commandCenter?.last_updated_at;
+
   return (
-    <div className="space-y-6 sm:space-y-8 animate-fade-in" data-testid="dashboard">
-      {/* Personalized Header with Founders Badge */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+    <div className="space-y-5 sm:space-y-6 animate-fade-in" data-testid="dashboard">
+      {/* ── Header ─────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 sm:gap-3 mb-1">
             <GreetingIcon className={`h-6 w-6 sm:h-7 sm:w-7 ${greeting.color}`} />
@@ -734,44 +984,18 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-        <StatCard
-          title="Total Customers"
-          value={dashboardStats?.total_customers || 0}
-          icon={Users}
-          href="/customers"
-          accentColor="#2F8BFB"
-        />
-        <StatCard
-          title="Active Orders"
-          value={dashboardStats?.active_jobs || 0}
-          icon={Briefcase}
-          href="/orders"
-          accentColor="#10B981"
-        />
-        <StatCard
-          title="Pending Invoices"
-          value={dashboardStats?.pending_invoices || 0}
-          icon={Receipt}
-          href="/invoices"
-          accentColor="#F59E0B"
-        />
-        <StatCard
-          title="Today's Revenue"
-          value={formatCurrency(dashboardStats?.today_revenue || 0)}
-          icon={TrendingUp}
-          href="/financials"
-          accentColor="#8B5CF6"
-        />
+      {/* ── Stat Cards (legacy stats endpoint, kept for compat) ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <StatCard title="Total Customers"   value={dashboardStats?.total_customers || 0}              icon={Users}      href="/customers"  accentColor="#2F8BFB" />
+        <StatCard title="Active Orders"     value={dashboardStats?.active_orders ?? dashboardStats?.active_jobs ?? 0} icon={Briefcase} href="/orders" accentColor="#10B981" />
+        <StatCard title="Pending Invoices"  value={dashboardStats?.pending_invoices || 0}              icon={Receipt}    href="/invoices"   accentColor="#F59E0B" />
+        <StatCard title="Today's Revenue"   value={formatCurrency(dashboardStats?.today_revenue || 0)} icon={TrendingUp} href="/financials" accentColor="#8B5CF6" />
       </div>
 
-      {/* Overdue Alert */}
+      {/* ── Overdue Alert ────────────────────── */}
       {dashboardStats?.overdue_count > 0 && (
-        <div 
-          className="rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-          style={{ backgroundColor: 'var(--danger-soft)', border: '1px solid var(--danger)' }}
-        >
+        <div className="rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+          style={{ backgroundColor: 'var(--danger-soft)', border: '1px solid var(--danger)' }}>
           <div className="flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 flex-shrink-0" style={{ color: 'var(--danger)' }} />
             <div>
@@ -784,54 +1008,66 @@ export default function Dashboard() {
             </div>
           </div>
           <Link to="/invoices?status=overdue">
-            <Button 
-              size="sm" 
-              data-testid="view-overdue"
-              className="text-white w-full sm:w-auto"
-              style={{ backgroundColor: 'var(--danger)' }}
-            >
+            <Button size="sm" data-testid="view-overdue" className="text-white w-full sm:w-auto" style={{ backgroundColor: 'var(--danger)' }}>
               View Overdue
             </Button>
           </Link>
         </div>
       )}
 
-      {/* Main Content Grid - responsive */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        {/* Left Column - Schedule & Approvals */}
-        <div className="space-y-4 sm:space-y-6">
-          <ScheduleWidget schedule={todaysSchedule} />
-          <PendingApprovalsWidget approvals={pendingApprovals} />
+      {/* ── Row 1: Severity Strip ──────────────── */}
+      <SeverityStripWidget data={summaryV2} loading={loadingSummary} error={errorSummary} onRetry={fetchSummary} />
+
+      {/* ── Row 2: Today Command Center ─────────── */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Clock className="h-4 w-4 text-blue-400" />
+          <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Today's Command Center</h2>
+          {cmdLastUpdated && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatLastUpdated(cmdLastUpdated)}</span>}
         </div>
-        
-        {/* Middle Column - Messages & Team Status */}
-        <div className="space-y-4 sm:space-y-6">
-          <MessagesWidget messages={unreadMessages} />
-          <TeamStatusWidget teamStatus={teamStatusToday} />
-        </div>
-        
-        {/* Right Column - Quick Actions & Recent AI Docs */}
-        <div className="space-y-4 sm:space-y-6">
-          <QuickActions onSendDigest={handleSendDigest} sendingDigest={sendingDigest} />
-          <PendingCustomerActionsWidget />
-          <RecentAIDocumentsWidget documents={recentAIDocs} />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
+          <ScheduleWidget   items={dueItems} lastUpdatedAt={cmdLastUpdated} loading={loadingCommand} error={errorCommand} onRetry={fetchCommandCenter} />
+          <AppointmentsWidget items={appts} lastUpdatedAt={cmdLastUpdated} loading={loadingCommand} error={errorCommand} onRetry={fetchCommandCenter} />
+          <TeamStatusWidget teamStatus={teamStatus} lastUpdatedAt={cmdLastUpdated} loading={loadingCommand} error={errorCommand} onRetry={fetchCommandCenter} />
         </div>
       </div>
 
-      {/* Onboarding Checklist - Shows for new users */}
-      <OnboardingChecklist />
+      {/* ── Row 3: Production Snapshot ──────────── */}
+      <ProductionSnapshotWidget data={productionSnapshot} loading={loadingProduction} error={errorProduction} onRetry={fetchProductionSnapshot} />
 
-      {/* Proactive AI Assistant nudges — stale quotes, overdue invoices, pending appointments */}
+      {/* ── Row 4: Customer Attention ───────────── */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Users className="h-4 w-4 text-blue-400" />
+          <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Customer Attention</h2>
+          {customerAttention?.last_updated_at && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatLastUpdated(customerAttention.last_updated_at)}</span>}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
+          <MessagesWidget        data={customerAttention} loading={loadingCustomer} error={errorCustomer} onRetry={fetchCustomerAttention} />
+          <PendingApprovalsWidget data={customerAttention} loading={loadingCustomer} error={errorCustomer} onRetry={fetchCustomerAttention} />
+          <QuoteFollowupsWidget  data={customerAttention} loading={loadingCustomer} error={errorCustomer} onRetry={fetchCustomerAttention} />
+        </div>
+      </div>
+
+      {/* ── Row 5: Financial Attention ───────────── */}
+      <FinancialAttentionRow data={financialAttention} loading={loadingFinancial} error={errorFinancial} onRetry={fetchFinancialAttention} />
+
+      {/* ── Row 6: Quick Actions + Supporting Widgets ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
+        <QuickActions onSendDigest={handleSendDigest} sendingDigest={sendingDigest} />
+        <PendingCustomerActionsWidget />
+        <RecentAIDocumentsWidget documents={recentAIDocs} />
+      </div>
+
+      {/* ── Onboarding + AI Nudges ───────────────── */}
+      <OnboardingChecklist />
       <AssistantNudgesWidget />
 
-      {/* Invoice Preview Modal */}
+      {/* ── Invoice Preview Modal ────────────────── */}
       <InvoicePreviewModal
         invoiceId={previewInvoiceId}
         isOpen={isInvoiceModalOpen}
-        onClose={() => {
-          setIsInvoiceModalOpen(false);
-          setPreviewInvoiceId(null);
-        }}
+        onClose={() => { setIsInvoiceModalOpen(false); setPreviewInvoiceId(null); }}
       />
     </div>
   );
