@@ -219,6 +219,12 @@ const SeverityStripWidget = ({ data, loading, error, onRetry }) => {
     </div>
   );
 
+  if (error) return (
+    <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+      <ErrorState onRetry={onRetry} />
+    </div>
+  );
+
   return (
     <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3" data-testid="severity-strip">
       {STRIP_METRICS.map(({ key, label, icon: Icon, href }) => {
@@ -1109,7 +1115,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-2 mb-3">
           <Clock className="h-4 w-4 text-blue-400" />
           <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Today's Command Center</h2>
-          {cmdLastUpdated && (() => {
+          {commandCenter && (() => {
             const f = getFreshness(cmdLastUpdated);
             return (
               <span

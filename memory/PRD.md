@@ -22,6 +22,13 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-05-23 — **Phase 4: Dashboard Tests + Hardening (COMPLETE)**:
+  - Playwright E2E test suite at `/app/tests/test_dashboard_phase4.py` — 46/46 tests pass
+  - Coverage: smoke tests (3), empty states (7), error states (6), retry (1), staleness/trust (4), CTA routing (12), ordering (3), guardrails (8), DOM link checks (2)
+  - **UI fix**: `SeverityStripWidget` now renders `<ErrorState>` when summary-v2 fails (previously silent)
+  - **UI fix**: Today's Command Center header shows "Last updated unavailable." when timestamp absent (was only rendering when timestamp present)
+  - Test infra: route mocks updated for Playwright handler signature `(route, request)`; login helper goes directly to `/login` and uses `[data-testid=auth-email-input]` selectors
+
 - 2026-05-23 — **Phase 3: Dashboard Correctness + Urgency + Error/Trust States (COMPLETE)**:
   - **ErrorState hardened**: `data-testid=section-error` visible block with "Couldn't load this section." + "Please retry." + styled Retry button (`data-testid=section-error-retry`); never falls through to empty-state copy
   - **Staleness/trust**: `getFreshness()` helper computes age from `last_updated_at`; shows "⚠ Data may be stale." in amber if >10 min; "Last updated unavailable." if timestamp missing — all 6 data-heavy cards updated
