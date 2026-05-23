@@ -22,6 +22,20 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-05-23 — **Phase 2: Frontend Dashboard Wiring to V1 Endpoints (COMPLETE)**:
+  - Rewrote `Dashboard.js` to consume all 5 V1 endpoints (summary-v2, today-command-center, production-snapshot, customer-attention, financial-attention)
+  - Row 1: Severity Strip — 6 metric badges (due_today, overdue, awaiting_approval, unread_messages, in_production, unpaid_invoices) with neutral/amber/red
+  - Row 2: Today Command Center — Due Order Items, Appointments, Team Status (3-col grid)
+  - Row 3: Production Snapshot — stage counts + At Risk + Bottlenecks (full width)
+  - Row 4: Customer Attention — Messages, Pending Approvals, Quote Follow-Ups (3-col grid); message rows clickable → `/admin-portal?tab=messages`; approvals link → `/approvals`
+  - Row 5: Financial Attention — Unpaid/Overdue/Due This Week/Recent Payments (4-col grid)
+  - Row 6: Quick Actions — expanded to 9 buttons (added Production Board, Open Calendar, Send Approval, Create Invoice, AI Assistant)
+  - **Fixed**: All `/jobs/:id` links removed from dashboard; `View all orders` replaces `View all jobs`
+  - **Fixed**: Removed unused `fetchJobs()`, `fetchCustomers()`, `fetchInvoices()` from dashboard mount
+  - **Fixed**: All 6 `.catch(() => {})` replaced with `console.warn` + per-section error states + retry hooks
+  - **Fixed**: `Last updated at HH:MM` shown on every data-heavy card using backend `last_updated_at`
+  - **Tests**: 18/18 frontend tests pass (test_reports/iteration_162.json)
+
 - 2026-05-23 — **Phase 1: Backend Dashboard Contracts + Truth Fixes (COMPLETE)**:
   - **Fix 1**: `GET /api/dashboard/stats` — `active_jobs`/`active_orders` now count from `db.orders` with `_ACTIVE_ORDER_STATUSES` list (not legacy `db.jobs`). Backward-compat `active_jobs` key preserved; new `active_orders` key added.
   - **Fix 2**: `GET /api/dashboard/stats` — `pending_invoices` excludes `draft`; only `sent`/`overdue` are counted.
