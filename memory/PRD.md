@@ -22,6 +22,14 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-05-23 — **Phase 3: Dashboard Correctness + Urgency + Error/Trust States (COMPLETE)**:
+  - **ErrorState hardened**: `data-testid=section-error` visible block with "Couldn't load this section." + "Please retry." + styled Retry button (`data-testid=section-error-retry`); never falls through to empty-state copy
+  - **Staleness/trust**: `getFreshness()` helper computes age from `last_updated_at`; shows "⚠ Data may be stale." in amber if >10 min; "Last updated unavailable." if timestamp missing — all 6 data-heavy cards updated
+  - **At Risk sorting**: `sortAtRisk()` with `AT_RISK_PRIORITY = {blocked:0, overdue:1, due_within_24h_not_started:2}`, then earliest `due_at` first — enforced on frontend regardless of backend order
+  - **Customer Attention sorting**: `sortByUrgency()` applied to Messages, Approvals, Quotes — `urgency_score` desc, then timestamp desc
+  - **CTA routing fixes**: "Production Board" → `/production-board` (was `/orders`); "Create Invoice" → `/invoices` (was non-existent `/invoices/new`)
+  - **Tests**: 19/19 frontend tests pass (test_reports/iteration_163.json)
+
 - 2026-05-23 — **Phase 2: Frontend Dashboard Wiring to V1 Endpoints (COMPLETE)**:
   - Rewrote `Dashboard.js` to consume all 5 V1 endpoints (summary-v2, today-command-center, production-snapshot, customer-attention, financial-attention)
   - Row 1: Severity Strip — 6 metric badges (due_today, overdue, awaiting_approval, unread_messages, in_production, unpaid_invoices) with neutral/amber/red
